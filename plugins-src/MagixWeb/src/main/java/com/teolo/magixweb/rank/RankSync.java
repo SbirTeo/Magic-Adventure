@@ -353,7 +353,7 @@ public class RankSync implements Listener {
      * riempiono le righe rimaste vuote. Si tocca solo chi ha first_join NULL, quindi
      * rilanciarlo non cambia nulla.
      */
-    public void recuperaPrimiAccessi() {
+    public void backfillFirstJoins() {
         int riempiti = 0;
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(

@@ -49,7 +49,7 @@ chat:
 # Guida per amministratori del sito (/manage?section=guida).
 # Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html;
 # MagixWeb li raccoglie e li porta sul sito. Le credenziali del sito restano solo qui.
-guida:
+guide:
   enabled: true
   # Ogni quanto ricontrollare i file dei capitoli (minuti). Il primo giro parte 10 secondi
   # dopo l'avvio, quando tutti i plugin hanno gia' scritto il loro.

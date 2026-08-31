@@ -124,7 +124,7 @@ public class ChatBridge implements Listener {
     // -----------------------------------------------------------------------------------------
 
     /** Da chiamare periodicamente: legge i messaggi del sito (async) e li manda in chat (main thread). */
-    public void consegnaAlGioco() {
+    public void deliverToGame() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             List<Messaggio> nuovi = leggiDaConsegnare();
             if (nuovi.isEmpty()) return;
@@ -237,7 +237,7 @@ public class ChatBridge implements Listener {
      * tutti in chat (dopo una notte di down sarebbero decine di righe di colpo). Si marcano
      * come consegnati quelli piu' vecchi di qualche minuto e si riparte da li'.
      */
-    public void scartaArretrati(int minuti) {
+    public void dropBacklog(int minuti) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Connection c = database.getConnection();
                  PreparedStatement ps = c.prepareStatement(
@@ -255,7 +255,7 @@ public class ChatBridge implements Listener {
     }
 
     /** Cancella lo storico oltre le ore configurate (0 = tieni tutto). */
-    public void pulisciStorico() {
+    public void trimHistory() {
         if (oreDaTenere <= 0) return;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Connection c = database.getConnection();

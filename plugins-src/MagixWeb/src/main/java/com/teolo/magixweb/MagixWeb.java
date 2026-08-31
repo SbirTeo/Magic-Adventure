@@ -2,7 +2,7 @@ package com.teolo.magixweb;
 
 import com.teolo.magixweb.chat.ChatBridge;
 import com.teolo.magixweb.db.Database;
-import com.teolo.magixweb.guida.GuidaSync;
+import com.teolo.magixweb.guide.GuideSync;
 import com.teolo.magixweb.util.GuidaStaff;
 import com.teolo.magixweb.rank.RankPlaceholders;
 import com.teolo.magixweb.store.StoreDelivery;
@@ -19,42 +19,42 @@ public class MagixWeb extends JavaPlugin {
         saveDefaultConfig();
         database = new Database(this);
 
-        // Ne' /link ne' la verifica in due passaggi stanno piu' qui: se ne occupa MagixAuth,
-        // che e' il solo a decidere chi entra in partita. Averne due che congelano lo stesso
-        // giocatore vorrebbe dire due cronometri, due sblocchi e nessuno dei due padrone.
-        // /link in particolare NON va reintrodotto: su un server in offline mode bastava
-        // entrare col nome di un altro per prendersi il suo account sul sito.
+        // Neither /link nor two-factor lives here any more: MagixAuth owns both, and it is the
+        // only thing deciding who gets into the game. Two plugins freezing the same player would
+        // mean two timers, two releases, and neither one in charge.
+        // /link in particular must NOT come back: on an offline-mode server, walking in under
+        // someone else's name was enough to take over their account on the site.
         setupRankSync();
         setupStoreDelivery();
         setupChatBridge();
-        setupGuidaSync();
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
+        setupGuideSync();
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         getLogger().info("MagixWeb abilitato.");
     }
 
     /**
-     * Guida per amministratori: raccoglie i capitoli che gli altri plugin lasciano nella
-     * propria cartella e li porta sul sito. Parte con qualche secondo di ritardo, cosi' tutti
-     * i plugin hanno gia' scritto il loro; poi ricontrolla ogni tanto, perche' un plugin
-     * ricaricato a caldo riscrive il file senza che il server riparta.
+     * The administrators' guide: collects the chapters the other plugins leave in their own
+     * folders and carries them to the site. It starts a few seconds late so every plugin has
+     * already written its own, then checks again now and then, because a plugin reloaded on the
+     * fly rewrites its file without the server restarting.
      */
-    private void setupGuidaSync() {
-        if (!getConfig().getBoolean("guida.enabled", true)) {
+    private void setupGuideSync() {
+        if (!getConfig().getBoolean("guide.enabled", true)) {
             return;
         }
-        GuidaSync guida = new GuidaSync(this, database);
-        int minuti = Math.max(1, getConfig().getInt("guida.check-interval-minutes", 15));
-        Bukkit.getScheduler().runTaskTimer(this, guida::sincronizza, 200L, minuti * 60L * 20L);
-        getLogger().info("MagixWeb: guida per amministratori attiva (controllo ogni " + minuti + " min).");
+        GuideSync guide = new GuideSync(this, database);
+        int minutes = Math.max(1, getConfig().getInt("guide.check-interval-minutes", 15));
+        Bukkit.getScheduler().runTaskTimer(this, guide::sync, 200L, minutes * 60L * 20L);
+        getLogger().info("MagixWeb: guida per amministratori attiva (controllo ogni " + minutes + " min).");
     }
 
 
-    /** Capitolo di MagixWeb nella guida del gestionale (plugins-src/GUIDA-STAFF.md). */
-    private void scriviGuidaStaff() {
+    /** MagixWeb's own chapter in the admin panel's guide (plugins-src/GUIDA-STAFF.md). */
+    private void writeStaffGuide() {
         GuidaStaff.crea(this, "MagixWeb — il ponte con il sito", 40)
-                // Numeri presi dal config vero: cambiando una chiave, questo capitolo
-                // sulla guida del gestionale cambia da solo (vedi util/ValoriConfig).
+                // The numbers come from the real config: change a key and this chapter in the
+                // admin panel follows along on its own (see util/ValoriConfig).
                 .valori(new com.teolo.magixweb.util.ValoriConfig(this))
                 .intro("Tiene insieme gioco e sito: gradi, chat live, consegna degli acquisti e la guida che "
                         + "stai leggendo. Non ha comandi in gioco: lavora da solo, in sottofondo. È l'unico "
@@ -87,7 +87,7 @@ public class MagixWeb extends JavaPlugin {
                         "Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html; "
                                 + "MagixWeb passa a raccoglierli e li porta in questa pagina. Il primo giro parte "
                                 + "una decina di secondi dopo l'avvio, poi si ripete ogni "
-                                + "{{cfg:guida.check-interval-minutes}} minuti.",
+                                + "{{cfg:guide.check-interval-minutes}} minuti.",
                         "Se un capitolo non compare, il file sul disco dice da che parte sta il problema: se c'è, "
                                 + "non è arrivato al sito; se non c'è, non l'ha scritto il plugin.")
 
@@ -98,7 +98,7 @@ public class MagixWeb extends JavaPlugin {
                         "chat.mirror-game-chat", "Se la chat del gioco si vede sul sito.",
                         "chat.skip-older-than-minutes", "Oltre quanti minuti un messaggio del sito non viene più ripubblicato in gioco.",
                         "store.check-interval-seconds", "Ogni quanto il server guarda se ci sono acquisti da consegnare.",
-                        "guida.check-interval-minutes", "Ogni quanto si rileggono i capitoli della guida.")
+                        "guide.check-interval-minutes", "Ogni quanto si rileggono i capitoli della guida.")
 
                 .guasto("Sul sito i gradi sono vecchi",
                         "Il giro periodico li rimette in pari da solo. Se non succede, il database del sito non è "
@@ -120,13 +120,13 @@ public class MagixWeb extends JavaPlugin {
                 .scrivi();
     }
 
-    /** Chat live del sito: specchia la chat pubblica sul sito e ripubblica in gioco cio' che si scrive li'. */
+    /** The site's live chat: mirrors public chat onto the site, and speaks in game what is written there. */
     private void setupChatBridge() {
         if (!getConfig().getBoolean("chat.enabled", true)) {
             return;
         }
 
-        ChatBridge ponte = new ChatBridge(
+        ChatBridge bridge = new ChatBridge(
                 this,
                 database,
                 getConfig().getBoolean("chat.mirror-game-chat", true),
@@ -134,38 +134,38 @@ public class MagixWeb extends JavaPlugin {
                 getConfig().getInt("chat.batch-size", 20),
                 getConfig().getInt("chat.keep-hours", 48));
 
-        Bukkit.getPluginManager().registerEvents(ponte, this);
+        Bukkit.getPluginManager().registerEvents(bridge, this);
 
-        // Quello che il sito ha ricevuto mentre il server era spento non va riversato tutto in chat.
-        ponte.scartaArretrati(getConfig().getInt("chat.skip-older-than-minutes", 5));
+        // What the site collected while the server was down must not all be dumped into chat.
+        bridge.dropBacklog(getConfig().getInt("chat.skip-older-than-minutes", 5));
 
-        int secondi = Math.max(1, getConfig().getInt("chat.check-interval-seconds", 2));
-        Bukkit.getScheduler().runTaskTimer(this, ponte::consegnaAlGioco, 100L, secondi * 20L);
-        // Pulizia dello storico una volta all'ora (la prima dopo un minuto dall'avvio).
-        Bukkit.getScheduler().runTaskTimer(this, ponte::pulisciStorico, 1200L, 20L * 3600L);
+        int seconds = Math.max(1, getConfig().getInt("chat.check-interval-seconds", 2));
+        Bukkit.getScheduler().runTaskTimer(this, bridge::deliverToGame, 100L, seconds * 20L);
+        // Trim the history once an hour, the first pass a minute after startup.
+        Bukkit.getScheduler().runTaskTimer(this, bridge::trimHistory, 1200L, 20L * 3600L);
 
-        getLogger().info("MagixWeb: chat live del sito attiva (controllo ogni " + secondi + "s).");
+        getLogger().info("MagixWeb: chat live del sito attiva (controllo ogni " + seconds + "s).");
     }
 
-    /** Consegna degli acquisti: esegue i comandi che il sito accoda dopo un pagamento confermato. */
+    /** Store delivery: runs the commands the site queues up after a confirmed payment. */
     private void setupStoreDelivery() {
-        int secondi = Math.max(3, getConfig().getInt("store.check-interval-seconds", 10));
-        int lotto = getConfig().getInt("store.batch-size", 20);
-        StoreDelivery delivery = new StoreDelivery(this, database, lotto);
+        int seconds = Math.max(3, getConfig().getInt("store.check-interval-seconds", 10));
+        int batchSize = getConfig().getInt("store.batch-size", 20);
+        StoreDelivery delivery = new StoreDelivery(this, database, batchSize);
 
-        long ticks = secondi * 20L;
+        long ticks = seconds * 20L;
         Bukkit.getScheduler().runTaskTimer(this, delivery::processQueue, 200L, ticks);
-        getLogger().info("MagixWeb: consegna acquisti store attiva (ogni " + secondi + "s).");
+        getLogger().info("MagixWeb: consegna acquisti store attiva (ogni " + seconds + "s).");
     }
 
-    /** Tag dei gruppi sul sito: sincronizza LuckPerms -> tabella mc_ranks (al join + a intervalli). */
+    /** Group tags on the site: syncs LuckPerms into the mc_ranks table, on join and on a timer. */
     private void setupRankSync() {
         RankSync rankSync = new RankSync(this, database);
         if (!rankSync.hook()) {
             return;
         }
         Bukkit.getPluginManager().registerEvents(rankSync, this);
-        rankSync.subscribeToChanges(); // aggiornamento immediato a ogni cambio di grado/prefisso
+        rankSync.subscribeToChanges(); // update the moment a group or prefix changes
 
         int intervalMinutes = getConfig().getInt("ranks.sync-interval-minutes", 5);
         if (intervalMinutes > 0) {
@@ -176,18 +176,18 @@ public class MagixWeb extends JavaPlugin {
             }, ticks, ticks);
         }
 
-        // Al reload/riavvio del plugin i giocatori sono gia' online: nessun PlayerJoinEvent in arrivo.
+        // After a plugin reload the players are already online, so no PlayerJoinEvent is coming.
         Bukkit.getScheduler().runTaskLater(this, () -> {
             rankSync.syncGroups();
             rankSync.syncOnlinePlayers();
         }, 100L);
 
-        // Primo accesso di chi ha gia' giocato: si legge dai dati di Bukkit e si scrive nelle
-        // righe rimaste vuote. Fuori dal thread principale, e' un giro sul database.
-        Bukkit.getScheduler().runTaskAsynchronously(this, rankSync::recuperaPrimiAccessi);
+        // First join for people who already played: read it out of Bukkit's own data and fill in
+        // the rows that were left empty. Off the main thread, since it is a database round trip.
+        Bukkit.getScheduler().runTaskAsynchronously(this, rankSync::backfillFirstJoins);
         getLogger().info("MagixWeb: sincronizzazione gradi LuckPerms attiva.");
 
-        // %magixweb_namecolor% per i formati di chat: stesso colore-nome che usa il sito
+        // %magixweb_namecolor% for chat formats: the same name colour the site uses
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new RankPlaceholders(rankSync, getPluginMeta().getVersion()).register();
             getLogger().info("MagixWeb: placeholder %magixweb_namecolor% registrato.");

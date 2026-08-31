@@ -6,12 +6,12 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Placeholder di PlaceholderAPI esposti da MagixWeb.
+ * The PlaceholderAPI placeholders MagixWeb offers.
  *
- * <p><b>%magixweb_namecolor%</b> — codice colore (formato {@code &#RRGGBB}) del grado di peso
- * piu' alto del giocatore, lo STESSO che il sito usa per scrivere il suo nome. Serve nei formati
- * di chat: senza, il nome eredita l'ultimo colore del prefisso (quindi il grado piu' BASSO se
- * i prefissi sono impilati) e gioco e sito non coincidono.
+ * <p><b>%magixweb_namecolor%</b> — the colour code ({@code &#RRGGBB}) of the player's
+ * highest-weight group, the SAME one the site uses to write their name. Chat formats need it:
+ * without it the name inherits the last colour of the prefix — so the LOWEST group when prefixes
+ * are stacked — and the game stops matching the site.
  */
 public class RankPlaceholders extends PlaceholderExpansion {
 
@@ -40,13 +40,13 @@ public class RankPlaceholders extends PlaceholderExpansion {
 
     @Override
     public boolean persist() {
-        return true; // resta registrato tra un /papi reload e l'altro
+        return true; // stays registered across a /papi reload
     }
 
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String params) {
         if (!"namecolor".equalsIgnoreCase(params)) {
-            return null; // placeholder sconosciuto: PAPI lo lascia invariato
+            return null; // unknown placeholder: PAPI leaves it as it is
         }
         if (!(player instanceof Player online) || !online.isOnline()) {
             return "";
