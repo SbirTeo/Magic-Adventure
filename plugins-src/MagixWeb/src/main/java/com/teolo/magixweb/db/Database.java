@@ -100,11 +100,11 @@ public class Database {
             // pubblicare la guida senza aspettare che qualcuno lanci una migrazione a mano.
             st.execute("CREATE TABLE IF NOT EXISTS guide_staff (" +
                     "plugin VARCHAR(64) NOT NULL PRIMARY KEY," +
-                    "titolo VARCHAR(160) NOT NULL," +
-                    "versione VARCHAR(32) NOT NULL DEFAULT ''," +
-                    "ordine INT NOT NULL DEFAULT 100," +
-                    "corpo_html MEDIUMTEXT NOT NULL," +
-                    "aggiornata_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" +
+                    "title VARCHAR(160) NOT NULL," +
+                    "version VARCHAR(32) NOT NULL DEFAULT ''," +
+                    "sort_order INT NOT NULL DEFAULT 100," +
+                    "body_html MEDIUMTEXT NOT NULL," +
+                    "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
             plugin.getLogger().info("MagixWeb: connesso a MariaDB (" + db + ").");

@@ -371,9 +371,9 @@ public final class GuidaStaff {
 
         String versione = pluginYml == null ? "" : pluginYml.getString("version", "");
         String documento = "<!--guida\n"
-                + "titolo: " + titolo + "\n"
-                + "versione: " + versione + "\n"
-                + "ordine: " + ordine + "\n"
+                + "title: " + titolo + "\n"
+                + "version: " + versione + "\n"
+                + "sort_order: " + ordine + "\n"
                 + "-->\n" + html;
 
         String readme = "# " + titolo + "\n\n"

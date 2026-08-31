@@ -34,20 +34,20 @@ public final class ViolazioniDao {
      */
     public void assicuraTabella() throws SQLException {
         try (Connection c = db.getConnection(); Statement st = c.createStatement()) {
-            st.execute("CREATE TABLE IF NOT EXISTS sanzioni_violazioni ("
+            st.execute("CREATE TABLE IF NOT EXISTS punishment_violations ("
                     + "id INT AUTO_INCREMENT PRIMARY KEY,"
                     + "mc_uuid CHAR(36) NOT NULL,"
                     + "mc_username VARCHAR(32) NOT NULL,"
-                    + "categoria VARCHAR(48) NOT NULL,"
-                    + "punti INT NOT NULL DEFAULT 0,"
-                    + "fonte VARCHAR(32) NOT NULL DEFAULT 'sistema',"
-                    + "dettaglio MEDIUMTEXT NULL,"
+                    + "category VARCHAR(48) NOT NULL,"
+                    + "points INT NOT NULL DEFAULT 0,"
+                    + "source VARCHAR(32) NOT NULL DEFAULT 'sistema',"
+                    + "detail MEDIUMTEXT NULL,"
                     // Quando una sanzione viene revocata, le violazioni che l'hanno fatta
                     // scattare smettono di contare: se il ricorso e' stato accolto, quei punti
                     // non sono mai esistiti.
-                    + "annullata TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "sanzione_id INT NULL,"
-                    + "creata_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+                    + "cancelled TINYINT(1) NOT NULL DEFAULT 0,"
+                    + "punishment_id INT NULL,"
+                    + "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                     + "KEY idx_uuid (mc_uuid, annullata),"
                     + "KEY idx_data (creata_il)"
                     + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
@@ -56,7 +56,7 @@ public final class ViolazioniDao {
 
     /** Registra il fatto. Ritorna il numero assegnato. */
     public int inserisci(Violazione v) throws SQLException {
-        String sql = "INSERT INTO sanzioni_violazioni "
+        String sql = "INSERT INTO punishment_violations "
                 + "(mc_uuid, mc_username, categoria, punti, fonte, dettaglio, creata_il) "
                 + "VALUES (?,?,?,?,?,?,?)";
         try (Connection c = db.getConnection();
@@ -77,8 +77,8 @@ public final class ViolazioniDao {
 
     /** Le violazioni che contano ancora per il registro punti di un giocatore. */
     public List<Violazione> perPunti(UUID uuid) throws SQLException {
-        String sql = "SELECT * FROM sanzioni_violazioni WHERE mc_uuid = ? AND annullata = 0 "
-                + "AND punti > 0 ORDER BY id DESC LIMIT 300";
+        String sql = "SELECT * FROM punishment_violations WHERE mc_uuid = ? AND cancelled = 0 "
+                + "AND points > 0 ORDER BY id DESC LIMIT 300";
         List<Violazione> out = new ArrayList<>();
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, uuid.toString());
@@ -88,11 +88,11 @@ public final class ViolazioniDao {
                             rs.getInt("id"),
                             UUID.fromString(rs.getString("mc_uuid")),
                             rs.getString("mc_username"),
-                            rs.getString("categoria"),
-                            rs.getInt("punti"),
-                            rs.getString("fonte"),
-                            rs.getString("dettaglio"),
-                            rs.getTimestamp("creata_il").getTime()));
+                            rs.getString("category"),
+                            rs.getInt("points"),
+                            rs.getString("source"),
+                            rs.getString("detail"),
+                            rs.getTimestamp("created_at").getTime()));
                 }
             }
         }
@@ -101,7 +101,7 @@ public final class ViolazioniDao {
 
     /** Le ultime violazioni di un giocatore, per il rapporto e per /storico. */
     public List<Violazione> ultime(UUID uuid, int quante) throws SQLException {
-        String sql = "SELECT * FROM sanzioni_violazioni WHERE mc_uuid = ? ORDER BY id DESC LIMIT "
+        String sql = "SELECT * FROM punishment_violations WHERE mc_uuid = ? ORDER BY id DESC LIMIT "
                 + Math.max(1, quante);
         List<Violazione> out = new ArrayList<>();
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
@@ -112,11 +112,11 @@ public final class ViolazioniDao {
                             rs.getInt("id"),
                             UUID.fromString(rs.getString("mc_uuid")),
                             rs.getString("mc_username"),
-                            rs.getString("categoria"),
-                            rs.getInt("punti"),
-                            rs.getString("fonte"),
-                            rs.getString("dettaglio"),
-                            rs.getTimestamp("creata_il").getTime()));
+                            rs.getString("category"),
+                            rs.getInt("points"),
+                            rs.getString("source"),
+                            rs.getString("detail"),
+                            rs.getTimestamp("created_at").getTime()));
                 }
             }
         }
@@ -127,7 +127,7 @@ public final class ViolazioniDao {
     public void collega(int idViolazione, int idSanzione) throws SQLException {
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "UPDATE sanzioni_violazioni SET sanzione_id = ? WHERE id = ?")) {
+                     "UPDATE punishment_violations SET punishment_id = ? WHERE id = ?")) {
             ps.setInt(1, idSanzione);
             ps.setInt(2, idViolazione);
             ps.executeUpdate();
@@ -142,7 +142,7 @@ public final class ViolazioniDao {
     public int annullaPerSanzione(int idSanzione) throws SQLException {
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "UPDATE sanzioni_violazioni SET annullata = 1 WHERE sanzione_id = ?")) {
+                     "UPDATE punishment_violations SET cancelled = 1 WHERE punishment_id = ?")) {
             ps.setInt(1, idSanzione);
             return ps.executeUpdate();
         }

@@ -110,9 +110,9 @@ public class GuidaSync {
             String chiave = riga.substring(0, duepunti).trim().toLowerCase();
             String valore = riga.substring(duepunti + 1).trim();
             switch (chiave) {
-                case "titolo" -> titolo = valore;
-                case "versione" -> versione = valore;
-                case "ordine" -> {
+                case "title" -> titolo = valore;
+                case "version" -> versione = valore;
+                case "sort_order" -> {
                     try {
                         ordine = Integer.parseInt(valore);
                     } catch (NumberFormatException ignored) {
@@ -127,10 +127,10 @@ public class GuidaSync {
 
     /** Scrive (o riscrive) i capitoli sul sito. Una riga per plugin: conta solo l'ultima verita'. */
     private int salva(List<Capitolo> capitoli) {
-        String sql = "INSERT INTO guide_staff (plugin, titolo, versione, ordine, corpo_html, aggiornata_il) "
+        String sql = "INSERT INTO guide_staff (plugin, title, version, sort_order, body_html, updated_at) "
                 + "VALUES (?, ?, ?, ?, ?, NOW()) "
-                + "ON DUPLICATE KEY UPDATE titolo = VALUES(titolo), versione = VALUES(versione), "
-                + "ordine = VALUES(ordine), corpo_html = VALUES(corpo_html), aggiornata_il = NOW()";
+                + "ON DUPLICATE KEY UPDATE title = VALUES(title), version = VALUES(version), "
+                + "sort_order = VALUES(sort_order), body_html = VALUES(body_html), updated_at = NOW()";
 
         int fatti = 0;
         try (Connection c = database.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {

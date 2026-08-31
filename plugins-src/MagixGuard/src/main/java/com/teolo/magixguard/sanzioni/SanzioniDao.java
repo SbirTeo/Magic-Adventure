@@ -29,7 +29,7 @@ public final class SanzioniDao {
 
     /** Scrive un provvedimento e ne restituisce il numero assegnato dal database. */
     public int inserisci(Sanzione s) throws SQLException {
-        String sql = "INSERT INTO sanzioni (mc_uuid, mc_username, tipo, categoria, motivo, ambito, "
+        String sql = "INSERT INTO punishments (mc_uuid, mc_username, type, category, reason, scope, "
                 + "punti, inizio, fine, staff_nome, automatica, stato, rapporto_hash, creata_il) "
                 + "VALUES (?,?,?,?,?,?,?,?,?,?,?, 'attiva', ?, NOW())";
         try (Connection c = db.getConnection();
@@ -59,8 +59,8 @@ public final class SanzioniDao {
 
     /** Revoca dal gioco (per esempio con /unban): la marca gia' come applicata. */
     public int revoca(int id, String staff, String motivo) throws SQLException {
-        String sql = "UPDATE sanzioni SET stato = 'revocata', revocata_da = ?, revocata_il = NOW(), "
-                + "revoca_motivo = ?, revoca_applicata = 1 WHERE id = ? AND stato = 'attiva'";
+        String sql = "UPDATE punishments SET status = 'revocata', revoked_by = ?, revoked_at = NOW(), "
+                + "revoke_reason = ?, revoke_applied = 1 WHERE id = ? AND status = 'attiva'";
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, staff);
             ps.setString(2, motivo);
@@ -72,8 +72,8 @@ public final class SanzioniDao {
     /** Revoca l'ultima sanzione attiva di quel tipo per quel giocatore. Ritorna l'id, o 0. */
     public int revocaUltima(UUID uuid, Tipo tipo, String staff, String motivo) throws SQLException {
         Integer id = null;
-        String cerca = "SELECT id FROM sanzioni WHERE mc_uuid = ? AND tipo = ? AND stato = 'attiva' "
-                + "AND (fine IS NULL OR fine > NOW()) ORDER BY id DESC LIMIT 1";
+        String cerca = "SELECT id FROM punishments WHERE mc_uuid = ? AND type = ? AND status = 'attiva' "
+                + "AND (ends_at IS NULL OR ends_at > NOW()) ORDER BY id DESC LIMIT 1";
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(cerca)) {
             ps.setString(1, uuid.toString());
             ps.setString(2, tipo.codice());
@@ -93,15 +93,15 @@ public final class SanzioniDao {
 
     /** I provvedimenti attivi di un giocatore, gia' filtrati per ambito di gioco. */
     public List<Sanzione> attiveInGioco(UUID uuid) throws SQLException {
-        String sql = "SELECT * FROM sanzioni WHERE mc_uuid = ? AND stato = 'attiva' "
-                + "AND ambito IN ('gioco','entrambi') AND (fine IS NULL OR fine > NOW()) "
+        String sql = "SELECT * FROM punishments WHERE mc_uuid = ? AND status = 'attiva' "
+                + "AND scope IN ('gioco','entrambi') AND (ends_at IS NULL OR ends_at > NOW()) "
                 + "ORDER BY id DESC";
         return interroga(sql, uuid.toString());
     }
 
     /** Tutto lo storico di un giocatore, dal piu' recente. */
     public List<Sanzione> storico(UUID uuid, int quante) throws SQLException {
-        String sql = "SELECT * FROM sanzioni WHERE mc_uuid = ? ORDER BY id DESC LIMIT " + Math.max(1, quante);
+        String sql = "SELECT * FROM punishments WHERE mc_uuid = ? ORDER BY id DESC LIMIT " + Math.max(1, quante);
         return interroga(sql, uuid.toString());
     }
 
@@ -111,7 +111,7 @@ public final class SanzioniDao {
      * cosi' la formula resta una sola e leggibile.
      */
     public List<Sanzione> perPunti(UUID uuid) throws SQLException {
-        String sql = "SELECT * FROM sanzioni WHERE mc_uuid = ? AND stato <> 'revocata' AND punti > 0 "
+        String sql = "SELECT * FROM punishments WHERE mc_uuid = ? AND status <> 'revocata' AND points > 0 "
                 + "ORDER BY id DESC LIMIT 200";
         return interroga(sql, uuid.toString());
     }
@@ -130,28 +130,28 @@ public final class SanzioniDao {
     }
 
     private static Sanzione leggi(ResultSet rs) throws SQLException {
-        Timestamp fine = rs.getTimestamp("fine");
+        Timestamp fine = rs.getTimestamp("ends_at");
         return new Sanzione(
                 rs.getInt("id"),
                 UUID.fromString(rs.getString("mc_uuid")),
                 rs.getString("mc_username"),
-                Tipo.da(rs.getString("tipo")),
-                rs.getString("categoria"),
-                rs.getString("motivo"),
-                Ambito.da(rs.getString("ambito")),
-                rs.getInt("punti"),
-                rs.getTimestamp("inizio").getTime(),
+                Tipo.da(rs.getString("type")),
+                rs.getString("category"),
+                rs.getString("reason"),
+                Ambito.da(rs.getString("scope")),
+                rs.getInt("points"),
+                rs.getTimestamp("starts_at").getTime(),
                 fine == null ? Durata.PERMANENTE : fine.getTime(),
-                rs.getString("staff_nome"),
-                rs.getBoolean("automatica"),
-                rs.getString("rapporto_hash"));
+                rs.getString("staff_name"),
+                rs.getBoolean("automatic"),
+                rs.getString("report_hash"));
     }
 
     // ------------------------------------------------------------------ coda e proposte
 
     /** Mette una proposta in coda: la decidera' una persona dal gestionale. */
     public void proponi(Sanzione s, long durataMillis, String fonte, String dettaglio) throws SQLException {
-        String sql = "INSERT INTO sanzioni_coda (mc_uuid, mc_username, tipo, categoria, motivo, ambito, "
+        String sql = "INSERT INTO punishment_queue (mc_uuid, mc_username, type, category, reason, scope, "
                 + "durata_secondi, punti, fonte, proposta_da, dettaglio, rapporto_hash, stato, creata_il) "
                 + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'attesa', NOW())";
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
@@ -180,24 +180,24 @@ public final class SanzioniDao {
                            Ambito ambito, Long durataSecondi, int punti, String decisaDa) { }
 
     public List<Proposta> proposteConfermate() throws SQLException {
-        String sql = "SELECT * FROM sanzioni_coda WHERE stato = 'confermata' AND sanzione_id IS NULL "
+        String sql = "SELECT * FROM punishment_queue WHERE status = 'confermata' AND punishment_id IS NULL "
                 + "ORDER BY id ASC LIMIT 20";
         List<Proposta> out = new ArrayList<>();
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                int durata = rs.getInt("durata_secondi");
+                int durata = rs.getInt("duration_seconds");
                 out.add(new Proposta(
                         rs.getInt("id"),
                         UUID.fromString(rs.getString("mc_uuid")),
                         rs.getString("mc_username"),
-                        Tipo.da(rs.getString("tipo")),
-                        rs.getString("categoria"),
-                        rs.getString("motivo"),
-                        Ambito.da(rs.getString("ambito")),
+                        Tipo.da(rs.getString("type")),
+                        rs.getString("category"),
+                        rs.getString("reason"),
+                        Ambito.da(rs.getString("scope")),
                         rs.wasNull() ? null : (long) durata,
-                        rs.getInt("punti"),
-                        rs.getString("decisa_da")));
+                        rs.getInt("points"),
+                        rs.getString("decided_by")));
             }
         }
         return out;
@@ -206,7 +206,7 @@ public final class SanzioniDao {
     /** Segna che la proposta e' diventata quel provvedimento: cosi' non si esegue due volte. */
     public void codaEseguita(int idCoda, int idSanzione) throws SQLException {
         try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement("UPDATE sanzioni_coda SET sanzione_id = ? WHERE id = ?")) {
+             PreparedStatement ps = c.prepareStatement("UPDATE punishment_queue SET punishment_id = ? WHERE id = ?")) {
             ps.setInt(1, idSanzione);
             ps.setInt(2, idCoda);
             ps.executeUpdate();
@@ -215,7 +215,7 @@ public final class SanzioniDao {
 
     /** Le revoche decise dal gestionale e non ancora eseguite in gioco. */
     public List<Sanzione> revocheDaApplicare() throws SQLException {
-        String sql = "SELECT * FROM sanzioni WHERE stato = 'revocata' AND revoca_applicata = 0 LIMIT 20";
+        String sql = "SELECT * FROM punishments WHERE status = 'revocata' AND revoke_applied = 0 LIMIT 20";
         List<Sanzione> out = new ArrayList<>();
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -228,7 +228,7 @@ public final class SanzioniDao {
 
     public void revocaApplicata(int id) throws SQLException {
         try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement("UPDATE sanzioni SET revoca_applicata = 1 WHERE id = ?")) {
+             PreparedStatement ps = c.prepareStatement("UPDATE punishments SET revoke_applied = 1 WHERE id = ?")) {
             ps.setInt(1, id);
             ps.executeUpdate();
         }
@@ -238,8 +238,8 @@ public final class SanzioniDao {
 
     /** Quante segnalazioni ancora aperte ha mandato quella persona. */
     public int reportApertiDi(String chiSegnala) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM sanzioni_coda WHERE fonte = 'report' "
-                + "AND proposta_da = ? AND stato = 'attesa'";
+        String sql = "SELECT COUNT(*) FROM punishment_queue WHERE source = 'report' "
+                + "AND proposed_by = ? AND status = 'attesa'";
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, chiSegnala);
             try (ResultSet rs = ps.executeQuery()) {
@@ -250,9 +250,9 @@ public final class SanzioniDao {
 
     /** Deposita il blocco del regolamento generato dalla configurazione. */
     public void scriviRegolamento(String html, String versione) throws SQLException {
-        String sql = "INSERT INTO regolamento_sanzioni (id, corpo_html, versione, aggiornato_il) "
-                + "VALUES (1, ?, ?, NOW()) ON DUPLICATE KEY UPDATE corpo_html = VALUES(corpo_html), "
-                + "versione = VALUES(versione), aggiornato_il = NOW()";
+        String sql = "INSERT INTO punishment_rules (id, body_html, version, updated_at) "
+                + "VALUES (1, ?, ?, NOW()) ON DUPLICATE KEY UPDATE body_html = VALUES(body_html), "
+                + "version = VALUES(version), updated_at = NOW()";
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, html);
             ps.setString(2, versione);
