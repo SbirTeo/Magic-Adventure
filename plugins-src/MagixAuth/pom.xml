@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.teolo</groupId>
+    <artifactId>MagixAuth</artifactId>
+    <version>0.7.10</version>
+    <packaging>jar</packaging>
+
+    <name>MagixAuth</name>
+    <description>Registrazione e login per il server non premium, con account unico col sito</description>
+
+    <properties>
+        <!-- Stesso vincolo di MagixFactions/MagixGuard: paper-api 26.1.2 e' compilata per
+             Java 25 (class file 69.0). JDK 25 in C:\Users\teolo\.jdks (NON quello di default). -->
+        <java.version>25</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>papermc-repo</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>luckperms</id>
+            <url>https://repo.lucko.me/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <!-- combacia col build ESATTO del server ("Paper version 26.1.2-72-ver/26.1.2") -->
+            <version>26.1.2.build.72-stable</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Serve a leggere la track "staff" per sapere chi e' obbligato all'OTP.
+             API sola: il plugin gira anche se LuckPerms non c'e' (softdepend). -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.4</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Inclusi nel jar (shaded), come in MagixGuard -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.4.1</version>
+        </dependency>
+        <!-- bcrypt puro JVM: legge e scrive lo stesso formato $2y$ di password_hash() in PHP,
+             cosi' la stessa password vale sul sito e in gioco. Nessuna libreria nativa. -->
+        <dependency>
+            <groupId>at.favre.lib</groupId>
+            <artifactId>bcrypt</artifactId>
+            <version>0.10.2</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.name}-${project.version}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${java.version}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <!-- 3.6.2: le versioni precedenti bundlavano un ASM che non legge il bytecode Java 25 -->
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>com.teolo.magixauth.lib.hikari</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.mariadb</pattern>
+                                    <shadedPattern>com.teolo.magixauth.lib.mariadb</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>at.favre.lib</pattern>
+                                    <shadedPattern>com.teolo.magixauth.lib.favre</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <!-- Il filtro sostituisce ${...} nei file di testo, e su un PNG lo farebbe
+                     corrompendolo. Maven oggi esclude da solo le estensioni binarie note, ma
+                     e' una sua impostazione predefinita, non una garanzia: qui il pacchetto
+                     risorse si tiene fuori per iscritto. -->
+                <excludes>
+                    <exclude>resourcepack/**</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>resourcepack/**</include>
+                </includes>
+            </resource>
+            <!-- README rigenerato nella cartella del plugin a ogni avvio (convenzione di progetto) -->
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                    <include>README.md</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+    </build>
+</project>

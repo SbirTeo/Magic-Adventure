@@ -1,0 +1,22 @@
+name: MagixEntities
+version: '${project.version}'
+main: com.teolo.magixentities.MagixEntities
+api-version: '26.1'
+author: teolo
+description: Crea e gestisce entita'/NPC statiche da comando (stile Citizens), incluse entita' con skin di un giocatore.
+
+commands:
+  magixentities:
+    # ATTENZIONE: /me e' anche l'emote vanilla (e CMI ne registra una sua). Se /me finisce
+    # all'emote, usa /mentities, /ment oppure la forma esplicita /magixentities:me.
+    aliases: [mentities, mentity, ment, me]
+    description: Crea e gestisce le entita' di MagixEntities.
+    usage: /mentities help
+
+permissions:
+  magixentities.use:
+    description: Usare i comandi di MagixEntities (create/remove/modifica).
+    default: op
+  magixentities.admin:
+    description: Comandi amministrativi (reload, purge).
+    default: op

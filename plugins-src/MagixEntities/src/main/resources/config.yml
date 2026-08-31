@@ -1,0 +1,84 @@
+# MagixEntities - configurazione
+# Le entita' create sono salvate in entities.yml (non modificarlo a server acceso).
+
+# Ogni quanti secondi il plugin controlla che le entita' esistano ancora
+# (chunk caricati) e le ricrea se qualcuno le ha uccise/rimosse. 0 = disattiva.
+check-interval-seconds: 20
+
+# Valori di default applicati alle entita' appena create.
+defaults:
+  # Nessun danno (fuoco, mob, giocatori, cadute...).
+  invulnerable: true
+  # Mostra il displayname sopra la testa.
+  nametag: true
+  # Disattiva l'IA: l'entita' non cammina, non attacca, non insegue.
+  ai: false
+  # Gravita' attiva (l'entita' resta appoggiata al terreno).
+  gravity: true
+  # Silenzia i versi del mob.
+  silent: true
+  # Contorno luminoso.
+  glowing: false
+  # Se false i giocatori possono attraversarla senza spingerla.
+  collidable: false
+  # Solo per il tipo "player" (Mannequin): blocca completamente l'entita'.
+  immovable: true
+  # Se true il clic destro NON viene annullato, cosi' altri plugin (CMI e simili) possono
+  # agganciarsi all'interazione. Da tenere off se usi i comandi al clic di MagixEntities.
+  interact: false
+  # Se true l'entita' segue con lo sguardo il giocatore piu' vicino (vedi sezione follow).
+  follow: false
+
+follow:
+  # Opzione "follow" (/mentities set <nome> follow on): l'entita' gira verso il giocatore piu'
+  # vicino entro questo raggio, e torna dritta quando non c'e' nessuno.
+  radius: 12
+  # Ogni quanti tick viene aggiornato l'orientamento (5 = 4 volte al secondo).
+  interval-ticks: 5
+
+commands:
+  # Millisecondi minimi tra due esecuzioni dei comandi al clic, per giocatore (anti doppio clic).
+  cooldown-ms: 500
+
+protezioni:
+  # Impedisce ai mob ostili di prendere di mira le entita' del plugin.
+  no-target: true
+  # Impedisce che prendano fuoco al sole (zombie/scheletri).
+  no-combust: true
+  # Impedisce le trasformazioni (zombie -> annegato, maiale -> maialino zombi...).
+  no-transform: true
+  # Impedisce che raccolgano item da terra.
+  no-pickup: true
+  # Impedisce che entrino nei portali.
+  no-portal: true
+  # Impedisce l'interazione vanilla col tasto destro (es. GUI di scambio del villager).
+  no-interact: true
+
+player:
+  # Il Mannequin ha un campo "description": una riga disegnata sopra la testa IN AGGIUNTA al
+  # nametag e visibile solo da vicino. Se lo attivi il displayname compare DUE volte (e il
+  # nametag "salta" su di una riga quando ti avvicini). Tienilo false.
+  description: false
+
+mirror:
+  # Skin "mirror" (/mentities skin <nome> mirror): ogni giocatore vede l'entita' con la PROPRIA
+  # skin. Tecnicamente l'entita' vera viene nascosta e per ogni giocatore vicino ne viene creata
+  # una copia personalizzata, visibile solo a lui. Il raggio limita quante copie esistono insieme.
+  radius: 48
+  # Ogni quanti tick le copie vengono allineate (20 tick = 1 secondo).
+  interval-ticks: 20
+
+skin:
+  # Scarica le texture della skin da Mojang (in async) quando crei un'entita' "player".
+  # Se false viene usato solo il nome: il server risolve la skin da solo, ma
+  # potrebbe non mostrarla se il giocatore non e' mai entrato nel server.
+  fetch-textures: true
+  # Le skin trovate restano in memoria: non vengono richieste di nuovo a ogni controllo.
+  # Se un nick non ha texture (non esiste su Mojang, o Mojang non risponde) il plugin lo
+  # segnala UNA volta e riprova dopo questi minuti.
+  retry-minutes: 30
+
+# Se true, quando un chunk viene caricato il plugin rimuove le entita' con il tag
+# MagixEntities che non esistono piu' in entities.yml (residui di /me remove
+# eseguito mentre il chunk era scaricato).
+pulisci-orfani: true

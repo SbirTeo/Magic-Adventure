@@ -1,0 +1,443 @@
+# ==========================================================================================
+#  test.yml — il menu che usa TUTTO
+#
+#  Non e' un menu da mostrare ai giocatori: e' la dimostrazione di ogni cosa che MagixMenus sa
+#  fare, in un file solo. Aprilo con /test (o /menus apri test) e tienilo aperto accanto mentre
+#  scrivi i tuoi menu: quasi sempre quello che cerchi e' gia' qui in una forma o nell'altra.
+#
+#  Il nome del menu e' il nome di questo file senza .yml, cioe' "test".
+#
+#  ─────────────────────────────────────────────────────────────────────────────────────────
+#  LE CHIAVI SONO IN INGLESE
+#
+#  Vale per tutti i plugin Magix. I vecchi nomi italiani (nome, descrizione, mostra_se,
+#  azioni, prezzo...) restano accettati per sempre, quindi i menu gia' scritti continuano a
+#  funzionare: ma i file nuovi, e tutto quello che scrive l'editor del sito, usano l'inglese.
+#  Cosi' un menu copiato da una guida di un altro plugin si apre senza tradurlo.
+#
+#  ─────────────────────────────────────────────────────────────────────────────────────────
+#  LA REGOLA PIU' IMPORTANTE: L'ORDINE
+#
+#  Se due item chiedono la stessa casella, la prende il PRIMO scritto qui sotto che abbia i
+#  suoi "show_requirements" soddisfatti. Da qui due conseguenze pratiche:
+#
+#    - il bottone che cambia faccia (verde/grigio) si fa con due item sulla stessa casella,
+#      scrivendo per primo quello con le condizioni piu' esigenti;
+#    - lo sfondo (slot: all) va scritto per ULTIMO, altrimenti si prende tutto il menu e
+#      copre ogni altro item.
+#  ─────────────────────────────────────────────────────────────────────────────────────────
+
+menu:
+  # chest, barrel, anvil, hopper, dispenser, dropper, furnace, brewing, enchanting,
+  # workbench, grindstone, loom, cartography, smithing, stonecutter, dialog
+  type: chest
+
+  # Da 1 a 6. Vale solo per il baule: gli altri tipi hanno la forma che gli ha dato Minecraft.
+  rows: 6
+
+  # Il titolo accetta colori e placeholder. Se contiene placeholder viene riscritto anche
+  # mentre il menu e' aperto.
+  title: "&#C046E8&lMagixMenus &8» &7prova &8(&f%player_name%&8)"
+
+  # Ogni quanti tick si ridisegna. 20 = un secondo. 0 = mai.
+  # Si ridisegnano solo gli item che possono essere cambiati, non tutti.
+  update: 20
+
+  # I comandi che aprono questo menu. Nascono da qui: dopo averli cambiati serve /menus reload.
+  commands: [test, magixtest]
+
+  # Chi non ha questo permesso non puo' aprirlo. Togli la riga per lasciarlo aperto a tutti.
+  # permission: magixmenus.menu.test
+
+  # I nomi degli argomenti del comando: /test negozio -> %arg_categoria% e %arg_1%
+  arguments: [categoria]
+
+  # Condizioni per poter aprire il menu. Stessa forma degli show_requirements degli item.
+  # open_requirements:
+  #   requirements:
+  #     mondo:
+  #       type: WORLD
+  #       key: "world,world_nether"
+  #   deny_actions:
+  #     - "message: &#FF6B6BQuesto menu si apre solo nel mondo principale."
+
+  open_actions:
+    - "sound: BLOCK_CHEST_OPEN|0.6|1.2"
+  close_actions:
+    - "actionbar: &#9A8CA8Menu chiuso"
+
+  # A false il menu si riapre da solo quando si preme Esc. Da usare con molta parsimonia.
+  closeable: true
+
+# ==========================================================================================
+#  CONTENUTO CHE SI GENERA DA SOLO
+#
+#  Le voci non si sanno in anticipo (i giocatori collegati, una classifica, un catalogo): si
+#  dice da dove vengono, in quali caselle vanno e com'e' fatta UNA voce. Le pagine vengono da se'.
+# ==========================================================================================
+content:
+  # online_players | list | placeholder
+  source: online_players
+  slot: 28-34
+
+  # Con source: list
+  # list: ["primo", "secondo", "terzo"]
+  #
+  # Con source: placeholder  (i valori separati dal separatore)
+  # placeholder: "%un_placeholder_che_torna_a,b,c%"
+  # separator: ","
+
+  entry:
+    id: PLAYER_HEAD
+    head: "%entry%"                       # %entry% e' il valore di questa riga dell'elenco
+    display_name: "&#A8DC2C%entry%"
+    lore:
+      - "&#9A8CA8Numero &f%entry_index%&#9A8CA8 dell'elenco"
+      - ""
+      - "&#A8DC2CClicca &#9A8CA8per scrivergli"
+    actions:
+      - "sound: UI_BUTTON_CLICK"
+      - "close"
+      - "command: msg %entry% ciao!"
+
+items:
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  1. L'ITEM COMPLETO: tutto quello che si puo' scrivere sull'aspetto
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  vetrina:
+    slot: 10
+    id: DIAMOND_SWORD
+    amount: 1
+    display_name: "&#C046E8&lSpada di prova"
+    lore:
+      - "&#9A8CA8Un item con tutto quello che si puo' mettere:"
+      - "&#9A8CA8nome, descrizione, incantesimi, riflessi."
+      - ""
+      - "&#9A8CA8Chi la guarda: &f%player_name%"
+      - "&#9A8CA8Mondo: &f%player_world%"
+    enchantments:
+      - "SHARPNESS,5"
+      - "UNBREAKING,3"
+    unbreakable: true
+    # Nasconde incantesimi, attributi e tutto il resto della targhetta: la descrizione resta
+    # quella che hai scritto tu.
+    hide_details: true
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  2. RIFLESSI SENZA INCANTESIMI, COLORE, MODELLO DEL RESOURCE PACK
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  luccicante:
+    slot: 11
+    id: NETHER_STAR
+    display_name: "&#A8DC2CLuccica senza incantesimi"
+    lore:
+      - "&#9A8CA8glow: true &8— i riflessi senza doverci"
+      - "&#9A8CA8mettere un incantesimo finto da nascondere."
+    glow: true
+
+  colorato:
+    slot: 12
+    id: LEATHER_CHESTPLATE
+    display_name: "&#C046E8Colorato a mano"
+    lore:
+      - "&#9A8CA8color: #C046E8 &8— vale per la pelle e"
+      - "&#9A8CA8per le pozioni."
+    color: "#C046E8"
+    hide_details: true
+
+  avanzate:
+    slot: 13
+    id: PAPER
+    display_name: "&#C046E8Il campo dei componenti"
+    lore:
+      - "&#9A8CA8Per quello che qui non e' previsto c'e'"
+      - "&#9A8CA8il campo grezzo dei componenti."
+      - ""
+      - "&#9A8CA8Si applica per primo: i campi normali"
+      - "&#9A8CA8gli vanno sempre sopra."
+    # Componenti di Minecraft, la stessa forma dei comandi /give. Il formato cambia fra le
+    # versioni del gioco: se un giorno smette di funzionare, e' quasi sempre questo.
+    components: "[minecraft:rarity=epic]"
+    # Modello preso dal resource pack (1.21.4+):
+    # item_model: "magicadventure:moneta"
+    # Modello preso dal vecchio custom model data:
+    # custom_model_data: 12
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  3. TESTE
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  testa_tua:
+    slot: 14
+    id: PLAYER_HEAD
+    head: "%player_name%"                 # anche un nome scritto a mano, o un indirizzo, o base64
+    display_name: "&#A8DC2CLa tua faccia"
+    lore:
+      - "&#9A8CA8head: accetta un nome di giocatore,"
+      - "&#9A8CA8l'indirizzo di una texture o il valore"
+      - "&#9A8CA8base64 dei siti di teste."
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  4. LA PRIORITA': DUE ITEM SULLA STESSA CASELLA
+  #
+  #  Il primo che ha diritto a starci vince. Qui: se hai il permesso vedi il verde, altrimenti
+  #  il grigio. Un menu solo, nessuna riga duplicata.
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  bottone_acceso:
+    slot: 16
+    id: LIME_DYE
+    display_name: "&#A8DC2C&lSbloccato"
+    lore:
+      - "&#9A8CA8Lo vedi perche' hai il permesso"
+      - "&#9A8CA8magixmenus.admin."
+    show_requirements:
+      requirements:
+        permesso:
+          type: PERMISSION
+          key: magixmenus.admin
+          match: true
+    actions:
+      - "message: &#A8DC2CBottone premuto."
+
+  bottone_spento:
+    slot: 16
+    id: GRAY_DYE
+    display_name: "&#9A8CA8&lBloccato"
+    lore:
+      - "&#9A8CA8Lo vedi perche' NON hai il permesso"
+      - "&#9A8CA8magixmenus.admin: e' lo stesso posto,"
+      - "&#9A8CA8un altro item."
+    actions:
+      - "message: &#FFD166Questo bottone non fa niente."
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  5. MOSTRARE vs NEGARE
+  #
+  #  show_requirements decide se l'item SI VEDE. click_requirements decide se il clic HA
+  #  EFFETTO: l'item resta visibile e chi clicca riceve una spiegazione. Quasi sempre si vuole
+  #  il secondo.
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  a_pagamento:
+    slot: 19
+    id: GOLD_INGOT
+    display_name: "&#FFD166Costa 100 monete"
+    lore:
+      - "&#9A8CA8Si vede sempre, ma funziona solo se"
+      - "&#9A8CA8hai i soldi: cosi' chi non li ha capisce"
+      - "&#9A8CA8cosa gli manca invece di trovare un buco."
+      - ""
+      - "&#9A8CA8Serve Vault e un plugin di economia."
+    click_requirements:
+      requirements:
+        soldi:
+          type: EQUATION
+          key: "%vault_eco_balance% >= 100"
+          match: true
+      deny_actions:
+        - "message: &#FF6B6BTi servono 100 monete."
+        - "sound: ENTITY_VILLAGER_NO"
+    actions:
+      - "take_money: 100"
+      - "message: &#A8DC2CFatto!"
+
+  con_attesa:
+    slot: 20
+    id: CLOCK
+    display_name: "&#C046E8Una cosa per volta"
+    lore:
+      - "&#9A8CA8cooldown: 5 &8— dopo un clic bisogna"
+      - "&#9A8CA8aspettare cinque secondi."
+    cooldown: 5
+    actions:
+      - "message: &#A8DC2CFatto. Ora aspetta cinque secondi."
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  5b. UN ARTICOLO DI NEGOZIO
+  #
+  #  Tre chiavi, nessuna condizione da scrivere: il plugin controlla i soldi e il posto in
+  #  inventario, toglie le monete, consegna la merce e spiega cosa manca. Il prezzo finisce da
+  #  solo nella descrizione, quindi NON va scritto anche a mano.
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  articolo:
+    slot: 25
+    id: DIAMOND
+    display_name: "&#A8DC2CDiamante"
+    lore:
+      - "&#9A8CA8Un articolo di negozio in tre chiavi."
+    price: 500
+    give: DIAMOND 1
+    sell: 200
+    # Le azioni, se ci sono, partono DOPO che il pagamento e' riuscito.
+    actions:
+      - "broadcast: &#9A8CA8%player_name% ha comprato un diamante."
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  6. TUTTI I TIPI DI REQUISITO
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  requisiti:
+    slot: 21
+    id: COMPARATOR
+    display_name: "&#C046E8I requisiti"
+    lore:
+      - "&#9A8CA8PERMISSION      ha il permesso"
+      - "&#9A8CA8EQUATION        %saldo% >= 100"
+      - "&#9A8CA8STRING_EQUALS   due testi uguali"
+      - "&#9A8CA8STRING_CONTAINS"
+      - "&#9A8CA8REGEX"
+      - "&#9A8CA8HAS_ITEM        ha degli oggetti"
+      - "&#9A8CA8HAS_MONEY       ha delle monete"
+      - "&#9A8CA8HAS_LEVEL       ha dei livelli"
+      - "&#9A8CA8WORLD           e' in un mondo"
+      - "&#9A8CA8EMPTY_SLOTS     ha spazio in inventario"
+      - ""
+      - "&#9A8CA8Ognuno accetta &fmatch: false&#9A8CA8 per"
+      - "&#9A8CA8ribaltarsi, e un blocco puo' avere"
+      - "&#9A8CA8&fminimum: 2&#9A8CA8 (ne bastano due su tre)."
+    click_requirements:
+      minimum: 1
+      requirements:
+        uno:
+          type: HAS_LEVEL
+          amount: 1
+        due:
+          type: EMPTY_SLOTS
+          amount: 1
+      deny_actions:
+        - "message: &#FFD166Ti serve almeno un livello o una casella libera."
+    actions:
+      - "message: &#A8DC2CNe bastava uno dei due, e ce l'hai."
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  7. TUTTE LE AZIONI, E I TASTI DEL MOUSE
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  azioni:
+    slot: 22
+    id: LEVER
+    display_name: "&#C046E8Le azioni"
+    lore:
+      - "&#A8DC2CSinistro &#9A8CA8messaggio, titolo, suono"
+      - "&#A8DC2CDestro &#9A8CA8un blocco con una condizione"
+      - "&#A8DC2CShift+sinistro &#9A8CA8comando da console"
+      - "&#A8DC2CCentrale &#9A8CA8ricarica il menu"
+      - ""
+      - "&#9A8CA8Le azioni sotto &factions:&#9A8CA8 valgono per"
+      - "&#9A8CA8qualunque tasto e partono dopo le altre."
+    left_click_actions:
+      - "message: &#A8DC2CTasto sinistro."
+      - "title: &#C046E8&lMagixMenus|&#9A8CA8ha funzionato"
+      - "wait: 20"
+      - "actionbar: &#9A8CA8...e questo un secondo dopo"
+    right_click_actions:
+      - if: "%player_level% >= 1"
+        then:
+          - "message: &#A8DC2CHai almeno un livello."
+        else:
+          - "message: &#FFD166Non hai nemmeno un livello."
+    shift_left_click_actions:
+      - "console: say %player_name% ha premuto shift+sinistro"
+    middle_click_actions:
+      - "refresh"
+    actions:
+      - "sound: UI_BUTTON_CLICK|1|1.4"
+
+  elenco_azioni:
+    slot: 23
+    id: WRITABLE_BOOK
+    display_name: "&#C046E8Quello che si puo' scrivere"
+    lore:
+      - "&#9A8CA8command: &f<comando>      &8come giocatore"
+      - "&#9A8CA8console: &f<comando>      &8come server"
+      - "&#9A8CA8op_command: &f<comando>   &8(spento nel config)"
+      - "&#9A8CA8message: &f<testo>"
+      - "&#9A8CA8broadcast: &f<testo>      &8a tutti"
+      - "&#9A8CA8title: &fGrande|piccolo"
+      - "&#9A8CA8actionbar: &f<testo>"
+      - "&#9A8CA8sound: &fNOME|volume|tono"
+      - "&#9A8CA8menu: &f<nome> [argomenti]"
+      - "&#9A8CA8back &8· &#9A8CA8close &8· &#9A8CA8refresh"
+      - "&#9A8CA8page: &fnext|prev|3"
+      - "&#9A8CA8give_money: &f100 &8· &#9A8CA8take_money: &f100"
+      - "&#9A8CA8wait: &f20 &8(tick)"
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  8. LE PAGINE
+  #
+  #  Le frecce si mostrano solo quando servono: sono item come gli altri, con uno
+  #  show_requirements che guarda %page% e %pages%.
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  pagina_indietro:
+    slot: 37
+    id: ARROW
+    display_name: "&#A8DC2C‹ Indietro"
+    lore:
+      - "&#9A8CA8Pagina &f%page%&#9A8CA8 di &f%pages%"
+    show_requirements:
+      requirements:
+        non_prima:
+          type: EQUATION
+          key: "%page% > 1"
+    actions:
+      - "page: prev"
+      - "sound: UI_BUTTON_CLICK"
+
+  pagina_avanti:
+    slot: 43
+    id: ARROW
+    display_name: "&#A8DC2CAvanti ›"
+    lore:
+      - "&#9A8CA8Pagina &f%page%&#9A8CA8 di &f%pages%"
+    show_requirements:
+      requirements:
+        non_ultima:
+          type: EQUATION
+          key: "%page% < %pages%"
+    actions:
+      - "page: next"
+      - "sound: UI_BUTTON_CLICK"
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  9. APRIRE ALTRI MENU
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  altro_menu:
+    slot: 40
+    id: OAK_DOOR
+    display_name: "&#C046E8Apri la finestra di dialogo"
+    lore:
+      - "&#9A8CA8Il menu &ftest-dialogo&#9A8CA8: una schermata"
+      - "&#9A8CA8vera di Minecraft, non un baule."
+      - ""
+      - "&#9A8CA8Da li', &fback&#9A8CA8 riporta qui."
+    actions:
+      - "menu: test-dialogo"
+
+  chiudi:
+    slot: 44
+    id: BARRIER
+    display_name: "&#FF6B6BChiudi"
+    actions:
+      - "close"
+
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  #  10. LE CASELLE: tutti i modi di scriverle
+  #
+  #  slot: 13              una sola
+  #  slot: 2,3,4           un elenco
+  #  slot: 2-10            un intervallo
+  #  slot: "0-8,45-53"     elenco e intervalli insieme
+  #  slot: row:3           tutta la terza riga (si contano da 1)
+  #  slot: column:1        tutta la prima colonna
+  #  slot: border          la cornice esterna
+  #  slot: all             ogni casella
+  #
+  #  Questi due vanno per ULTIMI: sono lo sfondo, e il primo che chiede una casella se la
+  #  prende. Scritti in cima coprirebbero tutto il resto.
+  # ────────────────────────────────────────────────────────────────────────────────────────
+  cornice:
+    slot: border
+    id: PURPLE_STAINED_GLASS_PANE
+    display_name: " "
+
+  sfondo:
+    slot: all
+    id: GRAY_STAINED_GLASS_PANE
+    display_name: " "

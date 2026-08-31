@@ -1,0 +1,50 @@
+name: MagixAuth
+version: '${project.version}'
+main: com.teolo.magixauth.MagixAuth
+api-version: '26.1'
+author: teolo
+description: Registrazione e login per il server non premium, sullo stesso account del sito
+# MagixWeb non serve per funzionare, ma se c'e' deve caricarsi prima: il gate OTP
+# passa da qui, e i due non devono congelare lo stesso giocatore.
+softdepend: [LuckPerms, MagixWeb, MagixGuard]
+
+commands:
+  magixauth:
+    description: Amministrazione del login
+    aliases: [mauth]
+    usage: /mauth <info|register|reset|unlock|sessions|reload>
+    permission: magixauth.admin
+  login:
+    description: Entrare con la propria password
+    aliases: [l]
+    usage: /login <password>
+  register:
+    description: Registrarsi al primo ingresso
+    aliases: [reg, registrati]
+    usage: /register <password> <ripeti password>
+  otp:
+    description: Codice della verifica in due passaggi
+    aliases: [codice]
+    usage: /otp <codice>
+  logout:
+    description: Chiude il tuo accesso in gioco e sul sito
+    aliases: [esci, disconnetti]
+    usage: /logout
+  changepassword:
+    description: Cambiare la propria password (vale anche sul sito)
+    aliases: [cambiapassword, cambiapw]
+    usage: /changepassword <vecchia> <nuova> <ripeti nuova> [codice]
+
+permissions:
+  magixauth.admin:
+    description: Ricaricare la configurazione e consultare lo stato del login
+    default: op
+  magixauth.reset:
+    description: Azzerare la password di un giocatore che l'ha dimenticata
+    default: op
+  magixauth.unlock:
+    description: Togliere l'attesa a chi si e' chiuso fuori sbagliando troppe volte
+    default: op
+  magixauth.exempt:
+    description: Entrare senza login. NON assegnarlo a nessuno su un server non premium
+    default: false

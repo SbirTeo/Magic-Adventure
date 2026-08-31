@@ -1,0 +1,161 @@
+# MagixEntities - messaggi.
+# Colori: codici & classici (&a &c &l ...) ed esadecimali &#RRGGBB.
+#
+# PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
+#   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
+#   verde  &#A8DC2C  l'ADVENTURE del logo: comandi, conferme, cose cliccabili
+#   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
+#   errore &#FF6B6B  |  avviso &#FFD166
+
+prefix: "&#C046E8&lMagixEntities &8» &r"
+
+# ------------------------------------------------------------------ errori
+no-permission: "&#FF6B6B✖ Non hai il permesso per questo comando."
+players-only: "&#FF6B6B✖ Questo comando va usato in gioco."
+unknown-sub: "&#FF6B6B✖ Sottocomando sconosciuto: &f{sub}&7. Scrivi &f/mentities help&7."
+name-invalid: "&#FF6B6B✖ Nome non valido &8· &7solo lettere, numeri, &f_&7 e &f-&7 (max 32 caratteri)."
+already-exists: "&#FF6B6B✖ Esiste gia' un'entita' chiamata &f{name}&7."
+not-found: "&#FF6B6B✖ Nessuna entita' chiamata &f{name}&7. Vedi &f/mentities list&7."
+type-invalid: "&#FF6B6B✖ Tipo &f{type}&7 non valido &8· &7usa &fplayer&7 o un mob (zombie, blaze, villager...)."
+world-missing: "&#FF6B6B✖ Il mondo &f{world}&7 non e' caricato."
+pose-invalid: "&#FF6B6B✖ Posa non valida &8· &7disponibili: &f{poses}"
+pose-not-player: "&#FF6B6B✖ Le pose valgono solo per le entita' di tipo &fplayer&7."
+skin-not-player: "&#FF6B6B✖ &f{name}&7 non e' di tipo &fplayer&7: non ha una skin."
+option-unknown: "&#FF6B6B✖ Opzione sconosciuta &8· &7disponibili: &f{options}"
+
+# ------------------------------------------------------------------- usage
+usage-create: "&#FFD166▸ Uso: &f/mentities create <nome> <tipo> &7[displayname]"
+usage-remove: "&#FFD166▸ Uso: &f/mentities remove <nome>"
+usage-tp: "&#FFD166▸ Uso: &f/mentities tp <nome>"
+usage-here: "&#FFD166▸ Uso: &f/mentities here <nome>"
+usage-name: "&#FFD166▸ Uso: &f/mentities name <nome> <nuovoNome>"
+usage-displayname: "&#FFD166▸ Uso: &f/mentities displayname <nome> <testo|mirror|reset>"
+usage-type: "&#FFD166▸ Uso: &f/mentities type <nome> <tipo> &7(player o un mob)"
+usage-skin: "&#FFD166▸ Uso: &f/mentities skin <nome> <nick|mirror>"
+usage-pose: "&#FFD166▸ Uso: &f/mentities pose <nome> <posa>"
+usage-set: "&#FFD166▸ Uso: &f/mentities set <nome> <opzione> <on|off>"
+usage-info: "&#FFD166▸ Uso: &f/mentities info <nome>"
+usage-respawn: "&#FFD166▸ Uso: &f/mentities respawn <nome>"
+usage-equip: "&#FFD166▸ Uso: &f/mentities equip <nome>"
+usage-cmd: "&#FFD166▸ Uso: &f/mentities cmd <nome> <add|list|remove|clear>"
+usage-cmd-add: "&#FFD166▸ Uso: &f/mentities cmd <nome> add <comando> &8· &7prefissi: &fconsole:&7 (da console), &fmsg:&7 (messaggio)"
+
+# ------------------------------------------------------------------ esiti
+created: "&#A8DC2C✔ Creata &f{name} &8· &7{type} &8· &r{display}"
+created-player-hint: "&8  ↳ &7skin da &f{skin}&7, cambiala con &f/mentities skin {name} <nick>"
+removed: "&#A8DC2C✔ Entita' &f{name} &7rimossa."
+renamed: "&#A8DC2C✔ &f{old} &7ora si chiama &f{new}&7."
+renamed-skin-hint: "&8  ↳ &7la skin segue il nome: ora e' &f{skin}"
+renamed-display-hint: "&8  ↳ &7il displayname segue il nome: ora e' &r{display}"
+display-set: "&#A8DC2C✔ Displayname di &f{name}&7: &r{display}"
+display-reset: "&#A8DC2C✔ Displayname di &f{name} &7torna a seguire il nome: &r{display}"
+display-mirror: "&#A8DC2C✔ Displayname di &f{name} &7in modalita' &#A8DC2Cmirror &8· &7ognuno vedra' il proprio nome."
+type-set: "&#A8DC2C✔ &f{name} &7ora e' di tipo &f{type} &8· &7era &f{old}"
+type-same: "&#FFD166▸ &f{name}&7 e' gia' di tipo &f{type}&7."
+type-player-hint: "&8  ↳ &7skin da &f{skin}&7, cambiala con &f/mentities skin {name} <nick>"
+type-kept-hint: "&8  ↳ &7skin e posa restano salvate: tornando al tipo &fplayer&7 le ritrovi."
+skin-set: "&#A8DC2C✔ Skin di &f{name}&7: &f{skin}"
+skin-mirror: "&#A8DC2C✔ Skin di &f{name} &7in modalita' &#A8DC2Cmirror &8· &7ognuno la vedra' con la propria."
+skin-failed: "&#FFD166▸ Texture di &f{skin}&7 non trovate: uso il solo nome, la skin potrebbe non apparire."
+pose-set: "&#A8DC2C✔ Posa di &f{name}&7: &f{pose}"
+option-set: "&#A8DC2C✔ &f{name} &8· &7{option} &8→ &f{value}"
+teleported: "&#A8DC2C✔ Teletrasportato da &f{name}&7."
+moved: "&#A8DC2C✔ &f{name} &7spostata nella tua posizione."
+respawned: "&#A8DC2C✔ &f{name} &7ricreata."
+reloaded: "&#A8DC2C✔ Configurazione ricaricata &8· &7entita': &f{count}"
+not-loaded: "&#FFD166▸ &f{name} &7non e' caricata (chunk scarico): la modifica e' salvata e verra' applicata al ritorno."
+
+# ------------------------------------------------------ equipaggiamento
+equip-title: "Equipaggiamento · {name}"
+equip-slot-hint: "&8Trascina qui un oggetto"
+equip-guide-title: "&#C046E8&lEquipaggiamento"
+equip-guide-lore:
+  - "&7Metti gli oggetti negli slot azzurri:"
+  - "&8· &ftesta, corpo, gambe, piedi"
+  - "&8· &fmano principale e secondaria"
+  - " "
+  - "&7Chiudi la finestra per salvare."
+equip-saved: "&#A8DC2C✔ Equipaggiamento di &f{name} &7salvato."
+equip-cleanup: "&8  ↳ &7ho tolto dal tuo inventario i vetri del menu."
+
+# ----------------------------------------------------- comandi al clic
+cmd-added: "&#A8DC2C✔ Comando &f#{index} &7aggiunto a &f{name}&7."
+cmd-removed: "&#A8DC2C✔ Rimosso da &f{name}&7: &8{cmd}"
+cmd-cleared: "&#A8DC2C✔ Tutti i comandi di &f{name} &7rimossi."
+cmd-empty: "&7&f{name}&7 non esegue nessun comando al clic. Aggiungine uno con &f/mentities cmd {name} add <comando>&7."
+cmd-index-invalid: "&#FF6B6B✖ Indice non valido &8· &7usa un numero da &f1&7 a &f{max}&7."
+cmd-header: "&#C046E8&l AL CLIC &8· &f{name} &8· &7{count} comandi"
+cmd-entry: " &8│ &7#{index} &8· &f{cmd}"
+cmd-entry-hover: "&#A8DC2C▸ Clicca per proporre la rimozione"
+
+# -------------------------------------------------------------------- list
+list-empty: "&7Nessuna entita' creata. Inizia con &f/mentities create <nome> <tipo>&7."
+list-header: "&#C046E8&l ENTITA' &8· &7{count} totali &8· &7pagina &f{page}&7/&f{pages}"
+list-entry: " &8│ &f{name} &8· &#A8DC2C{type} &8│ &r{display} &8│ {status}"
+list-entry-hover: "&7Mondo &f{world}&7\n&7Posizione &f{x} {y} {z}\n&7Displayname &r{display}\n\n&#A8DC2C▸ Clicca per i dettagli"
+list-nav-prev: "&#A8DC2C◀ Indietro"
+list-nav-next: "&#A8DC2CAvanti ▶"
+list-nav-disabled: "&8"
+status-ok: "&#A8DC2C●"
+status-unloaded: "&8●"
+status-missing: "&#FF6B6B●"
+status-legend: " &8└ &#A8DC2C● &7attiva &8· &8● &7chunk scarico &8· &#FF6B6B● &7assente"
+
+# -------------------------------------------------------------------- info
+info-header: "&#C046E8&l {name} &8· &7{type}"
+info-line: " &8│ &7{key} &8· &r{value}"
+info-actions-tp: "&#A8DC2C▶ Vai"
+info-actions-here: "&#FFD166⇄ Porta qui"
+info-actions-remove: "&#FF6B6B✖ Rimuovi"
+info-follows-name: "&8(segue il nome)"
+info-mirror-display: "&#A8DC2Cmirror &8· &7ognuno vede il proprio nome &8· &7{clones} copie"
+info-mirror-skin: "&#A8DC2Cmirror &8· &7ognuno vede la propria skin &8· &7{clones} copie"
+info-commands: "&f{count} comandi &8· &7/mentities cmd {name} list"
+
+# -------------------------------------------------------------------- help
+# L'aiuto lo impagina la classe Aiuto (la stessa in tutti i plugin Magix): una
+# sezione per volta, frecce per sfogliare, ogni riga cliccabile per scriversi il
+# comando in chat.
+# Formato di una riga:  "<comando> [argomenti] :: spiegazione"
+#   - il comando (le parole semplici iniziali) e' quello che il clic scrive;
+#   - gli argomenti fra <> o [] restano da riempire a mano;
+#   - staff: true su una sezione = la vede solo chi ha magixentities.admin.
+help:
+  title: "MagixEntities"
+  sections:
+    entita:
+      title: "Entita'"
+      entries:
+        - "/mentities create <nome> <tipo> [displayname] :: crea dove sei (tipo: player o un mob)"
+        - "/mentities remove <nome> :: elimina l'entita'"
+        - "/mentities list [pagina] :: elenco delle entita'"
+        - "/mentities info <nome> :: dettagli di una entita'"
+        - "/mentities type <nome> <tipo> :: cambia il tipo tenendo tutto il resto"
+        - "/mentities respawn <nome> :: ricrea l'entita' se e' sparita"
+    aspetto:
+      title: "Aspetto"
+      entries:
+        - "/mentities name <nome> <nuovoNome> :: rinomina (per il tipo player la skin segue)"
+        - "/mentities displayname <nome> <testo|mirror|reset> :: scritta sopra la testa"
+        - "/mentities skin <nome> <nick|mirror> :: skin della statua (solo tipo player)"
+        - "/mentities pose <nome> <posa> :: posa della statua (solo tipo player)"
+        - "/mentities equip <nome> :: menu per vestirla (armatura e mani)"
+        - "/mentities set <nome> <opzione> <on|off> :: invulnerable, nametag, ai, gravity, glowing... (tab per l'elenco)"
+    interazione:
+      title: "Interazione"
+      entries:
+        - "/mentities cmd <nome> add <comando> :: esegue il comando quando la clicchi"
+        - "/mentities cmd <nome> list :: comandi associati all'entita'"
+        - "/mentities cmd <nome> remove <n> :: toglie il comando numero n"
+        - "/mentities cmd <nome> clear :: toglie tutti i comandi"
+        - "/mentities set <nome> interact on :: lascia passare il clic ad altri plugin (CMI...)"
+    posizione:
+      title: "Posizione e utilita'"
+      entries:
+        - "/mentities tp <nome> :: teletrasportati dall'entita'"
+        - "/mentities here <nome> :: sposta l'entita' dove sei tu"
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/mentities reload :: ricarica config, messaggi ed entita'"

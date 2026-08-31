@@ -1,0 +1,134 @@
+#version 330
+
+#moj_import <minecraft:fog.glsl>
+#moj_import <minecraft:dynamictransforms.glsl>
+#moj_import <minecraft:projection.glsl>
+#moj_import <minecraft:sample_lightmap.glsl>
+
+in vec3 Position;
+in vec4 Color;
+in vec2 UV0;
+in ivec2 UV2;
+
+uniform sampler2D Sampler0;
+uniform sampler2D Sampler2;
+
+out float sphericalVertexDistance;
+out float cylindricalVertexDistance;
+out vec4 vertexColor;
+out vec2 texCoord0;
+out vec2 uvCoord;
+flat out int custom;
+
+// Frecce dei giocatori sulla minimap (una per giocatore visibile, come i cursori nativi della mappa-
+// item). Ogni slot: .xy = posizione in pixel-mappa (0..127), .z = angolo di sguardo (radianti),
+// .w = tipo (0 = tu / 1 = fazione / 2 = alleato / 3 = nemico), oppure .w < 0 = slot vuoto. Vengono
+// DECODIFICATE qui dall'header (bit impacchettati nelle prime 2 righe della map texture) e DISEGNATE dal
+// fragment shader a risoluzione SCHERMO: restano nitide e ruotano fluide a qualsiasi angolo, come i
+// cursori nativi — che pero' non si agganciano alla minimap HUD (vedi MapContentBuilder), per questo le
+// ridisegniamo noi. ARROW_MAX e il formato dei record DEVONO combaciare con MapService (ARROW_MAX/
+// ARROW_BITS/ARROW_ANGLE_STEPS e computePlayerArrows).
+#define ARROW_MAX 6
+flat out vec4 arrows[ARROW_MAX];
+
+// MagixFactions minimap HUD (metodo NMinimap, riscritto). In questa versione (26.x) il CONTENUTO di
+// una mappa dentro un item frame e' renderizzato da questo shader (rendertype_text), non da entity/
+// item — per questo i tentativi precedenti su entity.vsh non funzionavano. La mappa della minimap ha
+// un HEADER MAGICO nei primi pixel della riga 0 (byte palette 18/4/49 -> colori 0xFF0000/0x597D27/
+// 0x3737DC, verificati): se lo shader lo riconosce, questo non e' testo/mappa nel mondo 3D ma la
+// minimap HUD, e la sua posizione a schermo viene sovrascritta con coordinate fisse (angolo alto a
+// destra). L'header (prime 2 righe) viene poi nascosto nel fragment per non mostrarlo.
+//
+// texelFetch (coordinate intere) nel VERTEX shader FUNZIONA per la map texture in questo contesto,
+// mentre texture()/textureLod() nell'entity shader restituivano nero (verificato empiricamente).
+
+// Dimensione e margine dell'HUD in NDC (frazione di schermo), compensati per l'aspect ratio nel calcolo.
+// La mappa e' 128x128 pixel FISSI (limite Minecraft): piu' e' grande a schermo, piu' ogni pixel viene
+// ingrandito e appare "sgranato". Un riquadro piu' piccolo distribuisce i 128px su meno spazio -> piu'
+// nitido. Il quad resta quadrato (bounding box): il ritaglio CIRCOLARE avviene nel fragment shader.
+// __MAP_SIZE__ e' sostituito a runtime dal plugin col valore di config map.minimap.screen-size
+// (frazione di schermo). Se il pack viene usato cosi' com'e' (senza sostituzione), resta 0.22.
+const vec2 MAP_SIZE = vec2(__MAP_SIZE__, __MAP_SIZE__);
+const vec2 MAP_OFFSET = vec2(0.03, 0.03);
+
+// Colori magici dell'header (RGB impacchettati come 0xRRGGBB), come li legge la GPU dalla map texture.
+const int MK0 = 0xFF0000;
+const int MK1 = 0x597D27;
+const int MK2 = 0x3737DC;
+
+const vec2 corners[4] = vec2[](vec2(0, 0), vec2(0, 1), vec2(1, 1), vec2(1, 0));
+
+int packColor(vec4 c) {
+    ivec3 i = ivec3(round(c.rgb * 255.0));
+    return (i.r << 16) + (i.g << 8) + i.b;
+}
+
+int idAt(ivec2 uv) {
+    return packColor(texelFetch(Sampler0, uv, 0));
+}
+
+// Un bit dell'header: pixel = MK0 (0xFF0000) -> 1, qualunque altro colore -> 0. idx e' l'indice LINEARE
+// del pixel (riga*128 + colonna) a partire dall'angolo (0,0) della map texture; i record delle frecce
+// stanno dopo i 3 pixel magici e possono sconfinare nella riga 1 (percio' idx/128 per la riga).
+int bitAt(ivec2 base, int idx) {
+    ivec2 off = ivec2(idx % 128, idx / 128);
+    return (idAt(base + off) == MK0) ? 1 : 0;
+}
+
+// Legge n bit (LSB-first) a partire dall'indice lineare start.
+int readBits(ivec2 base, int start, int n) {
+    int v = 0;
+    for (int b = 0; b < 7; b++) {   // 7 = larghezza massima di un campo (px/py)
+        if (b >= n) break;
+        v |= bitAt(base, start + b) << b;
+    }
+    return v;
+}
+
+void main() {
+    // Default: comportamento vanilla identico allo stock (per TUTTO il testo del gioco).
+    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    sphericalVertexDistance = fog_spherical_distance(Position);
+    cylindricalVertexDistance = fog_cylindrical_distance(Position);
+    vertexColor = Color * sample_lightmap(Sampler2, UV2);
+    texCoord0 = UV0;
+    uvCoord = vec2(0.0);
+    custom = 0;
+    for (int i = 0; i < ARROW_MAX; i++) arrows[i] = vec4(0.0, 0.0, 0.0, -1.0); // nessuna freccia
+
+    // Riconoscimento minimap: normalizza al pixel (0,0) della mappa e controlla i 3 pixel header.
+    vec2 texSize = vec2(textureSize(Sampler0, 0));
+    if (texSize == vec2(128.0)) {
+        ivec2 uv = ivec2(UV0 * texSize);
+        ivec2 mapUV = uv - ivec2(corners[(gl_VertexID + 1) % 4] * 128.0);
+        if (idAt(mapUV + ivec2(0, 0)) == MK0 && idAt(mapUV + ivec2(1, 0)) == MK1 && idAt(mapUV + ivec2(2, 0)) == MK2) {
+            // Riquadro in alto a DESTRA, quadrato (nessuna rotazione in questa fase).
+            vec2 map = corners[(gl_VertexID + 1) % 4] * MAP_SIZE;
+            map = map + MAP_OFFSET * vec2(-1.0, 1.0) - vec2(MAP_SIZE.x, 0.0);
+            gl_Position = vec4(vec2(1.0, -ProjMat[1][1] / ProjMat[0][0]) * map + vec2(1.0, 1.0), -0.9999, 1.0);
+            vertexColor = vec4(1.0);
+            uvCoord = corners[(gl_VertexID + 1) % 4] * 128.0;
+            custom = 1;
+            sphericalVertexDistance = 0.0;
+            cylindricalVertexDistance = 0.0;
+            // Frecce: ARROW_MAX record da 22 bit, a partire dal pixel 3 (dopo i 3 magici). Formato di un
+            // record (LSB-first): 1 bit valido, 7 px, 7 py, 5 angolo (bucket 0..31 -> bucket/32*2pi), 2
+            // tipo. Combacia con MapService.packArrow/renderPaletteWithHeader.
+            for (int i = 0; i < ARROW_MAX; i++) {
+                int b = 3 + i * 22;
+                if (bitAt(mapUV, b) == 0) continue;                 // slot vuoto -> resta .w = -1
+                int px  = readBits(mapUV, b + 1, 7);
+                int py  = readBits(mapUV, b + 8, 7);
+                int ang = readBits(mapUV, b + 15, 5);
+                int typ = readBits(mapUV, b + 20, 2);
+                arrows[i] = vec4(float(px), float(py), (float(ang) / 32.0) * 6.28318530718, float(typ));
+            }
+        } else if (idAt(mapUV + ivec2(0, 0)) == MK2 && idAt(mapUV + ivec2(1, 0)) == MK1 && idAt(mapUV + ivec2(2, 0)) == MK0) {
+            // Firma INVERSA (49/4/18) = MAPPA-ITEM Fazioni (in mano o in cornice): resta al suo posto nel
+            // mondo (nessun riposizionamento HUD), ma il fragment la rende FULLBRIGHT (leggibile di notte)
+            // e con l'upscaling smart, identica alla minimap. Scritta da FactionMapRenderer.
+            custom = 2;
+            uvCoord = corners[(gl_VertexID + 1) % 4] * 128.0;
+        }
+    }
+}

@@ -1,0 +1,30 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        "": -8,
+        "": -60,
+        "": -176
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "magixauth:gui/codice.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "magixauth:gui/login.png",
+      "ascent": 13,
+      "height": 166,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}

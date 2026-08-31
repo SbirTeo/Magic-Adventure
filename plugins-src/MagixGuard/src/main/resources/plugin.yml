@@ -1,0 +1,103 @@
+name: MagixGuard
+version: '${project.version}'
+main: com.teolo.magixguard.MagixGuard
+api-version: '26.1'
+author: teolo
+description: Profilazione silenziosa, rilevamento multi-account e unico sistema sanzionatorio del server
+softdepend: [PlaceholderAPI, MagixFactions, LuckPerms, MagixWeb]
+
+commands:
+  magixguard:
+    description: Strumenti staff anti multi-account
+    aliases: [mg, guard, alts]
+    usage: /mg <alts|dossier|sessions|alerts|link|unlink|verify|stats|reload>
+    permission: magixguard.staff
+
+  # --- moderazione ---------------------------------------------------
+  # Sono i nomi standard di proposito: lo staff non deve imparare comandi nuovi.
+  # Gli alias con la 'm' davanti servono se un altro plugin (o il comando vanilla)
+  # si prende il nome breve: /mgban funziona sempre.
+  ban:
+    description: Bandisce un giocatore (senza durata = permanente)
+    aliases: [mgban]
+    usage: /ban <giocatore> <motivo>
+    permission: magixguard.sanziona
+  tempban:
+    description: Bandisce un giocatore per un periodo
+    aliases: [mgtempban]
+    usage: /tempban <giocatore> <durata> <motivo>
+    permission: magixguard.sanziona
+  mute:
+    description: Impedisce a un giocatore di scrivere in chat (per sempre)
+    aliases: [mgmute, silenzia]
+    usage: /mute <giocatore> <motivo>
+    permission: magixguard.sanziona
+  tempmute:
+    description: Impedisce di scrivere in chat per un periodo
+    aliases: [mgtempmute]
+    usage: /tempmute <giocatore> <durata> <motivo>
+    permission: magixguard.sanziona
+  kick:
+    description: Espelle subito un giocatore
+    aliases: [mgkick, espelli]
+    usage: /kick <giocatore> <motivo>
+    permission: magixguard.sanziona
+  warn:
+    description: Richiama un giocatore; resta agli atti
+    aliases: [mgwarn, richiamo]
+    usage: /warn <giocatore> <motivo>
+    permission: magixguard.sanziona
+  unban:
+    description: Revoca il ban di un giocatore
+    aliases: [mgunban, pardon]
+    usage: /unban <giocatore> [motivo]
+    permission: magixguard.revoca
+  unmute:
+    description: Revoca il silenzio di un giocatore
+    aliases: [mgunmute]
+    usage: /unmute <giocatore> [motivo]
+    permission: magixguard.revoca
+  storico:
+    description: Tutti i provvedimenti di un giocatore
+    aliases: [mgstorico, cronologia]
+    usage: /storico <giocatore>
+    permission: magixguard.staff
+  sanzioni:
+    description: I provvedimenti in corso e i punti (i tuoi, o di un altro se sei staff)
+    aliases: [mgsanzioni]
+    usage: /sanzioni [giocatore]
+  mgviolazione:
+    description: Ingresso per i verdetti dell'anticheat (lo chiama Grim, non una persona)
+    usage: /mgviolazione <giocatore> <categoria> [dettaglio]
+    permission: magixguard.admin
+  report:
+    description: Segnala un giocatore allo staff
+    aliases: [mgreport, segnala]
+    usage: /report <giocatore> <motivo>
+    permission: magixguard.report
+
+permissions:
+  magixguard.staff:
+    description: Consultare profili, collegamenti, alert, dossier e lo storico dei provvedimenti
+    default: op
+  magixguard.admin:
+    description: Modificare collegamenti (link/unlink), whitelist e ricaricare la config
+    default: op
+  magixguard.alerts:
+    description: Ricevere in chat gli alert di nuovo collegamento sospetto e le sanzioni date
+    default: op
+  magixguard.exempt:
+    description: Chi ha questo permesso non viene profilato (staff, bot, host di prova)
+    default: false
+  magixguard.sanziona:
+    description: Dare provvedimenti (entro il tetto di durata del proprio grado)
+    default: op
+  magixguard.revoca:
+    description: Revocare un provvedimento gia' applicato
+    default: op
+  magixguard.chat.bypass:
+    description: "Non passare dal filtro della chat: lo staff deve poter citare una parola vietata"
+    default: op
+  magixguard.report:
+    description: Segnalare un giocatore allo staff con /report
+    default: true

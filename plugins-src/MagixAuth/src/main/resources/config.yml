@@ -1,0 +1,129 @@
+# ===========================================================================
+#  MagixAuth — registrazione e login sul server non premium
+#
+#  L'account e' lo STESSO del sito: la password sta in `users.password_hash`,
+#  la stessa riga che usa magicadventure.it. Chi si registra qui puo' entrare
+#  sul sito, e chi aveva gia' impostato la password dal sito e' gia' registrato
+#  qui: non deve fare niente.
+# ===========================================================================
+
+database:
+  # Le stesse credenziali di MagixWeb: e' volutamente lo stesso database.
+  host: localhost              # dov'e' il server MySQL/MariaDB del sito
+  port: 3306                  # la sua porta
+  name: magicadventure_web     # nome del database del sito (lo stesso di MagixWeb)
+  user: magicadventure       # utente con permessi su quel database
+  password: "CAMBIAMI"         # la sua password: cambiala, questa e' solo un segnaposto
+  # Chiave AES-256 (base64, 32 byte) con cui il sito cifra i segreti OTP: e' la
+  # OTP_CHIAVE di website/config.php. Senza questa, i codici non si possono verificare.
+  otp_key_base64: ""
+
+login:
+  # Secondi concessi per completare l'ingresso prima del kick.
+  max_seconds: 120
+  # Quante volte si puo' sbagliare la password prima del blocco temporaneo.
+  max_attempts: 5
+  # Durata del blocco dopo troppi errori.
+  lockout_minutes: 10
+  # Lunghezza minima della password. Vale anche sul sito, dove la stessa password
+  # apre il gestionale: non scendere troppo.
+  min_password_length: 8
+  # Quante ore vale il riconoscimento di un dispositivo prima di richiedere di nuovo
+  # la password. Il dispositivo si riconosce da un cookie depositato sul client.
+  session_hours: 24
+  # A dispositivo riconosciuto, l'OTP viene ripetuto insieme alla password oppure no.
+  otp_follows_session: true
+
+  # Oltre all'indirizzo di rete, il computer si riconosce da un GETTONE che il client si tiene
+  # in tasca (un cookie di Minecraft) e ci ripresenta al rientro. Basta che ne funzioni uno dei
+  # due: l'indirizzo copre chi riapre il gioco da una linea stabile, il gettone copre chi esce
+  # e rientra col gioco aperto mentre l'indirizzo cambia — cosa che sulle connessioni mobili
+  # succede piu' volte in un'ora, e faceva richiedere la password a chi era uscito 5 minuti prima.
+  # Il gettone e' 32 byte casuali, nel database ne finisce solo l'impronta, e si rinnova a ogni
+  # uso: una copia intercettata vale fino al rientro successivo del proprietario, non per sempre.
+  # NB: dispositivo riconosciuto vuol dire niente password E niente codice OTP. Per chiedere
+  # comunque il codice a ogni ingresso, mettere otp_segue_la_sessione a false qui sopra.
+  device_cookie: true
+
+  # Quanto si aspetta la risposta del client prima di lasciar perdere e passare all'indirizzo.
+  # La risposta arriva dal giocatore: un client lento non deve tenere fermo nessuno al cancello.
+  cookie_wait_millis: 1500
+
+otp:
+  # La verifica in due passaggi e' SEMPRE obbligatoria per chi comanda: i web-admin
+  # del sito e chiunque stia nella track di LuckPerms indicata qui sotto.
+  staff_track: staff
+  # I giocatori normali possono attivarla se vogliono (e allora recuperano la password
+  # da soli dal sito, senza disturbare lo staff).
+  optional_for_players: true
+  # Ogni quanto si guarda se dal sito e' stato premuto "chiudi la sessione di gioco".
+  # Un giro corto costa una query vuota, ma e' la differenza fra revocare adesso e
+  # revocare fra ventiquattro ore: e' il pulsante che si cerca quando si sospetta che
+  # qualcun altro sia dentro col proprio account.
+  revocation_check_seconds: 5
+  # L'ordine dei due fattori. Valori accettati: "password-first" (consigliato) e "otp-first";
+  # qualunque altro valore vale come password-prima.
+  # Lasciare la password davanti: chiedendo prima il codice, chiunque conosca il nick di un
+  # amministratore potrebbe bruciarne i tentativi e chiuderlo fuori dal suo stesso server
+  # senza sapere nulla della password.
+  order: password-prima
+
+gate:
+  # Chi non ha ancora fatto il login compare al punto di spawn del mondo, girato nella
+  # direzione dello spawn (quella di /setworldspawn), invisibile
+  # agli altri e con gli altri invisibili a lui, e viene riportato dove si trovava
+  # appena entra. Serve a due cose: non far leggere le coordinate altrui a chi entra
+  # col nick di un altro, e non caricare i chunk di chi non entrera' mai.
+  spawn_instead_of_position: true
+  # Chi non ha ancora fatto il login non lo vede nessuno: niente nome che compare allo spawn
+  # prima che si sappia se e' davvero lui.
+  hide_from_others: true
+  # E lui non vede gli altri: al cancello non deve poter guardare chi c'e' e dove sta.
+  hide_others: true
+  # E non legge la chat finche' non e' dentro: chi entra col nick di un altro non deve
+  # potersi mettere in ascolto senza autenticarsi.
+  hide_chat: true
+  # Il messaggio "e' entrato nel server" appare solo a login riuscito: senza questo,
+  # ogni tentativo di entrare col nick di un altro annuncerebbe il suo arrivo.
+  delay_join_message: true
+
+# Le vecchie sezioni "cartello", "tastierino" e "pacchetto" non ci sono piu': si entra
+# scrivendo un comando, e non c'e' piu' nessuna finestra da disegnare.
+#
+# Erano state provate tutte e tre — cartello, incudine travestita e tastierino a caselle — e
+# ognuna ha portato il suo guasto: la password che non si vedeva mentre la si scriveva, il
+# campo di testo che si spegneva, i tasti che si potevano prendere e portare via. Un comando
+# non ha niente da rompere.
+
+premium:
+  # Alla registrazione si chiede a Mojang se quel nome esiste come account premium e
+  # si ANNOTA il suo UUID, senza usarlo: serve a sapere, il giorno in cui ci sara' la
+  # verifica vera, chi va migrato e su quali nomi aspettarsi una contesa.
+  # Non blocca nessuna registrazione: senza verifica attiva, bloccare i nomi premium
+  # chiuderebbe fuori anche i legittimi proprietari.
+  # In offline mode il gioco non chiede piu' le skin a nessuno: senza questo tutti
+  # apparirebbero con quella predefinita, compreso chi ne ha una da anni. Qui la si va a
+  # prendere da Mojang e la si attacca al profilo prima che il giocatore compaia.
+  # Non c'entra con l'autenticazione: e' solo l'aspetto.
+  skin_from_mojang: true
+
+  # Per quanti minuti si tiene da parte la skin gia' chiesta, prima di richiederla.
+  # Serve a due cose opposte: non fare un viaggio fino a Mojang a ogni ingresso, e non
+  # restare per sempre con una skin vecchia. Chi la cambia su minecraft.net la vede
+  # comparire qui entro questo tempo, senza riavviare il server.
+  # I FALLIMENTI non vengono mai tenuti da parte: se Mojang non risponde si riprova al
+  # primo ingresso successivo, altrimenti mezzo secondo di rete storta lascerebbe un
+  # giocatore senza la sua faccia fino al riavvio (e' successo).
+  skin_cache_minutes: 30
+
+  # Segna nel database se l'account risulta premium (comprato da Mojang): serve allo staff per
+  # capire con chi ha a che fare, non cambia il modo in cui si entra.
+  note_uuid: true
+  # Quanto si aspetta la risposta di Mojang prima di lasciar perdere. Tenerlo basso: se Mojang e'
+  # lento, il giocatore non deve restare fermo al cancello per colpa di un dato accessorio.
+  timeout_millis: 3000
+
+messages:
+  # Il viola e' quello di MAGIC nel logo; la freccia e la sfumatura seguono lo stile
+  # gia' usato da MagixEntities, cosi' i plugin del server si somigliano.
+  prefix: "&#C046E8&lMagixAuth &8» &r"

@@ -1,0 +1,298 @@
+# ============================================================================
+#  MagixTime - configurazione
+#  Allinea l'ora di Minecraft all'orologio reale e la stagione al calendario
+#  reale, facendo variare di conseguenza piogge, temporali e nevicate.
+#  Documentazione completa: plugins/MagixTime/README.md
+# ============================================================================
+
+# Mondi gestiti dal plugin (ora + meteo + neve).
+# "*" = tutti i mondi di tipo NORMAL (l'Overworld e ogni mondo simile).
+# Nether ed End non hanno ne' ciclo giorno/notte ne' meteo: vengono ignorati.
+worlds:
+  - "*"
+# Mondi da escludere anche se rientrano in "worlds" (utile con "*").
+excluded-worlds:
+  - "creative"
+  - "eventi"
+
+# ----------------------------------------------------------------------------
+# ORA REALE
+# ----------------------------------------------------------------------------
+time:
+  # Se false il plugin non tocca l'ora: restano il ciclo e la velocita' vanilla.
+  enabled: true
+
+  # Fuso orario usato come riferimento. ATTENZIONE: il VPS gira su UTC, quindi
+  # senza questa impostazione l'ora sarebbe sfasata di 1-2 ore rispetto all'Italia.
+  # Valori validi: qualsiasi ID IANA (Europe/Rome, Europe/London, America/New_York...).
+  # Lasciare "system" per usare il fuso del sistema operativo.
+  timezone: "Europe/Rome"
+
+  # Scostamento fisso in minuti applicato DOPO il fuso orario.
+  # Positivo = l'orologio di gioco va avanti rispetto a quello reale.
+  # Es. 120 -> quando in Italia sono le 18:00, in gioco sono le 20:00 (fa buio prima).
+  offset-minutes: 0
+
+  # Ogni quanti tick l'ora del mondo viene riallineata (20 tick = 1 secondo).
+  # A ritmo reale il tempo di Minecraft avanza di 1 tick ogni 3,6 secondi reali,
+  # quindi anche 20 e' abbondante: valori piu' bassi non migliorano nulla.
+  update-interval-ticks: 20
+
+  # Mette a false la gamerule doDaylightCycle nei mondi gestiti: e' cio' che
+  # impedisce a Minecraft di far scorrere il tempo alla sua velocita' (24 min/giorno)
+  # e che impedisce ai letti di saltare la notte.
+  #
+  # NON metterlo a false: finche' la gamerule resta attiva il CLIENT continua ad
+  # avanzare il tempo per conto suo e ogni riallineamento lo riporta indietro, con
+  # il sole e la luna che saltano avanti e indietro senza fermarsi. Se il plugin non
+  # riesce a spegnerla lo scrive in console e passa da solo a un aggiornamento a
+  # ogni tick, che rende lo scarto invisibile.
+  manage-gamerule: true
+
+  # Quando qualcuno cambia l'ora dall'esterno (/day, /time set, un altro plugin) il
+  # plugin NON se la riprende all'istante: il cambio vale per questi secondi, poi il
+  # sole torna in avanti fino a riagganciare l'ora vera. 0 = riprende subito il
+  # controllo (sconsigliato: e' il braccio di ferro che fa saltare il sole).
+  override-seconds: 60
+
+  # Velocita' del rientro, in multipli della velocita' vanilla del sole.
+  # 60 = il sole corre 60 volte piu' del normale finche' non raggiunge l'ora reale
+  # (mezza giornata di scarto si recupera in una decina di secondi). 0 = rientro
+  # secco, senza animazione.
+  catchup-speed: 60
+
+  # Allinea anche il CONTATORE DEI GIORNI del mondo alla data reale
+  # (giorno 0 = la data indicata in day-counter-origin).
+  # Sconsigliato su un mondo gia' avviato: fa un salto secco del contatore,
+  # che influisce su statistiche e su plugin che leggono l'"eta'" del mondo.
+  sync-day-counter: false
+  day-counter-origin: "2026-01-01"
+
+  # Messaggio a chi prova a dormire: con l'ora reale la notte non si puo' saltare.
+  sleep-notify: true
+
+# ----------------------------------------------------------------------------
+# STAGIONI
+# ----------------------------------------------------------------------------
+seasons:
+  enabled: true
+
+  # Come vengono calcolate le date d'inizio delle stagioni:
+  #   astronomical   -> equinozi/solstizi (20/03, 21/06, 22/09, 21/12)
+  #   meteorological -> stagioni meteorologiche (01/03, 01/06, 01/09, 01/12)
+  #   custom         -> usa il campo "start" di ogni stagione qui sotto
+  mode: astronomical
+
+  # north = emisfero boreale (Italia). south = emisfero australe (stagioni invertite).
+  hemisphere: north
+
+  # Ogni quanti secondi viene ricontrollato il cambio di stagione.
+  check-interval-seconds: 60
+
+  # Annuncio in chat quando la stagione cambia (testo in messages.yml).
+  announce: true
+  # Titolo a schermo oltre al messaggio in chat.
+  announce-title: true
+  # Suono riprodotto all'annuncio, in forma namespaced ("" per nessun suono).
+  # Esempi: block.note_block.chime, entity.player.levelup, ui.toast.challenge_complete
+  announce-sound: "block.note_block.chime"
+
+  # Le quattro stagioni. In modalita' "custom" puoi anche aggiungerne/toglierne:
+  # conta solo il campo "start" (MM-DD) per stabilire quando iniziano.
+  #
+  #   rain-chance       : probabilita' (%) che, finito il sereno, arrivi la pioggia
+  #   thunder-chance    : probabilita' (%) che quella pioggia sia un temporale
+  #   rain-min/max      : durata in minuti REALI di una fase di pioggia
+  #   clear-min/max     : durata in minuti REALI di una fase di sereno
+  #   snow-accumulate   : durante la pioggia accumula neve/ghiaccio (vedi sezione "snow")
+  #   snow-melt         : col sereno scioglie neve e ghiaccio (vedi sezione "snow")
+  list:
+    spring:
+      display: "&aPrimavera"
+      start: "03-20"
+      rain-chance: 45
+      thunder-chance: 25
+      rain-min-minutes: 20
+      rain-max-minutes: 90
+      clear-min-minutes: 60
+      clear-max-minutes: 240
+      snow-accumulate: false
+      snow-melt: true
+    summer:
+      display: "&eEstate"
+      start: "06-21"
+      rain-chance: 18
+      thunder-chance: 55
+      rain-min-minutes: 10
+      rain-max-minutes: 40
+      clear-min-minutes: 120
+      clear-max-minutes: 420
+      snow-accumulate: false
+      snow-melt: true
+    autumn:
+      display: "&6Autunno"
+      start: "09-22"
+      rain-chance: 60
+      thunder-chance: 20
+      rain-min-minutes: 30
+      rain-max-minutes: 150
+      clear-min-minutes: 45
+      clear-max-minutes: 180
+      snow-accumulate: false
+      snow-melt: true
+    winter:
+      display: "&bInverno"
+      start: "12-21"
+      rain-chance: 50
+      thunder-chance: 5
+      rain-min-minutes: 30
+      rain-max-minutes: 180
+      clear-min-minutes: 60
+      clear-max-minutes: 240
+      snow-accumulate: true
+      snow-melt: false
+
+# ----------------------------------------------------------------------------
+# METEO
+# ----------------------------------------------------------------------------
+weather:
+  # Se false il plugin non tocca il meteo: le stagioni restano solo "informative".
+  enabled: true
+
+  # Mette a false la gamerule doWeatherCycle nei mondi gestiti, cosi' e' il plugin
+  # (e non Minecraft) a decidere quando piove e per quanto.
+  manage-gamerule: true
+
+  # Ogni quanti secondi viene controllata la fase meteo in corso.
+  check-interval-seconds: 5
+
+  # Come per l'ora: se qualcuno cambia il meteo dall'esterno il cambio vale per
+  # questi secondi, poi il plugin rimette la fase della stagione.
+  # 0 = riprende il controllo al primo controllo utile.
+  override-seconds: 120
+
+  # Salva la fase in corso in data.yml: dopo un riavvio la pioggia riprende
+  # da dove era rimasta invece di essere ritirata a caso.
+  persist: true
+
+  # Annuncio in chat all'inizio di pioggia/temporale/sereno (testi in messages.yml).
+  announce: false
+
+# ----------------------------------------------------------------------------
+# NEVE E GHIACCIO
+# ----------------------------------------------------------------------------
+# Minecraft decide da solo se la precipitazione e' pioggia o neve in base alla
+# temperatura del bioma: il plugin non puo' cambiare quella resa grafica.
+# Quello che puo' fare e' rendere l'ACCUMULO stagionale: d'inverno la neve si
+# deposita (piu' spessa del normale) e l'acqua ghiaccia, d'estate tutto si scioglie.
+snow:
+  enabled: true
+
+  # Ogni quanti secondi viene fatto un passaggio di accumulo/scioglimento.
+  interval-seconds: 15
+
+  # Raggio in blocchi attorno a ogni giocatore online in cui il plugin lavora.
+  radius: 48
+
+  # Quanti punti a caso vengono valutati per giocatore a ogni passaggio.
+  # E' la manopola principale per il carico: piu' alto = accumulo piu' veloce.
+  blocks-per-player: 40
+
+  # Strati di neve massimi impilabili (vanilla si ferma a 1; il massimo assoluto e' 8).
+  max-layers: 3
+
+  # Se true la neve si deposita in QUALSIASI bioma, anche caldo. Attenzione:
+  # in un bioma caldo il cielo continua a mostrare PIOGGIA e Minecraft stesso
+  # tende a sciogliere la neve appena posata. Consigliato lasciarlo false.
+  force-anywhere: false
+
+  # Congela l'acqua ferma in ghiaccio quando nevica.
+  freeze-water: true
+
+  # Nello scioglimento riporta anche il ghiaccio semplice ad acqua.
+  # (SNOW_BLOCK, PACKED_ICE e BLUE_ICE non vengono mai toccati: di solito sono costruzioni.)
+  melt-ice: true
+
+  # Se true lo scioglimento agisce anche nei biomi gelidi (taiga innevata, picchi...).
+  # Sconsigliato: quella neve fa parte del paesaggio e Minecraft la rimette solo
+  # mentre nevica, quindi d'estate il bioma resterebbe spoglio per sempre.
+  melt-cold-biomes: false
+
+  # Blocchi su cui non depositare mai la neve.
+  skip-blocks:
+    - FARMLAND
+    - DIRT_PATH
+
+# ----------------------------------------------------------------------------
+# BLOCCO DEI COMANDI DI ORA E METEO (CMI, vanilla, ...)
+# ----------------------------------------------------------------------------
+# Finche' MagixTime governa ora e meteo, un /time o un /weather esterno verrebbe
+# comunque riscritto entro un secondo. Meglio rifiutarlo subito e spiegare in chat
+# che per cambiarli davvero bisogna spegnere il modulo (testi in messages.yml:
+# "blocked-time" e "blocked-weather").
+#
+# Il blocco segue i moduli: i comandi dell'ora sono rifiutati solo se time.enabled
+# e' true, quelli del meteo solo se weather.enabled e' true. Per riprendere il
+# controllo hai tre strade: /mtime pause (solo l'ora), mettere a false il modulo
+# qui nel config e /mtime reload, oppure disattivare del tutto il plugin.
+block-commands:
+  enabled: true
+
+  # Cosa fare quando qualcuno usa /time, /day, /weather e simili:
+  #   revert -> il comando FUNZIONA (diventa giorno, inizia a piovere...), parte un
+  #             avviso in chat e dopo time.override-seconds / weather.override-seconds
+  #             il plugin riporta tutto alla normalita' da solo.
+  #   block  -> il comando viene rifiutato e non succede niente.
+  mode: revert
+
+  # Vale anche per la console e per i blocchi comando.
+  console: true
+
+  # Permesso che permette di aggirare il blocco. Il nodo magixtime.bypass ha
+  # default "false": non ce l'ha nessuno finche' non lo assegni con LuckPerms.
+  # Lascia "" per non lasciare scampatoie a nessuno.
+  bypass-permission: "magixtime.bypass"
+
+  # Suono al rifiuto, in forma namespaced ("" per nessun suono).
+  deny-sound: "block.note_block.bass"
+
+  # Comandi dell'ORA da bloccare. Il prefisso di namespace viene tolto da solo,
+  # quindi "time" copre anche /minecraft:time e /cmi:time. Le voci con due parole
+  # ("cmi time") intercettano i sottocomandi.
+  time:
+    - time
+    - ctime
+    - day
+    - night
+    - ptime
+    - cptime
+    - playertime
+    - cmi time
+    - cmi ptime
+    - cmi playertime
+
+  # Comandi del METEO da bloccare.
+  weather:
+    - weather
+    - cweather
+    - sun
+    - rain
+    - storm
+    - thunder
+    - pweather
+    - cpweather
+    - playerweather
+    - toggledownfall
+    - cmi weather
+    - cmi pweather
+    - cmi playerweather
+
+# ----------------------------------------------------------------------------
+# VARIE
+# ----------------------------------------------------------------------------
+# All'arresto del plugin rimette doDaylightCycle/doWeatherCycle a true, cosi' un
+# server avviato senza MagixTime non resta con il tempo bloccato.
+restore-gamerules-on-disable: true
+
+# Righe di diagnostica in console a ogni allineamento (solo per debug).
+debug: false

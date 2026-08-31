@@ -1,0 +1,22 @@
+# MAGICADVENTURE — magicadventure.it
+# Le pagine private (accesso, gestionale, acquisto) sono chiuse qui e hanno comunque
+# "noindex" nel loro codice: due reti invece di una.
+
+User-agent: *
+Allow: /
+
+Disallow: /manage
+Disallow: /api/
+Disallow: /store/
+Disallow: /login
+Disallow: /otp
+Disallow: /logout
+Disallow: /link
+Disallow: /set-password
+Disallow: /profilo
+Disallow: /blog/new
+Disallow: /forum/new_topic
+Disallow: /*?*utm_
+Disallow: /*?*fbclid
+
+Sitemap: https://magicadventure.it/sitemap.xml

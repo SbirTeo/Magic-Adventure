@@ -1,0 +1,25 @@
+name: MagixMenus
+version: '${project.version}'
+main: com.teolo.magixmenus.MagixMenus
+api-version: '26.1'
+author: teolo
+# Fra virgolette per forza: senza, i due punti dopo "YAML" farebbero leggere la riga come
+# una mappa e il server rifiuterebbe l'intero plugin con "Invalid plugin.yml".
+description: "Menu interattivi scritti in YAML: inventari, finestre di dialogo, requisiti e azioni al clic."
+softdepend: [PlaceholderAPI, Vault]
+
+# I comandi che aprono i menu NON stanno qui: nascono dai file dei menu e vengono registrati
+# all'avvio e a ogni reload (vedi command/ComandoMenu). Qui c'e' solo il comando di servizio.
+commands:
+  magixmenus:
+    aliases: [menus, mmenus]
+    description: Gestione dei menu del server.
+    usage: /menus help
+
+permissions:
+  magixmenus.use:
+    description: Aprire i menu che non chiedono un permesso proprio.
+    default: true
+  magixmenus.admin:
+    description: Ricaricare, elencare e aprire i menu agli altri (/menus reload, lista, info, apri).
+    default: op

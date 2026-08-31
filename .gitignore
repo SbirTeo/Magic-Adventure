@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+#  Cosa NON entra nella cronologia
+# ---------------------------------------------------------------------------
+#  Il criterio: si versiona quello che si SCRIVE (sorgenti, config sorgente,
+#  migrazioni, pagine del sito), non quello che si RIGENERA (jar, classi, mondi)
+#  ne' quello che e' un SEGRETO.
+
+# --- roba che si ricostruisce da sola ---
+target/
+__pycache__/
+*.pyc
+
+# Una copia intera del JDK finita dentro il plugin (375 MB): non e' codice del progetto.
+plugins-src/MagixFactions/jdk-*/
+
+# --- il server: e' un mirror del VPS, non un sorgente ---
+# I mondi (173 MB), i jar di Paper/Spigot e i log non hanno niente da dire alla cronologia.
+server/world*/
+server/bundler/
+server/cache/
+server/logs/
+server/crash-reports/
+server/*.jar
+server/plugins/*.jar
+server/versions/
+server/libraries/
+server/banned-*.json
+server/ops.json
+server/whitelist.json
+server/usercache.json
+server/session.lock
+
+# --- SEGRETI e roba di terze parti ---
+# `server/plugins/` non contiene NIENTE di scritto a mano: i jar li produce Maven, i config
+# vivi sono copie del sorgente con dentro la password del database e la chiave OTP vere, e il
+# resto e' roba di CMI, LuckPerms & co. Il sorgente dei nostri plugin sta in plugins-src/, e
+# per regola del progetto e' lui la fonte di verita'.
+server/plugins/

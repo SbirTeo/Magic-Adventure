@@ -1,0 +1,133 @@
+# =====================================================================
+#  MagixGuard - configurazione
+#  Profilazione silenziosa dei giocatori e rilevamento multi-account.
+#
+#  FASE 1 (questa): il plugin OSSERVA e basta. Nessun kick, nessun blocco,
+#  nessun messaggio al giocatore profilato. Produce collegamenti, alert per
+#  lo staff e dossier consultabili come prova in caso di ricorso sul forum.
+# =====================================================================
+
+storage:
+  # Si parte in sqlite: il plugin funziona da subito senza creare niente. Per passare a MariaDB
+  # (consigliato quando i dati crescono) crea database e utente, poi metti "mariadb" qui sotto.
+  type: sqlite             # sqlite | mariadb
+  sqlite:
+    # Nome del file del database, dentro la cartella del plugin. Vale solo con type: sqlite.
+    file: "magixguard.db"
+  # Usati solo con type: mariadb. Il database e l'utente vanno creati PRIMA di cambiare type.
+  mariadb:
+    host: "127.0.0.1"      # dov'e' il server MariaDB (127.0.0.1 = sulla stessa macchina)
+    port: 3306             # porta di MariaDB
+    database: "magixguard" # nome del database, gia' esistente
+    user: "magixguard"     # utente con permessi su quel database
+    password: "CAMBIAMI"   # la sua password: cambiala, questa e' solo un segnaposto
+    pool-size: 5           # connessioni tenute aperte insieme. Alzalo solo se il DB fa da collo di bottiglia
+
+# ------------------------------ PRIVACY ------------------------------
+privacy:
+  # Segreto usato per l'HMAC degli indirizzi IP e dei dati sensibili.
+  # DEVE essere cambiato al primo avvio e NON deve mai finire in un dossier
+  # pubblico: senza di esso gli hash nel database non sono riconducibili a un IP.
+  # Se lo cambi dopo, gli hash vecchi non combaciano piu' con i nuovi (i collegamenti
+  # gia' registrati restano, ma non se ne creano di nuovi con le stesse coppie).
+  pepper: "UU9yBzkI4COxdXHJyHFcU6799hQQph162OwRrv4DUIqeLTB1x7lmh6vOX9oTyPAU"
+  # Giorni di conservazione delle sessioni grezze (IP in chiaro compreso).
+  # Scaduti, la sessione viene anonimizzata: restano gli hash e i collegamenti gia'
+  # calcolati, sparisce l'IP leggibile. 0 = non anonimizzare mai (sconsigliato).
+  session-retention-days: 180
+  # Nei dossier PUBBLICI (quelli che alleghi a un ricorso sul forum) l'IP viene
+  # mascherato cosi': 87.12.x.x -> mostra solo i primi N ottetti.
+  public-dossier-ip-octets: 2
+
+# --------------------------- PROFILAZIONE ----------------------------
+collect:
+  # Ritardo (in secondi dopo il join) prima di leggere le impostazioni del client:
+  # locale, view distance, skin parts, brand e canali plugin arrivano dopo il login,
+  # non sono disponibili nell'istante del PlayerJoinEvent.
+  client-snapshot-delay-seconds: 6
+  # Secondo campionamento, piu' tardi: alcuni client (Forge/Fabric con molte mod)
+  # registrano i canali plugin lentamente.
+  client-snapshot-second-pass-seconds: 45
+  # Reverse DNS dell'IP: identifica la linea ADSL/FTTH anche quando l'IP cambia.
+  # Fatto su thread separato (e' una chiamata di rete bloccante).
+  reverse-dns: true
+  reverse-dns-timeout-ms: 3000
+  # Token persistente scritto nel client (API cookie di Minecraft 1.20.5+).
+  # E' il segnale piu' forte che abbiamo: due nickname che presentano lo stesso token
+  # sono la stessa installazione di gioco. Nota: in vanilla il cookie vive in memoria,
+  # quindi si perde quando il giocatore CHIUDE Minecraft (non quando cambia server).
+  cookie:
+    enabled: true
+    key: "magixguard:id"
+  # Campionamento del ping durante la sessione (mediana): due account sulla stessa
+  # linea hanno latenza quasi identica verso il VPS.
+  ping-sampling: true
+  ping-sample-interval-seconds: 60
+
+# ------------------------- MOTORE DI ANALISI -------------------------
+analysis:
+  # Punteggio (0-100+) oltre il quale due account sono considerati collegati.
+  link-threshold: 60
+  # Punteggio oltre il quale scatta un ALERT per lo staff.
+  alert-threshold: 85
+  # Un IP usato da molti account vale poco: e' quasi certamente CGNAT (Iliad, Ho,
+  # Very, rete mobile in generale) o una connessione condivisa. Il peso viene
+  # ridotto in proporzione al numero di account distinti visti su quell'IP.
+  ip-crowding:
+    enabled: true
+    # Fino a questo numero di account l'IP mantiene il peso pieno.
+    full-weight-up-to: 2
+    # Oltre questo numero l'IP non vale piu' nulla come prova.
+    worthless-above: 12
+  # Decadimento: una prova vecchia pesa meno di una fresca (gli IP domestici
+  # vengono riassegnati). Peso moltiplicato per 0.5 ogni 'half-life-days'.
+  decay:
+    enabled: true
+    half-life-days: 90
+  # Pesi delle singole prove (indizi). Si sommano, poi si applicano
+  # affollamento IP, decadimento e le prove a discolpa.
+  weights:
+    same-cookie: 100        # stessa installazione di gioco: praticamente certezza
+    same-ip-active: 50      # stesso IP nella stessa finestra temporale
+    same-ip-history: 30     # stesso IP in momenti diversi
+    same-subnet24: 15       # stessa /24 (stesso pool dell'operatore)
+    same-rdns: 25           # stesso hostname inverso (stessa linea)
+    same-fingerprint: 25    # impronta del client identica (brand+mod+opzioni)
+    same-channels: 20       # identica lista di mod dichiarate dal client
+    handoff: 40             # uno esce, l'altro entra dallo stesso IP entro pochi secondi
+    registered-close: 20    # primo accesso ravvicinato dallo stesso IP
+    similar-name: 10        # nickname molto simili
+    never-together: 15      # non si sono MAI visti online insieme
+  # Prove a DISCOLPO (peso negativo): tengono fuori fratelli e coinquilini.
+  # Un dossier che mostra anche queste e' molto piu' difendibile in un ricorso.
+  exculpatory:
+    online-together-each: -8      # per ogni sessione sovrapposta osservata
+    online-together-max: -60      # limite del bonus a discolpa
+    different-fingerprint: -15    # impronte client nettamente diverse
+  # Staffetta: uno esce, l'altro entra dallo stesso IP entro N secondi.
+  handoff-window-seconds: 120
+  # Similarita' del nickname: distanza di Levenshtein massima per considerarli simili.
+  similar-name-max-distance: 2
+
+# ------------------------------ ALERT --------------------------------
+alerts:
+  # Messaggio in chat a chi ha magixguard.alerts quando nasce un collegamento
+  # sopra 'alert-threshold'. Il giocatore profilato NON vede nulla.
+  in-game: true
+  # Ripete l'alert per la stessa coppia al massimo una volta ogni N ore.
+  cooldown-hours: 24
+  # Scrive gli alert anche su console e nel log del plugin (alerts.log).
+  console: true
+  # Webhook Discord per il canale staff (lascia vuoto per disattivare).
+  discord-webhook: ""
+
+# ------------------------------ DOSSIER ------------------------------
+dossier:
+  # Cartella dove finiscono i dossier esportati (dentro plugins/MagixGuard/).
+  folder: "dossier"
+  # Ogni dossier esportato viene firmato con un'impronta SHA-256 concatenata
+  # alla catena di controllo del database: permette di dimostrare che il documento
+  # non e' stato ritoccato dopo il ban. Vedi /mg verify.
+  sign: true
+  # Numero massimo di sessioni elencate nel dettaglio di un dossier.
+  max-sessions-listed: 50

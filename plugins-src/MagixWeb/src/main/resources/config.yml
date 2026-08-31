@@ -1,0 +1,56 @@
+# Connessione al database del SITO WEB (magicadventure_web), separato dal DB di MagixFactions.
+mariadb:
+  host: 127.0.0.1
+  port: 3306
+  database: magicadventure_web
+  user: magicweb
+  password: "CHANGE_ME_DB_PASSWORD"
+
+# /link non esiste piu': l'account nasce in gioco con MagixAuth, e le stesse credenziali
+# (nome del giocatore + password) aprono anche magicadventure.it.
+
+# Sincronizzazione del grado LuckPerms (gruppo + prefisso colorato) verso il sito.
+# Il sito si aggiorna SUBITO a ogni cambio di gruppo/prefisso (evento di LuckPerms) e a ogni join:
+# il giro periodico qui sotto e' solo una rete di sicurezza.
+ranks:
+  # Ogni quanto risincronizzare comunque i giocatori online. 0 = disattivato.
+  sync-interval-minutes: 5
+
+# Consegna degli acquisti dello store: il sito accoda i comandi dopo il pagamento
+# confermato da PayPal, il plugin li esegue dalla console.
+store:
+  # Ogni quanto controllare la coda (secondi, minimo 3)
+  check-interval-seconds: 10
+  # Quanti comandi eseguire al massimo per controllo
+  batch-size: 20
+
+# Chat live in home sul sito, in ponte con la chat del server.
+chat:
+  enabled: true
+  # Specchia la chat PUBBLICA del gioco sul sito (quella di fazione/alleati non esce mai di qui).
+  mirror-game-chat: true
+  # Ogni quanto controllare se il sito ha messaggi da pubblicare in gioco (secondi, minimo 1)
+  check-interval-seconds: 2
+  # Quanti messaggi del sito pubblicare al massimo per controllo
+  batch-size: 20
+  # Come appare in gioco un messaggio scritto dal sito ({name} e {message})
+  game-format: "&b☁ &f{name}&7: &f{message}"
+  # I messaggi del sito piu' vecchi di cosi' (minuti) non vengono ripubblicati all'avvio:
+  # evita il muro di righe dopo che il server e' stato spento a lungo.
+  skip-older-than-minutes: 5
+  # Per quante ore tenere lo storico della chat sul sito.
+  # 0 = per sempre (predefinito): la chat del sito non si svuota da sola.
+  keep-hours: 0
+
+# La verifica in due passaggi in gioco e' passata a MagixAuth: chiave, durate e tastierino
+# si configurano nel suo config.yml. Il sito continua a usare le stesse colonne di `users`,
+# quindi un codice speso di qua risulta speso anche di la'.
+
+# Guida per amministratori del sito (/manage?section=guida).
+# Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html;
+# MagixWeb li raccoglie e li porta sul sito. Le credenziali del sito restano solo qui.
+guida:
+  enabled: true
+  # Ogni quanto ricontrollare i file dei capitoli (minuti). Il primo giro parte 10 secondi
+  # dopo l'avvio, quando tutti i plugin hanno gia' scritto il loro.
+  check-interval-minutes: 15

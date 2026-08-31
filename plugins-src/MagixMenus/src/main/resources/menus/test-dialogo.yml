@@ -1,0 +1,93 @@
+# ==========================================================================================
+#  test-dialogo.yml — la finestra di dialogo
+#
+#  Non e' un inventario travestito: e' una schermata vera di Minecraft, con un testo che si legge
+#  come un testo, dei campi da riempire e dei bottoni che sembrano bottoni.
+#
+#  Quando usarla al posto di un baule:
+#    - devi FARTI SCRIVERE qualcosa (un nome, un messaggio, un numero);
+#    - devi far LEGGERE qualcosa di piu' lungo di una descrizione;
+#    - vuoi una conferma seria ("sei sicuro?") che non si preme per sbaglio.
+#
+#  Quando NON usarla: quando le voci sono tante e si scelgono a colpo d'occhio. Per quello un
+#  baule pieno di item resta piu' chiaro.
+#
+#  Le chiavi sono in inglese, come in tutti i plugin Magix; i vecchi nomi italiani restano
+#  accettati come sinonimi.
+# ==========================================================================================
+
+menu:
+  type: dialog
+  title: "&#C046E8Una finestra di prova"
+
+  commands: [testdialogo]
+
+  # A false il giocatore non puo' chiudere con Esc: deve premere un bottone.
+  closeable: true
+
+  # A true il gioco si mette in pausa (solo in singolo; su un server non ha effetto).
+  pause: false
+
+  # Il testo. Ogni riga e' un paragrafo: niente descrizioni da otto parole per riga.
+  body:
+    - "Questa e' una finestra di dialogo di Minecraft, non un inventario."
+    - "Quello che scrivi qui sotto arriva alle azioni dei bottoni come %field_<nome>%."
+
+  # I campi da riempire: text, boolean, number, option.
+  inputs:
+
+    messaggio:
+      type: text
+      label: "Scrivi qualcosa"
+      default: ""
+      max_length: 100
+      width: 300
+
+    quanti:
+      type: number
+      label: "Quante volte"
+      min: 1
+      max: 5
+      step: 1
+      default: 1
+
+    ad_alta_voce:
+      type: boolean
+      label: "Dirlo a tutti"
+      default: "false"
+
+    colore:
+      type: option
+      label: "Con che colore"
+      options: ["verde", "viola", "giallo"]
+
+  buttons:
+
+    - label: "&#A8DC2CInvia"
+      tooltip: "Manda quello che hai scritto"
+      width: 120
+      actions:
+        - if: "%field_ad_alta_voce% == true"
+          then:
+            - "broadcast: &#C046E8%player_name% &8» &f%field_messaggio%"
+          else:
+            - "message: &#9A8CA8Hai scritto: &f%field_messaggio%"
+        - "message: &#9A8CA8Volte: &f%field_quanti%&#9A8CA8, colore: &f%field_colore%"
+        - "sound: ENTITY_EXPERIENCE_ORB_PICKUP"
+
+    - label: "&#9A8CA8Torna al menu"
+      tooltip: "Riapre il menu di prova"
+      actions:
+        - "back"
+
+    # Un bottone puo' avere show_requirements: se non e' soddisfatto, non compare affatto. In una
+    # finestra non c'e' spazio per spiegare accanto, quindi qui non esiste il "click_requirements".
+    - label: "&#FF6B6BSolo per lo staff"
+      tooltip: "Lo vedi perche' hai magixmenus.admin"
+      show_requirements:
+        requirements:
+          staff:
+            type: PERMISSION
+            key: magixmenus.admin
+      actions:
+        - "message: &#A8DC2CCiao, staff."

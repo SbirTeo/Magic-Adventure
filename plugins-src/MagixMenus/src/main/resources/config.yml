@@ -1,0 +1,49 @@
+# ==========================================================================================
+#  MagixMenus - configurazione
+#
+#  Qui dentro ci sono solo le regole che valgono per TUTTI i menu. Ogni menu ha il suo file
+#  in plugins/MagixMenus/menus/: e' li' che si decide com'e' fatto.
+#
+#  Dopo ogni modifica: /menus reload
+# ==========================================================================================
+
+actions:
+
+  # L'azione "op_command:" esegue un comando dando l'op al giocatore per il tempo di quel
+  # comando. Sta spenta apposta.
+  #
+  # Quasi sempre chi la cerca vuole in realta' "console:", che esegue il comando come server e
+  # non da' niente a nessuno. L'op serve solo per quei rarissimi comandi che pretendono di
+  # essere digitati dal giocatore E richiedono l'op: se accendi questa chiave, ricordati che per
+  # la durata di quel comando il giocatore E' operatore a tutti gli effetti.
+  allow-op-commands: false
+
+# Ogni quanti tick, al minimo, un menu puo' ridisegnarsi.
+#
+# Nei file dei menu si scrive "update: 20" (un secondo), "update: 1" (ogni tick).
+# Questo numero e' il pavimento: un menu che chiedesse di aggiornarsi piu' spesso viene riportato
+# qui. Serve come rete di sicurezza, non come freno — il plugin ridisegna comunque solo gli item
+# che possono essere cambiati, e solo per chi sta guardando il menu.
+min-update-ticks: 1
+
+# ==========================================================================================
+#  NEGOZIO
+# ==========================================================================================
+#  Un articolo di negozio sono tre chiavi sull'item, senza nessuna condizione da scrivere:
+#
+#      spada:
+#        slot: 10
+#        id: DIAMOND_SWORD
+#        price: 1000           quanto costa (clic sinistro)
+#        give: DIAMOND_SWORD   cosa riceve chi compra
+#        sell: 400             a quanto glielo ricompra il server (clic destro)
+#
+#  Controllare i soldi, controllare che ci sia posto in inventario, togliere le monete, dare
+#  l'oggetto e spiegare cosa manca lo fa il plugin. Serve Vault + un plugin di economia.
+
+# Aggiunge da sole, in fondo alla descrizione di un articolo, le righe col prezzo e con il
+# prezzo di rivendita. Come sono fatte quelle righe si decide in messages.yml, sotto "shop".
+#
+# A false le scrivi tu nella descrizione: in quel caso il prezzo finisce scritto in due posti —
+# la chiave "price" e la descrizione — e prima o poi i due diranno cose diverse.
+price-in-lore: true

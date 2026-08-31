@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.teolo</groupId>
+    <artifactId>MagixFactions</artifactId>
+    <version>0.43.3</version>
+    <packaging>jar</packaging>
+
+    <name>MagixFactions</name>
+    <description>Plugin tipo Factions con storage SQLite/MariaDB e migrazione</description>
+
+    <properties>
+        <!-- 25, non piu' 21: paper-api 26.1.2 (necessaria per AsyncChatEvent, vedi sotto) e' compilata
+             per Java 25 (class file 69.0) — il VPS gia' gira su Java 25, quindi nessun problema a runtime.
+             Sul PC di sviluppo serve un JDK 25 per buildare (vedi java-maven-env in memoria: prima
+             bastava JDK 21 perche' spigot-api non richiedeva 25). -->
+        <java.version>25</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <repositories>
+        <!-- API di LuckPerms: serve SOLO per leggere i permessi dei giocatori OFFLINE
+             (tetto di Potenza e velocita' di perdita), vedi hook/LuckPermsHook. -->
+        <repository>
+            <id>luckperms-repo</id>
+            <url>https://repo.lucko.me/</url>
+        </repository>
+        <repository>
+            <id>spigotmc-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <!-- Paper API: sostituisce spigot-api (che e' un suo sottoinsieme, stessi package org.bukkit.*,
+             nessuna rottura del codice esistente). Serve per io.papermc.paper.event.player.AsyncChatEvent
+             (chat moderna basata su Adventure): il server e' SOLO Paper (mai Spigot puro), e senza
+             questa classe il nostro listener chat ascoltava l'evento LEGACY che su questa versione non
+             arriva piu' — ne' a noi ne' a CMI (bug osservato: /f chat restava vanilla puro). -->
+        <repository>
+            <id>papermc-repo</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- provided: il jar di LuckPerms e' gia' sul server, non va impacchettato nel nostro -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.4</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <!-- combacia col build ESATTO del server (log: "Paper version 26.1.2-72-ver/26.1.2"). Il
+                 nuovo schema versioni di Paper e' <mc>.build.<N>-<stable|beta|alpha>, non piu' R0.1-SNAPSHOT. -->
+            <version>26.1.2.build.72-stable</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Fornito da Paper a runtime -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.13</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Inclusi nel jar (shaded) -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.46.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.4.1</version>
+        </dependency>
+        <!-- Opzionali a runtime (softdepend): forniti dai plugin se presenti -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.MilkBowl</groupId>
+            <artifactId>VaultAPI</artifactId>
+            <version>1.7</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bukkit</groupId>
+                    <artifactId>bukkit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- Per la minimap HUD (entita' Display via pacchetti): plugin reale gia' installato sul
+             server (v5.4.0), non va shadato. GroupId reale e' net.dmulloy2 (non com.comphenix.protocol,
+             quello e' solo il nome del package Java interno) — disponibile su Maven Central. -->
+        <dependency>
+            <groupId>net.dmulloy2</groupId>
+            <artifactId>ProtocolLib</artifactId>
+            <version>5.4.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.name}-${project.version}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${java.version}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <!-- 3.5.3 bundlava un ASM troppo vecchio per leggere bytecode Java 25 (class file 69):
+                     "Unsupported class file major version 69" durante lo shade, DOPO che javac aveva gia'
+                     compilato tutto senza errori. 3.6.2 include un ASM che lo supporta. -->
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>com.teolo.magixfactions.lib.hikari</shadedPattern>
+                                </relocation>
+                                <!-- NON rilocare org.sqlite: il driver usa una libreria nativa
+                                     con simboli JNI legati al nome pacchetto originale. -->
+                                <relocation>
+                                    <pattern>org.mariadb</pattern>
+                                    <shadedPattern>com.teolo.magixfactions.lib.mariadb</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+            <!-- Includi il README (dalla root del progetto) nel jar, cosi' il plugin
+                 puo' scriverlo nella propria cartella di configurazione all'avvio. -->
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                    <include>README.md</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+            <!-- Tutorial HTML per i giocatori: incluso nel jar e riscritto in plugins/MagixFactions/ ad ogni avvio. -->
+            <resource>
+                <directory>${project.basedir}/docs</directory>
+                <includes>
+                    <include>tutorial.html</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+    </build>
+</project>

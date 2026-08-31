@@ -1,0 +1,358 @@
+# ============================================================
+#  MagixFactions - Messaggi (modificabili)
+#  Colori con & ; esadecimali &#RRGGBB ; placeholder fra {graffe}
+#  Dopo le modifiche: /mf reload  (oppure riavvia il server)
+#
+#  PALETTE MAGIX (uguale in tutti i plugin del server, vedi
+#  plugins-src/STILE-MAGIX.md):
+#    viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
+#    verde  &#A8DC2C  l'ADVENTURE del logo: comandi e conferme
+#    grigio &#9A8CA8  testo di servizio
+#    tenue  &#5A5068  cornici e separatori
+#    errore &#FF6B6B  |  avviso &#FFD166
+# ============================================================
+
+# Il cartellino davanti alle risposte dei comandi. Stesso stile negli altri
+# plugin Magix: nome in viola grassetto, doppia freccia, poi il messaggio.
+prefix: "&#C046E8&lMagixFactions &8» &r"
+
+filter:
+  blocked: "&cIl testo contiene una parola non consentita. Scegline un'altra."
+
+# Sovraccarico territori (titolo al centro schermo + messaggio di perdita)
+# Decadimento territori per SOVRACCARICO (decay). Da non confondere con claim.overclaim-* (conquista di guerra).
+decay:
+  lost-refund: "&7Rimborso del territorio perso: &e{refund}&7 alla banca (saldo: &6{bank}&7)."
+  warn-title: "&c&lTERRITORI A RISCHIO"
+  warn-subtitle: "&c{owned}&7/&c{cap}&7 territori: invita un membro o perderai 1 territorio ogni 24h"
+  lost: "&c&lLa fazione ha perso un territorio per sovraccarico!"
+
+errors:
+  players-only: "&cSolo un giocatore puo' usare questo comando."
+  no-faction: "&cNon sei in una fazione."
+  no-permission: "&cNon hai il permesso."
+  generic: "&cErrore: {error}"
+
+chat:
+  faction-prefix: "&a[Fazione] "
+  ally-prefix: "&b[Alleati] &7{faction} &8» "
+  body: "&7{player}: &f{message}"
+  set: "&7Canale chat impostato su: {channel}"
+  channel-public: "&fPUBBLICA"
+  channel-faction: "&aFAZIONE"
+  channel-ally: "&bALLEATI"
+  invalid: "&cCanale non valido. Usa: public, faction, ally."
+  no-faction-public: "&eNon hai una fazione: chat impostata su PUBBLICA."
+
+create:
+  usage: "&cUso: /f create <nome>"
+  already-in: "&cSei gia' in una fazione."
+  name-length: "&cIl nome deve avere tra &e{min}&c e &e{max}&c caratteri."
+  name-chars: "&cIl nome puo' contenere solo lettere e numeri (niente spazi, simboli o punteggiatura)."
+  name-digits: "&cIl nome puo' contenere al massimo &e{max}&c cifre."
+  name-taken: "&cEsiste gia' una fazione con questo nome."
+  success: "&aFazione &e{name}&a creata! Sei il &6leader&a."
+
+disband:
+  not-leader: "&cSolo il leader puo' sciogliere la fazione."
+  broadcast: "&cLa fazione e' stata sciolta dal leader."
+  success: "&aFazione sciolta. I territori sono tornati neutrali."
+
+leave:
+  disbanded: "&aEri l'unico membro: la fazione e' stata sciolta e i territori sono neutrali."
+  succession: "&aHai lasciato la fazione. Il comando e' passato al successore."
+  new-leader: "&6Sei il nuovo leader della fazione &e{name}&6!"
+  left: "&aHai lasciato la fazione."
+
+transfer:
+  not-leader: "&cSolo il leader puo' trasferire il comando."
+  usage: "&cUso: /f transfer <giocatore>"
+  not-member: "&cQuel giocatore non e' nella tua fazione."
+  already-leader: "&cSei gia' il leader."
+  success: "&aHai trasferito il comando a &e{player}&a."
+  received: "&6Sei il nuovo leader della fazione &e{name}&6!"
+
+promote:
+  no-perm: "&cNon hai il permesso di promuovere."
+  usage: "&cUso: /f promote <giocatore>"
+  not-member: "&cQuel giocatore non e' nella tua fazione."
+  cant-leader: "&cNon puoi promuovere il leader."
+  too-high: "&cNon puoi promuovere chi ha grado pari o superiore al tuo."
+  max: "&eIl giocatore e' gia' al grado massimo che puoi assegnare."
+  success: "&a{player} promosso a &e{rank}&a."
+  received: "&aSei stato promosso a &e{rank}&a!"
+
+demote:
+  no-perm: "&cNon hai il permesso di degradare."
+  usage: "&cUso: /f demote <giocatore>"
+  not-member: "&cQuel giocatore non e' nella tua fazione."
+  cant-leader: "&cNon puoi degradare il leader."
+  min: "&eIl giocatore e' gia' al grado piu' basso."
+  success: "&a{player} degradato a &e{rank}&a."
+
+invite:
+  no-perm: "&cNon hai il permesso di invitare."
+  usage: "&cUso: /f invite <giocatore>"
+  not-online: "&cGiocatore non online."
+  already-in: "&cQuel giocatore e' gia' in una fazione."
+  full: "&cLa fazione e' al numero massimo di membri (&e{max}&c)."
+  sent: "&aHai invitato &e{player}&a."
+  received: "&aSei stato invitato nella fazione &e{name}&a. Usa &f/f join {name}&a per entrare."
+
+join:
+  already-in: "&cSei gia' in una fazione."
+  usage: "&cUso: /f join <fazione>"
+  not-found: "&cFazione non trovata."
+  not-invited: "&cNon sei stato invitato in questa fazione."
+  full: "&cLa fazione e' piena."
+  success: "&aSei entrato nella fazione &e{name}&a!"
+  broadcast: "&e{player}&a si e' unito alla fazione."
+
+kick:
+  no-perm: "&cNon hai il permesso di espellere."
+  usage: "&cUso: /f kick <giocatore>"
+  not-member: "&cQuel giocatore non e' nella tua fazione."
+  cant-leader: "&cNon puoi espellere il leader."
+  too-high: "&cNon puoi espellere chi ha grado pari o superiore al tuo."
+  success: "&aHai espulso &e{player}&a."
+  received: "&cSei stato espulso dalla fazione &e{name}&c."
+
+claim:
+  # Costo incrementale pagato dalla BANCA di fazione (config claims.cost.money "base,incremento,blocco,moltiplicatore").
+  bank-insufficient: "&cQuesto territorio costa &e{cost}&c dalla banca della fazione (saldo: &e{bank}&c). Versa con &6/f deposit&c."
+  paid: "&7Territorio pagato: &e{cost}&7 dalla banca (saldo: &6{bank}&7)."
+  no-perm: "&cNon hai il permesso di conquistare territori (solo il leader di default)."
+  already-own: "&eQuesto territorio e' gia' della tua fazione."
+  cap-reached: "&cHai raggiunto il numero massimo di territori (&e{cap}&c). Aumenta il maxpower della fazione."
+  not-enough-power: "&cPotenza insufficiente: serve piu' della quantita' di territori posseduti (&ePotenza {power}&c, territori &e{claims}&c)."
+  ally-land: "&cNon puoi conquistare un territorio di un'alleata (&e{name}&c)."
+  enemy-not-raidable: "&cLa fazione &e{name}&c non e' raidabile: la sua Potenza (&e{power}&c) non e' inferiore ai suoi territori (&e{claims}&c)."
+  not-border: "&cPuoi conquistare solo i territori PIU' ESTERNI di &e{name}&c, non dall'interno."
+  success: "&aTerritorio conquistato! Chunk &e{x}, {z} &7(territori: &f{count}&7/&f{cap}&7)."
+  overclaim-success: "&aHai strappato un territorio a &e{name}&a! Chunk &e{x}, {z}&a."
+  overclaimed-victim: "&cLa fazione &e{name}&c vi ha conquistato il territorio al chunk &e{x}, {z}&c!"
+  # Allerta mostrata a TUTTO il server (titolo a schermo + suono) a un overclaim di guerra.
+  overclaim-alert-title: "&4&l⚔ TERRITORIO CONQUISTATO ⚔"
+  overclaim-alert-subtitle: "&e{attacker} &7ha strappato un territorio a &c{victim} &7(&f{x}, {z}&7)"
+
+unclaim:
+  refund: "&7Rimborso: &e{refund}&7 accreditati alla banca della fazione (saldo: &6{bank}&7)."
+  no-perm: "&cNon hai il permesso di rilasciare territori (solo il leader di default)."
+  not-your-land: "&cQuesto territorio non e' della tua fazione."
+  success: "&aTerritorio rilasciato. Chunk &e{x}, {z} &7(territori rimasti: &f{count}&7)."
+
+unclaimall:
+  none: "&cLa tua fazione non possiede territori."
+  confirm-title: "&c&l⚠ ATTENZIONE ⚠"
+  confirm-subtitle: "&cRilasci TUTTI i &e{count}&c territori? E' IRREVERSIBILE"
+  confirm-chat: "&cStai per rilasciare TUTTI i &e{count}&c territori della fazione. &4Azione irreversibile.&c Riesegui &e/f unclaimall &centro 10 secondi per confermare."
+  success: "&aRilasciati tutti i &e{count}&a territori della fazione."
+
+# Banca di fazione: /f deposit|d <soldi> (tutti i membri), /f withdraw|w <soldi> (permesso di grado
+# 'withdraw', di default officer e leader). Richiede un'economia Vault attiva (es. CMI economy).
+bank:
+  no-economy: "&cNessuna economia attiva sul server: banca non disponibile."
+  usage-deposit: "&cUso: /f deposit <soldi> &7(alias /f d)"
+  usage-withdraw: "&cUso: /f withdraw <soldi> &7(alias /f w)"
+  bad-amount: "&cImporto non valido: usa un numero positivo (es. 100 o 99.50)."
+  not-enough-money: "&cNon hai &e{amount}&c da versare."
+  no-perm: "&cNon puoi prelevare dalla banca: serve il permesso &ewithdraw&c del grado (di base officer e leader)."
+  insufficient: "&cNella banca della fazione ci sono solo &e{bank}&c."
+  pay-failed: "&cOperazione economica fallita: nessun soldo spostato."
+  deposited: "&aHai versato &e{amount}&a nella banca della fazione. &7Nuovo saldo: &6{bank}"
+  withdrawn: "&aHai prelevato &e{amount}&a dalla banca della fazione. &7Nuovo saldo: &6{bank}"
+
+description:
+  no-perm: "&cNon hai il permesso di modificare la descrizione (solo il leader di default)."
+  usage: "&cUso: /f description <testo>"
+  too-long: "&cLa descrizione e' troppo lunga (max &e{max}&c caratteri)."
+  success: "&aDescrizione della fazione aggiornata."
+
+info:
+  not-found: "&cFazione non trovata / non sei in una fazione."
+  line: "&8&m----------------------------------------"
+  name: "&6Fazione: {relcolor}{name}"
+  description: "&6Descrizione: &f{desc}"
+  leader: "&6Leader: &f{leader}"
+  members: "&6Membri: &f{count}&7/&f{max}"
+  # Elenco membri inline dopo il conteggio: {tag} = tag del rank, {player} = nome.
+  members-list: "&7({list})"
+  members-list-entry: "{tag} &7{player}"
+  members-list-separator: "&7, "
+  # Riga stato: territori/potenza/potenza-max colorati (verde se sicura, rossa se raidabile),
+  # seguita da una riga descrittiva (status-weak / status-strong).
+  status: "&6Stato: {statuscolor}{claims}/{power}/{maxpower} &7(territori/potenza/potenza-max)"
+  # Saldo della banca di fazione (mostrato solo con un'economia Vault attiva).
+  bank: "&6Banca: &e{bank}"
+  status-safe-color: "&a"
+  status-raid-color: "&c"
+  status-none-color: "&f"
+  status-weak: "&cLa fazione e' debole, puoi conquistarla."
+  status-strong: "&aLa fazione e' forte. Non puoi conquistarla."
+  status-none: "&fQuesta fazione non ha ancora un territorio."
+  # Riga "Alleati:" con elenco fazioni; le richieste in sospeso hanno "(in attesa)" + tooltip (hover).
+  allies-label: "&6Alleati: "
+  allies-none: "&7nessuno"
+  allies-separator: "&7, "
+  allies-ally: "{relcolor}{name}"
+  allies-pending: "&e{name} &7(in attesa)"
+  allies-hover-in: "&e{name}&7 ti ha mandato una richiesta di alleanza.\n&eVuoi accettare? &8(clicca)"
+  allies-hover-out: "&e{name}&7 non ha ancora accettato la tua richiesta di alleanza.\n&eVuoi annullare la richiesta? &8(clicca)"
+  your-relation: "&6La tua relazione: {relation}"
+  member-entry: "  {tag} &f{player}"
+
+relation:
+  no-perm: "&cNon hai il permesso di gestire le relazioni."
+  usage: "&cUso: /f <ally|enemy> <fazione>"
+  not-found: "&cFazione non trovata."
+  self: "&cNon puoi impostare una relazione con la tua stessa fazione."
+  none: "&7nessuna"
+  name-ally: "&dAlleata"
+  name-enemy: "&cNemica"
+  # --- alleanza (richiede consenso reciproco) ---
+  ally-already: "&eSiete gia' alleati con &f{name}&e."
+  ally-pending-self: "&eHai gia' richiesto l'alleanza a &f{name}&e. Attendi la conferma."
+  ally-max: "&cHai raggiunto il numero massimo di alleati (&e{max}&c)."
+  ally-requested: "&aRichiesta di alleanza inviata a &f{name}&a."
+  ally-incoming: "&e{name}&a vi ha chiesto un'alleanza. Usa &f/f ally {name}&a per accettare."
+  ally-formed: "&aOra siete alleati con &f{name}&a!"
+  ally-cancelled: "&7Hai annullato la richiesta di alleanza verso &f{name}&7."
+  ally-rejected-self: "&7Hai rifiutato la richiesta di alleanza di &f{name}&7."
+  ally-rejected-other: "&e{name}&7 ha rifiutato la vostra richiesta di alleanza."
+  # --- nemici (default per tutte le fazioni) ---
+  enemy-already: "&eSiete gia' nemici con &f{name}&e."
+  enemy-broke-self: "&cHai sciolto l'alleanza con &f{name}&c: ora siete nemici."
+  enemy-broke-other: "&c{name}&c ha sciolto l'alleanza con voi: ora siete nemici."
+  # --- /f relations ---
+  # {relcolor} = colore della relazione (da config relations.colors). Voce e separatore configurabili.
+  list-header: "&8&m---&r &6Relazioni di &e{name} &8&m---"
+  list-allies: "&aAlleati: {list}"
+  list-pending-out: "&eAlleanze proposte: {list}"
+  list-pending-in: "&eAlleanze ricevute: {list}"
+  list-entry: "{relcolor}{name}"
+  list-separator: "&7, "
+
+# /f list - elenco di TUTTE le fazioni del server (ordinate per numero di membri).
+# {relcolor} = colore in base alla tua relazione con la fazione (da config relations.colors).
+home:
+  no-perm-set: "&cNon hai il permesso di impostare la home (solo il leader di default)."
+  no-perm: "&cNon hai il permesso di usare la home."
+  not-own-land: "&cDevi trovarti in un territorio della tua fazione per impostare la home."
+  set: "&aHome della fazione impostata qui."
+  unset: "&aHome della fazione rimossa."
+  not-set: "&cLa tua fazione non ha una home impostata."
+  world-missing: "&cIl mondo della home non e' disponibile."
+  teleported: "&aTeletrasportato alla home della fazione."
+
+# Potenza (Power): /f power [giocatore] e avviso alla morte.
+power:
+  self: "&6La tua Potenza: &e{power}&7/&e{maxpower}&6."
+  # Mostrata solo a chi ha un recupero diverso dal normale (permesso magixfactions.power.speed.<%>).
+  speed: "&6Recupero Potenza: &a{speed}%&6 della velocita' normale &7(un punto ogni {minutes})."
+  # Mostrata solo a chi ha una perdita diversa dal normale (permesso magixfactions.power.speed.loss.<%>).
+  loss-speed: "&6Perdita da offline: &a{speed}%&6 della velocita' normale."
+  other: "&6Potenza di &e{player}&6: &e{power}&7/&e{maxpower}&6."
+  not-found: "&cGiocatore &e{player}&c non trovato (dev'essere entrato almeno una volta)."
+  death-loss: "&cSei morto! Hai perso &e{lost}&c Potenza. Ora hai &e{power}&7/&e{maxpower}&c."
+
+# Protezione territori (config: protection).
+protection:
+  denied: "&cQuesto territorio e' della fazione &e{name}&c: non puoi costruire o interagire qui."
+
+map:
+  # Modalita' ITEM: consegna un item mappa dinamico da tenere in mano.
+  given: "&aHai ricevuto la &6Mappa Fazioni&a. Tienila in mano per vedere i territori attorno a te."
+  inventory-full: "&cInventario pieno! Libera uno slot e riesegui &6/f map&c."
+  # Modalita' CHAT: mappa testuale. {zoom} = livello di zoom attuale.
+  chat-header: "&8&m--&r &6Mappa Fazioni &7(zoom: {zoom}) &8&m--"
+  chat-legend: "&7Legenda: &f&l+ &7tu   &6&l⌂ &7casa   &8- &7libero"
+  chat-legend-entry: "  {relcolor}{letter} &7= {relcolor}{name}"
+
+list:
+  empty: "&7Non esiste ancora nessuna fazione."
+  header: "&8&m---&r &6Fazioni del server &7({count}) &8&m---"
+  entry: "  {relcolor}{name} &7- &f{members}&7/&f{max} membri"
+
+db:
+  no-perm: "&cNon hai il permesso."
+  info-header: "&6[DB] &eBackend attivo: &f{type}"
+  info-row: " &7{table}: &f{count}"
+  same: "&cIl backend di destinazione coincide con quello attivo."
+  migrating: "&6[DB] &eMigrazione {from} -> {to} in corso..."
+  migrated: "&aMigrazione completata: {rows} righe su {to}."
+  hint: "&7Imposta storage.type: {type} nel config e riavvia."
+  failed: "&cMigrazione fallita: {error}"
+  usage: "&cUso: /mf db <info|migrate <sqlite|mariadb>>"
+
+admin:
+  usage: "&cUso: /mf admin <setpower|setmap> <giocatore> <valore>"
+  not-found: "&cGiocatore &e{player}&c non trovato (dev'essere entrato almeno una volta)."
+  bad-value: "&cValore non valido (usa un numero intero, oppure 'reset')."
+  setpower-ok: "&aPotenza di &e{player}&a impostata a &e{value}&a."
+  setpower-reset: "&aPotenza di &e{player}&a riportata al default (&e{value}&a)."
+  setmap-usage: "&cUso: /mf admin setmap <giocatore> <blocchi-per-pixel|reset> &7(es. 0.25, 0.5, 1, 4)"
+  setmap-bad: "&cZoom non valido. Usa un numero tra 0.05 e 64 (blocchi per pixel), es. &e0.25&c, &e0.5&c, &e1&c, oppure &ereset&c."
+  setmap-ok: "&aZoom mappa di &e{player}&a impostato a &e{zoom}&a."
+  setmap-reset: "&aZoom mappa di &e{player}&a riportato al default (&e{zoom}&a)."
+
+reload: "&aConfigurazione e messaggi ricaricati."
+
+# ---------------------------------------------------------------- /f help
+# L'aiuto lo impagina la classe Aiuto (la stessa in tutti i plugin Magix): mostra
+# una sezione per volta, con le frecce per sfogliare, e ogni riga si clicca per
+# scriversi il comando in chat.
+# Formato di una riga:  "<comando> [argomenti] :: spiegazione"
+#   - il comando (le parole semplici iniziali) e' quello che il clic scrive;
+#   - gli argomenti fra <> o [] restano da riempire a mano;
+#   - staff: true su una sezione = la vede solo chi ha magixfactions.admin.
+help:
+  title: "MagixFactions"
+  sections:
+    fazione:
+      title: "Fazione"
+      entries:
+        - "/f create <nome> :: crea una fazione (sei il leader)"
+        - "/f info [fazione] :: scheda della fazione"
+        - "/f list :: elenca tutte le fazioni del server"
+        - "/f description <testo> :: descrizione della fazione (o /f desc)"
+        - "/f leave :: esci (da unico leader, scioglie la fazione)"
+        - "/f disband :: sciogli la fazione (solo leader)"
+    membri:
+      title: "Membri"
+      entries:
+        - "/f invite <giocatore> :: invita un giocatore"
+        - "/f join <fazione> :: entra se sei stato invitato"
+        - "/f kick <giocatore> :: espelli un membro"
+        - "/f promote <giocatore> :: alza di grado"
+        - "/f demote <giocatore> :: abbassa di grado"
+        - "/f transfer <giocatore> :: passa il comando (solo leader)"
+    territorio:
+      title: "Territorio"
+      entries:
+        - "/f claim :: conquista il territorio in cui ti trovi"
+        - "/f unclaim :: rilascia il territorio in cui ti trovi"
+        - "/f unclaimall :: rilascia TUTTI i territori (chiede conferma)"
+        - "/f map :: la mappa dei territori intorno a te"
+        - "/f sethome :: imposta la home (nel tuo territorio)"
+        - "/f unsethome :: rimuove la home della fazione"
+        - "/f home :: teletrasportati alla home"
+    diplomazia:
+      title: "Diplomazia e chat"
+      entries:
+        - "/f ally <fazione> :: chiedi o accetta un'alleanza (o /f a)"
+        - "/f enemy <fazione> :: sciogli l'alleanza, tornate nemici (o /f e)"
+        - "/f chat [public|faction|ally] :: cambia canale della chat"
+    risorse:
+      title: "Risorse"
+      entries:
+        - "/f deposit <soldi> :: versa nella banca della fazione (o /f d)"
+        - "/f withdraw <soldi> :: preleva dalla banca (o /f w)"
+        - "/f power [giocatore] :: la Potenza di un giocatore (o /f pow)"
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/mf reload :: ricarica config e messaggi"
+        - "/mf db <info|migrate> :: stato e migrazione del database"
+        - "/mf admin setpower <giocatore> <valore> :: imposta la Potenza attuale"
+        - "/mf admin setmap <giocatore> <zoom> :: zoom mappa in blocchi/pixel (0.25-64 | reset)"

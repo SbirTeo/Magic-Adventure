@@ -1,0 +1,99 @@
+# ==========================================================================================
+#  MagixMenus - i messaggi
+#
+#  Colori: &a...&f come sempre, oppure &#RRGGBB per un colore preciso.
+#  Fra graffe {} ci sono i valori che mette il plugin: non cambiare i nomi, si possono
+#  spostare o togliere.
+#
+#  La palette e' quella di tutti i plugin Magix (vedi plugins-src/STILE-MAGIX.md):
+#    viola  &#C046E8  chi parla, i titoli
+#    verde  &#A8DC2C  quello che si puo' fare
+#    grigio &#9A8CA8  le spiegazioni
+#    rosso  &#FF6B6B  non ha funzionato
+#    giallo &#FFD166  attenzione
+# ==========================================================================================
+
+prefix: "&#C046E8&lMagixMenus &8» &r"
+
+players-only: "&#FF6B6BQuesto comando lo puo' usare solo chi sta giocando."
+no-permission: "&#FF6B6BNon hai il permesso per farlo."
+player-required: "&#FF6B6BDalla console serve dire a chi: /menus apri <menu> <giocatore>"
+menu-not-found: "&#FF6B6BNon esiste nessun menu che si chiama &f{menu}&#FF6B6B."
+type-not-openable: "&#FF6B6BQuesto menu e' di tipo &f{type}&#FF6B6B e il server non lo lascia aprire."
+# Un comando che apriva un menu poi tolto o rinominato. Resta in piedi fino al riavvio del
+# server: i comandi, una volta registrati, non si possono togliere mentre il server gira.
+menu-removed: "&#FFD166Il comando &f/{command}&#FFD166 non apre piu' nessun menu: sparira' al prossimo riavvio del server."
+requirements-not-met: "&#FFD166Non puoi ancora fare questo."
+cooldown-wait: "&#FFD166Aspetta ancora &f{seconds}&#FFD166 secondi."
+unknown-subcommand: "&#FF6B6BNon conosco &f{command}&#FF6B6B. Prova &#A8DC2C/menus help&#FF6B6B."
+
+usage-open: "&#FFD166Uso: &#A8DC2C/menus apri <menu> [giocatore] [argomenti...]"
+usage-info: "&#FFD166Uso: &#A8DC2C/menus info <menu>"
+
+reloaded: "&#A8DC2CRicaricato: &f{count}&#A8DC2C menu."
+reloaded-with-errors: "&#FFD166Alcuni menu hanno dei problemi: &#A8DC2C/menus lista&#FFD166 li segna, &#A8DC2C/menus info <menu>&#FFD166 li spiega."
+opened-for: "&#A8DC2CHo aperto &f{menu}&#A8DC2C a &f{player}&#A8DC2C."
+
+status-ok: "&#A8DC2Ca posto"
+status-errors: "&#FF6B6B{count} problemi"
+
+list-header:
+  - "&#5A5068─────&#C046E8&l I menu &#9A8CA8{count} in tutto, {open} aperti adesso &#5A5068─────"
+list-row: "  &#A8DC2C{menu} &8· &#9A8CA8{type}, {slots} caselle &8· &#9A8CA8{commands} &8· {status}"
+
+info:
+  - "&#5A5068─────&#C046E8&l {menu} &#5A5068─────"
+  - "  &#9A8CA8Tipo &f{type} &#5A5068·&#9A8CA8 caselle &f{slots}"
+  - "  &#9A8CA8Titolo &f{title}"
+  - "  &#9A8CA8Item &f{item} &#5A5068·&#9A8CA8 aggiornamento &f{update} &#5A5068·&#9A8CA8 cambia da solo &f{dynamic}"
+  - "  &#9A8CA8Comandi &f{commands}"
+  - "  &#9A8CA8Permesso &f{permission}"
+info-errors: "&#FF6B6B{count} problemi in questo menu:"
+
+# ------------------------------------------------------------------------------------------
+#  NEGOZIO
+#
+#  {price} quanto costa · {missing} quanto manca · {balance} quanto resta · {what} la merce
+#  Le due righe "riga-*" finiscono in fondo alla descrizione dell'articolo (si spengono dal
+#  config con negozio.righe-automatiche).
+# ------------------------------------------------------------------------------------------
+shop:
+  price-lore:
+    - ""
+    - "&#9A8CA8Costo &f{price} &#9A8CA8monete"
+    - "&#A8DC2CClic sinistro &#9A8CA8per comprare"
+  sell-lore:
+    - "&#A8DC2CClic destro &#9A8CA8per rivenderlo a &f{sell}"
+  bought: "&#A8DC2CComprato &f{what}&#A8DC2C per &f{price}&#A8DC2C. Ti restano &f{balance}&#A8DC2C monete."
+  sold: "&#A8DC2CVenduto &f{what}&#A8DC2C per &f{price}&#A8DC2C. Ora hai &f{balance}&#A8DC2C monete."
+  not-enough-money: "&#FF6B6BTi mancano &f{missing}&#FF6B6B monete (costa {price}, tu ne hai {balance})."
+  inventory-full: "&#FF6B6BNon hai posto in inventario: non ti ho tolto niente."
+  nothing-to-sell: "&#FF6B6BNon hai &f{what}&#FF6B6B da vendere."
+  payment-failed: "&#FF6B6BIl pagamento non e' andato a buon fine: non ti ho tolto niente."
+  no-economy: "&#FF6B6BSul server non c'e' un'economia: avvisa lo staff."
+  # I suoni della cassa. Vuoto = nessun suono.
+  sound-ok: "ENTITY_EXPERIENCE_ORB_PICKUP"
+  sound-fail: "ENTITY_VILLAGER_NO"
+
+# ------------------------------------------------------------------------------------------
+#  L'elenco dei comandi (/menus help).
+#
+#  Ogni riga: "comando <argomenti> :: cosa fa". Le sezioni marcate staff: true si vedono solo
+#  con il permesso magixmenus.admin.
+# ------------------------------------------------------------------------------------------
+help:
+  title: "MagixMenus"
+  sections:
+    generale:
+      title: "Menu"
+      staff: false
+      entries:
+        - "/menus help :: questo elenco"
+    gestione:
+      title: "Gestione"
+      staff: true
+      entries:
+        - "/menus lista :: tutti i menu, con i loro comandi e i loro problemi"
+        - "/menus info <menu> :: com'e' fatto un menu e cosa non va"
+        - "/menus apri <menu> [giocatore] :: apre un menu a te o a qualcun altro"
+        - "/menus reload :: rilegge i file dei menu e rifa' i comandi"

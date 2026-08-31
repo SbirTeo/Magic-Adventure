@@ -1,0 +1,573 @@
+#!/usr/bin/env bash
+# ============================================================
+#  magix-console - ponte fra il gestionale del sito e le console
+#  dei server che girano dentro le screen del VPS.
+# ============================================================
+#  Lo chiama PHP (utente www-data) via sudo, con la regola in
+#  /etc/sudoers.d/60-magix-console che permette SOLO questo file.
+#  TUTTO quello che il sito puo' fare e' scritto qui dentro: il
+#  sito non tocca mai screen, systemd o i file del server, e le
+#  istanze governabili sono solo quelle elencate in istanze.conf.
+#
+#  Uso:
+#    magix-console lista
+#    magix-console log <id> [righe]
+#    magix-console avvia|ferma|riavvia|forza <attore> <id>
+#    magix-console cmd <attore> <id> <comando...>
+#    magix-console screen-log <sessione> [righe]
+#    magix-console screen-cmd <attore> <sessione> <testo...>
+#    magix-console screen-chiudi <attore> <sessione>
+#    magix-console menu-json <id>
+#    magix-console menu-leggi <id> <nome>
+#    magix-console menu-scrivi <attore> <id> <nome>   (contenuto da stdin)
+#    magix-console menu-elimina <attore> <id> <nome>
+#
+#  Stampa testo semplice (un record per riga, campi separati da
+#  TAB): a farne JSON ci pensa PHP, cosi' qui non serve costruire
+#  JSON a mano in bash.
+# ============================================================
+set -uo pipefail
+umask 022
+
+CONF=${MAGIX_CONF:-/etc/magicadventure/istanze.conf}
+STATO=/run/magix-console
+REGISTRO=/var/log/magix-console.log
+SCREEN=/usr/bin/screen
+RUNUSER=/usr/sbin/runuser
+# Un'azione (avvio/stop/riavvio) piu' vecchia di questo non e' piu' "in corso":
+# e' rimasta appesa e si smette di segnalarla.
+SCADENZA_AZIONE=180
+
+# Righe di console mostrate di serie e tetto massimo.
+RIGHE_DEFAULT=300
+RIGHE_MAX=1000
+
+TAB=$'\t'
+
+errore() { echo "$*" >&2; exit 1; }
+
+annota() {  # attore, testo -> registro di bordo
+    mkdir -p "$(dirname "$REGISTRO")"
+    printf '%s  %-16s %s\n' "$(date '+%F %T')" "$1" "${*:2}" >>"$REGISTRO"
+}
+
+# Nome di chi ha premuto il pulsante sul sito: serve solo al registro, ma va
+# ripulito lo stesso perche' finisce scritto in un file.
+attore_pulito() {
+    local a=${1//[^A-Za-z0-9_.-]/}
+    [ -n "$a" ] || a='?'
+    echo "${a:0:32}"
+}
+
+# ------------------------------------------------------------
+#  Configurazione
+# ------------------------------------------------------------
+#  Righe:  istanza <id> | chiave=valore | chiave=valore ...
+#          opzione <chiave>=<valore>
+MODO_ESTERNI=lettura
+UTENTI_SCREEN=""
+
+# Campi dell'istanza caricata da istanza_carica()
+I_ID=""; I_NOME=""; I_SCREEN=""; I_SERVIZIO=""; I_CARTELLA=""
+I_LOG=""; I_UTENTE=""; I_PORTA=""; I_PROCESSO=""; I_AVVIO=""
+
+conf_righe() {
+    [ -f "$CONF" ] || errore "configurazione assente: $CONF"
+    grep -v '^[[:space:]]*#' "$CONF" | grep -v '^[[:space:]]*$'
+}
+
+opzioni_carica() {
+    local riga chiave valore
+    while IFS= read -r riga; do
+        case "$riga" in
+            opzione*)
+                riga=${riga#opzione}
+                riga=${riga# }
+                chiave=${riga%%=*}; valore=${riga#*=}
+                chiave=$(echo "$chiave" | tr -d ' ')
+                valore=$(echo "$valore" | sed 's/^ *//; s/ *$//')
+                case "$chiave" in
+                    screen_esterni) MODO_ESTERNI=$valore ;;
+                    utenti)         UTENTI_SCREEN=$valore ;;
+                esac
+                ;;
+        esac
+    done < <(conf_righe)
+}
+
+istanza_id_lista() {
+    local riga resto
+    while IFS= read -r riga; do
+        case "$riga" in
+            istanza*)
+                resto=${riga#istanza}
+                resto=${resto%%|*}
+                echo "$resto" | tr -d ' '
+                ;;
+        esac
+    done < <(conf_righe)
+}
+
+istanza_carica() {  # <id> -> riempie le variabili I_*
+    local cercato=$1 riga resto id campo chiave valore trovata=0 vecchio_ifs
+    while IFS= read -r riga; do
+        case "$riga" in istanza*) ;; *) continue ;; esac
+        resto=${riga#istanza}
+        id=$(echo "${resto%%|*}" | tr -d ' ')
+        [ "$id" = "$cercato" ] || continue
+        trovata=1
+        I_ID=$id; I_NOME=$id; I_SCREEN=$id
+        I_SERVIZIO=""; I_CARTELLA=""; I_LOG=""; I_UTENTE=ubuntu
+        I_PORTA=""; I_PROCESSO=""; I_AVVIO=""
+        resto=${resto#*|}
+        # I campi restanti, uno per volta, nella forma chiave=valore
+        vecchio_ifs=$IFS
+        IFS='|'
+        for campo in $resto; do
+            chiave=$(echo "${campo%%=*}" | tr -d ' ')
+            valore=$(echo "${campo#*=}" | sed 's/^ *//; s/ *$//')
+            case "$chiave" in
+                nome)     I_NOME=$valore ;;
+                screen)   I_SCREEN=$valore ;;
+                servizio) I_SERVIZIO=$valore ;;
+                cartella) I_CARTELLA=$valore ;;
+                log)      I_LOG=$valore ;;
+                utente)   I_UTENTE=$valore ;;
+                porta)    I_PORTA=$valore ;;
+                processo) I_PROCESSO=$valore ;;
+                avvio)    I_AVVIO=$valore ;;
+            esac
+        done
+        IFS=$vecchio_ifs
+        break
+    done < <(conf_righe)
+    [ "$trovata" = 1 ] || return 1
+    # Il log si puo' scrivere relativo alla cartella dell'istanza
+    if [ -n "$I_LOG" ] && [ "${I_LOG:0:1}" != "/" ] && [ -n "$I_CARTELLA" ]; then
+        I_LOG="$I_CARTELLA/$I_LOG"
+    fi
+    return 0
+}
+
+# Utenti di cui guardare le screen: quelli delle istanze, piu' eventuali
+# aggiunti con "opzione utenti=".
+utenti_da_guardare() {
+    local id
+    {
+        for id in $(istanza_id_lista); do
+            istanza_carica "$id" && echo "$I_UTENTE"
+        done
+        echo "$UTENTI_SCREEN" | tr ' ,' '\n\n'
+    } | grep -v '^$' | sort -u
+}
+
+# ------------------------------------------------------------
+#  Screen
+# ------------------------------------------------------------
+screen_pid() {  # <utente> <sessione> -> pid, oppure vuoto
+    "$RUNUSER" -u "$1" -- "$SCREEN" -ls 2>/dev/null \
+        | awk -v s="$2" '$1 ~ ("\\." s "$") { split($1, a, "."); print a[1]; exit }'
+}
+
+secondi_da() {  # <pid> -> secondi di vita del processo
+    [ -n "${1:-}" ] || return 0
+    ps -o etimes= -p "$1" 2>/dev/null | tr -d ' '
+}
+
+# La screen e tutto quello che ci gira dentro. Serve sia per sapere se il server e'
+# vivo sia per la chiusura forzata: cercare il processo per nome (pgrep -f) e' pericoloso,
+# perche' la stessa parola puo' comparire nella riga di comando di un processo che non
+# c'entra niente - e allora si ucciderebbe quello.
+discendenti() {  # <pid> -> il pid e tutti i suoi figli, a qualunque profondita'
+    local p=$1 f
+    [ -n "$p" ] || return 0
+    echo "$p"
+    for f in $(pgrep -P "$p" 2>/dev/null); do
+        discendenti "$f"
+    done
+}
+
+processo_pid() {  # <pid della screen> <pezzo di riga di comando> -> pid del processo, se c'e'
+    local p
+    [ -n "${1:-}" ] || return 0
+    for p in $(discendenti "$1"); do
+        if tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -qF -- "$2"; then
+            echo "$p"
+            return 0
+        fi
+    done
+    return 0
+}
+
+processo_vivo() {  # <pid della screen> <pezzo di riga di comando> -> 0 se c'e'
+    [ -n "$(processo_pid "${1:-}" "${2:-}")" ]
+}
+
+azione_in_corso() {  # <id> -> "azione:secondi" se ce n'e' una appena lanciata
+    local f="$STATO/$1.azione" contenuto quando passati
+    [ -f "$f" ] || return 0
+    contenuto=$(cat "$f" 2>/dev/null)
+    quando=${contenuto#*:}
+    case "$quando" in ''|*[!0-9]*) return 0 ;; esac
+    passati=$(( $(date +%s) - quando ))
+    if [ "$passati" -gt "$SCADENZA_AZIONE" ]; then
+        rm -f "$f"
+        return 0
+    fi
+    echo "${contenuto%%:*}:$passati"
+}
+
+# Lancia un'operazione lunga (avvio/stop/riavvio) SENZA far aspettare la pagina:
+# lo stop pulito del server arriva a durare quasi un minuto (salva i mondi). Il
+# sito la vede "in corso" dal file di stato e si aggiorna da solo.
+sfondo() {  # <id> <etichetta> <comando...>
+    local id=$1 etichetta=$2; shift 2
+    mkdir -p "$STATO"
+    printf '%s:%s\n' "$etichetta" "$(date +%s)" >"$STATO/$id.azione"
+    (
+        setsid "$@" >>"$REGISTRO" 2>&1
+        rm -f "$STATO/$id.azione"
+    ) >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+}
+
+# ------------------------------------------------------------
+#  Comandi
+# ------------------------------------------------------------
+cmd_lista() {
+    opzioni_carica
+    printf 'V%s1%s%s\n' "$TAB" "$TAB" "$MODO_ESTERNI"
+
+    local id pid ppid up statoscreen statojava lavoro conosciute="" utente riga sessione spid
+    for id in $(istanza_id_lista); do
+        istanza_carica "$id" || continue
+        pid=$(screen_pid "$I_UTENTE" "$I_SCREEN")
+        statoscreen=spenta
+        [ -n "$pid" ] && statoscreen=accesa
+        statojava=na
+        ppid=""
+        if [ -n "$I_PROCESSO" ]; then
+            statojava=assente
+            ppid=$(processo_pid "$pid" "$I_PROCESSO")
+            [ -n "$ppid" ] && statojava=viva
+        fi
+        # Da quanto e' acceso il SERVER, non la screen che lo ospita: start.sh rilancia java
+        # nella stessa screen a ogni /stop, quindi l'eta' della screen e' quella dell'ultimo
+        # avvio della MACCHINA (settimane), non del server. Se il processo non si trova
+        # (istanza senza processo dichiarato) si ripiega sulla screen, come prima.
+        up=$(secondi_da "${ppid:-$pid}")
+        lavoro=$(azione_in_corso "$id")
+        conosciute="$conosciute $I_SCREEN"
+        printf 'I%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n' \
+            "$TAB" "$id" "$TAB" "$I_NOME" "$TAB" "$I_SCREEN" "$TAB" "${I_SERVIZIO:--}" \
+            "$TAB" "$statoscreen" "$TAB" "${pid:--}" "$TAB" "${up:--}" \
+            "$TAB" "$statojava" "$TAB" "${I_PORTA:--}" "$TAB" "${lavoro:--}"
+    done
+
+    # Tutte le altre screen del sistema: si vedono sempre (a meno di
+    # "opzione screen_esterni=no"), cosi' non resta niente di nascosto.
+    [ "$MODO_ESTERNI" = "no" ] && return 0
+    for utente in $(utenti_da_guardare); do
+        while read -r riga; do
+            spid=${riga%%.*}
+            sessione=${riga#*.}
+            case " $conosciute " in *" $sessione "*) continue ;; esac
+            printf 'S%s%s%s%s%s%s%s%s\n' \
+                "$TAB" "$sessione" "$TAB" "$spid" "$TAB" "$(secondi_da "$spid")" "$TAB" "$utente"
+        done < <("$RUNUSER" -u "$utente" -- "$SCREEN" -ls 2>/dev/null \
+                 | awk '/^\t[0-9]+\./ { print $1 }')
+    done
+    return 0
+}
+
+righe_chieste() {  # <valore> -> numero di righe entro i limiti
+    local n=${1:-$RIGHE_DEFAULT}
+    case "$n" in ''|*[!0-9]*) n=$RIGHE_DEFAULT ;; esac
+    [ "$n" -lt 10 ] && n=10
+    [ "$n" -gt "$RIGHE_MAX" ] && n=$RIGHE_MAX
+    echo "$n"
+}
+
+# Copia di quello che si vede nella screen (con lo storico): e' il ripiego
+# quando l'istanza non ha un file di log, ed e' l'unica via per le screen esterne.
+copia_screen() {  # <utente> <sessione> <righe>
+    local utente=$1 sessione=$2 righe=$3 tmp
+    tmp=$("$RUNUSER" -u "$utente" -- mktemp /tmp/magix-console-XXXXXX 2>/dev/null) || return 1
+    "$RUNUSER" -u "$utente" -- "$SCREEN" -S "$sessione" -p 0 -X hardcopy -h "$tmp" 2>/dev/null
+    sleep 0.3
+    if [ -s "$tmp" ]; then
+        # hardcopy -h riempie di righe vuote la parte non usata dello storico:
+        # si tengono solo le righe con qualcosa scritto dentro.
+        sed 's/[[:cntrl:]]//g' "$tmp" | grep -v '^[[:space:]]*$' | tail -n "$righe"
+    fi
+    rm -f "$tmp"
+    return 0
+}
+
+cmd_log() {
+    local id=${1:-} righe
+    [ -n "$id" ] || errore "manca l'id dell'istanza"
+    opzioni_carica
+    istanza_carica "$id" || errore "istanza sconosciuta: $id"
+    righe=$(righe_chieste "${2:-}")
+    if [ -n "$I_LOG" ] && [ -f "$I_LOG" ]; then
+        tail -n "$righe" "$I_LOG" | sed 's/\x1b\[[0-9;]*m//g'
+    else
+        copia_screen "$I_UTENTE" "$I_SCREEN" "$righe"
+    fi
+}
+
+cmd_azione() {
+    local azione=$1 attore id pid morituro
+    attore=$(attore_pulito "${2:-}")
+    id=${3:-}
+    [ -n "$id" ] || errore "manca l'id dell'istanza"
+    opzioni_carica
+    istanza_carica "$id" || errore "istanza sconosciuta: $id"
+    pid=$(screen_pid "$I_UTENTE" "$I_SCREEN")
+
+    case "$azione" in
+        avvia)
+            [ -n "$pid" ] && errore "\"$I_NOME\" e' gia' acceso"
+            annota "$attore" "AVVIA $id"
+            if [ -n "$I_SERVIZIO" ]; then
+                sfondo "$id" avvia systemctl start "$I_SERVIZIO"
+            else
+                [ -n "$I_AVVIO" ] || errore "l'istanza non ha ne' un servizio ne' un comando di avvio"
+                sfondo "$id" avvia "$RUNUSER" -u "$I_UTENTE" -- \
+                    "$SCREEN" -dmS "$I_SCREEN" bash -lc "cd '$I_CARTELLA' && exec $I_AVVIO"
+            fi
+            echo "avvio richiesto"
+            ;;
+        ferma)
+            [ -n "$pid" ] || errore "\"$I_NOME\" e' gia' spento"
+            annota "$attore" "FERMA $id"
+            if [ -n "$I_SERVIZIO" ]; then
+                sfondo "$id" ferma systemctl stop "$I_SERVIZIO"
+            else
+                sfondo "$id" ferma "$RUNUSER" -u "$I_UTENTE" -- bash -c \
+                    "$SCREEN -S '$I_SCREEN' -p 0 -X stuff 'stop\r'; sleep 30; $SCREEN -S '$I_SCREEN' -X quit"
+            fi
+            echo "arresto richiesto"
+            ;;
+        riavvia)
+            annota "$attore" "RIAVVIA $id"
+            [ -n "$I_SERVIZIO" ] || errore "il riavvio dal sito richiede un servizio systemd"
+            sfondo "$id" riavvia systemctl restart "$I_SERVIZIO"
+            echo "riavvio richiesto"
+            ;;
+        forza)
+            annota "$attore" "FORZA $id (chiusura brutale, mondi NON salvati)"
+            # Si uccide SOLO quello che gira dentro la screen di questa istanza: l'elenco
+            # dei pid si prende prima, perche' subito dopo l'albero non esiste piu'.
+            if [ -n "$pid" ]; then
+                for morituro in $(discendenti "$pid" | tail -n +2); do
+                    kill -9 "$morituro" 2>/dev/null
+                done
+            fi
+            # La screen di solito muore insieme ai suoi processi: se non c'e' piu',
+            # il "No screen session found" non deve finire nel messaggio del sito.
+            "$RUNUSER" -u "$I_UTENTE" -- "$SCREEN" -S "$I_SCREEN" -X quit >/dev/null 2>&1
+            if [ -n "$I_SERVIZIO" ]; then
+                # Il servizio resta "attivo" per systemd finche' non glielo si dice:
+                # senza questo, il pulsante Avvia non ripartirebbe.
+                sfondo "$id" forza systemctl stop "$I_SERVIZIO"
+            fi
+            echo "chiusura forzata eseguita"
+            ;;
+        *) errore "azione sconosciuta: $azione" ;;
+    esac
+}
+
+cmd_comando() {
+    local attore id testo
+    attore=$(attore_pulito "${1:-}")
+    id=${2:-}
+    [ -n "$id" ] || errore "manca l'id dell'istanza"
+    shift 2
+    testo="$*"
+    [ -n "$testo" ] || errore "comando vuoto"
+    opzioni_carica
+    istanza_carica "$id" || errore "istanza sconosciuta: $id"
+    [ -n "$(screen_pid "$I_UTENTE" "$I_SCREEN")" ] || errore "\"$I_NOME\" e' spento"
+    annota "$attore" "CMD $id: $testo"
+    "$RUNUSER" -u "$I_UTENTE" -- "$SCREEN" -S "$I_SCREEN" -p 0 -X stuff "$(printf '%s\r' "$testo")" \
+        || errore "la console non ha accettato il comando"
+    echo "comando inviato"
+}
+
+# --- screen non elencate in configurazione -------------------
+sessione_esterna() {  # <sessione> -> stampa l'utente che la possiede
+    local sessione=$1 utente id
+    case "$sessione" in ''|*[!A-Za-z0-9_.-]*) errore "nome di screen non valido" ;; esac
+    for id in $(istanza_id_lista); do
+        if istanza_carica "$id" && [ "$I_SCREEN" = "$sessione" ]; then
+            errore "questa screen e' l'istanza \"$id\": usa i suoi pulsanti"
+        fi
+    done
+    for utente in $(utenti_da_guardare); do
+        if [ -n "$(screen_pid "$utente" "$sessione")" ]; then
+            echo "$utente"
+            return 0
+        fi
+    done
+    errore "screen non trovata: $sessione"
+}
+
+cmd_screen_log() {
+    local sessione=${1:-} utente
+    opzioni_carica
+    [ "$MODO_ESTERNI" = "no" ] && errore "le screen esterne sono disattivate"
+    utente=$(sessione_esterna "$sessione") || exit 1
+    copia_screen "$utente" "$sessione" "$(righe_chieste "${2:-}")"
+}
+
+cmd_screen_comando() {
+    local attore sessione testo utente
+    opzioni_carica
+    [ "$MODO_ESTERNI" = "pieno" ] || errore "sulle screen esterne il sito e' in sola lettura (vedi opzione screen_esterni)"
+    attore=$(attore_pulito "${1:-}")
+    sessione=${2:-}
+    shift 2
+    testo="$*"
+    [ -n "$testo" ] || errore "comando vuoto"
+    utente=$(sessione_esterna "$sessione") || exit 1
+    annota "$attore" "SCREEN-CMD $sessione: $testo"
+    "$RUNUSER" -u "$utente" -- "$SCREEN" -S "$sessione" -p 0 -X stuff "$(printf '%s\r' "$testo")" \
+        || errore "la screen non ha accettato il comando"
+    echo "comando inviato"
+}
+
+cmd_screen_chiudi() {
+    local attore sessione utente
+    opzioni_carica
+    [ "$MODO_ESTERNI" = "pieno" ] || errore "sulle screen esterne il sito e' in sola lettura (vedi opzione screen_esterni)"
+    attore=$(attore_pulito "${1:-}")
+    sessione=${2:-}
+    utente=$(sessione_esterna "$sessione") || exit 1
+    annota "$attore" "SCREEN-CHIUDI $sessione"
+    "$RUNUSER" -u "$utente" -- "$SCREEN" -S "$sessione" -X quit >/dev/null 2>&1
+    echo "screen chiusa"
+}
+
+# ------------------------------------------------------------
+#  I file dei menu (MagixMenus)
+# ------------------------------------------------------------
+#  L'editor del gestionale non tocca mai il disco da solo: legge e scrive da qui, come
+#  per la console. Cosi' l'elenco di cio' che il sito puo' fare ai file del server resta
+#  scritto in un posto solo, e riguarda UNA cartella sola.
+#
+#  Il sito NON legge gli .yml per capirli: quello lo fa il plugin, che scrive menus.json.
+#  Qui si leggono i file solo per mostrarli come testo e si riscrivono interi.
+
+# Un file di menu piu' grande di cosi' non e' un menu.
+MENU_MAX_BYTE=262144
+
+# Riempie MENU_CARTELLA (e le solite I_*) per l'istanza chiesta.
+#
+# NON stampa il risultato apposta: chiamandola con $(...) finirebbe in una sottoshell, e le
+# variabili dell'istanza — fra cui l'utente a cui devono appartenere i file — resterebbero
+# vuote nel processo chiamante. E' gia' successo: i file finivano di root invece che del
+# server, che poi non poteva piu' riscriverli.
+MENU_CARTELLA=""
+menu_cartella() {  # <id>
+    local id=${1:-}
+    [ -n "$id" ] || errore "manca l'id dell'istanza"
+    opzioni_carica
+    istanza_carica "$id" || errore "istanza sconosciuta: $id"
+    [ -n "$I_CARTELLA" ] || errore "l'istanza $id non dice in quale cartella sta"
+    [ -n "$I_UTENTE" ] || errore "l'istanza $id non dice di chi e'"
+    MENU_CARTELLA="$I_CARTELLA/plugins/MagixMenus/menus"
+}
+
+# Il nome del menu diventa un nome di file: si accetta solo quello che il plugin stesso
+# accetta, e niente che possa uscire dalla cartella.
+menu_nome_pulito() {
+    local n=${1:-}
+    case "$n" in
+        ''|*[!a-z0-9_-]*) errore "nome di menu non valido: solo minuscole, numeri, - e _" ;;
+    esac
+    [ ${#n} -le 40 ] || errore "nome di menu troppo lungo"
+    echo "$n"
+}
+
+cmd_menu_json() {  # <id> -> quello che il plugin ha capito dei menu
+    local id=${1:-} file
+    menu_cartella "$id"
+    file="$(dirname "$MENU_CARTELLA")/menus.json"
+    [ -f "$file" ] || errore "il plugin non ha ancora scritto menus.json (il server e' mai partito con MagixMenus?)"
+    cat "$file"
+}
+
+cmd_menu_leggi() {  # <id> <nome> -> il file com'e' scritto
+    local id=${1:-} nome file
+    nome=$(menu_nome_pulito "${2:-}") || exit 1
+    menu_cartella "$id"
+    file="$MENU_CARTELLA/$nome.yml"
+    [ -f "$file" ] || errore "il menu \"$nome\" non esiste"
+    cat "$file"
+}
+
+cmd_menu_scrivi() {  # <attore> <id> <nome>  (il contenuto arriva da stdin)
+    local attore id nome file temporaneo peso
+    attore=$(attore_pulito "${1:-}")
+    id=${2:-}
+    nome=$(menu_nome_pulito "${3:-}") || exit 1
+    menu_cartella "$id"
+    file="$MENU_CARTELLA/$nome.yml"
+
+    temporaneo=$(mktemp) || errore "non riesco a preparare il file"
+    cat >"$temporaneo"
+    peso=$(wc -c <"$temporaneo")
+    if [ "$peso" -le 0 ]; then
+        rm -f "$temporaneo"
+        errore "contenuto vuoto: non sovrascrivo niente"
+    fi
+    if [ "$peso" -gt "$MENU_MAX_BYTE" ]; then
+        rm -f "$temporaneo"
+        errore "file troppo grande ($peso byte, il massimo e' $MENU_MAX_BYTE)"
+    fi
+
+    mkdir -p "$MENU_CARTELLA"
+    chown "$I_UTENTE":"$I_UTENTE" "$MENU_CARTELLA" 2>/dev/null || true
+    # Una copia di quello che c'era: un salvataggio sbagliato dal browser non deve essere
+    # l'ultima parola su un menu scritto a mano.
+    [ -f "$file" ] && cp -p "$file" "$file.bak"
+    install -o "$I_UTENTE" -g "$I_UTENTE" -m 0644 "$temporaneo" "$file" \
+        || { rm -f "$temporaneo"; errore "non sono riuscito a scrivere $nome.yml"; }
+    rm -f "$temporaneo"
+    annota "$attore" "MENU-SCRIVI $id: $nome.yml ($peso byte)"
+    echo "salvato"
+}
+
+cmd_menu_elimina() {  # <attore> <id> <nome>
+    local attore id nome file
+    attore=$(attore_pulito "${1:-}")
+    id=${2:-}
+    nome=$(menu_nome_pulito "${3:-}") || exit 1
+    menu_cartella "$id"
+    file="$MENU_CARTELLA/$nome.yml"
+    [ -f "$file" ] || errore "il menu \"$nome\" non esiste"
+    # Non si cancella davvero: si mette da parte. Un menu ricostruito da zero e' mezz'ora
+    # di lavoro, e chi preme "elimina" nel browser a volte voleva premere altro.
+    mv "$file" "$file.eliminato"
+    annota "$attore" "MENU-ELIMINA $id: $nome.yml"
+    echo "eliminato"
+}
+
+# ------------------------------------------------------------
+case "${1:-}" in
+    lista)          shift; cmd_lista "$@" ;;
+    log)            shift; cmd_log "$@" ;;
+    avvia|ferma|riavvia|forza)
+                    azione=$1; shift; cmd_azione "$azione" "$@" ;;
+    cmd)            shift; cmd_comando "$@" ;;
+    screen-log)     shift; cmd_screen_log "$@" ;;
+    screen-cmd)     shift; cmd_screen_comando "$@" ;;
+    screen-chiudi)  shift; cmd_screen_chiudi "$@" ;;
+    menu-json)      shift; cmd_menu_json "$@" ;;
+    menu-leggi)     shift; cmd_menu_leggi "$@" ;;
+    menu-scrivi)    shift; cmd_menu_scrivi "$@" ;;
+    menu-elimina)   shift; cmd_menu_elimina "$@" ;;
+    *)              errore "uso: magix-console lista|log|avvia|ferma|riavvia|forza|cmd|screen-log|screen-cmd|screen-chiudi|menu-json|menu-leggi|menu-scrivi|menu-elimina" ;;
+esac

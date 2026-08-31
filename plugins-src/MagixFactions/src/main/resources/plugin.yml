@@ -1,0 +1,38 @@
+name: MagixFactions
+version: '${project.version}'
+main: com.teolo.magixfactions.MagixFactions
+api-version: '26.1'
+author: teolo
+description: Plugin tipo Factions - fazioni, gradi, leader/successione, chat, storage SQLite/MariaDB.
+softdepend: [Vault, PlaceholderAPI, CMI, ProtocolLib, LuckPerms]
+
+commands:
+  magixfactions:
+    aliases: [mf, f, factions]
+    description: Comandi di MagixFactions.
+    usage: /f help
+
+permissions:
+  magixfactions.use:
+    description: Usare i comandi base di MagixFactions.
+    default: true
+  magixfactions.admin:
+    description: Gestione amministrativa (database, migrazione, setpower, setmap...).
+    default: op
+  magixfactions.resourcepack.bypass:
+    description: Non essere mai espulso quando il resource pack obbligatorio non viene caricato (il pacchetto viene comunque inviato). Salvaguardia per non restare chiusi fuori dal server.
+    default: op
+  magixfactions.minimap:
+    description: Vedere la minimap HUD nell'angolo dello schermo (extra VIP). Senza questo permesso la minimap non viene mai montata.
+    default: false
+  # Vantaggi VIP a valore numerico. NON si dichiarano qui uno per uno (sono infiniti): il plugin legge
+  # il numero scritto nella coda del permesso.
+  #   magixfactions.power.powermax.<numero>      tetto di Potenza (es. ...powermax.20 -> tetto 20)
+  #   magixfactions.power.speed.<percentuale>    velocita' di RECUPERO online (es. ...speed.200 -> doppia)
+  #   magixfactions.power.speed.loss.<perc.>     velocita' di PERDITA da offline (...loss.50 -> meta')
+  #   magixfactions.members.<numero>             limite membri della fazione (conta quello del LEADER)
+  # Fra piu' permessi dello stesso tipo vince il piu' FAVOREVOLE al giocatore: il numero piu' alto per
+  # tetto/recupero/membri, il piu' BASSO per la perdita. Dettagli e esempi in config.yml, sezione power.
+  magixfactions.chat.hidefactions:
+    description: In chat pubblica non mostra il tag fazione del mittente (usa public-format-no-faction anche se e' in una fazione).
+    default: op

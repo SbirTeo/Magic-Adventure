@@ -1,0 +1,24 @@
+name: MagixTime
+version: '${project.version}'
+main: com.teolo.magixtime.MagixTime
+api-version: '26.1'
+author: teolo
+description: Allinea l'ora e la stagione di Minecraft al mondo reale, con piogge e nevicate che cambiano col calendario.
+softdepend: [PlaceholderAPI]
+
+commands:
+  magixtime:
+    aliases: [mtime, mxtime]
+    description: Informazioni e gestione di ora/stagione/meteo reali.
+    usage: /mtime help
+
+permissions:
+  magixtime.use:
+    description: Vedere ora reale, stagione e meteo (/mtime, /mtime info).
+    default: true
+  magixtime.admin:
+    description: Comandi amministrativi (reload, sync, season set, weather set, pause).
+    default: op
+  magixtime.bypass:
+    description: Aggira il blocco dei comandi di ora/meteo (CMI, vanilla). Da assegnare a mano.
+    default: false
