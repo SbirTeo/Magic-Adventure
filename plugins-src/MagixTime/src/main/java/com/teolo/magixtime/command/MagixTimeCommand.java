@@ -2,7 +2,7 @@ package com.teolo.magixtime.command;
 
 import com.teolo.magixtime.MagixTime;
 import com.teolo.magixtime.lang.Messages;
-import com.teolo.magixtime.util.Aiuto;
+import com.teolo.magixtime.util.Help;
 import com.teolo.magixtime.season.SeasonDef;
 import com.teolo.magixtime.time.TimeSync;
 import com.teolo.magixtime.weather.WeatherManager;
@@ -62,14 +62,14 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
     /**
      * /mtime help [pagina] - l'elenco dei comandi.
      *
-     * Le voci stanno in messages.yml (help.sections) e le impagina {@link Aiuto}, la stessa classe
+     * Le voci stanno in messages.yml (help.sections) e le impagina {@link Help}, la stessa classe
      * degli altri plugin Magix: sezioni, frecce per sfogliare, ogni riga cliccabile. I comandi che
      * spostano l'ora li vede solo chi ha magixtime.admin.
      */
     private void help(CommandSender sender, int pagina) {
         org.bukkit.configuration.ConfigurationSection h = msg.section("help");
         String titolo = h != null ? h.getString("title", "MagixTime") : "MagixTime";
-        Aiuto.mostra(sender, titolo, "/mtime help", Aiuto.daConfig(msg.section("help.sections")),
+        Help.mostra(sender, titolo, "/mtime help", Help.daConfig(msg.section("help.sections")),
                 pagina, sender.hasPermission(ADMIN));
     }
 

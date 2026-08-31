@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mvn -q -DskipTests package)"
+      "Bash(mvn -q -DskipTests package)",
+      "Bash(curl -s -o /dev/null -w \"home %{http_code}\\\\n\" https://magicadventure.it/)",
+      "Bash(curl -s -o /dev/null -w \"regolamento %{http_code}\\\\n\" https://magicadventure.it/regolamento)",
+      "Bash(curl -s -o /dev/null -w \"sanzioni %{http_code}\\\\n\" https://magicadventure.it/sanzioni)"
     ]
   },
   "hooks": {
@@ -11,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"C:/Users/teolo/progettiCLAUDE/magicadventure/plugins-src/hook-controlla.py\"",
+            "command": "python \"C:/Users/teolo/progettiCLAUDE/magicadventure/plugins-src/check_hook.py\"",
             "timeout": 120,
             "statusMessage": "Controllo config/guide dei plugin..."
           }
@@ -23,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"C:/Users/teolo/progettiCLAUDE/magicadventure/plugins-src/hook-controlla.py\"",
+            "command": "python \"C:/Users/teolo/progettiCLAUDE/magicadventure/plugins-src/check_hook.py\"",
             "timeout": 120,
             "statusMessage": "Controllo config/guide dei plugin..."
           }

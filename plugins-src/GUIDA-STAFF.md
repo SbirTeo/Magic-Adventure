@@ -181,11 +181,21 @@ la mappa, il sito e lo store non sono capitoli di MagixFactions: sono la stessa 
 
 ## Un plugin Magix NUOVO: cosa deve avere (dal 2026-08-30)
 
-Il controllo `python plugins-src/controlla-config.py` **trova i plugin da solo** — ogni cartella qui
-dentro con un `pom.xml` e i suoi sorgenti entra nel giro dal momento in cui esiste, senza toccare
-nessun elenco. Gli hook in `.claude/settings.local.json` lo lanciano da soli a ogni modifica (mia via
-Edit/Write/Bash, o tua a mano al primo messaggio utile). Quindi un plugin nuovo **e' controllato da
-subito** — ma il controllo si aspetta di trovare queste cose:
+Il controllo `python plugins-src/check_all.py` (lancia `check_english.py` + `check_config.py`) **trova
+i plugin da solo** — ogni cartella qui dentro con un `pom.xml` e i suoi sorgenti entra nel giro dal
+momento in cui esiste, senza toccare nessun elenco. Gira in tre punti: gli hook in
+`.claude/settings.local.json` lo lanciano a ogni modifica (mia via Edit/Write/Bash, o tua a mano al
+primo messaggio utile); il **git pre-commit** in `.githooks/pre-commit` (attivo con
+`git config core.hooksPath .githooks`) **blocca il commit** se qualcosa e' rosso; e va lanciato a mano
+prima di un rilascio. Quindi un plugin nuovo **e' controllato da subito** — ma il controllo si aspetta
+di trovare queste cose:
+
+0. **Codice in inglese.** Nomi di file, segmenti di package e tipi **top-level** (class/enum/interface/
+   record) vanno in inglese; in italiano restano solo i testi che una persona legge (messaggi, UI) e —
+   per convenzione — i nomi di metodo, le variabili locali, le costanti enum e i tipi annidati.
+   `check_english.py` lo verifica spezzando il CamelCase e confrontando parola per parola con un
+   dizionario italiano estendibile (aggiungi una parola e la rete si allarga). Anche chiavi di config e
+   messaggi vanno in inglese; italiano solo nei testi.
 
 1. **Ogni chiave del `config.yml` ha un commento** immediatamente sopra (o in linea dopo il valore).
    Una riga vuota separa: il commento del blocco precedente non conta. Se la chiave accetta piu'
@@ -193,7 +203,7 @@ subito** — ma il controllo si aspetta di trovare queste cose:
 2. **Niente chiavi morte** (nel file ma mai lette) e **niente chiavi invisibili** (lette dal codice ma
    assenti dal file: chi configura non le vedrebbe mai).
 3. **Le classi comuni copiate** in `util/` devono restare **identiche** agli altri plugin, a parte la
-   riga del `package`: `ValoriConfig`, `TestiDurate`, `GuidaStaff`, `Aiuto`. Il controllo confronta le
+   riga del `package`: `ConfigValues`, `DurationText`, `StaffGuide`, `Help`. Il controllo confronta le
    copie e segnala chi diverge. **Prima di copiarne una, verificare che il nome non esista gia'** nel
    plugin di destinazione (e' gia' successo di sovrascrivere una classe omonima).
 4. **I numeri nelle guide non si scrivono a mano**: si usano i segnaposto `{{cfg:chiave}}`,

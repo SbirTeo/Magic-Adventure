@@ -5,7 +5,7 @@ import com.teolo.magixauth.MagixAuth;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.model.Account;
-import com.teolo.magixauth.util.Testi;
+import com.teolo.magixauth.util.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -79,7 +79,7 @@ public final class LogoutCommand implements CommandExecutor {
 
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (p.isOnline()) {
-                    p.kick(Testi.c("&aAccesso chiuso&r\n\n"
+                    p.kick(Texts.c("&aAccesso chiuso&r\n\n"
                             + "&7Sei stato disconnesso dal gioco e dal sito.\n"
                             + "&7Al prossimo ingresso ti verranno chiesti di nuovo\n"
                             + "&7la password" + (account != null && account.haOtp()
@@ -92,7 +92,7 @@ public final class LogoutCommand implements CommandExecutor {
                     + " fallito (" + e.getMessage() + ").");
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (p.isOnline()) {
-                    p.sendMessage(Testi.c(config.prefisso,
+                    p.sendMessage(Texts.c(config.prefisso,
                             "&cNon sono riuscito a chiudere l'accesso adesso. Riprova."));
                 }
             });

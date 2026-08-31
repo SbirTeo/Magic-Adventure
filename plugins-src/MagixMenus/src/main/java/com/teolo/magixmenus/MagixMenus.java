@@ -1,15 +1,15 @@
 package com.teolo.magixmenus;
 
-import com.teolo.magixmenus.command.ComandoMagixMenus;
-import com.teolo.magixmenus.dialogo.GestoreDialoghi;
-import com.teolo.magixmenus.hook.Economia;
+import com.teolo.magixmenus.command.MagixMenusCommand;
+import com.teolo.magixmenus.dialog.DialogManager;
+import com.teolo.magixmenus.hook.EconomyHook;
 import com.teolo.magixmenus.hook.Placeholders;
 import com.teolo.magixmenus.lang.Messages;
-import com.teolo.magixmenus.listener.ListenerMenu;
-import com.teolo.magixmenus.menu.GestoreMenu;
-import com.teolo.magixmenus.util.GuidaStaff;
-import com.teolo.magixmenus.util.Testo;
-import com.teolo.magixmenus.util.ValoriConfig;
+import com.teolo.magixmenus.listener.MenuListener;
+import com.teolo.magixmenus.menu.MenuManager;
+import com.teolo.magixmenus.util.StaffGuide;
+import com.teolo.magixmenus.util.Text;
+import com.teolo.magixmenus.util.ConfigValues;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -37,8 +37,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class MagixMenus extends JavaPlugin {
 
     private Messages messaggi;
-    private GestoreMenu menu;
-    private GestoreDialoghi dialoghi;
+    private MenuManager menu;
+    private DialogManager dialoghi;
 
     @Override
     public void onEnable() {
@@ -46,30 +46,30 @@ public final class MagixMenus extends JavaPlugin {
         getDataFolder().mkdirs();
 
         messaggi = new Messages(this);
-        Testo.rilevaPlaceholderApi();
-        Economia.collega();
+        Text.rilevaPlaceholderApi();
+        EconomyHook.collega();
 
-        menu = new GestoreMenu(this);
-        dialoghi = new GestoreDialoghi(this);
+        menu = new MenuManager(this);
+        dialoghi = new DialogManager(this);
         menu.carica();
 
         PluginCommand comando = getCommand("magixmenus");
         if (comando != null) {
-            ComandoMagixMenus esecutore = new ComandoMagixMenus(this);
+            MagixMenusCommand esecutore = new MagixMenusCommand(this);
             comando.setExecutor(esecutore);
             comando.setTabCompleter(esecutore);
         }
-        getServer().getPluginManager().registerEvents(new ListenerMenu(this), this);
+        getServer().getPluginManager().registerEvents(new MenuListener(this), this);
         registraPlaceholder();
 
         // Puro lavoro su file: non deve rallentare l'avvio. Il README nella cartella del plugin
-        // non si copia dal jar, lo genera GuidaStaff insieme al capitolo per il sito, cosi' i due
+        // non si copia dal jar, lo genera StaffGuide insieme al capitolo per il sito, cosi' i due
         // non possono divergere (vedi plugins-src/GUIDA-STAFF.md).
         Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
 
         getLogger().info("Avviato: " + menu.quanti() + " menu"
-                + (Testo.placeholderApiPresente() ? ", PlaceholderAPI collegato" : ", senza PlaceholderAPI")
-                + ", economia: " + Economia.nome() + ".");
+                + (Text.placeholderApiPresente() ? ", PlaceholderAPI collegato" : ", senza PlaceholderAPI")
+                + ", economia: " + EconomyHook.nome() + ".");
     }
 
     @Override
@@ -85,8 +85,8 @@ public final class MagixMenus extends JavaPlugin {
     public void ricaricaTutto() {
         reloadConfig();
         messaggi.reload();
-        Testo.rilevaPlaceholderApi();
-        Economia.collega();
+        Text.rilevaPlaceholderApi();
+        EconomyHook.collega();
         menu.carica();
         Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
     }
@@ -109,11 +109,11 @@ public final class MagixMenus extends JavaPlugin {
         return messaggi;
     }
 
-    public GestoreMenu menu() {
+    public MenuManager menu() {
         return menu;
     }
 
-    public GestoreDialoghi dialoghi() {
+    public DialogManager dialoghi() {
         return dialoghi;
     }
 
@@ -124,8 +124,8 @@ public final class MagixMenus extends JavaPlugin {
      * non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
      */
     private void scriviGuidaStaff() {
-        GuidaStaff.crea(this, "MagixMenus — i menu del server", 70)
-                .valori(new ValoriConfig(this))
+        StaffGuide.crea(this, "MagixMenus — i menu del server", 70)
+                .valori(new ConfigValues(this))
                 .intro("Ogni menu del server e' un file in plugins/MagixMenus/menus/. Dentro c'e' che "
                         + "finestra si apre, quali item ci stanno, chi li vede e cosa succede quando si "
                         + "clicca. Per aggiungere un menu si aggiunge un file; per toglierlo si cancella.")

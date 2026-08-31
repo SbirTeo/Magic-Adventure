@@ -5,10 +5,10 @@ import com.teolo.magixauth.MagixAuth;
 import com.teolo.magixauth.crypt.Password;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.gate.AuthGate;
-import com.teolo.magixauth.gate.PoliticaOtp;
+import com.teolo.magixauth.gate.OtpPolicy;
 import com.teolo.magixauth.model.Account;
-import com.teolo.magixauth.util.Aiuto;
-import com.teolo.magixauth.util.Testi;
+import com.teolo.magixauth.util.Help;
+import com.teolo.magixauth.util.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -35,11 +35,11 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
     private final MagixAuth plugin;
     private final AuthConfig config;
     private final AuthDao dao;
-    private final PoliticaOtp politica;
+    private final OtpPolicy politica;
     private final AuthGate gate;
 
     public MauthCommand(MagixAuth plugin, AuthConfig config, AuthDao dao,
-                        PoliticaOtp politica, AuthGate gate) {
+                        OtpPolicy politica, AuthGate gate) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
@@ -117,23 +117,23 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * impaginare, filtrare per permesso e rendere cliccabile senza riscriverlo ogni volta.
      */
     private void aiuto(CommandSender sender, int pagina) {
-        List<Aiuto.Voce> voci = List.of(
-                Aiuto.Voce.di("/login", "<password>", "entra con la tua password").in("Il tuo account"),
-                Aiuto.Voce.di("/register", "<password> <ripeti>", "registrati al primo ingresso").in("Il tuo account"),
-                Aiuto.Voce.di("/otp", "<codice>", "il codice della verifica in due passaggi").in("Il tuo account"),
-                Aiuto.Voce.di("/changepassword", "<vecchia> <nuova> <ripeti> [codice]",
+        List<Help.Voce> voci = List.of(
+                Help.Voce.di("/login", "<password>", "entra con la tua password").in("Il tuo account"),
+                Help.Voce.di("/register", "<password> <ripeti>", "registrati al primo ingresso").in("Il tuo account"),
+                Help.Voce.di("/otp", "<codice>", "il codice della verifica in due passaggi").in("Il tuo account"),
+                Help.Voce.di("/changepassword", "<vecchia> <nuova> <ripeti> [codice]",
                         "cambia la password (vale anche sul sito)").in("Il tuo account"),
-                Aiuto.Voce.di("/logout", "", "chiude l'accesso in gioco e sul sito").in("Il tuo account"),
-                Aiuto.Voce.staff("/mauth info", "", "stato del plugin e della verifica").in("Staff"),
-                Aiuto.Voce.staff("/mauth register", "<giocatore> <password>",
+                Help.Voce.di("/logout", "", "chiude l'accesso in gioco e sul sito").in("Il tuo account"),
+                Help.Voce.staff("/mauth info", "", "stato del plugin e della verifica").in("Staff"),
+                Help.Voce.staff("/mauth register", "<giocatore> <password>",
                         "registra un giocatore o gli riscrive la password").in("Staff"),
-                Aiuto.Voce.staff("/mauth reset", "<giocatore>", "azzera la password di chi l'ha dimenticata").in("Staff"),
-                Aiuto.Voce.staff("/mauth unlock", "<giocatore|indirizzo>",
+                Help.Voce.staff("/mauth reset", "<giocatore>", "azzera la password di chi l'ha dimenticata").in("Staff"),
+                Help.Voce.staff("/mauth unlock", "<giocatore|indirizzo>",
                         "toglie l'attesa a chi ha sbagliato troppe volte").in("Staff"),
-                Aiuto.Voce.staff("/mauth sessions", "<giocatore>", "dimentica i suoi accessi ricordati").in("Staff"),
-                Aiuto.Voce.staff("/mauth reload", "", "rilegge la configurazione").in("Staff"));
+                Help.Voce.staff("/mauth sessions", "<giocatore>", "dimentica i suoi accessi ricordati").in("Staff"),
+                Help.Voce.staff("/mauth reload", "", "rilegge la configurazione").in("Staff"));
 
-        Aiuto.mostra(sender, "MagixAuth", "/mauth", voci, pagina,
+        Help.mostra(sender, "MagixAuth", "/mauth", voci, pagina,
                 sender.hasPermission("magixauth.admin"));
     }
 
@@ -183,7 +183,7 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
                 Player online = Bukkit.getPlayer(account.uuid);
                 if (online != null) {
                     Bukkit.getScheduler().runTask(plugin, () ->
-                            online.kick(Testi.c("&eLa tua password e' stata azzerata&r\n\n"
+                            online.kick(Texts.c("&eLa tua password e' stata azzerata&r\n\n"
                                     + "&7Rientra e scegline una nuova.")));
                 }
             } catch (SQLException e) {
@@ -334,7 +334,7 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
     }
 
     private void rispondi(CommandSender sender, String testo) {
-        sender.sendMessage(Testi.c(config.prefisso, testo));
+        sender.sendMessage(Texts.c(config.prefisso, testo));
     }
 
     @Override

@@ -4,7 +4,7 @@ import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.gate.StatoIngresso;
 import com.teolo.magixauth.model.Fase;
-import com.teolo.magixauth.util.Testi;
+import com.teolo.magixauth.util.Texts;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -35,20 +35,20 @@ public final class RegisterCommand implements CommandExecutor {
         }
         StatoIngresso stato = gate.stato(p);
         if (stato == null) {
-            p.sendMessage(Testi.c(config.prefisso, "&7Sei gia' dentro."));
+            p.sendMessage(Texts.c(config.prefisso, "&7Sei gia' dentro."));
             return true;
         }
         if (stato.fase != Fase.REGISTRAZIONE) {
-            p.sendMessage(Testi.c(config.prefisso,
+            p.sendMessage(Texts.c(config.prefisso,
                     "&7Hai gia' un account: usa &f/login <password>&7."));
             return true;
         }
         if (args.length != 2) {
-            p.sendMessage(Testi.c(config.prefisso, "&7Uso: &f/register <password> <ripeti password>"));
+            p.sendMessage(Texts.c(config.prefisso, "&7Uso: &f/register <password> <ripeti password>"));
             return true;
         }
         if (!args[0].equals(args[1])) {
-            p.sendMessage(Testi.c(config.prefisso, Testi.NON_COINCIDONO));
+            p.sendMessage(Texts.c(config.prefisso, Texts.NON_COINCIDONO));
             return true;
         }
         gate.registra(p, args[0]);

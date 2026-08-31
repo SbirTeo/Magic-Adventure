@@ -87,7 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (!is_array($dati)) {
             menu_errore('Il file dei menu del server non è leggibile (JSON rovinato).');
         }
-        menu_json(['ok' => true] + $dati);
+        // Chi sta modificando: serve all'editor per disegnare la faccia vera sulle teste
+        // scritte come %player_name%. Sta qui e non in un attributo della pagina perche'
+        // manage.php e' un file lungo e conteso: una chiave in piu' in questa risposta non
+        // pesta i piedi a nessuno.
+        menu_json(['ok' => true, 'io' => $attore] + $dati);
     }
 
     if ($azione === 'yaml') {

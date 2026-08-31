@@ -5864,6 +5864,24 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-riga-cond .me-inp, .me-riga-azione .me-inp { flex: 1 1 140px; width: auto; }
 .me-riga-cond .me-sel, .me-riga-azione .me-sel { flex: 0 1 auto; width: auto; }
 .me-negato { color: #ff8080; border-color: #ff8080; }
+/* --- riordino a trascinamento delle azioni ---
+   La presa e' solo la maniglia: il resto della riga ha tendine e campi di testo, e se fosse
+   tutta trascinabile non si potrebbe piu' selezionare una parola. touch-action: none serve a
+   dire al telefono di non far scorrere la pagina mentre si trascina. */
+.me-azioni-lista { display: flex; flex-direction: column; gap: 8px; }
+.me-maniglia {
+  flex: none; width: 22px; height: 26px; display: inline-flex;
+  align-items: center; justify-content: center;
+  color: var(--text-dimmer); cursor: grab; user-select: none;
+  touch-action: none; border-radius: 4px; letter-spacing: -1px;
+}
+.me-maniglia:hover { color: var(--text); background: var(--bg-panel-2); }
+.me-azioni-lista.sto-riordinando .me-maniglia { cursor: grabbing; }
+.me-riga-azione.sto-spostando, .me-azione-se.sto-spostando {
+  opacity: 0.6; outline: 2px dashed var(--purple); outline-offset: 2px;
+}
+.me-capo-bivio { display: inline-flex; align-items: center; gap: 4px; }
+
 .me-azione-se {
   padding: 10px 12px; border-left: 3px solid var(--purple); border-radius: var(--radius-sm);
   background: var(--bg-elevated); display: flex; flex-direction: column; gap: 8px;

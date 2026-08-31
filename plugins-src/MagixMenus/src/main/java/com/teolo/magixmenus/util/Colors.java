@@ -27,7 +27,7 @@ public final class Colors {
         return ChatColor.translateAlternateColorCodes('&', sb.toString());
     }
 
-    /** Testo con codici & convertito in Component Adventure (titoli, action bar, nomi). */
+    /** Text con codici & convertito in Component Adventure (titoli, action bar, nomi). */
     public static Component component(String s) {
         return LegacyComponentSerializer.legacySection().deserialize(translate(s));
     }

@@ -11,10 +11,10 @@ import com.teolo.magixauth.db.Database;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.gate.ConnessioneListener;
 import com.teolo.magixauth.gate.FreezeListener;
-import com.teolo.magixauth.gate.PoliticaOtp;
+import com.teolo.magixauth.gate.OtpPolicy;
 import com.teolo.magixauth.gate.Visibilita;
 import com.teolo.magixauth.premium.MojangLookup;
-import com.teolo.magixauth.util.GuidaStaff;
+import com.teolo.magixauth.util.StaffGuide;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -35,7 +35,7 @@ public final class MagixAuth extends JavaPlugin {
     private AuthConfig config;
     private Database database;
     private AuthDao dao;
-    private PoliticaOtp politica;
+    private OtpPolicy politica;
     private AuthGate gate;
 
     @Override
@@ -62,7 +62,7 @@ public final class MagixAuth extends JavaPlugin {
                     + "OTP_CHIAVE in website/config.php.");
         }
 
-        politica = new PoliticaOtp(this, config);
+        politica = new OtpPolicy(this, config);
         politica.aggiornaGruppi();
         // La composizione della track cambia una volta ogni mai: si rilegge ogni cinque
         // minuti, e non a ogni ingresso.
@@ -110,7 +110,7 @@ public final class MagixAuth extends JavaPlugin {
         });
 
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
-        // GuidaStaff insieme al capitolo per il sito, cosi' i due non possono divergere.
+        // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
         async(this::scriviGuidaStaff);
 
@@ -132,10 +132,10 @@ public final class MagixAuth extends JavaPlugin {
      * comandi, permessi e valori non possono divergere dal plugin in funzione.
      */
     private void scriviGuidaStaff() {
-        GuidaStaff.crea(this, "MagixAuth — accesso e password", 20)
+        StaffGuide.crea(this, "MagixAuth — accesso e password", 20)
                 // Numeri presi dal config vero: cambiando una chiave, questo capitolo
-                // sulla guida del gestionale cambia da solo (vedi util/ValoriConfig).
-                .valori(new com.teolo.magixauth.util.ValoriConfig(this))
+                // sulla guida del gestionale cambia da solo (vedi util/ConfigValues).
+                .valori(new com.teolo.magixauth.util.ConfigValues(this))
                 .intro("Il cancello del server. Su un server non premium il nome non prova niente: finché uno "
                         + "non ha fatto il login è congelato e non può fare nulla.")
 

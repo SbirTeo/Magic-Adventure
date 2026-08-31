@@ -7,8 +7,8 @@ import com.teolo.magixauth.crypt.Password;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.model.Account;
-import com.teolo.magixauth.util.Testi;
-import com.teolo.magixauth.util.TestiDurate;
+import com.teolo.magixauth.util.Texts;
+import com.teolo.magixauth.util.DurationText;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -52,7 +52,7 @@ public final class CambiaPasswordCommand implements CommandExecutor {
             return true;
         }
         if (args.length < 3 || args.length > 4) {
-            p.sendMessage(Testi.c(config.prefisso,
+            p.sendMessage(Texts.c(config.prefisso,
                     "&7Uso: &f/changepassword <vecchia> <nuova> <ripeti nuova> [codice]"));
             return true;
         }
@@ -63,16 +63,16 @@ public final class CambiaPasswordCommand implements CommandExecutor {
         String codice = args.length == 4 ? args[3] : null;
 
         if (!nuova.equals(conferma)) {
-            p.sendMessage(Testi.c(config.prefisso, Testi.NON_COINCIDONO));
+            p.sendMessage(Texts.c(config.prefisso, Texts.NON_COINCIDONO));
             return true;
         }
         String no = Password.perche_no(nuova, p.getName(), config.passwordMinima);
         if (no != null) {
-            p.sendMessage(Testi.c(config.prefisso, "&c" + no));
+            p.sendMessage(Texts.c(config.prefisso, "&c" + no));
             return true;
         }
         if (nuova.equals(vecchia)) {
-            p.sendMessage(Testi.c(config.prefisso,
+            p.sendMessage(Texts.c(config.prefisso,
                     "&cLa password nuova deve essere diversa da quella di adesso."));
             return true;
         }
@@ -104,7 +104,7 @@ public final class CambiaPasswordCommand implements CommandExecutor {
                     return;
                 }
                 if (account.otpBloccato()) {
-                    messaggio(p, Testi.otpBloccato(TestiDurate.finoA(account.totpBloccatoFino)));
+                    messaggio(p, Texts.otpBloccato(DurationText.finoA(account.totpBloccatoFino)));
                     return;
                 }
                 String segreto = OtpCodici.decifraSegreto(account.totpSecretCifrato, config.chiaveOtpBase64);
@@ -112,7 +112,7 @@ public final class CambiaPasswordCommand implements CommandExecutor {
                         : OtpCodici.verifica(OtpCodici.base32Decode(segreto), codice, account.totpUltimoPasso);
                 if (passo < 0) {
                     dao.otpFallito(account.idSito, config.tentativiMassimi, config.bloccoMinuti);
-                    messaggio(p, Testi.OTP_NO);
+                    messaggio(p, Texts.OTP_NO);
                     return;
                 }
                 dao.otpPassoSpeso(account.idSito, passo);
@@ -133,7 +133,7 @@ public final class CambiaPasswordCommand implements CommandExecutor {
     private void messaggio(Player p, String testo) {
         org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
             if (p.isOnline()) {
-                p.sendMessage(Testi.c(config.prefisso, testo));
+                p.sendMessage(Texts.c(config.prefisso, testo));
             }
         });
     }

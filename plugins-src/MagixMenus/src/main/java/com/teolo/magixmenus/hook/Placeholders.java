@@ -1,7 +1,7 @@
 package com.teolo.magixmenus.hook;
 
 import com.teolo.magixmenus.MagixMenus;
-import com.teolo.magixmenus.menu.MenuAperto;
+import com.teolo.magixmenus.menu.OpenMenu;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -69,7 +69,7 @@ public final class Placeholders extends PlaceholderExpansion {
         if (!(chi instanceof Player giocatore)) {
             return "";
         }
-        MenuAperto aperto = plugin.menu().apertoDi(giocatore);
+        OpenMenu aperto = plugin.menu().apertoDi(giocatore);
         return switch (p) {
             case "aperto" -> aperto == null ? "" : aperto.definizione().nome();
             case "pagina" -> aperto == null ? "" : aperto.variabili().getOrDefault("pagina", "1");

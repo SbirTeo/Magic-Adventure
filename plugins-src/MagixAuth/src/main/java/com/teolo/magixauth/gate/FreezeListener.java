@@ -1,7 +1,7 @@
 package com.teolo.magixauth.gate;
 
 import com.teolo.magixauth.AuthConfig;
-import com.teolo.magixauth.util.Testi;
+import com.teolo.magixauth.util.Texts;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.audience.Audience;
 import org.bukkit.Bukkit;

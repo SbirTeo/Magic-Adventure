@@ -9,24 +9,24 @@ import com.teolo.magixguard.command.GuardCommand;
 import com.teolo.magixguard.db.Database;
 import com.teolo.magixguard.db.DbExecutor;
 import com.teolo.magixguard.db.GuardDao;
-import com.teolo.magixguard.sanzioni.ComandiSanzioni;
-import com.teolo.magixguard.sanzioni.ComandoReport;
-import com.teolo.magixguard.sanzioni.ComandoViolazione;
-import com.teolo.magixguard.sanzioni.Rilevatore;
-import com.teolo.magixguard.sanzioni.ViolazioniDao;
-import com.teolo.magixguard.chat.FiltroChat;
-import com.teolo.magixguard.xray.AnalisiScavo;
-import com.teolo.magixguard.afk.GuardiaAfk;
-import com.teolo.magixguard.sanzioni.Politica;
-import com.teolo.magixguard.sanzioni.RegistroPunti;
-import com.teolo.magixguard.sanzioni.Regolamento;
-import com.teolo.magixguard.sanzioni.SanzioniConfig;
-import com.teolo.magixguard.sanzioni.SanzioniDao;
-import com.teolo.magixguard.sanzioni.SanzioniListener;
-import com.teolo.magixguard.sanzioni.ServizioSanzioni;
-import com.teolo.magixguard.sanzioni.SincronizzaSito;
-import com.teolo.magixguard.sanzioni.SitoDb;
-import com.teolo.magixguard.util.GuidaStaff;
+import com.teolo.magixguard.sanctions.SanctionCommands;
+import com.teolo.magixguard.sanctions.ReportCommand;
+import com.teolo.magixguard.sanctions.ViolationCommand;
+import com.teolo.magixguard.sanctions.Detector;
+import com.teolo.magixguard.sanctions.ViolationsDao;
+import com.teolo.magixguard.chat.ChatFilter;
+import com.teolo.magixguard.xray.MiningAnalysis;
+import com.teolo.magixguard.afk.AfkGuard;
+import com.teolo.magixguard.sanctions.Policy;
+import com.teolo.magixguard.sanctions.PointsLog;
+import com.teolo.magixguard.sanctions.Rulebook;
+import com.teolo.magixguard.sanctions.SanctionsConfig;
+import com.teolo.magixguard.sanctions.SanctionsDao;
+import com.teolo.magixguard.sanctions.SanctionsListener;
+import com.teolo.magixguard.sanctions.SanctionsService;
+import com.teolo.magixguard.sanctions.SiteSync;
+import com.teolo.magixguard.sanctions.SiteDb;
+import com.teolo.magixguard.util.StaffGuide;
 import com.teolo.magixguard.dossier.DossierBuilder;
 import com.teolo.magixguard.util.Hashing;
 import com.zaxxer.hikari.HikariDataSource;
@@ -54,8 +54,8 @@ public final class MagixGuard extends JavaPlugin {
 
     // Modulo sanzioni (0.2.0): vive sul database del SITO, separato da quello della
     // profilazione. Gli IP restano di qua, i provvedimenti pubblici di la'.
-    private SitoDb sitoDb;
-    private ServizioSanzioni sanzioni;
+    private SiteDb sitoDb;
+    private SanctionsService sanzioni;
 
     @Override
     public void onEnable() {
@@ -63,7 +63,7 @@ public final class MagixGuard extends JavaPlugin {
         getDataFolder().mkdirs();
         // Solo I/O su file: fuori dal tick di avvio (stessa convenzione degli altri plugin Magix).
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
-        // GuidaStaff insieme al capitolo per il sito, cosi' i due non possono divergere.
+        // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
         Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
 
@@ -127,9 +127,9 @@ public final class MagixGuard extends JavaPlugin {
         if (!file.exists()) {
             saveResource("sanzioni.yml", false);
         }
-        SanzioniConfig cfg = new SanzioniConfig(SanzioniConfig.carica(file));
+        SanctionsConfig cfg = new SanctionsConfig(SanctionsConfig.carica(file));
 
-        sitoDb = new SitoDb(cfg);
+        sitoDb = new SiteDb(cfg);
         if (!sitoDb.raggiungibile()) {
             getLogger().severe("Sanzioni NON attive: il database del sito non risponde. "
                     + "Controlla la sezione 'sito' in sanzioni.yml. Ban e mute non funzioneranno.");
@@ -138,27 +138,27 @@ public final class MagixGuard extends JavaPlugin {
             return;
         }
 
-        SanzioniDao dao = new SanzioniDao(sitoDb);
-        ViolazioniDao violazioni = new ViolazioniDao(sitoDb);
+        SanctionsDao dao = new SanctionsDao(sitoDb);
+        ViolationsDao violazioni = new ViolationsDao(sitoDb);
         try {
             violazioni.assicuraTabella();
         } catch (java.sql.SQLException e) {
             getLogger().warning("Tabella delle violazioni non pronta: " + e.getMessage()
                     + ". I punti non verranno registrati.");
         }
-        RegistroPunti registro = new RegistroPunti(violazioni, cfg);
-        Politica politica = new Politica(cfg);
-        sanzioni = new ServizioSanzioni(this, cfg, dao, registro, politica, violazioni);
+        PointsLog registro = new PointsLog(violazioni, cfg);
+        Policy politica = new Policy(cfg);
+        sanzioni = new SanctionsService(this, cfg, dao, registro, politica, violazioni);
 
         // Il registro delle violazioni: TUTTO quello che il server nota passa di qui, e da qui
         // escono i punti. I rilevatori qui sotto non sanno niente di soglie e provvedimenti.
-        Rilevatore rilevatore = new Rilevatore(this, cfg, sanzioni, violazioni, registro);
+        Detector rilevatore = new Detector(this, cfg, sanzioni, violazioni, registro);
         avviaRilevatori(cfg, rilevatore, dao);
 
         getServer().getPluginManager().registerEvents(
-                new SanzioniListener(this, cfg, sanzioni, dao), this);
+                new SanctionsListener(this, cfg, sanzioni, dao), this);
 
-        ComandiSanzioni comandi = new ComandiSanzioni(this, cfg, sanzioni, dao);
+        SanctionCommands comandi = new SanctionCommands(this, cfg, sanzioni, dao);
         String[] nomi = { "ban", "tempban", "mute", "tempmute", "kick", "warn",
                           "unban", "unmute", "storico", "sanzioni" };
         for (String nome : nomi) {
@@ -171,7 +171,7 @@ public final class MagixGuard extends JavaPlugin {
         // /report lo usano i giocatori, non lo staff: sta a parte anche nel codice.
         org.bukkit.command.PluginCommand cmdReport = getCommand("report");
         if (cmdReport != null) {
-            ComandoReport report = new ComandoReport(this, cfg, sanzioni, dao);
+            ReportCommand report = new ReportCommand(this, cfg, sanzioni, dao);
             cmdReport.setExecutor(report);
             cmdReport.setTabCompleter(report);
         }
@@ -180,7 +180,7 @@ public final class MagixGuard extends JavaPlugin {
         prendiIComandi(new String[] { "report" });
 
         // Le decisioni prese sul sito (revoche, proposte confermate) arrivano di qui.
-        SincronizzaSito sync = new SincronizzaSito(this, dao, sanzioni);
+        SiteSync sync = new SiteSync(this, dao, sanzioni);
         long ticks = cfg.controlloSecondi * 20L;
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, sync::giro, 200L, ticks);
 
@@ -189,7 +189,7 @@ public final class MagixGuard extends JavaPlugin {
         if (cfg.generaRegolamento) {
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 try {
-                    dao.scriviRegolamento(Regolamento.genera(cfg), getPluginMeta().getVersion());
+                    dao.scriviRegolamento(Rulebook.genera(cfg), getPluginMeta().getVersion());
                     getLogger().info("Regolamento: tabella delle sanzioni rigenerata sul sito.");
                 } catch (java.sql.SQLException e) {
                     getLogger().warning("Regolamento non aggiornato: " + e.getMessage());
@@ -253,26 +253,26 @@ public final class MagixGuard extends JavaPlugin {
      * dalla sua sezione in sanzioni.yml, e nessuno di loro decide niente — si limitano a dire
      * cosa hanno visto.
      */
-    private void avviaRilevatori(SanzioniConfig cfg, Rilevatore rilevatore, SanzioniDao dao) {
+    private void avviaRilevatori(SanctionsConfig cfg, Detector rilevatore, SanctionsDao dao) {
         org.bukkit.configuration.file.FileConfiguration conf =
-                SanzioniConfig.carica(new java.io.File(getDataFolder(), "sanzioni.yml"));
+                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanzioni.yml"));
 
         org.bukkit.configuration.ConfigurationSection sezChat = conf.getConfigurationSection("chat");
         if (sezChat == null || sezChat.getBoolean("attivo", true)) {
-            getServer().getPluginManager().registerEvents(new FiltroChat(rilevatore, sezChat), this);
+            getServer().getPluginManager().registerEvents(new ChatFilter(rilevatore, sezChat), this);
             getLogger().info("Filtro chat attivo (spam, insulti, pubblicita', dati personali).");
         }
 
         org.bukkit.configuration.ConfigurationSection sezXray = conf.getConfigurationSection("xray");
         if (sezXray == null || sezXray.getBoolean("attivo", true)) {
-            getServer().getPluginManager().registerEvents(new AnalisiScavo(this, rilevatore, sezXray), this);
+            getServer().getPluginManager().registerEvents(new MiningAnalysis(this, rilevatore, sezXray), this);
             String modo = sezXray == null ? "osservazione" : sezXray.getString("modo", "osservazione");
             getLogger().info("Anti-xray statistico attivo (modo " + modo + ").");
         }
 
         org.bukkit.configuration.ConfigurationSection sezAfk = conf.getConfigurationSection("afk");
         if (sezAfk == null || sezAfk.getBoolean("attivo", true)) {
-            GuardiaAfk afk = new GuardiaAfk(this, rilevatore, sezAfk);
+            AfkGuard afk = new AfkGuard(this, rilevatore, sezAfk);
             getServer().getPluginManager().registerEvents(afk, this);
             afk.avvia();
             getLogger().info("Anti-AFK attivo (niente guadagni da fermo + caccia ai dispositivi).");
@@ -280,7 +280,7 @@ public final class MagixGuard extends JavaPlugin {
 
         org.bukkit.command.PluginCommand cmd = getCommand("mgviolazione");
         if (cmd != null) {
-            cmd.setExecutor(new ComandoViolazione(this, rilevatore, dao));
+            cmd.setExecutor(new ViolationCommand(this, rilevatore, dao));
         }
     }
 
@@ -343,12 +343,12 @@ public final class MagixGuard extends JavaPlugin {
     /** Capitolo di MagixGuard nella guida del gestionale (plugins-src/GUIDA-STAFF.md). */
     private void scriviGuidaStaff() {
         org.bukkit.configuration.file.FileConfiguration sanz =
-                SanzioniConfig.carica(new java.io.File(getDataFolder(), "sanzioni.yml"));
+                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanzioni.yml"));
 
-        GuidaStaff.crea(this, "MagixGuard — sanzioni, multi-account e prove", 10)
+        StaffGuide.crea(this, "MagixGuard — sanzioni, multi-account e prove", 10)
                 // Numeri presi dal config VERO (config.yml + sanzioni.yml): cambiando una soglia o i
                 // punti di una categoria, questo capitolo sul sito cambia da solo.
-                .valori(new com.teolo.magixguard.util.ValoriConfig(this).inoltre(sanz))
+                .valori(new com.teolo.magixguard.util.ConfigValues(this).inoltre(sanz))
                 .intro("Il plugin che tiene l'ordine: decide e registra **ogni** provvedimento del "
                         + "server, e in parallelo guarda chi entra per capire quando due nickname "
                         + "sono la stessa persona. È l'unico posto da cui si sanziona.")

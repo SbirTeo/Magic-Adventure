@@ -8,7 +8,7 @@ import com.teolo.magixentities.manage.EquipMenu;
 import com.teolo.magixentities.manage.LookManager;
 import com.teolo.magixentities.manage.MirrorManager;
 import com.teolo.magixentities.manage.NpcManager;
-import com.teolo.magixentities.util.GuidaStaff;
+import com.teolo.magixentities.util.StaffGuide;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -36,7 +36,7 @@ public final class MagixEntities extends JavaPlugin {
         getDataFolder().mkdirs();
         // Puro I/O su file: non deve bloccare il tick di avvio.
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
-        // GuidaStaff insieme al capitolo per il sito, cosi' i due non possono divergere.
+        // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
         Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
 
@@ -97,10 +97,10 @@ public final class MagixEntities extends JavaPlugin {
 
     /** Capitolo di MagixEntities nella guida del gestionale: si riscrive a ogni avvio. */
     private void scriviGuidaStaff() {
-        GuidaStaff.crea(this, "MagixEntities — NPC ed entità da comando", 70)
+        StaffGuide.crea(this, "MagixEntities — NPC ed entità da comando", 70)
                 // Numeri presi dal config vero: cambiando una chiave, questo capitolo
-                // sulla guida del gestionale cambia da solo (vedi util/ValoriConfig).
-                .valori(new com.teolo.magixentities.util.ValoriConfig(this))
+                // sulla guida del gestionale cambia da solo (vedi util/ConfigValues).
+                .valori(new com.teolo.magixentities.util.ConfigValues(this))
                 .intro("Crea entità ferme dove servono: guide allo spawn, mercanti, statue di giocatori. Fa il "
                         + "lavoro che di solito fa Citizens, ma con le entità vanilla e senza ProtocolLib.")
 

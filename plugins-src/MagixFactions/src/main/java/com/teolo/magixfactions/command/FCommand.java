@@ -16,7 +16,7 @@ import com.teolo.magixfactions.model.Member;
 import com.teolo.magixfactions.model.Rank;
 import com.teolo.magixfactions.model.RelationType;
 import com.teolo.magixfactions.req.Requirements;
-import com.teolo.magixfactions.util.Aiuto;
+import com.teolo.magixfactions.util.Help;
 import com.teolo.magixfactions.util.Colors;
 import com.teolo.magixfactions.util.WordFilter;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -883,7 +883,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             if (vip.speed != 100) {
                 msg(p, M.get("power.speed",
                         "speed", String.valueOf(vip.speed),
-                        "minutes", com.teolo.magixfactions.util.TestiDurate.daSecondi(power.secondsPerGain(p))));
+                        "minutes", com.teolo.magixfactions.util.DurationText.daSecondi(power.secondsPerGain(p))));
             }
             if (vip.loss != 100) {
                 msg(p, M.get("power.loss-speed", "speed", String.valueOf(vip.loss)));
@@ -1000,12 +1000,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     /**
      * /f help [pagina] - l'elenco dei comandi.
      *
-     * Le voci stanno in messages.yml (help.sections) e le impagina {@link Aiuto}, la stessa classe
+     * Le voci stanno in messages.yml (help.sections) e le impagina {@link Help}, la stessa classe
      * degli altri plugin Magix: sezioni, frecce per sfogliare, ogni riga cliccabile per scriversi
      * il comando in chat. I comandi di /mf li vede solo chi ha magixfactions.admin.
      */
     private void help(CommandSender s, int pagina) {
-        List<Aiuto.Voce> voci = Aiuto.daConfig(M.section("help.sections"));
+        List<Help.Voce> voci = Help.daConfig(M.section("help.sections"));
         if (voci.isEmpty()) {
             // messages.yml di una versione precedente (elenco piatto): meglio quello che niente.
             for (String line : M.getList("help")) panel(s, line);
@@ -1014,7 +1014,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         }
         ConfigurationSection h = M.section("help");
         String titolo = h != null ? h.getString("title", "MagixFactions") : "MagixFactions";
-        Aiuto.mostra(s, titolo, "/f help", voci, pagina, s.hasPermission("magixfactions.admin"));
+        Help.mostra(s, titolo, "/f help", voci, pagina, s.hasPermission("magixfactions.admin"));
     }
 
     // ---- TAB COMPLETION -----------------------------------------------------------------------------

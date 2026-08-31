@@ -3,7 +3,7 @@ package com.teolo.magixweb;
 import com.teolo.magixweb.chat.ChatBridge;
 import com.teolo.magixweb.db.Database;
 import com.teolo.magixweb.guide.GuideSync;
-import com.teolo.magixweb.util.GuidaStaff;
+import com.teolo.magixweb.util.StaffGuide;
 import com.teolo.magixweb.rank.RankPlaceholders;
 import com.teolo.magixweb.store.StoreDelivery;
 import com.teolo.magixweb.rank.RankSync;
@@ -52,10 +52,10 @@ public class MagixWeb extends JavaPlugin {
 
     /** MagixWeb's own chapter in the admin panel's guide (plugins-src/GUIDA-STAFF.md). */
     private void writeStaffGuide() {
-        GuidaStaff.crea(this, "MagixWeb — il ponte con il sito", 40)
+        StaffGuide.crea(this, "MagixWeb — il ponte con il sito", 40)
                 // The numbers come from the real config: change a key and this chapter in the
-                // admin panel follows along on its own (see util/ValoriConfig).
-                .valori(new com.teolo.magixweb.util.ValoriConfig(this))
+                // admin panel follows along on its own (see util/ConfigValues).
+                .valori(new com.teolo.magixweb.util.ConfigValues(this))
                 .intro("Tiene insieme gioco e sito: gradi, chat live, consegna degli acquisti e la guida che "
                         + "stai leggendo. Non ha comandi in gioco: lavora da solo, in sottofondo. È l'unico "
                         + "plugin che conosce le credenziali del sito.")

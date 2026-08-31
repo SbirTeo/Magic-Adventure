@@ -8,7 +8,7 @@ import com.teolo.magixtime.listener.SleepListener;
 import com.teolo.magixtime.season.SeasonManager;
 import com.teolo.magixtime.snow.SnowManager;
 import com.teolo.magixtime.time.TimeSync;
-import com.teolo.magixtime.util.GuidaStaff;
+import com.teolo.magixtime.util.StaffGuide;
 import com.teolo.magixtime.weather.WeatherManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
@@ -58,7 +58,7 @@ public final class MagixTime extends JavaPlugin {
         getDataFolder().mkdirs();
         // Puro I/O su file: non deve bloccare il tick di avvio.
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
-        // GuidaStaff insieme al capitolo per il sito, cosi' i due non possono divergere.
+        // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Il capitolo della guida per amministratori sul sito. Va scritto DOPO che il config
         // e' stato caricato, perche' ci mette dentro i valori davvero in uso.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
@@ -213,10 +213,10 @@ public final class MagixTime extends JavaPlugin {
      * configurazione non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
      */
     private void scriviGuidaStaff() {
-        GuidaStaff.crea(this, "MagixTime — ora, stagioni e meteo reali", 60)
+        StaffGuide.crea(this, "MagixTime — ora, stagioni e meteo reali", 60)
                 // Numeri presi dal config vero: cambiando una chiave, questo capitolo
-                // sulla guida del gestionale cambia da solo (vedi util/ValoriConfig).
-                .valori(new com.teolo.magixtime.util.ValoriConfig(this))
+                // sulla guida del gestionale cambia da solo (vedi util/ConfigValues).
+                .valori(new com.teolo.magixtime.util.ConfigValues(this))
                 .intro("Fa scorrere l'ora di Minecraft insieme a quella vera e cambia le stagioni col "
                         + "calendario: d'inverno nevica, d'estate no. Chi gioca la sera trova notte anche "
                         + "nel gioco.")

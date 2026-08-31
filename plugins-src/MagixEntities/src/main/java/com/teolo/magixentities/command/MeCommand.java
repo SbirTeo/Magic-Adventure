@@ -5,7 +5,7 @@ import com.teolo.magixentities.manage.EquipMenu;
 import com.teolo.magixentities.manage.MirrorManager;
 import com.teolo.magixentities.manage.NpcManager;
 import com.teolo.magixentities.model.NpcDef;
-import com.teolo.magixentities.util.Aiuto;
+import com.teolo.magixentities.util.Help;
 import com.teolo.magixentities.util.Colors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -94,14 +94,14 @@ public final class MeCommand implements TabExecutor {
     /**
      * /mentities help [pagina] - l'elenco dei comandi.
      *
-     * Le voci stanno in messages.yml (help.sections) e le impagina {@link Aiuto}, la stessa classe
+     * Le voci stanno in messages.yml (help.sections) e le impagina {@link Help}, la stessa classe
      * degli altri plugin Magix: sezioni, frecce per sfogliare, ogni riga cliccabile per scriversi
      * il comando in chat. La sezione Staff la vede solo chi ha magixentities.admin.
      */
     private void help(CommandSender sender, int pagina) {
         ConfigurationSection h = M.section("help");
         String titolo = h != null ? h.getString("title", "MagixEntities") : "MagixEntities";
-        Aiuto.mostra(sender, titolo, "/mentities help", Aiuto.daConfig(M.section("help.sections")),
+        Help.mostra(sender, titolo, "/mentities help", Help.daConfig(M.section("help.sections")),
                 pagina, sender.hasPermission("magixentities.admin"));
     }
 

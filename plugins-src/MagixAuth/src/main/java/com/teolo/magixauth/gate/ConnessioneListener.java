@@ -1,7 +1,7 @@
 package com.teolo.magixauth.gate;
 
 import com.teolo.magixauth.AuthConfig;
-import com.teolo.magixauth.util.Testi;
+import com.teolo.magixauth.util.Texts;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent;
@@ -73,7 +73,7 @@ public final class ConnessioneListener implements Listener {
         });
 
         if (rifiuto != null) {
-            e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Testi.c(rifiuto));
+            e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Texts.c(rifiuto));
         }
     }
 

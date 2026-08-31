@@ -1,0 +1,17 @@
+#!/bin/sh
+# Guarantee gate: no plugin may go into a commit in Italian, and no guide/tutorial may have gaps.
+# Runs plugins-src/check_all.py (check_english.py + check_config.py) and BLOCKS the commit on failure.
+#
+# Enabled once per clone with:   git config core.hooksPath .githooks
+# Emergency bypass (discouraged): git commit --no-verify
+
+repo_root=$(git rev-parse --show-toplevel)
+python "$repo_root/plugins-src/check_all.py"
+status=$?
+if [ "$status" -ne 0 ]; then
+    echo ""
+    echo "COMMIT BLOCCATO: un plugin non e' in inglese, o una guida/tutorial ha buchi (vedi sopra)."
+    echo "Sistema i punti elencati, oppure (sconsigliato) usa: git commit --no-verify"
+    exit 1
+fi
+exit 0

@@ -18,7 +18,7 @@ import java.util.List;
  * Gathers the chapters of the administrators' guide and carries them over to the site.
  *
  * Every one of our plugins writes its own chapter into {@code plugins/<Name>/guida-staff.html}
- * (the shared {@code util/GuidaStaff} class does that); here we read them and pour them into the
+ * (the shared {@code util/StaffGuide} class does that); here we read them and pour them into the
  * {@code guide_staff} table, which the admin panel shows under /manage?section=guida.
  *
  * Why go through a FILE instead of a Bukkit service: this way the plugin startup order does not

@@ -1,7 +1,7 @@
 package com.teolo.magixmenus.menu;
 
-import com.teolo.magixmenus.azioni.Azione;
-import com.teolo.magixmenus.requisiti.Requisiti;
+import com.teolo.magixmenus.actions.Action;
+import com.teolo.magixmenus.requirements.Requirements;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.List;
  * Un menu come sta scritto nel suo file, gia' letto e controllato.
  *
  * E' immutabile e non sa niente di chi lo guarda: un solo MenuDef serve tutti i giocatori che
- * hanno quel menu aperto, e quello che cambia da persona a persona vive in {@link MenuAperto}.
+ * hanno quel menu aperto, e quello che cambia da persona a persona vive in {@link OpenMenu}.
  * Cosi' un {@code reload} sostituisce la definizione senza toccare chi sta guardando, e cento
  * giocatori sullo stesso menu non sono cento copie della configurazione.
  *
@@ -22,26 +22,26 @@ import java.util.List;
 public final class MenuDef {
 
     private final String nome;
-    private final TipoMenu tipo;
+    private final MenuType tipo;
     private final int righe;
     private final String titolo;
     private final int aggiornamentoTick;
     private final List<String> comandi;
     private final String permesso;
     private final List<String> argomenti;
-    private final Requisiti apriSe;
-    private final List<Azione> azioniApertura;
-    private final List<Azione> azioniChiusura;
+    private final Requirements apriSe;
+    private final List<Action> azioniApertura;
+    private final List<Action> azioniChiusura;
     private final List<ItemDef> item;
-    private final Contenuto contenuto;
-    private final Dialogo dialogo;
+    private final Content contenuto;
+    private final MenuDialog dialogo;
     private final boolean chiusuraLibera;
     private final List<String> errori;
 
-    MenuDef(String nome, TipoMenu tipo, int righe, String titolo, int aggiornamentoTick,
-            List<String> comandi, String permesso, List<String> argomenti, Requisiti apriSe,
-            List<Azione> azioniApertura, List<Azione> azioniChiusura, List<ItemDef> item,
-            Contenuto contenuto, Dialogo dialogo, boolean chiusuraLibera, List<String> errori) {
+    MenuDef(String nome, MenuType tipo, int righe, String titolo, int aggiornamentoTick,
+            List<String> comandi, String permesso, List<String> argomenti, Requirements apriSe,
+            List<Action> azioniApertura, List<Action> azioniChiusura, List<ItemDef> item,
+            Content contenuto, MenuDialog dialogo, boolean chiusuraLibera, List<String> errori) {
         this.nome = nome;
         this.tipo = tipo;
         this.righe = righe;
@@ -64,7 +64,7 @@ public final class MenuDef {
         return nome;
     }
 
-    public TipoMenu tipo() {
+    public MenuType tipo() {
         return tipo;
     }
 
@@ -94,15 +94,15 @@ public final class MenuDef {
         return argomenti;
     }
 
-    public Requisiti apriSe() {
+    public Requirements apriSe() {
         return apriSe;
     }
 
-    public List<Azione> azioniApertura() {
+    public List<Action> azioniApertura() {
         return azioniApertura;
     }
 
-    public List<Azione> azioniChiusura() {
+    public List<Action> azioniChiusura() {
         return azioniChiusura;
     }
 
@@ -110,12 +110,12 @@ public final class MenuDef {
         return item;
     }
 
-    public Contenuto contenuto() {
+    public Content contenuto() {
         return contenuto;
     }
 
     /** La parte da finestra di dialogo: c'e' solo se il tipo e' "dialogo". */
-    public Dialogo dialogo() {
+    public MenuDialog dialogo() {
         return dialogo;
     }
 
@@ -142,7 +142,7 @@ public final class MenuDef {
                 return true;
             }
         }
-        return com.teolo.magixmenus.util.Testo.dinamico(titolo);
+        return com.teolo.magixmenus.util.Text.dinamico(titolo);
     }
 
     /** Gli item che possono finire in questa casella, nell'ordine di priorita' (il file). */

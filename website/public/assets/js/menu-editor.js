@@ -16,7 +16,9 @@
 
   var csrf = radice.getAttribute('data-csrf') || '';
   // Chi sta modificando: serve per le teste scritte come %player_name%, che altrimenti
-  // sarebbero un quadrato col nome dentro invece di una faccia.
+  // sarebbero un quadrato col nome dentro invece di una faccia. Arriva dall'API insieme ai
+  // menu (vedi api/menu.php): l'attributo sulla pagina si e' rivelato fragile, perche'
+  // manage.php lo modificano in tanti.
   var ioGiocatore = radice.getAttribute('data-giocatore') || '';
   var app = document.getElementById('menuApp');
   var avvisi = document.getElementById('menuAvvisi');
@@ -669,7 +671,10 @@
     var chi = nomeDaTesta(testa);
     if (chi) {
       var faccia = el('img', 'me-icona');
-      faccia.src = 'https://minotar.net/helm/' + encodeURIComponent(chi) + '/' + (misura * 2);
+      // "cube" e non "helm": nell'inventario una testa e' un CUBO visto in prospettiva, non
+      // una faccia piatta. La faccia piatta e' l'avatar, e la usa il sito per i profili — qui
+      // serve l'oggetto com'e' in gioco.
+      faccia.src = 'https://minotar.net/cube/' + encodeURIComponent(chi) + '/' + (misura * 2);
       faccia.width = faccia.height = misura;
       faccia.alt = '';
       faccia.loading = 'lazy';
@@ -701,6 +706,7 @@
   function carica() {
     api('azione=elenco').then(function (d) {
       dati = d;
+      if (d.io) ioGiocatore = d.io;
       disegnaElenco();
     }).catch(function (e) {
       svuota(app);
@@ -1225,7 +1231,7 @@
     var box = el('div', 'panel me-ordine-box');
     var t = el('div', 'me-sotto-titolo');
     t.appendChild(el('strong', null, 'Ordine degli item'));
-    t.appendChild(el('span', 'muted', 'in alto vince'));
+    t.appendChild(el('span', 'muted', 'l’ordine nel file'));
     box.appendChild(t);
 
     if (!menu.item.length) {
@@ -1290,7 +1296,9 @@
       lista.appendChild(riga);
     });
     box.appendChild(lista);
-    box.appendChild(el('p', 'muted', 'Lo sfondo (le caselle "all") va tenuto in fondo: sta sotto a tutti gli altri.'));
+    box.appendChild(el('p', 'muted', 'Questo è l’ordine con cui stanno scritti nel file. Conta solo '
+      + 'dove due item chiedono la stessa casella: lì vince quello più in alto. Per il resto è '
+      + 'solo l’ordine di scrittura. Lo sfondo (le caselle "all") va tenuto in fondo.'));
     return box;
   }
 
@@ -1481,23 +1489,38 @@
     });
     cima.appendChild(nomeCampo);
 
-    // Posizione nell'elenco: senza, premere le frecce su un item che non si contende nessuna
-    // casella non cambia niente di visibile, e sembrano rotte. Il numero si muove sempre.
-    var posto = el('span', 'me-posto', (sceltoItem + 1) + 'ª su ' + menu.item.length);
-    posto.title = 'Posizione nell’elenco degli item';
-    cima.appendChild(posto);
+    // La priorita' vale SOLO fra item che si contendono una casella: la posizione nell'elenco
+    // intero non dice niente, perche' gli altri stanno altrove. Qui si mostra il posto fra i
+    // rivali, e le frecce scavalcano un rivale — non il vicino di elenco.
+    var rivali = rivaliDi(sceltoItem);
+    if (rivali.length) {
+      var quanti = rivali.length + 1;
+      var mio = rivali.filter(function (k) { return k < sceltoItem; }).length + 1;
+      var posto = el('span', 'me-posto', mio + 'º di ' + quanti);
+      posto.title = 'Su queste caselle si contende il posto con ' + rivali.length
+        + (rivali.length === 1 ? ' altro item' : ' altri item');
+      cima.appendChild(posto);
+    }
+
+    var sopra = rivalePiuVicino(sceltoItem, -1);
+    var sotto = rivalePiuVicino(sceltoItem, 1);
 
     var su = el('button', 'btn btn-ghost btn-small', '↑');
     su.type = 'button';
-    su.disabled = sceltoItem === 0;
-    su.title = 'Sposta più in alto nell’elenco: vince sugli altri che chiedono la stessa casella';
-    su.addEventListener('click', function () { spostaPriorita(-1); });
+    su.disabled = sopra === null;
+    su.title = sopra === null
+      ? 'Non c’è nessun item sopra che si contenda le stesse caselle'
+      : 'Passa davanti a "' + menu.item[sopra].nome + '": da lì in poi vince questo';
+    su.addEventListener('click', function () { scavalcaRivale(-1); });
     cima.appendChild(su);
+
     var giu = el('button', 'btn btn-ghost btn-small', '↓');
     giu.type = 'button';
-    giu.disabled = sceltoItem === menu.item.length - 1;
-    giu.title = 'Sposta più in basso: gli altri item della stessa casella lo coprono';
-    giu.addEventListener('click', function () { spostaPriorita(1); });
+    giu.disabled = sotto === null;
+    giu.title = sotto === null
+      ? 'Non c’è nessun item sotto che si contenda le stesse caselle'
+      : 'Passa dietro a "' + menu.item[sotto].nome + '": da lì in poi vince quello';
+    giu.addEventListener('click', function () { scavalcaRivale(1); });
     cima.appendChild(giu);
 
     var togli = el('button', 'btn btn-ghost btn-small', 'Elimina');
@@ -1545,22 +1568,71 @@
    * sembrano rotte. Meglio dirlo che lasciarlo indovinare.
    */
   function spiegaOrdine(it) {
+    var rivali = rivaliDi(sceltoItem);
+    var d = el('div', 'me-ordine');
+    if (!rivali.length) {
+      d.textContent = 'Nessun altro item chiede le sue caselle: qui non c’è niente da mettere in '
+        + 'ordine, e le frecce sono spente. La priorità serve solo quando due item si contendono '
+        + 'la stessa casella.';
+      d.classList.add('spento');
+      return d;
+    }
     var condivise = [];
     (it.slot || []).forEach(function (c) {
       if (itemNellaCasella(c).length > 1) condivise.push(c);
     });
-    var d = el('div', 'me-ordine');
-    if (!condivise.length) {
-      d.textContent = 'Le frecce ↑ ↓ spostano questo item nell’elenco. Serve solo dove due item '
-        + 'si contendono la stessa casella: questo non ne condivide nessuna, quindi per lui '
-        + 'l’ordine non cambia niente.';
-      d.classList.add('spento');
-      return d;
-    }
-    d.textContent = 'Le frecce ↑ ↓ contano: questo item si contende '
-      + (condivise.length === 1 ? 'una casella' : condivise.length + ' caselle')
-      + ' con altri. Più in alto sta, più vince.';
+    d.textContent = 'Si contende ' + (condivise.length === 1 ? 'la casella ' + condivise[0]
+      : condivise.length + ' caselle') + ' con: '
+      + rivali.map(function (k) { return menu.item[k].nome; }).join(', ')
+      + '. Vince chi sta più in alto e ha le sue condizioni soddisfatte.';
     return d;
+  }
+
+  /** Gli item che chiedono almeno una casella in comune con questo, in ordine di elenco. */
+  function rivaliDi(indice) {
+    var it = menu.item[indice];
+    if (!it) return [];
+    var fuori = [];
+    menu.item.forEach(function (altro, k) {
+      if (k === indice) return;
+      for (var c = 0; c < (altro.slot || []).length; c++) {
+        if ((it.slot || []).indexOf(altro.slot[c]) >= 0) { fuori.push(k); return; }
+      }
+    });
+    return fuori;
+  }
+
+  /** Il rivale piu' vicino sopra (-1) o sotto (+1), o null se da quella parte non ce n'e'. */
+  function rivalePiuVicino(indice, verso) {
+    var rivali = rivaliDi(indice);
+    var trovato = null;
+    if (verso < 0) {
+      rivali.forEach(function (k) { if (k < indice) trovato = k; });
+    } else {
+      for (var i = 0; i < rivali.length; i++) {
+        if (rivali[i] > indice) { trovato = rivali[i]; break; }
+      }
+    }
+    return trovato;
+  }
+
+  /**
+   * Scavalca il rivale piu' vicino, invece di spostarsi di un posto nell'elenco.
+   *
+   * Spostarsi di UN posto spesso significa scavalcare un item che non si contende niente: si
+   * preme e non cambia nulla. Saltando direttamente il rivale, quando la freccia e' accesa
+   * premerla cambia sempre chi si vede nella casella.
+   */
+  function scavalcaRivale(verso) {
+    var bersaglio = rivalePiuVicino(sceltoItem, verso);
+    if (bersaglio === null) return;
+    var it = menu.item.splice(sceltoItem, 1)[0];
+    // Tolto l'item, gli indici sopra il suo scalano di uno: in tutti e due i versi la posizione
+    // giusta in cui reinserirlo e' proprio quella del rivale.
+    menu.item.splice(bersaglio, 0, it);
+    sceltoItem = bersaglio;
+    segnaModificato();
+    disegnaEditor();
   }
 
   /**
@@ -2098,9 +2170,14 @@
     t.appendChild(intestazione);
     box.appendChild(t);
 
+    var lista = el('div', 'me-azioni-lista');
     azioni.forEach(function (a, i) {
-      box.appendChild(rigaAzione(a, i, azioni, salva));
+      lista.appendChild(rigaAzione(a, i, azioni, salva));
     });
+    if (azioni.length > 1) {
+      riordinaTrascinando(lista, azioni, salva);
+    }
+    box.appendChild(lista);
 
     var barra = el('div', 'me-rapidi');
     var piu = el('button', 'btn btn-ghost btn-small', '+ azione');
@@ -2248,8 +2325,12 @@
       && daMettereAFuoco.indice === i;
     if (a.tipo === 'if') {
       var blocco = el('div', 'me-azione-se');
+      blocco.setAttribute('data-indice', String(i));
       var cima = el('div', 'me-sotto-titolo');
-      cima.appendChild(el('strong', null, 'Un bivio: se…'));
+      var capo = el('span', 'me-capo-bivio');
+      capo.appendChild(maniglia());
+      capo.appendChild(el('strong', null, 'Un bivio: se…'));
+      cima.appendChild(capo);
       var xx = el('button', 'btn btn-ghost btn-small', '×');
       xx.type = 'button';
       xx.addEventListener('click', function () { azioni.splice(i, 1); salva(azioni); disegnaEditor(); });
@@ -2264,15 +2345,8 @@
 
     var riga = el('div', 'me-riga-azione');
     if (appenaAggiunta) riga.setAttribute('data-appena-aggiunta', '1');
-
-    var su = el('button', 'btn btn-ghost btn-small', '↑');
-    su.type = 'button';
-    su.addEventListener('click', function () {
-      if (i === 0) return;
-      var t = azioni[i - 1]; azioni[i - 1] = azioni[i]; azioni[i] = t;
-      salva(azioni); disegnaEditor();
-    });
-    riga.appendChild(su);
+    riga.setAttribute('data-indice', String(i));
+    riga.appendChild(maniglia());
 
     var tipo = el('select', 'me-sel');
     dati.catalogo.tipi_azione.forEach(function (t) {
@@ -2311,6 +2385,76 @@
 
     riga.appendChild(togliAzione(i, azioni, salva));
     return riga;
+  }
+
+  /** La presa da cui si trascina una riga. Solo da qui: il resto della riga si deve poter usare. */
+  function maniglia() {
+    var m = el('span', 'me-maniglia', '⠿');
+    m.title = 'Trascina per cambiare l’ordine';
+    return m;
+  }
+
+  /**
+   * Riordina un elenco trascinandone le righe, con il dito o col mouse.
+   *
+   * Il sito altrove usa il drag & drop del browser (nav-admin.js), che pero' sul telefono non
+   * esiste: qui si usano i pointer event, che coprono dito e mouse con lo stesso codice. Il
+   * gesto parte solo dalla maniglia, cosi' dentro i campi si continua a poter selezionare.
+   *
+   * Mentre si trascina si sposta soltanto il DOM; l'elenco vero si riordina alla fine, una
+   * volta sola, e da li' si ridisegna tutto.
+   */
+  function riordinaTrascinando(lista, elenco, salva) {
+    lista.addEventListener('pointerdown', function (e) {
+      var presa = e.target.closest ? e.target.closest('.me-maniglia') : null;
+      if (!presa) return;
+      var riga = presa.closest('[data-indice]');
+      if (!riga || riga.parentNode !== lista) return;
+
+      e.preventDefault();
+      riga.classList.add('sto-spostando');
+      lista.classList.add('sto-riordinando');
+      try { presa.setPointerCapture(e.pointerId); } catch (x) { /* qualche browser non lo permette */ }
+
+      function muovi(ev) {
+        var dopo = rigaSotto(lista, riga, ev.clientY);
+        if (dopo) lista.insertBefore(riga, dopo);
+        else lista.appendChild(riga);
+      }
+
+      function finisci() {
+        presa.removeEventListener('pointermove', muovi);
+        presa.removeEventListener('pointerup', finisci);
+        presa.removeEventListener('pointercancel', finisci);
+        riga.classList.remove('sto-spostando');
+        lista.classList.remove('sto-riordinando');
+
+        // Dall'ordine in cui sono rimaste le righe al nuovo ordine dell'elenco.
+        var ordine = [].slice.call(lista.children).map(function (r) {
+          return parseInt(r.getAttribute('data-indice'), 10);
+        });
+        var nuovo = ordine.map(function (k) { return elenco[k]; });
+        if (nuovo.some(function (x) { return x === undefined; })) return;   // qualcosa non torna: si lascia stare
+        elenco.length = 0;
+        nuovo.forEach(function (x) { elenco.push(x); });
+        salva(elenco);
+        disegnaEditor();
+      }
+
+      presa.addEventListener('pointermove', muovi);
+      presa.addEventListener('pointerup', finisci);
+      presa.addEventListener('pointercancel', finisci);
+    });
+  }
+
+  /** La riga prima della quale infilare quella che si sta trascinando. */
+  function rigaSotto(lista, esclusa, y) {
+    var righe = [].slice.call(lista.children).filter(function (r) { return r !== esclusa; });
+    for (var i = 0; i < righe.length; i++) {
+      var r = righe[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) return righe[i];
+    }
+    return null;
   }
 
   function togliAzione(i, azioni, salva) {

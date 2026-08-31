@@ -1,8 +1,8 @@
 package com.teolo.magixmenus.menu;
 
-import com.teolo.magixmenus.azioni.Azione;
-import com.teolo.magixmenus.requisiti.Requisiti;
-import com.teolo.magixmenus.util.Testo;
+import com.teolo.magixmenus.actions.Action;
+import com.teolo.magixmenus.requirements.Requirements;
+import com.teolo.magixmenus.util.Text;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -49,15 +49,15 @@ public final class ItemDef {
     private String testa;                        // nome giocatore, URL o texture base64
     private String grezzo;                       // NBT/componenti per quello che qui non e' previsto
 
-    // --- negozio: vedi negozio/Negozio.java per il perche' non sono requisiti e azioni ---
+    // --- negozio: vedi negozio/Shop.java per il perche' non sono requisiti e azioni ---
     private String prezzo;                       // quanto costa comprarlo
     private String dai;                          // cosa passa di mano ("DIAMOND 4", "se_stesso")
     private String vendi;                        // a quanto lo ricompra il server (clic destro)
 
     // --- comportamento ---
-    private Requisiti mostraSe = Requisiti.NESSUNO;
-    private final Map<Clic, Requisiti> clicSe = new EnumMap<>(Clic.class);
-    private final Map<Clic, List<Azione>> azioni = new EnumMap<>(Clic.class);
+    private Requirements mostraSe = Requirements.NESSUNO;
+    private final Map<Click, Requirements> clicSe = new EnumMap<>(Click.class);
+    private final Map<Click, List<Action>> azioni = new EnumMap<>(Click.class);
     private int attesaFraClic;                   // secondi di pausa fra un clic e il successivo
     private boolean dinamico;
 
@@ -138,17 +138,17 @@ public final class ItemDef {
         return vendi;
     }
 
-    /** E' un articolo di negozio? Allora il clic passa prima da {@code negozio.Negozio}. */
+    /** E' un articolo di negozio? Allora il clic passa prima da {@code negozio.Shop}. */
     public boolean articolo() {
         return (prezzo != null && !prezzo.isBlank()) || (vendi != null && !vendi.isBlank());
     }
 
-    public Requisiti mostraSe() {
+    public Requirements mostraSe() {
         return mostraSe;
     }
 
-    public Requisiti clicSe(Clic c) {
-        return clicSe.getOrDefault(c, Requisiti.NESSUNO);
+    public Requirements clicSe(Click c) {
+        return clicSe.getOrDefault(c, Requirements.NESSUNO);
     }
 
     public boolean haRequisitiDiClic() {
@@ -165,18 +165,18 @@ public final class ItemDef {
 
     /**
      * Le azioni da eseguire per questo clic: prima quelle del tasto premuto, poi quelle generiche.
-     * Vedi il perche' in {@link Clic}.
+     * Vedi il perche' in {@link Click}.
      */
-    public List<Azione> azioniPer(Clic c) {
-        List<Azione> proprie = azioni.get(c);
-        List<Azione> generiche = azioni.get(Clic.QUALSIASI);
+    public List<Action> azioniPer(Click c) {
+        List<Action> proprie = azioni.get(c);
+        List<Action> generiche = azioni.get(Click.QUALSIASI);
         if (proprie == null || proprie.isEmpty()) {
             return generiche == null ? List.of() : generiche;
         }
-        if (generiche == null || generiche.isEmpty() || c == Clic.QUALSIASI) {
+        if (generiche == null || generiche.isEmpty() || c == Click.QUALSIASI) {
             return proprie;
         }
-        List<Azione> tutte = new ArrayList<>(proprie);
+        List<Action> tutte = new ArrayList<>(proprie);
         tutte.addAll(generiche);
         return tutte;
     }
@@ -192,8 +192,8 @@ public final class ItemDef {
      * del sito: unire i due gruppi come fa {@link #azioniPer} li farebbe comparire due volte al
      * prossimo salvataggio.
      */
-    public List<Azione> azioniGrezze(Clic c) {
-        List<Azione> a = azioni.get(c);
+    public List<Action> azioniGrezze(Click c) {
+        List<Action> a = azioni.get(c);
         return a == null ? List.of() : a;
     }
 
@@ -271,15 +271,15 @@ public final class ItemDef {
         this.vendi = v;
     }
 
-    void mostraSe(Requisiti v) {
+    void mostraSe(Requirements v) {
         this.mostraSe = v;
     }
 
-    void clicSe(Clic c, Requisiti v) {
+    void clicSe(Click c, Requirements v) {
         this.clicSe.put(c, v);
     }
 
-    void azioni(Clic c, List<Azione> v) {
+    void azioni(Click c, List<Action> v) {
         this.azioni.put(c, List.copyOf(v));
     }
 
@@ -295,13 +295,13 @@ public final class ItemDef {
      * sarebbe esattamente il genere di spreco che questo campo serve a evitare.
      */
     void calcolaSeDinamico() {
-        dinamico = Testo.dinamico(materiale) || Testo.dinamico(quantita) || Testo.dinamico(titolo)
-                || Testo.dinamico(descrizione) || Testo.dinamico(testa) || Testo.dinamico(colore)
-                || Testo.dinamico(modelloCustom) || Testo.dinamico(modelloItem)
-                || Testo.dinamico(grezzo) || Testo.dinamico(incantesimi)
+        dinamico = Text.dinamico(materiale) || Text.dinamico(quantita) || Text.dinamico(titolo)
+                || Text.dinamico(descrizione) || Text.dinamico(testa) || Text.dinamico(colore)
+                || Text.dinamico(modelloCustom) || Text.dinamico(modelloItem)
+                || Text.dinamico(grezzo) || Text.dinamico(incantesimi)
                 // Un item con dei mostra_se e' vivo per forza: quelle condizioni possono
                 // diventare vere mentre il menu e' aperto, e allora l'item deve comparire.
                 || !mostraSe.vuoto()
-                || Testo.dinamico(prezzo) || Testo.dinamico(vendi);
+                || Text.dinamico(prezzo) || Text.dinamico(vendi);
     }
 }

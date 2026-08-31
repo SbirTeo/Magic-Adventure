@@ -15,9 +15,9 @@ import com.teolo.magixfactions.manage.ClaimManager;
 import com.teolo.magixfactions.manage.FactionManager;
 import com.teolo.magixfactions.manage.DecayManager;
 import com.teolo.magixfactions.manage.PowerManager;
-import com.teolo.magixfactions.util.GuidaStaff;
-import com.teolo.magixfactions.util.TestiDurate;
-import com.teolo.magixfactions.util.ValoriConfig;
+import com.teolo.magixfactions.util.StaffGuide;
+import com.teolo.magixfactions.util.DurationText;
+import com.teolo.magixfactions.util.ConfigValues;
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -42,7 +42,7 @@ public final class MagixFactions extends JavaPlugin {
         getDataFolder().mkdirs();
         // Puro I/O su file, nessuna API Bukkit coinvolta: non deve bloccare il tick di avvio.
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
-        // GuidaStaff insieme al capitolo per il sito, cosi' i due non possono divergere.
+        // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
         Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeTutorial);
@@ -259,7 +259,7 @@ public final class MagixFactions extends JavaPlugin {
 
     /** Capitolo di MagixFactions nella guida del gestionale (plugins-src/GUIDA-STAFF.md). */
     private void scriviGuidaStaff() {
-        GuidaStaff.crea(this, "MagixFactions — fazioni, territori e potenza", 30)
+        StaffGuide.crea(this, "MagixFactions — fazioni, territori e potenza", 30)
                 // Numeri presi dal config vero: se cambia una chiave, cambia anche questo capitolo sul
                 // sito, senza che nessuno debba ricordarsi di riscriverlo.
                 .valori(valoriGuide())
@@ -469,7 +469,7 @@ public final class MagixFactions extends JavaPlugin {
 
     /**
      * I valori del {@code config.yml} da mettere nelle guide (tutorial dei giocatori e capitolo per lo
-     * staff), pronti per {@link ValoriConfig}.
+     * staff), pronti per {@link ConfigValues}.
      * <p>
      * Il grosso e' automatico: nel testo si scrive {@code {{cfg:power.max}}} o
      * {@code {{ore:decay.grace-hours}}} e non serve toccare niente qui. Qui stanno solo i testi
@@ -477,9 +477,9 @@ public final class MagixFactions extends JavaPlugin {
      * un pezzo che deve sparire del tutto quando la funzione e' spenta — meglio una guida che tace su
      * una regola che non c'e', che una guida che la descrive.
      */
-    private ValoriConfig valoriGuide() {
+    private ConfigValues valoriGuide() {
         var c = getConfig();
-        ValoriConfig v = new ValoriConfig(this);
+        ConfigValues v = new ConfigValues(this);
 
         int tetto = c.getInt("power.max", 10);
         v.extra("POWER_MAX_NEG", "−" + tetto);   // meno tipografico, come nel resto della pagina
@@ -513,7 +513,7 @@ public final class MagixFactions extends JavaPlugin {
     /**
      * Riscrive (sovrascrive) tutorial.html nella cartella del plugin a ogni avvio: la guida illustrata
      * per i giocatori, sempre allineata alla versione del jar (come il README, ma per i giocatori) E ai
-     * valori veri del config, sostituiti da {@link ValoriConfig} (vedi {@link #valoriGuide()}).
+     * valori veri del config, sostituiti da {@link ConfigValues} (vedi {@link #valoriGuide()}).
      */
     private void writeTutorial() {
         try (java.io.InputStream in = getResource("tutorial.html")) {
