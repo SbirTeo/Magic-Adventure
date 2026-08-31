@@ -30,7 +30,7 @@ public final class SanzioniDao {
     /** Scrive un provvedimento e ne restituisce il numero assegnato dal database. */
     public int inserisci(Sanzione s) throws SQLException {
         String sql = "INSERT INTO punishments (mc_uuid, mc_username, type, category, reason, scope, "
-                + "punti, inizio, fine, staff_nome, automatica, stato, rapporto_hash, creata_il) "
+                + "points, starts_at, ends_at, staff_name, automatic, status, report_hash, created_at) "
                 + "VALUES (?,?,?,?,?,?,?,?,?,?,?, 'attiva', ?, NOW())";
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -152,7 +152,7 @@ public final class SanzioniDao {
     /** Mette una proposta in coda: la decidera' una persona dal gestionale. */
     public void proponi(Sanzione s, long durataMillis, String fonte, String dettaglio) throws SQLException {
         String sql = "INSERT INTO punishment_queue (mc_uuid, mc_username, type, category, reason, scope, "
-                + "durata_secondi, punti, fonte, proposta_da, dettaglio, rapporto_hash, stato, creata_il) "
+                + "duration_seconds, points, source, proposed_by, detail, report_hash, status, created_at) "
                 + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'attesa', NOW())";
         try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, s.uuid().toString());

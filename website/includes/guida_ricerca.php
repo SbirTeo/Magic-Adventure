@@ -355,8 +355,8 @@ function guida_ia_capitoli_staff(): array {
     require_once __DIR__ . '/sanzioni.php';
     $capitoli = [];
     foreach (guide_staff_capitoli() as $c) {
-        $corpo = (string) $c['corpo_html'];
-        $titoloPlugin = (string) $c['titolo'];
+        $corpo = (string) $c['body_html'];
+        $titoloPlugin = (string) $c['title'];
         $ancora = 'guida-' . $c['plugin'];
 
         // Il testo prima del primo <h4> e' l'introduzione del plugin: vale come blocco suo.
@@ -412,7 +412,7 @@ function guida_ia_costruisci(string $ambito): array {
 function guida_ia_impronta(string $ambito): string {
     if ($ambito === 'staff') {
         try {
-            $riga = db()->query('SELECT COUNT(*) c, COALESCE(MAX(aggiornata_il), "") m FROM guide_staff')->fetch();
+            $riga = db()->query('SELECT COUNT(*) c, COALESCE(MAX(updated_at), "") m FROM guide_staff')->fetch();
             return 'staff:' . ($riga['c'] ?? 0) . ':' . ($riga['m'] ?? '');
         } catch (Throwable $e) {
             return 'staff:vuota';

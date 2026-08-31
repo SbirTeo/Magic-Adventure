@@ -37,8 +37,8 @@ function store_stili_categorie(): array {
         // Si passano quindi le due tinte grezze (--cat-bordo / --cat-bordo-chiaro) e a
         // scegliere e' il foglio di stile, come si fa gia' per i colori dei gradi.
         if (!empty($c['border_color']) && is_valid_hex_color($c['border_color'])) {
-            $bordoChiaro = !empty($c['border_color_chiaro']) && is_valid_hex_color($c['border_color_chiaro'])
-                ? $c['border_color_chiaro']
+            $bordoChiaro = !empty($c['border_color_light']) && is_valid_hex_color($c['border_color_light'])
+                ? $c['border_color_light']
                 : $c['border_color'];
             $stili['bordo'][$id] = '--cat-bordo:' . $c['border_color']
                 . ';--cat-bordo-glow:' . hex_to_rgba($c['border_color'], 0.5)
@@ -54,9 +54,9 @@ function store_stili_categorie(): array {
         $scelte = [];
         foreach ([
             'text_color' => '--cat-testo-scelto',
-            'text_color_chiaro' => '--cat-testo-scelto-chiaro',
+            'text_color_light' => '--cat-testo-scelto-chiaro',
             'price_color' => '--cat-prezzo',
-            'price_color_chiaro' => '--cat-prezzo-chiaro',
+            'price_color_light' => '--cat-prezzo-chiaro',
         ] as $colonna => $variabile) {
             if (!empty($c[$colonna]) && is_valid_hex_color($c[$colonna])) {
                 $scelte[] = $variabile . ':' . $c[$colonna];
@@ -64,9 +64,9 @@ function store_stili_categorie(): array {
         }
         // La targhetta dello sconto porta con se' anche il colore del testo, calcolato per
         // contrasto come si fa per quella generale.
-        if (!empty($c['sconto_color']) && is_valid_hex_color($c['sconto_color'])) {
-            $scelte[] = '--sconto-fondo:' . $c['sconto_color'];
-            $scelte[] = '--sconto-testo:' . text_on_color($c['sconto_color']);
+        if (!empty($c['discount_color']) && is_valid_hex_color($c['discount_color'])) {
+            $scelte[] = '--sconto-fondo:' . $c['discount_color'];
+            $scelte[] = '--sconto-testo:' . text_on_color($c['discount_color']);
         }
         if ($scelte) {
             $stili['scelte'][$id] = implode(';', $scelte);
@@ -86,14 +86,14 @@ function store_stili_categorie(): array {
             $stop = max(20, min(100, (int) ($c['overlay_stop'] ?? 55)));
             $dir = ($c['overlay_direction'] ?? '') === 'orizzontale' ? '270deg' : '180deg';
 
-            $coloreChiaro = !empty($c['overlay_color_chiaro']) && is_valid_hex_color($c['overlay_color_chiaro'])
-                ? $c['overlay_color_chiaro']
+            $coloreChiaro = !empty($c['overlay_color_light']) && is_valid_hex_color($c['overlay_color_light'])
+                ? $c['overlay_color_light']
                 : $c['overlay_color'];
-            $alphaChiaro = $c['overlay_intensity_chiaro'] !== null && $c['overlay_intensity_chiaro'] !== ''
-                ? max(0, min(100, (int) $c['overlay_intensity_chiaro'])) / 100
+            $alphaChiaro = $c['overlay_intensity_light'] !== null && $c['overlay_intensity_light'] !== ''
+                ? max(0, min(100, (int) $c['overlay_intensity_light'])) / 100
                 : $alpha;
-            $stopChiaro = $c['overlay_stop_chiaro'] !== null && $c['overlay_stop_chiaro'] !== ''
-                ? max(20, min(100, (int) $c['overlay_stop_chiaro']))
+            $stopChiaro = $c['overlay_stop_light'] !== null && $c['overlay_stop_light'] !== ''
+                ? max(20, min(100, (int) $c['overlay_stop_light']))
                 : $stop;
 
             $stili['velo'][$id] = '--cat-velo:' . hex_to_rgba($c['overlay_color'], $alpha)

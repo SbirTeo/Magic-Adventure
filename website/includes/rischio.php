@@ -51,18 +51,18 @@ function rischio_elenco(bool $includiControllati = false, int $limite = 60): arr
         $q = db()->query(
             'SELECT mc_uuid,
                     MAX(mc_username) AS nome,
-                    SUM(punti * POW(0.5, DATEDIFF(NOW(), creata_il) / ' . RISCHIO_EMIVITA_GIORNI . ')) AS punti,
+                    SUM(points * POW(0.5, DATEDIFF(NOW(), created_at) / ' . RISCHIO_EMIVITA_GIORNI . ')) AS points,
                     COUNT(*) AS n_violazioni,
-                    MAX(creata_il) AS ultima
-               FROM sanzioni_violazioni
-              WHERE annullata = 0
+                    MAX(created_at) AS ultima
+               FROM punishment_violations
+              WHERE cancelled = 0
               GROUP BY mc_uuid'
         );
         foreach ($q as $r) {
             $giocatori[$r['mc_uuid']] = [
                 'uuid' => $r['mc_uuid'],
                 'nome' => $r['nome'],
-                'punti' => (float) $r['punti'],
+                'points' => (float) $r['points'],
                 'n_violazioni' => (int) $r['n_violazioni'],
                 'ultima_violazione' => $r['ultima'],
                 'segnalazioni' => 0,
@@ -81,15 +81,15 @@ function rischio_elenco(bool $includiControllati = false, int $limite = 60): arr
     // --- segnalazioni dei giocatori ancora aperte ---
     $q = db()->query(
         "SELECT mc_uuid, MAX(mc_username) AS nome, COUNT(*) AS n,
-                COUNT(DISTINCT proposta_da) AS segnalatori, MAX(creata_il) AS ultima
-           FROM sanzioni_coda
-          WHERE fonte = 'report' AND stato = 'attesa'
+                COUNT(DISTINCT proposed_by) AS segnalatori, MAX(created_at) AS ultima
+           FROM punishment_queue
+          WHERE source = 'report' AND status = 'attesa'
           GROUP BY mc_uuid"
     );
     foreach ($q as $r) {
         $v = &$giocatori[$r['mc_uuid']];
         if (!isset($v)) {
-            $v = ['uuid' => $r['mc_uuid'], 'nome' => $r['nome'], 'punti' => 0.0,
+            $v = ['uuid' => $r['mc_uuid'], 'nome' => $r['nome'], 'points' => 0.0,
                   'n_violazioni' => 0, 'ultima_violazione' => null, 'ban_attivi' => 0,
                   'mute_attivi' => 0, 'categorie' => []];
         }
@@ -108,9 +108,9 @@ function rischio_elenco(bool $includiControllati = false, int $limite = 60): arr
     // --- provvedimenti gia' attivi ---
     $st = db()->prepare(
         "SELECT mc_uuid,
-                SUM(tipo = 'ban') AS ban, SUM(tipo = 'mute') AS mute
-           FROM sanzioni
-          WHERE stato = 'attiva' AND (fine IS NULL OR fine > NOW()) AND mc_uuid IN ($uuidIn)
+                SUM(type = 'ban') AS ban, SUM(type = 'mute') AS mute
+           FROM punishments
+          WHERE status = 'attiva' AND (ends_at IS NULL OR ends_at > NOW()) AND mc_uuid IN ($uuidIn)
           GROUP BY mc_uuid"
     );
     $st->execute($uuids);
@@ -122,15 +122,15 @@ function rischio_elenco(bool $includiControllati = false, int $limite = 60): arr
     // --- di cosa si tratta: le categorie piu' frequenti, per capire a colpo d'occhio ---
     try {
         $st = db()->prepare(
-            "SELECT mc_uuid, categoria, COUNT(*) AS n
-               FROM sanzioni_violazioni
-              WHERE annullata = 0 AND mc_uuid IN ($uuidIn)
-              GROUP BY mc_uuid, categoria ORDER BY n DESC"
+            "SELECT mc_uuid, category, COUNT(*) AS n
+               FROM punishment_violations
+              WHERE cancelled = 0 AND mc_uuid IN ($uuidIn)
+              GROUP BY mc_uuid, category ORDER BY n DESC"
         );
         $st->execute($uuids);
         foreach ($st as $r) {
             if (count($giocatori[$r['mc_uuid']]['categorie']) < 3) {
-                $giocatori[$r['mc_uuid']]['categorie'][] = [$r['categoria'], (int) $r['n']];
+                $giocatori[$r['mc_uuid']]['categorie'][] = [$r['category'], (int) $r['n']];
             }
         }
     } catch (PDOException $e) {
@@ -140,9 +140,9 @@ function rischio_elenco(bool $includiControllati = false, int $limite = 60): arr
     // --- chi e' gia' stato controllato, e quando ---
     try {
         $st = db()->prepare(
-            "SELECT c.mc_uuid, c.staff_nome, c.nota, c.esito, c.controllato_il
-               FROM sanzioni_controlli c
-               JOIN (SELECT mc_uuid, MAX(id) AS ultimo FROM sanzioni_controlli GROUP BY mc_uuid) u
+            "SELECT c.mc_uuid, c.staff_name, c.note, c.outcome, c.checked_at
+               FROM punishment_checks c
+               JOIN (SELECT mc_uuid, MAX(id) AS ultimo FROM punishment_checks GROUP BY mc_uuid) u
                  ON u.ultimo = c.id
               WHERE c.mc_uuid IN ($uuidIn)"
         );
@@ -164,15 +164,15 @@ function rischio_elenco(bool $includiControllati = false, int $limite = 60): arr
         $daSanzioni = $g['ban_attivi'] * RISCHIO_PESI['ban_attivo']
                     + $g['mute_attivi'] * RISCHIO_PESI['mute_attivo'];
 
-        $g['punteggio'] = $g['punti'] + $daSegnalatori + $daSegnalazioni + $daSanzioni;
-        $g['da_punti'] = $g['punti'];
+        $g['punteggio'] = $g['points'] + $daSegnalatori + $daSegnalazioni + $daSanzioni;
+        $g['da_punti'] = $g['points'];
         $g['da_segnalazioni'] = $daSegnalatori + $daSegnalazioni;
         $g['da_sanzioni'] = $daSanzioni;
 
         // Controllato di recente: esce dalla lista, a meno che non lo si chieda apposta.
         $g['controllato_di_recente'] = false;
-        if ($g['controllo'] && $g['controllo']['esito'] === 'pulito') {
-            $giorni = (time() - strtotime($g['controllo']['controllato_il'])) / 86400;
+        if ($g['controllo'] && $g['controllo']['outcome'] === 'pulito') {
+            $giorni = (time() - strtotime($g['controllo']['checked_at'])) / 86400;
             $g['controllato_di_recente'] = $giorni < RISCHIO_CONTROLLO_VALIDO_GIORNI;
         }
         if (!$includiControllati && $g['controllato_di_recente']) {

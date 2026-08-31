@@ -18,7 +18,7 @@ $active = 'regolamento';
 
 /**
  * La tabella delle sanzioni NON si scrive a mano: la genera MagixGuard dalla sua
- * configurazione e la deposita in `regolamento_sanzioni` a ogni avvio del server.
+ * configurazione e la deposita in `punishment_rules` a ogni avvio del server.
  * Nel testo della pagina si mette il segnaposto [[SANZIONI]] nel punto in cui la si vuole.
  *
  * La sostituzione avviene DOPO corpo_articolo(): se il corpo e' testo semplice, quella
@@ -29,9 +29,9 @@ $corpo = corpo_articolo($body);
 
 $blocco = regolamento_blocco_sanzioni();
 if ($blocco) {
-    $htmlSanzioni = '<div class="regolamento-sanzioni">' . $blocco['corpo_html']
+    $htmlSanzioni = '<div class="regolamento-sanzioni">' . $blocco['body_html']
         . '<p class="regolamento-sanzioni-fonte">Questa tabella è generata dalla configurazione del server'
-        . ($blocco['aggiornato_il'] ? ' e aggiornata ' . h(time_ago((string) $blocco['aggiornato_il'])) : '')
+        . ($blocco['updated_at'] ? ' e aggiornata ' . h(time_ago((string) $blocco['updated_at'])) : '')
         . '. <a href="/sanzioni">Guarda i provvedimenti presi →</a></p></div>';
 } else {
     // Il plugin non l'ha ancora scritta: meglio una riga onesta che un buco nella pagina.

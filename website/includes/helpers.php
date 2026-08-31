@@ -809,12 +809,12 @@ function ospiti_registra(): void {
 
     try {
         $chiave = hash('sha256', session_id());
-        db()->prepare('INSERT INTO ospiti_online (chiave, last_seen) VALUES (?, NOW())
+        db()->prepare('INSERT INTO guests_online (guest_key, last_seen) VALUES (?, NOW())
                        ON DUPLICATE KEY UPDATE last_seen = NOW()')->execute([$chiave]);
         // Pulizia ogni tanto (una volta su venti): le righe vecchie non servono a nessuno e
         // una tabella che cresce all'infinito prima o poi si fa sentire.
         if (random_int(1, 20) === 1) {
-            db()->exec('DELETE FROM ospiti_online WHERE last_seen < DATE_SUB(NOW(), INTERVAL 1 DAY)');
+            db()->exec('DELETE FROM guests_online WHERE last_seen < DATE_SUB(NOW(), INTERVAL 1 DAY)');
         }
     } catch (PDOException $e) {
         // tabella non ancora creata: gli ospiti semplicemente non si contano
@@ -825,7 +825,7 @@ function ospiti_registra(): void {
 function ospiti_sul_sito(int $minuti = 5): int {
     $minuti = max(1, min(1440, $minuti));
     try {
-        $q = db()->query("SELECT COUNT(*) FROM ospiti_online
+        $q = db()->query("SELECT COUNT(*) FROM guests_online
                           WHERE last_seen >= DATE_SUB(NOW(), INTERVAL {$minuti} MINUTE)");
         return (int) $q->fetchColumn();
     } catch (PDOException $e) {

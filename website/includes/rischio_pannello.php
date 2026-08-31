@@ -97,13 +97,13 @@
           <div class="rischio-azione">
             <?php if ($g['controllo']): ?>
               <p class="rischio-controllo">
-                Controllato <?= h(time_ago((string) $g['controllo']['controllato_il'])) ?>
-                da <?= h($g['controllo']['staff_nome']) ?>
-                <?php if ($g['controllo']['esito'] === 'sospetto'): ?>
+                Controllato <?= h(time_ago((string) $g['controllo']['checked_at'])) ?>
+                da <?= h($g['controllo']['staff_name']) ?>
+                <?php if ($g['controllo']['outcome'] === 'sospetto'): ?>
                   <span class="rischio-grave">— rimasto sospetto</span>
                 <?php endif; ?>
-                <?php if (!empty($g['controllo']['nota'])): ?>
-                  <br><em><?= h($g['controllo']['nota']) ?></em>
+                <?php if (!empty($g['controllo']['note'])): ?>
+                  <br><em><?= h($g['controllo']['note']) ?></em>
                 <?php endif; ?>
               </p>
             <?php endif; ?>

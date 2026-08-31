@@ -48,8 +48,8 @@ public final class ViolazioniDao {
                     + "cancelled TINYINT(1) NOT NULL DEFAULT 0,"
                     + "punishment_id INT NULL,"
                     + "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "KEY idx_uuid (mc_uuid, annullata),"
-                    + "KEY idx_data (creata_il)"
+                    + "KEY idx_uuid (mc_uuid, cancelled),"
+                    + "KEY idx_data (created_at)"
                     + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         }
     }
@@ -57,7 +57,7 @@ public final class ViolazioniDao {
     /** Registra il fatto. Ritorna il numero assegnato. */
     public int inserisci(Violazione v) throws SQLException {
         String sql = "INSERT INTO punishment_violations "
-                + "(mc_uuid, mc_username, categoria, punti, fonte, dettaglio, creata_il) "
+                + "(mc_uuid, mc_username, category, points, source, detail, created_at) "
                 + "VALUES (?,?,?,?,?,?,?)";
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {

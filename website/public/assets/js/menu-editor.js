@@ -15,6 +15,9 @@
   if (!radice) return;
 
   var csrf = radice.getAttribute('data-csrf') || '';
+  // Chi sta modificando: serve per le teste scritte come %player_name%, che altrimenti
+  // sarebbero un quadrato col nome dentro invece di una faccia.
+  var ioGiocatore = radice.getAttribute('data-giocatore') || '';
   var app = document.getElementById('menuApp');
   var avvisi = document.getElementById('menuAvvisi');
   var statoTesto = document.getElementById('menuStato');
@@ -27,6 +30,9 @@
   var modificato = false;
   var atlante = null;       // quali item hanno una texture (vedi piu' sotto)
   var fileAperto = false;   // il pannello che mostra il .yml com'e' scritto sul server
+  var casellaScelta = -1;      // su quale casella si e' cliccato: serve a raggiungere gli item nascosti
+  var daMettereAFuoco = null;  // {elenco, indice} della riga appena aggiunta, da mettere a fuoco
+  var vaiInCima = false;       // vero solo quando si cambia menu: allora si riparte dall'alto
   var testoFile = null;     // il contenuto, appena letto
 
   // ------------------------------------------------------------------
@@ -627,15 +633,49 @@
     else if (dati) disegnaElenco();
   }
 
+  /**
+   * Il nome del giocatore di cui mostrare la faccia, se si puo' sapere.
+   *
+   * Un indirizzo di texture o un valore base64 non dicono di chi sono: li' non si puo' fare
+   * niente e resta la piastrella col nome. Un placeholder diverso da %player_name% nemmeno:
+   * il suo valore lo conosce solo il server.
+   */
+  function nomeDaTesta(testa) {
+    var t = String(testa || '').trim();
+    if (!t) return '';
+    if (/^https?:\/\//i.test(t)) return '';
+    if (t.length > 60) return '';                       // e' un valore base64
+    if (t.indexOf('%') >= 0) {
+      return /^%player(_name)?%$/i.test(t) ? ioGiocatore : '';
+    }
+    return /^[A-Za-z0-9_]{1,16}$/.test(t) ? t : '';
+  }
+
   function tinta(id) {
     var n = 0;
     for (var i = 0; i < id.length; i++) n = (n * 31 + id.charCodeAt(i)) % 360;
     return 'hsl(' + n + ' 45% 32%)';
   }
 
-  function icona(id, misura) {
+  /**
+   * @param testa se l'item e' una testa, di chi: un nome, %player_name%, un indirizzo o base64.
+   *        Con un NOME (o col segnaposto, che diventa chi sta modificando) si mostra la faccia
+   *        vera, presa dallo stesso servizio che il sito usa gia' per gli avatar.
+   */
+  function icona(id, misura, testa) {
     id = String(id || 'STONE').toUpperCase().replace(/^MINECRAFT:/, '');
     misura = misura || 32;
+
+    var chi = nomeDaTesta(testa);
+    if (chi) {
+      var faccia = el('img', 'me-icona');
+      faccia.src = 'https://minotar.net/helm/' + encodeURIComponent(chi) + '/' + (misura * 2);
+      faccia.width = faccia.height = misura;
+      faccia.alt = '';
+      faccia.loading = 'lazy';
+      faccia.title = 'testa di ' + chi;
+      return faccia;
+    }
     if (atlante && atlante[id]) {
       var img = el('img', 'me-icona');
       img.src = '/assets/img/item/' + encodeURIComponent(id) + '.png';
@@ -675,6 +715,9 @@
   function disegnaElenco() {
     menu = null;
     modificato = false;
+    // Tornando all'elenco si riparte dall'alto: lo scorrimento di un menu lungo, qui, non
+    // vuol dire niente e lascerebbe la pagina a meta' del vuoto.
+    window.scrollTo(0, 0);
     if (statoTesto) statoTesto.textContent = '';
     svuota(app);
 
@@ -837,6 +880,7 @@
   function apri(nome) {
     nomeMenu = nome;
     testoFile = null;
+    vaiInCima = true;
     menu = copia(dati.menu[nome]);
     if (!menu.item) menu.item = [];
     sceltoItem = -1;
@@ -857,6 +901,10 @@
   }
 
   function disegnaEditor() {
+    // Dov'era la pagina prima di rifare tutto. Senza questo, ogni "+ azione" riporta in cima
+    // e chi stava lavorando in fondo a un menu lungo deve ritrovare il punto ogni volta.
+    var scorrimento = window.pageYOffset || document.documentElement.scrollTop || 0;
+
     svuota(app);
     app.appendChild(barraMenu());
 
@@ -878,11 +926,42 @@
       sinistra.appendChild(pannelloDialogo());
     } else {
       sinistra.appendChild(griglia());
+      sinistra.appendChild(pannelloOrdine());
       sinistra.appendChild(catalogo());
     }
     corpo.appendChild(sinistra);
     corpo.appendChild(pannelloDestro());
     app.appendChild(corpo);
+
+    if (vaiInCima) {
+      vaiInCima = false;
+      window.scrollTo(0, 0);
+    } else {
+      window.scrollTo(0, scorrimento);
+    }
+    metteAFuocoLaNuova();
+  }
+
+  /**
+   * Mette il cursore nella riga appena aggiunta.
+   *
+   * Aggiungere un'azione e poi doverla cercare per scriverci dentro e' mezzo gesto sprecato a
+   * ogni riga. Il segnale non si scrive nel modello (finirebbe salvato nel file): si tiene qui
+   * il riferimento all'elenco e la posizione, e chi disegna la riga la marca.
+   */
+  function metteAFuocoLaNuova() {
+    if (!daMettereAFuoco) return;
+    daMettereAFuoco = null;
+    var nuova = app.querySelector('[data-appena-aggiunta]');
+    if (!nuova) return;
+    var campo = nuova.querySelector('[contenteditable], input:not([type=button]), textarea, select');
+    if (campo) {
+      campo.focus();
+      if (campo.setSelectionRange && campo.value !== undefined) {
+        try { campo.setSelectionRange(campo.value.length, campo.value.length); } catch (e) { /* i select non ce l'hanno */ }
+      }
+    }
+    nuova.scrollIntoView({ block: 'nearest' });
   }
 
   // --- la barra in alto: le proprieta' del menu -----------------------
@@ -1030,7 +1109,7 @@
 
         if (vincente >= 0) {
           var it = menu.item[vincente];
-          cella.appendChild(icona(it.id, 32));
+          cella.appendChild(icona(it.id, 32, it.testa));
           cella.draggable = true;
           cella.title = senzaColori(it.titolo || it.nome);
           // Il numerino si mette solo dove la contesa e' VERA, cioe' dove almeno uno dei
@@ -1054,6 +1133,7 @@
         }
 
         cella.addEventListener('click', function () {
+          casellaScelta = casella;
           if (vincente >= 0) scegliItem(vincente);
           else aggiungiItem('STONE', casella);
         });
@@ -1133,6 +1213,98 @@
     });
   }
 
+  /**
+   * L'elenco degli item nel loro ordine: e' l'ordine che decide chi vince quando due item
+   * chiedono la stessa casella, e prima non si vedeva da nessuna parte — si potevano premere
+   * le frecce senza avere idea di dove ci si stesse muovendo.
+   *
+   * In alto vince. Chi non ha condizioni copre tutti quelli sotto che stanno nelle sue stesse
+   * caselle: quelli si segnano, perche' quasi sempre e' un ordine sbagliato.
+   */
+  function pannelloOrdine() {
+    var box = el('div', 'panel me-ordine-box');
+    var t = el('div', 'me-sotto-titolo');
+    t.appendChild(el('strong', null, 'Ordine degli item'));
+    t.appendChild(el('span', 'muted', 'in alto vince'));
+    box.appendChild(t);
+
+    if (!menu.item.length) {
+      box.appendChild(el('p', 'muted', 'Ancora nessun item.'));
+      return box;
+    }
+
+    var lista = el('div', 'me-ordine-lista');
+    menu.item.forEach(function (it, i) {
+      var riga = el('div', 'me-ordine-riga' + (i === sceltoItem ? ' scelto' : ''));
+
+      riga.appendChild(el('span', 'me-ordine-n', String(i + 1)));
+      riga.appendChild(icona(it.id, 20, it.testa));
+
+      var nome = el('span', 'me-ordine-nome', it.nome);
+      riga.appendChild(nome);
+
+      var dove = el('span', 'me-ordine-dove', compattaSlot(it.slot || []) || '—');
+      dove.title = (it.slot || []).length + ' caselle';
+      riga.appendChild(dove);
+
+      var segni = el('span', 'me-ordine-segni');
+      if ((it.mostra_se && (it.mostra_se.requisiti || []).length)) {
+        segni.appendChild(el('span', 'me-tag', 'a condizione'));
+      } else if (coprePiuGiu(it, i)) {
+        // Senza condizioni e con qualcuno sotto nelle stesse caselle: quello sotto non si
+        // vedra' mai. E' il difetto piu' comune, e da qui si vede a colpo d'occhio.
+        var av = el('span', 'me-tag me-tag-avviso', 'copre quelli sotto');
+        av.title = 'Non ha condizioni: nelle sue caselle vince sempre lui, e gli item sotto non compaiono mai.';
+        segni.appendChild(av);
+      }
+      if (it.prezzo || it.vendi) segni.appendChild(el('span', 'me-tag', 'in vendita'));
+      if (contaAzioni(it)) segni.appendChild(el('span', 'me-tag', contaAzioni(it) + ' azioni'));
+      riga.appendChild(segni);
+
+      var su = el('button', 'btn btn-ghost btn-small', '↑');
+      su.type = 'button';
+      su.disabled = i === 0;
+      su.title = 'Più in alto: vince sugli altri della stessa casella';
+      su.addEventListener('click', function (e) {
+        e.stopPropagation();
+        sceltoItem = i;
+        spostaPriorita(-1);
+      });
+      riga.appendChild(su);
+
+      var giu = el('button', 'btn btn-ghost btn-small', '↓');
+      giu.type = 'button';
+      giu.disabled = i === menu.item.length - 1;
+      giu.title = 'Più in basso: gli altri della stessa casella lo coprono';
+      giu.addEventListener('click', function (e) {
+        e.stopPropagation();
+        sceltoItem = i;
+        spostaPriorita(1);
+      });
+      riga.appendChild(giu);
+
+      riga.addEventListener('click', function () {
+        casellaScelta = (it.slot || [])[0];
+        scegliItem(i);
+      });
+      lista.appendChild(riga);
+    });
+    box.appendChild(lista);
+    box.appendChild(el('p', 'muted', 'Lo sfondo (le caselle "all") va tenuto in fondo: sta sotto a tutti gli altri.'));
+    return box;
+  }
+
+  /** Questo item, senza condizioni, copre qualcuno che sta piu' in basso? */
+  function coprePiuGiu(it, i) {
+    for (var k = i + 1; k < menu.item.length; k++) {
+      var altro = menu.item[k];
+      for (var c = 0; c < (altro.slot || []).length; c++) {
+        if ((it.slot || []).indexOf(altro.slot[c]) >= 0) return true;
+      }
+    }
+    return false;
+  }
+
   function contaAzioni(it) {
     var n = 0;
     Object.keys(it.azioni || {}).forEach(function (k) { n += (it.azioni[k] || []).length; });
@@ -1177,6 +1349,7 @@
   }
 
   function aggiungiItem(id, casella) {
+    casellaScelta = casella;
     var it = {
       nome: nomeLibero(String(id).toLowerCase()),
       slot: [casella],
@@ -1290,8 +1463,15 @@
     var it = menu.item[sceltoItem];
     var p = el('div', 'panel me-pannello');
 
+    // Se piu' item si contendono la casella su cui si e' cliccato, solo uno si vede nella
+    // griglia: gli altri, senza questa striscia, non sarebbero raggiungibili in nessun modo.
+    var conviventi = casellaScelta >= 0 ? itemNellaCasella(casellaScelta) : [];
+    if (conviventi.length > 1 && conviventi.indexOf(sceltoItem) >= 0) {
+      p.appendChild(strisciaConviventi(conviventi));
+    }
+
     var cima = el('div', 'me-pannello-cima');
-    cima.appendChild(icona(it.id, 32));
+    cima.appendChild(icona(it.id, 32, it.testa));
     var nomeCampo = el('input', 'me-nome-item');
     nomeCampo.value = it.nome;
     nomeCampo.title = 'Il nome interno dell’item: non si vede in gioco, serve a te per ritrovarlo.';
@@ -1301,14 +1481,22 @@
     });
     cima.appendChild(nomeCampo);
 
+    // Posizione nell'elenco: senza, premere le frecce su un item che non si contende nessuna
+    // casella non cambia niente di visibile, e sembrano rotte. Il numero si muove sempre.
+    var posto = el('span', 'me-posto', (sceltoItem + 1) + 'ª su ' + menu.item.length);
+    posto.title = 'Posizione nell’elenco degli item';
+    cima.appendChild(posto);
+
     var su = el('button', 'btn btn-ghost btn-small', '↑');
     su.type = 'button';
-    su.title = 'Più in alto nell’elenco: vince sugli altri che chiedono la stessa casella';
+    su.disabled = sceltoItem === 0;
+    su.title = 'Sposta più in alto nell’elenco: vince sugli altri che chiedono la stessa casella';
     su.addEventListener('click', function () { spostaPriorita(-1); });
     cima.appendChild(su);
     var giu = el('button', 'btn btn-ghost btn-small', '↓');
     giu.type = 'button';
-    giu.title = 'Più in basso: gli altri item della stessa casella lo coprono';
+    giu.disabled = sceltoItem === menu.item.length - 1;
+    giu.title = 'Sposta più in basso: gli altri item della stessa casella lo coprono';
     giu.addEventListener('click', function () { spostaPriorita(1); });
     cima.appendChild(giu);
 
@@ -1323,6 +1511,8 @@
     });
     cima.appendChild(togli);
     p.appendChild(cima);
+
+    p.appendChild(spiegaOrdine(it));
 
     p.appendChild(schede([
       ['aspetto', 'Aspetto'],
@@ -1344,6 +1534,73 @@
 
     box.appendChild(p);
     box.appendChild(anteprimaItem(it));
+    return box;
+  }
+
+  /**
+   * A cosa servono le frecce, detto dove stanno le frecce.
+   *
+   * Spostare un item nell'elenco cambia CHI VINCE dove due item si contendono una casella. Su
+   * un item che non ne condivide nessuna non cambia niente di visibile — e allora le frecce
+   * sembrano rotte. Meglio dirlo che lasciarlo indovinare.
+   */
+  function spiegaOrdine(it) {
+    var condivise = [];
+    (it.slot || []).forEach(function (c) {
+      if (itemNellaCasella(c).length > 1) condivise.push(c);
+    });
+    var d = el('div', 'me-ordine');
+    if (!condivise.length) {
+      d.textContent = 'Le frecce ↑ ↓ spostano questo item nell’elenco. Serve solo dove due item '
+        + 'si contendono la stessa casella: questo non ne condivide nessuna, quindi per lui '
+        + 'l’ordine non cambia niente.';
+      d.classList.add('spento');
+      return d;
+    }
+    d.textContent = 'Le frecce ↑ ↓ contano: questo item si contende '
+      + (condivise.length === 1 ? 'una casella' : condivise.length + ' caselle')
+      + ' con altri. Più in alto sta, più vince.';
+    return d;
+  }
+
+  /**
+   * Gli item che stanno tutti nella stessa casella, in ordine di priorita'.
+   *
+   * Nella griglia se ne vede uno solo — quello che vince — e gli altri non avrebbero nessuna
+   * porta d'ingresso. Qui si passa dall'uno all'altro, e si vede a colpo d'occhio chi vince e
+   * perche' (chi non ha condizioni, e sta sopra, vince sempre).
+   */
+  function strisciaConviventi(indici) {
+    var box = el('div', 'me-conviventi');
+    var t = el('div', 'me-conviventi-titolo');
+    t.textContent = 'Nella casella ' + casellaScelta + ' ci sono ' + indici.length + ' item, uno sopra l’altro:';
+    box.appendChild(t);
+
+    var fila = el('div', 'me-conviventi-fila');
+    indici.forEach(function (indice, posto) {
+      var altro = menu.item[indice];
+      var b = el('button', 'me-convivente' + (indice === sceltoItem ? ' scelto' : ''));
+      b.type = 'button';
+      b.appendChild(icona(altro.id, 22, altro.testa));
+      var nomi = el('span', 'me-convivente-nome');
+      nomi.textContent = altro.nome;
+      b.appendChild(nomi);
+      var quando = (altro.mostra_se && (altro.mostra_se.requisiti || []).length)
+        ? 'solo se: ' + altro.mostra_se.requisiti.map(fraseRequisito).join(' e ')
+        : 'sempre';
+      b.title = altro.nome + ' — si vede ' + quando;
+      if (quando === 'sempre' && posto < indici.length - 1) {
+        // Un item senza condizioni copre tutti quelli che stanno sotto: e' quasi sempre uno
+        // sbaglio d'ordine, e conviene dirlo qui invece di lasciarlo scoprire in gioco.
+        b.classList.add('copre');
+        b.title += ' — non ha condizioni, quindi copre sempre quelli sotto';
+      }
+      b.addEventListener('click', function () { scegliItem(indice); });
+      fila.appendChild(b);
+    });
+    box.appendChild(fila);
+    box.appendChild(el('div', 'me-conviventi-nota',
+      'Vince il primo che ha le sue condizioni soddisfatte. Con ↑ e ↓ qui sotto cambi l’ordine.'));
     return box;
   }
 
@@ -1393,9 +1650,87 @@
     spunte.appendChild(campoSpunta('Nascondi dettagli', it.nascondi_dettagli, function (v) { it.nascondi_dettagli = v; segnaModificato(); }, 'hide_details'));
     f.appendChild(spunte);
 
-    f.appendChild(listaTesti('Incantesimi', it.incantesimi || [], function (v) { it.incantesimi = v; segnaModificato(); },
-      'Uno per riga, come SHARPNESS,5', dati.catalogo.incantesimi, 'enchantments'));
+    f.appendChild(campoIncantesimi(it));
     return f;
+  }
+
+  /**
+   * Gli incantesimi: una tendina col nome e un numero per il livello.
+   *
+   * Prima era un campo di testo in cui scrivere "SHARPNESS,5" a mano: bisognava sapere il nome
+   * esatto (in inglese, come lo chiama Minecraft) e la virgola al posto giusto. I nomi validi
+   * li conosce gia' il server e arrivano nel catalogo: tanto vale sceglierli.
+   */
+  function campoIncantesimi(it) {
+    var elenco = dati.catalogo.incantesimi || [];
+    var righe = (it.incantesimi || []).map(function (x) {
+      var pezzi = String(x).split(/[,:; ]+/);
+      return { nome: (pezzi[0] || '').toUpperCase(), livello: parseInt(pezzi[1], 10) || 1 };
+    });
+
+    function salva() {
+      it.incantesimi = righe.filter(function (r) { return r.nome; })
+        .map(function (r) { return r.nome + ',' + Math.max(1, r.livello || 1); });
+      segnaModificato();
+      aggiornaAnteprima(it);
+    }
+
+    var box = el('div', 'me-campo');
+    var et = el('span', 'me-etichetta', 'Incantesimi');
+    et.appendChild(el('code', 'me-chiave', 'enchantments'));
+    box.appendChild(et);
+
+    righe.forEach(function (r, i) {
+      var riga = el('div', 'me-riga-incanto');
+
+      var sel = el('select', 'me-sel');
+      elenco.forEach(function (nome) {
+        var o = el('option', null, nome.toLowerCase().replace(/_/g, ' '));
+        o.value = nome;
+        if (nome === r.nome) o.selected = true;
+        sel.appendChild(o);
+      });
+      if (r.nome && elenco.indexOf(r.nome) < 0) {
+        // Un incantesimo scritto a mano che il server non conosce: si tiene visibile invece di
+        // farlo sparire in silenzio, cosi' si vede che c'e' ed e' sbagliato.
+        var o = el('option', null, r.nome.toLowerCase() + ' (sconosciuto)');
+        o.value = r.nome;
+        o.selected = true;
+        sel.insertBefore(o, sel.firstChild);
+        sel.classList.add('me-sconosciuto');
+      }
+      sel.addEventListener('change', function () { r.nome = sel.value; salva(); disegnaEditor(); });
+      riga.appendChild(sel);
+
+      var liv = el('input', 'me-inp me-inp-corto');
+      liv.type = 'number';
+      liv.min = '1';
+      liv.value = r.livello;
+      liv.title = 'Livello';
+      liv.addEventListener('input', function () { r.livello = parseInt(liv.value, 10) || 1; salva(); });
+      riga.appendChild(liv);
+
+      var x = el('button', 'btn btn-ghost btn-small', '×');
+      x.type = 'button';
+      x.title = 'Togli questo incantesimo';
+      x.addEventListener('click', function () { righe.splice(i, 1); salva(); disegnaEditor(); });
+      riga.appendChild(x);
+
+      box.appendChild(riga);
+    });
+
+    var piu = el('button', 'btn btn-ghost btn-small', '+ incantesimo');
+    piu.type = 'button';
+    piu.addEventListener('click', function () {
+      var gia = righe.map(function (r) { return r.nome; });
+      var libero = elenco.filter(function (n) { return gia.indexOf(n) < 0; })[0] || elenco[0];
+      righe.push({ nome: libero, livello: 1 });
+      salva();
+      disegnaEditor();
+    });
+    box.appendChild(piu);
+    box.appendChild(el('span', 'me-aiuto', 'Il livello può andare oltre il massimo del gioco: il plugin li mette lo stesso.'));
+    return box;
   }
 
   // --- scheda: caselle ------------------------------------------------
@@ -1567,13 +1902,14 @@
         r.requisiti.splice(i, 1);
         salva(r);
         disegnaEditor();
-      }));
+      }, r.requisiti, i));
     });
 
     var aggiungi = el('button', 'btn btn-ghost btn-small', '+ condizione');
     aggiungi.type = 'button';
     aggiungi.addEventListener('click', function () {
       r.requisiti.push({ tipo: 'PERMISSION', chiave: '', valore: '', quantita: 1, uguale: true });
+      daMettereAFuoco = { elenco: r.requisiti, indice: r.requisiti.length - 1 };
       salva(r);
       disegnaEditor();
     });
@@ -1640,8 +1976,11 @@
     return u.uguale === false ? 'NON ' + f : f;
   }
 
-  function rigaRequisito(uno, cambiato, togli) {
+  function rigaRequisito(uno, cambiato, togli, elenco, indice) {
     var riga = el('div', 'me-riga-cond');
+    if (daMettereAFuoco && daMettereAFuoco.elenco === elenco && daMettereAFuoco.indice === indice) {
+      riga.setAttribute('data-appena-aggiunta', '1');
+    }
 
     var tipo = el('select', 'me-sel');
     dati.catalogo.tipi_requisito.forEach(function (t) {
@@ -1768,6 +2107,7 @@
     piu.type = 'button';
     piu.addEventListener('click', function () {
       azioni.push({ tipo: 'message', argomento: '' });
+      daMettereAFuoco = { elenco: azioni, indice: azioni.length - 1 };
       salva(azioni);
       disegnaEditor();
     });
@@ -1783,6 +2123,7 @@
         condizione: { minimo: 0, requisiti: [{ tipo: 'EQUATION', chiave: '', valore: '', quantita: 1, uguale: true }], azioni_negate: [] },
         allora: [], altrimenti: []
       });
+      daMettereAFuoco = { elenco: azioni, indice: azioni.length - 1 };
       salva(azioni);
       disegnaEditor();
     });
@@ -1903,6 +2244,8 @@
   }
 
   function rigaAzione(a, i, azioni, salva) {
+    var appenaAggiunta = daMettereAFuoco && daMettereAFuoco.elenco === azioni
+      && daMettereAFuoco.indice === i;
     if (a.tipo === 'if') {
       var blocco = el('div', 'me-azione-se');
       var cima = el('div', 'me-sotto-titolo');
@@ -1920,6 +2263,7 @@
     }
 
     var riga = el('div', 'me-riga-azione');
+    if (appenaAggiunta) riga.setAttribute('data-appena-aggiunta', '1');
 
     var su = el('button', 'btn btn-ghost btn-small', '↑');
     su.type = 'button';
@@ -2220,7 +2564,7 @@
     svuota(scatola);
 
     var fianco = el('div', 'me-tooltip-icona');
-    fianco.appendChild(icona(it.id, 44));
+    fianco.appendChild(icona(it.id, 44, it.testa));
     var q = String(it.quantita || '1');
     if (q !== '1') {
       fianco.appendChild(el('span', 'me-tooltip-quantita', q));

@@ -72,7 +72,7 @@ $categorieUsate = [];
 $conteggi = ['tutte' => 0, 'attive' => 0, 'ban' => 0, 'mute' => 0];
 
 if (sanzioni_pronte()) {
-    $conta = db()->prepare("SELECT COUNT(*) FROM sanzioni s $sqlDove");
+    $conta = db()->prepare("SELECT COUNT(*) FROM punishments s $sqlDove");
     $conta->execute($par);
     $totale = (int) $conta->fetchColumn();
 
@@ -80,12 +80,12 @@ if (sanzioni_pronte()) {
     // L'offset non puo' essere un parametro legato: MariaDB non accetta i placeholder
     // in LIMIT/OFFSET con le prepared statement vere (EMULATE_PREPARES e' spento).
     $q = db()->prepare(
-        "SELECT s.*, u.id AS user_id, r.stato AS ricorso_stato, r.esito_pubblico
-           FROM sanzioni s
+        "SELECT s.*, u.id AS user_id, r.status AS ricorso_stato, r.outcome_public
+           FROM punishments s
            LEFT JOIN users u ON u.mc_uuid = s.mc_uuid
-           LEFT JOIN sanzioni_ricorsi r ON r.sanzione_id = s.id
+           LEFT JOIN punishment_appeals r ON r.punishment_id = s.id
            $sqlDove
-          ORDER BY s.creata_il DESC, s.id DESC
+          ORDER BY s.created_at DESC, s.id DESC
           LIMIT " . SANZIONI_PER_PAGINA . " OFFSET " . (int) $offset
     );
     $q->execute($par);
@@ -93,12 +93,12 @@ if (sanzioni_pronte()) {
 
     // Le categorie da proporre nel filtro sono solo quelle davvero usate: un menu con
     // dieci voci di cui otto vuote non aiuta nessuno.
-    $categorieUsate = db()->query('SELECT DISTINCT categoria FROM sanzioni ORDER BY categoria')->fetchAll(PDO::FETCH_COLUMN);
+    $categorieUsate = db()->query('SELECT DISTINCT category FROM punishments ORDER BY category')->fetchAll(PDO::FETCH_COLUMN);
 
-    $conteggi['tutte']  = (int) db()->query('SELECT COUNT(*) FROM sanzioni')->fetchColumn();
-    $conteggi['attive'] = (int) db()->query("SELECT COUNT(*) FROM sanzioni WHERE stato = 'attiva' AND (fine IS NULL OR fine > NOW())")->fetchColumn();
-    $conteggi['ban']    = (int) db()->query("SELECT COUNT(*) FROM sanzioni WHERE tipo = 'ban'")->fetchColumn();
-    $conteggi['mute']   = (int) db()->query("SELECT COUNT(*) FROM sanzioni WHERE tipo = 'mute'")->fetchColumn();
+    $conteggi['tutte']  = (int) db()->query('SELECT COUNT(*) FROM punishments')->fetchColumn();
+    $conteggi['attive'] = (int) db()->query("SELECT COUNT(*) FROM punishments WHERE status = 'attiva' AND (ends_at IS NULL OR ends_at > NOW())")->fetchColumn();
+    $conteggi['ban']    = (int) db()->query("SELECT COUNT(*) FROM punishments WHERE type = 'ban'")->fetchColumn();
+    $conteggi['mute']   = (int) db()->query("SELECT COUNT(*) FROM punishments WHERE type = 'mute'")->fetchColumn();
 }
 
 $pagineTotali = max(1, (int) ceil($totale / SANZIONI_PER_PAGINA));
@@ -106,7 +106,7 @@ $pagineTotali = max(1, (int) ceil($totale / SANZIONI_PER_PAGINA));
 /** Indirizzo di questa stessa pagina con un parametro cambiato (e la pagina azzerata). */
 $linkCon = function (array $cambi) use ($tipo, $stato, $categoria, $cerca, $pagina): string {
     $par = array_merge([
-        'tipo' => $tipo, 'stato' => $stato, 'categoria' => $categoria, 'q' => $cerca, 'p' => $pagina,
+        'type' => $tipo, 'status' => $stato, 'category' => $categoria, 'q' => $cerca, 'p' => $pagina,
     ], $cambi);
     if (!isset($cambi['p'])) {
         $par['p'] = 1;
@@ -210,10 +210,10 @@ require __DIR__ . '/../includes/header.php';
     <?php foreach ($righe as $i => $s): ?>
       <?php
         $statoVero = sanzione_stato($s);
-        $ricorso = $s['ricorso_stato'] ? ['stato' => $s['ricorso_stato']] : null;
+        $ricorso = $s['ricorso_stato'] ? ['status' => $s['ricorso_stato']] : null;
       ?>
       <article class="sanzione-riga<?= $statoVero !== 'attiva' ? ' e-conclusa' : '' ?>"
-               style="--accento:<?= h(sanzione_colore($s['tipo'])) ?>; --i:<?= (int) $i ?>">
+               style="--accento:<?= h(sanzione_colore($s['type'])) ?>; --i:<?= (int) $i ?>">
         <a class="forum-riga-link" href="/sanzione/<?= (int) $s['id'] ?>">Apri il provvedimento</a>
 
         <div class="sanzione-chi">
@@ -222,22 +222,22 @@ require __DIR__ . '/../includes/header.php';
                 $s['mc_uuid'], 34) ?>
           <div class="sanzione-chi-testo">
             <span class="sanzione-nome"><?= h($s['mc_username']) ?></span>
-            <span class="sanzione-quando"><?= h(time_ago((string) $s['creata_il'])) ?></span>
+            <span class="sanzione-quando"><?= h(time_ago((string) $s['created_at'])) ?></span>
           </div>
         </div>
 
         <div class="sanzione-cosa">
           <div class="sanzione-titolo">
-            <span class="sanzione-tipo"><?= h(sanzione_tipo($s['tipo'])) ?></span>
-            <span class="sanzione-categoria"><?= h(sanzione_categoria((string) $s['categoria'])) ?></span>
+            <span class="sanzione-tipo"><?= h(sanzione_tipo($s['type'])) ?></span>
+            <span class="sanzione-categoria"><?= h(sanzione_categoria((string) $s['category'])) ?></span>
           </div>
-          <p class="sanzione-motivo"><?= h($s['motivo']) ?></p>
+          <p class="sanzione-motivo"><?= h($s['reason']) ?></p>
           <div class="sanzione-meta">
             <span><?= h(sanzione_durata($s)) ?></span>
             <?php if ($sc = sanzione_scadenza($s)): ?><span><?= h($sc) ?></span><?php endif; ?>
             <span>da <?= h(sanzione_autore($s)) ?></span>
-            <?php if (($s['ambito'] ?? 'entrambi') !== 'entrambi'): ?>
-              <span><?= h(SANZIONI_AMBITI[$s['ambito']] ?? $s['ambito']) ?></span>
+            <?php if (($s['scope'] ?? 'entrambi') !== 'entrambi'): ?>
+              <span><?= h(SANZIONI_AMBITI[$s['scope']] ?? $s['scope']) ?></span>
             <?php endif; ?>
           </div>
         </div>

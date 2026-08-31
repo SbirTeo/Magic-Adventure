@@ -888,15 +888,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Stessi campi per il tema chiaro. Colonne vuote = "come il tema scuro", quindi
             // qui si salva NULL sia quando l'aspetto proprio e' spento sia quando il valore
             // non e' valido: la card ricadra' da sola sulla versione scura.
-            $vColoreChiaro = trim($_POST['overlay_color_chiaro'] ?? '');
+            $vColoreChiaro = trim($_POST['overlay_color_light'] ?? '');
             $veloChiaro = [
                 'colore' => $personalizza && is_valid_hex_color($vColoreChiaro) ? $vColoreChiaro : null,
-                'intensita' => $personalizza && isset($_POST['overlay_intensity_chiaro'])
-                    ? max(0, min(100, (int) $_POST['overlay_intensity_chiaro'])) : null,
-                'altezza' => $personalizza && isset($_POST['overlay_stop_chiaro'])
-                    ? max(20, min(100, (int) $_POST['overlay_stop_chiaro'])) : null,
+                'intensita' => $personalizza && isset($_POST['overlay_intensity_light'])
+                    ? max(0, min(100, (int) $_POST['overlay_intensity_light'])) : null,
+                'altezza' => $personalizza && isset($_POST['overlay_stop_light'])
+                    ? max(20, min(100, (int) $_POST['overlay_stop_light'])) : null,
             ];
-            $bordoCatChiaro = trim($_POST['border_color_chiaro'] ?? '');
+            $bordoCatChiaro = trim($_POST['border_color_light'] ?? '');
             $bordoCatChiaro = $personalizza && is_valid_hex_color($bordoCatChiaro) ? $bordoCatChiaro : null;
 
             // Testo, prezzo e targhetta dello sconto: valgono solo se l'aspetto proprio e'
@@ -906,10 +906,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 return $personalizza && isset($_POST[$spunta]) && is_valid_hex_color($valore) ? $valore : null;
             };
             $catTesto = $sceltaCat('text_color', 'text_custom');
-            $catTestoChiaro = $sceltaCat('text_color_chiaro', 'text_custom_chiaro') ?? $catTesto;
+            $catTestoChiaro = $sceltaCat('text_color_light', 'text_custom_chiaro') ?? $catTesto;
             $catPrezzo = $sceltaCat('price_color', 'price_custom');
-            $catPrezzoChiaro = $sceltaCat('price_color_chiaro', 'price_custom_chiaro') ?? $catPrezzo;
-            $catSconto = $sceltaCat('sconto_color', 'sconto_custom');
+            $catPrezzoChiaro = $sceltaCat('price_color_light', 'price_custom_chiaro') ?? $catPrezzo;
+            $catSconto = $sceltaCat('discount_color', 'sconto_custom');
 
             // Colori del pulsante-filtro: stessa logica del velo (NULL = usa i generali)
             $filtroCustom = isset($_POST['filter_custom']);
@@ -921,12 +921,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             [$scontoTipo, $scontoValore] = sconto_dal_post();
 
             if ($id > 0) {
-                db()->prepare('UPDATE store_categories SET name = ?, description = ?, sort_order = ?, enabled = ?, overlay_color = ?, overlay_intensity = ?, overlay_stop = ?, overlay_direction = ?, border_color = ?, overlay_color_chiaro = ?, overlay_intensity_chiaro = ?, overlay_stop_chiaro = ?, border_color_chiaro = ?, text_color = ?, text_color_chiaro = ?, price_color = ?, price_color_chiaro = ?, sconto_color = ?, filter_active_color = ?, filter_idle_color = ?, discount_type = ?, discount_value = ? WHERE id = ?')
+                db()->prepare('UPDATE store_categories SET name = ?, description = ?, sort_order = ?, enabled = ?, overlay_color = ?, overlay_intensity = ?, overlay_stop = ?, overlay_direction = ?, border_color = ?, overlay_color_light = ?, overlay_intensity_light = ?, overlay_stop_light = ?, border_color_light = ?, text_color = ?, text_color_light = ?, price_color = ?, price_color_light = ?, discount_color = ?, filter_active_color = ?, filter_idle_color = ?, discount_type = ?, discount_value = ? WHERE id = ?')
                     ->execute([$name, $description, $sortOrder, $enabled, $velo['colore'], $velo['intensita'], $velo['altezza'], $velo['direzione'], $bordoCat, $veloChiaro['colore'], $veloChiaro['intensita'], $veloChiaro['altezza'], $bordoCatChiaro, $catTesto, $catTestoChiaro, $catPrezzo, $catPrezzoChiaro, $catSconto, $filtroAttivo, $filtroRiposo, $scontoTipo, $scontoValore, $id]);
             } else {
                 // Lo slug si genera dal nome e non cambia piu': gli URL restano stabili
                 $slug = unique_slug('store_categories', slugify($name));
-                db()->prepare('INSERT INTO store_categories (name, slug, description, sort_order, enabled, overlay_color, overlay_intensity, overlay_stop, overlay_direction, border_color, overlay_color_chiaro, overlay_intensity_chiaro, overlay_stop_chiaro, border_color_chiaro, text_color, text_color_chiaro, price_color, price_color_chiaro, sconto_color, filter_active_color, filter_idle_color, discount_type, discount_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                db()->prepare('INSERT INTO store_categories (name, slug, description, sort_order, enabled, overlay_color, overlay_intensity, overlay_stop, overlay_direction, border_color, overlay_color_light, overlay_intensity_light, overlay_stop_light, border_color_light, text_color, text_color_light, price_color, price_color_light, discount_color, filter_active_color, filter_idle_color, discount_type, discount_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
                     ->execute([$name, $slug, $description, $sortOrder, $enabled, $velo['colore'], $velo['intensita'], $velo['altezza'], $velo['direzione'], $bordoCat, $veloChiaro['colore'], $veloChiaro['intensita'], $veloChiaro['altezza'], $bordoCatChiaro, $catTesto, $catTestoChiaro, $catPrezzo, $catPrezzoChiaro, $catSconto, $filtroAttivo, $filtroRiposo, $scontoTipo, $scontoValore]);
             }
             redirect('/manage?section=store&ok=1#storeSort');
@@ -1283,13 +1283,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id <= 0 || $motivo === '') {
                 redirect('/manage?section=sanzioni&err=empty');
             }
-            // revoca_applicata = 0: in gioco il ban c'e' ancora finche' il plugin non
+            // revoke_applied = 0: in gioco il ban c'e' ancora finche' il plugin non
             // lo toglie. Il gestionale lo mostra come "da applicare", senza far finta.
             db()->prepare(
-                "UPDATE sanzioni
-                    SET stato = 'revocata', revocata_da = ?, revocata_il = NOW(),
-                        revoca_motivo = ?, revoca_applicata = 0
-                  WHERE id = ? AND stato = 'attiva'"
+                "UPDATE punishments
+                    SET status = 'revocata', revoked_by = ?, revoked_at = NOW(),
+                        revoke_reason = ?, revoke_applied = 0
+                  WHERE id = ? AND status = 'attiva'"
             )->execute([(string) $me['mc_username'], $motivo, $id]);
             redirect('/manage?section=sanzioni&ok=1');
         }
@@ -1309,15 +1309,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tipo = (string) ($_POST['tipo'] ?? '');
                 if (isset(SANZIONI_TIPI[$tipo])) {
                     $secondi = durata_in_secondi((string) ($_POST['durata'] ?? ''));
-                    db()->prepare('UPDATE sanzioni_coda SET tipo = ?, durata_secondi = ? WHERE id = ? AND stato = \'attesa\'')
+                    db()->prepare('UPDATE punishment_queue SET type = ?, duration_seconds = ? WHERE id = ? AND status = \'attesa\'')
                         ->execute([$tipo, $secondi === 0 ? null : $secondi, $id]);
                 }
             }
 
             db()->prepare(
-                "UPDATE sanzioni_coda
-                    SET stato = ?, decisa_da = ?, decisa_il = NOW()
-                  WHERE id = ? AND stato = 'attesa'"
+                "UPDATE punishment_queue
+                    SET status = ?, decided_by = ?, decided_at = NOW()
+                  WHERE id = ? AND status = 'attesa'"
             )->execute([$nuovo, (string) $me['mc_username'], $id]);
             redirect('/manage?section=sanzioni&ok=' . ($nuovo === 'confermata' ? '4' : '5'));
         }
@@ -1331,8 +1331,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect('/manage?section=sanzioni&err=empty');
             }
             db()->prepare(
-                'UPDATE sanzioni_ricorsi
-                    SET stato = ?, risposta = ?, esito_pubblico = ?, staff_nome = ?, deciso_il = NOW()
+                'UPDATE punishment_appeals
+                    SET status = ?, reply = ?, outcome_public = ?, staff_name = ?, decided_at = NOW()
                   WHERE id = ?'
             )->execute([$esito, mb_substr($risposta, 0, 5000), $pubblico ?: null, (string) $me['mc_username'], $id]);
 
@@ -1340,11 +1340,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // sarebbe una contraddizione che il sanzionato pagherebbe di persona.
             if ($esito === 'accolto') {
                 db()->prepare(
-                    "UPDATE sanzioni s
-                        JOIN sanzioni_ricorsi r ON r.sanzione_id = s.id
-                       SET s.stato = 'revocata', s.revocata_da = ?, s.revocata_il = NOW(),
-                           s.revoca_motivo = 'Ricorso accolto', s.revoca_applicata = 0
-                     WHERE r.id = ? AND s.stato = 'attiva'"
+                    "UPDATE punishments s
+                        JOIN punishment_appeals r ON r.punishment_id = s.id
+                       SET s.status = 'revocata', s.revoked_by = ?, s.revoked_at = NOW(),
+                           s.revoke_reason = 'Ricorso accolto', s.revoke_applied = 0
+                     WHERE r.id = ? AND s.status = 'attiva'"
                 )->execute([(string) $me['mc_username'], $id]);
             }
             redirect('/manage?section=sanzioni&ok=6');
@@ -1360,7 +1360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // Ogni controllo e' una riga nuova: e' anche lo storico di chi ha guardato cosa,
             // e serve a non far ricontrollare due volte la stessa persona a due membri diversi.
-            db()->prepare('INSERT INTO sanzioni_controlli (mc_uuid, mc_username, staff_nome, nota, esito) '
+            db()->prepare('INSERT INTO punishment_checks (mc_uuid, mc_username, staff_name, note, outcome) '
                         . 'VALUES (?, ?, ?, ?, ?)')
                 ->execute([$uuid, $nome, (string) $me['mc_username'], $nota ?: null, $esito]);
             redirect('/manage?section=rischio&ok=7');
@@ -3442,10 +3442,10 @@ if ($section === 'dashboard') {
         <?php
           // Il tema chiaro della categoria parte dai valori del tema scuro: le colonne
           // *_chiaro vuote significano "come il tema scuro", quindi qui si mostra quello.
-          $cVC = $editCat['overlay_color_chiaro'] ?? ($editCat['overlay_color'] ?? ($imp['store_overlay_color'] ?? '#0a0804'));
-          $cVI = $editCat['overlay_intensity_chiaro'] ?? ($editCat['overlay_intensity'] ?? ($imp['store_overlay_intensity'] ?? '92'));
-          $cVS = $editCat['overlay_stop_chiaro'] ?? ($editCat['overlay_stop'] ?? ($imp['store_overlay_stop'] ?? '55'));
-          $cVB = $editCat['border_color_chiaro'] ?? ($editCat['border_color'] ?? ($imp['store_border_color'] ?? '#f0c75e'));
+          $cVC = $editCat['overlay_color_light'] ?? ($editCat['overlay_color'] ?? ($imp['store_overlay_color'] ?? '#0a0804'));
+          $cVI = $editCat['overlay_intensity_light'] ?? ($editCat['overlay_intensity'] ?? ($imp['store_overlay_intensity'] ?? '92'));
+          $cVS = $editCat['overlay_stop_light'] ?? ($editCat['overlay_stop'] ?? ($imp['store_overlay_stop'] ?? '55'));
+          $cVB = $editCat['border_color_light'] ?? ($editCat['border_color'] ?? ($imp['store_border_color'] ?? '#f0c75e'));
         ?>
         <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= aiuto_velo('intensita') ?></p>
         <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= aiuto_velo('altezza') ?></p>
@@ -3484,7 +3484,7 @@ if ($section === 'dashboard') {
             </label>
             <input type="color" id="price_color" name="price_color" value="<?= h(is_valid_hex_color((string) $cPR) ? (string) $cPR : ($imp['store_price_color'] ?? '#f8e6b7')) ?>" style="height:44px; padding:4px;">
 
-            <?php $cSC = $editCat['sconto_color'] ?? ''; ?>
+            <?php $cSC = $editCat['discount_color'] ?? ''; ?>
             <p class="tavolozza-gruppo">Targhetta dello sconto (vale per i due temi)</p>
             <label class="campo-check">
               <input type="checkbox" name="sconto_custom" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cSC) ? 'checked' : '' ?>>
@@ -3493,7 +3493,7 @@ if ($section === 'dashboard') {
             <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
               Il testo dentro la targhetta (nero o bianco) si sceglie da solo in base al contrasto.
             </p>
-            <input type="color" id="sconto_color" name="sconto_color" value="<?= h(is_valid_hex_color((string) $cSC) ? (string) $cSC : ($imp['store_sconto_color'] ?: ($imp['color_green'] ?? '#a3e635'))) ?>" style="height:44px; padding:4px;">
+            <input type="color" id="discount_color" name="discount_color" value="<?= h(is_valid_hex_color((string) $cSC) ? (string) $cSC : ($imp['store_sconto_color'] ?: ($imp['color_green'] ?? '#a3e635'))) ?>" style="height:44px; padding:4px;">
 
             <p class="tavolozza-gruppo">Direzione (vale per i due temi)</p>
             <select id="overlay_direction" name="overlay_direction">
@@ -3506,31 +3506,31 @@ if ($section === 'dashboard') {
             <h4>&#9728; Tema chiaro</h4>
 
             <p class="tavolozza-gruppo">Velo della categoria</p>
-            <label for="overlay_color_chiaro">Colore</label>
-            <input type="color" id="overlay_color_chiaro" name="overlay_color_chiaro" value="<?= h((string) $cVC) ?>" style="height:44px; padding:4px;">
-            <label for="overlay_intensity_chiaro" style="display:block; margin-top:12px;">Intensit&agrave; (<?= h((string) $cVI) ?>%)</label>
-            <input type="range" id="overlay_intensity_chiaro" name="overlay_intensity_chiaro" min="0" max="100" step="1" value="<?= h((string) $cVI) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-            <label for="overlay_stop_chiaro" style="display:block; margin-top:12px;">Altezza della sfumatura (<?= h((string) $cVS) ?>%)</label>
-            <input type="range" id="overlay_stop_chiaro" name="overlay_stop_chiaro" min="20" max="100" step="5" value="<?= h((string) $cVS) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
+            <label for="overlay_color_light">Colore</label>
+            <input type="color" id="overlay_color_light" name="overlay_color_light" value="<?= h((string) $cVC) ?>" style="height:44px; padding:4px;">
+            <label for="overlay_intensity_light" style="display:block; margin-top:12px;">Intensit&agrave; (<?= h((string) $cVI) ?>%)</label>
+            <input type="range" id="overlay_intensity_light" name="overlay_intensity_light" min="0" max="100" step="1" value="<?= h((string) $cVI) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
+            <label for="overlay_stop_light" style="display:block; margin-top:12px;">Altezza della sfumatura (<?= h((string) $cVS) ?>%)</label>
+            <input type="range" id="overlay_stop_light" name="overlay_stop_light" min="20" max="100" step="5" value="<?= h((string) $cVS) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
 
             <p class="tavolozza-gruppo">Barretta laterale</p>
-            <input type="color" id="border_color_chiaro" name="border_color_chiaro" value="<?= h((string) $cVB) ?>" style="height:44px; padding:4px;">
+            <input type="color" id="border_color_light" name="border_color_light" value="<?= h((string) $cVB) ?>" style="height:44px; padding:4px;">
 
-            <?php $cTSc = $editCat['text_color_chiaro'] ?? ''; ?>
+            <?php $cTSc = $editCat['text_color_light'] ?? ''; ?>
             <p class="tavolozza-gruppo">Testo sopra il velo</p>
             <label class="campo-check">
               <input type="checkbox" name="text_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cTSc) ? 'checked' : '' ?>>
               Colore solo per questa categoria
             </label>
-            <input type="color" id="text_color_chiaro" name="text_color_chiaro" value="<?= h(is_valid_hex_color((string) $cTSc) ? (string) $cTSc : ($imp['store_text_color_chiaro'] ?? '#14161a')) ?>" style="height:44px; padding:4px;">
+            <input type="color" id="text_color_light" name="text_color_light" value="<?= h(is_valid_hex_color((string) $cTSc) ? (string) $cTSc : ($imp['store_text_color_chiaro'] ?? '#14161a')) ?>" style="height:44px; padding:4px;">
 
-            <?php $cPRc = $editCat['price_color_chiaro'] ?? ''; ?>
+            <?php $cPRc = $editCat['price_color_light'] ?? ''; ?>
             <p class="tavolozza-gruppo">Prezzo</p>
             <label class="campo-check">
               <input type="checkbox" name="price_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cPRc) ? 'checked' : '' ?>>
               Colore solo per questa categoria
             </label>
-            <input type="color" id="price_color_chiaro" name="price_color_chiaro" value="<?= h(is_valid_hex_color((string) $cPRc) ? (string) $cPRc : ($imp['store_price_color_chiaro'] ?? '#7a5c00')) ?>" style="height:44px; padding:4px;">
+            <input type="color" id="price_color_light" name="price_color_light" value="<?= h(is_valid_hex_color((string) $cPRc) ? (string) $cPRc : ($imp['store_price_color_chiaro'] ?? '#7a5c00')) ?>" style="height:44px; padding:4px;">
           </div>
           </div>
         </div>
@@ -3946,23 +3946,23 @@ if ($section === 'dashboard') {
         $mostraTutti = isset($_GET['tutti']);
         $elenco = rischio_elenco($mostraTutti);
 
-        $coda = db()->query("SELECT * FROM sanzioni_coda WHERE stato = 'attesa' ORDER BY creata_il ASC")->fetchAll();
+        $coda = db()->query("SELECT * FROM punishment_queue WHERE status = 'attesa' ORDER BY created_at ASC")->fetchAll();
 
         $ricorsi = db()->query(
-            "SELECT r.*, s.mc_username, s.tipo, s.categoria, s.motivo, s.fine, s.stato AS sanzione_stato
-               FROM sanzioni_ricorsi r JOIN sanzioni s ON s.id = r.sanzione_id
-              WHERE r.stato = 'aperto' ORDER BY r.aperto_il ASC"
+            "SELECT r.*, s.mc_username, s.type, s.category, s.reason, s.ends_at, s.status AS sanzione_stato
+               FROM punishment_appeals r JOIN punishments s ON s.id = r.punishment_id
+              WHERE r.status = 'aperto' ORDER BY r.opened_at ASC"
         )->fetchAll();
 
         $daApplicare = db()->query(
-            "SELECT * FROM sanzioni WHERE stato = 'revocata' AND revoca_applicata = 0 ORDER BY revocata_il DESC"
+            "SELECT * FROM punishments WHERE status = 'revocata' AND revoke_applied = 0 ORDER BY revoked_at DESC"
         )->fetchAll();
 
         if ($cerca !== '') {
-            $q = db()->prepare('SELECT * FROM sanzioni WHERE mc_username LIKE ? ORDER BY creata_il DESC LIMIT 50');
+            $q = db()->prepare('SELECT * FROM punishments WHERE mc_username LIKE ? ORDER BY created_at DESC LIMIT 50');
             $q->execute(['%' . str_replace(['%', '_'], ['\%', '\_'], $cerca) . '%']);
         } else {
-            $q = db()->query('SELECT * FROM sanzioni ORDER BY creata_il DESC LIMIT 30');
+            $q = db()->query('SELECT * FROM punishments ORDER BY created_at DESC LIMIT 30');
         }
         $archivio = $q->fetchAll();
         ?>
@@ -3994,26 +3994,26 @@ if ($section === 'dashboard') {
                 <?php foreach ($coda as $c): ?>
                   <div class="coda-riga">
                     <div class="coda-testa">
-                      <?php $eSegnalazione = ($c['fonte'] ?? '') === 'report'; ?>
+                      <?php $eSegnalazione = ($c['source'] ?? '') === 'report'; ?>
                       <strong><?= h($c['mc_username']) ?></strong>
                       <?php if ($eSegnalazione): ?>
                         <span class="coda-tipo coda-segnalazione">Segnalazione</span>
-                        <span class="coda-fonte">da <?= h($c['proposta_da'] ?: 'un giocatore') ?></span>
+                        <span class="coda-fonte">da <?= h($c['proposed_by'] ?: 'un giocatore') ?></span>
                       <?php else: ?>
-                        <span class="coda-tipo"><?= h(sanzione_tipo((string) $c['tipo'])) ?></span>
-                        <span class="coda-cat"><?= h(sanzione_categoria((string) $c['categoria'])) ?></span>
+                        <span class="coda-tipo"><?= h(sanzione_tipo((string) $c['type'])) ?></span>
+                        <span class="coda-cat"><?= h(sanzione_categoria((string) $c['category'])) ?></span>
                         <span class="coda-durata">
-                          <?= h(durata_leggibile($c['durata_secondi'] === null ? null : (int) $c['durata_secondi'])) ?>
+                          <?= h(durata_leggibile($c['duration_seconds'] === null ? null : (int) $c['duration_seconds'])) ?>
                         </span>
-                        <span class="coda-fonte">proposta da <?= h($c['proposta_da'] ?: $c['fonte']) ?></span>
+                        <span class="coda-fonte">proposta da <?= h($c['proposed_by'] ?: $c['source']) ?></span>
                       <?php endif; ?>
-                      <span class="coda-fonte"><?= h(time_ago((string) $c['creata_il'])) ?></span>
+                      <span class="coda-fonte"><?= h(time_ago((string) $c['created_at'])) ?></span>
                     </div>
-                    <p class="coda-motivo"><?= h($c['motivo']) ?></p>
-                    <?php if ($c['dettaglio']): ?>
+                    <p class="coda-motivo"><?= h($c['reason']) ?></p>
+                    <?php if ($c['detail']): ?>
                       <details class="coda-prove">
                         <summary>Le prove</summary>
-                        <pre><?= h($c['dettaglio']) ?></pre>
+                        <pre><?= h($c['detail']) ?></pre>
                       </details>
                     <?php endif; ?>
                     <?php /* Su una segnalazione il provvedimento NON è proposto da nessuno: lo
@@ -4028,7 +4028,7 @@ if ($section === 'dashboard') {
                           <span>Provvedimento</span>
                           <select name="tipo">
                             <?php foreach (SANZIONI_TIPI as $codice => $t): ?>
-                              <option value="<?= h($codice) ?>" <?= $c['tipo'] === $codice ? 'selected' : '' ?>>
+                              <option value="<?= h($codice) ?>" <?= $c['type'] === $codice ? 'selected' : '' ?>>
                                 <?= h($t['etichetta']) ?>
                               </option>
                             <?php endforeach; ?>
@@ -4037,7 +4037,7 @@ if ($section === 'dashboard') {
                         <label>
                           <span>Durata</span>
                           <input type="text" name="durata" placeholder="30m, 6h, 3d, permanente"
-                                 value="<?= $c['durata_secondi'] === null ? '' : h(durata_leggibile_breve((int) $c['durata_secondi'])) ?>">
+                                 value="<?= $c['duration_seconds'] === null ? '' : h(durata_leggibile_breve((int) $c['duration_seconds'])) ?>">
                         </label>
                         <button type="submit" class="btn btn-accent">Conferma e applica</button>
                       </form>
@@ -4069,12 +4069,12 @@ if ($section === 'dashboard') {
                 <div class="ricorso-riga">
                   <div class="coda-testa">
                     <strong><?= h($r['mc_username']) ?></strong>
-                    <span class="coda-tipo"><?= h(sanzione_tipo((string) $r['tipo'])) ?></span>
-                    <span class="coda-cat"><?= h(sanzione_categoria((string) $r['categoria'])) ?></span>
-                    <a href="/sanzione/<?= (int) $r['sanzione_id'] ?>" target="_blank" rel="noopener">apri il provvedimento →</a>
+                    <span class="coda-tipo"><?= h(sanzione_tipo((string) $r['type'])) ?></span>
+                    <span class="coda-cat"><?= h(sanzione_categoria((string) $r['category'])) ?></span>
+                    <a href="/sanzione/<?= (int) $r['punishment_id'] ?>" target="_blank" rel="noopener">apri il provvedimento →</a>
                   </div>
-                  <p class="coda-motivo"><em>Motivo della sanzione:</em> <?= h($r['motivo']) ?></p>
-                  <blockquote class="ricorso-testo"><?= nl2br(h($r['testo'])) ?></blockquote>
+                  <p class="coda-motivo"><em>Motivo della sanzione:</em> <?= h($r['reason']) ?></p>
+                  <blockquote class="ricorso-testo"><?= nl2br(h($r['text'])) ?></blockquote>
                   <form method="post" class="stack">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="ricorso_decidi">
@@ -4109,9 +4109,9 @@ if ($section === 'dashboard') {
               <?php foreach ($daApplicare as $r): ?>
                 <li>
                   <strong><?= h($r['mc_username']) ?></strong> —
-                  <?= h(sanzione_tipo((string) $r['tipo'])) ?>,
-                  revocata da <?= h($r['revocata_da'] ?: 'staff') ?>
-                  <?= $r['revocata_il'] ? h(time_ago((string) $r['revocata_il'])) : '' ?>
+                  <?= h(sanzione_tipo((string) $r['type'])) ?>,
+                  revocata da <?= h($r['revoked_by'] ?: 'staff') ?>
+                  <?= $r['revoked_at'] ? h(time_ago((string) $r['revoked_at'])) : '' ?>
                 </li>
               <?php endforeach; ?>
             </ul>
@@ -4138,16 +4138,16 @@ if ($section === 'dashboard') {
               <?php foreach ($archivio as $s): ?>
                 <?php $st = sanzione_stato($s); ?>
                 <div class="archivio-riga<?= $st !== 'attiva' ? ' e-conclusa' : '' ?>"
-                     style="--accento:<?= h(sanzione_colore((string) $s['tipo'])) ?>">
+                     style="--accento:<?= h(sanzione_colore((string) $s['type'])) ?>">
                   <div class="archivio-dati">
                     <div class="coda-testa">
                       <a href="/sanzione/<?= (int) $s['id'] ?>" target="_blank" rel="noopener"><strong><?= h($s['mc_username']) ?></strong></a>
-                      <span class="coda-tipo"><?= h(sanzione_tipo((string) $s['tipo'], 'breve')) ?></span>
-                      <span class="coda-cat"><?= h(sanzione_categoria((string) $s['categoria'])) ?></span>
+                      <span class="coda-tipo"><?= h(sanzione_tipo((string) $s['type'], 'breve')) ?></span>
+                      <span class="coda-cat"><?= h(sanzione_categoria((string) $s['category'])) ?></span>
                       <span class="coda-durata"><?= h(sanzione_durata($s)) ?></span>
                       <span class="sanzione-pallino sanzione-<?= h($st) ?>"><?= h($st) ?></span>
                     </div>
-                    <p class="coda-motivo"><?= h($s['motivo']) ?></p>
+                    <p class="coda-motivo"><?= h($s['reason']) ?></p>
                   </div>
                   <?php if ($st === 'attiva' && can('sanzioni.revoca')): ?>
                     <form method="post" class="revoca-form">
@@ -4220,33 +4220,33 @@ if ($section === 'dashboard') {
       <div class="guida-staff">
         <nav class="guida-indice" aria-label="Indice della guida">
           <?php foreach ($capitoli as $c): ?>
-            <a href="#guida-<?= h($c['plugin']) ?>"><?= h($c['titolo']) ?></a>
+            <a href="#guida-<?= h($c['plugin']) ?>"><?= h($c['title']) ?></a>
           <?php endforeach; ?>
         </nav>
 
         <div class="guida-capitoli">
           <?php foreach ($capitoli as $c): ?>
             <?php
-              $quando = strtotime((string) $c['aggiornata_il']);
+              $quando = strtotime((string) $c['updated_at']);
               // Un capitolo fermo da una settimana e' sospetto: o il server e' rimasto spento,
               // o quel plugin non parte piu'. Meglio dirlo che far finta di niente.
               $vecchia = $quando < strtotime('-7 days');
             ?>
             <section class="panel" id="guida-<?= h($c['plugin']) ?>">
               <div class="guida-testa">
-                <h3 style="margin:0;"><?= h($c['titolo']) ?></h3>
+                <h3 style="margin:0;"><?= h($c['title']) ?></h3>
                 <span class="guida-versione">
-                  <?= h($c['plugin']) ?><?= $c['versione'] ? ' ' . h($c['versione']) : '' ?>
-                  · aggiornata <?= h(time_ago((string) $c['aggiornata_il'])) ?>
+                  <?= h($c['plugin']) ?><?= $c['version'] ? ' ' . h($c['version']) : '' ?>
+                  · aggiornata <?= h(time_ago((string) $c['updated_at'])) ?>
                 </span>
               </div>
               <?php if ($vecchia): ?>
                 <p class="guida-avviso">
-                  Non si aggiorna da <?= h(time_ago((string) $c['aggiornata_il'])) ?>:
+                  Non si aggiorna da <?= h(time_ago((string) $c['updated_at'])) ?>:
                   potrebbe descrivere una versione diversa da quella in funzione.
                 </p>
               <?php endif; ?>
-              <div class="guida-corpo"><?= $c['corpo_html'] ?></div>
+              <div class="guida-corpo"><?= $c['body_html'] ?></div>
             </section>
           <?php endforeach; ?>
         </div>

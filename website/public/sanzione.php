@@ -28,7 +28,7 @@ if ($id <= 0 || !sanzioni_pronte()) {
     return;
 }
 
-$stmt = db()->prepare('SELECT * FROM sanzioni WHERE id = ?');
+$stmt = db()->prepare('SELECT * FROM punishments WHERE id = ?');
 $stmt->execute([$id]);
 $s = $stmt->fetch();
 
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'ricor
         $errore = 'Hai già un ricorso aperto su questo provvedimento.';
     } else {
         $ins = db()->prepare(
-            'INSERT INTO sanzioni_ricorsi (sanzione_id, user_id, testo) VALUES (?, ?, ?)'
+            'INSERT INTO punishment_appeals (punishment_id, user_id, text) VALUES (?, ?, ?)'
         );
         $ins->execute([$id, (int) $me['id'], mb_substr($testo, 0, 5000)]);
         redirect('/sanzione/' . $id . '?ricorso=inviato');
@@ -75,25 +75,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'ricor
 }
 
 $statoVero = sanzione_stato($s);
-$page_title = sanzione_tipo($s['tipo']) . ' — ' . $s['mc_username'];
-$page_description = 'Provvedimento su ' . $s['mc_username'] . ': ' . sanzione_categoria((string) $s['categoria']) . '.';
+$page_title = sanzione_tipo($s['type']) . ' — ' . $s['mc_username'];
+$page_description = 'Provvedimento su ' . $s['mc_username'] . ': ' . sanzione_categoria((string) $s['category']) . '.';
 $active = 'sanzioni';
 
 require __DIR__ . '/../includes/header.php';
 ?>
 <p class="briciole"><a href="/sanzioni">Sanzioni</a><span>›</span>Provvedimento n. <?= (int) $s['id'] ?></p>
 
-<div class="panel sanzione-scheda" style="--accento:<?= h(sanzione_colore($s['tipo'])) ?>">
+<div class="panel sanzione-scheda" style="--accento:<?= h(sanzione_colore($s['type'])) ?>">
   <div class="sanzione-scheda-testa">
     <?= avatar_top(
           '<img src="' . h(mc_avatar_url($s['mc_uuid'], 64)) . '" alt="" width="48" height="48" class="forum-faccia">',
           $s['mc_uuid'], 48) ?>
     <div>
       <h1 class="page-title" style="margin:0 0 4px;">
-        <?= h(sanzione_tipo($s['tipo'])) ?>: <?= h($s['mc_username']) ?>
+        <?= h(sanzione_tipo($s['type'])) ?>: <?= h($s['mc_username']) ?>
       </h1>
       <p class="sanzione-sottotitolo">
-        <?= h(sanzione_categoria((string) $s['categoria'])) ?> ·
+        <?= h(sanzione_categoria((string) $s['category'])) ?> ·
         <?= h(sanzione_durata($s)) ?> ·
         <span class="sanzione-pallino sanzione-<?= h($statoVero) ?>">
           <?= $statoVero === 'attiva' ? 'In corso' : ($statoVero === 'revocata' ? 'Revocata' : 'Terminata') ?>
@@ -103,40 +103,40 @@ require __DIR__ . '/../includes/header.php';
   </div>
 
   <dl class="sanzione-dati">
-    <div><dt>Motivo</dt><dd><?= h($s['motivo']) ?></dd></div>
-    <div><dt>Dove vale</dt><dd><?= h(SANZIONI_AMBITI[$s['ambito']] ?? $s['ambito']) ?></dd></div>
-    <div><dt>Inizio</dt><dd><?= h(date('d/m/Y H:i', strtotime((string) $s['inizio']))) ?></dd></div>
+    <div><dt>Motivo</dt><dd><?= h($s['reason']) ?></dd></div>
+    <div><dt>Dove vale</dt><dd><?= h(SANZIONI_AMBITI[$s['scope']] ?? $s['scope']) ?></dd></div>
+    <div><dt>Inizio</dt><dd><?= h(date('d/m/Y H:i', strtotime((string) $s['starts_at']))) ?></dd></div>
     <div>
       <dt>Fine</dt>
-      <dd><?= $s['fine'] ? h(date('d/m/Y H:i', strtotime((string) $s['fine']))) : 'nessuna: è permanente' ?></dd>
+      <dd><?= $s['ends_at'] ? h(date('d/m/Y H:i', strtotime((string) $s['ends_at']))) : 'nessuna: è permanente' ?></dd>
     </div>
     <div><dt>Deciso da</dt><dd><?= h(sanzione_autore($s)) ?></dd></div>
-    <?php if ((int) $s['punti'] > 0): ?>
-      <div><dt>Punti</dt><dd><?= (int) $s['punti'] ?> <span class="sanzione-nota">(dimezzano ogni 90 giorni)</span></dd></div>
+    <?php if ((int) $s['points'] > 0): ?>
+      <div><dt>Punti</dt><dd><?= (int) $s['points'] ?> <span class="sanzione-nota">(dimezzano ogni 90 giorni)</span></dd></div>
     <?php endif; ?>
     <?php if ($statoVero === 'revocata'): ?>
       <div>
         <dt>Revoca</dt>
         <dd>
-          <?= h($s['revoca_motivo'] ?: 'nessuna motivazione indicata') ?>
-          <?php if ($s['revocata_da']): ?><span class="sanzione-nota">— <?= h($s['revocata_da']) ?></span><?php endif; ?>
+          <?= h($s['revoke_reason'] ?: 'nessuna motivazione indicata') ?>
+          <?php if ($s['revoked_by']): ?><span class="sanzione-nota">— <?= h($s['revoked_by']) ?></span><?php endif; ?>
         </dd>
       </div>
     <?php endif; ?>
   </dl>
 
-  <?php if ($s['rapporto_hash']): ?>
+  <?php if ($s['report_hash']): ?>
     <p class="sanzione-impronta" title="Impronta SHA-256 del rapporto firmato">
-      Rapporto firmato · <code><?= h(substr((string) $s['rapporto_hash'], 0, 16)) ?>…</code>
+      Rapporto firmato · <code><?= h(substr((string) $s['report_hash'], 0, 16)) ?>…</code>
       <span class="sanzione-nota">l'impronta prova che il documento non è stato modificato dopo la decisione</span>
     </p>
   <?php endif; ?>
 </div>
 
-<?php if ($vedoLeProve && $s['rapporto_pubblico']): ?>
+<?php if ($vedoLeProve && $s['report_public']): ?>
   <div class="panel">
     <h2 class="forum-sezione-titolo">Il rapporto</h2>
-    <div class="sanzione-rapporto"><?= corpo_articolo((string) $s['rapporto_pubblico']) ?></div>
+    <div class="sanzione-rapporto"><?= corpo_articolo((string) $s['report_public']) ?></div>
   </div>
 <?php elseif ($vedoLeProve): ?>
   <div class="panel">
@@ -159,25 +159,25 @@ require __DIR__ . '/../includes/header.php';
   <?php endif; ?>
 
   <?php if ($ricorso): ?>
-    <p class="sanzione-ricorso-stato ricorso-<?= h($ricorso['stato']) ?>">
+    <p class="sanzione-ricorso-stato ricorso-<?= h($ricorso['status']) ?>">
       <?= h(ricorso_etichetta($ricorso)) ?>
-      · aperto il <?= h(date('d/m/Y', strtotime((string) $ricorso['aperto_il']))) ?>
-      <?php if ($ricorso['deciso_il']): ?>
-        · deciso il <?= h(date('d/m/Y', strtotime((string) $ricorso['deciso_il']))) ?>
+      · aperto il <?= h(date('d/m/Y', strtotime((string) $ricorso['opened_at']))) ?>
+      <?php if ($ricorso['decided_at']): ?>
+        · deciso il <?= h(date('d/m/Y', strtotime((string) $ricorso['decided_at']))) ?>
       <?php endif; ?>
     </p>
 
-    <?php if ($ricorso['esito_pubblico']): ?>
-      <p class="sanzione-esito"><?= h($ricorso['esito_pubblico']) ?></p>
+    <?php if ($ricorso['outcome_public']): ?>
+      <p class="sanzione-esito"><?= h($ricorso['outcome_public']) ?></p>
     <?php endif; ?>
 
     <?php if ($vedoLeProve): ?>
       <div class="sanzione-ricorso-testo">
         <h3>Quello che ha scritto <?= h($s['mc_username']) ?></h3>
-        <p><?= nl2br(h($ricorso['testo'])) ?></p>
-        <?php if ($ricorso['risposta']): ?>
-          <h3>Risposta dello staff<?= $ricorso['staff_nome'] ? ' (' . h($ricorso['staff_nome']) . ')' : '' ?></h3>
-          <p><?= nl2br(h($ricorso['risposta'])) ?></p>
+        <p><?= nl2br(h($ricorso['text'])) ?></p>
+        <?php if ($ricorso['reply']): ?>
+          <h3>Risposta dello staff<?= $ricorso['staff_name'] ? ' (' . h($ricorso['staff_name']) . ')' : '' ?></h3>
+          <p><?= nl2br(h($ricorso['reply'])) ?></p>
         <?php endif; ?>
       </div>
     <?php else: ?>

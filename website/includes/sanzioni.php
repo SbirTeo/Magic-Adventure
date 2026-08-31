@@ -6,7 +6,7 @@
  * plugins-src/MagixGuard/PROGETTO-SANZIONI.md): il sito non inventa provvedimenti.
  * Quello che nasce qui sono i RICORSI e le decisioni dello staff sul gestionale —
  * revoche e conferme dalla coda — che il plugin poi esegue in gioco: una revoca resta
- * marcata `revoca_applicata = 0` finche' il server non ha davvero tolto il ban.
+ * marcata `revoke_applied = 0` finche' il server non ha davvero tolto il ban.
  *
  * Nota sullo stato: una sanzione scaduta NON viene riscritta a 'scaduta' da qui. Lo stato
  * vero si calcola leggendo (`sanzione_e_attiva`): cosi' l'elenco pubblico dice la verita'
@@ -58,7 +58,7 @@ function sanzioni_pronte(): bool {
         return $pronte;
     }
     try {
-        db()->query('SELECT 1 FROM sanzioni LIMIT 1');
+        db()->query('SELECT 1 FROM punishments LIMIT 1');
         return $pronte = true;
     } catch (PDOException $e) {
         return $pronte = false;
@@ -88,18 +88,18 @@ function sanzione_categoria(string $codice): string {
  * Revocata = mai piu' attiva, qualunque cosa dica la data.
  */
 function sanzione_e_attiva(array $s): bool {
-    if (($s['stato'] ?? '') !== 'attiva') {
+    if (($s['status'] ?? '') !== 'attiva') {
         return false;
     }
-    if (empty($s['fine'])) {
+    if (empty($s['ends_at'])) {
         return true;   // permanente
     }
-    return strtotime((string) $s['fine']) > time();
+    return strtotime((string) $s['ends_at']) > time();
 }
 
 /** Stato da mostrare: 'attiva' | 'scaduta' | 'revocata'. */
 function sanzione_stato(array $s): string {
-    if (($s['stato'] ?? '') === 'revocata') {
+    if (($s['status'] ?? '') === 'revocata') {
         return 'revocata';
     }
     return sanzione_e_attiva($s) ? 'attiva' : 'scaduta';
@@ -107,13 +107,13 @@ function sanzione_stato(array $s): string {
 
 /** Durata del provvedimento in forma leggibile: 'permanente', '7 giorni', '30 minuti'. */
 function sanzione_durata(array $s): string {
-    if ($s['tipo'] === 'warn' || $s['tipo'] === 'kick') {
+    if ($s['type'] === 'warn' || $s['type'] === 'kick') {
         return 'immediata';
     }
-    if (empty($s['fine'])) {
+    if (empty($s['ends_at'])) {
         return 'permanente';
     }
-    $secondi = strtotime((string) $s['fine']) - strtotime((string) $s['inizio']);
+    $secondi = strtotime((string) $s['ends_at']) - strtotime((string) $s['starts_at']);
     if ($secondi < 60) {
         return max(0, $secondi) . ' secondi';
     }
@@ -194,16 +194,16 @@ function durata_leggibile_breve(?int $secondi): string {
 
 /** Quanto manca alla fine, o da quanto e' finita. Vuoto per i provvedimenti immediati. */
 function sanzione_scadenza(array $s): string {
-    if ($s['tipo'] === 'warn' || $s['tipo'] === 'kick') {
+    if ($s['type'] === 'warn' || $s['type'] === 'kick') {
         return '';
     }
     if (sanzione_stato($s) === 'revocata') {
-        return 'revocata' . (!empty($s['revocata_il']) ? ' il ' . date('d/m/Y', strtotime((string) $s['revocata_il'])) : '');
+        return 'revocata' . (!empty($s['revoked_at']) ? ' il ' . date('d/m/Y', strtotime((string) $s['revoked_at'])) : '');
     }
-    if (empty($s['fine'])) {
+    if (empty($s['ends_at'])) {
         return 'non scade';
     }
-    $fine = strtotime((string) $s['fine']);
+    $fine = strtotime((string) $s['ends_at']);
     if ($fine <= time()) {
         return 'finita il ' . date('d/m/Y', $fine);
     }
@@ -215,10 +215,10 @@ function sanzione_scadenza(array $s): string {
  * Nell'elenco pubblico questo campo si vede, come da scelta di trasparenza.
  */
 function sanzione_autore(array $s): string {
-    if (!empty($s['staff_nome'])) {
-        return (string) $s['staff_nome'];
+    if (!empty($s['staff_name'])) {
+        return (string) $s['staff_name'];
     }
-    return (int) ($s['automatica'] ?? 0) === 1 ? 'Sistema automatico' : 'Staff';
+    return (int) ($s['automatic'] ?? 0) === 1 ? 'Sistema automatico' : 'Staff';
 }
 
 /**
@@ -234,14 +234,14 @@ function sanzioni_blocco_sito(?string $uuid): array {
         return $vuoto;
     }
     $stmt = db()->prepare(
-        "SELECT * FROM sanzioni
-          WHERE mc_uuid = ? AND stato = 'attiva' AND ambito IN ('sito','entrambi')
-            AND tipo IN ('ban','mute') AND (fine IS NULL OR fine > NOW())
-          ORDER BY (fine IS NULL) DESC, fine DESC"
+        "SELECT * FROM punishments
+          WHERE mc_uuid = ? AND status = 'attiva' AND scope IN ('sito','entrambi')
+            AND type IN ('ban','mute') AND (ends_at IS NULL OR ends_at > NOW())
+          ORDER BY (ends_at IS NULL) DESC, ends_at DESC"
     );
     $stmt->execute([$uuid]);
     foreach ($stmt->fetchAll() as $riga) {
-        $tipo = $riga['tipo'];
+        $tipo = $riga['type'];
         if ($vuoto[$tipo] === null) {
             $vuoto[$tipo] = $riga;
         }
@@ -262,7 +262,7 @@ function sanzione_ricorso(int $sanzioneId): ?array {
     if (!sanzioni_pronte()) {
         return null;
     }
-    $stmt = db()->prepare('SELECT * FROM sanzioni_ricorsi WHERE sanzione_id = ?');
+    $stmt = db()->prepare('SELECT * FROM punishment_appeals WHERE punishment_id = ?');
     $stmt->execute([$sanzioneId]);
     return $stmt->fetch() ?: null;
 }
@@ -272,7 +272,7 @@ function ricorso_etichetta(?array $r): string {
     if (!$r) {
         return '';
     }
-    return match ($r['stato']) {
+    return match ($r['status']) {
         'accolto'  => 'Ricorso accolto',
         'respinto' => 'Ricorso respinto',
         default    => 'Ricorso in esame',
@@ -288,7 +288,7 @@ function regolamento_blocco_sanzioni(): ?array {
         return null;
     }
     try {
-        $riga = db()->query('SELECT corpo_html, versione, aggiornato_il FROM regolamento_sanzioni WHERE id = 1')->fetch();
+        $riga = db()->query('SELECT body_html, version, updated_at FROM punishment_rules WHERE id = 1')->fetch();
     } catch (PDOException $e) {
         return null;
     }
@@ -298,7 +298,7 @@ function regolamento_blocco_sanzioni(): ?array {
 /** I capitoli della guida per amministratori, nell'ordine deciso dai plugin. */
 function guide_staff_capitoli(): array {
     try {
-        return db()->query('SELECT * FROM guide_staff ORDER BY ordine ASC, plugin ASC')->fetchAll();
+        return db()->query('SELECT * FROM guide_staff ORDER BY sort_order ASC, plugin ASC')->fetchAll();
     } catch (PDOException $e) {
         return [];
     }

@@ -63,7 +63,11 @@ CATALOGO = '/home/ubuntu/magicadventure/plugins/MagixMenus/menus.json'
 # sono fatti. Una scala di acacia e' fatta di assi di acacia, e mostrare quelle e' molto meglio
 # che mostrare un quadrato col nome scritto sopra.
 SUFFISSI = ['_STAIRS', '_SLAB', '_WALL', '_FENCE_GATE', '_FENCE', '_BUTTON', '_PRESSURE_PLATE',
-            '_TRAPDOOR', '_DOOR', '_SIGN', '_HANGING_SIGN', '_WALL_SIGN', '_CARPET']
+            '_TRAPDOOR', '_DOOR', '_SIGN', '_HANGING_SIGN', '_WALL_SIGN', '_CARPET',
+            # I vetri-lastra: la loro texture "_pane_top" e' la striscia sottile del bordo, non
+            # quello che si vede nell'inventario. L'icona giusta e' il vetro intero, quindi il
+            # nome base va provato PRIMA che entrino in gioco i ripieghi _SIDE/_TOP piu' sotto.
+            '_PANE']
 
 
 def candidati(nome):

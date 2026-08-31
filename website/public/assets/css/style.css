@@ -5750,6 +5750,75 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-nome-item { flex: 1 1 auto; min-width: 0; }
 .me-vuoto { padding: 18px 16px; }
 
+/* --- l'elenco degli item nel loro ordine (chi vince sta in alto) --- */
+.me-ordine-box { padding: 14px 16px; }
+.me-ordine-lista { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; max-height: 300px; overflow-y: auto; }
+.me-ordine-riga {
+  display: flex; align-items: center; gap: 7px; padding: 4px 6px;
+  border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer;
+}
+.me-ordine-riga:hover { background: var(--bg-panel-2); border-color: var(--border); }
+.me-ordine-riga.scelto { background: var(--bg-panel-2); border-color: var(--purple); }
+.me-ordine-n {
+  flex: none; width: 20px; text-align: right;
+  font-size: 0.72rem; color: var(--text-dimmer);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.me-ordine-nome {
+  flex: 1 1 90px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 0.85rem;
+}
+.me-ordine-dove {
+  flex: none; padding: 1px 6px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); color: var(--text-dimmer);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.7rem;
+  max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.me-ordine-segni { display: flex; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
+.me-tag-avviso { color: #FFD166; border-color: #FFD166; }
+@media (max-width: 560px) {
+  .me-ordine-segni { display: none; }
+  .me-ordine-dove { max-width: 60px; }
+}
+
+/* --- gli item che si contendono la stessa casella ---
+   Nella griglia se ne vede uno solo: qui ci sono tutti, e si passa dall'uno all'altro. */
+/* La posizione nell'elenco, accanto alle frecce: e' l'unica cosa che si muove sempre quando
+   le si preme, anche quando l'ordine non cambia niente di visibile nella griglia. */
+.me-posto {
+  padding: 2px 7px; border-radius: var(--radius-sm); white-space: nowrap;
+  background: var(--bg-panel-2); border: 1px solid var(--border);
+  font-size: 0.72rem; color: var(--text-dim);
+}
+.me-ordine {
+  margin: -4px 0 10px; padding: 6px 9px; border-radius: var(--radius-sm);
+  background: var(--bg-panel-2); font-size: 0.78rem; color: var(--text-dim);
+}
+.me-ordine.spento { color: var(--text-dimmer); }
+
+.me-conviventi {
+  margin-bottom: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--bg-panel-2); border: 1px solid var(--border);
+}
+.me-conviventi-titolo { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 7px; }
+.me-conviventi-fila { display: flex; flex-wrap: wrap; gap: 5px; }
+.me-convivente {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 5px;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-dim); cursor: pointer; font: inherit; font-size: 0.82rem;
+}
+.me-convivente:hover { color: var(--text); border-color: var(--purple); }
+.me-convivente.scelto { color: var(--text); border-color: var(--purple); box-shadow: inset 0 0 0 1px var(--purple); }
+/* Chi non ha condizioni e non e' l'ultimo copre per sempre quelli sotto: quasi sempre e' un
+   ordine sbagliato, e conviene vederlo qui invece di scoprirlo in gioco. */
+.me-convivente.copre { border-style: dashed; border-color: #FFD166; }
+.me-conviventi-nota { margin-top: 7px; font-size: 0.78rem; color: var(--text-dimmer); }
+
+/* --- una riga di incantesimo: nome e livello --- */
+.me-riga-incanto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.me-riga-incanto .me-sel { flex: 1 1 150px; width: auto; }
+.me-sconosciuto { border-color: #FF6B6B; }
+
 .me-schede { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
 .me-scheda {
   border: 0; background: none; color: var(--text-dim); cursor: pointer;
