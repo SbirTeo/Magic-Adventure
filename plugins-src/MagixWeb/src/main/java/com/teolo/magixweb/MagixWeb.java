@@ -154,7 +154,7 @@ public class MagixWeb extends JavaPlugin {
         StoreDelivery delivery = new StoreDelivery(this, database, lotto);
 
         long ticks = secondi * 20L;
-        Bukkit.getScheduler().runTaskTimer(this, delivery::processaCoda, 200L, ticks);
+        Bukkit.getScheduler().runTaskTimer(this, delivery::processQueue, 200L, ticks);
         getLogger().info("MagixWeb: consegna acquisti store attiva (ogni " + secondi + "s).");
     }
 

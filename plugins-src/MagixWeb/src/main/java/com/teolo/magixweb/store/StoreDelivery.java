@@ -12,50 +12,50 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Consegna degli acquisti dello store: il sito, quando PayPal conferma il pagamento,
- * scrive i comandi nella tabella store_command_queue; qui li leggiamo ed eseguiamo
- * dalla console, marcandoli come fatti.
+ * Hands out what people buy in the store: when PayPal confirms a payment the site writes the
+ * commands into store_command_queue, and this reads them, runs them from the console and marks
+ * them done.
  *
- * La lettura e' asincrona (non blocca il tick), l'esecuzione avviene sul thread principale
- * perche' i comandi Bukkit non sono thread-safe.
+ * Reading happens off the main thread so it never holds up a tick; running happens on the main
+ * thread, because Bukkit commands are not thread-safe.
  */
 public class StoreDelivery {
 
-    /** Oltre questo numero di tentativi falliti il comando viene abbandonato, per non riprovare all'infinito. */
-    private static final int MAX_TENTATIVI = 5;
+    /** Past this many failed tries the command is given up on, rather than retried forever. */
+    private static final int MAX_ATTEMPTS = 5;
 
     private final MagixWeb plugin;
     private final Database database;
-    private final int lotto;
+    private final int batchSize;
 
-    public StoreDelivery(MagixWeb plugin, Database database, int lotto) {
+    public StoreDelivery(MagixWeb plugin, Database database, int batchSize) {
         this.plugin = plugin;
         this.database = database;
-        this.lotto = Math.max(1, lotto);
+        this.batchSize = Math.max(1, batchSize);
     }
 
-    /** Da chiamare periodicamente: legge la coda (async) e passa l'esecuzione al main thread. */
-    public void processaCoda() {
+    /** Call this on a timer: reads the queue off-thread, then runs it on the main thread. */
+    public void processQueue() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            List<Comando> daEseguire = leggi();
-            if (daEseguire.isEmpty()) {
+            List<QueuedCommand> pending = read();
+            if (pending.isEmpty()) {
                 return;
             }
-            Bukkit.getScheduler().runTask(plugin, () -> esegui(daEseguire));
+            Bukkit.getScheduler().runTask(plugin, () -> run(pending));
         });
     }
 
-    private List<Comando> leggi() {
-        List<Comando> out = new ArrayList<>();
+    private List<QueuedCommand> read() {
+        List<QueuedCommand> out = new ArrayList<>();
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT id, mc_username, command FROM store_command_queue "
                              + "WHERE executed_at IS NULL AND attempts < ? ORDER BY id LIMIT ?")) {
-            ps.setInt(1, MAX_TENTATIVI);
-            ps.setInt(2, lotto);
+            ps.setInt(1, MAX_ATTEMPTS);
+            ps.setInt(2, batchSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    out.add(new Comando(rs.getInt("id"), rs.getString("mc_username"), rs.getString("command")));
+                    out.add(new QueuedCommand(rs.getInt("id"), rs.getString("mc_username"), rs.getString("command")));
                 }
             }
         } catch (SQLException e) {
@@ -64,34 +64,34 @@ public class StoreDelivery {
         return out;
     }
 
-    private void esegui(List<Comando> comandi) {
-        for (Comando cmd : comandi) {
+    private void run(List<QueuedCommand> commands) {
+        for (QueuedCommand cmd : commands) {
             boolean ok;
-            String errore = null;
+            String error = null;
             try {
-                ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.comando);
+                ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.command);
                 if (!ok) {
-                    errore = "comando rifiutato o inesistente";
+                    error = "comando rifiutato o inesistente";
                 }
             } catch (Exception e) {
                 ok = false;
-                errore = e.getClass().getSimpleName() + ": " + e.getMessage();
+                error = e.getClass().getSimpleName() + ": " + e.getMessage();
             }
 
             if (ok) {
-                plugin.getLogger().info("Store: eseguito per " + cmd.giocatore + " -> /" + cmd.comando);
+                plugin.getLogger().info("Store: eseguito per " + cmd.player + " -> /" + cmd.command);
             } else {
-                plugin.getLogger().warning("Store: comando FALLITO per " + cmd.giocatore + " -> /" + cmd.comando
-                        + " (" + errore + ")");
+                plugin.getLogger().warning("Store: comando FALLITO per " + cmd.player + " -> /" + cmd.command
+                        + " (" + error + ")");
             }
-            segna(cmd.id, ok, errore);
+            mark(cmd.id, ok, error);
         }
     }
 
-    /** Successo: marca eseguito. Fallimento: conta il tentativo, cosi' riprova al giro dopo. */
-    private void segna(int id, boolean ok, String errore) {
-        final String messaggio = errore == null ? null
-                : (errore.length() > 255 ? errore.substring(0, 255) : errore);
+    /** On success, mark it done. On failure, count the attempt so the next round retries it. */
+    private void mark(int id, boolean ok, String error) {
+        final String message = error == null ? null
+                : (error.length() > 255 ? error.substring(0, 255) : error);
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             String sql = ok
@@ -102,7 +102,7 @@ public class StoreDelivery {
                 if (ok) {
                     ps.setInt(1, id);
                 } else {
-                    ps.setString(1, messaggio);
+                    ps.setString(1, message);
                     ps.setInt(2, id);
                 }
                 ps.executeUpdate();
@@ -112,15 +112,15 @@ public class StoreDelivery {
         });
     }
 
-    private static final class Comando {
+    private static final class QueuedCommand {
         final int id;
-        final String giocatore;
-        final String comando;
+        final String player;
+        final String command;
 
-        Comando(int id, String giocatore, String comando) {
+        QueuedCommand(int id, String player, String command) {
             this.id = id;
-            this.giocatore = giocatore;
-            this.comando = comando;
+            this.player = player;
+            this.command = command;
         }
     }
 }

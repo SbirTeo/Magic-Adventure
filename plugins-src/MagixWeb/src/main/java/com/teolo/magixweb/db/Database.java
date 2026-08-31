@@ -14,11 +14,10 @@ public class Database {
     private final HikariDataSource ds;
 
     static {
-        // Forza il caricamento del driver nel classloader di QUESTO plugin: senza questo,
-        // DriverManager puo' aver gia' inizializzato il suo elenco driver usando il classloader
-        // di un altro plugin (es. MagixFactions, che shada la sua PROPRIA copia relocata di
-        // org.mariadb sotto un package diverso) e non trovare il nostro driver ("No suitable driver").
-        // Stesso pattern gia' usato in MagixFactions/db/Database.java.
+        // Force the driver into THIS plugin's classloader. Without it, DriverManager may have
+        // already built its driver list from another plugin's classloader (MagixFactions shades
+        // its OWN relocated copy of org.mariadb under a different package) and then fails to see
+        // ours with "No suitable driver". Same pattern as MagixFactions/db/Database.java.
         try { Class.forName("org.mariadb.jdbc.Driver"); } catch (Throwable ignored) {}
     }
 
@@ -38,16 +37,16 @@ public class Database {
         hc.setPoolName("MagixWeb-Pool");
         this.ds = new HikariDataSource(hc);
 
-        // Verifica connessione + crea la tabella se non esiste (idempotente, allineata allo schema del sito)
+        // Check the connection and create the tables if missing (idempotent, matching the site schema)
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
-            // `link_codes` non si crea piu': /link non esiste, l'account nasce in gioco con
-            // MagixAuth e le stesse credenziali aprono il sito. La tabella resta nel database
-            // finche' non la si cancella a mano, ma nessuno la scrive piu'.
+            // `link_codes` is no longer created: /link is gone, the account is born in game
+            // through MagixAuth, and the same credentials open the site. The table stays in the
+            // database until someone drops it by hand, but nothing writes to it any more.
 
-            // Grado/prefisso LuckPerms di ogni giocatore, letto dal sito per mostrare il tag.
-            // La collation e' fissata ESPLICITAMENTE a utf8mb4_unicode_ci per combaciare con
-            // users.mc_uuid del sito: senza, MariaDB usa la sua default (uca1400_ai_ci) e il
-            // JOIN tra le due tabelle fallisce con "Illegal mix of collations".
+            // Each player's LuckPerms group and prefix, read by the site to show their tag.
+            // The collation is pinned EXPLICITLY to utf8mb4_unicode_ci to match the site's
+            // users.mc_uuid: without it MariaDB picks its own default (uca1400_ai_ci) and the
+            // join between the two tables dies with "Illegal mix of collations".
             st.execute("CREATE TABLE IF NOT EXISTS mc_ranks (" +
                     "mc_uuid CHAR(36) NOT NULL PRIMARY KEY," +
                     "mc_username VARCHAR(32) NOT NULL," +
@@ -60,19 +59,19 @@ public class Database {
                     "weight INT NOT NULL DEFAULT 0," +
                     "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-            // Tabella gia' esistente creata prima dei gradi multipli (prefissi impilati)
+            // For tables created before stacked prefixes (multiple groups) existed
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS tags_json TEXT NULL AFTER tag_color");
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS name_color CHAR(7) NULL AFTER tags_json");
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS groups_json TEXT NULL AFTER name_color");
-            // Prefisso COMPLETO di LuckPerms (codici colore inclusi): serve a rendere il grado
-            // nei messaggi scritti dal sito, quando il giocatore non e' in partita e i
-            // placeholder %luckperms_prefix% non si risolverebbero.
+            // The COMPLETE LuckPerms prefix, colour codes included: the site needs it to render
+            // someone's rank inside messages it writes itself, when the player is offline and
+            // the %luckperms_prefix% placeholder would resolve to nothing.
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS prefix_raw VARCHAR(255) NULL AFTER groups_json");
-            // Primo accesso al server: lo mostra il profilo sul sito. Lo riempie RankSync,
-            // al join e (per chi ha gia' giocato) con un recupero all'avvio.
+            // First time they joined the server, shown on their profile page. RankSync fills it
+            // on join, and backfills it at startup for players who were already around.
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS first_join DATETIME NULL");
 
-            // Elenco dei gruppi del gioco, specchiato per il pannello permessi del sito.
+            // The game's groups, mirrored for the site's permissions panel.
             st.execute("CREATE TABLE IF NOT EXISTS web_groups (" +
                     "name VARCHAR(64) NOT NULL PRIMARY KEY," +
                     "display VARCHAR(64) NOT NULL," +
@@ -80,9 +79,9 @@ public class Database {
                     "weight INT NOT NULL DEFAULT 0," +
                     "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-            // Chat live della home: 'game' = specchio della chat pubblica del server,
-            // 'web' = scritto dal sito e in attesa di essere pubblicato in gioco (delivered=0).
-            // COLLATE esplicito come sopra: mc_uuid viene joinata con mc_ranks/users.
+            // The live chat on the home page: 'game' mirrors the server's public chat, 'web' is
+            // written on the site and waiting to be spoken in game (delivered = 0).
+            // Explicit COLLATE as above: mc_uuid is joined against mc_ranks and users.
             st.execute("CREATE TABLE IF NOT EXISTS web_chat (" +
                     "id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY," +
                     "source ENUM('web','game') NOT NULL DEFAULT 'web'," +
@@ -95,9 +94,9 @@ public class Database {
                     "KEY idx_data (created_at)" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-            // Guida per amministratori: un capitolo per plugin, riscritto a ogni avvio.
-            // La crea anche la migrazione del sito; averla qui vuol dire che il server puo'
-            // pubblicare la guida senza aspettare che qualcuno lanci una migrazione a mano.
+            // The administrators' guide: one chapter per plugin, rewritten at every startup.
+            // The site's migration creates it too; having it here means the server can publish
+            // the guide without waiting for someone to run a migration by hand.
             st.execute("CREATE TABLE IF NOT EXISTS guide_staff (" +
                     "plugin VARCHAR(64) NOT NULL PRIMARY KEY," +
                     "title VARCHAR(160) NOT NULL," +
