@@ -27,7 +27,7 @@ $active = 'regolamento';
  */
 $corpo = corpo_articolo($body);
 
-$blocco = regolamento_blocco_sanzioni();
+$blocco = rulebook_sanctions_block();
 if ($blocco) {
     $htmlSanzioni = '<div class="regolamento-sanzioni">' . $blocco['body_html']
         . '<p class="regolamento-sanzioni-fonte">Questa tabella è generata dalla configurazione del server'

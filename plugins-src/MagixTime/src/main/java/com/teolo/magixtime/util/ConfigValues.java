@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
  * <p>
  * Il separatore del percorso e' quello del file da cui si legge: di norma il punto, ma la BARRA per i
  * config caricati con un separatore diverso — il {@code sanzioni.yml} di MagixGuard, per esempio, vuole
- * {@code {{cfg:punti/dimezzamento-giorni}}}.
+ * {@code {{cfg:points/halving-days}}}.
  *
  * <h2>Testi derivati</h2>
  * Quello che non e' un singolo valore — una frase che cambia forma, o un paragrafo che deve sparire se

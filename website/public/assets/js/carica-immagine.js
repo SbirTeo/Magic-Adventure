@@ -4,11 +4,11 @@
 (function () {
   var GETTONE = document.querySelector('input[name="csrf"]');
 
-  function stato(campo, testo, tipo) {
+  function stato(campo, text, tipo) {
     var p = campo.querySelector('[data-stato]');
     if (!p) return;
-    p.textContent = testo || '';
-    p.hidden = !testo;
+    p.textContent = text || '';
+    p.hidden = !text;
     p.className = 'campo-immagine-stato' + (tipo ? ' is-' + tipo : '');
   }
 
@@ -24,7 +24,7 @@
     }
   }
 
-  function carica(campo, file) {
+  function load(campo, file) {
     if (!file) return;
     if (!GETTONE) {
       stato(campo, 'Ricarica la pagina e riprova.', 'errore');
@@ -75,7 +75,7 @@
   document.addEventListener('change', function (ev) {
     var input = ev.target;
     if (input.matches('[data-file]')) {
-      carica(input.closest('[data-campo-immagine]'), input.files[0]);
+      load(input.closest('[data-campo-immagine]'), input.files[0]);
       input.value = '';   // così si può ricaricare lo stesso file dopo un errore
     } else if (input.matches('[data-indirizzo]')) {
       anteprima(input.closest('[data-campo-immagine]'), input.value.trim());

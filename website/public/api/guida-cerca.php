@@ -21,7 +21,7 @@ header('Cache-Control: no-store');
 /** Domande al minuto per sessione: una persona che scrive non ci arriva mai, un copione si'. */
 const GUIDA_IA_MAX_AL_MINUTO = 30;
 
-function guida_api_json(array $dati, int $codice = 200): void {
+function guide_api_json(array $dati, int $codice = 200): void {
     http_response_code($codice);
     echo json_encode($dati, JSON_UNESCAPED_UNICODE);
     exit;
@@ -34,7 +34,7 @@ if ($ambito === 'staff') {
     // Stesso cancello del gestionale: login piu' almeno un permesso web. Niente redirect —
     // qui si risponde in JSON, e chi chiama e' un copione, non un browser che naviga.
     if (!current_user() || !can_manage()) {
-        guida_api_json(['ok' => false, 'nota' => 'Riservata allo staff.'], 403);
+        guide_api_json(['ok' => false, 'nota' => 'Riservata allo staff.'], 403);
     }
 }
 
@@ -51,11 +51,11 @@ $_SESSION['guida_ia'] = $recenti;
 session_write_close();
 
 if ($troppe) {
-    guida_api_json(['ok' => false, 'nota' => 'Troppe domande di fila. Riprova tra un minuto.'], 429);
+    guide_api_json(['ok' => false, 'nota' => 'Troppe domande di fila. Riprova tra un minuto.'], 429);
 }
 
 if ($domanda === '') {
-    guida_api_json(['ok' => false, 'nota' => 'Scrivi una domanda.'], 400);
+    guide_api_json(['ok' => false, 'nota' => 'Scrivi una domanda.'], 400);
 }
 
-guida_api_json(guida_ia_cerca($domanda, $ambito));
+guide_api_json(guide_ai_search($domanda, $ambito));

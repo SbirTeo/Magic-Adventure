@@ -27,12 +27,12 @@
 
   var misureImmagine = null;   // { w, h } del file, servono a trascinare con la mano giusta
 
-  function leggi(testo) {
-    var m = /^(\d{1,3})%\s+(\d{1,3})%$/.exec(String(testo || ''));
+  function read(text) {
+    var m = /^(\d{1,3})%\s+(\d{1,3})%$/.exec(String(text || ''));
     return m ? { x: +m[1], y: +m[2] } : { x: 50, y: 50 };
   }
 
-  function scrivi(tela, pos) {
+  function write(tela, pos) {
     var campo = campoDi(tela);
     var valore = Math.round(pos.x) + '% ' + Math.round(pos.y) + '%';
     if (campo) campo.value = valore;
@@ -41,15 +41,15 @@
 
   function posDi(tela) {
     var campo = campoDi(tela);
-    return leggi(campo ? campo.value : '');
+    return read(campo ? campo.value : '');
   }
 
-  function mostra(src) {
+  function show(src) {
     pannello.hidden = !src;
     if (!src) return;
     tele.forEach(function (t) {
       t.style.backgroundImage = 'url("' + src + '")';
-      scrivi(t, posDi(t));
+      write(t, posDi(t));
     });
     var img = new Image();
     img.onload = function () { misureImmagine = { w: img.naturalWidth, h: img.naturalHeight }; };
@@ -96,7 +96,7 @@
       pos.x = Math.max(0, Math.min(100, pos.x + d.x));
       pos.y = Math.max(0, Math.min(100, pos.y + d.y));
       trascino = { x: e.clientX, y: e.clientY };
-      scrivi(tela, pos);
+      write(tela, pos);
     });
 
     function fine(e) {
@@ -115,16 +115,16 @@
   if (bottoneCentra) {
     // Rimette al centro tutte e due: e' il pulsante "ricomincio da capo".
     bottoneCentra.addEventListener('click', function () {
-      tele.forEach(function (t) { scrivi(t, { x: 50, y: 50 }); });
+      tele.forEach(function (t) { write(t, { x: 50, y: 50 }); });
     });
   }
 
   // Se si cambia immagine (a mano o col pulsante Scegli) l'anteprima segue subito.
   if (campoImmagine) {
     ['change', 'input'].forEach(function (evento) {
-      campoImmagine.addEventListener(evento, function () { mostra(campoImmagine.value.trim()); });
+      campoImmagine.addEventListener(evento, function () { show(campoImmagine.value.trim()); });
     });
   }
 
-  mostra(pannello.getAttribute('data-src') || (campoImmagine ? campoImmagine.value.trim() : ''));
+  show(pannello.getAttribute('data-src') || (campoImmagine ? campoImmagine.value.trim() : ''));
 })();

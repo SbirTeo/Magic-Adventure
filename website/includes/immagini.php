@@ -60,7 +60,7 @@ function immagine_ottimizza(string $percorso): array
                 // deve comunque ricevere la versione leggera, non quella da due mega.
                 $salvata = match ($tipo) {
                     IMAGETYPE_JPEG => @imagejpeg($img, $percorso, 85),
-                    IMAGETYPE_PNG  => immagine_salva_png($img, $percorso),
+                    IMAGETYPE_PNG  => image_save_png($img, $percorso),
                     IMAGETYPE_WEBP => @imagewebp($img, $percorso, IMG_QUALITA_WEBP),
                     default        => false,
                 };
@@ -83,7 +83,7 @@ function immagine_ottimizza(string $percorso): array
 }
 
 /** PNG con la trasparenza intatta (senza imagesavealpha il fondo diventa nero). */
-function immagine_salva_png(\GdImage $img, string $percorso): bool
+function image_save_png(\GdImage $img, string $percorso): bool
 {
     imagealphablending($img, false);
     imagesavealpha($img, true);

@@ -16,7 +16,7 @@ import java.util.UUID;
 
 /**
  * I comandi di moderazione: {@code /ban}, {@code /tempban}, {@code /mute}, {@code /kick},
- * {@code /warn}, {@code /unban}, {@code /unmute}, {@code /storico}, {@code /sanzioni}.
+ * {@code /warn}, {@code /unban}, {@code /unmute}, {@code /history}, {@code /sanctions}.
  *
  * <p>Sono i nomi standard di proposito: lo staff non deve imparare comandi nuovi, e soprattutto
  * non deve esistere una seconda strada per sanzionare che sfugga all'archivio. Per questo i
@@ -50,10 +50,10 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
             case "unban", "unmute" -> {
                 return togli(chi, nome, args);
             }
-            case "storico" -> {
+            case "history" -> {
                 return storico(chi, args);
             }
-            case "sanzioni" -> {
+            case "sanctions" -> {
                 return riepilogo(chi, args);
             }
             default -> {
@@ -211,7 +211,7 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
 
     private boolean storico(CommandSender chi, String[] args) {
         if (args.length < 1) {
-            chi.sendMessage(Text.msg("&#FFD166Uso: &f/storico <giocatore>"));
+            chi.sendMessage(Text.msg("&#FFD166Uso: &f/history <giocatore>"));
             return true;
         }
         String bersaglio = args[0];
@@ -252,7 +252,7 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
         }
         String bersaglio = suDiAltri ? args[0] : (chi instanceof Player p ? p.getName() : null);
         if (bersaglio == null) {
-            chi.sendMessage(Text.msg("&#FFD166Uso: &f/sanzioni <giocatore>"));
+            chi.sendMessage(Text.msg("&#FFD166Uso: &f/sanctions <giocatore>"));
             return true;
         }
 

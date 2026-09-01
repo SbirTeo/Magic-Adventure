@@ -71,7 +71,7 @@ $righe = [];
 $categorieUsate = [];
 $conteggi = ['tutte' => 0, 'attive' => 0, 'ban' => 0, 'mute' => 0];
 
-if (sanzioni_pronte()) {
+if (sanctions_ready()) {
     $conta = db()->prepare("SELECT COUNT(*) FROM punishments s $sqlDove");
     $conta->execute($par);
     $totale = (int) $conta->fetchColumn();
@@ -126,7 +126,7 @@ require __DIR__ . '/../includes/header.php';
       <a href="/regolamento">Leggi il regolamento →</a>
     </p>
   </div>
-  <?php if (sanzioni_pronte() && $conteggi['tutte'] > 0): ?>
+  <?php if (sanctions_ready() && $conteggi['tutte'] > 0): ?>
     <div class="forum-numeri">
       <span><strong><?= $conteggi['tutte'] ?></strong> in tutto</span>
       <span><strong><?= $conteggi['attive'] ?></strong> in corso</span>
@@ -175,7 +175,7 @@ require __DIR__ . '/../includes/header.php';
         <select name="categoria">
           <option value="">Tutti</option>
           <?php foreach ($categorieUsate as $c): ?>
-            <option value="<?= h($c) ?>" <?= $categoria === $c ? 'selected' : '' ?>><?= h(sanzione_categoria($c)) ?></option>
+            <option value="<?= h($c) ?>" <?= $categoria === $c ? 'selected' : '' ?>><?= h(sanction_category($c)) ?></option>
           <?php endforeach; ?>
         </select>
       </label>
@@ -188,7 +188,7 @@ require __DIR__ . '/../includes/header.php';
   </div>
 </form>
 
-<?php if (!sanzioni_pronte()): ?>
+<?php if (!sanctions_ready()): ?>
   <div class="panel">
     <p style="margin:0; color:var(--text-dim);">
       L'archivio delle sanzioni non è ancora attivo su questo sito.
@@ -209,11 +209,11 @@ require __DIR__ . '/../includes/header.php';
   <div class="sanzioni-elenco">
     <?php foreach ($righe as $i => $s): ?>
       <?php
-        $statoVero = sanzione_stato($s);
+        $statoVero = sanction_status($s);
         $ricorso = $s['ricorso_stato'] ? ['status' => $s['ricorso_stato']] : null;
       ?>
       <article class="sanzione-riga<?= $statoVero !== 'attiva' ? ' e-conclusa' : '' ?>"
-               style="--accento:<?= h(sanzione_colore($s['type'])) ?>; --i:<?= (int) $i ?>">
+               style="--accento:<?= h(sanction_color($s['type'])) ?>; --i:<?= (int) $i ?>">
         <a class="forum-riga-link" href="/sanzione/<?= (int) $s['id'] ?>">Apri il provvedimento</a>
 
         <div class="sanzione-chi">
@@ -228,14 +228,14 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="sanzione-cosa">
           <div class="sanzione-titolo">
-            <span class="sanzione-tipo"><?= h(sanzione_tipo($s['type'])) ?></span>
-            <span class="sanzione-categoria"><?= h(sanzione_categoria((string) $s['category'])) ?></span>
+            <span class="sanzione-tipo"><?= h(sanction_type($s['type'])) ?></span>
+            <span class="sanzione-categoria"><?= h(sanction_category((string) $s['category'])) ?></span>
           </div>
           <p class="sanzione-motivo"><?= h($s['reason']) ?></p>
           <div class="sanzione-meta">
-            <span><?= h(sanzione_durata($s)) ?></span>
-            <?php if ($sc = sanzione_scadenza($s)): ?><span><?= h($sc) ?></span><?php endif; ?>
-            <span>da <?= h(sanzione_autore($s)) ?></span>
+            <span><?= h(sanction_duration($s)) ?></span>
+            <?php if ($sc = sanction_expiry($s)): ?><span><?= h($sc) ?></span><?php endif; ?>
+            <span>da <?= h(sanction_author($s)) ?></span>
             <?php if (($s['scope'] ?? 'entrambi') !== 'entrambi'): ?>
               <span><?= h(SANZIONI_AMBITI[$s['scope']] ?? $s['scope']) ?></span>
             <?php endif; ?>

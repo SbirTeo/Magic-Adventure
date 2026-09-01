@@ -102,35 +102,35 @@ public final class SanctionsConfig {
     }
 
     public SanctionsConfig(FileConfiguration c) {
-        this.sitoHost = c.getString("sito/host", "127.0.0.1");
-        this.sitoPort = c.getInt("sito/port", 3306);
-        this.sitoDatabase = c.getString("sito/database", "magicadventure_web");
-        this.sitoUser = c.getString("sito/user", "magicweb");
-        this.sitoPassword = c.getString("sito/password", "");
-        this.sitoPool = Math.max(1, c.getInt("sito/pool-size", 3));
-        this.controlloSecondi = Math.max(3, c.getInt("sito/controllo-secondi", 10));
+        this.sitoHost = c.getString("site/host", "127.0.0.1");
+        this.sitoPort = c.getInt("site/port", 3306);
+        this.sitoDatabase = c.getString("site/database", "magicadventure_web");
+        this.sitoUser = c.getString("site/user", "magicweb");
+        this.sitoPassword = c.getString("site/password", "");
+        this.sitoPool = Math.max(1, c.getInt("site/pool-size", 3));
+        this.controlloSecondi = Math.max(3, c.getInt("site/check-seconds", 10));
 
-        this.modo = c.getString("applicazione/modo", "misto").trim().toLowerCase();
-        this.durataMassimaAutomatica = Duration.leggi(c.getString("applicazione/durata-massima-automatica", "30d"));
-        this.messaggioBan = c.getString("applicazione/messaggio-ban", "&cSei stato bandito.\n&7{motivo}");
-        this.messaggioKick = c.getString("applicazione/messaggio-kick", "&eSei stato espulso.\n&7{motivo}");
-        this.messaggioMute = c.getString("applicazione/messaggio-mute", "&cNon puoi scrivere in chat: &f{motivo}");
+        this.modo = c.getString("application/mode", "misto").trim().toLowerCase();
+        this.durataMassimaAutomatica = Duration.leggi(c.getString("application/auto-max-duration", "30d"));
+        this.messaggioBan = c.getString("application/ban-message", "&cSei stato bandito.\n&7{motivo}");
+        this.messaggioKick = c.getString("application/kick-message", "&eSei stato espulso.\n&7{motivo}");
+        this.messaggioMute = c.getString("application/mute-message", "&cNon puoi scrivere in chat: &f{motivo}");
 
-        this.dimezzamentoGiorni = Math.max(1, c.getDouble("punti/dimezzamento-giorni", 90));
+        this.dimezzamentoGiorni = Math.max(1, c.getDouble("points/halving-days", 90));
 
-        for (Map<?, ?> riga : c.getMapList("punti/soglie")) {
-            Object p = riga.get("punti");
-            Type t = Type.da(String.valueOf(riga.get("tipo")));
+        for (Map<?, ?> riga : c.getMapList("points/thresholds")) {
+            Object p = riga.get("points");
+            Type t = Type.da(String.valueOf(riga.get("type")));
             if (p == null || t == null) {
                 continue;
             }
-            long durata = Duration.leggi(String.valueOf(riga.get("durata")));
+            long durata = Duration.leggi(String.valueOf(riga.get("duration")));
             soglie.add(new Soglia(((Number) p).intValue(), t, durata));
         }
         // Ordinate dalla piu' alta: cosi' basta prendere la prima superata.
         soglie.sort((a, b) -> Integer.compare(b.punti(), a.punti()));
 
-        ConfigurationSection cat = c.getConfigurationSection("categorie");
+        ConfigurationSection cat = c.getConfigurationSection("categories");
         if (cat != null) {
             for (String codice : cat.getKeys(false)) {
                 ConfigurationSection s = cat.getConfigurationSection(codice);
@@ -139,15 +139,15 @@ public final class SanctionsConfig {
                 }
                 categorie.put(codice, new Categoria(
                         codice,
-                        s.getString("nome", codice),
-                        s.getString("descrizione", ""),
-                        s.getInt("punti", 0),
-                        Scope.da(s.getString("ambito", "entrambi")),
-                        s.getBoolean("automatico", false)));
+                        s.getString("name", codice),
+                        s.getString("description", ""),
+                        s.getInt("points", 0),
+                        Scope.da(s.getString("scope", "entrambi")),
+                        s.getBoolean("automatic", false)));
             }
         }
 
-        ConfigurationSection pot = c.getConfigurationSection("poteri");
+        ConfigurationSection pot = c.getConfigurationSection("powers");
         if (pot != null) {
             for (String grado : pot.getKeys(false)) {
                 ConfigurationSection s = pot.getConfigurationSection(grado);
@@ -160,13 +160,13 @@ public final class SanctionsConfig {
             }
         }
 
-        this.reportAttivo = c.getBoolean("report/attivo", true);
-        this.reportPausaSecondi = Math.max(0, c.getInt("report/pausa-secondi", 60));
-        this.reportMassimoAperti = Math.max(1, c.getInt("report/massimo-aperte", 3));
-        this.reportMotivoMinimo = Math.max(1, c.getInt("report/motivo-minimo", 15));
+        this.reportAttivo = c.getBoolean("report/active", true);
+        this.reportPausaSecondi = Math.max(0, c.getInt("report/pause-seconds", 60));
+        this.reportMassimoAperti = Math.max(1, c.getInt("report/max-open", 3));
+        this.reportMotivoMinimo = Math.max(1, c.getInt("report/min-reason", 15));
 
-        this.generaRegolamento = c.getBoolean("regolamento/genera", true);
-        this.introduzioneRegolamento = c.getString("regolamento/introduzione", "");
+        this.generaRegolamento = c.getBoolean("rulebook/generate", true);
+        this.introduzioneRegolamento = c.getString("rulebook/intro", "");
     }
 
     /** La categoria, o quella "manuale" se il codice non e' fra quelle dichiarate. */

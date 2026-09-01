@@ -80,7 +80,7 @@
             <?php if ($g['categorie']): ?>
               <div class="rischio-categorie">
                 <?php foreach ($g['categorie'] as [$cat, $n]): ?>
-                  <span><?= h(sanzione_categoria($cat)) ?><?= $n > 1 ? " ×$n" : '' ?></span>
+                  <span><?= h(sanction_category($cat)) ?><?= $n > 1 ? " ×$n" : '' ?></span>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>

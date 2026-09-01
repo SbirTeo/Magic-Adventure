@@ -420,7 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             /** Copia una categoria (SENZA le sue discussioni) e restituisce l'id nuovo. */
-            $copia = function (array $c, ?int $dentro): int {
+            $clone = function (array $c, ?int $dentro): int {
                 $nome = mb_substr($c['name'] . ' (copia)', 0, 100);
                 $ins = db()->prepare('INSERT INTO forum_categories (name, slug, description, sort_order, color, parent_id)
                                       VALUES (?, ?, ?, ?, ?, ?)');
@@ -439,14 +439,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
             try {
                 // Le discussioni NON si copiano mai: si duplica solo l'impianto.
-                $nuovo = $copia($orig, $orig['parent_id'] ? (int) $orig['parent_id'] : null);
+                $nuovo = $clone($orig, $orig['parent_id'] ? (int) $orig['parent_id'] : null);
 
                 // Clonando una categoria che contiene sezioni, si ricrea anche la struttura:
                 // la copia nasce con le stesse sezioni, anch'esse vuote.
                 $figlieOrig = $pdo->prepare('SELECT * FROM forum_categories WHERE parent_id = ? ORDER BY sort_order, name');
                 $figlieOrig->execute([$id]);
                 foreach ($figlieOrig->fetchAll() as $f) {
-                    $copia($f, $nuovo);
+                    $clone($f, $nuovo);
                 }
                 $pdo->commit();
             } catch (Throwable $e) {
@@ -655,7 +655,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$uuid) {
                 redirect('/manage?section=sicurezza&err=1');
             }
-            otp_chiudi_sessione_gioco((string) $uuid, $me['mc_username']);
+            otp_close_game_session((string) $uuid, $me['mc_username']);
             redirect('/manage?section=sicurezza&ok=3');
         }
 
@@ -851,7 +851,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'guida_intro_save': {
             // Testo di apertura della pagina /tutorial. Vuoto = torna quello predefinito
-            // (vedi guida_intro() in helpers.php): la pagina non resta mai muta.
+            // (vedi guide_intro() in helpers.php): la pagina non resta mai muta.
             $intro = trim($_POST['tutorial_intro'] ?? '');
             if (mb_strlen($intro) > 600) {
                 $intro = mb_substr($intro, 0, 600);
@@ -1308,7 +1308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($nuovo === 'confermata') {
                 $tipo = (string) ($_POST['tipo'] ?? '');
                 if (isset(SANZIONI_TIPI[$tipo])) {
-                    $secondi = durata_in_secondi((string) ($_POST['durata'] ?? ''));
+                    $secondi = duration_in_seconds((string) ($_POST['durata'] ?? ''));
                     db()->prepare('UPDATE punishment_queue SET type = ?, duration_seconds = ? WHERE id = ? AND status = \'attesa\'')
                         ->execute([$tipo, $secondi === 0 ? null : $secondi, $id]);
                 }
@@ -1547,8 +1547,8 @@ if ($section === 'dashboard') {
           regolano a parte: finch&eacute; non tocchi la colonna del tema chiaro vale quella del tema scuro.
           La <strong>direzione</strong> &egrave; una sola per entrambi i temi.
         </p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= aiuto_velo('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= aiuto_velo('altezza') ?></p>
+        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
+        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
         <div class="tavolozze">
           <div class="tavolozza">
             <h4>&#9790; Tema scuro</h4>
@@ -2125,7 +2125,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="tutorial_intro">Testo di apertura</label>
           <textarea id="tutorial_intro" name="tutorial_intro" rows="6" maxlength="600"
-                    placeholder="<?= h(guida_intro()) ?>"><?= h($impGuida['tutorial_intro'] ?? '') ?></textarea>
+                    placeholder="<?= h(guide_intro()) ?>"><?= h($impGuida['tutorial_intro'] ?? '') ?></textarea>
           <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
             È il testo che apre la pagina, sopra la guida vera e propria. Lascia vuoto per
             rimettere quello predefinito (lo vedi in grigio qui sopra). Massimo 600 caratteri;
@@ -2183,7 +2183,7 @@ if ($section === 'dashboard') {
     }
 
     /** Una riga dell'elenco, uguale per principali e sotto-categorie. */
-    $rigaCategoria = function (array $c) use ($figlie): void { ?>
+    $categoryRow = function (array $c) use ($figlie): void { ?>
       <div class="riga-categoria">
         <span class="manina" title="Trascina per spostare" aria-hidden="true">&#10303;</span>
         <div class="riga-categoria-testo">
@@ -2261,12 +2261,12 @@ if ($section === 'dashboard') {
     <div class="forum-sort" id="forumSort" data-csrf="<?= h(csrf_token()) ?>">
       <?php foreach ($principali as $c): ?>
         <section class="forum-sort-gruppo" data-id="<?= (int) $c['id'] ?>" data-tipo="categoria">
-          <?php $rigaCategoria($c); ?>
+          <?php $categoryRow($c); ?>
           <?php /* Anche vuota deve restare: e' la zona in cui si lascia cadere una figlia. */ ?>
           <div class="forum-sort-figlie">
             <?php foreach ($figlie[(int) $c['id']] ?? [] as $f): ?>
               <div class="forum-sort-figlia" data-id="<?= (int) $f['id'] ?>" data-tipo="figlia">
-                <?php $rigaCategoria($f); ?>
+                <?php $categoryRow($f); ?>
               </div>
             <?php endforeach; ?>
           </div>
@@ -3073,8 +3073,8 @@ if ($section === 'dashboard') {
           $vSS = $imp['store_overlay_stop_chiaro'] ?? ($imp['store_overlay_stop'] ?? '55');
           $vSB = $imp['store_border_color_chiaro'] ?? ($imp['store_border_color'] ?? '#f0c75e');
         ?>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= aiuto_velo('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= aiuto_velo('altezza') ?></p>
+        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
+        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
         <div class="tavolozze">
           <div class="tavolozza">
             <h4>&#9790; Tema scuro</h4>
@@ -3447,8 +3447,8 @@ if ($section === 'dashboard') {
           $cVS = $editCat['overlay_stop_light'] ?? ($editCat['overlay_stop'] ?? ($imp['store_overlay_stop'] ?? '55'));
           $cVB = $editCat['border_color_light'] ?? ($editCat['border_color'] ?? ($imp['store_border_color'] ?? '#f0c75e'));
         ?>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= aiuto_velo('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= aiuto_velo('altezza') ?></p>
+        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
+        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
         <div class="tavolozze">
           <div class="tavolozza">
             <h4>&#9790; Tema scuro</h4>
@@ -3929,7 +3929,7 @@ if ($section === 'dashboard') {
 // ---------------------------------------------------------------------
 } elseif ($section === 'sanzioni') {
 
-    if (!sanzioni_pronte()) {
+    if (!sanctions_ready()) {
         ?>
         <div class="panel">
           <h3 style="margin-top:0;">Archivio non ancora attivo</h3>
@@ -4000,10 +4000,10 @@ if ($section === 'dashboard') {
                         <span class="coda-tipo coda-segnalazione">Segnalazione</span>
                         <span class="coda-fonte">da <?= h($c['proposed_by'] ?: 'un giocatore') ?></span>
                       <?php else: ?>
-                        <span class="coda-tipo"><?= h(sanzione_tipo((string) $c['type'])) ?></span>
-                        <span class="coda-cat"><?= h(sanzione_categoria((string) $c['category'])) ?></span>
+                        <span class="coda-tipo"><?= h(sanction_type((string) $c['type'])) ?></span>
+                        <span class="coda-cat"><?= h(sanction_category((string) $c['category'])) ?></span>
                         <span class="coda-durata">
-                          <?= h(durata_leggibile($c['duration_seconds'] === null ? null : (int) $c['duration_seconds'])) ?>
+                          <?= h(duration_readable($c['duration_seconds'] === null ? null : (int) $c['duration_seconds'])) ?>
                         </span>
                         <span class="coda-fonte">proposta da <?= h($c['proposed_by'] ?: $c['source']) ?></span>
                       <?php endif; ?>
@@ -4037,7 +4037,7 @@ if ($section === 'dashboard') {
                         <label>
                           <span>Durata</span>
                           <input type="text" name="durata" placeholder="30m, 6h, 3d, permanente"
-                                 value="<?= $c['duration_seconds'] === null ? '' : h(durata_leggibile_breve((int) $c['duration_seconds'])) ?>">
+                                 value="<?= $c['duration_seconds'] === null ? '' : h(duration_readable_short((int) $c['duration_seconds'])) ?>">
                         </label>
                         <button type="submit" class="btn btn-accent">Conferma e applica</button>
                       </form>
@@ -4069,8 +4069,8 @@ if ($section === 'dashboard') {
                 <div class="ricorso-riga">
                   <div class="coda-testa">
                     <strong><?= h($r['mc_username']) ?></strong>
-                    <span class="coda-tipo"><?= h(sanzione_tipo((string) $r['type'])) ?></span>
-                    <span class="coda-cat"><?= h(sanzione_categoria((string) $r['category'])) ?></span>
+                    <span class="coda-tipo"><?= h(sanction_type((string) $r['type'])) ?></span>
+                    <span class="coda-cat"><?= h(sanction_category((string) $r['category'])) ?></span>
                     <a href="/sanzione/<?= (int) $r['punishment_id'] ?>" target="_blank" rel="noopener">apri il provvedimento →</a>
                   </div>
                   <p class="coda-motivo"><em>Motivo della sanzione:</em> <?= h($r['reason']) ?></p>
@@ -4109,7 +4109,7 @@ if ($section === 'dashboard') {
               <?php foreach ($daApplicare as $r): ?>
                 <li>
                   <strong><?= h($r['mc_username']) ?></strong> —
-                  <?= h(sanzione_tipo((string) $r['type'])) ?>,
+                  <?= h(sanction_type((string) $r['type'])) ?>,
                   revocata da <?= h($r['revoked_by'] ?: 'staff') ?>
                   <?= $r['revoked_at'] ? h(time_ago((string) $r['revoked_at'])) : '' ?>
                 </li>
@@ -4136,15 +4136,15 @@ if ($section === 'dashboard') {
           <?php else: ?>
             <div class="archivio-elenco">
               <?php foreach ($archivio as $s): ?>
-                <?php $st = sanzione_stato($s); ?>
+                <?php $st = sanction_status($s); ?>
                 <div class="archivio-riga<?= $st !== 'attiva' ? ' e-conclusa' : '' ?>"
-                     style="--accento:<?= h(sanzione_colore((string) $s['type'])) ?>">
+                     style="--accento:<?= h(sanction_color((string) $s['type'])) ?>">
                   <div class="archivio-dati">
                     <div class="coda-testa">
                       <a href="/sanzione/<?= (int) $s['id'] ?>" target="_blank" rel="noopener"><strong><?= h($s['mc_username']) ?></strong></a>
-                      <span class="coda-tipo"><?= h(sanzione_tipo((string) $s['type'], 'breve')) ?></span>
-                      <span class="coda-cat"><?= h(sanzione_categoria((string) $s['category'])) ?></span>
-                      <span class="coda-durata"><?= h(sanzione_durata($s)) ?></span>
+                      <span class="coda-tipo"><?= h(sanction_type((string) $s['type'], 'breve')) ?></span>
+                      <span class="coda-cat"><?= h(sanction_category((string) $s['category'])) ?></span>
+                      <span class="coda-durata"><?= h(sanction_duration($s)) ?></span>
                       <span class="sanzione-pallino sanzione-<?= h($st) ?>"><?= h($st) ?></span>
                     </div>
                     <p class="coda-motivo"><?= h($s['reason']) ?></p>

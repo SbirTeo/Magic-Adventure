@@ -73,7 +73,7 @@ foreach ($utenti as &$u) {
     $eSostenitore = in_array($gruppo, $gruppiVip, true) || $acquisti > 0;
 
     $u['acquisti'] = $acquisti;
-    $u['online'] = e_sul_sito($u);
+    $u['online'] = is_on_site($u);
     $u['gruppi'] = array_values(array_filter([
         $eStaff ? 'staff' : null,
         $eSostenitore ? 'sostenitori' : null,
@@ -162,7 +162,7 @@ require __DIR__ . '/../includes/header.php';
       // Il baffo a sinistra prende il colore del grado piu' pesante (lo stesso del prefisso
       // in chat); grigio "vanilla" per chi non ha prefisso. Due tinte, come per i nomi.
       $baffo = $colore !== null
-          ? '--baffo:' . h($colore) . ';--baffo-chiaro:' . h(colore_leggibile($colore, '#ffffff'))
+          ? '--baffo:' . h($colore) . ';--baffo-chiaro:' . h(readable_color($colore, '#ffffff'))
           : '';
       $eIlTop = $topUuid !== null && $u['mc_uuid'] === $topUuid;
       $ultimaVolta = $u['last_seen'] ?: ($u['last_login'] ?: null);
@@ -177,7 +177,7 @@ require __DIR__ . '/../includes/header.php';
             $u['mc_uuid'], 44) ?>
 
       <span class="utente-card-testo">
-        <span class="utente-card-nome colore-grado"<?= $colore !== null ? ' style="' . stile_colore_grado($colore) . '"' : '' ?>>
+        <span class="utente-card-nome colore-grado"<?= $colore !== null ? ' style="' . rank_color_style($colore) . '"' : '' ?>>
           <?= h($u['mc_username']) ?>
         </span>
         <span class="utente-card-gradi">
@@ -235,7 +235,7 @@ require __DIR__ . '/../includes/header.php';
     });
   }
 
-  function disegna() {
+  function draw() {
     var lista = candidate();
     var visibili = Math.min(mostrate, lista.length);
 
@@ -268,13 +268,13 @@ require __DIR__ . '/../includes/header.php';
         altro.classList.toggle('e-attivo', attivo);
         altro.setAttribute('aria-pressed', attivo ? 'true' : 'false');
       });
-      disegna();
+      draw();
     });
   });
 
   altri.addEventListener('click', function () {
     mostrate += PASSO;
-    disegna();
+    draw();
     // Il fuoco va alla prima tessera appena comparsa: chi naviga da tastiera continua da li'
     var nuove = elenco.querySelectorAll('.utente-card:not([hidden])');
     var prima = nuove[Math.max(0, mostrate - PASSO)];
@@ -283,7 +283,7 @@ require __DIR__ . '/../includes/header.php';
 
   campo.addEventListener('input', function () {
     mostrate = PASSO;            // una ricerca nuova riparte dalle prime 20
-    disegna();
+    draw();
   });
   campo.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter') return;
@@ -294,11 +294,11 @@ require __DIR__ . '/../includes/header.php';
   pulisci.addEventListener('click', function () {
     campo.value = '';
     mostrate = PASSO;
-    disegna();
+    draw();
     campo.focus();
   });
 
-  disegna();
+  draw();
 })();
 </script>
 

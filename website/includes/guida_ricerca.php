@@ -46,7 +46,7 @@ const GUIDA_IA_COPERTURA_MINIMA = 0.34;
  * Ci stanno dentro anche le parole interrogative: servono a capire il TIPO di domanda
  * (vedi guida_ia_apertura), non a cercare.
  */
-function guida_ia_stopword(): array {
+function guide_ai_stopword(): array {
     static $set = null;
     if ($set === null) {
         $set = array_flip(preg_split('~\s+~', trim('
@@ -73,7 +73,7 @@ function guida_ia_stopword(): array {
  * Vale in una direzione sola — dalla domanda alla guida — e con peso ridotto: un sinonimo
  * indovinato da noi non deve mai contare quanto una parola scritta davvero.
  */
-function guida_ia_sinonimi(): array {
+function guide_ai_synonyms(): array {
     return [
         // --- territori --------------------------------------------------
         'chunk' => ['territorio', 'terreno'],
@@ -150,7 +150,7 @@ function guida_ia_sinonimi(): array {
 // =====================================================================
 
 /** Minuscole e accenti via: "Potenza", "potenza" e "poténza" devono essere la stessa cosa. */
-function guida_ia_normalizza(string $testo): string {
+function guide_ai_normalize(string $testo): string {
     $testo = mb_strtolower($testo, 'UTF-8');
     return strtr($testo, [
         'à' => 'a', 'á' => 'a', 'â' => 'a', 'ä' => 'a',
@@ -166,8 +166,8 @@ function guida_ia_normalizza(string $testo): string {
  * Le parole di un testo. I comandi restano interi ("/f") perche' sono il modo piu' preciso
  * di indovinare la risposta: chi scrive "/f sethome" sa gia' cosa cerca.
  */
-function guida_ia_parole(string $testo): array {
-    preg_match_all('~/[a-z]{1,14}|[a-z][a-z0-9]+~', guida_ia_normalizza($testo), $trovate);
+function guide_ai_words(string $testo): array {
+    preg_match_all('~/[a-z]{1,14}|[a-z][a-z0-9]+~', guide_ai_normalize($testo), $trovate);
     return $trovate[0];
 }
 
@@ -177,7 +177,7 @@ function guida_ia_parole(string $testo): array {
  * le desinenze italiane piu' frequenti e poi le vocali finali, ma solo finche' resta
  * abbastanza parola da distinguerla dalle altre.
  */
-function guida_ia_radice(string $parola): string {
+function guide_ai_root(string $parola): string {
     if ($parola === '' || $parola[0] === '/') {
         return $parola;                       // i comandi non si tagliano mai
     }
@@ -209,14 +209,14 @@ function guida_ia_radice(string $parola): string {
 }
 
 /** Conteggio delle radici di un testo: [radice => quante volte]. */
-function guida_ia_conta(string $testo): array {
+function guide_ai_count(string $testo): array {
     $conteggio = [];
-    $stopword = guida_ia_stopword();
-    foreach (guida_ia_parole($testo) as $parola) {
+    $stopword = guide_ai_stopword();
+    foreach (guide_ai_words($testo) as $parola) {
         if (isset($stopword[$parola]) || strlen($parola) < 2) {
             continue;
         }
-        $radice = guida_ia_radice($parola);
+        $radice = guide_ai_root($parola);
         $conteggio[$radice] = ($conteggio[$radice] ?? 0) + 1;
     }
     return $conteggio;
@@ -227,7 +227,7 @@ function guida_ia_conta(string $testo): array {
 // =====================================================================
 
 /** Testo semplice da un frammento di HTML (entita' sciolte, spazi normalizzati). */
-function guida_ia_testo(string $html): string {
+function guide_ai_text(string $html): string {
     $testo = preg_replace('~<(script|style)\b[^>]*>.*?</\1>~is', ' ', $html);
     $testo = preg_replace('~<[^>]+>~', ' ', (string) $testo);
     $testo = html_entity_decode((string) $testo, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -241,7 +241,7 @@ function guida_ia_testo(string $html): string {
  * attributi che sopravvivono a strip_tags sarebbero l'unico modo di infilare qui roba non
  * voluta.
  */
-function guida_ia_ripulisci(string $html): string {
+function guide_ai_cleanup(string $html): string {
     // I comandi della guida sono <span class="cmd">: diventano <code>, che il sito veste gia'.
     $html = preg_replace('~<span\s+class="cmd"[^>]*>(.*?)</span>~is', '<code>$1</code>', $html);
     // Le voci di elenco diventano righe col punto elenco davanti: niente <ul> a meta'.
@@ -266,7 +266,7 @@ function guida_ia_ripulisci(string $html): string {
  * @param string $corpo    HTML del capitolo
  * @param string $tagSotto tag dei sotto-titoli: h3 nella guida dei giocatori, h4 in quella dello staff
  */
-function guida_ia_passaggi(string $corpo, string $tagSotto = 'h3'): array {
+function guide_ai_steps(string $corpo, string $tagSotto = 'h3'): array {
     $passaggi = [];
     $sotto = '';
     $schema = '~<' . $tagSotto . '\b[^>]*>(?P<sotto>.*?)</' . $tagSotto . '>'
@@ -278,7 +278,7 @@ function guida_ia_passaggi(string $corpo, string $tagSotto = 'h3'): array {
     preg_match_all($schema, $corpo, $blocchi, PREG_SET_ORDER);
     foreach ($blocchi as $b) {
         if (($b['sotto'] ?? '') !== '') {
-            $sotto = guida_ia_testo($b['sotto']);
+            $sotto = guide_ai_text($b['sotto']);
             continue;
         }
         $html = '';
@@ -288,8 +288,8 @@ function guida_ia_passaggi(string $corpo, string $tagSotto = 'h3'): array {
                 break;
             }
         }
-        $pulito = guida_ia_ripulisci($html);
-        $testo = guida_ia_testo($html);
+        $pulito = guide_ai_cleanup($html);
+        $testo = guide_ai_text($html);
         // Scarti: intestazioni di tabella, "↑ Torna su", righe rimaste vuote.
         if (mb_strlen($testo) < 12 || preg_match('~^(comando\s|cosa fa|torna su)~iu', $testo)) {
             continue;
@@ -301,21 +301,21 @@ function guida_ia_passaggi(string $corpo, string $tagSotto = 'h3'): array {
             // Le righe della tabella dei comandi si segnano: sono un promemoria di una riga,
             // non la spiegazione. A parita' di punteggio deve vincere il capitolo che spiega.
             'riga'  => ($b['riga'] ?? '') !== '',
-            'tf'    => guida_ia_conta($testo),
-            'tfs'   => guida_ia_conta($sotto),
+            'tf'    => guide_ai_count($testo),
+            'tfs'   => guide_ai_count($sotto),
         ];
     }
     return $passaggi;
 }
 
 /** Percorso della guida dei giocatori (il file che il server riscrive da solo). */
-function guida_ia_file_pubblico(): string {
+function guide_ai_public_file(): string {
     return __DIR__ . '/../public/assets/guida/magixfactions.html';
 }
 
 /** I capitoli della guida dei giocatori. */
-function guida_ia_capitoli_pubblici(): array {
-    $file = guida_ia_file_pubblico();
+function guide_ai_public_chapters(): array {
+    $file = guide_ai_public_file();
     if (!is_file($file)) {
         return [];
     }
@@ -328,8 +328,8 @@ function guida_ia_capitoli_pubblici(): array {
             continue;
         }
         $numero = preg_match('~<span class="n">(\d+)</span>~', $t[1], $n) ? $n[1] : '';
-        $titolo = guida_ia_testo(preg_replace('~<span class="n">.*?</span>~is', '', $t[1]) ?? '');
-        $passaggi = guida_ia_passaggi($corpo, 'h3');
+        $titolo = guide_ai_text(preg_replace('~<span class="n">.*?</span>~is', '', $t[1]) ?? '');
+        $passaggi = guide_ai_steps($corpo, 'h3');
         if (!$passaggi) {
             continue;
         }
@@ -338,7 +338,7 @@ function guida_ia_capitoli_pubblici(): array {
             'numero'   => $numero,
             'titolo'   => $titolo,
             'gruppo'   => '',
-            'tf'       => guida_ia_conta($titolo),
+            'tf'       => guide_ai_count($titolo),
             'passaggi' => $passaggi,
         ];
     }
@@ -351,7 +351,7 @@ function guida_ia_capitoli_pubblici(): array {
  * cosi' la risposta rimanda al punto giusto e non a mezzo manuale. L'ancora resta pero'
  * quella del plugin, che e' l'unico id che esiste davvero nella pagina.
  */
-function guida_ia_capitoli_staff(): array {
+function guide_ai_staff_chapters(): array {
     require_once __DIR__ . '/sanzioni.php';
     $capitoli = [];
     foreach (guide_staff_capitoli() as $c) {
@@ -362,8 +362,8 @@ function guida_ia_capitoli_staff(): array {
         // Il testo prima del primo <h4> e' l'introduzione del plugin: vale come blocco suo.
         $pezzi = preg_split('~(?=<h4\b)~i', $corpo) ?: [];
         foreach ($pezzi as $pezzo) {
-            $sottoTitolo = preg_match('~<h4[^>]*>(.*?)</h4>~is', $pezzo, $h) ? guida_ia_testo($h[1]) : '';
-            $passaggi = guida_ia_passaggi($pezzo, 'h5');
+            $sottoTitolo = preg_match('~<h4[^>]*>(.*?)</h4>~is', $pezzo, $h) ? guide_ai_text($h[1]) : '';
+            $passaggi = guide_ai_steps($pezzo, 'h5');
             if (!$passaggi) {
                 continue;
             }
@@ -374,7 +374,7 @@ function guida_ia_capitoli_staff(): array {
                 'gruppo'   => $titoloPlugin,
                 // Il nome del plugin pesa come il titolo: "come configuro MagixTime" deve
                 // portare al capitolo di MagixTime, non a quello che nomina i minuti.
-                'tf'       => guida_ia_conta($sottoTitolo . ' ' . $titoloPlugin . ' ' . $c['plugin']),
+                'tf'       => guide_ai_count($sottoTitolo . ' ' . $titoloPlugin . ' ' . $c['plugin']),
                 'passaggi' => $passaggi,
             ];
         }
@@ -390,8 +390,8 @@ function guida_ia_capitoli_staff(): array {
  * L'indice completo di una guida: capitoli, passaggi e in quanti passaggi compare ogni
  * radice (serve a capire quali parole sono rare, cioe' quali contano davvero).
  */
-function guida_ia_costruisci(string $ambito): array {
-    $capitoli = $ambito === 'staff' ? guida_ia_capitoli_staff() : guida_ia_capitoli_pubblici();
+function guide_ai_build(string $ambito): array {
+    $capitoli = $ambito === 'staff' ? guide_ai_staff_chapters() : guide_ai_public_chapters();
     $df = [];
     $totale = 0;
     foreach ($capitoli as $c) {
@@ -409,7 +409,7 @@ function guida_ia_costruisci(string $ambito): array {
  * Da cosa dipende la freschezza dell'indice: la data del file per la guida dei giocatori,
  * l'ultima riscrittura dei plugin per quella dello staff. Cambia quella, si rifa' l'indice.
  */
-function guida_ia_impronta(string $ambito): string {
+function guide_ai_fingerprint(string $ambito): string {
     if ($ambito === 'staff') {
         try {
             $riga = db()->query('SELECT COUNT(*) c, COALESCE(MAX(updated_at), "") m FROM guide_staff')->fetch();
@@ -418,7 +418,7 @@ function guida_ia_impronta(string $ambito): string {
             return 'staff:vuota';
         }
     }
-    $file = guida_ia_file_pubblico();
+    $file = guide_ai_public_file();
     return 'pubblica:' . (is_file($file) ? filemtime($file) . ':' . filesize($file) : '0');
 }
 
@@ -428,12 +428,12 @@ function guida_ia_impronta(string $ambito): string {
  * cambia. Se la cartella temporanea non e' scrivibile non succede niente di grave — si
  * ricostruisce ogni volta e la ricerca funziona lo stesso, solo piu' lenta.
  */
-function guida_ia_indice(string $ambito): array {
+function guide_ai_index(string $ambito): array {
     static $memoria = [];
     if (isset($memoria[$ambito])) {
         return $memoria[$ambito];
     }
-    $impronta = guida_ia_impronta($ambito);
+    $impronta = guide_ai_fingerprint($ambito);
     // Nel nome c'e' anche l'utente di sistema: lo stesso indice puo' venire costruito dal
     // sito (www-data) e da una prova a riga di comando (un'altra utenza), e un file scritto
     // dall'altro sarebbe leggibile ma non riscrivibile — cioe' una cache che non si aggiorna
@@ -449,7 +449,7 @@ function guida_ia_indice(string $ambito): array {
         }
     }
 
-    $indice = guida_ia_costruisci($ambito);
+    $indice = guide_ai_build($ambito);
     @file_put_contents($cache, serialize(['impronta' => $impronta, 'indice' => $indice]), LOCK_EX);
     return $memoria[$ambito] = $indice;
 }
@@ -462,18 +462,18 @@ function guida_ia_indice(string $ambito): array {
  * La domanda tradotta in radici pesate. Le parole scritte dal giocatore valgono 1; i
  * sinonimi che aggiungiamo noi valgono meno di meta': sono un'ipotesi, non un dato.
  */
-function guida_ia_domanda(string $domanda): array {
-    $stopword = guida_ia_stopword();
-    $sinonimi = guida_ia_sinonimi();
+function guide_ai_question(string $domanda): array {
+    $stopword = guide_ai_stopword();
+    $sinonimi = guide_ai_synonyms();
     $termini = [];
     $gruppi = [];
-    $parole = guida_ia_parole($domanda);
+    $parole = guide_ai_words($domanda);
 
     foreach ($parole as $parola) {
         if (isset($stopword[$parola]) || strlen($parola) < 2) {
             continue;
         }
-        $radice = guida_ia_radice($parola);
+        $radice = guide_ai_root($parola);
         $termini[$radice] = max($termini[$radice] ?? 0, 1.0);
         // Ogni parola della domanda si porta dietro i suoi sinonimi in un GRUPPO. Serve piu'
         // avanti per la copertura: "come torno alla base" e' una domanda di due parole, non
@@ -481,7 +481,7 @@ function guida_ia_domanda(string $domanda): array {
         // risposto a meta'.
         $gruppo = [$radice];
         foreach ($sinonimi[$parola] ?? [] as $simile) {
-            $r = guida_ia_radice($simile);
+            $r = guide_ai_root($simile);
             $termini[$r] = max($termini[$r] ?? 0, 0.45);
             $gruppo[] = $r;
         }
@@ -491,12 +491,12 @@ function guida_ia_domanda(string $domanda): array {
         'termini' => $termini,
         'gruppi'  => $gruppi,
         'parole'  => $parole,
-        'frase'   => guida_ia_normalizza($domanda),
+        'frase'   => guide_ai_normalize($domanda),
     ];
 }
 
 /** Quanto e' rara una radice: una parola in due passaggi su duecento vale piu' di "fazione". */
-function guida_ia_rarita(array $indice, string $radice): float {
+function guide_ai_rarity(array $indice, string $radice): float {
     $totale = max(1, $indice['passaggi']);
     $in = $indice['df'][$radice] ?? 0;
     return log(1 + $totale / (1 + $in));
@@ -509,7 +509,7 @@ function guida_ia_rarita(array $indice, string $radice): float {
  *    batte sempre uno che ripete cinque volte la prima. E' la differenza tra rispondere alla
  *    domanda e rispondere a una parola della domanda.
  */
-function guida_ia_punteggio(array $indice, array $domanda, array $capitolo, array $passaggio): float {
+function guide_ai_score(array $indice, array $domanda, array $capitolo, array $passaggio): float {
     $punti = 0.0;
     $trovataRara = false;
 
@@ -520,7 +520,7 @@ function guida_ia_punteggio(array $indice, array $domanda, array $capitolo, arra
         if (!$nelCorpo && !$nelSotto && !$nelTitolo) {
             continue;
         }
-        $rarita = guida_ia_rarita($indice, $radice);
+        $rarita = guide_ai_rarity($indice, $radice);
         $punti += $peso * $rarita * (min($nelCorpo, 4) * 0.8 + $nelSotto * 1.4 + $nelTitolo * 2.2);
         if ($rarita >= 1.0 && $peso >= 1.0) {
             $trovataRara = true;      // almeno una parola di sostanza, non solo sinonimi
@@ -529,7 +529,7 @@ function guida_ia_punteggio(array $indice, array $domanda, array $capitolo, arra
     if ($punti <= 0) {
         return 0.0;
     }
-    $punti *= 0.3 + 0.7 * guida_ia_copertura($domanda, $capitolo, $passaggio);
+    $punti *= 0.3 + 0.7 * guide_ai_coverage($domanda, $capitolo, $passaggio);
     if (!$trovataRara) {
         $punti *= 0.5;
     }
@@ -542,8 +542,8 @@ function guida_ia_punteggio(array $indice, array $domanda, array $capitolo, arra
     }
     // La domanda ricopiata dentro il passaggio ("conquistare un territorio") e' il segnale
     // piu' forte che esista: un premio, non un raddoppio.
-    $normale = guida_ia_normalizza($passaggio['testo']);
-    $stopword = guida_ia_stopword();
+    $normale = guide_ai_normalize($passaggio['testo']);
+    $stopword = guide_ai_stopword();
     $parole = array_values(array_filter($domanda['parole'],
         fn($p) => !isset($stopword[$p]) && strlen($p) > 2));
     for ($i = 0; $i + 1 < count($parole); $i++) {
@@ -560,7 +560,7 @@ function guida_ia_punteggio(array $indice, array $domanda, array $capitolo, arra
  * Si contano le parole scritte dal giocatore, non le radici: una parola vale coperta anche
  * se a comparire e' un suo sinonimo, altrimenti chi usa parole sue verrebbe punito due volte.
  */
-function guida_ia_copertura(array $domanda, array $capitolo, array $passaggio): float {
+function guide_ai_coverage(array $domanda, array $capitolo, array $passaggio): float {
     $gruppi = $domanda['gruppi'] ?: [];
     if (!$gruppi) {
         return 0.0;
@@ -579,7 +579,7 @@ function guida_ia_copertura(array $domanda, array $capitolo, array $passaggio): 
 }
 
 /** Evidenzia nella risposta le parole della domanda, senza mai entrare dentro i tag. */
-function guida_ia_evidenzia(string $html, array $domanda): string {
+function guide_ai_highlight(string $html, array $domanda): string {
     $radici = array_keys(array_filter($domanda['termini'], fn($p) => $p >= 1.0));
     if (!$radici) {
         return $html;
@@ -590,7 +590,7 @@ function guida_ia_evidenzia(string $html, array $domanda): string {
             continue;
         }
         $pezzi[$i] = preg_replace_callback('~[\p{L}\p{N}]+~u', function ($m) use ($radici) {
-            $radice = guida_ia_radice(guida_ia_normalizza($m[0]));
+            $radice = guide_ai_root(guide_ai_normalize($m[0]));
             return in_array($radice, $radici, true) ? '<mark>' . $m[0] . '</mark>' : $m[0];
         }, $pezzo);
     }
@@ -598,7 +598,7 @@ function guida_ia_evidenzia(string $html, array $domanda): string {
 }
 
 /** Il nome per esteso di un capitolo, come compare sotto la risposta. */
-function guida_ia_etichetta(array $capitolo): string {
+function guide_ai_label(array $capitolo): string {
     $titolo = $capitolo['titolo'];
     if ($capitolo['numero'] !== '') {
         $titolo = $capitolo['numero'] . '. ' . $titolo;
@@ -615,7 +615,7 @@ function guida_ia_etichetta(array $capitolo): string {
  * che si sta per leggere e, se la domanda chiedeva un comando e nel passaggio c'e', mette
  * subito il comando in cima.
  */
-function guida_ia_apertura(array $domanda, array $capitolo, array $passaggi): string {
+function guide_ai_intro(array $domanda, array $capitolo, array $passaggi): string {
     $chiedeComando = (bool) preg_match(
         '~\b(comando|comandi|come si|come faccio|come fare|come posso|qual e)\b~u', $domanda['frase']);
     $apertura = '';
@@ -627,8 +627,8 @@ function guida_ia_apertura(array $domanda, array $capitolo, array $passaggi): st
         $massimo = -1;
         foreach ($trovati[1] as $codice) {
             $affinita = 0;
-            foreach (guida_ia_parole(guida_ia_testo($codice)) as $parola) {
-                if (($domanda['termini'][guida_ia_radice($parola)] ?? 0) > 0) {
+            foreach (guide_ai_words(guide_ai_text($codice)) as $parola) {
+                if (($domanda['termini'][guide_ai_root($parola)] ?? 0) > 0) {
                     $affinita++;
                 }
             }
@@ -641,11 +641,11 @@ function guida_ia_apertura(array $domanda, array $capitolo, array $passaggi): st
         // come &lt;nome&gt;), e riescaparlo lo farebbe leggere "&amp;lt;nome&amp;gt;".
         $apertura = 'Comando: <code>' . strip_tags($migliore) . '</code>. ';
     }
-    return $apertura . 'Dalla guida, capitolo <strong>' . h(guida_ia_etichetta($capitolo)) . '</strong>:';
+    return $apertura . 'Dalla guida, capitolo <strong>' . h(guide_ai_label($capitolo)) . '</strong>:';
 }
 
 /** Gli altri capitoli che parlano della stessa cosa, per chi vuole leggere il resto. */
-function guida_ia_correlati(array $indice, array $perCapitolo, int $escluso): array {
+function guide_ai_related(array $indice, array $perCapitolo, int $escluso): array {
     arsort($perCapitolo);
     $massimo = reset($perCapitolo) ?: 0;
     $fuori = [];
@@ -656,7 +656,7 @@ function guida_ia_correlati(array $indice, array $perCapitolo, int $escluso): ar
         $c = $indice['capitoli'][$ic];
         // Nella guida dello staff piu' blocchi condividono la stessa ancora (il plugin):
         // due voci che portano allo stesso punto sarebbero solo rumore.
-        $fuori[$c['ancora']] = ['titolo' => guida_ia_etichetta($c), 'ancora' => $c['ancora']];
+        $fuori[$c['ancora']] = ['titolo' => guide_ai_label($c), 'ancora' => $c['ancora']];
         if (count($fuori) >= GUIDA_IA_MAX_CORRELATI) {
             break;
         }
@@ -665,10 +665,10 @@ function guida_ia_correlati(array $indice, array $perCapitolo, int $escluso): ar
 }
 
 /** Quando non c'e' proprio niente: i primi capitoli, come punto di partenza. */
-function guida_ia_suggerimenti(array $indice): array {
+function guide_ai_suggestions(array $indice): array {
     $fuori = [];
     foreach (array_slice($indice['capitoli'], 0, GUIDA_IA_MAX_CORRELATI) as $c) {
-        $fuori[] = ['titolo' => guida_ia_etichetta($c), 'ancora' => $c['ancora']];
+        $fuori[] = ['titolo' => guide_ai_label($c), 'ancora' => $c['ancora']];
     }
     return $fuori;
 }
@@ -678,7 +678,7 @@ function guida_ia_suggerimenti(array $indice): array {
  *
  * @return array{ok:bool,apertura:string,passaggi:array,fonte:?array,correlati:array,nota:string}
  */
-function guida_ia_cerca(string $testoDomanda, string $ambito = 'pubblica'): array {
+function guide_ai_search(string $testoDomanda, string $ambito = 'pubblica'): array {
     $ambito = $ambito === 'staff' ? 'staff' : 'pubblica';
     $vuota = ['ok' => false, 'apertura' => '', 'passaggi' => [], 'fonte' => null,
               'correlati' => [], 'nota' => ''];
@@ -688,16 +688,16 @@ function guida_ia_cerca(string $testoDomanda, string $ambito = 'pubblica'): arra
         return array_merge($vuota, ['nota' => 'Scrivi una domanda un po\' più lunga.']);
     }
 
-    $indice = guida_ia_indice($ambito);
+    $indice = guide_ai_index($ambito);
     if (!$indice['capitoli']) {
         return array_merge($vuota, ['nota' => 'La guida non è al momento disponibile.']);
     }
 
-    $domanda = guida_ia_domanda($testoDomanda);
+    $domanda = guide_ai_question($testoDomanda);
     if (!$domanda['termini']) {
         return array_merge($vuota, [
             'nota' => 'Nella domanda non c\'è nessuna parola da cercare.',
-            'correlati' => guida_ia_suggerimenti($indice),
+            'correlati' => guide_ai_suggestions($indice),
         ]);
     }
 
@@ -717,7 +717,7 @@ function guida_ia_cerca(string $testoDomanda, string $ambito = 'pubblica'): arra
     if (!$domanda['gruppi']) {
         return array_merge($vuota, [
             'nota' => 'Nella guida non ho trovato niente su questo.',
-            'correlati' => guida_ia_suggerimenti($indice),
+            'correlati' => guide_ai_suggestions($indice),
         ]);
     }
 
@@ -726,7 +726,7 @@ function guida_ia_cerca(string $testoDomanda, string $ambito = 'pubblica'): arra
     $perCapitolo = [];
     foreach ($indice['capitoli'] as $ic => $capitolo) {
         foreach ($capitolo['passaggi'] as $ip => $passaggio) {
-            $punti = guida_ia_punteggio($indice, $domanda, $capitolo, $passaggio);
+            $punti = guide_ai_score($indice, $domanda, $capitolo, $passaggio);
             if ($punti <= 0) {
                 continue;
             }
@@ -742,7 +742,7 @@ function guida_ia_cerca(string $testoDomanda, string $ambito = 'pubblica'): arra
     if (!$classifica) {
         return array_merge($vuota, [
             'nota' => 'Nella guida non ho trovato niente su questo.',
-            'correlati' => guida_ia_suggerimenti($indice),
+            'correlati' => guide_ai_suggestions($indice),
         ]);
     }
 
@@ -752,11 +752,11 @@ function guida_ia_cerca(string $testoDomanda, string $ambito = 'pubblica'): arra
 
     // Quanta parte della domanda ha trovato davvero risposta: se e' poca, e' piu' onesto
     // dire "non lo so" e mostrare i capitoli vicini che spacciare un paragrafo a caso.
-    $copertura = guida_ia_copertura($domanda, $capitolo, $capitolo['passaggi'][$migliore['passaggio']]);
+    $copertura = guide_ai_coverage($domanda, $capitolo, $capitolo['passaggi'][$migliore['passaggio']]);
     if ($copertura < GUIDA_IA_COPERTURA_MINIMA) {
         return array_merge($vuota, [
             'nota' => 'Nella guida non ho trovato una risposta chiara. Forse cercavi:',
-            'correlati' => guida_ia_correlati($indice, $perCapitolo, -1),
+            'correlati' => guide_ai_related($indice, $perCapitolo, -1),
         ]);
     }
 
@@ -782,19 +782,19 @@ function guida_ia_cerca(string $testoDomanda, string $ambito = 'pubblica'): arra
         $p = $capitolo['passaggi'][$ip];
         $passaggi[] = [
             'sotto' => $p['sotto'],
-            'html'  => guida_ia_evidenzia($p['html'], $domanda),
+            'html'  => guide_ai_highlight($p['html'], $domanda),
         ];
     }
 
     return [
         'ok'        => true,
-        'apertura'  => guida_ia_apertura($domanda, $capitolo, $passaggi),
+        'apertura'  => guide_ai_intro($domanda, $capitolo, $passaggi),
         'passaggi'  => $passaggi,
         'fonte'     => [
-            'titolo' => guida_ia_etichetta($capitolo),
+            'titolo' => guide_ai_label($capitolo),
             'ancora' => $capitolo['ancora'],
         ],
-        'correlati' => guida_ia_correlati($indice, $perCapitolo, $migliore['capitolo']),
+        'correlati' => guide_ai_related($indice, $perCapitolo, $migliore['capitolo']),
         'nota'      => '',
     ];
 }

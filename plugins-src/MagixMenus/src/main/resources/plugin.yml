@@ -21,5 +21,5 @@ permissions:
     description: Aprire i menu che non chiedono un permesso proprio.
     default: true
   magixmenus.admin:
-    description: Ricaricare, elencare e aprire i menu agli altri (/menus reload, lista, info, apri).
+    description: Ricaricare, elencare e aprire i menu agli altri (/menus reload, list, info, open).
     default: op

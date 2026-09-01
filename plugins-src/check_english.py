@@ -42,6 +42,24 @@ ITALIAN_WORDS = {
     "clic", "aperto", "chiuso", "colori", "colore", "impostazioni", "registro", "servizio",
     "premio", "premi", "bersaglio", "giocatore", "giocatori", "messaggio", "messaggi", "utente",
     "utenti", "fazione", "fazioni", "territorio", "stagione", "meteo", "spawn",  # spawn stays (MC term)
+    # Verbs and nouns that show up in function/method names, especially on the website (JS/PHP).
+    # Added when the web check started scanning function names too (see check_english_web.py). All
+    # unambiguously Italian — never a legitimate English identifier word.
+    "salva", "salvato", "scrivi", "carica", "caricato", "ricarica", "aggiorna", "aggiornato",
+    "disegna", "ridisegna", "apri", "chiudi", "avvia", "ferma", "riavvia", "riordina", "svuota",
+    "copia", "invia", "manda", "leggi", "mostra", "nascondi", "cerca", "seleziona", "scegli",
+    "sposta", "aggiungi", "togli", "rimuovi", "crea", "modifica", "elimina", "cancella", "genera",
+    "applica", "controlla", "avvisa", "elenca", "icona", "icone", "riquadro", "casella", "caselle",
+    # Parole che compaiono come COMANDI o SOTTOCOMANDI o NODI DI PERMESSO (li controlla
+    # check_commands.py). La regola vale anche per loro: nessun comando/config in italiano.
+    "lista", "aiuto", "ricarica", "registrati", "silenzia", "espelli", "richiamo", "storico",
+    "cronologia", "segnala", "esci", "disconnetti", "codice", "revoca", "sanziona", "cambiapassword",
+    "cambiapw", "cambia",
+    # Parole che compaiono come CHIAVI di config (le controlla check_config_english.py).
+    "membri", "membro", "categoria", "categorie", "poteri", "potere", "introduzione", "applicazione",
+    "motivo", "pausa", "massimo", "minimo", "grado", "gradi", "modo", "descrizione",
+    "attivo", "attiva", "dimezzamento", "soglie", "soglia", "nome", "nomi", "automatico", "automatica",
+    "regolamento", "sanzioni", "provvedimento", "provvedimenti",
 }
 # Words that look Italian but are accepted (Minecraft/domain jargon or acronyms). Remove from the set.
 ITALIAN_WORDS.discard("spawn")

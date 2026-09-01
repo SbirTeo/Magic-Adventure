@@ -9,14 +9,14 @@
   var stato = document.getElementById('storeSortStato');
   var inCorso = null;
 
-  function messaggio(testo, errore) {
+  function toast(text, errore) {
     if (!stato) return;
-    stato.textContent = testo;
+    stato.textContent = text;
     stato.className = 'store-sort-stato' + (errore ? ' is-error' : '');
   }
 
   // --- trascinamento ---------------------------------------------------
-  function avvia(e) {
+  function start(e) {
     // dragstart risale al gruppo che contiene il pacchetto: senza questo controllo il gruppo
     // "ruberebbe" il trascinamento e si sposterebbe l'intera categoria invece del pacchetto
     if (e.target !== this) return;
@@ -34,7 +34,7 @@
     document.querySelectorAll('.is-drop-target').forEach(function (el) {
       el.classList.remove('is-drop-target');
     });
-    salva();
+    save();
   }
 
   // Dato un contenitore e la Y del puntatore, trova l'elemento prima del quale inserire
@@ -78,7 +78,7 @@
   function collega() {
     lista.querySelectorAll('.store-sort-gruppo, .store-sort-pacchetto').forEach(function (el) {
       el.setAttribute('draggable', 'true');
-      el.addEventListener('dragstart', avvia);
+      el.addEventListener('dragstart', start);
       el.addEventListener('dragend', termina);
       el.addEventListener('dragover', sopra);
     });
@@ -104,9 +104,9 @@
     return { categorie: categorie, pacchetti: pacchetti };
   }
 
-  function salva() {
+  function save() {
     var dati = fotografia();
-    messaggio('Salvataggio…', false);
+    toast('Salvataggio…', false);
 
     var corpo = new FormData();
     corpo.append('action', 'store_reorder');
@@ -117,14 +117,14 @@
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (r && r.ok) {
-          messaggio('Ordine salvato', false);
-          setTimeout(function () { messaggio('', false); }, 1800);
+          toast('Ordine salvato', false);
+          setTimeout(function () { toast('', false); }, 1800);
         } else {
-          messaggio('Salvataggio non riuscito: ricarica la pagina', true);
+          toast('Salvataggio non riuscito: ricarica la pagina', true);
         }
       })
       .catch(function () {
-        messaggio('Salvataggio non riuscito: ricarica la pagina', true);
+        toast('Salvataggio non riuscito: ricarica la pagina', true);
       });
   }
 

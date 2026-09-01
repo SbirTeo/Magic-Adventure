@@ -87,7 +87,7 @@ function countdown_inizio_predefinito(DateTimeImmutable $apertura): DateTimeImmu
  * Il valore di partenza lo calcola il server, cosi' il portale e' gia' giusto prima che
  * parta il JavaScript; poi lo aggiorna il browser a ogni secondo.
  */
-function countdown_carica(int $inizio, int $fine, int $adesso): float {
+function countdown_load(int $inizio, int $fine, int $adesso): float {
     if ($fine <= $inizio) {
         return 1.0;
     }
@@ -144,7 +144,7 @@ function countdown_sezione(): void {
     $adesso = time();
     $fineTs = $quando->getTimestamp();
     $finito = $fineTs <= $adesso;
-    $carica = countdown_carica($partenza->getTimestamp(), $fineTs, $adesso);
+    $carica = countdown_load($partenza->getTimestamp(), $fineTs, $adesso);
 
     /**
      * Tre colori, non uno: il portale, la miccia e il testo si regolano a parte. Con un

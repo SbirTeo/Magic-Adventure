@@ -17,7 +17,7 @@ require_once __DIR__ . '/../includes/permissions.php';
 require_once __DIR__ . '/../includes/sanzioni.php';
 
 $id = (int) ($_GET['id'] ?? 0);
-if ($id <= 0 || !sanzioni_pronte()) {
+if ($id <= 0 || !sanctions_ready()) {
     http_response_code(404);
     $page_title = 'Provvedimento non trovato';
     require __DIR__ . '/../includes/header.php';
@@ -48,7 +48,7 @@ $sonoIo = $me !== null && strcasecmp((string) $me['mc_uuid'], (string) $s['mc_uu
 $sonoStaff = can('sanzioni.view');
 $vedoLeProve = $sonoIo || $sonoStaff;
 
-$ricorso = sanzione_ricorso($id);
+$ricorso = sanction_appeal($id);
 $errore = null;
 
 // ---------------------------------------------------------------------
@@ -74,27 +74,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'ricor
     }
 }
 
-$statoVero = sanzione_stato($s);
-$page_title = sanzione_tipo($s['type']) . ' — ' . $s['mc_username'];
-$page_description = 'Provvedimento su ' . $s['mc_username'] . ': ' . sanzione_categoria((string) $s['category']) . '.';
+$statoVero = sanction_status($s);
+$page_title = sanction_type($s['type']) . ' — ' . $s['mc_username'];
+$page_description = 'Provvedimento su ' . $s['mc_username'] . ': ' . sanction_category((string) $s['category']) . '.';
 $active = 'sanzioni';
 
 require __DIR__ . '/../includes/header.php';
 ?>
 <p class="briciole"><a href="/sanzioni">Sanzioni</a><span>›</span>Provvedimento n. <?= (int) $s['id'] ?></p>
 
-<div class="panel sanzione-scheda" style="--accento:<?= h(sanzione_colore($s['type'])) ?>">
+<div class="panel sanzione-scheda" style="--accento:<?= h(sanction_color($s['type'])) ?>">
   <div class="sanzione-scheda-testa">
     <?= avatar_top(
           '<img src="' . h(mc_avatar_url($s['mc_uuid'], 64)) . '" alt="" width="48" height="48" class="forum-faccia">',
           $s['mc_uuid'], 48) ?>
     <div>
       <h1 class="page-title" style="margin:0 0 4px;">
-        <?= h(sanzione_tipo($s['type'])) ?>: <?= h($s['mc_username']) ?>
+        <?= h(sanction_type($s['type'])) ?>: <?= h($s['mc_username']) ?>
       </h1>
       <p class="sanzione-sottotitolo">
-        <?= h(sanzione_categoria((string) $s['category'])) ?> ·
-        <?= h(sanzione_durata($s)) ?> ·
+        <?= h(sanction_category((string) $s['category'])) ?> ·
+        <?= h(sanction_duration($s)) ?> ·
         <span class="sanzione-pallino sanzione-<?= h($statoVero) ?>">
           <?= $statoVero === 'attiva' ? 'In corso' : ($statoVero === 'revocata' ? 'Revocata' : 'Terminata') ?>
         </span>
@@ -110,7 +110,7 @@ require __DIR__ . '/../includes/header.php';
       <dt>Fine</dt>
       <dd><?= $s['ends_at'] ? h(date('d/m/Y H:i', strtotime((string) $s['ends_at']))) : 'nessuna: è permanente' ?></dd>
     </div>
-    <div><dt>Deciso da</dt><dd><?= h(sanzione_autore($s)) ?></dd></div>
+    <div><dt>Deciso da</dt><dd><?= h(sanction_author($s)) ?></dd></div>
     <?php if ((int) $s['points'] > 0): ?>
       <div><dt>Punti</dt><dd><?= (int) $s['points'] ?> <span class="sanzione-nota">(dimezzano ogni 90 giorni)</span></dd></div>
     <?php endif; ?>

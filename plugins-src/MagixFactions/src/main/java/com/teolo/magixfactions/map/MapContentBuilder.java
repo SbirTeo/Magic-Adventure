@@ -27,8 +27,6 @@ final class MapContentBuilder {
 
     private MapContentBuilder() {}
 
-    private static final Color UNKNOWN = new Color(198, 178, 148); // placeholder opaco "non ancora esplorato" (tono carta)
-
     /** Disegna sul canvas i 128x128 pixel (terreno + territori + cardinali + home + eventuali nomi cotti).
      *  <p>{@code bakePlayerMarkers}: se true, cuoce nei pixel solo i NOMI dei giocatori — usato dalla
      *  MINIMAP HUD, che spinge byte-pixel grezzi via pacchetto e non ha cursori nativi (vedi
@@ -83,6 +81,8 @@ final class MapContentBuilder {
         World w = player.getWorld();
         String world = w.getName();
         Faction own = fm.getFaction(player.getUniqueId());
+        // Colore dei pixel SENZA dato terreno (in attesa di reveal): coerente col vuoto del mondo — beige
+        // "carta" nell'overworld, viola-scuro nell'End (impostato da terrain.prepareReveal, sotto).
         int alpha = Math.max(0, Math.min(100, plugin.getConfig().getInt("map.opacity", 40)));       // condivisa item+minimap
         int borderAlpha = Math.max(0, Math.min(100, plugin.getConfig().getInt("map.opacity-borders", 60))); // condivisa item+minimap
 
@@ -102,6 +102,7 @@ final class MapContentBuilder {
         // da dove guardare la colonna, altrimenti si vedrebbe solo la bedrock del soffitto.
         terrain.prepareReveal(w, player.getLocation().getBlockY(),
                 plugin.getConfig().getInt("map.reveal-max-distance", 4096));
+        Color unknown = terrain.emptyColor(); // deciso dal mondo (beige overworld / scuro End), post-prepareReveal
 
         // Pass 1: proprietario + terreno (altezza + colore) per ogni pixel.
         Long[][] owner = new Long[128][128];
@@ -179,11 +180,11 @@ final class MapContentBuilder {
                         : shaded(raw[x][y], height[x][y], y > 0 ? height[x][y - 1] : Integer.MIN_VALUE);
                 Long o = owner[x][y];
                 if (o == null) {
-                    out[x][y] = terr != null ? terr : UNKNOWN;
+                    out[x][y] = terr != null ? terr : unknown;
                     continue;
                 }
                 String rel = relKey(fm, own, o);
-                Color base = terr != null ? terr : UNKNOWN;
+                Color base = terr != null ? terr : unknown;
                 out[x][y] = isBorder(owner, x, y, o)
                         ? blend(base, relColor(plugin, rel, "border"), borderAlpha)
                         : blend(base, relColor(plugin, rel, "fill"), alpha);

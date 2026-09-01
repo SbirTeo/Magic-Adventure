@@ -31,12 +31,25 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CHECKS = [os.path.join(HERE, "check_config.py"), os.path.join(HERE, "check_english.py")]
-FOLDER = "plugins-src"
+CHECKS = [os.path.join(HERE, name) for name in (
+    "check_english.py",         # nomi file/package/tipi in inglese
+    "check_english_web.py",     # funzioni JS/PHP del sito in inglese (righe cambiate)
+    "check_commands.py",        # comandi, alias, sottocomandi, permessi in inglese
+    "check_config_english.py",  # chiavi e nomi dei file di config in inglese
+    "check_config.py",          # config <-> README <-> guide <-> tutorial allineati
+)]
+# I due alberi che i check guardano: i plugin E il sito (le funzioni JS/PHP, i comandi, i config).
+# Toccare uno dei due fa scattare l'hook.
+FOLDERS = ("plugins-src", "website")
 
 
-def concerns_the_plugins(event):
-    """True if this event may have changed something inside plugins-src."""
+def touches_watched(text):
+    t = str(text).replace("\\", "/")
+    return any(f in t for f in FOLDERS)
+
+
+def concerns_the_repo(event):
+    """True if this event may have changed something under plugins-src or website."""
     tool_input = event.get("tool_input") or {}
     tool_response = event.get("tool_response") or {}
     if not isinstance(tool_input, dict):
@@ -47,12 +60,12 @@ def concerns_the_plugins(event):
     # 1. Edit/Write: the file path is there
     path = tool_input.get("file_path") or tool_response.get("filePath") or ""
     if path:
-        return FOLDER in str(path).replace("\\", "/")
+        return touches_watched(path)
 
-    # 2. Bash: no path, but if the command names plugins-src it may have written inside it
+    # 2. Bash: no path, but if the command names a watched folder it may have written inside it
     command = tool_input.get("command") or ""
     if command:
-        return FOLDER in str(command).replace("\\", "/")
+        return touches_watched(command)
 
     # 3. No tool (the user typed a message): may have edited by hand, so check
     return not event.get("tool_name")
@@ -63,7 +76,7 @@ def main():
         event = json.load(sys.stdin)
     except Exception:
         return 0  # no valid JSON: no reason to disturb
-    if not concerns_the_plugins(event):
+    if not concerns_the_repo(event):
         return 0
 
     reports = []

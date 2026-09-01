@@ -123,16 +123,16 @@ public final class MagixGuard extends JavaPlugin {
      * il sito e' giu', e un sistema sanzionatorio a meta' e' peggio di nessuno.
      */
     private void avviaSanzioni() {
-        java.io.File file = new java.io.File(getDataFolder(), "sanzioni.yml");
+        java.io.File file = new java.io.File(getDataFolder(), "sanctions.yml");
         if (!file.exists()) {
-            saveResource("sanzioni.yml", false);
+            saveResource("sanctions.yml", false);
         }
         SanctionsConfig cfg = new SanctionsConfig(SanctionsConfig.carica(file));
 
         sitoDb = new SiteDb(cfg);
         if (!sitoDb.raggiungibile()) {
             getLogger().severe("Sanzioni NON attive: il database del sito non risponde. "
-                    + "Controlla la sezione 'sito' in sanzioni.yml. Ban e mute non funzioneranno.");
+                    + "Controlla la sezione 'sito' in sanctions.yml. Ban e mute non funzioneranno.");
             sitoDb.close();
             sitoDb = null;
             return;
@@ -160,7 +160,7 @@ public final class MagixGuard extends JavaPlugin {
 
         SanctionCommands comandi = new SanctionCommands(this, cfg, sanzioni, dao);
         String[] nomi = { "ban", "tempban", "mute", "tempmute", "kick", "warn",
-                          "unban", "unmute", "storico", "sanzioni" };
+                          "unban", "unmute", "history", "sanctions" };
         for (String nome : nomi) {
             org.bukkit.command.PluginCommand c = getCommand(nome);
             if (c != null) {
@@ -250,12 +250,12 @@ public final class MagixGuard extends JavaPlugin {
 
     /**
      * Accende i rilevatori: chat, scavo, AFK e l'ingresso per l'anticheat. Ognuno e' spegnibile
-     * dalla sua sezione in sanzioni.yml, e nessuno di loro decide niente — si limitano a dire
+     * dalla sua sezione in sanctions.yml, e nessuno di loro decide niente — si limitano a dire
      * cosa hanno visto.
      */
     private void avviaRilevatori(SanctionsConfig cfg, Detector rilevatore, SanctionsDao dao) {
         org.bukkit.configuration.file.FileConfiguration conf =
-                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanzioni.yml"));
+                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanctions.yml"));
 
         org.bukkit.configuration.ConfigurationSection sezChat = conf.getConfigurationSection("chat");
         if (sezChat == null || sezChat.getBoolean("attivo", true)) {
@@ -278,7 +278,7 @@ public final class MagixGuard extends JavaPlugin {
             getLogger().info("Anti-AFK attivo (niente guadagni da fermo + caccia ai dispositivi).");
         }
 
-        org.bukkit.command.PluginCommand cmd = getCommand("mgviolazione");
+        org.bukkit.command.PluginCommand cmd = getCommand("mgviolation");
         if (cmd != null) {
             cmd.setExecutor(new ViolationCommand(this, rilevatore, dao));
         }
@@ -343,10 +343,10 @@ public final class MagixGuard extends JavaPlugin {
     /** Capitolo di MagixGuard nella guida del gestionale (plugins-src/GUIDA-STAFF.md). */
     private void scriviGuidaStaff() {
         org.bukkit.configuration.file.FileConfiguration sanz =
-                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanzioni.yml"));
+                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanctions.yml"));
 
         StaffGuide.crea(this, "MagixGuard — sanzioni, multi-account e prove", 10)
-                // Numeri presi dal config VERO (config.yml + sanzioni.yml): cambiando una soglia o i
+                // Numeri presi dal config VERO (config.yml + sanctions.yml): cambiando una soglia o i
                 // punti di una categoria, questo capitolo sul sito cambia da solo.
                 .valori(new com.teolo.magixguard.util.ConfigValues(this).inoltre(sanz))
                 .intro("Il plugin che tiene l'ordine: decide e registra **ogni** provvedimento del "
@@ -370,14 +370,14 @@ public final class MagixGuard extends JavaPlugin {
 
                 .sezione("I punti, e perché una cosa vecchia pesa meno",
                         "Ogni violazione vale dei punti. I punti si sommano e **dimezzano** ogni "
-                                + "{{cfg:punti/dimezzamento-giorni}} giorni: chi ha sbagliato una volta a "
+                                + "{{cfg:points/halving-days}} giorni: chi ha sbagliato una volta a "
                                 + "marzo non se lo porta dietro per sempre, chi insiste paga di più. "
                                 + "Superata una soglia scatta il provvedimento previsto.",
-                        "**/sanzioni <nome>** mostra i punti attuali e quanti ne mancano al prossimo "
+                        "**/sanctions <nome>** mostra i punti attuali e quanti ne mancano al prossimo "
                                 + "scatto: è la risposta pronta a «quanto sono messo male». Le sanzioni "
                                 + "revocate non contano: se un ricorso è stato accolto, quei punti non "
                                 + "sono mai esistiti.",
-                        "Le soglie e i punti di ogni categoria stanno in **sanzioni.yml**, ed è lo "
+                        "Le soglie e i punti di ogni categoria stanno in **sanctions.yml**, ed è lo "
                                 + "stesso file che genera la tabella del regolamento sul sito: cambiare "
                                 + "una soglia riscrive il regolamento pubblico da solo. Non esiste il caso "
                                 + "in cui il server punisce in un modo e promette un altro.")
@@ -401,7 +401,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "per il grado superiore, con tutto già pronto. Chi vede il problema non "
                                 + "perde il lavoro fatto, e chi ha il potere di decidere non deve "
                                 + "ricostruire niente.",
-                        "I tetti si impostano in sanzioni.yml, sezione **poteri**, per gruppo LuckPerms.")
+                        "I tetti si impostano in sanctions.yml, sezione **poteri**, per gruppo LuckPerms.")
 
                 .sezione("Il sito e il server si parlano",
                         "Le sanzioni le **scrive solo il plugin**: il sito le mostra e basta. Quello che "
@@ -468,7 +468,7 @@ public final class MagixGuard extends JavaPlugin {
                 .sezione("L'aggancio all'anticheat",
                         "Grim non parla con MagixGuard attraverso un'API: gli si fa **eseguire un "
                                 + "comando** quando un giocatore supera una sua soglia. Nel suo "
-                                + "`punishments.yml` la riga e' `\"40:40 mgviolazione %player% "
+                                + "`punishments.yml` la riga e' `\"40:40 mgviolation %player% "
                                 + "cheat.movimento %check_name% (vl %vl%)\"`.",
                         "Sembra rozzo ed e' invece la parte piu' solida del disegno: **non dipendiamo "
                                 + "dalla versione di nessun anticheat**, ne' dal fatto che continui a "
@@ -537,10 +537,10 @@ public final class MagixGuard extends JavaPlugin {
                         "/warn <nome> <motivo>", "Richiamo: non impedisce niente ma resta agli atti.",
                         "/unban <nome> [motivo]", "Revoca il ban attivo.",
                         "/unmute <nome> [motivo]", "Revoca il silenzio.",
-                        "/storico <nome>", "Tutti i provvedimenti di quel giocatore, con i punti attuali.",
-                        "/sanzioni [nome]", "Provvedimenti in corso e punti. Senza nome, i tuoi.",
+                        "/history <nome>", "Tutti i provvedimenti di quel giocatore, con i punti attuali.",
+                        "/sanctions [nome]", "Provvedimenti in corso e punti. Senza nome, i tuoi.",
                         "/report <nome> <motivo>", "Aperto a TUTTI i giocatori: apre un caso per lo staff, senza proporre nessuna pena.",
-                        "/mgviolazione <nome> <categoria> [dettaglio]", "Ingresso per i verdetti dell'anticheat: lo chiama Grim, non una persona.")
+                        "/mgviolation <nome> <categoria> [dettaglio]", "Ingresso per i verdetti dell'anticheat: lo chiama Grim, non una persona.")
 
                 // ---------------------------------------------------------- multi-account
                 .sezione("L'altra metà: i multi-account",
@@ -628,7 +628,7 @@ public final class MagixGuard extends JavaPlugin {
                 .guasto("«Ho scritto una parola normale e me l'ha censurata»",
                         "Guarda quale parola ha fatto scattare il filtro: e' scritta nelle prove della "
                                 + "violazione. Se e' un falso positivo, si toglie dal dizionario in "
-                                + "sanzioni.yml — e la violazione si annulla revocando il provvedimento.")
+                                + "sanctions.yml — e la violazione si annulla revocando il provvedimento.")
                 .guasto("L'anti-xray segnala un minatore che sembra onesto",
                         "Puo' succedere: e' una statistica, non una prova. Per questo di serie il modulo "
                                 + "e' in sola osservazione e il provvedimento automatico scatta solo oltre "
@@ -638,8 +638,8 @@ public final class MagixGuard extends JavaPlugin {
                                 + "muoversi. Se c'e' un altro giocatore sveglio nel raggio, gli spawn "
                                 + "riprendono comunque.")
                 .guasto("Grim segnala ma non arriva nessuna violazione",
-                        "Controlla che nel suo punishments.yml ci sia la riga con mgviolazione, e che il "
-                                + "comando non sia stato preso da un altro plugin: /mgviolazione da "
+                        "Controlla che nel suo punishments.yml ci sia la riga con mgviolation, e che il "
+                                + "comando non sia stato preso da un altro plugin: /mgviolation da "
                                 + "console deve rispondere.")
                 .guasto("«Ho segnalato uno e non e' successo niente»",
                         "Una segnalazione apre un caso, non applica una pena: la trovi in coda nel "

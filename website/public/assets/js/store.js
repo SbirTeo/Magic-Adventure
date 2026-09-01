@@ -88,7 +88,7 @@
       // Quanto si puo' scorrere in tutto: se e' zero la riga ci sta intera e la barra sparisce.
       function scorribile() { return fila.scrollWidth - fila.clientWidth; }
 
-      function disegnaBarra() {
+      function drawBar() {
         var totale = scorribile();
         barra.hidden = totale <= 2;
         if (barra.hidden) return;
@@ -156,17 +156,17 @@
         fila.scrollBy({ left: e.key === 'ArrowRight' ? passo : -passo, behavior: 'smooth' });
       });
 
-      fila.addEventListener('scroll', disegnaBarra);
-      window.addEventListener('resize', disegnaBarra);
+      fila.addEventListener('scroll', drawBar);
+      window.addEventListener('resize', drawBar);
       // Le copertine possono arrivare dopo e cambiare la larghezza totale della riga.
-      window.addEventListener('load', disegnaBarra);
-      disegnaBarra();
+      window.addEventListener('load', drawBar);
+      drawBar();
     }
 
     // ---- frecce e sfumatura del bordo ---------------------------------------------
     if (!blocco || !blocco.classList.contains('ha-altri')) return;
 
-    function aggiorna() {
+    function update() {
       var fine = fila.scrollLeft + fila.clientWidth >= fila.scrollWidth - 2;
       blocco.classList.toggle('a-inizio', fila.scrollLeft <= 2);
       blocco.classList.toggle('a-fine', fine);
@@ -181,8 +181,8 @@
       });
     });
 
-    fila.addEventListener('scroll', aggiorna);
-    window.addEventListener('resize', aggiorna);
-    aggiorna();
+    fila.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    update();
   });
 })();

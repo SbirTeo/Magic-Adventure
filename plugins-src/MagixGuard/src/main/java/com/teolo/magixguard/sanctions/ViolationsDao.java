@@ -99,7 +99,7 @@ public final class ViolationsDao {
         return out;
     }
 
-    /** Le ultime violazioni di un giocatore, per il rapporto e per /storico. */
+    /** Le ultime violazioni di un giocatore, per il rapporto e per /history. */
     public List<Violation> ultime(UUID uuid, int quante) throws SQLException {
         String sql = "SELECT * FROM punishment_violations WHERE mc_uuid = ? ORDER BY id DESC LIMIT "
                 + Math.max(1, quante);

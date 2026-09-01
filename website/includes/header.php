@@ -66,17 +66,17 @@ $__gridOverlayStop = max(20, min(100, (int) site_setting('grid_overlay_stop', '1
 // impostazioni A PARTE, con la loro riga nel gestionale; se non sono mai state toccate
 // valgono quelle del tema scuro, quindi chi non entra a cambiarle non vede alcuna
 // differenza rispetto a prima.
-$__coloreOSuo = function (string $chiave, string $ripiego): string {
+$__colorOrOwn = function (string $chiave, string $ripiego): string {
     $v = site_setting($chiave, $ripiego);
     return is_valid_hex_color($v) ? $v : $ripiego;
 };
 $__pctOSua = fn(string $chiave, int $ripiego): int =>
     max(0, min(100, (int) site_setting($chiave, (string) $ripiego)));
 
-$__colorFeaturedOverlayChiaro = $__coloreOSuo('featured_overlay_color_chiaro', $__colorFeaturedOverlay);
+$__colorFeaturedOverlayChiaro = $__colorOrOwn('featured_overlay_color_chiaro', $__colorFeaturedOverlay);
 $__featuredOverlayAlphaChiaro = $__pctOSua('featured_overlay_intensity_chiaro', $__featuredOverlayPct) / 100;
 $__featuredOverlayStopChiaro = max(20, $__pctOSua('featured_overlay_stop_chiaro', $__featuredOverlayStop));
-$__colorGridOverlayChiaro = $__coloreOSuo('grid_overlay_color_chiaro', $__colorGridOverlay);
+$__colorGridOverlayChiaro = $__colorOrOwn('grid_overlay_color_chiaro', $__colorGridOverlay);
 $__gridOverlayAlphaChiaro = $__pctOSua('grid_overlay_intensity_chiaro', $__gridOverlayPct) / 100;
 $__gridOverlayStopChiaro = max(20, $__pctOSua('grid_overlay_stop_chiaro', $__gridOverlayStop));
 
@@ -100,14 +100,14 @@ $__tileAutoGrigliaChiaro = text_on_color($__colorGridOverlayChiaro);
 
 // Barrette laterali delle tessere: anche loro un colore per tema (le variabili del tema
 // scuro sono piu' avanti, $__bordoEvidenza / $__bordoGriglia).
-$__bordoEvidenzaChiaro = $__coloreOSuo('featured_border_color_chiaro', site_setting('featured_border_color', '#c04ff0'));
-$__bordoGrigliaChiaro = $__coloreOSuo('grid_border_color_chiaro', site_setting('grid_border_color', '#c04ff0'));
+$__bordoEvidenzaChiaro = $__colorOrOwn('featured_border_color_chiaro', site_setting('featured_border_color', '#c04ff0'));
+$__bordoGrigliaChiaro = $__colorOrOwn('grid_border_color_chiaro', site_setting('grid_border_color', '#c04ff0'));
 
 // Stessa storia per le card dello store: velo e barretta hanno una versione per tema.
-$__storeOverlayColorChiaro = $__coloreOSuo('store_overlay_color_chiaro', site_setting('store_overlay_color', '#0a0804'));
+$__storeOverlayColorChiaro = $__colorOrOwn('store_overlay_color_chiaro', site_setting('store_overlay_color', '#0a0804'));
 $__storeOverlayAlphaChiaro = $__pctOSua('store_overlay_intensity_chiaro', (int) site_setting('store_overlay_intensity', '92')) / 100;
 $__storeOverlayStopChiaro = max(20, $__pctOSua('store_overlay_stop_chiaro', (int) site_setting('store_overlay_stop', '55')));
-$__bordoStoreChiaro = $__coloreOSuo('store_border_color_chiaro', site_setting('store_border_color', '#f0c75e'));
+$__bordoStoreChiaro = $__colorOrOwn('store_border_color_chiaro', site_setting('store_border_color', '#f0c75e'));
 
 // Testo sopra le card dello store. Vuoto = automatico: lo decide il velo (nero sui veli
 // chiari, bianco su quelli scuri). Se invece l'admin sceglie un colore, quello vince su
@@ -154,7 +154,7 @@ $__stileBottoni = site_setting('btn_stile', 'contrasto') === 'accento' ? 'accent
 // sua visita si segna a parte (una riga per sessione, vedi ospiti_registra). Serve al
 // riquadro "Sul sito ora", che altrimenti direbbe "nessuno" con dieci persone sulla pagina.
 ospiti_registra();
-allinea_nomi_mc();
+align_mc_names();
 
 $__navItems = db()->query('SELECT * FROM nav_items WHERE enabled = 1 ORDER BY sort_order, id')->fetchAll();
 $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -266,7 +266,7 @@ $__cssVer = @filemtime(__DIR__ . '/../public/assets/css/style.css') ?: time();
   /* Il verde e' acceso apposta (fondo scuro), ma come TESTO su un pannello bianco non si
      legge: questa e' la stessa tinta scurita finche' il contrasto non basta. La usa il tema
      chiaro dove il verde fa da testo, non da fondo. */
-  --verde-leggibile: <?= h(colore_leggibile($__colorGreen, '#ffffff')) ?>;
+  --verde-leggibile: <?= h(readable_color($__colorGreen, '#ffffff')) ?>;
   --gold: <?= h($__colorGold) ?>;
   --gold-light: <?= h(hex_shade($__colorGold, 0.55)) ?>;
   --gold-dark: <?= h(hex_shade($__colorGold, -0.35)) ?>;
@@ -282,7 +282,7 @@ $__cssVer = @filemtime(__DIR__ . '/../public/assets/css/style.css') ?: time();
   --gold-bg-chiaro-2: <?= h(hex_shade($__colorGold, 0.92)) ?>;
   --gold-overlay-chiaro-1: <?= hex_to_rgba(hex_shade($__colorGold, 0.78), $__goldOverlayAlpha) ?>;
   --gold-overlay-chiaro-2: <?= hex_to_rgba(hex_shade($__colorGold, 0.92), min(1, $__goldOverlayAlpha + 0.06)) ?>;
-  --oro-scuro-leggibile: <?= h(colore_leggibile($__colorGold, hex_shade($__colorGold, 0.85))) ?>;
+  --oro-scuro-leggibile: <?= h(readable_color($__colorGold, hex_shade($__colorGold, 0.85))) ?>;
   --featured-overlay: <?= hex_to_rgba($__colorFeaturedOverlay, $__featuredOverlayAlpha) ?>;
   --grid-overlay: <?= hex_to_rgba($__colorGridOverlay, $__gridOverlayAlpha) ?>;
   --featured-overlay-stop: <?= $__featuredOverlayStop ?>%;
@@ -348,18 +348,18 @@ $__cssVer = @filemtime(__DIR__ . '/../public/assets/css/style.css') ?: time();
 // Ogni tema si regola dal gestionale (Aspetto) con TRE colori: fondo della pagina, fondo
 // dei pannelli, colore del testo. Tutto il resto lo ricava tavolozza_tema(), che spinge
 // anche i testi tenui oltre la soglia di contrasto (vedi colore_leggibile).
-$__temaColore = function (string $chiave, string $default): string {
+$__themeColor = function (string $chiave, string $default): string {
     $v = site_setting($chiave, $default);
     return is_valid_hex_color($v) ? $v : $default;
 };
 
 $__scuroBg = is_valid_hex_color($__colorBg) ? $__colorBg : '#0b0c0e';
-$__scuroPannello = $__temaColore('dark_panel', '#17181b');
-$__scuroTesto = $__temaColore('dark_text', '#f0f0ee');
+$__scuroPannello = $__themeColor('dark_panel', '#17181b');
+$__scuroTesto = $__themeColor('dark_text', '#f0f0ee');
 
-$__chiaroBg = $__temaColore('light_bg', '#f2f3f6');
-$__chiaroPannello = $__temaColore('light_panel', '#ffffff');
-$__chiaroTesto = $__temaColore('light_text', '#14161a');
+$__chiaroBg = $__themeColor('light_bg', '#f2f3f6');
+$__chiaroPannello = $__themeColor('light_panel', '#ffffff');
+$__chiaroTesto = $__themeColor('light_text', '#14161a');
 ?>
 /* Tema scuro: vale anche per "auto" finche' il copione non decide (e senza JavaScript) */
 :root:not([data-tema="chiaro"]) {
@@ -425,7 +425,7 @@ $__chiaroTesto = $__temaColore('light_text', '#14161a');
 <?php
 // Dati strutturati: la scheda del sito c'e' sempre, quella della pagina (articolo,
 // pacchetto, discussione, briciole di pane) solo se la pagina l'ha preparata.
-echo seo_jsonld(seo_scheda_sito($__siteName, $__logo, $__descrizioneSito)), "\n";
+echo seo_jsonld(seo_site_card($__siteName, $__logo, $__descrizioneSito)), "\n";
 if (!empty($page_jsonld)) {
     $__schede = isset($page_jsonld['@type']) || isset($page_jsonld['@graph']) ? [$page_jsonld] : $page_jsonld;
     foreach ($__schede as $__scheda) {
@@ -525,7 +525,7 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <?php /* Corona anche qui, se e' il miglior sostenitore: senza cuoricini, nella
                    barra sarebbero rumore in mezzo ai pulsanti. */ ?>
           <?= avatar_top('<img class="who-avatar" src="' . h(mc_avatar_url($__u['mc_uuid'], 64)) . '" alt="" width="28" height="28">', $__u['mc_uuid'], 28) ?>
-          <span class="who colore-grado"<?= $__coloreNome !== null ? ' style="' . stile_colore_grado($__coloreNome) . '"' : '' ?>><?= h($__u['mc_username']) ?></span>
+          <span class="who colore-grado"<?= $__coloreNome !== null ? ' style="' . rank_color_style($__coloreNome) . '"' : '' ?>><?= h($__u['mc_username']) ?></span>
         </a>
         <?php if (can_manage()): ?>
           <a href="/manage" class="btn btn-ghost">Gestione</a>

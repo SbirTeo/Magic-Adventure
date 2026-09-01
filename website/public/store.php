@@ -53,7 +53,7 @@ $mostraNome = site_setting('store_sidebar_show_name', '1') === '1';
 $mostraRank = site_setting('store_sidebar_show_rank', '1') === '1';
 
 /** Nome del giocatore come va mostrato nella colonna: coi tag del grado, senza, o niente. */
-$nomeGiocatore = function (array $riga) use ($mostraNome, $mostraRank): string {
+$playerName = function (array $riga) use ($mostraNome, $mostraRank): string {
     if (!$mostraNome) {
         return '';
     }
@@ -246,7 +246,7 @@ require __DIR__ . '/../includes/header.php';
 
               <div class="store-top-dati">
                 <?php if ($mostraNome): ?>
-                  <div class="store-lato-nome"><?= $nomeGiocatore($topDonatore) ?></div>
+                  <div class="store-lato-nome"><?= $playerName($topDonatore) ?></div>
                 <?php endif; ?>
                 <?php if ($mostraImporto): ?>
                   <div class="store-top-cifra">
@@ -279,7 +279,7 @@ require __DIR__ . '/../includes/header.php';
                         $a['mc_uuid'], 32) ?>
                   <div class="store-acquisto-dati">
                     <?php if ($mostraNome): ?>
-                      <div class="store-lato-nome"><?= $nomeGiocatore($a) ?></div>
+                      <div class="store-lato-nome"><?= $playerName($a) ?></div>
                     <?php endif; ?>
                     <?php
                       // Riga sotto il nome: pacchetto e data sono indipendenti, il punto di

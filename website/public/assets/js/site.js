@@ -103,7 +103,7 @@ document.querySelectorAll('.ip-copy').forEach(function (btn) {
   var voci = [].slice.call(dati.content.querySelectorAll('.online-voce'));
   var messe = 0;
 
-  function aggiungi() {
+  function add() {
     voci.slice(messe, messe + PASSO).forEach(function (v) {
       lista.appendChild(v.cloneNode(true));
     });
@@ -113,7 +113,7 @@ document.querySelectorAll('.ip-copy').forEach(function (btn) {
   }
 
   apri.addEventListener('click', function () {
-    if (messe === 0) aggiungi();
+    if (messe === 0) add();
     // showModal da' gratis lo sfondo scurito, il fuoco dentro e la chiusura con Esc
     if (typeof finestra.showModal === 'function') {
       finestra.showModal();
@@ -121,7 +121,7 @@ document.querySelectorAll('.ip-copy').forEach(function (btn) {
       finestra.setAttribute('open', '');   // browser vecchi: resta una scatola normale
     }
   });
-  altri.addEventListener('click', aggiungi);
+  altri.addEventListener('click', add);
   if (chiudi) {
     chiudi.addEventListener('click', function () {
       if (typeof finestra.close === 'function') finestra.close();
@@ -141,11 +141,11 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
   var SOGLIA = 4;
   var giu = false, trascina = false, xIniziale = 0, scorrIniziale = 0;
 
-  var segnala = function () {
+  var report = function () {
     box.classList.toggle('puo-scorrere', box.scrollWidth > box.clientWidth + 1);
   };
-  segnala();
-  window.addEventListener('resize', segnala);
+  report();
+  window.addEventListener('resize', report);
 
   box.addEventListener('pointerdown', function (e) {
     if (e.pointerType !== 'mouse' || e.button !== 0) return;
@@ -203,7 +203,7 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
     document.cookie = 'tema=' + scelta + ';path=/;max-age=' + GIORNI_MAX + ';samesite=lax';
   }
 
-  function applica(scelta) {
+  function apply(scelta) {
     if (ORDINE.indexOf(scelta) === -1) return;
     radice.dataset.temaScelto = scelta;
     radice.dataset.tema = scelta === 'auto'
@@ -228,14 +228,14 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
   if (bottone) {
     bottone.addEventListener('click', function () {
       var attuale = radice.dataset.temaScelto || 'scuro';
-      applica(ORDINE[(ORDINE.indexOf(attuale) + 1) % ORDINE.length]);
+      apply(ORDINE[(ORDINE.indexOf(attuale) + 1) % ORDINE.length]);
     });
   }
 
   // Pulsanti "Scuro / Chiaro / Automatico" (pagina del profilo)
   document.addEventListener('click', function (ev) {
     var scelta = ev.target.closest ? ev.target.closest('[data-tema-scelta]') : null;
-    if (scelta) applica(scelta.dataset.temaScelta);
+    if (scelta) apply(scelta.dataset.temaScelta);
   });
 
   // All'apertura: se in memoria c'e' una scelta, la rimetto e rinnovo il cookie. Cosi' la
@@ -243,7 +243,7 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
   var memorizzato = null;
   try { memorizzato = localStorage.getItem('tema'); } catch (e) { /* niente memoria */ }
   if (memorizzato && ORDINE.indexOf(memorizzato) !== -1) {
-    applica(memorizzato);
+    apply(memorizzato);
   }
   // Se non ha mai scelto non salvo niente: cosi' continua a valere il tema di partenza
   // deciso nel gestionale, e cambiandolo lo vedono anche i visitatori vecchi.
@@ -327,7 +327,7 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
   }
 
   /** Il file che si scarica: i codici, ma anche di che sito sono e come si usano. */
-  function testo() {
+  function text() {
     var oggi = new Date().toLocaleDateString('it-IT');
     return [
       'MAGICADVENTURE — codici di recupero',
@@ -354,7 +354,7 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
 
   var scarica = bottone('⤓ Scarica i codici');
   scarica.addEventListener('click', function () {
-    var blob = new Blob([testo()], { type: 'text/plain;charset=utf-8' });
+    var blob = new Blob([text()], { type: 'text/plain;charset=utf-8' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
@@ -368,12 +368,12 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
     setTimeout(function () { scarica.textContent = '⤓ Scarica i codici'; }, 2500);
   });
 
-  var copia = bottone('⧉ Copia');
-  copia.addEventListener('click', function () {
+  var clone = bottone('⧉ Copia');
+  clone.addEventListener('click', function () {
     var testoCodici = codici().join('\n');
     var fatto = function () {
-      copia.textContent = '✓ Copiati';
-      setTimeout(function () { copia.textContent = '⧉ Copia'; }, 2500);
+      clone.textContent = '✓ Copiati';
+      setTimeout(function () { clone.textContent = '⧉ Copia'; }, 2500);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(testoCodici).then(fatto, ripiego);
@@ -397,7 +397,7 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
   stampa.addEventListener('click', function () { window.print(); });
 
   riga.appendChild(scarica);
-  riga.appendChild(copia);
+  riga.appendChild(clone);
   riga.appendChild(stampa);
   elenco.parentNode.insertBefore(riga, elenco.nextSibling);
 })();
@@ -429,14 +429,14 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
     if (copiaBtn) copiaBtn.remove();
   }
 
-  function avvisa(bottone, messaggio) {
+  function notify(bottone, toast) {
     var prima = bottone.textContent;
-    bottone.textContent = messaggio;
+    bottone.textContent = toast;
     bottone.disabled = true;
     setTimeout(function () { bottone.textContent = prima; bottone.disabled = false; }, 1800);
   }
 
-  function copia(bottone) {
+  function clone(bottone) {
     function ripiego() {
       var area = document.createElement('textarea');
       area.value = dati.url;
@@ -444,12 +444,12 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
       area.style.opacity = '0';
       document.body.appendChild(area);
       area.select();
-      try { document.execCommand('copy'); avvisa(bottone, '✓ Link copiato'); } catch (e) { /* pazienza */ }
+      try { document.execCommand('copy'); notify(bottone, '✓ Link copiato'); } catch (e) { /* pazienza */ }
       document.body.removeChild(area);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(dati.url).then(function () {
-        avvisa(bottone, '✓ Link copiato');
+        notify(bottone, '✓ Link copiato');
       }, ripiego);
     } else {
       ripiego();
@@ -463,11 +463,11 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
         // non e' un errore da segnalare, e' semplicemente un ripensamento.
         navigator.share(dati).catch(function () { /* ha cambiato idea */ });
       } else {
-        copia(principale);
+        clone(principale);
       }
     });
   }
-  if (copiaBtn) copiaBtn.addEventListener('click', function () { copia(copiaBtn); });
+  if (copiaBtn) copiaBtn.addEventListener('click', function () { clone(copiaBtn); });
 })();
 
 
@@ -534,8 +534,8 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
     attesaSalita = setTimeout(misuraSalita, 150);
   });
 
-  function scrivi(cella, testo) {
-    if (cella.textContent !== testo) cella.textContent = testo;
+  function write(cella, text) {
+    if (cella.textContent !== text) cella.textContent = text;
   }
 
   var timer;
@@ -558,14 +558,14 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
     if (gruppoGiorni) {
       if (giorni > 0) {
         gruppoGiorni.hidden = false;
-        scrivi(celle.g, String(giorni));
+        write(celle.g, String(giorni));
       } else {
         gruppoGiorni.hidden = true;
       }
     }
-    scrivi(celle.h, due(Math.floor((sec % 86400) / 3600)));
-    scrivi(celle.m, due(Math.floor((sec % 3600) / 60)));
-    scrivi(celle.s, due(sec % 60));
+    write(celle.h, due(Math.floor((sec % 86400) / 3600)));
+    write(celle.m, due(Math.floor((sec % 3600) / 60)));
+    write(celle.s, due(sec % 60));
 
     // Carica del portale: quanta strada e' stata fatta fra l'annuncio e l'apertura.
     if (inizio && fine > inizio) {

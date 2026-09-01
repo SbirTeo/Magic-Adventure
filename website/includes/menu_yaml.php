@@ -22,7 +22,7 @@
  */
 
 /** Il testo, con le virgolette e le fughe che servono. */
-function myaml_testo(?string $s): string
+function myaml_text(?string $s): string
 {
     $s = (string) $s;
     $s = str_replace(['\\', '"'], ['\\\\', '\\"'], $s);
@@ -62,11 +62,11 @@ function myaml_slot(array $caselle): string
         $inizio = $precedente = $ora;
     }
     $testo = implode(',', $pezzi);
-    return ctype_digit($testo) ? $testo : myaml_testo($testo);
+    return ctype_digit($testo) ? $testo : myaml_text($testo);
 }
 
 /** Una lista di testi, in blocco. Se e' vuota non scrive niente. */
-function myaml_lista(string $chiave, array $valori, int $livello): string
+function myaml_list(string $chiave, array $valori, int $livello): string
 {
     $valori = array_values(array_filter($valori, static fn($v) => $v !== null));
     if (!$valori) {
@@ -74,19 +74,19 @@ function myaml_lista(string $chiave, array $valori, int $livello): string
     }
     $out = myaml_spazi($livello) . $chiave . ":\n";
     foreach ($valori as $v) {
-        $out .= myaml_spazi($livello + 1) . '- ' . myaml_testo((string) $v) . "\n";
+        $out .= myaml_spazi($livello + 1) . '- ' . myaml_text((string) $v) . "\n";
     }
     return $out;
 }
 
 /** Una lista corta sulla stessa riga: comandi, argomenti. */
-function myaml_lista_corta(string $chiave, array $valori, int $livello): string
+function myaml_short_list(string $chiave, array $valori, int $livello): string
 {
     $valori = array_values(array_filter(array_map('strval', $valori), static fn($v) => $v !== ''));
     if (!$valori) {
         return '';
     }
-    return myaml_spazi($livello) . $chiave . ': [' . implode(', ', array_map('myaml_testo', $valori)) . "]\n";
+    return myaml_spazi($livello) . $chiave . ': [' . implode(', ', array_map('myaml_text', $valori)) . "]\n";
 }
 
 function myaml_riga(string $chiave, $valore, int $livello, bool $testo = true): string
@@ -100,7 +100,7 @@ function myaml_riga(string $chiave, $valore, int $livello, bool $testo = true): 
     if (!$testo) {
         return myaml_spazi($livello) . $chiave . ': ' . $valore . "\n";
     }
-    return myaml_spazi($livello) . $chiave . ': ' . myaml_testo((string) $valore) . "\n";
+    return myaml_spazi($livello) . $chiave . ': ' . myaml_text((string) $valore) . "\n";
 }
 
 /**
@@ -110,7 +110,7 @@ function myaml_riga(string $chiave, $valore, int $livello, bool $testo = true): 
  * bastano per tenerle separate, e chiedere all'utente di inventarne uno per ogni riga sarebbe
  * una domanda senza risposta interessante.
  */
-function myaml_requisiti(string $chiave, ?array $r, int $livello): string
+function myaml_requirements(string $chiave, ?array $r, int $livello): string
 {
     if (!$r || empty($r['requisiti'])) {
         return '';
@@ -139,13 +139,13 @@ function myaml_requisiti(string $chiave, ?array $r, int $livello): string
         }
     }
     if (!empty($r['azioni_negate'])) {
-        $out .= myaml_azioni('deny_actions', $r['azioni_negate'], $livello + 1);
+        $out .= myaml_actions('deny_actions', $r['azioni_negate'], $livello + 1);
     }
     return $out;
 }
 
 /** Una fila di azioni, comprese quelle a blocco (if / then / else). */
-function myaml_azioni(string $chiave, ?array $azioni, int $livello): string
+function myaml_actions(string $chiave, ?array $azioni, int $livello): string
 {
     if (!$azioni) {
         return '';
@@ -165,21 +165,21 @@ function myaml_azioni(string $chiave, ?array $azioni, int $livello): string
                 && strtoupper((string) ($requisiti[0]['tipo'] ?? '')) === 'EQUATION'
                 && ($requisiti[0]['uguale'] ?? true);
             if ($corta) {
-                $out .= myaml_spazi($livello + 1) . '- if: ' . myaml_testo((string) $requisiti[0]['chiave']) . "\n";
+                $out .= myaml_spazi($livello + 1) . '- if: ' . myaml_text((string) $requisiti[0]['chiave']) . "\n";
             } else {
                 $out .= myaml_spazi($livello + 1) . "- if:\n";
-                $dentro = myaml_requisiti('if', $condizione, $livello + 3);
+                $dentro = myaml_requirements('if', $condizione, $livello + 3);
                 // Si toglie la riga "if:" appena generata: qui la chiave e' gia' scritta sopra.
                 $dentro = preg_replace('/^.*\n/', '', $dentro, 1);
                 $out .= $dentro;
             }
-            $out .= myaml_azioni('then', $a['allora'] ?? [], $livello + 2);
-            $out .= myaml_azioni('else', $a['altrimenti'] ?? [], $livello + 2);
+            $out .= myaml_actions('then', $a['allora'] ?? [], $livello + 2);
+            $out .= myaml_actions('else', $a['altrimenti'] ?? [], $livello + 2);
             continue;
         }
         $argomento = trim((string) ($a['argomento'] ?? ''));
         $riga = $argomento === '' ? $tipo : $tipo . ': ' . $argomento;
-        $out .= myaml_spazi($livello + 1) . '- ' . myaml_testo($riga) . "\n";
+        $out .= myaml_spazi($livello + 1) . '- ' . myaml_text($riga) . "\n";
     }
     return $out;
 }
@@ -196,8 +196,8 @@ function myaml_item(array $i, int $livello, bool $conCaselle = true): string
         $out .= myaml_riga('amount', $i['quantita'], $livello);
     }
     $out .= myaml_riga('display_name', $i['titolo'] ?? null, $livello);
-    $out .= myaml_lista('lore', $i['descrizione'] ?? [], $livello);
-    $out .= myaml_lista('enchantments', $i['incantesimi'] ?? [], $livello);
+    $out .= myaml_list('lore', $i['descrizione'] ?? [], $livello);
+    $out .= myaml_list('enchantments', $i['incantesimi'] ?? [], $livello);
     if (!empty($i['luccica'])) {
         $out .= myaml_riga('glow', true, $livello);
     }
@@ -219,15 +219,15 @@ function myaml_item(array $i, int $livello, bool $conCaselle = true): string
     if (!empty($i['attesa_fra_clic'])) {
         $out .= myaml_riga('cooldown', (int) $i['attesa_fra_clic'], $livello, false);
     }
-    $out .= myaml_requisiti('show_requirements', $i['mostra_se'] ?? null, $livello);
+    $out .= myaml_requirements('show_requirements', $i['mostra_se'] ?? null, $livello);
 
     // Le chiavi dei tasti arrivano dal plugin gia' come si scrivono nel file
     // ("click_requirements", "right_click_actions"): qui non si traduce niente.
     foreach (($i['click_se'] ?? []) as $chiave => $r) {
-        $out .= myaml_requisiti($chiave, $r, $livello);
+        $out .= myaml_requirements($chiave, $r, $livello);
     }
     foreach (($i['azioni'] ?? []) as $chiave => $a) {
-        $out .= myaml_azioni($chiave, $a, $livello);
+        $out .= myaml_actions($chiave, $a, $livello);
     }
     return $out;
 }
@@ -260,20 +260,20 @@ function menu_yaml_da_modello(array $m, string $chi = ''): string
     if (!empty($m['aggiornamento'])) {
         $out .= myaml_riga('update', (int) $m['aggiornamento'], 1, false);
     }
-    $out .= myaml_lista_corta('commands', $m['comandi'] ?? [], 1);
+    $out .= myaml_short_list('commands', $m['comandi'] ?? [], 1);
     $out .= myaml_riga('permission', $m['permesso'] ?? null, 1);
-    $out .= myaml_lista_corta('arguments', $m['argomenti'] ?? [], 1);
+    $out .= myaml_short_list('arguments', $m['argomenti'] ?? [], 1);
     if (isset($m['chiusura_libera']) && !$m['chiusura_libera']) {
         $out .= myaml_riga('closeable', false, 1);
     }
-    $out .= myaml_requisiti('open_requirements', $m['apri_se'] ?? null, 1);
-    $out .= myaml_azioni('open_actions', $m['azioni_apertura'] ?? [], 1);
-    $out .= myaml_azioni('close_actions', $m['azioni_chiusura'] ?? [], 1);
+    $out .= myaml_requirements('open_requirements', $m['apri_se'] ?? null, 1);
+    $out .= myaml_actions('open_actions', $m['azioni_apertura'] ?? [], 1);
+    $out .= myaml_actions('close_actions', $m['azioni_chiusura'] ?? [], 1);
 
     // --- finestra di dialogo ---
     if ($tipo === 'dialog' && !empty($m['dialogo'])) {
         $d = $m['dialogo'];
-        $out .= myaml_lista('body', $d['corpo'] ?? [], 1);
+        $out .= myaml_list('body', $d['corpo'] ?? [], 1);
         if (!empty($d['pausa'])) {
             $out .= myaml_riga('pause', true, 1);
         }
@@ -303,7 +303,7 @@ function menu_yaml_da_modello(array $m, string $chi = ''): string
                 if (isset($c['larghezza']) && (int) $c['larghezza'] !== 200) {
                     $out .= myaml_riga('width', (int) $c['larghezza'], 3, false);
                 }
-                $out .= myaml_lista_corta('options', $c['opzioni'] ?? [], 3);
+                $out .= myaml_short_list('options', $c['opzioni'] ?? [], 3);
             }
         }
         if (!empty($d['bottoni'])) {
@@ -312,13 +312,13 @@ function menu_yaml_da_modello(array $m, string $chi = ''): string
                 if (($b['etichetta'] ?? '') === '') {
                     continue;
                 }
-                $out .= myaml_spazi(2) . '- label: ' . myaml_testo((string) $b['etichetta']) . "\n";
+                $out .= myaml_spazi(2) . '- label: ' . myaml_text((string) $b['etichetta']) . "\n";
                 $out .= myaml_riga('tooltip', $b['suggerimento'] ?? null, 3);
                 if (isset($b['larghezza']) && (int) $b['larghezza'] !== 150) {
                     $out .= myaml_riga('width', (int) $b['larghezza'], 3, false);
                 }
-                $out .= myaml_requisiti('show_requirements', $b['mostra_se'] ?? null, 3);
-                $out .= myaml_azioni('actions', $b['azioni'] ?? [], 3);
+                $out .= myaml_requirements('show_requirements', $b['mostra_se'] ?? null, 3);
+                $out .= myaml_actions('actions', $b['azioni'] ?? [], 3);
             }
         }
     }
@@ -334,7 +334,7 @@ function menu_yaml_da_modello(array $m, string $chi = ''): string
             $out .= myaml_riga('separator', $c['separatore'] ?? ',', 1);
         }
         if (strtolower((string) $c['fonte']) === 'list') {
-            $out .= myaml_lista('list', $c['lista'] ?? [], 1);
+            $out .= myaml_list('list', $c['lista'] ?? [], 1);
         }
         $out .= "  entry:\n";
         $out .= myaml_item($c['voce'] ?? [], 2, false);

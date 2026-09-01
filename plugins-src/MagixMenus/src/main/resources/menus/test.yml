@@ -2,7 +2,7 @@
 #  test.yml — il menu che usa TUTTO
 #
 #  Non e' un menu da mostrare ai giocatori: e' la dimostrazione di ogni cosa che MagixMenus sa
-#  fare, in un file solo. Aprilo con /test (o /menus apri test) e tienilo aperto accanto mentre
+#  fare, in un file solo. Aprilo con /test (o /menus open test) e tienilo aperto accanto mentre
 #  scrivi i tuoi menu: quasi sempre quello che cerchi e' gia' qui in una forma o nell'altra.
 #
 #  Il nome del menu e' il nome di questo file senza .yml, cioe' "test".

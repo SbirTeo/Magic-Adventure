@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.UUID;
 
 /**
- * {@code /mgviolazione <giocatore> <categoria> [dettaglio...]} — l'ingresso per chi rileva
+ * {@code /mgviolation <giocatore> <categoria> [dettaglio...]} — l'ingresso per chi rileva
  * dall'esterno, cioe' oggi <b>Grim</b>.
  *
  * <p>E' l'adattatore piu' semplice possibile, ed e' voluto. Grim (come Vulcan, come qualunque
@@ -23,7 +23,7 @@ import java.util.UUID;
  * <p>Nel {@code punishments.yml} di Grim la riga da aggiungere e' questa:</p>
  * <pre>
  *   commands:
- *     - "40:40 mgviolazione %player% cheat.movimento %check_name% (vl %vl%)"
+ *     - "40:40 mgviolation %player% cheat.movimento %check_name% (vl %vl%)"
  * </pre>
  *
  * <p>Chi decide <i>quando</i> chiamare e' l'anticheat; chi decide <i>cosa succede</i> e' il
@@ -44,7 +44,7 @@ public final class ViolationCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender chi, Command comando, String etichetta, String[] args) {
         if (args.length < 2) {
-            chi.sendMessage(Text.msg("&#FFD166Uso: &f/mgviolazione <giocatore> <categoria> [dettaglio]"));
+            chi.sendMessage(Text.msg("&#FFD166Uso: &f/mgviolation <giocatore> <categoria> [dettaglio]"));
             chi.sendMessage(Text.panel("&7Lo chiama l'anticheat, non una persona. Categorie: "
                     + "cheat.movimento, cheat.combat, cheat.xray, afk.elusione."));
             return true;

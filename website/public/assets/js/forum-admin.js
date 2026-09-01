@@ -10,13 +10,13 @@
   var stato = document.getElementById('forumSortStato');
   var inCorso = null;
 
-  function messaggio(testo, errore) {
+  function toast(text, errore) {
     if (!stato) return;
-    stato.textContent = testo;
+    stato.textContent = text;
     stato.className = 'forum-sort-stato' + (errore ? ' is-error' : '');
   }
 
-  function avvia(e) {
+  function start(e) {
     // Senza questo, trascinando una figlia si muoverebbe il gruppo che la contiene
     if (e.target !== this) return;
     inCorso = this;
@@ -32,7 +32,7 @@
     lista.querySelectorAll('.is-drop-target').forEach(function (el) {
       el.classList.remove('is-drop-target');
     });
-    salva();
+    save();
   }
 
   /** Dentro un contenitore, l'elemento PRIMA del quale inserire, data la Y del puntatore. */
@@ -112,7 +112,7 @@
       if (el.dataset.collegato) return;
       el.dataset.collegato = '1';
       el.setAttribute('draggable', 'true');
-      el.addEventListener('dragstart', avvia);
+      el.addEventListener('dragstart', start);
       el.addEventListener('dragend', termina);
     });
     // Il sorvolo si ascolta in un posto solo (vedi il commento su sopra)
@@ -135,8 +135,8 @@
     return { principali: principali, figlie: figlie };
   }
 
-  function salva() {
-    messaggio('Salvataggio…', false);
+  function save() {
+    toast('Salvataggio…', false);
     var corpo = new FormData();
     corpo.append('action', 'forum_reorder');
     corpo.append('csrf', lista.dataset.csrf);
@@ -146,14 +146,14 @@
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (r && r.ok) {
-          messaggio('Ordine salvato', false);
-          setTimeout(function () { messaggio('', false); }, 1800);
+          toast('Ordine salvato', false);
+          setTimeout(function () { toast('', false); }, 1800);
         } else {
-          messaggio('Salvataggio non riuscito: ricarica la pagina', true);
+          toast('Salvataggio non riuscito: ricarica la pagina', true);
         }
       })
       .catch(function () {
-        messaggio('Salvataggio non riuscito: ricarica la pagina', true);
+        toast('Salvataggio non riuscito: ricarica la pagina', true);
       });
   }
 

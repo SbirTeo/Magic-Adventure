@@ -5665,7 +5665,11 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 }
 .me-testata-sx { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0; }
 .me-testata-sx h3 { margin: 0; font-size: 1.05rem; }
-.me-testata-dx { display: flex; gap: 8px; }
+.me-testata-dx { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.me-ordina { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.me-ordina .me-sel { width: auto; }
+.me-tag-data { color: var(--text-dimmer); }
+.me-card-chi { font-size: 0.78rem; margin-top: 2px; }
 .me-campi-menu {
   flex: 1 1 100%;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 14px;
@@ -6000,6 +6004,48 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.75rem; font-weight: 700; color: #fff; text-shadow: 1px 1px 0 #000;
 }
+/* Il luccichio incantato dell'anteprima: due strisce viola che scorrono in diagonale in versi
+   opposti, come l'enchant glint del gioco. La forma la dà la maschera (l'immagine dell'item),
+   impostata inline in menu-editor.js; "screen" lo fa brillare sui pixel invece di coprirli.
+   inset 6px = il padding di .me-tooltip-icona, così il velo combacia con l'icona da 44px. */
+.me-glint {
+  position: absolute; inset: 6px; pointer-events: none; border-radius: 2px;
+  mix-blend-mode: screen; opacity: 0.9;
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  background: repeating-linear-gradient(115deg,
+    rgba(155, 70, 220, 0) 0, rgba(193, 112, 246, 0.6) 4px, rgba(120, 40, 200, 0) 9px);
+  background-size: 220% 220%;
+  animation: me-glint 4s linear infinite;
+}
+.me-glint::after {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(65deg,
+    rgba(120, 40, 200, 0) 0, rgba(214, 150, 255, 0.45) 5px, rgba(120, 40, 200, 0) 11px);
+  background-size: 220% 220%;
+  animation: me-glint-2 5.5s linear infinite;
+}
+.me-glint-pieno { -webkit-mask-image: none !important; mask-image: none !important; }
+/* L'icona come blocco: da inline-block resterebbe sotto un paio di pixel di spazio (il descender),
+   e il velo del luccichio — centrato nel contenitore più alto — scivolerebbe in basso. */
+.me-tooltip-icona img { display: block; }
+@keyframes me-glint   { from { background-position: 0 0; } to { background-position: 220% 0; } }
+@keyframes me-glint-2 { from { background-position: 0 0; } to { background-position: -220% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .me-glint, .me-glint::after { animation: none; }
+}
+
+/* Gli avvisi dell'editor come toast fluttuante: se stessero nel flusso, ogni messaggio
+   (anche "copiato", "incollato") allungherebbe la pagina e SPOSTEREBBE la vista sotto le mani.
+   Fisso in basso al centro, non spinge niente e vale per tutti i messaggi, Salva/Applica compresi. */
+#menuAvvisi {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+  z-index: 1000; width: max-content; max-width: min(560px, 92vw);
+  pointer-events: none;
+}
+#menuAvvisi:empty { display: none; }
+#menuAvvisi .alert { pointer-events: auto; margin: 0; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4); }
 .me-tooltip { flex: 1 1 200px; min-width: 0; margin-top: 0; }
 .me-tooltip-auto { color: var(--text-dimmer); font-style: italic; }
 .me-tooltip-segni { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 5px; }

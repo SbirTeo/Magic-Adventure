@@ -17,7 +17,7 @@ prefix: "&#C046E8&lMagixMenus &8» &r"
 
 players-only: "&#FF6B6BQuesto comando lo puo' usare solo chi sta giocando."
 no-permission: "&#FF6B6BNon hai il permesso per farlo."
-player-required: "&#FF6B6BDalla console serve dire a chi: /menus apri <menu> <giocatore>"
+player-required: "&#FF6B6BDalla console serve dire a chi: /menus open <menu> <giocatore>"
 menu-not-found: "&#FF6B6BNon esiste nessun menu che si chiama &f{menu}&#FF6B6B."
 type-not-openable: "&#FF6B6BQuesto menu e' di tipo &f{type}&#FF6B6B e il server non lo lascia aprire."
 # Un comando che apriva un menu poi tolto o rinominato. Resta in piedi fino al riavvio del
@@ -27,11 +27,11 @@ requirements-not-met: "&#FFD166Non puoi ancora fare questo."
 cooldown-wait: "&#FFD166Aspetta ancora &f{seconds}&#FFD166 secondi."
 unknown-subcommand: "&#FF6B6BNon conosco &f{command}&#FF6B6B. Prova &#A8DC2C/menus help&#FF6B6B."
 
-usage-open: "&#FFD166Uso: &#A8DC2C/menus apri <menu> [giocatore] [argomenti...]"
+usage-open: "&#FFD166Uso: &#A8DC2C/menus open <menu> [giocatore] [argomenti...]"
 usage-info: "&#FFD166Uso: &#A8DC2C/menus info <menu>"
 
 reloaded: "&#A8DC2CRicaricato: &f{count}&#A8DC2C menu."
-reloaded-with-errors: "&#FFD166Alcuni menu hanno dei problemi: &#A8DC2C/menus lista&#FFD166 li segna, &#A8DC2C/menus info <menu>&#FFD166 li spiega."
+reloaded-with-errors: "&#FFD166Alcuni menu hanno dei problemi: &#A8DC2C/menus list&#FFD166 li segna, &#A8DC2C/menus info <menu>&#FFD166 li spiega."
 opened-for: "&#A8DC2CHo aperto &f{menu}&#A8DC2C a &f{player}&#A8DC2C."
 
 status-ok: "&#A8DC2Ca posto"
@@ -93,7 +93,7 @@ help:
       title: "Gestione"
       staff: true
       entries:
-        - "/menus lista :: tutti i menu, con i loro comandi e i loro problemi"
+        - "/menus list :: tutti i menu, con i loro comandi e i loro problemi"
         - "/menus info <menu> :: com'e' fatto un menu e cosa non va"
-        - "/menus apri <menu> [giocatore] :: apre un menu a te o a qualcun altro"
+        - "/menus open <menu> [giocatore] :: apre un menu a te o a qualcun altro"
         - "/menus reload :: rilegge i file dei menu e rifa' i comandi"

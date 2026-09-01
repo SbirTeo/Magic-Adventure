@@ -97,16 +97,16 @@ function sidebar_colonna(bool $conContenitore = true): void {
     // un elenco di facce, e il riquadro non diventa una colonna infinita.
     $onlineMinuti = max(1, (int) site_setting('online_finestra_minuti', '5'));
     $onlineVisibili = max(1, min(50, (int) site_setting('online_max_visibili', '15')));
-    $sulSito = utenti_sul_sito($onlineMinuti, 500);
+    $sulSito = users_on_site($onlineMinuti, 500);
     $sulSitoPrimi = array_slice($sulSito, 0, $onlineVisibili);
     $sulSitoAltri = array_slice($sulSito, $onlineVisibili);
-    $ospiti = ospiti_sul_sito($onlineMinuti);
+    $ospiti = guests_on_site($onlineMinuti);
 
     /** Un nome cliccabile, col colore del grado piu' importante. Porta alla sua scheda. */
-    $nomeOnline = function (array $p): string {
+    $nameOnline = function (array $p): string {
         $colore = player_name_color($p);
         return '<a class="online-nome colore-grado" href="/utente?nome=' . h(rawurlencode($p['mc_username'])) . '"'
-            . ($colore !== null ? ' style="' . stile_colore_grado($colore) . '"' : '') . '>'
+            . ($colore !== null ? ' style="' . rank_color_style($colore) . '"' : '') . '>'
             . h($p['mc_username']) . '</a>';
     };
     ?>
@@ -208,7 +208,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
         <?php if ($sulSito): ?>
           <p class="online-nomi">
             <?php foreach ($sulSitoPrimi as $i => $p): ?>
-              <?= $i > 0 ? '<span class="online-virgola">, </span>' : '' ?><?= $nomeOnline($p) ?>
+              <?= $i > 0 ? '<span class="online-virgola">, </span>' : '' ?><?= $nameOnline($p) ?>
             <?php endforeach; ?>
             <?php if ($sulSitoAltri): ?>
               <span class="online-virgola">, </span>
@@ -236,7 +236,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
                         '<img class="online-avatar" src="' . h(mc_avatar_url($p['mc_uuid'], 32)) . '" alt="" '
                         . 'width="22" height="22" loading="lazy">',
                         $p['mc_uuid'], 22)
-                    . $nomeOnline($p) . '</li>';
+                    . $nameOnline($p) . '</li>';
             }
           ?></template>
 

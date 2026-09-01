@@ -120,7 +120,7 @@ require __DIR__ . '/../includes/header.php';
 
   <div class="profilo-testata-testo">
     <div class="profilo-intestazione">
-      <div class="profilo-nome colore-grado"<?= $coloreNome !== null ? ' style="' . stile_colore_grado($coloreNome) . '"' : '' ?>>
+      <div class="profilo-nome colore-grado"<?= $coloreNome !== null ? ' style="' . rank_color_style($coloreNome) . '"' : '' ?>>
         <?= h($utente['mc_username']) ?>
       </div>
       <?php if ($tag !== ''): ?>
@@ -129,7 +129,7 @@ require __DIR__ . '/../includes/header.php';
     </div>
 
     <?php $ultimaVolta = $utente['last_seen'] ?: ($utente['last_login'] ?: null); ?>
-    <?php if (e_sul_sito($utente)): ?>
+    <?php if (is_on_site($utente)): ?>
       <p class="profilo-nota"><span class="online-dot" aria-hidden="true"></span> Sul sito in questo momento.</p>
     <?php elseif ($ultimaVolta): ?>
       <p class="profilo-nota">Ultima volta sul sito <?= h(time_ago($ultimaVolta)) ?>.</p>

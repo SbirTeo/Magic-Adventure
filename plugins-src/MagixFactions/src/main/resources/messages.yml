@@ -308,7 +308,7 @@ reload: "&aConfigurazione e messaggi ricaricati."
 help:
   title: "MagixFactions"
   sections:
-    fazione:
+    faction:
       title: "Fazione"
       entries:
         - "/f create <nome> :: crea una fazione (sei il leader)"
@@ -317,7 +317,7 @@ help:
         - "/f description <testo> :: descrizione della fazione (o /f desc)"
         - "/f leave :: esci (da unico leader, scioglie la fazione)"
         - "/f disband :: sciogli la fazione (solo leader)"
-    membri:
+    members:
       title: "Membri"
       entries:
         - "/f invite <giocatore> :: invita un giocatore"
@@ -326,7 +326,7 @@ help:
         - "/f promote <giocatore> :: alza di grado"
         - "/f demote <giocatore> :: abbassa di grado"
         - "/f transfer <giocatore> :: passa il comando (solo leader)"
-    territorio:
+    territory:
       title: "Territorio"
       entries:
         - "/f claim :: conquista il territorio in cui ti trovi"

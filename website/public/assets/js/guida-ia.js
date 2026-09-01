@@ -41,7 +41,7 @@
     var MAX_SCAMBI = 4;
 
     /** Un messaggio nell'elenco. In modo "singola" c'e' sempre e solo l'ultimo. */
-    function aggiungi(classe) {
+    function add(classe) {
       if (modo === 'singola') elenco.innerHTML = '';
       var riga = document.createElement('div');
       riga.className = 'guida-ia-msg ' + classe;
@@ -69,7 +69,7 @@
       elenco.scrollTop = elenco.scrollHeight;
     }
 
-    function testo(nodo, valore) {
+    function text(nodo, valore) {
       nodo.appendChild(document.createTextNode(valore));
     }
 
@@ -127,8 +127,8 @@
     }
 
     /** Disegna la risposta arrivata dal server. */
-    function mostra(dati) {
-      var riga = aggiungi('e-guida');
+    function show(dati) {
+      var riga = add('e-guida');
       if (modo === 'chat') firma(riga);
       var corpo = document.createElement('div');
       corpo.className = 'guida-ia-corpo';
@@ -168,9 +168,9 @@
       if ((dati.correlati || []).length) {
         var altri = document.createElement('p');
         altri.className = 'guida-ia-altri';
-        testo(altri, dati.ok ? 'Ne parlano anche: ' : '');
+        text(altri, dati.ok ? 'Ne parlano anche: ' : '');
         dati.correlati.forEach(function (c, i) {
-          if (i) testo(altri, ' · ');
+          if (i) text(altri, ' · ');
           altri.appendChild(linkCapitolo(c, c.titolo));
         });
         corpo.appendChild(altri);
@@ -184,7 +184,7 @@
       if (invia) invia.disabled = true;
 
       if (modo === 'chat') {
-        var mia = aggiungi('e-tua');
+        var mia = add('e-tua');
         var nome = document.createElement('span');
         nome.className = 'guida-ia-nome';
         nome.textContent = 'Tu';
@@ -199,7 +199,7 @@
         mia.appendChild(corpo);
       }
 
-      var attesa = aggiungi('e-guida e-attesa');
+      var attesa = add('e-guida e-attesa');
       if (modo === 'chat') firma(attesa);
       var puntini = document.createElement('span');
       puntini.className = 'guida-ia-corpo';
@@ -214,14 +214,14 @@
         .then(function (r) { return r.json(); })
         .then(function (dati) {
           attesa.remove();
-          var riga = mostra(dati);
+          var riga = show(dati);
           // Ci si mette in cima alla RISPOSTA, non in fondo: quello che conta e' la prima
           // riga ("dalla guida, capitolo…"), non l'ultima citazione.
           elenco.scrollTop = Math.max(0, riga.offsetTop - elenco.offsetTop - 8);
         })
         .catch(function () {
           attesa.remove();
-          mostra({ ok: false, nota: 'La ricerca non risponde. Riprova tra poco.' });
+          show({ ok: false, nota: 'La ricerca non risponde. Riprova tra poco.' });
           inFondo();
         })
         .then(function () {

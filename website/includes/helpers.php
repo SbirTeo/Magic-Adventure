@@ -94,7 +94,7 @@ function site_setting(string $key, string $default = ''): string {
  * funzionano allo stesso modo: con il testo copiato in quattro moduli diversi tornerebbe
  * a divergere alla prima modifica, ed e' gia' successo.
  */
-function aiuto_velo(string $quale): string {
+function help_overlay(string $quale): string {
     if ($quale === 'intensita') {
         return 'Quanto copre il velo <strong>nel punto in cui arriva a pieno</strong>: 0% = copertina '
              . 'intatta, 100% = colore pieno. Da solo non copre tutta la tessera: quanta ne copre lo '
@@ -134,7 +134,7 @@ function nota_interruttore_veli(string $dove): string {
  * (Aspetto → Guida del server). Vuoto = si usa quello predefinito, cosi' la pagina
  * non resta mai senza spiegazione.
  */
-function guida_intro(): string {
+function guide_intro(): string {
     $predefinito = "Tutto quello che serve per cominciare: fazioni, potenza, territori, mappa e "
         . "l'elenco completo dei comandi. È la stessa guida che trovi in gioco, quindi resta "
         . "sempre allineata a com'è il server adesso.";
@@ -147,7 +147,7 @@ function guida_intro(): string {
  * fondo dei pannelli e colore del testo. Tutto il resto (bordi, fondi intermedi, testi
  * tenui, veli) si ricava da questi, quindi cambiando i tre di base il tema resta coerente.
  *
- * I due testi tenui passano da colore_leggibile(): vengono spinti finche' non superano la
+ * I due testi tenui passano da readable_color(): vengono spinti finche' non superano la
  * soglia di contrasto sul fondo scelto, cosi' nessuna combinazione produce testo illeggibile.
  * Funziona uguale per il tema chiaro e per quello scuro: la direzione la capisce da sola
  * guardando quanto e' luminoso il fondo.
@@ -164,8 +164,8 @@ function tavolozza_tema(string $sfondo, string $pannello, string $testo): string
         '--border: ' . hex_mix($testo, $sfondo, 0.14),
         '--border-strong: ' . hex_mix($testo, $sfondo, 0.32),
         '--text: ' . $testo,
-        '--text-dim: ' . colore_leggibile(hex_mix($testo, $sfondo, 0.66), $sfondo),
-        '--text-dimmer: ' . colore_leggibile(hex_mix($testo, $sfondo, 0.5), $sfondo),
+        '--text-dim: ' . readable_color(hex_mix($testo, $sfondo, 0.66), $sfondo),
+        '--text-dimmer: ' . readable_color(hex_mix($testo, $sfondo, 0.5), $sfondo),
         '--bg-testata: ' . hex_to_rgba($pannello, 0.9),
         // Coppia "contrasto massimo" (pulsante d'invio della chat, pagina corrente)
         '--contrasto: ' . $testo,
@@ -388,7 +388,7 @@ function player_tag(?array $row): string {
         // hex_mix), altrimenti l'etichetta resta appena sotto la soglia di leggibilita'.
         $fondoTag = hex_mix($rank['color'], '#ffffff', 0.14);
         $out .= '<span class="player-tag" style="--tag-color:' . $rank['color']
-            . ';--tag-color-chiaro:' . h(colore_leggibile($rank['color'], $fondoTag))
+            . ';--tag-color-chiaro:' . h(readable_color($rank['color'], $fondoTag))
             . ';--tag-bg:' . hex_to_rgba($rank['color'], 0.14)
             . ';--tag-border:' . hex_to_rgba($rank['color'], 0.45) . '">'
             . h($rank['label']) . '</span>';
@@ -400,7 +400,7 @@ function player_tag(?array $row): string {
 const PRESENZA_MINUTI = 5;
 
 /** Vero se la riga porta una `last_seen` recente (serve la colonna nella SELECT). */
-function e_sul_sito(?array $row): bool {
+function is_on_site(?array $row): bool {
     $visto = $row['last_seen'] ?? null;
     return $visto !== null && strtotime((string) $visto) >= time() - PRESENZA_MINUTI * 60;
 }
@@ -414,7 +414,7 @@ function e_sul_sito(?array $row): bool {
  * Stringa vuota se la riga non ha `last_seen` (query che non la seleziona) o se e' vecchia.
  */
 function presenza_dot(?array $row, ?string $username = null): string {
-    if (!e_sul_sito($row)) {
+    if (!is_on_site($row)) {
         return '';
     }
     if ($username !== null && function_exists('current_user')) {
@@ -433,7 +433,7 @@ function presenza_dot(?array $row, ?string $username = null): string {
  * Da non confondere con chi e' in partita: quello lo dice mc_server_status().
  * Il piu' recente per primo.
  */
-function utenti_sul_sito(int $minuti = 5, int $max = 100): array {
+function users_on_site(int $minuti = 5, int $max = 100): array {
     // I due numeri entrano nella query gia' ridotti a interi in un intervallo sensato:
     // MariaDB non accetta un parametro dentro INTERVAL ne' dentro LIMIT.
     $minuti = max(1, min(1440, $minuti));
@@ -486,7 +486,7 @@ function player_name(?array $row, ?string $username): string {
         return $pallino . $name;
     }
     return player_tag($row) . $pallino
-        . '<span class="player-rank-name colore-grado" style="' . stile_colore_grado($color) . '">'
+        . '<span class="player-rank-name colore-grado" style="' . rank_color_style($color) . '">'
         . $name . '</span>';
 }
 
@@ -496,8 +496,8 @@ function player_name(?array $row, ?string $username): string {
  * Quale delle due si veda lo decide il foglio di stile (classe .colore-grado), non il
  * server: cosi' funziona anche col tema "auto", che il server non puo' conoscere.
  */
-function stile_colore_grado(string $colore): string {
-    return '--c:' . h($colore) . ';--c-chiaro:' . h(colore_leggibile($colore, '#ffffff'));
+function rank_color_style(string $colore): string {
+    return '--c:' . h($colore) . ';--c-chiaro:' . h(readable_color($colore, '#ffffff'));
 }
 
 /**
@@ -583,7 +583,7 @@ function chat_sender_html(array $riga, string $relazione): string {
     // Il nome porta alla scheda del giocatore: e' il gesto che uno si aspetta leggendo una
     // chat ("chi e' questo?"), e la scheda esiste gia' (/utente).
     $nome = '<a class="chat-nome colore-grado" href="/utente?nome='
-        . h(rawurlencode((string) $riga['mc_username'])) . '" style="' . stile_colore_grado($coloreNome) . '">'
+        . h(rawurlencode((string) $riga['mc_username'])) . '" style="' . rank_color_style($coloreNome) . '">'
         . h((string) $riga['mc_username']) . '</a>';
 
     if ($fazione === '') {
@@ -591,7 +591,7 @@ function chat_sender_html(array $riga, string $relazione): string {
         return player_tag($riga) . $nome;
     }
     // Ordine come in gioco: [Fazione] (colore relazione) -> tag del grado -> nome (colore del grado).
-    return '<span class="chat-fac">[<span class="colore-grado" style="' . stile_colore_grado($coloreRel) . '">'
+    return '<span class="chat-fac">[<span class="colore-grado" style="' . rank_color_style($coloreRel) . '">'
             . h($fazione) . '</span>]</span> '
         . player_tag($riga)
         . $nome;
@@ -671,7 +671,7 @@ function text_on_color(string $hex): string {
  *
  * @param float $soglia 4.5 = testo normale secondo WCAG, 3.0 = testo grande/grassetto
  */
-function colore_leggibile(string $hex, string $sfondo, float $soglia = 4.5): string {
+function readable_color(string $hex, string $sfondo, float $soglia = 4.5): string {
     if (!is_valid_hex_color($hex) || !is_valid_hex_color($sfondo)) {
         return $hex;
     }
@@ -822,7 +822,7 @@ function ospiti_registra(): void {
 }
 
 /** Quanti ospiti stanno guardando il sito adesso. */
-function ospiti_sul_sito(int $minuti = 5): int {
+function guests_on_site(int $minuti = 5): int {
     $minuti = max(1, min(1440, $minuti));
     try {
         $q = db()->query("SELECT COUNT(*) FROM guests_online
@@ -845,7 +845,7 @@ function ospiti_sul_sito(int $minuti = 5): int {
  * IGNORE` perche' `mc_username` e' unico — se qualcun altro ha nel frattempo preso quel nome
  * la riga si salta invece di far fallire tutto.
  */
-function allinea_nomi_mc(): void {
+function align_mc_names(): void {
     try {
         if (random_int(1, 20) !== 1) {
             return;

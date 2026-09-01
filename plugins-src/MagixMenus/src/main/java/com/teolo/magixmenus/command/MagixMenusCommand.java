@@ -35,7 +35,7 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender m, Command c, String etichetta, String[] a) {
         boolean staff = m.hasPermission("magixmenus.admin");
 
-        if (a.length == 0 || a[0].equalsIgnoreCase("help") || a[0].equalsIgnoreCase("aiuto")) {
+        if (a.length == 0 || a[0].equalsIgnoreCase("help")) {
             int pagina = a.length > 1 ? intero(a[1], 1) : 1;
             Help.mostra(m, "MagixMenus", "/" + etichetta + " help",
                     Help.daConfig(plugin.messaggi().section("help.sections")), pagina, staff);
@@ -43,7 +43,7 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
         }
 
         switch (a[0].toLowerCase(Locale.ROOT)) {
-            case "reload", "ricarica" -> {
+            case "reload" -> {
                 if (!staff) {
                     plugin.messaggi().send(m, "no-permission");
                     return true;
@@ -57,7 +57,7 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
-            case "lista", "list" -> {
+            case "list" -> {
                 if (!staff) {
                     plugin.messaggi().send(m, "no-permission");
                     return true;
@@ -77,7 +77,7 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
                 info(m, a[1]);
             }
 
-            case "apri", "open" -> {
+            case "open" -> {
                 if (!staff) {
                     plugin.messaggi().send(m, "no-permission");
                     return true;
@@ -192,14 +192,14 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
             return out;
         }
         if (a.length == 1) {
-            for (String s : List.of("help", "reload", "lista", "info", "apri")) {
+            for (String s : List.of("help", "reload", "list", "info", "open")) {
                 if (s.startsWith(a[0].toLowerCase(Locale.ROOT))) {
                     out.add(s);
                 }
             }
             return out;
         }
-        if (a.length == 2 && (a[0].equalsIgnoreCase("apri") || a[0].equalsIgnoreCase("info"))) {
+        if (a.length == 2 && (a[0].equalsIgnoreCase("open") || a[0].equalsIgnoreCase("info"))) {
             for (MenuDef d : plugin.menu().tutti()) {
                 if (d.nome().startsWith(a[1].toLowerCase(Locale.ROOT))) {
                     out.add(d.nome());
@@ -207,7 +207,7 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
             }
             return out;
         }
-        if (a.length == 3 && a[0].equalsIgnoreCase("apri")) {
+        if (a.length == 3 && a[0].equalsIgnoreCase("open")) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.getName().toLowerCase(Locale.ROOT).startsWith(a[2].toLowerCase(Locale.ROOT))) {
                     out.add(p.getName());

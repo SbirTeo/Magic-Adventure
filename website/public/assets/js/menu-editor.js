@@ -31,8 +31,14 @@
   var schedaAperta = 'aspetto';
   var modificato = false;
   var atlante = null;       // quali item hanno una texture (vedi piu' sotto)
+  var iconVer = '';        // marca dell'ultima estrazione: sta in coda alle URL delle icone,
+                            //   cosi' quando si rigenerano le texture il browser le ripesca e
+                            //   non resta con una vecchia (es. un vetro con la texture sbagliata)
   var fileAperto = false;   // il pannello che mostra il .yml com'e' scritto sul server
   var casellaScelta = -1;      // su quale casella si e' cliccato: serve a raggiungere gli item nascosti
+  var itemClipboard = null;    // copia di un item, per Ctrl+C / Ctrl+V (anche rete di sicurezza del Canc)
+  var hoverCell = -1;          // la casella sotto il mouse: Ctrl+V incolla lì
+  var sortMode = readSortMode(); // come ordinare la lista dei menu: 'name' | 'modified' | 'created'
   var daMettereAFuoco = null;  // {elenco, indice} della riga appena aggiunta, da mettere a fuoco
   var vaiInCima = false;       // vero solo quando si cambia menu: allora si riparte dall'alto
   var testoFile = null;     // il contenuto, appena letto
@@ -47,17 +53,17 @@
     return e;
   }
 
-  function svuota(nodo) {
+  function empty(nodo) {
     while (nodo.firstChild) nodo.removeChild(nodo.firstChild);
     return nodo;
   }
 
-  function copia(x) {
+  function clone(x) {
     return JSON.parse(JSON.stringify(x));
   }
 
   function avviso(testo, errore) {
-    svuota(avvisi);
+    empty(avvisi);
     if (!testo) return;
     var d = el('div', 'alert alert-' + (errore ? 'error' : 'success'), testo);
     avvisi.appendChild(d);
@@ -116,7 +122,7 @@
     testo = String(testo === undefined || testo === null ? '' : testo);
     var out = '', colore = '#DDDDDD', grassetto = false, corsivo = false, barrato = false, sottolineato = false;
     var pezzo = '';
-    function chiudi() {
+    function closePanel() {
       if (!pezzo) return;
       var stile = 'color:' + colore;
       if (grassetto) stile += ';font-weight:700';
@@ -135,19 +141,19 @@
       if (c === '&' && i + 1 < testo.length) {
         var p = testo[i + 1];
         if (p === '#' && /^[0-9a-fA-F]{6}$/.test(testo.substr(i + 2, 6))) {
-          chiudi(); colore = '#' + testo.substr(i + 2, 6); i += 7; continue;
+          closePanel(); colore = '#' + testo.substr(i + 2, 6); i += 7; continue;
         }
         var basso = p.toLowerCase();
-        if (TAVOLOZZA[basso]) { chiudi(); colore = TAVOLOZZA[basso]; grassetto = corsivo = barrato = sottolineato = false; i++; continue; }
-        if (basso === 'l') { chiudi(); grassetto = true; i++; continue; }
-        if (basso === 'o') { chiudi(); corsivo = true; i++; continue; }
-        if (basso === 'm') { chiudi(); barrato = true; i++; continue; }
-        if (basso === 'n') { chiudi(); sottolineato = true; i++; continue; }
-        if (basso === 'r') { chiudi(); colore = '#DDDDDD'; grassetto = corsivo = barrato = sottolineato = false; i++; continue; }
+        if (TAVOLOZZA[basso]) { closePanel(); colore = TAVOLOZZA[basso]; grassetto = corsivo = barrato = sottolineato = false; i++; continue; }
+        if (basso === 'l') { closePanel(); grassetto = true; i++; continue; }
+        if (basso === 'o') { closePanel(); corsivo = true; i++; continue; }
+        if (basso === 'm') { closePanel(); barrato = true; i++; continue; }
+        if (basso === 'n') { closePanel(); sottolineato = true; i++; continue; }
+        if (basso === 'r') { closePanel(); colore = '#DDDDDD'; grassetto = corsivo = barrato = sottolineato = false; i++; continue; }
       }
       pezzo += c;
     }
-    chiudi();
+    closePanel();
     return out || '<span style="color:#DDDDDD"></span>';
   }
 
@@ -164,7 +170,7 @@
     var stato = { colore: null, grassetto: false, corsivo: false, barrato: false, sottolineato: false, illeggibile: false };
     var pezzo = '';
 
-    function chiudi() {
+    function closePanel() {
       if (pezzo === '') return;
       tratti.push({
         testo: pezzo, colore: stato.colore, grassetto: stato.grassetto, corsivo: stato.corsivo,
@@ -178,30 +184,30 @@
       if (c === '&' && i + 1 < testo.length) {
         var pr = testo[i + 1];
         if (pr === '#' && /^[0-9a-fA-F]{6}$/.test(testo.substr(i + 2, 6))) {
-          chiudi();
+          closePanel();
           stato = { colore: '&#' + testo.substr(i + 2, 6).toUpperCase(), grassetto: false, corsivo: false, barrato: false, sottolineato: false, illeggibile: false };
           i += 7; continue;
         }
         var b = pr.toLowerCase();
         if (TAVOLOZZA[b]) {
-          chiudi();
+          closePanel();
           stato = { colore: '&' + b, grassetto: false, corsivo: false, barrato: false, sottolineato: false, illeggibile: false };
           i++; continue;
         }
-        if (b === 'l') { chiudi(); stato.grassetto = true; i++; continue; }
-        if (b === 'o') { chiudi(); stato.corsivo = true; i++; continue; }
-        if (b === 'm') { chiudi(); stato.barrato = true; i++; continue; }
-        if (b === 'n') { chiudi(); stato.sottolineato = true; i++; continue; }
-        if (b === 'k') { chiudi(); stato.illeggibile = true; i++; continue; }
+        if (b === 'l') { closePanel(); stato.grassetto = true; i++; continue; }
+        if (b === 'o') { closePanel(); stato.corsivo = true; i++; continue; }
+        if (b === 'm') { closePanel(); stato.barrato = true; i++; continue; }
+        if (b === 'n') { closePanel(); stato.sottolineato = true; i++; continue; }
+        if (b === 'k') { closePanel(); stato.illeggibile = true; i++; continue; }
         if (b === 'r') {
-          chiudi();
+          closePanel();
           stato = { colore: null, grassetto: false, corsivo: false, barrato: false, sottolineato: false, illeggibile: false };
           i++; continue;
         }
       }
       pezzo += c;
     }
-    chiudi();
+    closePanel();
     return tratti;
   }
 
@@ -248,7 +254,7 @@
     return st;
   }
 
-  function senzaColori(testo) {
+  function stripColors(testo) {
     return String(testo || '').replace(/&#[0-9a-fA-F]{6}|&[0-9a-fk-orA-FK-OR]/g, '');
   }
 
@@ -288,9 +294,9 @@
     ['&r', '↺', 'da qui in poi torna normale', 'opacity:0.8']
   ];
 
-  function inserisciCodice(campo, codice) {
+  function insertCode(campo, codice) {
     if (campo.getAttribute && campo.getAttribute('data-scritto')) {
-      applicaVisuale(campo, codice);
+      applyVisual(campo, codice);
       return;
     }
     var inizio = campo.selectionStart, fine = campo.selectionEnd, v = campo.value;
@@ -313,7 +319,7 @@
     // ancora che il clic arrivi, e il codice finirebbe chissa' dove.
     b.addEventListener('mousedown', function (e) {
       e.preventDefault();
-      inserisciCodice(campo, codice);
+      insertCode(campo, codice);
     });
     return b;
   }
@@ -348,7 +354,7 @@
       if (segnato.length === 2) {
         campo.setSelectionRange(parseInt(segnato[0], 10), parseInt(segnato[1], 10));
       }
-      inserisciCodice(campo, '&' + pennello.value.toUpperCase());
+      insertCode(campo, '&' + pennello.value.toUpperCase());
     });
     scelta.appendChild(pennello);
     barra.appendChild(scelta);
@@ -361,7 +367,7 @@
       b.setAttribute('style', f[3]);
       b.addEventListener('mousedown', function (e) {
         e.preventDefault();
-        inserisciCodice(campo, f[0]);
+        insertCode(campo, f[0]);
       });
       gruppoFormati.appendChild(b);
     });
@@ -372,11 +378,11 @@
     pulisci.addEventListener('mousedown', function (e) {
       e.preventDefault();
       if (campo.getAttribute && campo.getAttribute('data-scritto')) {
-        disegnaTratti(campo, senzaColori(leggiTratti(campo)));
+        drawSpans(campo, stripColors(readSpans(campo)));
         campo.dispatchEvent(new Event('input', { bubbles: true }));
         return;
       }
-      campo.value = senzaColori(campo.value);
+      campo.value = stripColors(campo.value);
       campo.dispatchEvent(new Event('input', { bubbles: true }));
     });
     gruppoFormati.appendChild(pulisci);
@@ -401,7 +407,7 @@
     visuale.setAttribute('data-scritto', '1');
     // Un contenteditable non ha il "placeholder": il suggerimento lo disegna il CSS quando
     // l'elemento e' vuoto (vedi .me-visuale:empty::before).
-    disegnaTratti(visuale, valore);
+    drawSpans(visuale, valore);
 
     var grezzo = el('textarea', 'me-inp me-area me-grezzo');
     grezzo.rows = multiriga ? 4 : 2;
@@ -410,7 +416,7 @@
 
     // --- si scrive nel visuale: si rilegge, senza toccare il DOM (il cursore non deve saltare)
     visuale.addEventListener('input', function () {
-      var v = leggiTratti(visuale);
+      var v = readSpans(visuale);
       grezzo.value = v;
       cambia(v);
     });
@@ -438,12 +444,12 @@
     interruttore.addEventListener('click', function () {
       var siVede = grezzo.style.display !== 'none';
       if (siVede) {
-        disegnaTratti(visuale, grezzo.value);   // tornando al visuale si rilegge cio' che c'e' scritto
+        drawSpans(visuale, grezzo.value);   // tornando al visuale si rilegge cio' che c'e' scritto
         grezzo.style.display = 'none';
         visuale.style.display = '';
         interruttore.textContent = '⟨⟩ codici';
       } else {
-        grezzo.value = leggiTratti(visuale);
+        grezzo.value = readSpans(visuale);
         visuale.style.display = 'none';
         grezzo.style.display = '';
         interruttore.textContent = '✎ testo';
@@ -457,8 +463,8 @@
   }
 
   /** Disegna il testo coi codici come tratti colorati dentro il campo. */
-  function disegnaTratti(host, valore) {
-    svuota(host);
+  function drawSpans(host, valore) {
+    empty(host);
     var tratti = inTratti(valore);
     if (!tratti.length) return;
     tratti.forEach(function (t) {
@@ -475,7 +481,7 @@
   }
 
   /** Rilegge dal campo il testo coi codici. */
-  function leggiTratti(host) {
+  function readSpans(host) {
     var tratti = [];
     Array.prototype.forEach.call(host.childNodes, function (n) {
       if (n.nodeType === 3) {
@@ -501,18 +507,18 @@
    * Senza selezione vale dal cursore in avanti: e' come si comportano davvero i codici di
    * Minecraft, e quasi sempre e' quello che si vuole ("da qui in poi, verde").
    */
-  function applicaVisuale(host, codice) {
-    var raw = leggiTratti(host);
+  function applyVisual(host, codice) {
+    var raw = readSpans(host);
     var tratti = inTratti(raw);
     var sel = window.getSelection();
-    var da = 0, a = testoIntero(tratti).length;
+    var da = 0, a = fullText(tratti).length;
 
     if (sel && sel.rangeCount && host.contains(sel.anchorNode)) {
       var r = sel.getRangeAt(0);
       da = posizioneIn(host, r.startContainer, r.startOffset);
-      a = r.collapsed ? testoIntero(tratti).length : posizioneIn(host, r.endContainer, r.endOffset);
+      a = r.collapsed ? fullText(tratti).length : posizioneIn(host, r.endContainer, r.endOffset);
     }
-    if (a <= da) a = testoIntero(tratti).length;
+    if (a <= da) a = fullText(tratti).length;
 
     var nuovi = [];
     var scorre = 0;
@@ -524,21 +530,21 @@
         .forEach(function (p, quale) {
           if (p[1] <= p[0]) return;
           var pezzo = Object.assign({}, t, { testo: t.testo.slice(p[0] - inizio, p[1] - inizio) });
-          if (quale === 1) applicaCodiceA(pezzo, codice);
+          if (quale === 1) applyCodeTo(pezzo, codice);
           nuovi.push(pezzo);
         });
     });
     if (!tratti.length) {
       var vuoto = { testo: '', colore: null, grassetto: false, corsivo: false, barrato: false, sottolineato: false, illeggibile: false };
-      applicaCodiceA(vuoto, codice);
+      applyCodeTo(vuoto, codice);
       nuovi.push(vuoto);
     }
-    disegnaTratti(host, daTratti(nuovi));
+    drawSpans(host, daTratti(nuovi));
     host.dispatchEvent(new Event('input', { bubbles: true }));
     host.focus();
   }
 
-  function testoIntero(tratti) {
+  function fullText(tratti) {
     return tratti.map(function (t) { return t.testo; }).join('');
   }
 
@@ -559,7 +565,7 @@
     return n;
   }
 
-  function applicaCodiceA(t, codice) {
+  function applyCodeTo(t, codice) {
     if (codice === '&r') {
       t.colore = null; t.grassetto = t.corsivo = t.barrato = t.sottolineato = t.illeggibile = false;
       return;
@@ -578,17 +584,17 @@
    *
    * @param dentro il contenitore del campo, dove infilare barra e anteprima
    */
-  function abilitaColori(campo, dentro) {
+  function enableColors(campo, dentro) {
     // Il campo visuale mostra gia' il testo com'e': una riga di anteprima sotto direbbe la
     // stessa cosa due volte. Resta solo per i campi che mostrano i codici per esteso.
     if (!(campo.getAttribute && campo.getAttribute('data-scritto'))) {
       var anteprima = el('div', 'me-riga-colorata');
-      var aggiorna = function () {
+      var updateColorPreview = function () {
         anteprima.innerHTML = campo.value ? coloraInHtml(campo.value.split('\n')[0]) : '';
         anteprima.style.display = campo.value ? '' : 'none';
       };
-      aggiorna();
-      campo.addEventListener('input', aggiorna);
+      updateColorPreview();
+      campo.addEventListener('input', updateColorPreview);
       dentro.appendChild(anteprima);
     }
 
@@ -624,15 +630,16 @@
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (a) {
       if (!a || !a.icone) return;
+      iconVer = String(a.generato || a.versione || '');
       atlante = {};
       for (var i = 0; i < a.icone.length; i++) atlante[a.icone[i]] = true;
-      ridisegnaIcone();
+      redrawIcons();
     })
     .catch(function () { /* niente icone: si resta alle piastrelle */ });
 
-  function ridisegnaIcone() {
-    if (menu) disegnaEditor();
-    else if (dati) disegnaElenco();
+  function redrawIcons() {
+    if (menu) drawEditor();
+    else if (dati) drawList();
   }
 
   /**
@@ -642,7 +649,7 @@
    * niente e resta la piastrella col nome. Un placeholder diverso da %player_name% nemmeno:
    * il suo valore lo conosce solo il server.
    */
-  function nomeDaTesta(testa) {
+  function nameFromHead(testa) {
     var t = String(testa || '').trim();
     if (!t) return '';
     if (/^https?:\/\//i.test(t)) return '';
@@ -664,11 +671,11 @@
    *        Con un NOME (o col segnaposto, che diventa chi sta modificando) si mostra la faccia
    *        vera, presa dallo stesso servizio che il sito usa gia' per gli avatar.
    */
-  function icona(id, misura, testa) {
+  function makeIcon(id, misura, testa) {
     id = String(id || 'STONE').toUpperCase().replace(/^MINECRAFT:/, '');
     misura = misura || 32;
 
-    var chi = nomeDaTesta(testa);
+    var chi = nameFromHead(testa);
     if (chi) {
       var faccia = el('img', 'me-icona');
       // "cube" e non "helm": nell'inventario una testa e' un CUBO visto in prospettiva, non
@@ -683,7 +690,7 @@
     }
     if (atlante && atlante[id]) {
       var img = el('img', 'me-icona');
-      img.src = '/assets/img/item/' + encodeURIComponent(id) + '.png';
+      img.src = '/assets/img/item/' + encodeURIComponent(id) + '.png' + (iconVer ? '?v=' + encodeURIComponent(iconVer) : '');
       img.width = img.height = misura;
       img.alt = '';
       img.title = id;
@@ -701,15 +708,40 @@
   // ------------------------------------------------------------------
   //  Avvio
   // ------------------------------------------------------------------
-  carica();
+  load();
+  ascoltaTastiera();
 
-  function carica() {
+  // Canc / Ctrl+C / Ctrl+V / Ctrl+X sugli item della griglia. Registrato una volta sola: gira solo
+  // quando c'e' un menu di tipo griglia aperto, e resta zitto dentro i campi di testo (lì Canc e
+  // Ctrl+C/V sono quelli del campo).
+  function ascoltaTastiera() {
+    document.addEventListener('keydown', function (e) {
+      if (!menu || menu.tipo === 'dialog') return;
+      var t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+
+      var ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && (e.key === 'c' || e.key === 'C')) {
+        var sel = window.getSelection && window.getSelection();
+        if (sel && !sel.isCollapsed) return;   // c'e' del testo selezionato: lascia copiare quello
+        if (copySelectedItem()) { e.preventDefault(); avviso('Item copiato. Passa il mouse su una casella e premi Ctrl+V.'); }
+      } else if (ctrl && (e.key === 'v' || e.key === 'V')) {
+        if (itemClipboard) { e.preventDefault(); pasteClipboard(hoverCell); }
+      } else if (ctrl && (e.key === 'x' || e.key === 'X')) {
+        if (sceltoItem >= 0 && menu.item[sceltoItem]) { e.preventDefault(); cutSelectedItem(); }
+      } else if (e.key === 'Delete') {
+        if (sceltoItem >= 0 && menu.item[sceltoItem]) { e.preventDefault(); cutSelectedItem(); }
+      }
+    });
+  }
+
+  function load() {
     api('azione=elenco').then(function (d) {
       dati = d;
       if (d.io) ioGiocatore = d.io;
-      disegnaElenco();
+      drawList();
     }).catch(function (e) {
-      svuota(app);
+      empty(app);
       app.appendChild(el('div', 'alert alert-error', e.message));
       app.appendChild(el('p', 'muted', 'I menu si leggono dal server: se è spento, o se MagixMenus non è mai partito, qui non c’è ancora niente da mostrare.'));
     });
@@ -718,14 +750,48 @@
   // ------------------------------------------------------------------
   //  L'elenco dei menu
   // ------------------------------------------------------------------
-  function disegnaElenco() {
+  function readSortMode() {
+    try { return localStorage.getItem('meMenuSort') || 'name'; } catch (e) { return 'name'; }
+  }
+  function writeSortMode(v) {
+    sortMode = v;
+    try { localStorage.setItem('meMenuSort', v); } catch (e) { /* modalità in incognito: pazienza */ }
+  }
+
+  // La data buona per un menu, in secondi: l'ultima modifica o la creazione. Se il filesystem non
+  // conserva la creazione (arriva 0), si ripiega sull'ultima modifica, così l'ordine ha comunque senso.
+  function menuTime(name, field) {
+    var t = (dati.tempi || {})[name];
+    if (!t) return 0;
+    return t[field] || (field === 'creato' ? t.modificato : 0) || 0;
+  }
+
+  function sortedMenuNames() {
+    var names = Object.keys(dati.menu);
+    if (sortMode === 'modified') {
+      names.sort(function (a, b) { return (menuTime(b, 'modificato') - menuTime(a, 'modificato')) || a.localeCompare(b); });
+    } else if (sortMode === 'created') {
+      names.sort(function (a, b) { return (menuTime(b, 'creato') - menuTime(a, 'creato')) || a.localeCompare(b); });
+    } else {
+      names.sort(function (a, b) { return a.localeCompare(b); });
+    }
+    return names;
+  }
+
+  function formatWhen(epoch) {
+    if (!epoch) return '';
+    return new Date(epoch * 1000).toLocaleString('it-IT',
+      { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function drawList() {
     menu = null;
     modificato = false;
     // Tornando all'elenco si riparte dall'alto: lo scorrimento di un menu lungo, qui, non
     // vuol dire niente e lascerebbe la pagina a meta' del vuoto.
     window.scrollTo(0, 0);
     if (statoTesto) statoTesto.textContent = '';
-    svuota(app);
+    empty(app);
 
     var testata = el('div', 'me-testata');
     var sinistra = el('div', 'me-testata-sx');
@@ -735,24 +801,38 @@
     testata.appendChild(sinistra);
 
     var destra = el('div', 'me-testata-dx');
+
+    var ordina = el('label', 'me-ordina');
+    ordina.appendChild(el('span', 'muted', 'Ordina'));
+    var selOrdine = el('select', 'me-sel');
+    [['name', 'Nome (A→Z)'], ['modified', 'Ultima modifica'], ['created', 'Creazione']].forEach(function (o) {
+      var opt = el('option', null, o[1]);
+      opt.value = o[0];
+      if (o[0] === sortMode) opt.selected = true;
+      selOrdine.appendChild(opt);
+    });
+    selOrdine.addEventListener('change', function () { writeSortMode(selOrdine.value); drawList(); });
+    ordina.appendChild(selOrdine);
+    destra.appendChild(ordina);
+
     var nuovo = el('button', 'btn btn-accent btn-small', '+ Nuovo menu');
     nuovo.type = 'button';
-    nuovo.addEventListener('click', creaNuovo);
+    nuovo.addEventListener('click', createNew);
     destra.appendChild(nuovo);
     var applica = el('button', 'btn btn-ghost btn-small', 'Applica al server');
     applica.type = 'button';
-    applica.addEventListener('click', function () { applicaAlServer(applica); });
+    applica.addEventListener('click', function () { applyToServer(applica); });
     destra.appendChild(applica);
     testata.appendChild(destra);
     app.appendChild(testata);
 
     var elenco = el('div', 'me-elenco');
-    Object.keys(dati.menu).sort().forEach(function (nome) {
+    sortedMenuNames().forEach(function (nome) {
       var m = dati.menu[nome];
       var card = el('div', 'me-card' + (m.errori && m.errori.length ? ' me-card-errore' : ''));
 
       var cima = el('div', 'me-card-cima');
-      cima.appendChild(icona(primoItemId(m), 28));
+      cima.appendChild(makeIcon(primoItemId(m), 28));
       var titolo = el('div', 'me-card-titolo');
       titolo.appendChild(el('strong', null, nome));
       var sotto = el('span', 'muted');
@@ -767,7 +847,18 @@
       if (m.comandi && m.comandi.length) righe.appendChild(el('span', 'me-tag', '/' + m.comandi.join(' /')));
       if (m.permesso) righe.appendChild(el('span', 'me-tag', m.permesso));
       if (m.aggiornamento) righe.appendChild(el('span', 'me-tag', 'ogni ' + m.aggiornamento + ' tick'));
+      var quando = sortMode === 'created' ? menuTime(nome, 'creato') : menuTime(nome, 'modificato');
+      if (quando) {
+        righe.appendChild(el('span', 'me-tag me-tag-data',
+          (sortMode === 'created' ? 'creato ' : 'modificato ') + formatWhen(quando)));
+      }
       card.appendChild(righe);
+
+      var tt = (dati.tempi || {})[nome] || {};
+      var chi = [];
+      if (tt.creato_da) chi.push('creato da ' + tt.creato_da);
+      if (tt.modificato_da) chi.push('ultima modifica di ' + tt.modificato_da);
+      if (chi.length) card.appendChild(el('div', 'me-card-chi muted', chi.join(' · ')));
 
       if (m.errori && m.errori.length) {
         var err = el('div', 'me-card-problemi');
@@ -780,7 +871,7 @@
       var azioni = el('div', 'me-card-azioni');
       var modifica = el('button', 'btn btn-small', 'Modifica');
       modifica.type = 'button';
-      modifica.addEventListener('click', function () { apri(nome); });
+      modifica.addEventListener('click', function () { openMenu(nome); });
       azioni.appendChild(modifica);
 
       var duplica = el('button', 'btn btn-ghost btn-small', 'Duplica');
@@ -790,7 +881,7 @@
 
       var elimina = el('button', 'btn btn-ghost btn-small', 'Elimina');
       elimina.type = 'button';
-      elimina.addEventListener('click', function () { eliminaMenu(nome); });
+      elimina.addEventListener('click', function () { deleteMenu(nome); });
       azioni.appendChild(elimina);
       card.appendChild(azioni);
 
@@ -800,7 +891,10 @@
 
     var nota = el('div', 'panel me-nota');
     nota.innerHTML = '<p><strong>Come funziona.</strong> Qui si disegna il menu; il server lo legge dal suo file. '
-      + '<em>Salva</em> scrive il file, <em>Applica</em> dice al server di rileggerlo — servono tutti e due.</p>'
+      + '<em>Salva</em> scrive solo il file (una bozza sul server), senza toccare il gioco. '
+      + '<em>Applica al server</em> lo salva e lo fa rileggere al plugin, così va in gioco. Nota: dopo un '
+      + 'refresh della pagina l’editor mostra l’ultima versione <em>applicata</em>, quindi una bozza solo '
+      + 'salvata si rivede premendo Applica.</p>'
       + '<p class="muted">Un file salvato da qui viene riscritto per intero: i commenti che ci fossero scritti a mano non sopravvivono. '
       + 'La copia di prima resta sul server come <code>.bak</code>.</p>';
     app.appendChild(nota);
@@ -814,7 +908,7 @@
     return m.item[0].id;
   }
 
-  function creaNuovo() {
+  function createNew() {
     var nome = (prompt('Nome del nuovo menu (diventa il nome del file e non si vede in gioco):', '') || '').trim().toLowerCase();
     if (!nome) return;
     if (!/^[a-z0-9_-]{1,40}$/.test(nome)) { avviso('Nel nome vanno solo lettere minuscole, numeri, - e _.', true); return; }
@@ -823,10 +917,10 @@
       nome: nome, tipo: 'chest', righe: 3, caselle: 27, larghezza: 9,
       titolo: '&#C046E8' + nome, aggiornamento: 0, comandi: [nome], permesso: null,
       argomenti: [], chiusura_libera: true,
-      apri_se: vuotoRequisiti(), azioni_apertura: [], azioni_chiusura: [],
+      apri_se: emptyRequirements(), azioni_apertura: [], azioni_chiusura: [],
       item: [], errori: []
     };
-    apri(nome);
+    openMenu(nome);
     segnaModificato();
   }
 
@@ -835,36 +929,47 @@
     if (!nuovo) return;
     if (!/^[a-z0-9_-]{1,40}$/.test(nuovo)) { avviso('Nel nome vanno solo lettere minuscole, numeri, - e _.', true); return; }
     if (dati.menu[nuovo]) { avviso('Un menu con questo nome esiste già.', true); return; }
-    var c = copia(dati.menu[nome]);
+    var c = clone(dati.menu[nome]);
     c.nome = nuovo;
     // I comandi NON si copiano: due menu sullo stesso comando finirebbero per litigarselo,
     // e il primo caricato vincerebbe in modo imprevedibile.
     c.comandi = [];
     dati.menu[nuovo] = c;
-    apri(nuovo);
+    openMenu(nuovo);
     segnaModificato();
   }
 
-  function eliminaMenu(nome) {
+  function deleteMenu(nome) {
     if (!confirm('Elimino il menu "' + nome + '"?\n\nIl file resta sul server rinominato in .eliminato, ma il menu sparisce dal gioco al prossimo Applica.')) return;
     api('elimina', { nome: nome }).then(function (d) {
       delete dati.menu[nome];
       avviso(d.messaggio);
-      disegnaElenco();
+      drawList();
     }).catch(function (e) { avviso(e.message, true); });
   }
 
-  function applicaAlServer(bottone) {
+  /**
+   * Applica = SALVA e poi RICARICA. Scrive il menu aperto (se ce n'e' uno) e dice al server di
+   * rileggere i file, cosi' va in gioco. Dalla lista non c'e' niente da scrivere: ricarica soltanto.
+   *
+   * La differenza con Salva sta tutta qui: Salva scrive il file e basta (resta una bozza su disco),
+   * Applica lo fa diventare vivo. Sono i due gesti che l'utente ha chiesto tenessi separati.
+   */
+  function applyToServer(bottone) {
+    if (menu) {
+      var problemi = validate();
+      if (problemi.length) { avviso('Non applico: ' + problemi[0], true); return; }
+    }
     if (bottone) { bottone.disabled = true; bottone.textContent = 'Applico…'; }
-    api('applica', {}).then(function (d) {
-      avviso(d.messaggio + ' Rileggo com’è andata…');
-      return api('azione=elenco');
-    }).then(function (d) {
-      dati = d;
+    var write = menu ? writeMenu(nomeMenu) : Promise.resolve();
+    write.then(function () {
+      return reloadServer();
+    }).then(function () {
       var problemi = 0;
       Object.keys(dati.menu).forEach(function (n) { if (dati.menu[n].errori.length) problemi++; });
       if (problemi) avviso('Applicato, ma ' + problemi + (problemi === 1 ? ' menu ha' : ' menu hanno') + ' dei problemi: guarda le schede rosse.', true);
-      if (menu) { var n = nomeMenu; aggiornaDaServer(n); } else disegnaElenco();
+      else avviso(menu ? 'Salvato e applicato: è in gioco.' : 'Menu ricaricati sul server.');
+      if (menu) refreshFromServer(nomeMenu); else drawList();
     }).catch(function (e) {
       avviso(e.message, true);
     }).then(function () {
@@ -872,32 +977,66 @@
     });
   }
 
-  function aggiornaDaServer(nome) {
+  /** Dice al server di rileggere i file e rilegge l'esito (menus.json aggiornato in `dati`). */
+  function reloadServer() {
+    return api('applica', {}).then(function () {
+      return api('azione=elenco');
+    }).then(function (d) {
+      dati = d;
+      if (d.io) ioGiocatore = d.io;
+      return d;
+    });
+  }
+
+  /**
+   * Scrive il menu aperto nel suo .yml sul server, senza ricaricare il plugin.
+   *
+   * Aggiorna la copia in memoria (`dati.menu[name]`) e il pannello "Vedi il file". NON rende la
+   * modifica visibile dopo un refresh: l'editor rilegge da menus.json, che il plugin rigenera solo
+   * quando ricarica — per quello c'e' Applica. Ritorna una promessa, cosi' Applica la incatena.
+   */
+  function writeMenu(name) {
+    return api('salva', { nome: name, menu: JSON.stringify(menu) }).then(function (d) {
+      modificato = false;
+      dati.menu[name] = clone(menu);
+      if (statoTesto) statoTesto.textContent = 'salvato';
+      var b = document.getElementById('meSalva');
+      if (b) b.classList.remove('btn-accent');
+      if (d.testo) {
+        testoFile = d.testo;
+        var pre = document.getElementById('meFileTesto');
+        if (pre) pre.textContent = testoFile;
+      }
+      return d;
+    });
+  }
+
+  function refreshFromServer(nome) {
     if (dati.menu[nome]) {
       var errori = dati.menu[nome].errori || [];
       menu.errori = errori;
-      disegnaEditor();
+      drawEditor();
     }
   }
 
   // ------------------------------------------------------------------
   //  L'editor di un menu
   // ------------------------------------------------------------------
-  function apri(nome) {
+  function openMenu(nome) {
     nomeMenu = nome;
     testoFile = null;
     vaiInCima = true;
-    menu = copia(dati.menu[nome]);
+    menu = clone(dati.menu[nome]);
     if (!menu.item) menu.item = [];
     sceltoItem = -1;
     modificato = false;
-    disegnaEditor();
+    drawEditor();
     // Se il pannello del file era aperto resta aperto, ma ora guarda un altro menu: senza
     // questa riga resterebbe fermo su "Leggo il file…" per sempre.
-    if (fileAperto) caricaFile();
+    if (fileAperto) loadFile();
   }
 
-  function caselleTotali() {
+  function totalCells() {
     if (menu.tipo === 'chest') return Math.max(1, Math.min(6, menu.righe || 3)) * 9;
     return menu.caselle || 0;
   }
@@ -906,19 +1045,19 @@
     return menu.larghezza || 9;
   }
 
-  function disegnaEditor() {
+  function drawEditor() {
     // Dov'era la pagina prima di rifare tutto. Senza questo, ogni "+ azione" riporta in cima
     // e chi stava lavorando in fondo a un menu lungo deve ritrovare il punto ogni volta.
     var scorrimento = window.pageYOffset || document.documentElement.scrollTop || 0;
 
-    svuota(app);
+    empty(app);
     app.appendChild(barraMenu());
 
     if (menu.errori && menu.errori.length) {
       var box = el('div', 'me-problemi');
       box.appendChild(el('strong', null, 'Il server ha trovato ' + menu.errori.length + (menu.errori.length === 1 ? ' problema' : ' problemi') + ' in questo menu:'));
       menu.errori.forEach(function (e) { box.appendChild(el('div', null, '• ' + e)); });
-      box.appendChild(el('div', 'muted', 'Sono quelli dell’ultima volta che il server ha letto il file: si aggiornano dopo Salva + Applica.'));
+      box.appendChild(el('div', 'muted', 'Sono quelli dell’ultima volta che il server ha letto il file: si aggiornano a ogni Salva.'));
       app.appendChild(box);
     }
 
@@ -929,7 +1068,7 @@
     var corpo = el('div', 'me-corpo');
     var sinistra = el('div', 'me-sinistra');
     if (menu.tipo === 'dialog') {
-      sinistra.appendChild(pannelloDialogo());
+      sinistra.appendChild(dialogPanel());
     } else {
       sinistra.appendChild(griglia());
       sinistra.appendChild(pannelloOrdine());
@@ -979,22 +1118,22 @@
     indietro.type = 'button';
     indietro.addEventListener('click', function () {
       if (modificato && !confirm('Hai modifiche non salvate: le perdo?')) return;
-      disegnaElenco();
+      drawList();
     });
     sx.appendChild(indietro);
     sx.appendChild(el('h3', null, nomeMenu));
     barra.appendChild(sx);
 
     var dx = el('div', 'me-testata-dx');
-    var salva = el('button', 'btn btn-accent btn-small', 'Salva');
-    salva.type = 'button';
-    salva.id = 'meSalva';
-    salva.addEventListener('click', function () { salvaMenu(salva); });
-    dx.appendChild(salva);
+    var save = el('button', 'btn btn-accent btn-small', 'Salva');
+    save.type = 'button';
+    save.id = 'meSalva';
+    save.addEventListener('click', function () { saveMenu(save); });
+    dx.appendChild(save);
 
     var applica = el('button', 'btn btn-ghost btn-small', 'Applica al server');
     applica.type = 'button';
-    applica.addEventListener('click', function () { applicaAlServer(applica); });
+    applica.addEventListener('click', function () { applyToServer(applica); });
     dx.appendChild(applica);
 
     // "Vedi il file": l'editor disegna, ma quello che conta e' il .yml che finisce sul server.
@@ -1004,8 +1143,8 @@
     vediFile.type = 'button';
     vediFile.addEventListener('click', function () {
       fileAperto = !fileAperto;
-      disegnaEditor();
-      if (fileAperto) caricaFile();
+      drawEditor();
+      if (fileAperto) loadFile();
     });
     dx.appendChild(vediFile);
     barra.appendChild(dx);
@@ -1017,7 +1156,7 @@
       if (v !== 'chest') menu.righe = 0;
       else if (!menu.righe) menu.righe = 3;
       segnaModificato();
-      disegnaEditor();
+      drawEditor();
     }, 'Che finestra si apre. Il baule è quello che serve quasi sempre.', 'type'));
 
     if (menu.tipo === 'chest') {
@@ -1025,19 +1164,19 @@
         menu.righe = parseInt(v, 10);
         menu.caselle = menu.righe * 9;
         segnaModificato();
-        disegnaEditor();
+        drawEditor();
       }, 'Nove caselle per riga.', 'rows'));
     }
 
-    campi.appendChild(campoTesto('Titolo', menu.titolo || '', function (v) { menu.titolo = v; segnaModificato(); anteprimaTitolo(); },
+    campi.appendChild(textField('Titolo', menu.titolo || '', function (v) { menu.titolo = v; segnaModificato(); anteprimaTitolo(); },
       'Quello che si legge in cima alla finestra. Accetta colori e placeholder.', true, 'title'));
     campi.appendChild(campoNumero('Aggiornamento', menu.aggiornamento || 0, function (v) { menu.aggiornamento = v; segnaModificato(); },
       'Ogni quanti tick si ridisegna (20 = un secondo). 0 = mai.', 'update'));
-    campi.appendChild(campoTesto('Comandi', (menu.comandi || []).join(', '), function (v) {
+    campi.appendChild(textField('Comandi', (menu.comandi || []).join(', '), function (v) {
       menu.comandi = v.split(',').map(function (s) { return s.trim().replace(/^\//, '').toLowerCase(); }).filter(Boolean);
       segnaModificato();
     }, 'Separati da virgola, senza la barra. Il primo è il nome, gli altri sono scorciatoie.', false, 'commands'));
-    campi.appendChild(campoTesto('Permesso', menu.permesso || '', function (v) { menu.permesso = v || null; segnaModificato(); },
+    campi.appendChild(textField('Permesso', menu.permesso || '', function (v) { menu.permesso = v || null; segnaModificato(); },
       'Chi non ce l’ha non può aprirlo. Vuoto = aperto a tutti.', false, 'permission'));
 
     barra.appendChild(campi);
@@ -1081,7 +1220,7 @@
     return box;
   }
 
-  function caricaFile() {
+  function loadFile() {
     testoFile = null;
     api('azione=yaml&nome=' + encodeURIComponent(nomeMenu)).then(function (d) {
       testoFile = d.testo;
@@ -1104,28 +1243,27 @@
 
     var g = el('div', 'me-griglia');
     g.style.gridTemplateColumns = 'repeat(' + larghezza() + ', var(--me-cella))';
-    var totale = caselleTotali();
+    var totale = totalCells();
 
     for (var c = 0; c < totale; c++) {
       (function (casella) {
         var cella = el('div', 'me-cella');
         cella.setAttribute('data-casella', String(casella));
-        var indici = itemNellaCasella(casella);
+        var indici = itemsInCell(casella);
         var vincente = indici.length ? indici[0] : -1;
 
         if (vincente >= 0) {
           var it = menu.item[vincente];
-          cella.appendChild(icona(it.id, 32, it.testa));
+          cella.appendChild(makeIcon(it.id, 32, it.testa));
           cella.draggable = true;
-          cella.title = senzaColori(it.titolo || it.nome);
-          // Il numerino si mette solo dove la contesa e' VERA, cioe' dove almeno uno dei
-          // pretendenti ha delle condizioni e quindi la casella puo' cambiare faccia. Uno
-          // sfondo che occupa tutte le caselle perde sempre contro tutti: segnarlo ovunque
-          // riempirebbe la griglia di numeri che non dicono niente.
-          if (indici.length > 1 && contesaVera(indici)) {
+          cella.title = stripColors(it.titolo || it.nome);
+          // Il numerino dice quanti item sono impilati qui: se ne vede uno solo, gli altri stanno
+          // sotto. Compare da 2 in su — come la striscia "conviventi" nel pannello di destra, cosi'
+          // griglia e pannello contano allo stesso modo e non si contraddicono.
+          if (indici.length > 1) {
             cella.appendChild(el('span', 'me-badge', String(indici.length)));
           }
-          if (it.azioni && contaAzioni(it)) cella.classList.add('me-cella-cliccabile');
+          if (it.azioni && countActions(it)) cella.classList.add('me-cella-cliccabile');
           if (sceltoItem === vincente) cella.classList.add('me-cella-scelta');
           else if (sceltoItem >= 0 && menu.item[sceltoItem] && menu.item[sceltoItem].slot.indexOf(casella) >= 0) {
             cella.classList.add('me-cella-sorella');
@@ -1136,13 +1274,18 @@
           });
         } else {
           cella.classList.add('me-cella-vuota');
+          // La casella vuota su cui si e' cliccato resta evidenziata: nel pannello c'e' il pulsante
+          // "Crea item". Cliccarla NON crea piu' niente da sola (creava una STONE a sorpresa).
+          if (casella === casellaScelta && sceltoItem < 0) cella.classList.add('me-cella-scelta');
         }
 
         cella.addEventListener('click', function () {
           casellaScelta = casella;
-          if (vincente >= 0) scegliItem(vincente);
-          else aggiungiItem('STONE', casella);
+          if (vincente >= 0) selectItem(vincente);
+          else { sceltoItem = -1; drawEditor(); }
         });
+        // Quale casella ha il mouse sopra: Ctrl+V incolla qui.
+        cella.addEventListener('mouseenter', function () { hoverCell = casella; });
         cella.addEventListener('dragover', function (e) { e.preventDefault(); cella.classList.add('me-cella-mira'); });
         cella.addEventListener('dragleave', function () { cella.classList.remove('me-cella-mira'); });
         cella.addEventListener('drop', function (e) {
@@ -1150,8 +1293,8 @@
           cella.classList.remove('me-cella-mira');
           var carico;
           try { carico = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (x) { return; }
-          if (carico.nuovo) aggiungiItem(carico.nuovo, casella);
-          else if (carico.da !== undefined) spostaCasella(carico.da, casella);
+          if (carico.nuovo) addItem(carico.nuovo, casella);
+          else if (carico.da !== undefined) moveCell(carico.da, casella);
         });
         g.appendChild(cella);
       })(c);
@@ -1161,11 +1304,12 @@
     // fa trascinaPer() qui sotto.
     var scorri = el('div', 'me-griglia-scorri');
     scorri.appendChild(g);
+    scorri.addEventListener('mouseleave', function () { hoverCell = -1; });
     trascinaPer(scorri);
     box.appendChild(scorri);
 
     var legenda = el('div', 'me-legenda');
-    legenda.appendChild(el('span', 'muted', 'Il bordo verde segna gli item che fanno qualcosa al clic. Il numerino dice quanti item si contendono quella casella: la prende il primo dell’elenco che ha i suoi show_requirements soddisfatti.'));
+    legenda.appendChild(el('span', 'muted', 'Il bordo verde segna gli item che fanno qualcosa al clic. Il numerino dice quanti item sono impilati su quella casella: la prende il primo dell’elenco che ha i suoi show_requirements soddisfatti. Scorciatoie: item selezionato + Canc lo elimina, Ctrl+C lo copia, Ctrl+V lo incolla nella casella sotto il mouse.'));
     box.appendChild(legenda);
     return box;
   }
@@ -1208,9 +1352,9 @@
     window.addEventListener('mouseup', function () {
       if (parte) {
         // Il clic che chiude il trascinamento non deve arrivare alla casella sotto.
-        contenitore.addEventListener('click', function fermaUnaVolta(ev) {
+        contenitore.addEventListener('click', function stopOnce(ev) {
           ev.stopPropagation();
-          contenitore.removeEventListener('click', fermaUnaVolta, true);
+          contenitore.removeEventListener('click', stopOnce, true);
         }, true);
       }
       attivo = false;
@@ -1244,7 +1388,7 @@
       var riga = el('div', 'me-ordine-riga' + (i === sceltoItem ? ' scelto' : ''));
 
       riga.appendChild(el('span', 'me-ordine-n', String(i + 1)));
-      riga.appendChild(icona(it.id, 20, it.testa));
+      riga.appendChild(makeIcon(it.id, 20, it.testa));
 
       var nome = el('span', 'me-ordine-nome', it.nome);
       riga.appendChild(nome);
@@ -1264,7 +1408,7 @@
         segni.appendChild(av);
       }
       if (it.prezzo || it.vendi) segni.appendChild(el('span', 'me-tag', 'in vendita'));
-      if (contaAzioni(it)) segni.appendChild(el('span', 'me-tag', contaAzioni(it) + ' azioni'));
+      if (countActions(it)) segni.appendChild(el('span', 'me-tag', countActions(it) + ' azioni'));
       riga.appendChild(segni);
 
       var su = el('button', 'btn btn-ghost btn-small', '↑');
@@ -1274,7 +1418,7 @@
       su.addEventListener('click', function (e) {
         e.stopPropagation();
         sceltoItem = i;
-        spostaPriorita(-1);
+        movePriority(-1);
       });
       riga.appendChild(su);
 
@@ -1285,13 +1429,13 @@
       giu.addEventListener('click', function (e) {
         e.stopPropagation();
         sceltoItem = i;
-        spostaPriorita(1);
+        movePriority(1);
       });
       riga.appendChild(giu);
 
       riga.addEventListener('click', function () {
         casellaScelta = (it.slot || [])[0];
-        scegliItem(i);
+        selectItem(i);
       });
       lista.appendChild(riga);
     });
@@ -1313,22 +1457,13 @@
     return false;
   }
 
-  function contaAzioni(it) {
+  function countActions(it) {
     var n = 0;
     Object.keys(it.azioni || {}).forEach(function (k) { n += (it.azioni[k] || []).length; });
     return n;
   }
 
-  /** La casella puo' davvero cambiare item, o c'e' solo dello sfondo sotto? */
-  function contesaVera(indici) {
-    for (var i = 0; i < indici.length; i++) {
-      var r = menu.item[indici[i]].mostra_se;
-      if (r && r.requisiti && r.requisiti.length) return true;
-    }
-    return false;
-  }
-
-  function itemNellaCasella(casella) {
+  function itemsInCell(casella) {
     var out = [];
     menu.item.forEach(function (it, i) {
       if (it.slot && it.slot.indexOf(casella) >= 0) out.push(i);
@@ -1336,13 +1471,13 @@
     return out;
   }
 
-  function scegliItem(indice) {
+  function selectItem(indice) {
     sceltoItem = indice;
     schedaAperta = schedaAperta || 'aspetto';
-    disegnaEditor();
+    drawEditor();
   }
 
-  function nomeLibero(base) {
+  function freeName(base) {
     var n = base || 'item';
     var usati = {};
     menu.item.forEach(function (i) { usati[i.nome] = true; });
@@ -1352,14 +1487,14 @@
     return n + k;
   }
 
-  function vuotoRequisiti() {
+  function emptyRequirements() {
     return { minimo: 0, requisiti: [], azioni_negate: [] };
   }
 
-  function aggiungiItem(id, casella) {
+  function addItem(id, casella) {
     casellaScelta = casella;
     var it = {
-      nome: nomeLibero(String(id).toLowerCase()),
+      nome: freeName(String(id).toLowerCase()),
       slot: [casella],
       id: id,
       quantita: '1',
@@ -1369,7 +1504,7 @@
       luccica: false, indistruttibile: false, nascondi_dettagli: false,
       modello_custom: null, modello_item: null, colore: null, testa: null, avanzate: null,
       attesa_fra_clic: 0,
-      mostra_se: vuotoRequisiti(),
+      mostra_se: emptyRequirements(),
       azioni: {}, click_se: {}
     };
     // In cima all'elenco: il primo che chiede una casella se la prende, e un item appena
@@ -1377,12 +1512,12 @@
     menu.item.unshift(it);
     sceltoItem = 0;
     segnaModificato();
-    disegnaEditor();
+    drawEditor();
   }
 
-  function spostaCasella(da, a) {
+  function moveCell(da, a) {
     if (da === a) return;
-    var indici = itemNellaCasella(da);
+    var indici = itemsInCell(da);
     if (!indici.length) return;
     var it = menu.item[indici[0]];
     it.slot = it.slot.filter(function (c) { return c !== da; });
@@ -1390,7 +1525,51 @@
     it.slot.sort(function (x, y) { return x - y; });
     sceltoItem = indici[0];
     segnaModificato();
-    disegnaEditor();
+    drawEditor();
+  }
+
+  // --- Canc / Ctrl+C / Ctrl+V sugli item --------------------------------
+  // Il nucleo condiviso: togliere un item per indice, tenendo la selezione coerente.
+  function removeItem(index) {
+    if (index < 0 || !menu.item[index]) return null;
+    var it = menu.item[index];
+    menu.item.splice(index, 1);
+    if (sceltoItem === index) sceltoItem = -1;
+    else if (sceltoItem > index) sceltoItem--;
+    segnaModificato();
+    drawEditor();
+    return it;
+  }
+
+  function copySelectedItem() {
+    if (sceltoItem < 0 || !menu.item[sceltoItem]) return false;
+    itemClipboard = clone(menu.item[sceltoItem]);
+    return true;
+  }
+
+  // Elimina il selezionato ma lo mette nella clipboard: senza un "annulla", un Canc per sbaglio
+  // si recupera con Ctrl+V. E' anche il "taglia" (Ctrl+X).
+  function cutSelectedItem() {
+    if (sceltoItem < 0 || !menu.item[sceltoItem]) return;
+    itemClipboard = clone(menu.item[sceltoItem]);
+    var it = removeItem(sceltoItem);
+    if (it) avviso('Item “' + it.nome + '” tolto. Ctrl+V lo rimette.');
+  }
+
+  function pasteClipboard(cell) {
+    if (!itemClipboard) return;
+    var target = (cell !== undefined && cell >= 0 && cell < totalCells()) ? cell : firstFreeCell();
+    if (target < 0) { avviso('Non c’è una casella dove incollare: ingrandisci il menu o libera un posto.', true); return; }
+    var it = clone(itemClipboard);
+    it.nome = freeName((it.nome || 'item').replace(/[0-9]+$/, '') || 'item');
+    it.slot = [target];
+    // In cima, come un item appena aggiunto: se la casella e' gia' presa, la copia vince e si vede.
+    menu.item.unshift(it);
+    sceltoItem = 0;
+    casellaScelta = target;
+    segnaModificato();
+    drawEditor();
+    avviso('Incollato nella casella ' + target + '.');
   }
 
   // --- il catalogo degli item ----------------------------------------
@@ -1410,7 +1589,7 @@
     box.appendChild(lista);
 
     function riempi(filtro) {
-      svuota(lista);
+      empty(lista);
       var f = (filtro || '').trim().toUpperCase().replace(/ /g, '_');
       var mostrati = 0;
       for (var i = 0; i < dati.catalogo.item.length && mostrati < 120; i++) {
@@ -1420,16 +1599,16 @@
         (function (id) {
           var v = el('div', 'me-catalogo-voce');
           v.draggable = true;
-          v.appendChild(icona(id, 24));
+          v.appendChild(makeIcon(id, 24));
           v.appendChild(el('span', null, id.toLowerCase().replace(/_/g, ' ')));
           v.addEventListener('dragstart', function (e) {
             e.dataTransfer.setData('text/plain', JSON.stringify({ nuovo: id }));
             e.dataTransfer.effectAllowed = 'copy';
           });
           v.addEventListener('click', function () {
-            var libera = primaCasellaLibera();
+            var libera = firstFreeCell();
             if (libera < 0) { avviso('Non c’è più una casella libera: ingrandisci il menu o togli qualcosa.', true); return; }
-            aggiungiItem(id, libera);
+            addItem(id, libera);
           });
           lista.appendChild(v);
         })(id);
@@ -1442,10 +1621,10 @@
     return box;
   }
 
-  function primaCasellaLibera() {
-    var totale = caselleTotali();
+  function firstFreeCell() {
+    var totale = totalCells();
     for (var c = 0; c < totale; c++) {
-      if (!itemNellaCasella(c).length) return c;
+      if (!itemsInCell(c).length) return c;
     }
     return -1;
   }
@@ -1461,8 +1640,18 @@
     }
     if (sceltoItem < 0 || !menu.item[sceltoItem]) {
       var vuoto = el('div', 'panel me-vuoto');
-      vuoto.appendChild(el('p', null, 'Nessun item selezionato.'));
-      vuoto.appendChild(el('p', 'muted', 'Clicca una casella per modificare quello che c’è dentro, o una casella vuota per metterci qualcosa.'));
+      var cellaVuotaScelta = casellaScelta >= 0 && !itemsInCell(casellaScelta).length;
+      if (cellaVuotaScelta) {
+        vuoto.appendChild(el('p', null, 'Casella ' + casellaScelta + ': vuota.'));
+        var crea = el('button', 'btn btn-accent btn-small', '+ Crea item qui');
+        crea.type = 'button';
+        crea.addEventListener('click', function () { addItem('STONE', casellaScelta); });
+        vuoto.appendChild(crea);
+        vuoto.appendChild(el('p', 'muted', 'Nasce come blocco di pietra: poi ne cambi il tipo dal campo “Item”. Oppure trascina qui un item dal catalogo.'));
+      } else {
+        vuoto.appendChild(el('p', null, 'Nessun item selezionato.'));
+        vuoto.appendChild(el('p', 'muted', 'Clicca una casella per modificare quello che c’è dentro, o una casella vuota per crearci un item.'));
+      }
       box.appendChild(vuoto);
       box.appendChild(pannelloMenuAvanzato());
       return box;
@@ -1473,13 +1662,13 @@
 
     // Se piu' item si contendono la casella su cui si e' cliccato, solo uno si vede nella
     // griglia: gli altri, senza questa striscia, non sarebbero raggiungibili in nessun modo.
-    var conviventi = casellaScelta >= 0 ? itemNellaCasella(casellaScelta) : [];
+    var conviventi = casellaScelta >= 0 ? itemsInCell(casellaScelta) : [];
     if (conviventi.length > 1 && conviventi.indexOf(sceltoItem) >= 0) {
       p.appendChild(strisciaConviventi(conviventi));
     }
 
     var cima = el('div', 'me-pannello-cima');
-    cima.appendChild(icona(it.id, 32, it.testa));
+    cima.appendChild(makeIcon(it.id, 32, it.testa));
     var nomeCampo = el('input', 'me-nome-item');
     nomeCampo.value = it.nome;
     nomeCampo.title = 'Il nome interno dell’item: non si vede in gioco, serve a te per ritrovarlo.';
@@ -1525,12 +1714,10 @@
 
     var togli = el('button', 'btn btn-ghost btn-small', 'Elimina');
     togli.type = 'button';
+    togli.title = 'Oppure: selezionalo e premi Canc';
     togli.addEventListener('click', function () {
       if (!confirm('Tolgo l’item "' + it.nome + '" dal menu?')) return;
-      menu.item.splice(sceltoItem, 1);
-      sceltoItem = -1;
-      segnaModificato();
-      disegnaEditor();
+      removeItem(sceltoItem);
     });
     cima.appendChild(togli);
     p.appendChild(cima);
@@ -1548,10 +1735,10 @@
 
     var corpo = el('div', 'me-scheda-corpo');
     if (schedaAperta === 'aspetto') corpo.appendChild(schedaAspetto(it));
-    else if (schedaAperta === 'caselle') corpo.appendChild(schedaCaselle(it));
-    else if (schedaAperta === 'negozio') corpo.appendChild(schedaNegozio(it));
+    else if (schedaAperta === 'caselle') corpo.appendChild(cellsTab(it));
+    else if (schedaAperta === 'negozio') corpo.appendChild(shopTab(it));
     else if (schedaAperta === 'condizioni') corpo.appendChild(schedaCondizioni(it));
-    else if (schedaAperta === 'azioni') corpo.appendChild(schedaAzioni(it));
+    else if (schedaAperta === 'azioni') corpo.appendChild(actionsTab(it));
     else corpo.appendChild(schedaAvanzate(it));
     p.appendChild(corpo);
 
@@ -1579,7 +1766,7 @@
     }
     var condivise = [];
     (it.slot || []).forEach(function (c) {
-      if (itemNellaCasella(c).length > 1) condivise.push(c);
+      if (itemsInCell(c).length > 1) condivise.push(c);
     });
     d.textContent = 'Si contende ' + (condivise.length === 1 ? 'la casella ' + condivise[0]
       : condivise.length + ' caselle') + ' con: '
@@ -1632,7 +1819,7 @@
     menu.item.splice(bersaglio, 0, it);
     sceltoItem = bersaglio;
     segnaModificato();
-    disegnaEditor();
+    drawEditor();
   }
 
   /**
@@ -1653,12 +1840,12 @@
       var altro = menu.item[indice];
       var b = el('button', 'me-convivente' + (indice === sceltoItem ? ' scelto' : ''));
       b.type = 'button';
-      b.appendChild(icona(altro.id, 22, altro.testa));
+      b.appendChild(makeIcon(altro.id, 22, altro.testa));
       var nomi = el('span', 'me-convivente-nome');
       nomi.textContent = altro.nome;
       b.appendChild(nomi);
       var quando = (altro.mostra_se && (altro.mostra_se.requisiti || []).length)
-        ? 'solo se: ' + altro.mostra_se.requisiti.map(fraseRequisito).join(' e ')
+        ? 'solo se: ' + altro.mostra_se.requisiti.map(requirementPhrase).join(' e ')
         : 'sempre';
       b.title = altro.nome + ' — si vede ' + quando;
       if (quando === 'sempre' && posto < indici.length - 1) {
@@ -1667,7 +1854,7 @@
         b.classList.add('copre');
         b.title += ' — non ha condizioni, quindi copre sempre quelli sotto';
       }
-      b.addEventListener('click', function () { scegliItem(indice); });
+      b.addEventListener('click', function () { selectItem(indice); });
       fila.appendChild(b);
     });
     box.appendChild(fila);
@@ -1676,7 +1863,7 @@
     return box;
   }
 
-  function spostaPriorita(verso) {
+  function movePriority(verso) {
     var a = sceltoItem, b = sceltoItem + verso;
     if (b < 0 || b >= menu.item.length) return;
     var t = menu.item[a];
@@ -1684,7 +1871,7 @@
     menu.item[b] = t;
     sceltoItem = b;
     segnaModificato();
-    disegnaEditor();
+    drawEditor();
   }
 
   function schede(voci) {
@@ -1692,7 +1879,7 @@
     voci.forEach(function (v) {
       var b = el('button', 'me-scheda' + (schedaAperta === v[0] ? ' attiva' : ''), v[1]);
       b.type = 'button';
-      b.addEventListener('click', function () { schedaAperta = v[0]; disegnaEditor(); });
+      b.addEventListener('click', function () { schedaAperta = v[0]; drawEditor(); });
       barra.appendChild(b);
     });
     return barra;
@@ -1701,23 +1888,23 @@
   // --- scheda: aspetto ------------------------------------------------
   function schedaAspetto(it) {
     var f = el('div', 'me-form');
-    f.appendChild(campoRicerca('Item', it.id, dati.catalogo.item, function (v) { it.id = v; segnaModificato(); disegnaEditor(); },
+    f.appendChild(campoRicerca('Item', it.id, dati.catalogo.item, function (v) { it.id = v; segnaModificato(); drawEditor(); },
       'Quale oggetto del gioco si vede nella casella.', 'id'));
-    f.appendChild(campoTesto('Quantità', it.quantita || '1', function (v) { it.quantita = v || '1'; segnaModificato(); },
+    f.appendChild(textField('Quantità', it.quantita || '1', function (v) { it.quantita = v || '1'; segnaModificato(); },
       'Il numerino in basso a destra. Può essere un placeholder.', false, 'amount'));
-    f.appendChild(campoTesto('Nome', it.titolo || '', function (v) { it.titolo = v || null; segnaModificato(); aggiornaAnteprima(it); },
+    f.appendChild(textField('Nome', it.titolo || '', function (v) { it.titolo = v || null; segnaModificato(); refreshPreview(it); },
       'Il nome che si legge. Vuoto = quello normale dell’oggetto.', true, 'display_name'));
-    f.appendChild(campoTestoLungo('Descrizione', (it.descrizione || []).join('\n'), function (v) {
+    f.appendChild(longTextField('Descrizione', (it.descrizione || []).join('\n'), function (v) {
       it.descrizione = v === '' ? [] : v.split('\n');
       segnaModificato();
-      aggiornaAnteprima(it);
+      refreshPreview(it);
     }, 'Una riga per riga. È il posto dove spiegare cosa fa il bottone.', true, 'lore'));
 
-    f.appendChild(campoTesto('Testa', it.testa || '', function (v) { it.testa = v || null; segnaModificato(); },
+    f.appendChild(textField('Testa', it.testa || '', function (v) { it.testa = v || null; segnaModificato(); refreshPreview(it); },
       'Nome di un giocatore (anche %player_name%), indirizzo di una texture o valore base64.', false, 'head'));
 
     var spunte = el('div', 'me-spunte');
-    spunte.appendChild(campoSpunta('Luccica', it.luccica, function (v) { it.luccica = v; segnaModificato(); }, 'glow'));
+    spunte.appendChild(campoSpunta('Luccica', it.luccica, function (v) { it.luccica = v; segnaModificato(); refreshPreview(it); }, 'glow'));
     spunte.appendChild(campoSpunta('Indistruttibile', it.indistruttibile, function (v) { it.indistruttibile = v; segnaModificato(); }, 'unbreakable'));
     spunte.appendChild(campoSpunta('Nascondi dettagli', it.nascondi_dettagli, function (v) { it.nascondi_dettagli = v; segnaModificato(); }, 'hide_details'));
     f.appendChild(spunte);
@@ -1740,11 +1927,11 @@
       return { nome: (pezzi[0] || '').toUpperCase(), livello: parseInt(pezzi[1], 10) || 1 };
     });
 
-    function salva() {
+    function save() {
       it.incantesimi = righe.filter(function (r) { return r.nome; })
         .map(function (r) { return r.nome + ',' + Math.max(1, r.livello || 1); });
       segnaModificato();
-      aggiornaAnteprima(it);
+      refreshPreview(it);
     }
 
     var box = el('div', 'me-campo');
@@ -1771,7 +1958,7 @@
         sel.insertBefore(o, sel.firstChild);
         sel.classList.add('me-sconosciuto');
       }
-      sel.addEventListener('change', function () { r.nome = sel.value; salva(); disegnaEditor(); });
+      sel.addEventListener('change', function () { r.nome = sel.value; save(); drawEditor(); });
       riga.appendChild(sel);
 
       var liv = el('input', 'me-inp me-inp-corto');
@@ -1779,13 +1966,13 @@
       liv.min = '1';
       liv.value = r.livello;
       liv.title = 'Livello';
-      liv.addEventListener('input', function () { r.livello = parseInt(liv.value, 10) || 1; salva(); });
+      liv.addEventListener('input', function () { r.livello = parseInt(liv.value, 10) || 1; save(); });
       riga.appendChild(liv);
 
       var x = el('button', 'btn btn-ghost btn-small', '×');
       x.type = 'button';
       x.title = 'Togli questo incantesimo';
-      x.addEventListener('click', function () { righe.splice(i, 1); salva(); disegnaEditor(); });
+      x.addEventListener('click', function () { righe.splice(i, 1); save(); drawEditor(); });
       riga.appendChild(x);
 
       box.appendChild(riga);
@@ -1797,8 +1984,8 @@
       var gia = righe.map(function (r) { return r.nome; });
       var libero = elenco.filter(function (n) { return gia.indexOf(n) < 0; })[0] || elenco[0];
       righe.push({ nome: libero, livello: 1 });
-      salva();
-      disegnaEditor();
+      save();
+      drawEditor();
     });
     box.appendChild(piu);
     box.appendChild(el('span', 'me-aiuto', 'Il livello può andare oltre il massimo del gioco: il plugin li mette lo stesso.'));
@@ -1806,16 +1993,16 @@
   }
 
   // --- scheda: caselle ------------------------------------------------
-  function schedaCaselle(it) {
+  function cellsTab(it) {
     var f = el('div', 'me-form');
     f.appendChild(el('p', 'muted', 'Lo stesso item può stare in più caselle: è una definizione sola disegnata più volte. Si scrivono come 2,3,4 oppure 2-10, e valgono anche row:3, column:1, border e all.'));
 
-    var campo = campoTesto('Caselle', compattaSlot(it.slot || []), function (v) {
-      var nuove = espandiSlot(v, caselleTotali(), larghezza());
+    var campo = textField('Caselle', compattaSlot(it.slot || []), function (v) {
+      var nuove = espandiSlot(v, totalCells(), larghezza());
       if (!nuove.length) { avviso('Nessuna casella valida: l’item sparirebbe.', true); return; }
       it.slot = nuove;
       segnaModificato();
-      disegnaEditor();
+      drawEditor();
     }, 'Premi Invio per applicare.', false, 'slot');
     f.appendChild(campo);
 
@@ -1824,26 +2011,26 @@
       var b = el('button', 'btn btn-ghost btn-small', r[0]);
       b.type = 'button';
       b.addEventListener('click', function () {
-        it.slot = espandiSlot(r[1], caselleTotali(), larghezza());
+        it.slot = espandiSlot(r[1], totalCells(), larghezza());
         segnaModificato();
-        disegnaEditor();
+        drawEditor();
       });
       rapidi.appendChild(b);
     });
     f.appendChild(rapidi);
-    f.appendChild(anteprimaCaselle(it));
+    f.appendChild(cellsPreview(it));
     f.appendChild(el('p', 'muted', 'In questo momento occupa ' + (it.slot || []).length
       + ((it.slot || []).length === 1 ? ' casella.' : ' caselle.')));
     return f;
   }
 
   /** Dove finisce l'item, disegnato: una griglia piccola con le caselle accese. */
-  function anteprimaCaselle(it) {
+  function cellsPreview(it) {
     var box = el('div', 'me-mini-griglia');
     box.style.gridTemplateColumns = 'repeat(' + larghezza() + ', 14px)';
     var occupate = {};
     (it.slot || []).forEach(function (c) { occupate[c] = true; });
-    for (var i = 0; i < caselleTotali(); i++) {
+    for (var i = 0; i < totalCells(); i++) {
       var c = el('span', 'me-mini-cella' + (occupate[i] ? ' accesa' : ''));
       c.title = 'casella ' + i;
       box.appendChild(c);
@@ -1911,26 +2098,26 @@
   //  Tre campi al posto di un blocco di condizioni. Il plugin fa da solo i controlli sui soldi
   //  e sul posto in inventario, e scrive il prezzo nella descrizione: qui non si scrive nessuna
   //  equazione, ed e' il punto.
-  function schedaNegozio(it) {
+  function shopTab(it) {
     var f = el('div', 'me-form');
     f.appendChild(el('p', 'muted', 'Metti un prezzo e questo item diventa un articolo: chi clicca paga e riceve. Non serve nessuna condizione — i controlli sui soldi e sul posto in inventario li fa il plugin, e il prezzo compare da solo nella descrizione (quindi non riscriverlo lì).'));
 
-    f.appendChild(campoTesto('Prezzo', it.prezzo || '', function (v) {
+    f.appendChild(textField('Prezzo', it.prezzo || '', function (v) {
       it.prezzo = v.trim() === '' ? null : v.trim();
       segnaModificato();
-      disegnaEditor();
+      drawEditor();
     }, 'Quanto costa, col clic sinistro. Vuoto = non è in vendita. Può essere un placeholder.', false, 'price'));
 
     if (it.prezzo || it.vendi) {
-      f.appendChild(campoTesto('Cosa riceve', it.dai || '', function (v) {
+      f.appendChild(textField('Cosa riceve', it.dai || '', function (v) {
         it.dai = v.trim() === '' ? null : v.trim();
         segnaModificato();
       }, 'Es. DIAMOND 4. Scrivi self per dare una copia dell’item che si vede (descrizione compresa). Vuoto = non riceve oggetti: usalo se a dare qualcosa ci pensano le azioni (un permesso, un grado).', false, 'give'));
 
-      f.appendChild(campoTesto('Lo ricompra a', it.vendi || '', function (v) {
+      f.appendChild(textField('Lo ricompra a', it.vendi || '', function (v) {
         it.vendi = v.trim() === '' ? null : v.trim();
         segnaModificato();
-        disegnaEditor();
+        drawEditor();
       }, 'Quanto paga il server se il giocatore glielo rivende col clic destro. Vuoto = non lo ricompra.', false, 'sell'));
 
       var nota = el('div', 'me-blocco');
@@ -1939,7 +2126,7 @@
       if (it.prezzo) righe.push('Clic sinistro: paga ' + it.prezzo + (it.dai ? ' e riceve ' + it.dai : ''));
       if (it.vendi) righe.push('Clic destro: consegna ' + (it.dai || '?') + ' e incassa ' + it.vendi);
       if (it.vendi && !it.dai) righe.push('⚠ Manca "cosa riceve": senza, la rivendita non sa cosa togliere.');
-      var conAzioni = contaAzioni(it);
+      var conAzioni = countActions(it);
       if (conAzioni) righe.push(conAzioni === 1 ? 'L’azione scritta parte dopo il pagamento riuscito.'
         : 'Le ' + conAzioni + ' azioni scritte partono dopo il pagamento riuscito.');
       righe.forEach(function (r) { nota.appendChild(el('div', 'muted', '• ' + r)); });
@@ -1953,15 +2140,15 @@
     var f = el('div', 'me-form');
     f.appendChild(el('p', 'muted', 'Due cose diverse: “si vede” nasconde l’item, “si può cliccare” lo lascia visibile e spiega perché non funziona. Quasi sempre serve la seconda.'));
 
-    f.appendChild(bloccoRequisiti('Si vede se…', it.mostra_se, function (r) { it.mostra_se = r; segnaModificato(); }, false, 'show_requirements'));
+    f.appendChild(requirementsBlock('Si vede se…', it.mostra_se, function (r) { it.mostra_se = r; segnaModificato(); }, false, 'show_requirements'));
     if (!it.click_se) it.click_se = {};
-    if (!it.click_se.click_requirements) it.click_se.click_requirements = vuotoRequisiti();
-    f.appendChild(bloccoRequisiti('Si può cliccare se…', it.click_se.click_requirements, function (r) { it.click_se.click_requirements = r; segnaModificato(); }, true, 'click_requirements'));
+    if (!it.click_se.click_requirements) it.click_se.click_requirements = emptyRequirements();
+    f.appendChild(requirementsBlock('Si può cliccare se…', it.click_se.click_requirements, function (r) { it.click_se.click_requirements = r; segnaModificato(); }, true, 'click_requirements'));
     return f;
   }
 
-  function bloccoRequisiti(titolo, r, salva, conNegate, chiave) {
-    if (!r) r = vuotoRequisiti();
+  function requirementsBlock(titolo, r, save, conNegate, chiave) {
+    if (!r) r = emptyRequirements();
     var box = el('div', 'me-blocco');
     var t = el('div', 'me-sotto-titolo');
     var intestazione = el('strong', null, titolo);
@@ -1970,10 +2157,10 @@
     box.appendChild(t);
 
     (r.requisiti || []).forEach(function (uno, i) {
-      box.appendChild(rigaRequisito(uno, function () { salva(r); }, function () {
+      box.appendChild(requirementRow(uno, function () { save(r); }, function () {
         r.requisiti.splice(i, 1);
-        salva(r);
-        disegnaEditor();
+        save(r);
+        drawEditor();
       }, r.requisiti, i));
     });
 
@@ -1982,53 +2169,53 @@
     aggiungi.addEventListener('click', function () {
       r.requisiti.push({ tipo: 'PERMISSION', chiave: '', valore: '', quantita: 1, uguale: true });
       daMettereAFuoco = { elenco: r.requisiti, indice: r.requisiti.length - 1 };
-      salva(r);
-      disegnaEditor();
+      save(r);
+      drawEditor();
     });
     box.appendChild(aggiungi);
 
     if ((r.requisiti || []).length > 1) {
-      box.appendChild(campoNumero('Ne bastano', r.minimo || 0, function (v) { r.minimo = v; salva(r); },
+      box.appendChild(campoNumero('Ne bastano', r.minimo || 0, function (v) { r.minimo = v; save(r); },
         '0 = servono tutte. 2 = ne bastano due qualsiasi.', 'minimum'));
     }
     if ((r.requisiti || []).length) {
-      box.appendChild(anteprimaRequisiti(titolo, r));
+      box.appendChild(requirementsPreview(titolo, r));
     }
     // "Se non si può" ha senso solo se c'e' qualcosa che puo' non potersi: senza nessuna
     // condizione quel riquadro prometteva un caso che non poteva mai capitare.
     if (conNegate && (r.requisiti || []).length) {
-      box.appendChild(bloccoAzioni('Se non si può, allora…', r.azioni_negate || [], function (a) {
+      box.appendChild(actionsBlock('Se non si può, allora…', r.azioni_negate || [], function (a) {
         r.azioni_negate = a;
-        salva(r);
+        save(r);
       }, 'deny_actions'));
     } else if (conNegate && (r.azioni_negate || []).length) {
       var orfane = el('div', 'me-avviso-riga');
       orfane.textContent = 'Qui sotto ci sono ' + r.azioni_negate.length
         + ' azioni per il caso "non si può", ma non c’è nessuna condizione: non partiranno mai.';
       box.appendChild(orfane);
-      box.appendChild(bloccoAzioni('Se non si può, allora…', r.azioni_negate, function (a) {
+      box.appendChild(actionsBlock('Se non si può, allora…', r.azioni_negate, function (a) {
         r.azioni_negate = a;
-        salva(r);
+        save(r);
       }, 'deny_actions'));
     }
     return box;
   }
 
   /** Il blocco di condizioni riscritto come lo direbbe una persona. */
-  function anteprimaRequisiti(titolo, r) {
+  function requirementsPreview(titolo, r) {
     var box = el('div', 'me-anteprima-riga');
     var quante = (r.requisiti || []).length;
     var minimo = parseInt(r.minimo, 10) || 0;
     var capo = quante === 1 ? ''
       : (minimo > 0 && minimo < quante ? 'Ne bastano ' + minimo + ' su ' + quante + ': '
         : 'Servono tutte e ' + quante + ': ');
-    var frasi = (r.requisiti || []).map(fraseRequisito);
+    var frasi = (r.requisiti || []).map(requirementPhrase);
     box.textContent = '→ ' + capo + frasi.join(minimo > 0 && minimo < quante ? ' oppure ' : ' e ');
     return box;
   }
 
   /** Una condizione singola in italiano: "ha il permesso magixmenus.admin". */
-  function fraseRequisito(u) {
+  function requirementPhrase(u) {
     var k = u.chiave || '…';
     var v = u.valore || '…';
     var n = u.quantita || 1;
@@ -2048,7 +2235,7 @@
     return u.uguale === false ? 'NON ' + f : f;
   }
 
-  function rigaRequisito(uno, cambiato, togli, elenco, indice) {
+  function requirementRow(uno, cambiato, togli, elenco, indice) {
     var riga = el('div', 'me-riga-cond');
     if (daMettereAFuoco && daMettereAFuoco.elenco === elenco && daMettereAFuoco.indice === indice) {
       riga.setAttribute('data-appena-aggiunta', '1');
@@ -2061,7 +2248,7 @@
       if (t === uno.tipo) o.selected = true;
       tipo.appendChild(o);
     });
-    tipo.addEventListener('change', function () { uno.tipo = tipo.value; cambiato(); disegnaEditor(); });
+    tipo.addEventListener('change', function () { uno.tipo = tipo.value; cambiato(); drawEditor(); });
     riga.appendChild(tipo);
 
     var descrizioni = {
@@ -2104,7 +2291,7 @@
     var negato = el('button', 'btn btn-ghost btn-small' + (uno.uguale === false ? ' me-negato' : ''), uno.uguale === false ? 'NON' : 'è così');
     negato.type = 'button';
     negato.title = 'Ribalta la condizione';
-    negato.addEventListener('click', function () { uno.uguale = uno.uguale === false; cambiato(); disegnaEditor(); });
+    negato.addEventListener('click', function () { uno.uguale = uno.uguale === false; cambiato(); drawEditor(); });
     riga.appendChild(negato);
 
     var x = el('button', 'btn btn-ghost btn-small', '×');
@@ -2128,7 +2315,7 @@
     ['double_click_actions', 'Doppio clic']
   ];
 
-  function schedaAzioni(it) {
+  function actionsTab(it) {
     var f = el('div', 'me-form');
     f.appendChild(el('p', 'muted', 'Un clic fa scattare prima le azioni del suo tasto, poi quelle di “qualunque tasto”. Le cose comuni si scrivono una volta sola lì.'));
     if (!it.azioni) it.azioni = {};
@@ -2136,7 +2323,7 @@
     TASTI.forEach(function (t) {
       var elenco = it.azioni[t[0]] || [];
       if (t[0] !== 'actions' && !elenco.length) return;   // i tasti inutilizzati non ingombrano
-      f.appendChild(bloccoAzioni(t[1], elenco, function (a) { it.azioni[t[0]] = a; segnaModificato(); }, t[0]));
+      f.appendChild(actionsBlock(t[1], elenco, function (a) { it.azioni[t[0]] = a; segnaModificato(); }, t[0]));
     });
 
     var altri = TASTI.filter(function (t) { return !(it.azioni[t[0]] || []).length; });
@@ -2154,14 +2341,14 @@
         if (!sel.value) return;
         it.azioni[sel.value] = [{ tipo: 'message', argomento: '' }];
         segnaModificato();
-        disegnaEditor();
+        drawEditor();
       });
       f.appendChild(sel);
     }
     return f;
   }
 
-  function bloccoAzioni(titolo, azioni, salva, chiave) {
+  function actionsBlock(titolo, azioni, save, chiave) {
     if (!azioni) azioni = [];
     var box = el('div', 'me-blocco');
     var t = el('div', 'me-sotto-titolo');
@@ -2170,12 +2357,21 @@
     t.appendChild(intestazione);
     box.appendChild(t);
 
+    // L'anteprima ("Cosa succede, nell'ordine") si aggiorna mentre si scrive l'argomento, senza
+    // ridisegnare la riga: rifarla tutta sposterebbe il cursore. Si rimpiazza solo questo pezzo.
+    var ant = azioni.length ? actionsPreview(azioni) : el('div', 'me-anteprima-passi-vuota');
+    function refreshAnt() {
+      var nuova = azioni.length ? actionsPreview(azioni) : el('div', 'me-anteprima-passi-vuota');
+      ant.replaceWith(nuova);
+      ant = nuova;
+    }
+
     var lista = el('div', 'me-azioni-lista');
     azioni.forEach(function (a, i) {
-      lista.appendChild(rigaAzione(a, i, azioni, salva));
+      lista.appendChild(actionRow(a, i, azioni, save, refreshAnt));
     });
     if (azioni.length > 1) {
-      riordinaTrascinando(lista, azioni, salva);
+      dragToReorder(lista, azioni, save);
     }
     box.appendChild(lista);
 
@@ -2185,8 +2381,8 @@
     piu.addEventListener('click', function () {
       azioni.push({ tipo: 'message', argomento: '' });
       daMettereAFuoco = { elenco: azioni, indice: azioni.length - 1 };
-      salva(azioni);
-      disegnaEditor();
+      save(azioni);
+      drawEditor();
     });
     barra.appendChild(piu);
 
@@ -2201,14 +2397,12 @@
         allora: [], altrimenti: []
       });
       daMettereAFuoco = { elenco: azioni, indice: azioni.length - 1 };
-      salva(azioni);
-      disegnaEditor();
+      save(azioni);
+      drawEditor();
     });
     barra.appendChild(seBlocco);
     box.appendChild(barra);
-    if (azioni.length) {
-      box.appendChild(anteprimaAzioni(azioni));
-    }
+    box.appendChild(ant);
     return box;
   }
 
@@ -2219,7 +2413,7 @@
    * catena con due "wait" in mezzo e' impossibile da leggere a occhio, e ci si accorge del
    * ritardo sbagliato solo provandolo in gioco.
    */
-  function anteprimaAzioni(azioni) {
+  function actionsPreview(azioni) {
     var box = el('div', 'me-anteprima-passi');
     box.appendChild(el('div', 'me-passi-titolo', 'Cosa succede, nell’ordine'));
     var ritardo = 0;
@@ -2232,13 +2426,13 @@
       n++;
       var riga = el('div', 'me-passo');
       riga.appendChild(el('span', 'me-passo-n', String(n)));
-      if (azioneIncompleta(a)) {
+      if (actionIncomplete(a)) {
         // Meglio dire "manca qualcosa" che leggere "il giocatore esegue /…": un'azione a meta'
         // e' un errore da vedere, non una frase da indovinare.
         var manca = el('span', 'me-passo-manca', fraseMancante(a));
         riga.appendChild(manca);
       } else {
-        riga.appendChild(el('span', null, fraseAzione(a)));
+        riga.appendChild(el('span', null, actionPhrase(a)));
       }
       if (ritardo > 0) {
         riga.appendChild(el('span', 'me-passo-quando', 'dopo ' + secondi(ritardo)));
@@ -2252,7 +2446,7 @@
   }
 
   /** Un'azione che vuole un argomento e non ce l'ha: e' a meta'. */
-  function azioneIncompleta(a) {
+  function actionIncomplete(a) {
     if (a.tipo === 'if') return false;
     var senzaArgomento = ['back', 'close', 'refresh'];
     if (senzaArgomento.indexOf(a.tipo) >= 0) return false;
@@ -2285,17 +2479,17 @@
   }
 
   /** Un'azione detta a parole. */
-  function fraseAzione(a) {
+  function actionPhrase(a) {
     var x = a.argomento || '…';
     var breve = function (t) {
-      var pulito = senzaColori(t).trim();
+      var pulito = stripColors(t).trim();
       return pulito.length > 42 ? '«' + pulito.slice(0, 42) + '…»' : '«' + pulito + '»';
     };
     if (a.tipo === 'if') {
       var quante = ((a.condizione || {}).requisiti || []).length;
       var allora = (a.allora || []).length;
       var altrimenti = (a.altrimenti || []).length;
-      return 'se ' + (quante ? (a.condizione.requisiti || []).map(fraseRequisito).join(' e ') : '…')
+      return 'se ' + (quante ? (a.condizione.requisiti || []).map(requirementPhrase).join(' e ') : '…')
         + ' → ' + allora + (allora === 1 ? ' azione' : ' azioni')
         + (altrimenti ? ', altrimenti ' + altrimenti : '');
     }
@@ -2320,7 +2514,8 @@
     return frasi[a.tipo] || (a.tipo + ': ' + x);
   }
 
-  function rigaAzione(a, i, azioni, salva) {
+  function actionRow(a, i, azioni, save, refresh) {
+    var refreshActions = refresh || function () {};
     var appenaAggiunta = daMettereAFuoco && daMettereAFuoco.elenco === azioni
       && daMettereAFuoco.indice === i;
     if (a.tipo === 'if') {
@@ -2333,13 +2528,13 @@
       cima.appendChild(capo);
       var xx = el('button', 'btn btn-ghost btn-small', '×');
       xx.type = 'button';
-      xx.addEventListener('click', function () { azioni.splice(i, 1); salva(azioni); disegnaEditor(); });
+      xx.addEventListener('click', function () { azioni.splice(i, 1); save(azioni); drawEditor(); });
       cima.appendChild(xx);
       blocco.appendChild(cima);
 
-      blocco.appendChild(bloccoRequisiti('La condizione', a.condizione, function (r) { a.condizione = r; salva(azioni); }, false));
-      blocco.appendChild(bloccoAzioni('allora', a.allora || [], function (x) { a.allora = x; salva(azioni); }));
-      blocco.appendChild(bloccoAzioni('altrimenti', a.altrimenti || [], function (x) { a.altrimenti = x; salva(azioni); }));
+      blocco.appendChild(requirementsBlock('La condizione', a.condizione, function (r) { a.condizione = r; save(azioni); }, false));
+      blocco.appendChild(actionsBlock('allora', a.allora || [], function (x) { a.allora = x; save(azioni); }));
+      blocco.appendChild(actionsBlock('altrimenti', a.altrimenti || [], function (x) { a.altrimenti = x; save(azioni); }));
       return blocco;
     }
 
@@ -2355,7 +2550,7 @@
       if (t === a.tipo) o.selected = true;
       tipo.appendChild(o);
     });
-    tipo.addEventListener('change', function () { a.tipo = tipo.value; salva(azioni); disegnaEditor(); });
+    tipo.addEventListener('change', function () { a.tipo = tipo.value; save(azioni); drawEditor(); });
     riga.appendChild(tipo);
 
     var senzaArgomento = ['back', 'close', 'refresh'];
@@ -2365,25 +2560,26 @@
         // quindi si scrive gia' colorato come tutti gli altri testi del menu. Il campo va sotto
         // tutta la riga; i pulsanti restano in ALTO accanto alla tendina, se no finiscono su una
         // riga per conto loro e non si capisce a cosa appartengano.
-        riga.appendChild(togliAzione(i, azioni, salva));
+        riga.appendChild(removeAction(i, azioni, save));
         var scritto = campoScritto(a.argomento || '', function (v) {
           a.argomento = v;
-          salva(azioni);
+          save(azioni);
+          refreshActions();
         }, false);
         scritto.classList.add('me-arg-colorato');
-        scritto.campo.setAttribute('data-vuoto', suggerimentoAzione(a.tipo));
+        scritto.campo.setAttribute('data-vuoto', actionHint(a.tipo));
         riga.appendChild(scritto);
-        abilitaColori(scritto.campo, scritto);
+        enableColors(scritto.campo, scritto);
         return riga;
       }
       var arg = el('input', 'me-inp');
       arg.value = a.argomento || '';
-      arg.placeholder = suggerimentoAzione(a.tipo);
-      arg.addEventListener('input', function () { a.argomento = arg.value; salva(azioni); });
+      arg.placeholder = actionHint(a.tipo);
+      arg.addEventListener('input', function () { a.argomento = arg.value; save(azioni); refreshActions(); });
       riga.appendChild(arg);
     }
 
-    riga.appendChild(togliAzione(i, azioni, salva));
+    riga.appendChild(removeAction(i, azioni, save));
     return riga;
   }
 
@@ -2404,7 +2600,7 @@
    * Mentre si trascina si sposta soltanto il DOM; l'elenco vero si riordina alla fine, una
    * volta sola, e da li' si ridisegna tutto.
    */
-  function riordinaTrascinando(lista, elenco, salva) {
+  function dragToReorder(lista, elenco, save) {
     lista.addEventListener('pointerdown', function (e) {
       var presa = e.target.closest ? e.target.closest('.me-maniglia') : null;
       if (!presa) return;
@@ -2437,8 +2633,8 @@
         if (nuovo.some(function (x) { return x === undefined; })) return;   // qualcosa non torna: si lascia stare
         elenco.length = 0;
         nuovo.forEach(function (x) { elenco.push(x); });
-        salva(elenco);
-        disegnaEditor();
+        save(elenco);
+        drawEditor();
       }
 
       presa.addEventListener('pointermove', muovi);
@@ -2457,18 +2653,18 @@
     return null;
   }
 
-  function togliAzione(i, azioni, salva) {
+  function removeAction(i, azioni, save) {
     var x = el('button', 'btn btn-ghost btn-small', '×');
     x.type = 'button';
     x.title = 'Togli questa azione';
-    x.addEventListener('click', function () { azioni.splice(i, 1); salva(azioni); disegnaEditor(); });
+    x.addEventListener('click', function () { azioni.splice(i, 1); save(azioni); drawEditor(); });
     return x;
   }
 
   /** Le azioni il cui argomento finisce scritto a schermo: solo li' i colori hanno senso. */
   var AZIONI_CON_TESTO = ['message', 'broadcast', 'title', 'actionbar'];
 
-  function suggerimentoAzione(tipo) {
+  function actionHint(tipo) {
     var s = {
       command: 'spawn        (lo esegue il giocatore)',
       console: 'give %player_name% diamond 1',
@@ -2493,13 +2689,13 @@
     f.appendChild(el('p', 'muted', 'Roba che serve di rado. Se stai qui dentro spesso, forse manca un campo comodo: dimmelo.'));
     f.appendChild(campoNumero('Attesa fra due clic (secondi)', it.attesa_fra_clic || 0, function (v) { it.attesa_fra_clic = v; segnaModificato(); },
       'Contro chi tempesta di clic un bottone che dà qualcosa.', 'cooldown'));
-    f.appendChild(campoTesto('Modello del pacchetto (item_model)', it.modello_item || '', function (v) { it.modello_item = v || null; segnaModificato(); },
+    f.appendChild(textField('Modello del pacchetto (item_model)', it.modello_item || '', function (v) { it.modello_item = v || null; segnaModificato(); },
       'es. magicadventure:moneta', false, 'item_model'));
-    f.appendChild(campoTesto('Custom model data', it.modello_custom || '', function (v) { it.modello_custom = v || null; segnaModificato(); },
+    f.appendChild(textField('Custom model data', it.modello_custom || '', function (v) { it.modello_custom = v || null; segnaModificato(); },
       'Il vecchio modo di puntare a un modello del pacchetto.', false, 'custom_model_data'));
-    f.appendChild(campoTesto('Colore', it.colore || '', function (v) { it.colore = v || null; segnaModificato(); },
+    f.appendChild(textField('Colore', it.colore || '', function (v) { it.colore = v || null; segnaModificato(); },
       '#RRGGBB — vale per la pelle e per le pozioni.', false, 'color'));
-    f.appendChild(campoTestoLungo('Componenti grezzi', it.avanzate || '', function (v) { it.avanzate = v || null; segnaModificato(); },
+    f.appendChild(longTextField('Componenti grezzi', it.avanzate || '', function (v) { it.avanzate = v || null; segnaModificato(); },
       'Per quello che qui non è previsto, nella forma dei comandi /give: [minecraft:rarity=epic]. Si applica per primo, i campi normali gli vanno sopra.', false, 'components'));
     return f;
   }
@@ -2508,7 +2704,7 @@
   function pannelloMenuAvanzato() {
     var p = el('div', 'panel me-pannello');
     p.appendChild(el('div', 'me-sotto-titolo')).appendChild(el('strong', null, 'Il menu nell’insieme'));
-    p.appendChild(campoTesto('Argomenti del comando', (menu.argomenti || []).join(', '), function (v) {
+    p.appendChild(textField('Argomenti del comando', (menu.argomenti || []).join(', '), function (v) {
       menu.argomenti = v.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
       segnaModificato();
     }, 'Separati da virgola. /negozio armi con argomento "categoria" dà %arg_categoria%.', false, 'arguments'));
@@ -2518,13 +2714,13 @@
       segnaModificato();
     }, 'closeable'));
 
-    p.appendChild(bloccoRequisiti('Si può aprire se…', menu.apri_se, function (r) { menu.apri_se = r; segnaModificato(); }, true, 'open_requirements'));
-    p.appendChild(bloccoAzioni('Quando si apre', menu.azioni_apertura || [], function (a) { menu.azioni_apertura = a; segnaModificato(); }, 'open_actions'));
-    p.appendChild(bloccoAzioni('Quando si chiude', menu.azioni_chiusura || [], function (a) { menu.azioni_chiusura = a; segnaModificato(); }, 'close_actions'));
+    p.appendChild(requirementsBlock('Si può aprire se…', menu.apri_se, function (r) { menu.apri_se = r; segnaModificato(); }, true, 'open_requirements'));
+    p.appendChild(actionsBlock('Quando si apre', menu.azioni_apertura || [], function (a) { menu.azioni_apertura = a; segnaModificato(); }, 'open_actions'));
+    p.appendChild(actionsBlock('Quando si chiude', menu.azioni_chiusura || [], function (a) { menu.azioni_chiusura = a; segnaModificato(); }, 'close_actions'));
     return p;
   }
 
-  function pannelloDialogo() {
+  function dialogPanel() {
     var p = el('div', 'panel me-pannello');
     var t = el('div', 'me-sotto-titolo');
     t.appendChild(el('strong', null, 'La finestra di dialogo'));
@@ -2534,7 +2730,7 @@
     if (!menu.dialogo) menu.dialogo = { corpo: [], campi: [], bottoni: [], pausa: false };
     var d = menu.dialogo;
 
-    p.appendChild(campoTestoLungo('Testo', (d.corpo || []).join('\n'), function (v) {
+    p.appendChild(longTextField('Testo', (d.corpo || []).join('\n'), function (v) {
       d.corpo = v === '' ? [] : v.split('\n');
       segnaModificato();
     }, 'Una riga per paragrafo.', true, 'body'));
@@ -2558,7 +2754,7 @@
         if (x === c.tipo) o.selected = true;
         tipo.appendChild(o);
       });
-      tipo.addEventListener('change', function () { c.tipo = tipo.value; segnaModificato(); disegnaEditor(); });
+      tipo.addEventListener('change', function () { c.tipo = tipo.value; segnaModificato(); drawEditor(); });
       riga.appendChild(tipo);
 
       var scrittaEtichetta = campoScritto(c.etichetta || '', function (v) {
@@ -2568,7 +2764,7 @@
       scrittaEtichetta.classList.add('me-arg-colorato');
       scrittaEtichetta.campo.setAttribute('data-vuoto', 'come si chiama a schermo');
       riga.appendChild(scrittaEtichetta);
-      abilitaColori(scrittaEtichetta.campo, scrittaEtichetta);
+      enableColors(scrittaEtichetta.campo, scrittaEtichetta);
 
       if (c.tipo === 'option') {
         var opzioni = el('input', 'me-inp');
@@ -2583,7 +2779,7 @@
 
       var x = el('button', 'btn btn-ghost btn-small', '×');
       x.type = 'button';
-      x.addEventListener('click', function () { d.campi.splice(i, 1); segnaModificato(); disegnaEditor(); });
+      x.addEventListener('click', function () { d.campi.splice(i, 1); segnaModificato(); drawEditor(); });
       riga.appendChild(x);
       boxCampi.appendChild(riga);
     });
@@ -2592,7 +2788,7 @@
     piuCampo.addEventListener('click', function () {
       d.campi.push({ chiave: 'campo' + ((d.campi || []).length + 1), tipo: 'text', etichetta: '', iniziale: '', lunghezza: 100, larghezza: 300, da: 0, a: 100, passo: 1, opzioni: [] });
       segnaModificato();
-      disegnaEditor();
+      drawEditor();
     });
     boxCampi.appendChild(piuCampo);
     p.appendChild(boxCampi);
@@ -2604,24 +2800,24 @@
       cima.appendChild(el('strong', null, 'Bottone'));
       var x = el('button', 'btn btn-ghost btn-small', '×');
       x.type = 'button';
-      x.addEventListener('click', function () { d.bottoni.splice(i, 1); segnaModificato(); disegnaEditor(); });
+      x.addEventListener('click', function () { d.bottoni.splice(i, 1); segnaModificato(); drawEditor(); });
       cima.appendChild(x);
       box.appendChild(cima);
-      box.appendChild(campoTesto('Etichetta', b.etichetta || '', function (v) { b.etichetta = v; segnaModificato(); }, 'Quello che c’è scritto sopra.', true, 'label'));
-      box.appendChild(campoTesto('Suggerimento', b.suggerimento || '', function (v) { b.suggerimento = v || null; segnaModificato(); }, 'Compare passandoci sopra.', true, 'tooltip'));
-      box.appendChild(bloccoRequisiti('Si vede se…', b.mostra_se, function (r) { b.mostra_se = r; segnaModificato(); }, false, 'show_requirements'));
-      box.appendChild(bloccoAzioni('Quando lo premono', b.azioni || [], function (a) { b.azioni = a; segnaModificato(); }, 'actions'));
+      box.appendChild(textField('Etichetta', b.etichetta || '', function (v) { b.etichetta = v; segnaModificato(); }, 'Quello che c’è scritto sopra.', true, 'label'));
+      box.appendChild(textField('Suggerimento', b.suggerimento || '', function (v) { b.suggerimento = v || null; segnaModificato(); }, 'Compare passandoci sopra.', true, 'tooltip'));
+      box.appendChild(requirementsBlock('Si vede se…', b.mostra_se, function (r) { b.mostra_se = r; segnaModificato(); }, false, 'show_requirements'));
+      box.appendChild(actionsBlock('Quando lo premono', b.azioni || [], function (a) { b.azioni = a; segnaModificato(); }, 'actions'));
       p.appendChild(box);
     });
     var piuBottone = el('button', 'btn btn-ghost btn-small', '+ bottone');
     piuBottone.type = 'button';
     piuBottone.addEventListener('click', function () {
-      d.bottoni.push({ etichetta: 'Conferma', suggerimento: null, larghezza: 150, mostra_se: vuotoRequisiti(), azioni: [] });
+      d.bottoni.push({ etichetta: 'Conferma', suggerimento: null, larghezza: 150, mostra_se: emptyRequirements(), azioni: [] });
       segnaModificato();
-      disegnaEditor();
+      drawEditor();
     });
     p.appendChild(piuBottone);
-    p.appendChild(anteprimaDialogo(d));
+    p.appendChild(dialogPreview(d));
     return p;
   }
 
@@ -2631,7 +2827,7 @@
    * Un dialogo, a differenza di un baule, non si puo' immaginare guardando dei campi di modulo:
    * o lo si disegna, o si scopre com'e' venuto entrando in gioco.
    */
-  function anteprimaDialogo(d) {
+  function dialogPreview(d) {
     var box = el('div', 'me-anteprima-dialogo');
     box.appendChild(el('div', 'me-sotto-titolo')).appendChild(el('strong', null, 'Come si vedrà'));
 
@@ -2672,7 +2868,7 @@
       x.innerHTML = coloraInHtml(b.etichetta || '');
       if ((b.mostra_se || {}).requisiti && b.mostra_se.requisiti.length) {
         x.classList.add('condizionato');
-        x.title = 'Si vede solo se: ' + b.mostra_se.requisiti.map(fraseRequisito).join(' e ');
+        x.title = 'Si vede solo se: ' + b.mostra_se.requisiti.map(requirementPhrase).join(' e ');
       }
       bottoni.appendChild(x);
     });
@@ -2691,7 +2887,7 @@
     box.appendChild(el('div', 'me-sotto-titolo')).appendChild(el('strong', null, 'Come si vedrà'));
     var scatola = el('div', 'me-tooltip-scena');
     scatola.id = 'meTooltip';
-    disegnaTooltip(scatola, it);
+    drawTooltip(scatola, it);
     box.appendChild(scatola);
     box.appendChild(el('p', 'muted', 'I placeholder (%player_name%) qui restano scritti così: il loro valore lo conosce solo il server, e cambia da giocatore a giocatore.'));
     return box;
@@ -2704,11 +2900,25 @@
    * E' l'unico modo di accorgersi PRIMA che un nome e' illeggibile o che una descrizione e'
    * larga il doppio dello schermo.
    */
-  function disegnaTooltip(scatola, it) {
-    svuota(scatola);
+  function drawTooltip(scatola, it) {
+    empty(scatola);
 
     var fianco = el('div', 'me-tooltip-icona');
-    fianco.appendChild(icona(it.id, 44, it.testa));
+    var ic = makeIcon(it.id, 44, it.testa);
+    fianco.appendChild(ic);
+    // Il luccichio incantato: come in gioco compare quando l'item ha "glow" o degli incantesimi.
+    // Segue la FORMA dell'item usando la sua stessa immagine come maschera, così brilla solo sui
+    // pixel pieni e non sul quadrato intero.
+    if (it.luccica || (it.incantesimi || []).length) {
+      var glint = el('span', 'me-glint');
+      if (ic.tagName === 'IMG' && ic.src) {
+        glint.style.webkitMaskImage = 'url("' + ic.src + '")';
+        glint.style.maskImage = 'url("' + ic.src + '")';
+      } else {
+        glint.className = 'me-glint me-glint-pieno';  // piastrella col nome: niente maschera
+      }
+      fianco.appendChild(glint);
+    }
     var q = String(it.quantita || '1');
     if (q !== '1') {
       fianco.appendChild(el('span', 'me-tooltip-quantita', q));
@@ -2746,9 +2956,9 @@
     }
   }
 
-  function aggiornaAnteprima(it) {
+  function refreshPreview(it) {
     var s = document.getElementById('meTooltip');
-    if (s) disegnaTooltip(s, it);
+    if (s) drawTooltip(s, it);
   }
 
   // ------------------------------------------------------------------
@@ -2771,11 +2981,11 @@
     l.appendChild(e);
     l.appendChild(dentro);
     if (aiuto) l.appendChild(el('span', 'me-aiuto', aiuto));
-    if (colorabile) abilitaColori(colorabile, l);
+    if (colorabile) enableColors(colorabile, l);
     return l;
   }
 
-  function campoTesto(nome, valore, cambia, aiuto, colorato, chiave) {
+  function textField(nome, valore, cambia, aiuto, colorato, chiave) {
     if (colorato) {
       var sc = campoScritto(valore, cambia, false);
       return etichettato(nome, sc, aiuto, sc.campo, chiave);
@@ -2786,7 +2996,7 @@
     return etichettato(nome, i, aiuto, null, chiave);
   }
 
-  function campoTestoLungo(nome, valore, cambia, aiuto, colorato, chiave) {
+  function longTextField(nome, valore, cambia, aiuto, colorato, chiave) {
     if (colorato) {
       var sc = campoScritto(valore, cambia, true);
       return etichettato(nome, sc, aiuto, sc.campo, chiave);
@@ -2859,7 +3069,7 @@
     return etichettato(nome, contenitore, aiuto, null, chiave);
   }
 
-  function listaTesti(nome, valori, cambia, aiuto, suggerimenti, chiave) {
+  function textList(nome, valori, cambia, aiuto, suggerimenti, chiave) {
     var t = el('textarea', 'me-inp me-area');
     t.value = (valori || []).join('\n');
     t.rows = 3;
@@ -2872,27 +3082,19 @@
   // ------------------------------------------------------------------
   //  Salvataggio
   // ------------------------------------------------------------------
-  function salvaMenu(bottone) {
-    var problemi = controlla();
+  function saveMenu(bottone) {
+    var problemi = validate();
     if (problemi.length) {
       avviso('Non salvo: ' + problemi[0], true);
       return;
     }
     if (bottone) { bottone.disabled = true; bottone.textContent = 'Salvo…'; }
-    api('salva', { nome: nomeMenu, menu: JSON.stringify(menu) }).then(function (d) {
-      modificato = false;
-      dati.menu[nomeMenu] = copia(menu);
-      if (statoTesto) statoTesto.textContent = 'salvato';
-      var b = document.getElementById('meSalva');
-      if (b) b.classList.remove('btn-accent');
-      if (d.testo) {
-        // Il PHP restituisce il file che ha appena scritto: cosi' il pannello non deve
-        // rileggerlo dal server per essere aggiornato.
-        testoFile = d.testo;
-        var pre = document.getElementById('meFileTesto');
-        if (pre) pre.textContent = testoFile;
-      }
-      avviso(d.messaggio + ' Ora premi “Applica al server” per vederlo in gioco.');
+    // Salva scrive il file e basta: NON ricarica il plugin (per quello c'e' Applica). La modifica
+    // resta su disco; l'editor la tiene in memoria e la rivedi navigando qui dentro, ma dopo un
+    // refresh vero (F5) l'editor rilegge da menus.json — cioe' l'ultima versione APPLICATA —
+    // finche' non premi Applica. E' la separazione Salva/Applica chiesta dall'utente.
+    writeMenu(nomeMenu).then(function () {
+      avviso('Salvato in ' + nomeMenu + '.yml. Per metterlo in gioco premi “Applica al server”.');
     }).catch(function (e) {
       avviso(e.message, true);
     }).then(function () {
@@ -2901,7 +3103,7 @@
   }
 
   /** I controlli che si possono fare senza il server: quelli veri li fa lui al reload. */
-  function controlla() {
+  function validate() {
     var problemi = [];
     if (menu.tipo !== 'dialog' && !menu.item.length) {
       problemi.push('questo menu non ha nessun item, si aprirebbe vuoto.');

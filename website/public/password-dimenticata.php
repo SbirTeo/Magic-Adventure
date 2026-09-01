@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $generico = 'Non e\' stato possibile verificare la richiesta. Se non hai la verifica '
                   . 'in due passaggi attiva, scrivi a un amministratore in gioco.';
 
-        if (!$utente || !otp_attivo($utente)) {
+        if (!$utente || !otp_enabled($utente)) {
             $error = $generico;
         } elseif (otp_blocco_residuo($utente) > 0) {
             $error = 'Troppi tentativi. Riprova fra qualche minuto.';

@@ -39,8 +39,8 @@
     + '<rect x="9" y="9" width="2" height="2" fill="#7a4d22"/>'
     + '<rect x="6" y="12" width="2" height="2" fill="#9a6733"/></svg>';
 
-  function messaggioStato(testo, errore) {
-    stato.textContent = testo || '';
+  function statusMessage(text, errore) {
+    stato.textContent = text || '';
     stato.classList.toggle('is-error', !!errore);
   }
 
@@ -49,7 +49,7 @@
     return lista.scrollHeight - lista.scrollTop - lista.clientHeight < 40;
   }
 
-  function disegna(msg) {
+  function draw(msg) {
     var riga = document.createElement('div');
     riga.className = 'chat-msg ' + (msg.source === 'game' ? 'is-game' : 'is-web');
     riga.setAttribute('data-id', msg.id);
@@ -78,13 +78,13 @@
     // somma al padding del nome cliccabile e a sinistra si apre piu' che a destra.
     sep.textContent = '»';
 
-    var testo = document.createElement('span');
-    testo.className = 'chat-msg-testo';
-    testo.textContent = msg.text; // MAI innerHTML: il testo lo scrivono i giocatori
+    var text = document.createElement('span');
+    text.className = 'chat-msg-testo';
+    text.textContent = msg.text; // MAI innerHTML: il testo lo scrivono i giocatori
 
     corpo.appendChild(nome);
     corpo.appendChild(sep);
-    corpo.appendChild(testo);
+    corpo.appendChild(text);
 
     // Ora e provenienza non stanno piu' nella riga: vanno in una targhetta che compare
     // SOPRA il messaggio quando ci passi il mouse (o lo tocchi). Cosi' la riga resta pulita
@@ -130,14 +130,14 @@
       del.title = 'Elimina messaggio';
       del.setAttribute('aria-label', 'Elimina messaggio');
       del.textContent = '✕';
-      del.addEventListener('click', function () { elimina(msg.id, riga); });
+      del.addEventListener('click', function () { remove(msg.id, riga); });
       riga.appendChild(del);
     }
 
     return riga;
   }
 
-  function aggiungi(messaggi) {
+  function add(messaggi) {
     if (!messaggi.length) return;
     var seguiva = inFondo();
     if (vuoto) {
@@ -146,7 +146,7 @@
     }
     messaggi.forEach(function (m) {
       if (m.id > ultimoId) ultimoId = m.id;
-      lista.appendChild(disegna(m));
+      lista.appendChild(draw(m));
     });
     // Non teniamo in memoria una cronologia infinita: la pagina puo' restare aperta ore.
     while (lista.children.length > 120) lista.removeChild(lista.firstChild);
@@ -159,7 +159,7 @@
     vuoto = true;
   }
 
-  function elimina(id, riga) {
+  function remove(id, riga) {
     var dati = new URLSearchParams();
     dati.set('action', 'delete');
     dati.set('csrf', csrf);
@@ -168,12 +168,12 @@
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (d.ok) riga.remove();
-        else messaggioStato(d.error || 'Impossibile eliminare.', true);
+        else statusMessage(d.error || 'Impossibile eliminare.', true);
       })
-      .catch(function () { messaggioStato('Impossibile eliminare.', true); });
+      .catch(function () { statusMessage('Impossibile eliminare.', true); });
   }
 
-  function carica() {
+  function load() {
     fetch('/api/chat?after=' + ultimoId, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -188,17 +188,17 @@
           svuotataA = d.purge;
           ripulisciElenco();
         }
-        aggiungi(d.messages || []);
+        add(d.messages || []);
         if (vuoto && !lista.querySelector('.chat-vuoto-pronto')) {
           lista.innerHTML = '<p class="chat-vuoto chat-vuoto-pronto">Ancora nessun messaggio. Scrivi tu il primo!</p>';
         }
         attesa = attesaBase;
-        if (stato.classList.contains('is-error')) messaggioStato('');
+        if (stato.classList.contains('is-error')) statusMessage('');
       })
       .catch(function () {
         // Rete o server giu': rallentiamo invece di martellare, fino a 30 secondi.
         attesa = Math.min(attesa * 2, 30000);
-        messaggioStato('Chat non raggiungibile, riprovo…', true);
+        statusMessage('Chat non raggiungibile, riprovo…', true);
       })
       .then(function () { programma(); });
   }
@@ -208,34 +208,34 @@
     timer = setTimeout(function () {
       // A scheda nascosta non ha senso interrogare il server: si riprende al ritorno.
       if (document.hidden) { programma(); return; }
-      carica();
+      load();
     }, attesa);
   }
 
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var testo = input.value.trim();
-      if (!testo) return;
+      var text = input.value.trim();
+      if (!text) return;
 
       invio.disabled = true;
       var dati = new URLSearchParams();
       dati.set('action', 'send');
       dati.set('csrf', csrf);
-      dati.set('message', testo);
+      dati.set('message', text);
 
       fetch('/api/chat', { method: 'POST', body: dati, credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (!d.ok) {
-            messaggioStato(d.error || 'Messaggio non inviato.', true);
+            statusMessage(d.error || 'Messaggio non inviato.', true);
             return;
           }
           input.value = '';
-          messaggioStato('');
-          carica(); // il proprio messaggio deve comparire subito, non al giro dopo
+          statusMessage('');
+          load(); // il proprio messaggio deve comparire subito, non al giro dopo
         })
-        .catch(function () { messaggioStato('Messaggio non inviato.', true); })
+        .catch(function () { statusMessage('Messaggio non inviato.', true); })
         .then(function () { invio.disabled = false; input.focus(); });
     });
   }
@@ -257,26 +257,26 @@
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (!d.ok) {
-            messaggioStato(d.error || 'Impossibile svuotare la chat.', true);
+            statusMessage(d.error || 'Impossibile svuotare la chat.', true);
             return;
           }
           if (typeof d.purge === 'number') svuotataA = d.purge;
           ripulisciElenco();
-          messaggioStato('Chat svuotata.');
+          statusMessage('Chat svuotata.');
           // L'avviso non e' un errore, quindi il giro d'aggiornamento non lo toglie da solo:
           // se ne va da se' dopo qualche secondo, se nel frattempo non e' cambiato.
           setTimeout(function () {
-            if (stato.textContent === 'Chat svuotata.') messaggioStato('');
+            if (stato.textContent === 'Chat svuotata.') statusMessage('');
           }, 4000);
-          carica(); // rimette subito l'elenco a posto (vuoto, o con quello che nasce ora)
+          load(); // rimette subito l'elenco a posto (vuoto, o con quello che nasce ora)
         })
-        .catch(function () { messaggioStato('Impossibile svuotare la chat.', true); })
+        .catch(function () { statusMessage('Impossibile svuotare la chat.', true); })
         .then(function () { bottoneSvuota.disabled = false; });
     });
   }
 
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) { attesa = attesaBase; carica(); }
+    if (!document.hidden) { attesa = attesaBase; load(); }
   });
 
   // --- "Ingrandisci": la chat esce dalla colonna e si allarga sopra gli articoli --------
@@ -345,5 +345,5 @@
     });
   }
 
-  carica();
+  load();
 })();

@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['azione'] ?? '') === 'mi-pi
     $chi->execute([$postId, $topic['id']]);
     $autore = $chi->fetchColumn();
     if ($autore !== false && (int) $autore !== (int) current_user()['id']) {
-        forum_mi_piace_cambia($postId, (int) current_user()['id']);
+        forum_like_toggle($postId, (int) current_user()['id']);
     }
     redirect('/forum/discussione/' . $topic['id'] . '#p' . $postId);
 }
@@ -102,7 +102,7 @@ $me = current_user();
 // Mi piace dei messaggi e numeri degli autori: raccolti in blocco prima di disegnare,
 // cosi' il ciclo qui sotto non fa nessuna query.
 $miPiace = forum_mi_piace(array_column($posts, 'id'), $me ? (int) $me['id'] : null);
-$statAutori = forum_statistiche_utenti(array_column($posts, 'user_id'));
+$statAutori = forum_user_stats(array_column($posts, 'user_id'));
 
 $page_title = $topic['title'];
 $active = 'forum';
@@ -185,7 +185,7 @@ require __DIR__ . '/../../includes/header.php';
           <span class="forum-msg-autore">
             <?= presenza_dot($p, $p['mc_username']) ?>
             <?php if ($colore !== null): ?>
-              <span class="player-rank-name colore-grado" style="<?= stile_colore_grado($colore) ?>"><?= h($p['mc_username']) ?></span>
+              <span class="player-rank-name colore-grado" style="<?= rank_color_style($colore) ?>"><?= h($p['mc_username']) ?></span>
             <?php else: ?>
               <?= h($p['mc_username']) ?>
             <?php endif; ?>
@@ -258,7 +258,7 @@ require __DIR__ . '/../../includes/header.php';
       $gradiMiei = player_tag($me);
       $coloreMio = player_name_color($me);
       $stMie = $statAutori[(int) $me['id']]
-          ?? (forum_statistiche_utenti([(int) $me['id']])[(int) $me['id']]
+          ?? (forum_user_stats([(int) $me['id']])[(int) $me['id']]
               ?? ['discussioni' => 0, 'messaggi' => 0, 'mi_piace' => 0]);
     ?>
     <div class="forum-msg-lato forum-risposta-lato">
@@ -268,7 +268,7 @@ require __DIR__ . '/../../includes/header.php';
           <?php if ($gradiMiei !== ''): ?><span class="forum-msg-gradi"><?= $gradiMiei ?></span><?php endif; ?>
           <span class="forum-msg-autore">
             <?php if ($coloreMio !== null): ?>
-              <span class="player-rank-name colore-grado" style="<?= stile_colore_grado($coloreMio) ?>"><?= h($me['mc_username']) ?></span>
+              <span class="player-rank-name colore-grado" style="<?= rank_color_style($coloreMio) ?>"><?= h($me['mc_username']) ?></span>
             <?php else: ?>
               <?= h($me['mc_username']) ?>
             <?php endif; ?>

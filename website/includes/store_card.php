@@ -17,7 +17,7 @@ require_once __DIR__ . '/auth.php';   // is_admin(): matita di modifica sulla ca
  *
  * @return array{nomi: array<int,string>, velo: array<int,string>, bordo: array<int,string>, filtro: array<int,string>}
  */
-function store_stili_categorie(): array {
+function store_category_styles(): array {
     static $stili = null;
     if ($stili !== null) {
         return $stili;
@@ -127,7 +127,7 @@ function store_prezzo(array $item): array {
     if (!empty($item['discount_type']) && (float) $item['discount_value'] > 0) {
         $sconto = ['tipo' => $item['discount_type'], 'valore' => (float) $item['discount_value']];
     } else {
-        $sconto = store_sconto_categoria((int) ($item['category_id'] ?? 0)) ?? store_sconto_globale();
+        $sconto = store_category_discount((int) ($item['category_id'] ?? 0)) ?? store_sconto_globale();
     }
 
     if (!$sconto) {
@@ -158,7 +158,7 @@ function store_prezzo(array $item): array {
 }
 
 /** Sconto della categoria, se ne ha uno. */
-function store_sconto_categoria(int $catId): ?array {
+function store_category_discount(int $catId): ?array {
     static $sconti = null;
     if ($sconti === null) {
         $sconti = [];
@@ -205,7 +205,7 @@ function store_voci(?string $descrizione): array {
 
 /** Stampa la card di un pacchetto. */
 function store_card(array $item): void {
-    $stili = store_stili_categorie();
+    $stili = store_category_styles();
     $catId = (int) $item['category_id'];
     $voci = store_voci($item['description']);
 

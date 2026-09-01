@@ -130,7 +130,7 @@ function seo_briciole(array $voci): array
  * La carta d'identita' del sito: chi siamo (Organization) e cos'e' questo indirizzo
  * (WebSite). Va in ogni pagina una volta sola, la mette header.php.
  */
-function seo_scheda_sito(string $nome, string $logo, string $descrizione): array
+function seo_site_card(string $nome, string $logo, string $descrizione): array
 {
     return [
         '@context' => 'https://schema.org',

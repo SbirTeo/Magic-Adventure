@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['azione'] ?? '') === 'esci-
 // dire solo che nel momento del sospetto uno non riesce a chiudere la porta.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['azione'] ?? '') === 'otp-esci-gioco') {
     csrf_check();
-    otp_chiudi_sessione_gioco($me['mc_uuid'], $me['mc_username']);
+    otp_close_game_session($me['mc_uuid'], $me['mc_username']);
     redirect('/profilo?gioco=chiusa');
 }
 
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['azione'] ?? '') === 'otp-n
     csrf_check();
     $segreto = otp_decifra($me['totp_secret'] ?? null);
     $passo = null;
-    if (!otp_attivo($me) || $segreto === null) {
+    if (!otp_enabled($me) || $segreto === null) {
         $erroreOtp = 'La verifica in due passaggi non risulta attiva su questo account.';
     } elseif (otp_blocco_residuo($me) > 0) {
         $erroreOtp = 'Troppi tentativi sbagliati: riprova fra qualche minuto.';
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['azione'] ?? '') === 'otp-n
     } else {
         db()->prepare('UPDATE users SET totp_last_step = ? WHERE id = ?')->execute([$passo, (int) $me['id']]);
         otp_azzera_errori((int) $me['id']);
-        $codiciNuovi = otp_genera_recupero((int) $me['id']);
+        $codiciNuovi = otp_generate_recovery((int) $me['id']);
     }
 }
 
@@ -177,7 +177,7 @@ require __DIR__ . '/../includes/header.php';
 
   <div class="profilo-testata-testo">
     <div class="profilo-intestazione">
-      <div class="profilo-nome colore-grado"<?= $coloreNome !== null ? ' style="' . stile_colore_grado($coloreNome) . '"' : '' ?>>
+      <div class="profilo-nome colore-grado"<?= $coloreNome !== null ? ' style="' . rank_color_style($coloreNome) . '"' : '' ?>>
         <?= h($me['mc_username']) ?>
       </div>
       <?php $tag = player_tag($me); ?>
@@ -241,14 +241,14 @@ require __DIR__ . '/../includes/header.php';
 
 <?php /* La verifica in due passaggi si vede solo a chi riguarda: per gli altri sarebbe una
          voce in piu' che non possono ne' usare ne' capire. */ ?>
-<?php if (otp_serve_per($me) || otp_attivo($me)): ?>
+<?php if (otp_serve_per($me) || otp_enabled($me)): ?>
 <h2>🔐 Verifica in due passaggi</h2>
 <div class="panel">
   <?php if ($erroreOtp): ?><div class="alert alert-error"><?= h($erroreOtp) ?></div><?php endif; ?>
 
   <p class="otp-stato">
-    <span class="otp-pallino<?= otp_attivo($me) ? '' : ' is-spento' ?>"></span>
-    <?php if (otp_attivo($me)): ?>
+    <span class="otp-pallino<?= otp_enabled($me) ? '' : ' is-spento' ?>"></span>
+    <?php if (otp_enabled($me)): ?>
       <span><strong>Attiva</strong> dal <?= $dataIt($me['totp_activated_at']) ?> &middot;
       <?= otp_recupero_rimasti((int) $me['id']) ?> codici di recupero ancora buoni</span>
     <?php else: ?>
@@ -266,7 +266,7 @@ require __DIR__ . '/../includes/header.php';
     <ul class="otp-codici" data-utente="<?= h($me['mc_username']) ?>">
       <?php foreach ($codiciNuovi as $c): ?><li><?= h($c) ?></li><?php endforeach; ?>
     </ul>
-  <?php elseif (otp_attivo($me)): ?>
+  <?php elseif (otp_enabled($me)): ?>
     <details class="otp-recupero">
       <summary>Rigenera i codici di recupero</summary>
       <p style="color:var(--text-dim); font-size:14px;">Te ne restituisce dieci nuovi e cancella
@@ -287,9 +287,9 @@ require __DIR__ . '/../includes/header.php';
   <?php
     // Sessione di gioco: si mostra solo a chi la verifica ce l'ha attiva, se no si
     // parlerebbe di una porta che per quell'account non esiste ancora.
-    $__sessioniGioco = otp_attivo($me) ? otp_sessioni_gioco($me['mc_uuid']) : [];
+    $__sessioniGioco = otp_enabled($me) ? otp_sessioni_gioco($me['mc_uuid']) : [];
   ?>
-  <?php if (otp_attivo($me)): ?>
+  <?php if (otp_enabled($me)): ?>
     <div class="otp-sessione">
       <h3>Sessione di gioco</h3>
       <?php if ($__sessioniGioco): ?>

@@ -29,6 +29,7 @@ import json
 import os
 import shutil
 import sys
+import time
 import urllib.request
 import zipfile
 
@@ -202,8 +203,12 @@ def finisci(trovate, versione):
         print('Non trovo %s: salto le varianti (il plugin non e\' mai partito?).' % CATALOGO)
 
     elenco = sorted(trovate)
+    # "generato": il momento di questa estrazione. Il sito lo appende in coda alle URL delle
+    # icone (?v=...): senza, quando una texture cambia (un vetro che prima aveva quella
+    # sbagliata) il browser resterebbe attaccato alla vecchia, che tiene in cache.
     with open(os.path.join(DESTINAZIONE, 'elenco.json'), 'w') as f:
-        json.dump({'versione': versione, 'icone': elenco}, f, separators=(',', ':'))
+        json.dump({'versione': versione, 'generato': int(time.time()), 'icone': elenco},
+                  f, separators=(',', ':'))
 
     for nome in os.listdir(DESTINAZIONE):
         percorso = os.path.join(DESTINAZIONE, nome)

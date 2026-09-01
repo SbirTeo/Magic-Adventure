@@ -50,7 +50,7 @@ function forum_tinta_hex(int $categoriaId): string {
  *
  * @return array<int,array> indicizzato per category_id
  */
-function forum_ultimi_messaggi(): array {
+function forum_latest_posts(): array {
     $sql = "SELECT t.category_id, t.id AS topic_id, t.title, p.created_at,
                    u.mc_username, u.mc_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . "
             FROM forum_posts p
@@ -118,7 +118,7 @@ function forum_albero(): array {
     return [
         'principali' => $principali,
         'sezioni' => $sezioni,
-        'ultimi' => forum_ultimi_messaggi(),
+        'ultimi' => forum_latest_posts(),
         'totali' => $totali,
     ];
 }
@@ -241,7 +241,7 @@ function forum_mi_piace(array $postIds, ?int $ioId): array {
 }
 
 /** Mette o toglie il mi piace: e' un interruttore, non si accumula. */
-function forum_mi_piace_cambia(int $postId, int $userId): void {
+function forum_like_toggle(int $postId, int $userId): void {
     $del = db()->prepare('DELETE FROM forum_likes WHERE post_id = ? AND user_id = ?');
     $del->execute([$postId, $userId]);
     if ($del->rowCount() === 0) {
@@ -259,7 +259,7 @@ function forum_mi_piace_cambia(int $postId, int $userId): void {
  *
  * @return array<int,array{discussioni:int,messaggi:int,mi_piace:int}>
  */
-function forum_statistiche_utenti(array $userIds): array {
+function forum_user_stats(array $userIds): array {
     $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds))));
     if (!$userIds) {
         return [];

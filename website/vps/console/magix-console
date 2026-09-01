@@ -508,13 +508,45 @@ cmd_menu_leggi() {  # <id> <nome> -> il file com'e' scritto
     cat "$file"
 }
 
+# Tiene, accanto a ogni menu, un file nascosto .<nome>.meta con chi l'ha creato e chi l'ha
+# modificato per ultimo, piu' le due date. Il plugin non lo sa (sono metadati del sito, non del
+# menu), e il filesystem non conserva il NOME di chi ha toccato un file: per questo lo scrive qui il
+# ponte, che a ogni salvataggio riceve l'attore.
+menu_meta_scrivi() {  # <nome> <attore> <esisteva 0|1>
+    local nome=$1 attore=$2 esisteva=$3 metafile now creato creato_da
+    metafile="$MENU_CARTELLA/.$nome.meta"
+    now=$(date +%s)
+    creato=""; creato_da=""
+    if [ -f "$metafile" ]; then
+        creato=$(sed -n 's/^creato=//p' "$metafile" | head -1)
+        creato_da=$(sed -n 's/^creato_da=//p' "$metafile" | head -1)
+    fi
+    if [ -z "$creato" ]; then
+        if [ "$esisteva" = "1" ]; then
+            # Menu che c'era gia' prima di questa funzione: la creazione la sa solo il filesystem
+            # (la nascita del file), e l'autore vero e' perduto.
+            creato=$(stat -c %W "$MENU_CARTELLA/$nome.yml" 2>/dev/null || echo 0)
+            [ "$creato" = "0" ] && creato=$now
+            creato_da=""
+        else
+            creato=$now
+            creato_da=$attore
+        fi
+    fi
+    { echo "creato=$creato"; echo "creato_da=$creato_da"
+      echo "modificato=$now"; echo "modificato_da=$attore"; } > "$metafile"
+    chown "$I_UTENTE":"$I_UTENTE" "$metafile" 2>/dev/null || true
+    chmod 0644 "$metafile" 2>/dev/null || true
+}
+
 cmd_menu_scrivi() {  # <attore> <id> <nome>  (il contenuto arriva da stdin)
-    local attore id nome file temporaneo peso
+    local attore id nome file temporaneo peso esisteva
     attore=$(attore_pulito "${1:-}")
     id=${2:-}
     nome=$(menu_nome_pulito "${3:-}") || exit 1
     menu_cartella "$id"
     file="$MENU_CARTELLA/$nome.yml"
+    esisteva=0; [ -f "$file" ] && esisteva=1
 
     temporaneo=$(mktemp) || errore "non riesco a preparare il file"
     cat >"$temporaneo"
@@ -533,11 +565,46 @@ cmd_menu_scrivi() {  # <attore> <id> <nome>  (il contenuto arriva da stdin)
     # Una copia di quello che c'era: un salvataggio sbagliato dal browser non deve essere
     # l'ultima parola su un menu scritto a mano.
     [ -f "$file" ] && cp -p "$file" "$file.bak"
-    install -o "$I_UTENTE" -g "$I_UTENTE" -m 0644 "$temporaneo" "$file" \
-        || { rm -f "$temporaneo"; errore "non sono riuscito a scrivere $nome.yml"; }
+    if [ -f "$file" ]; then
+        # Si sovrascrive IN LOCO (stesso inode): install ricreerebbe il file da zero e la data di
+        # CREAZIONE ripartirebbe a ogni Salva, rendendo inutile l'ordinamento "per creazione"
+        # nell'editor. Cosi' invece la creazione resta quella vera e cambia solo l'ultima modifica.
+        cat "$temporaneo" > "$file" || { rm -f "$temporaneo"; errore "non sono riuscito a scrivere $nome.yml"; }
+        chown "$I_UTENTE":"$I_UTENTE" "$file" 2>/dev/null || true
+        chmod 0644 "$file" 2>/dev/null || true
+    else
+        install -o "$I_UTENTE" -g "$I_UTENTE" -m 0644 "$temporaneo" "$file" \
+            || { rm -f "$temporaneo"; errore "non sono riuscito a scrivere $nome.yml"; }
+    fi
     rm -f "$temporaneo"
+    menu_meta_scrivi "$nome" "$attore" "$esisteva"
     annota "$attore" "MENU-SCRIVI $id: $nome.yml ($peso byte)"
     echo "salvato"
+}
+
+cmd_menu_tempi() {  # <id> -> nome<TAB>modificato<TAB>creato(epoch)<TAB>modificato_da<TAB>creato_da
+    local id=${1:-} f nome metafile mtime creato mod_da cre_da
+    menu_cartella "$id"
+    [ -d "$MENU_CARTELLA" ] || return 0
+    for f in "$MENU_CARTELLA"/*.yml; do
+        [ -e "$f" ] || continue
+        nome=$(basename "$f" .yml)
+        metafile="$MENU_CARTELLA/.$nome.meta"
+        # Base dal filesystem: %Y = ultima modifica, %W = creazione (0 se non conservata -> si
+        # ripiega sull'ultima modifica). I NOMI di chi ha toccato il file il filesystem non li ha.
+        mtime=$(stat -c %Y "$f" 2>/dev/null || echo 0)
+        creato=$(stat -c %W "$f" 2>/dev/null || echo 0)
+        [ "$creato" = "0" ] && creato=$mtime
+        mod_da=""; cre_da=""
+        # Se c'e' il meta, e' piu' preciso (date stabili + nomi): vince lui.
+        if [ -f "$metafile" ]; then
+            mtime=$(sed -n 's/^modificato=//p' "$metafile" | head -1)
+            creato=$(sed -n 's/^creato=//p' "$metafile" | head -1)
+            mod_da=$(sed -n 's/^modificato_da=//p' "$metafile" | head -1)
+            cre_da=$(sed -n 's/^creato_da=//p' "$metafile" | head -1)
+        fi
+        printf '%s\t%s\t%s\t%s\t%s\n' "$nome" "$mtime" "$creato" "$mod_da" "$cre_da"
+    done
 }
 
 cmd_menu_elimina() {  # <attore> <id> <nome>
@@ -551,6 +618,7 @@ cmd_menu_elimina() {  # <attore> <id> <nome>
     # Non si cancella davvero: si mette da parte. Un menu ricostruito da zero e' mezz'ora
     # di lavoro, e chi preme "elimina" nel browser a volte voleva premere altro.
     mv "$file" "$file.eliminato"
+    [ -f "$MENU_CARTELLA/.$nome.meta" ] && mv "$MENU_CARTELLA/.$nome.meta" "$MENU_CARTELLA/.$nome.meta.eliminato"
     annota "$attore" "MENU-ELIMINA $id: $nome.yml"
     echo "eliminato"
 }
@@ -569,5 +637,6 @@ case "${1:-}" in
     menu-leggi)     shift; cmd_menu_leggi "$@" ;;
     menu-scrivi)    shift; cmd_menu_scrivi "$@" ;;
     menu-elimina)   shift; cmd_menu_elimina "$@" ;;
-    *)              errore "uso: magix-console lista|log|avvia|ferma|riavvia|forza|cmd|screen-log|screen-cmd|screen-chiudi|menu-json|menu-leggi|menu-scrivi|menu-elimina" ;;
+    menu-tempi)     shift; cmd_menu_tempi "$@" ;;
+    *)              errore "uso: magix-console lista|log|avvia|ferma|riavvia|forza|cmd|screen-log|screen-cmd|screen-chiudi|menu-json|menu-leggi|menu-scrivi|menu-elimina|menu-tempi" ;;
 esac

@@ -11,7 +11,7 @@
 # Collegamento al database del SITO, dove vivono sanzioni, ricorsi e coda.
 # E' lo stesso database che usa MagixWeb: qui le sanzioni le SCRIVE il plugin,
 # il sito le legge (e ci aggiunge solo ricorsi e decisioni dello staff).
-sito:
+site:
   host: "127.0.0.1"
   port: 3306
   database: "magicadventure_web"
@@ -20,147 +20,147 @@ sito:
   pool-size: 3
   # Ogni quanto rileggere le decisioni prese sul sito: revoche da eseguire in
   # gioco e proposte confermate dallo staff. Secondi.
-  controllo-secondi: 10
+  check-seconds: 10
 
 # --------------------------- SEGNALAZIONI ----------------------------
 # /report <giocatore> <motivo>: apre un caso nella stessa coda dei rilevamenti
 # automatici. Non fa scattare nessuna sanzione da solo: decide sempre una persona.
 report:
-  attivo: true
+  active: true
   # Pausa fra una segnalazione e l'altra, per lo stesso giocatore (secondi).
-  pausa-secondi: 60
+  pause-seconds: 60
   # Quante segnalazioni ancora aperte puo' avere una persona alla volta.
   # Serve a evitare che qualcuno riempia la coda per ripicca.
-  massimo-aperte: 3
+  max-open: 3
   # Lunghezza minima del motivo. "barare" non dice niente a chi dovra' controllare.
-  motivo-minimo: 15
+  min-reason: 15
 
 # --------------------------- APPLICAZIONE ----------------------------
-applicazione:
+application:
   # misto      = automatico solo ad alta confidenza e per durate brevi, il resto
   #              finisce nella coda di revisione del gestionale (PREDEFINITO)
   # automatico = il plugin applica sempre da solo, entro il tetto qui sotto
   # proposta   = il plugin non applica mai niente da solo: tutto in coda
-  modo: misto
+  mode: misto
   # Nessun automatismo puo' superare questa durata: oltre, diventa una proposta.
   # 0 = nessun automatismo di durata (solo warn e mute brevi).
-  durata-massima-automatica: 30d
+  auto-max-duration: 30d
   # Il ban PERMANENTE non e' mai automatico, qualunque cosa dica 'modo'.
   # Non e' configurabile di proposito: e' la decisione piu' grave che esista.
 
   # Cosa vede il giocatore quando viene espulso o bloccato.
   # {motivo} {durata} {scadenza} {id} vengono sostituiti.
-  messaggio-ban: |
+  ban-message: |
     &#FF6B6B&lSei stato bandito da MAGICADVENTURE
     &7Motivo: &f{motivo}
     &7Durata: &f{durata}
     &7Puoi fare ricorso qui:
     &#A8DC2Chttps://magicadventure.it/sanzione/{id}
-  messaggio-kick: |
+  kick-message: |
     &#FFD166&lSei stato espulso
     &7Motivo: &f{motivo}
   # Messaggio a chi prova a scrivere mentre e' silenziato.
-  messaggio-mute: "&#FF6B6BNon puoi scrivere in chat: &f{motivo} &7(finisce fra {scadenza})"
+  mute-message: "&#FF6B6BNon puoi scrivere in chat: &f{motivo} &7(finisce fra {scadenza})"
 
 # ------------------------------ PUNTI --------------------------------
-punti:
+points:
   # I punti si sommano e DECADONO: meta' del loro valore ogni N giorni.
   # E' la stessa curva del punteggio multi-account: chi sbaglia una volta a marzo
   # non se lo porta dietro per sempre, il recidivo si'.
-  dimezzamento-giorni: 90
+  halving-days: 90
   # Soglie: raggiunti i punti indicati, scatta il provvedimento.
   # Si legge dall'alto verso il basso: vince la soglia piu' alta superata.
-  soglie:
-    - punti: 10
-      tipo: mute
-      durata: 30m
-    - punti: 25
-      tipo: mute
-      durata: 6h
-    - punti: 50
-      tipo: ban
-      durata: 3d
-    - punti: 80
-      tipo: ban
-      durata: 30d
-    - punti: 120
-      tipo: ban
-      durata: permanente
+  thresholds:
+    - points: 10
+      type: mute
+      duration: 30m
+    - points: 25
+      type: mute
+      duration: 6h
+    - points: 50
+      type: ban
+      duration: 3d
+    - points: 80
+      type: ban
+      duration: 30d
+    - points: 120
+      type: ban
+      duration: permanente
 
 # ---------------------------- CATEGORIE ------------------------------
 # Ogni violazione appartiene a una categoria. Da qui escono: i punti, l'ambito
 # (dove vale il provvedimento) e se il provvedimento puo' essere automatico.
 # Il 'nome' e' quello che legge il pubblico nel regolamento e nell'elenco.
-categorie:
+categories:
   chat.spam:
-    nome: "Spam in chat"
-    descrizione: "Messaggi ripetuti, troppo rapidi o tutti in maiuscolo."
-    punti: 3
-    ambito: entrambi
-    automatico: true
+    name: "Spam in chat"
+    description: "Messaggi ripetuti, troppo rapidi o tutti in maiuscolo."
+    points: 3
+    scope: entrambi
+    automatic: true
   chat.insulti:
-    nome: "Insulti"
-    descrizione: "Offese e linguaggio volgare verso altre persone."
-    punti: 8
-    ambito: entrambi
-    automatico: true
+    name: "Insulti"
+    description: "Offese e linguaggio volgare verso altre persone."
+    points: 8
+    scope: entrambi
+    automatic: true
   chat.pubblicita:
-    nome: "Pubblicita' di altri server"
-    descrizione: "Indirizzi, inviti e richiami verso altri server."
-    punti: 25
-    ambito: entrambi
-    automatico: true
+    name: "Pubblicita' di altri server"
+    description: "Indirizzi, inviti e richiami verso altri server."
+    points: 25
+    scope: entrambi
+    automatic: true
   chat.dati-personali:
-    nome: "Dati personali"
-    descrizione: "Numeri, indirizzi, richieste di contatti o foto ad altri giocatori."
-    punti: 20
-    ambito: entrambi
+    name: "Dati personali"
+    description: "Numeri, indirizzi, richieste di contatti o foto ad altri giocatori."
+    points: 20
+    scope: entrambi
     # MAI automatico: il pubblico e' in larga parte minorenne e qui un falso
     # positivo pesa molto meno di uno staff che non viene avvisato.
-    automatico: false
+    automatic: false
   cheat.movimento:
-    nome: "Cheat di movimento"
-    descrizione: "Volo, velocita' e movimenti impossibili."
-    punti: 40
-    ambito: gioco
-    automatico: true
+    name: "Cheat di movimento"
+    description: "Volo, velocita' e movimenti impossibili."
+    points: 40
+    scope: gioco
+    automatic: true
   cheat.combat:
-    nome: "Cheat in combattimento"
-    descrizione: "Mira automatica, portata e colpi impossibili."
-    punti: 40
-    ambito: gioco
-    automatico: true
+    name: "Cheat in combattimento"
+    description: "Mira automatica, portata e colpi impossibili."
+    points: 40
+    scope: gioco
+    automatic: true
   cheat.xray:
-    nome: "X-ray"
-    descrizione: "Scavo guidato verso minerali non visibili."
-    punti: 50
-    ambito: gioco
-    automatico: true
+    name: "X-ray"
+    description: "Scavo guidato verso minerali non visibili."
+    points: 50
+    scope: gioco
+    automatic: true
   afk.elusione:
-    nome: "Elusione dell'anti-AFK"
-    descrizione: "Macro, autoclicker e trucchi per risultare attivi da fermi."
-    punti: 15
-    ambito: gioco
-    automatico: true
+    name: "Elusione dell'anti-AFK"
+    description: "Macro, autoclicker e trucchi per risultare attivi da fermi."
+    points: 15
+    scope: gioco
+    automatic: true
   report.confermato:
-    nome: "Segnalazione confermata"
-    descrizione: "Comportamento accertato dallo staff dopo la segnalazione di un giocatore."
-    punti: 0
-    ambito: entrambi
-    automatico: false
+    name: "Segnalazione confermata"
+    description: "Comportamento accertato dallo staff dopo la segnalazione di un giocatore."
+    points: 0
+    scope: entrambi
+    automatic: false
   manuale:
-    nome: "Decisione dello staff"
-    descrizione: "Provvedimento preso da un membro dello staff."
-    punti: 0
-    ambito: entrambi
-    automatico: false
+    name: "Decisione dello staff"
+    description: "Provvedimento preso da un membro dello staff."
+    points: 0
+    scope: entrambi
+    automatic: false
 
 # --------------------------- POTERI STAFF ----------------------------
 # Tetto di durata per grado (gruppo primario LuckPerms). Oltre il tetto la
 # sanzione NON viene rifiutata: diventa una proposta motivata per il grado
 # superiore, con le prove gia' allegate. Chi vede il problema non perde il lavoro.
 #   -1 = nessun limite     0 = non puo' dare quel tipo di sanzione
-poteri:
+powers:
   helper:
     mute: 1h
     ban: 0
@@ -172,9 +172,9 @@ poteri:
     ban: -1
 
 # ---------------------------- REGOLAMENTO ----------------------------
-regolamento:
+rulebook:
   # Rigenera il blocco [[SANZIONI]] del regolamento sul sito a ogni avvio
   # e a ogni /mg reload.
-  genera: true
+  generate: true
   # Riga di apertura del blocco generato.
-  introduzione: "Ogni violazione vale dei punti. I punti si sommano e dimezzano ogni {dimezzamento} giorni: chi sbaglia una volta non se lo porta dietro per sempre, chi insiste paga di piu'."
+  intro: "Ogni violazione vale dei punti. I punti si sommano e dimezzano ogni {dimezzamento} giorni: chi sbaglia una volta non se lo porta dietro per sempre, chi insiste paga di piu'."

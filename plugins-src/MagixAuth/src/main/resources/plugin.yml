@@ -20,19 +20,16 @@ commands:
     usage: /login <password>
   register:
     description: Registrarsi al primo ingresso
-    aliases: [reg, registrati]
+    aliases: [reg]
     usage: /register <password> <ripeti password>
   otp:
     description: Codice della verifica in due passaggi
-    aliases: [codice]
     usage: /otp <codice>
   logout:
     description: Chiude il tuo accesso in gioco e sul sito
-    aliases: [esci, disconnetti]
     usage: /logout
   changepassword:
     description: Cambiare la propria password (vale anche sul sito)
-    aliases: [cambiapassword, cambiapw]
     usage: /changepassword <vecchia> <nuova> <ripeti nuova> [codice]
 
 permissions:

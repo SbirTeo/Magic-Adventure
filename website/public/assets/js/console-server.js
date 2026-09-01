@@ -31,19 +31,19 @@
   // ------------------------------------------------------------------
   //  Utilita'
   // ------------------------------------------------------------------
-  function avviso(testo, errore) {
+  function avviso(text, errore) {
     avvisi.innerHTML = '';
-    if (!testo) return;
+    if (!text) return;
     var d = document.createElement('div');
     d.className = 'alert alert-' + (errore ? 'error' : 'success');
-    d.textContent = testo;
+    d.textContent = text;
     avvisi.appendChild(d);
     if (!errore) {
       setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 6000);
     }
   }
 
-  function durata(secondi) {
+  function duration(secondi) {
     if (secondi === null || secondi === undefined || secondi < 0) return '—';
     if (secondi < 60) return secondi + ' s';
     var min = Math.floor(secondi / 60);
@@ -68,7 +68,7 @@
     }).then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Risposta non valida dal sito.' }; }); });
   }
 
-  function leggi(parametri) {
+  function read(parametri) {
     return fetch('/api/console?' + new URLSearchParams(parametri).toString(), {
       credentials: 'same-origin'
     }).then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Risposta non valida dal sito.' }; }); });
@@ -77,18 +77,18 @@
   // ------------------------------------------------------------------
   //  Schede dei server
   // ------------------------------------------------------------------
-  var ETICHETTA_LAVORO = { avvia: 'avvio in corso…', ferma: 'arresto in corso…', riavvia: 'riavvio in corso…', forza: 'chiusura in corso…' };
+  var ETICHETTA_LAVORO = { start: 'avvio in corso…', ferma: 'arresto in corso…', riavvia: 'riavvio in corso…', forza: 'chiusura in corso…' };
 
-  function pulsante(testo, classe, azione, ist) {
+  function pulsante(text, classe, azione, ist) {
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'btn btn-small ' + classe;
-    b.textContent = testo;
-    b.addEventListener('click', function () { eseguiAzione(azione, ist, b); });
+    b.textContent = text;
+    b.addEventListener('click', function () { runAction(azione, ist, b); });
     return b;
   }
 
-  function disegnaIstanze() {
+  function drawInstances() {
     boxIstanze.innerHTML = '';
     if (!statoCorrente.istanze.length) {
       var vuoto = document.createElement('div');
@@ -117,7 +117,7 @@
 
       var righe = [];
       if (ist.accesa) {
-        righe.push('acceso da ' + durata(ist.da));
+        righe.push('acceso da ' + duration(ist.da));
         if (ist.processo === 'assente') {
           righe.push('⚠ la screen è aperta ma il processo del server non c’è');
         }
@@ -152,7 +152,7 @@
       guarda.type = 'button';
       guarda.className = 'btn btn-ghost btn-small';
       guarda.textContent = 'Console';
-      guarda.addEventListener('click', function () { scegliMira('istanza', ist.id); });
+      guarda.addEventListener('click', function () { selectTarget('istanza', ist.id); });
       azioni.appendChild(guarda);
 
       if (ist.lavoro) {
@@ -171,7 +171,7 @@
     forza: 'CHIUSURA FORZATA di «%s».\n\nIl processo viene ucciso all’istante: quello che non è ancora stato salvato SI PERDE.\nUsala solo se il server è bloccato e «Ferma» non funziona.\n\nProcedere?'
   };
 
-  function eseguiAzione(azione, ist, bottone) {
+  function runAction(azione, ist, bottone) {
     if (CONFERME[azione] && !window.confirm(CONFERME[azione].replace('%s', ist.nome))) return;
     bottone.disabled = true;
     chiedi({ azione: azione, id: ist.id }).then(function (r) {
@@ -181,7 +181,7 @@
         return;
       }
       avviso(r.messaggio || 'Fatto.', false);
-      aggiornaStato();
+      updateStatus();
     }).catch(function () {
       avviso('Il sito non risponde.', true);
       bottone.disabled = false;
@@ -191,7 +191,7 @@
   // ------------------------------------------------------------------
   //  Altre screen
   // ------------------------------------------------------------------
-  function disegnaScreens() {
+  function drawScreens() {
     boxScreens.innerHTML = '';
     if (!statoCorrente.screens || !statoCorrente.screens.length) {
       var p = document.createElement('p');
@@ -211,7 +211,7 @@
       t.textContent = s.sessione;
       var d = document.createElement('div');
       d.className = 'sub';
-      d.textContent = 'utente ' + s.utente + ' · pid ' + s.pid + ' · aperta da ' + durata(s.da);
+      d.textContent = 'utente ' + s.utente + ' · pid ' + s.pid + ' · aperta da ' + duration(s.da);
       sin.appendChild(t);
       sin.appendChild(d);
       riga.appendChild(sin);
@@ -222,7 +222,7 @@
       guarda.type = 'button';
       guarda.className = 'btn btn-ghost btn-small';
       guarda.textContent = 'Guarda';
-      guarda.addEventListener('click', function () { scegliMira('screen', s.sessione); });
+      guarda.addEventListener('click', function () { selectTarget('screen', s.sessione); });
       azioni.appendChild(guarda);
 
       if (statoCorrente.modo_screen === 'pieno') {
@@ -235,7 +235,7 @@
           chiudi.disabled = true;
           chiedi({ azione: 'screen-chiudi', sessione: s.sessione }).then(function (r) {
             avviso(r.ok ? (r.messaggio || 'Screen chiusa.') : (r.error || 'Non riuscito.'), !r.ok);
-            aggiornaStato();
+            updateStatus();
           });
         });
         azioni.appendChild(chiudi);
@@ -248,7 +248,7 @@
   // ------------------------------------------------------------------
   //  Console
   // ------------------------------------------------------------------
-  function disegnaSchede() {
+  function drawTabs() {
     boxSchede.innerHTML = '';
     var voci = statoCorrente.istanze.map(function (i) {
       return { tipo: 'istanza', id: i.id, nome: i.nome, viva: i.accesa };
@@ -271,7 +271,7 @@
       b.type = 'button';
       b.className = 'console-scheda' + (mira.tipo === v.tipo && mira.id === v.id ? ' e-attiva' : '') + (v.viva ? '' : ' e-spenta');
       b.textContent = v.nome;
-      b.addEventListener('click', function () { scegliMira(v.tipo, v.id); });
+      b.addEventListener('click', function () { selectTarget(v.tipo, v.id); });
       boxSchede.appendChild(b);
     });
 
@@ -286,12 +286,12 @@
       : (mira.tipo === 'screen' ? 'sola lettura: vedi screen_esterni in istanze.conf' : 'il server è spento');
   }
 
-  function scegliMira(tipo, id) {
+  function selectTarget(tipo, id) {
     mira = { tipo: tipo, id: id };
     ultimaFirma = null;
     schermo.textContent = 'Caricamento…';
-    disegnaSchede();
-    aggiornaLog();
+    drawTabs();
+    updateLog();
     if (!campo.disabled) campo.focus();
   }
 
@@ -299,10 +299,11 @@
     return schermo.scrollHeight - schermo.scrollTop - schermo.clientHeight < 60;
   }
 
-  function disegnaLog(testo) {
+  function drawLog(text) {
     var seguire = inFondo();
+    var prevTop = schermo.scrollTop;   // per non saltare in cima quando arriva roba nuova mentre leggi
     var frammento = document.createDocumentFragment();
-    testo.split('\n').forEach(function (riga) {
+    text.split('\n').forEach(function (riga) {
       var span = document.createElement('span');
       span.className = 'console-riga';
       if (/\/(ERROR|FATAL)\]|Exception|Caused by:/i.test(riga)) span.classList.add('e-errore');
@@ -314,15 +315,17 @@
     });
     schermo.innerHTML = '';
     schermo.appendChild(frammento);
-    if (seguire) schermo.scrollTop = schermo.scrollHeight;
+    // Se stai seguendo il fondo, resti al fondo; se stavi leggendo più su, ti ci lascio invece di
+    // ributtarti in cima (il rebuild azzera lo scroll da solo).
+    schermo.scrollTop = seguire ? schermo.scrollHeight : prevTop;
   }
 
-  function aggiornaLog() {
+  function updateLog() {
     if (!mira) return;
     var parametri = mira.tipo === 'istanza'
       ? { azione: 'log', id: mira.id, righe: selRighe.value }
       : { azione: 'screen-log', sessione: mira.id, righe: selRighe.value };
-    return leggi(parametri).then(function (r) {
+    return read(parametri).then(function (r) {
       if (!r.ok) {
         schermo.textContent = r.error || 'Console non leggibile.';
         ultimaFirma = null;
@@ -330,20 +333,20 @@
       }
       if (r.firma === ultimaFirma) return;   // niente di nuovo: non si ridisegna
       ultimaFirma = r.firma;
-      disegnaLog(r.testo);
+      drawLog(r.testo);
     }).catch(function () { /* rete ballerina: si riprova al giro dopo */ });
   }
 
-  function aggiornaStato() {
-    return leggi({ azione: 'stato' }).then(function (r) {
+  function updateStatus() {
+    return read({ azione: 'stato' }).then(function (r) {
       if (!r || r.ok === false) {
         avviso((r && r.error) || 'Stato non leggibile.', true);
         return;
       }
       statoCorrente = r;
-      disegnaIstanze();
-      disegnaSchede();
-      disegnaScreens();
+      drawInstances();
+      drawTabs();
+      drawScreens();
       var ora = new Date();
       aggiornato.textContent = 'aggiornato alle ' + ora.toLocaleTimeString('it-IT');
       programmaStato();
@@ -354,49 +357,49 @@
   function programmaStato() {
     if (timerStato) clearTimeout(timerStato);
     var lavoroInCorso = (statoCorrente.istanze || []).some(function (i) { return i.lavoro; });
-    timerStato = setTimeout(aggiornaStato, lavoroInCorso ? 2000 : 6000);
+    timerStato = setTimeout(updateStatus, lavoroInCorso ? 2000 : 6000);
   }
 
   function giroLog() {
     if (timerLog) clearTimeout(timerLog);
-    var prosegui = function () { timerLog = setTimeout(giroLog, 3000); };
+    var prosegui = function () { timerLog = setTimeout(giroLog, 1000); };
     if (document.hidden || !spuntaAuto.checked) {
       prosegui();
       return;
     }
-    var p = aggiornaLog();
+    var p = updateLog();
     if (p && p.then) p.then(prosegui, prosegui); else prosegui();
   }
 
   // ------------------------------------------------------------------
   //  Riga di comando
   // ------------------------------------------------------------------
-  function mandaComando(testo) {
-    if (!testo || !mira) return;
+  function sendCommand(text) {
+    if (!text || !mira) return;
     var dati = mira.tipo === 'istanza'
-      ? { azione: 'cmd', id: mira.id, comando: testo }
-      : { azione: 'screen-cmd', sessione: mira.id, comando: testo };
+      ? { azione: 'cmd', id: mira.id, comando: text }
+      : { azione: 'screen-cmd', sessione: mira.id, comando: text };
     chiedi(dati).then(function (r) {
       if (!r.ok) {
         avviso(r.error || 'Comando non riuscito.', true);
         return;
       }
-      storico.push(testo);
+      storico.push(text);
       postoStorico = -1;
       ultimaFirma = null;          // la risposta arriva subito nel log
-      setTimeout(aggiornaLog, 400);
+      setTimeout(updateLog, 400);
     }).catch(function () { avviso('Il sito non risponde.', true); });
   }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    var testo = campo.value.trim();
-    if (!testo) return;
+    var text = campo.value.trim();
+    if (!text) return;
     // La barra davanti non serve in console: se c'e', la si toglie invece di far
     // fallire il comando.
-    if (testo.charAt(0) === '/') testo = testo.slice(1);
+    if (text.charAt(0) === '/') text = text.slice(1);
     campo.value = '';
-    mandaComando(testo);
+    sendCommand(text);
   });
 
   // Frecce su/giu': si ripescano i comandi gia' mandati, come in un terminale.
@@ -420,17 +423,17 @@
       campo.focus();
       return;
     }
-    if (b.hasAttribute('data-comando')) mandaComando(b.getAttribute('data-comando'));
+    if (b.hasAttribute('data-comando')) sendCommand(b.getAttribute('data-comando'));
   });
 
   document.getElementById('consoleGiu').addEventListener('click', function () {
     schermo.scrollTop = schermo.scrollHeight;
   });
 
-  selRighe.addEventListener('change', function () { ultimaFirma = null; aggiornaLog(); });
-  spuntaAuto.addEventListener('change', function () { if (spuntaAuto.checked) aggiornaLog(); });
+  selRighe.addEventListener('change', function () { ultimaFirma = null; updateLog(); });
+  spuntaAuto.addEventListener('change', function () { if (spuntaAuto.checked) updateLog(); });
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) { aggiornaLog(); aggiornaStato(); }
+    if (!document.hidden) { updateLog(); updateStatus(); }
   });
 
   // ------------------------------------------------------------------
@@ -441,10 +444,10 @@
     if (iniziale) statoCorrente = JSON.parse(iniziale.textContent);
   } catch (e) { /* si riparte comunque dallo stato chiesto qui sotto */ }
 
-  disegnaIstanze();
-  disegnaSchede();
-  disegnaScreens();
-  aggiornaLog();
-  aggiornaStato();
+  drawInstances();
+  drawTabs();
+  drawScreens();
+  updateLog();
+  updateStatus();
   giroLog();
 })();

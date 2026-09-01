@@ -21,58 +21,58 @@ commands:
     description: Bandisce un giocatore (senza durata = permanente)
     aliases: [mgban]
     usage: /ban <giocatore> <motivo>
-    permission: magixguard.sanziona
+    permission: magixguard.sanction
   tempban:
     description: Bandisce un giocatore per un periodo
     aliases: [mgtempban]
     usage: /tempban <giocatore> <durata> <motivo>
-    permission: magixguard.sanziona
+    permission: magixguard.sanction
   mute:
     description: Impedisce a un giocatore di scrivere in chat (per sempre)
-    aliases: [mgmute, silenzia]
+    aliases: [mgmute]
     usage: /mute <giocatore> <motivo>
-    permission: magixguard.sanziona
+    permission: magixguard.sanction
   tempmute:
     description: Impedisce di scrivere in chat per un periodo
     aliases: [mgtempmute]
     usage: /tempmute <giocatore> <durata> <motivo>
-    permission: magixguard.sanziona
+    permission: magixguard.sanction
   kick:
     description: Espelle subito un giocatore
-    aliases: [mgkick, espelli]
+    aliases: [mgkick]
     usage: /kick <giocatore> <motivo>
-    permission: magixguard.sanziona
+    permission: magixguard.sanction
   warn:
     description: Richiama un giocatore; resta agli atti
-    aliases: [mgwarn, richiamo]
+    aliases: [mgwarn]
     usage: /warn <giocatore> <motivo>
-    permission: magixguard.sanziona
+    permission: magixguard.sanction
   unban:
     description: Revoca il ban di un giocatore
     aliases: [mgunban, pardon]
     usage: /unban <giocatore> [motivo]
-    permission: magixguard.revoca
+    permission: magixguard.revoke
   unmute:
     description: Revoca il silenzio di un giocatore
     aliases: [mgunmute]
     usage: /unmute <giocatore> [motivo]
-    permission: magixguard.revoca
-  storico:
+    permission: magixguard.revoke
+  history:
     description: Tutti i provvedimenti di un giocatore
-    aliases: [mgstorico, cronologia]
-    usage: /storico <giocatore>
+    aliases: [mghistory]
+    usage: /history <giocatore>
     permission: magixguard.staff
-  sanzioni:
+  sanctions:
     description: I provvedimenti in corso e i punti (i tuoi, o di un altro se sei staff)
-    aliases: [mgsanzioni]
-    usage: /sanzioni [giocatore]
-  mgviolazione:
+    aliases: [mgsanctions]
+    usage: /sanctions [giocatore]
+  mgviolation:
     description: Ingresso per i verdetti dell'anticheat (lo chiama Grim, non una persona)
-    usage: /mgviolazione <giocatore> <categoria> [dettaglio]
+    usage: /mgviolation <giocatore> <categoria> [dettaglio]
     permission: magixguard.admin
   report:
     description: Segnala un giocatore allo staff
-    aliases: [mgreport, segnala]
+    aliases: [mgreport]
     usage: /report <giocatore> <motivo>
     permission: magixguard.report
 
@@ -89,10 +89,10 @@ permissions:
   magixguard.exempt:
     description: Chi ha questo permesso non viene profilato (staff, bot, host di prova)
     default: false
-  magixguard.sanziona:
+  magixguard.sanction:
     description: Dare provvedimenti (entro il tetto di durata del proprio grado)
     default: op
-  magixguard.revoca:
+  magixguard.revoke:
     description: Revocare un provvedimento gia' applicato
     default: op
   magixguard.chat.bypass:

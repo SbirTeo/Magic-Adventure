@@ -1,6 +1,6 @@
 package com.teolo.magixauth;
 
-import com.teolo.magixauth.command.CambiaPasswordCommand;
+import com.teolo.magixauth.command.ChangePasswordCommand;
 import com.teolo.magixauth.command.LoginCommand;
 import com.teolo.magixauth.command.LogoutCommand;
 import com.teolo.magixauth.command.OtpCommand;
@@ -96,7 +96,7 @@ public final class MagixAuth extends JavaPlugin {
         getCommand("otp").setExecutor(new OtpCommand(config, gate));
         getCommand("logout").setExecutor(new LogoutCommand(this, config, dao, gate));
         getCommand("changepassword").setExecutor(
-                new CambiaPasswordCommand(this, config, dao, gate));
+                new ChangePasswordCommand(this, config, dao, gate));
 
         async(() -> {
             try {

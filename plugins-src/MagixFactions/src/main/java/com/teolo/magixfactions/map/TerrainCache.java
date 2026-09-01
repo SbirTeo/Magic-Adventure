@@ -124,6 +124,7 @@ final class TerrainCache {
     private World curWorld;      // mondo del render in corso (le chiamate a sampleAt sono tutte dello stesso)
     private WorldData curData;   // le sue cache
     private boolean curCeiling;  // mondo col TETTO (Nether): va guardato da sotto il soffitto
+    private Color curEmpty = PAPER; // tinta delle colonne di puro vuoto: beige nell'overworld, scura nell'End
     private int curScanY;        // quota da cui parte la scansione verso il basso nei mondi col tetto
     private int curSlice;        // fetta verticale corrente (chiave della cache colonne)
     private long asyncWindowStart = 0L;
@@ -152,6 +153,9 @@ final class TerrainCache {
         curWorld = w;
         curData = worlds.computeIfAbsent(w.getUID(), k -> new WorldData());
         curCeiling = hasCeiling(w);
+        // Nell'End il "vuoto" fra le isole non e' carta bianca ma il cielo scuro del vuoto: colonne vuote
+        // e zone non esplorate vanno rese quasi-nere/viola scuro, non beige (bug segnalato dall'utente).
+        curEmpty = w.getEnvironment() == World.Environment.THE_END ? END_VOID : PAPER;
         curSlice = curCeiling ? sliceOf(refY) : 0;
         // Si parte dal tetto della fascia di chi guarda: cosi' due giocatori nella stessa fascia
         // condividono i campioni (la cache resta utile) e la scansione parte comunque sopra la testa.
@@ -526,10 +530,10 @@ final class TerrainCache {
             while (isInvisible(m) && by - 1 >= min && steps++ < 128) { by--; m = s.getBlockType(lx, by, lz); }
         }
         if (isInvisible(m)) {
-            // Colonna interamente vuota (mondo void): CARTA VUOTA, come le zone non esplorate — mai il
-            // grigio-roccia del fallback. Sample "vero" (non null) cosi' il frame resta completo e la
-            // memoizzazione funziona anche su mappe piene di vuoto.
-            Sample sample = new Sample(min, PAPER, false);
+            // Colonna interamente vuota (mondo void): colore del vuoto del mondo (beige carta nell'overworld,
+            // scuro nell'End), come le zone non esplorate — mai il grigio-roccia del fallback. Sample "vero"
+            // (non null) cosi' il frame resta completo e la memoizzazione funziona anche su mappe piene di vuoto.
+            Sample sample = new Sample(min, curEmpty, false);
             if (samples.size() > MAX_SAMPLES) samples.clear();
             samples.put(colK, new TimedSample(sample, now));
             return sample;
@@ -585,6 +589,13 @@ final class TerrainCache {
     // Tono "carta vuota" per le colonne di puro vuoto (stesso valore dell'UNKNOWN di MapContentBuilder:
     // il vuoto deve sembrare "niente qui", identico alle zone non esplorate, mai grigio-roccia).
     private static final Color PAPER = new Color(198, 178, 148);
+    // Tono del vuoto nell'End: viola molto scuro, quasi nero — come il cielo del vuoto dell'End.
+    private static final Color END_VOID = new Color(18, 13, 28);
+
+    /** Tinta con cui rendere le zone SENZA terreno (vuoto + non ancora esplorato) nel mondo del render in
+     *  corso: beige "carta" ovunque, viola-scuro nell'End. La usa anche {@link MapContentBuilder} per i
+     *  pixel senza dato, cosi' vuoto e non-esplorato restano coerenti. */
+    Color emptyColor() { return curEmpty; }
 
     // --- Colori base stile-mappa (luminosita' "normale" di Minecraft) ---------------------------------
     private static final Color GRASS  = new Color(127, 178, 56);
@@ -607,6 +618,13 @@ final class TerrainCache {
     private static final Color EMERALD= new Color(0, 217, 58);
     private static final Color QUARTZ = new Color(255, 252, 245);
     private static final Color TERRA  = new Color(153, 51, 51); // rosso terracotta/mesa
+    // --- Mondo dell'End ---: senza questi END_STONE cadeva nel fallback grigio-roccia (STONE) e TUTTO
+    // l'End usciva grigio e illeggibile (bug segnalato). End stone = giallo-pallido come in vanilla, ben
+    // staccato dal beige del vuoto (PAPER); purpur = viola chiaro; ossidiana/uovo = quasi nero.
+    private static final Color ENDSTONE = new Color(219, 213, 156); // giallo-sabbia dell'End
+    private static final Color PURPUR   = new Color(169, 125, 169); // blocchi purpur delle città
+    private static final Color CHORUS   = new Color(126, 90, 126);  // piante/fiori di chorus
+    private static final Color OBSIDIAN = new Color(20, 18, 30);    // ossidiana / uovo del drago
 
     // Cache Material->Color: computeMaterialColor fa parsing di stringhe (name() + molti contains/startsWith)
     // e veniva chiamato 1 volta PER PIXEL per render (16384x) — era il grosso del costo di computeColors,
@@ -692,6 +710,14 @@ final class TerrainCache {
         if (n.contains("ICE")) return ICE;
 
         if (n.contains("NETHERRACK") || n.contains("NETHER_WART_BLOCK") || m == Material.MAGMA_BLOCK) return NETHER;
+
+        // Mondo dell'End: senza queste righe END_STONE (di cui è fatto tutto l'End) cadeva nel grigio
+        // generico e la mappa era illeggibile. Purpur/chorus/ossidiana danno risalto alle città e ai pilastri.
+        if (n.contains("END_STONE") || m == Material.END_PORTAL_FRAME) return ENDSTONE;
+        if (n.contains("PURPUR")) return PURPUR;
+        if (m == Material.CHORUS_PLANT || m == Material.CHORUS_FLOWER) return CHORUS;
+        if (m == Material.OBSIDIAN || m == Material.CRYING_OBSIDIAN || m == Material.DRAGON_EGG) return OBSIDIAN;
+        if (m == Material.END_ROD) return QUARTZ;
 
         // Blocchi colorati (wool/concrete/terracotta/glazed): dedotti dal prefisso colore.
         if (n.contains("TERRACOTTA") && !n.equals("TERRACOTTA")) {

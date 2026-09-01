@@ -271,7 +271,7 @@ function otp_metti_in_attesa(int $userId, bool $ricordami): void {
  * web-admin mentre e' collegato, oppure rientra da un cookie rilasciato prima che la
  * verifica esistesse. In quel caso la sessione si chiude e si riparte da /otp.
  */
-function otp_guardia(): void {
+function otp_guard(): void {
     if (empty($_SESSION['user_id']) || !empty($_SESSION['otp_ok'])) {
         return;
     }
@@ -308,4 +308,4 @@ if (empty($_SESSION['user_id']) && !empty($_COOKIE[REMEMBER_COOKIE])) {
 }
 
 // ...e subito dopo: chi deve passare dal codice a sei cifre non prosegue senza.
-otp_guardia();
+otp_guard();

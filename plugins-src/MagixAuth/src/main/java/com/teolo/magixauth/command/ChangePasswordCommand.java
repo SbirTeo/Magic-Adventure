@@ -26,14 +26,14 @@ import java.sql.SQLException;
  * Il codice serve solo a chi ha la verifica in due passaggi attiva, ed e' l'ultimo argomento
  * perche' per tutti gli altri non deve nemmeno esistere.
  */
-public final class CambiaPasswordCommand implements CommandExecutor {
+public final class ChangePasswordCommand implements CommandExecutor {
 
     private final MagixAuth plugin;
     private final AuthConfig config;
     private final AuthDao dao;
     private final AuthGate gate;
 
-    public CambiaPasswordCommand(MagixAuth plugin, AuthConfig config, AuthDao dao, AuthGate gate) {
+    public ChangePasswordCommand(MagixAuth plugin, AuthConfig config, AuthDao dao, AuthGate gate) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;

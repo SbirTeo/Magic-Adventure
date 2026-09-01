@@ -122,7 +122,7 @@ function console_stato(): array {
 }
 
 /** Durata in forma leggibile: 5 s -> "5 s", 3700 s -> "1 h 1 min". */
-function console_durata(?int $secondi): string {
+function console_duration(?int $secondi): string {
     if ($secondi === null || $secondi < 0) {
         return '—';
     }

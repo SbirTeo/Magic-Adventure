@@ -9,13 +9,13 @@
   var stato = document.getElementById('navSortStato');
   var inCorso = null;
 
-  function messaggio(testo, errore) {
+  function toast(text, errore) {
     if (!stato) return;
-    stato.textContent = testo;
+    stato.textContent = text;
     stato.className = 'forum-sort-stato' + (errore ? ' is-error' : '');
   }
 
-  function avvia(e) {
+  function start(e) {
     inCorso = this;
     this.classList.add('is-dragging');
     e.dataTransfer.effectAllowed = 'move';
@@ -27,7 +27,7 @@
     if (!inCorso) return;
     inCorso.classList.remove('is-dragging');
     inCorso = null;
-    salva();
+    save();
   }
 
   /** L'elemento PRIMA del quale inserire, data la posizione verticale del puntatore. */
@@ -59,12 +59,12 @@
 
   lista.querySelectorAll('.nav-sort-voce').forEach(function (voce) {
     voce.setAttribute('draggable', 'true');
-    voce.addEventListener('dragstart', avvia);
+    voce.addEventListener('dragstart', start);
     voce.addEventListener('dragend', termina);
   });
 
   var invioInCorso = false;
-  function salva() {
+  function save() {
     if (invioInCorso) return;
     var ordine = [].slice.call(lista.querySelectorAll('.nav-sort-voce')).map(function (v) {
       return v.dataset.id;
@@ -76,12 +76,12 @@
     dati.append('ordine', JSON.stringify(ordine));
 
     invioInCorso = true;
-    messaggio('Salvo l’ordine…', false);
+    toast('Salvo l’ordine…', false);
     fetch(window.location.pathname + '?section=pages', { method: 'POST', body: dati, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (!r || !r.ok) throw new Error('rifiutato');
-        messaggio('Ordine salvato.', false);
+        toast('Ordine salvato.', false);
         // I numerini "ordine N" sotto ogni voce devono dire la verita' anche senza ricaricare
         [].slice.call(lista.querySelectorAll('.nav-sort-voce')).forEach(function (v, i) {
           var nota = v.querySelector('[data-ordine]');
@@ -89,7 +89,7 @@
         });
       })
       .catch(function () {
-        messaggio('Non sono riuscito a salvare l’ordine: ricarica la pagina e riprova.', true);
+        toast('Non sono riuscito a salvare l’ordine: ricarica la pagina e riprova.', true);
       })
       .finally(function () { invioInCorso = false; });
   }

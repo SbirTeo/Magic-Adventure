@@ -94,7 +94,7 @@ function otp_nuovo_segreto(): string
 }
 
 /** Il codice valido in un dato intervallo (l'intervallo di adesso e' time()/30). */
-function otp_codice(string $segretoBase32, int $passo): string
+function otp_code(string $segretoBase32, int $passo): string
 {
     $chiave = otp_base32_decode($segretoBase32);
     if ($chiave === '') return '';
@@ -131,7 +131,7 @@ function otp_verifica(string $segretoBase32, string $codice, ?int $ultimoPasso, 
         // Un intervallo gia' usato (o precedente all'ultimo buono) non vale piu': senza
         // questo controllo un codice letto alle spalle resterebbe buono per mezzo minuto.
         if ($ultimoPasso !== null && $passo <= $ultimoPasso) continue;
-        if (hash_equals(otp_codice($segretoBase32, $passo), $codice)) {
+        if (hash_equals(otp_code($segretoBase32, $passo), $codice)) {
             $passoUsato = $passo;
             return true;
         }
@@ -225,11 +225,11 @@ function otp_serve_per(?array $utente): bool
 
     // Staff = chi ha almeno un permesso del gestionale. Si guarda l'utente passato, che
     // non e' detto sia quello collegato (serve anche negli elenchi del gestionale).
-    return otp_utente_e_staff($utente);
+    return otp_user_is_staff($utente);
 }
 
 /** True se l'utente ha almeno un permesso del gestionale (per i suoi gruppi di gioco). */
-function otp_utente_e_staff(array $utente): bool
+function otp_user_is_staff(array $utente): bool
 {
     require_once __DIR__ . '/permissions.php';
 
@@ -252,7 +252,7 @@ function otp_utente_e_staff(array $utente): bool
 }
 
 /** True se l'account ha gia' attivato la verifica. */
-function otp_attivo(?array $utente): bool
+function otp_enabled(?array $utente): bool
 {
     return $utente !== null && !empty($utente['totp_secret']) && !empty($utente['totp_activated_at']);
 }
@@ -297,7 +297,7 @@ function otp_azzera_errori(int $userId): void
  *
  * @return string[]
  */
-function otp_genera_recupero(int $userId): array
+function otp_generate_recovery(int $userId): array
 {
     db()->prepare('DELETE FROM otp_recovery_codes WHERE user_id = ?')->execute([$userId]);
 
@@ -353,7 +353,7 @@ function otp_usa_recupero(int $userId, string $codice): bool
 // ---------------------------------------------------------------------------------------
 
 /** Mette il segreto in cassaforte e accende la verifica per quell'account. */
-function otp_attiva(int $userId, string $segretoBase32, int $passoUsato): void
+function otp_enable(int $userId, string $segretoBase32, int $passoUsato): void
 {
     db()->prepare(
         'UPDATE users
@@ -418,7 +418,7 @@ function otp_sessioni_gioco(?string $mcUuid, int $ore = 12): array
  * Le due cose insieme sono il punto: cancellare e basta avrebbe effetto solo dal prossimo
  * ingresso, e chi fosse gia' dentro con l'account continuerebbe a giocare indisturbato.
  */
-function otp_chiudi_sessione_gioco(?string $mcUuid, ?string $chiestoDa = null): bool
+function otp_close_game_session(?string $mcUuid, ?string $chiestoDa = null): bool
 {
     if (!$mcUuid) return false;
     try {

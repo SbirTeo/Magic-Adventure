@@ -54,7 +54,7 @@ function menu_errore(string $messaggio, int $codice = 400): void
 }
 
 /** Il nome del menu diventa un nome di file: si accetta solo cio' che accetta anche il plugin. */
-function menu_nome(string $n): string
+function menu_name(string $n): string
 {
     $n = strtolower(trim($n));
     if (!preg_match('/^[a-z0-9_-]{1,40}$/', $n)) {
@@ -87,15 +87,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (!is_array($dati)) {
             menu_errore('Il file dei menu del server non è leggibile (JSON rovinato).');
         }
+        // Le date dei file (ultima modifica e creazione), per far ordinare la lista dall'editor.
+        // Il plugin non le mette in menus.json — sono metadati del file, non del menu — quindi si
+        // leggono qui dal disco, nello stesso giro dell'elenco.
+        $tempi = [];
+        $rt = console_esegui('menu-tempi', [MENU_ISTANZA], 20);
+        if ($rt['ok']) {
+            foreach (explode("\n", trim($rt['out'])) as $riga) {
+                if ($riga === '') {
+                    continue;
+                }
+                $c = explode("\t", $riga);
+                if (count($c) >= 3) {
+                    $tempi[$c[0]] = [
+                        'modificato'    => (int) $c[1],
+                        'creato'        => (int) $c[2],
+                        'modificato_da' => $c[3] ?? '',
+                        'creato_da'     => $c[4] ?? '',
+                    ];
+                }
+            }
+        }
         // Chi sta modificando: serve all'editor per disegnare la faccia vera sulle teste
         // scritte come %player_name%. Sta qui e non in un attributo della pagina perche'
         // manage.php e' un file lungo e conteso: una chiave in piu' in questa risposta non
         // pesta i piedi a nessuno.
-        menu_json(['ok' => true, 'io' => $attore] + $dati);
+        menu_json(['ok' => true, 'io' => $attore, 'tempi' => $tempi] + $dati);
     }
 
     if ($azione === 'yaml') {
-        $nome = menu_nome((string) ($_GET['nome'] ?? ''));
+        $nome = menu_name((string) ($_GET['nome'] ?? ''));
         $r = console_esegui('menu-leggi', [MENU_ISTANZA, $nome], 20);
         if (!$r['ok']) {
             menu_errore($r['err'] ?: 'Menu non leggibile.');
@@ -119,7 +140,7 @@ if ($csrfSessione === '' || !hash_equals($csrfSessione, (string) ($_POST['csrf']
 switch ((string) ($_POST['azione'] ?? '')) {
 
     case 'salva': {
-        $nome = menu_nome((string) ($_POST['nome'] ?? ''));
+        $nome = menu_name((string) ($_POST['nome'] ?? ''));
         $modello = json_decode((string) ($_POST['menu'] ?? ''), true);
         if (!is_array($modello)) {
             menu_errore('Il menu inviato non è leggibile.');
@@ -149,7 +170,7 @@ switch ((string) ($_POST['azione'] ?? '')) {
     }
 
     case 'elimina': {
-        $nome = menu_nome((string) ($_POST['nome'] ?? ''));
+        $nome = menu_name((string) ($_POST['nome'] ?? ''));
         $r = console_esegui('menu-elimina', [$attore, MENU_ISTANZA, $nome], 20);
         if (!$r['ok']) {
             menu_errore($r['err'] ?: 'Eliminazione non riuscita.');

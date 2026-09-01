@@ -41,7 +41,7 @@ const RISCHIO_PESI = [
  * @param int  $limite             quante voci al massimo
  */
 function rischio_elenco(bool $includiControllati = false, int $limite = 60): array {
-    if (!sanzioni_pronte()) {
+    if (!sanctions_ready()) {
         return [];
     }
     $giocatori = [];

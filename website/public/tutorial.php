@@ -40,7 +40,7 @@ require __DIR__ . '/../includes/header.php';
     <a href="/manage?section=guida_edit" class="card-edit-btn" title="Modifica questo testo" aria-label="Modifica questo testo">✎</a>
   <?php endif; ?>
   <p class="guida-intro">
-    <?= nl2br(h(guida_intro())) ?>
+    <?= nl2br(h(guide_intro())) ?>
     <?php if ($esiste): ?>
       <a href="<?= h($fileGuida) ?>?v=<?= $versione ?>" target="_blank" rel="noopener">Aprila a schermo intero →</a>
     <?php endif; ?>
@@ -114,7 +114,7 @@ require __DIR__ . '/../includes/header.php';
     // La guida e' un file a se' (si apre anche da sola), quindi ha fondo e larghezza suoi.
     // Dentro il sito quelli darebbero un riquadro dentro il riquadro: qui gli passo i colori
     // del tema e gli tolgo il contenitore, cosi' i capitoli sembrano pannelli del sito.
-    function integraNelSito() {
+    function integrateIntoSite() {
       try {
         var doc = frame.contentDocument;
         if (!doc || !doc.head) return;
@@ -223,7 +223,7 @@ require __DIR__ . '/../includes/header.php';
       var doc;
       try { doc = frame.contentDocument; } catch (e) { return true; }
       if (!doc || doc.readyState !== 'complete' || !doc.body) return false;
-      integraNelSito();
+      integrateIntoSite();
       agganciaIndice();
       adatta();
       return true;

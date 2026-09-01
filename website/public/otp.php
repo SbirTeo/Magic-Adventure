@@ -50,7 +50,7 @@ if (!otp_serve_per($utente)) {
 $errore = null;
 $codiciRecupero = $_SESSION['otp_codici_da_mostrare'] ?? null;
 $blocco = otp_blocco_residuo($utente);
-$attivo = otp_attivo($utente);
+$attivo = otp_enabled($utente);
 
 // Segreto proposto a chi deve ancora attivare: si tiene in sessione finche' non lo conferma
 // col primo codice giusto. Nel database ci finisce solo a conferma avvenuta — se no un
@@ -74,10 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$codiciRecupero) {
         if (!otp_chiave_pronta()) {
             $errore = 'Manca la chiave OTP_CHIAVE in config.php: avvisa chi amministra il server.';
         } elseif (otp_verifica($segretoNuovo, $codice, null, $passo)) {
-            otp_attiva((int) $utente['id'], $segretoNuovo, (int) $passo);
+            otp_enable((int) $utente['id'], $segretoNuovo, (int) $passo);
             unset($_SESSION['otp_segreto_nuovo']);
             // I codici di recupero si mostrano subito dopo, una volta sola.
-            $_SESSION['otp_codici_da_mostrare'] = otp_genera_recupero((int) $utente['id']);
+            $_SESSION['otp_codici_da_mostrare'] = otp_generate_recovery((int) $utente['id']);
             redirect('/otp');
         } else {
             otp_segna_errore((int) $utente['id']);
