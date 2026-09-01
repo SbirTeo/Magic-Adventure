@@ -53,6 +53,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private final Messages M;
     private final PowerManager power;
     private final ClaimManager claims;
+    private final com.teolo.magixfactions.manage.ScoreManager score;
     private final com.teolo.magixfactions.map.MapService maps;
     private final com.teolo.magixfactions.minimap.MinimapManager minimap;
     private final com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack;
@@ -62,10 +63,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
     public FCommand(JavaPlugin plugin, FactionManager fm, Ranks ranks, ChatService chat, Database db,
                     Messages messages, PowerManager power, ClaimManager claims,
+                    com.teolo.magixfactions.manage.ScoreManager score,
                     com.teolo.magixfactions.map.MapService maps, com.teolo.magixfactions.minimap.MinimapManager minimap,
                     com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack) {
         this.plugin = plugin; this.fm = fm; this.ranks = ranks; this.chat = chat; this.db = db; this.M = messages;
-        this.power = power; this.claims = claims; this.maps = maps; this.minimap = minimap; this.resourcePack = resourcePack;
+        this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap; this.resourcePack = resourcePack;
     }
 
     /**
@@ -99,6 +101,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (sub.equals("db")) return dbCommand(sender, args);
         if (sub.equals("admin")) return adminCommand(sender, args);
         if (sub.equals("list") || sub.equals("l")) return list(sender);
+        if (sub.equals("top") || sub.equals("classifica")) return top(sender);
         if (sub.equals("reload")) {
             if (!sender.hasPermission("magixfactions.admin")) { msg(sender, M.get("errors.no-permission")); return true; }
             plugin.reloadConfig();
@@ -725,6 +728,44 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         return true;
     }
 
+    /**
+     * /f top (alias /f classifica) - la CLASSIFICA delle fazioni per punteggio composito.
+     * Il punteggio (0-100) sintetizza territori, membri, banca (giacenza media), longevita' e potenza
+     * (media), ognuno pesato dal config score.weights (vedi {@link com.teolo.magixfactions.manage.ScoreManager}).
+     * Aperto a tutti (anche console), come /f list. Mostra le prime score.top-size e, se la propria
+     * fazione e' fuori dai primi, la sua posizione in coda.
+     */
+    private boolean top(CommandSender s) {
+        java.util.List<com.teolo.magixfactions.manage.ScoreManager.Entry> rank = score.ranking();
+        if (rank.isEmpty()) { msg(s, M.get("top.empty")); return true; }
+        Faction own = (s instanceof Player p) ? fm.getFaction(p.getUniqueId()) : null;
+        int size = Math.min(rank.size(), score.topSize());
+        panel(s, M.get("top.header", "count", String.valueOf(rank.size())));
+        boolean ownShown = false;
+        for (int i = 0; i < size; i++) {
+            com.teolo.magixfactions.manage.ScoreManager.Entry e = rank.get(i);
+            boolean isOwn = own != null && own.getId() == e.faction.getId();
+            if (isOwn) ownShown = true;
+            panel(s, M.get(isOwn ? "top.entry-own" : "top.entry",
+                    "pos", String.valueOf(i + 1),
+                    "relcolor", relColor(own, e.faction), "name", e.faction.getName(),
+                    "score", score.formatScore(e.score)));
+        }
+        // La propria fazione fuori dai primi: mostrala comunque, con la sua posizione, dopo un separatore.
+        if (own != null && !ownShown) {
+            for (int i = size; i < rank.size(); i++) {
+                if (rank.get(i).faction.getId() == own.getId()) {
+                    panel(s, M.get("top.separator"));
+                    panel(s, M.get("top.entry-own", "pos", String.valueOf(i + 1),
+                            "relcolor", relColor(own, own), "name", own.getName(),
+                            "score", score.formatScore(rank.get(i).score)));
+                    break;
+                }
+            }
+        }
+        return true;
+    }
+
     /** Lista di nomi fazione, ognuno colorato in base alla relazione. Voce e separatore da messages.yml. */
     private String names(Faction viewer, List<Faction> list) {
         if (list.isEmpty()) return M.get("relation.none");
@@ -851,6 +892,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         panel(p, statusDesc);
         // Banca di fazione: mostrata solo se c'e' un'economia attiva (senza, il saldo non avrebbe senso).
         if (Econ.enabled()) panel(p, M.get("info.bank", "bank", Econ.format(f.getBank())));
+        // Punteggio composito + posizione in classifica (/f top): la sintesi pesata di territori, membri,
+        // banca, longevita' e potenza. Un tooltip spiega da cosa e' composto senza allungare la scheda.
+        int pos = score.position(f);
+        panel(p, M.get("info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(pos)));
         sendAlliesLine(p, f, own, own != null && own.getId() == f.getId());
         if (own != null && own.getId() != f.getId()) {
             RelationType rel = fm.effectiveRelation(own.getId(), f.getId());
@@ -1072,7 +1117,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      *  col permesso magixfactions.admin. */
     private List<String> visibleSubcommands(CommandSender s) {
         List<String> out = new ArrayList<>();
-        out.add("help"); out.add("list"); out.add("info");
+        out.add("help"); out.add("list"); out.add("top"); out.add("info");
         if (s instanceof Player p) {
             out.add("map"); out.add("power");
             Faction f = fm.getFaction(p.getUniqueId());

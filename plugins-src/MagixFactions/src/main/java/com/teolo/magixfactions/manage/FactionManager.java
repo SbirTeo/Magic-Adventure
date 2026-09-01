@@ -92,6 +92,19 @@ public final class FactionManager {
                             uuid(rs.getString("leader")), rs.getLong("created_at"), rs.getLong("member_limit_bonus"));
                     f.setDescription(rs.getString("description"));
                     f.setBank(rs.getDouble("bank"));
+                    // Medie nel tempo per il punteggio (vedi ScoreManager). Su una fazione mai campionata
+                    // (colonne appena aggiunte, o creata prima della feature) la finestra parte da ORA:
+                    // senza storico non si puo' inventare una media passata, quindi si inizia a misurare
+                    // dall'upgrade. Il valore corretto viene poi salvato al primo campionamento.
+                    f.setBankAvgAccum(rs.getDouble("bank_avg_accum"));
+                    f.setPowerAvgAccum(rs.getDouble("power_avg_accum"));
+                    long sampledAt = rs.getLong("score_sampled_at");
+                    long since = rs.getLong("score_since");
+                    if (since <= 0) { long now = System.currentTimeMillis(); since = now; sampledAt = now; }
+                    if (sampledAt <= 0) sampledAt = since;
+                    f.setScoreSince(since);
+                    f.setScoreSampledAt(sampledAt);
+                    f.setScore(rs.getDouble("score"));
                     byId.put(f.getId(), f);
                     byName.put(f.getName().toLowerCase(Locale.ROOT), f.getId());
                 }
@@ -271,8 +284,8 @@ public final class FactionManager {
         long id;
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO factions (name, tag, description, leader, power, created_at, member_limit_bonus) " +
-                     "VALUES (?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
+                     "INSERT INTO factions (name, tag, description, leader, power, created_at, member_limit_bonus, " +
+                     "score_since, score_sampled_at) VALUES (?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, name);
             ps.setString(2, tag);
             ps.setString(3, defDesc);
@@ -280,6 +293,9 @@ public final class FactionManager {
             ps.setDouble(5, 0);
             ps.setLong(6, now);
             ps.setLong(7, 0);
+            // La finestra delle medie (giacenza/potenza per il punteggio) parte dalla creazione.
+            ps.setLong(8, now);
+            ps.setLong(9, now);
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 keys.next();
@@ -288,6 +304,8 @@ public final class FactionManager {
         }
         Faction f = new Faction(id, name, tag, leader, now, 0);
         f.setDescription(defDesc);
+        f.setScoreSince(now);
+        f.setScoreSampledAt(now);
         byId.put(id, f);
         byName.put(name.toLowerCase(Locale.ROOT), id);
         addMemberInternal(f, leader, Rank.LEADER_ID, now);
@@ -367,6 +385,26 @@ public final class FactionManager {
             try (PreparedStatement ps = c.prepareStatement("UPDATE factions SET bank=? WHERE id=?")) {
                 ps.setDouble(1, v);
                 ps.setLong(2, fid);
+                ps.executeUpdate();
+            }
+        });
+    }
+
+    /** Salva su DB il campione delle medie nel tempo (integrali banca/potenza + finestra) di una fazione,
+     *  in async come ogni altra scrittura. Lo chiama il campionatore periodico di {@link com.teolo.magixfactions.manage.ScoreManager}. */
+    public void saveScoreSample(Faction f) {
+        final long fid = f.getId();
+        final double bankAcc = f.getBankAvgAccum(), powAcc = f.getPowerAvgAccum(), sc = f.getScore();
+        final long sampledAt = f.getScoreSampledAt(), since = f.getScoreSince();
+        write("saveScoreSample", c -> {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "UPDATE factions SET bank_avg_accum=?, power_avg_accum=?, score_sampled_at=?, score_since=?, score=? WHERE id=?")) {
+                ps.setDouble(1, bankAcc);
+                ps.setDouble(2, powAcc);
+                ps.setLong(3, sampledAt);
+                ps.setLong(4, since);
+                ps.setDouble(5, sc);
+                ps.setLong(6, fid);
                 ps.executeUpdate();
             }
         });

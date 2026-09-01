@@ -45,6 +45,32 @@ public final class Faction {
     public void setBank(double bank) { this.bank = Math.max(0, bank); }
     public Map<UUID, Member> getMembers() { return members; }
 
+    // ---- Medie nel tempo per il PUNTEGGIO fazione (vedi ScoreManager) --------------------------------
+    // Il punteggio della classifica non usa il saldo/potenza ISTANTANEI ma la loro MEDIA nel tempo
+    // ("giacenza media" della banca, "potenza media" della fazione): un milione comparso ieri e ritirato
+    // domani non deve gonfiare la posizione. Si tiene un integrale (valore x secondi) che un campionatore
+    // periodico incrementa, e la media = integrale / durata della finestra. Persistiti su factions.
+    private double bankAvgAccum = 0;    // Σ(saldo × secondi) accumulato fino a scoreSampledAt
+    private double powerAvgAccum = 0;   // Σ(potenza fazione × secondi) accumulato fino a scoreSampledAt
+    private long scoreSampledAt = 0;    // ultimo istante (ms) in cui l'integrale è stato aggiornato
+    private long scoreSince = 0;        // inizio della finestra di media (ms): creazione, o upgrade per le vecchie
+
+    public double getBankAvgAccum() { return bankAvgAccum; }
+    public void setBankAvgAccum(double v) { this.bankAvgAccum = v; }
+    public double getPowerAvgAccum() { return powerAvgAccum; }
+    public void setPowerAvgAccum(double v) { this.powerAvgAccum = v; }
+    public long getScoreSampledAt() { return scoreSampledAt; }
+    public void setScoreSampledAt(long v) { this.scoreSampledAt = v; }
+    public long getScoreSince() { return scoreSince; }
+    public void setScoreSince(long v) { this.scoreSince = v; }
+
+    // Punteggio composito calcolato, SNAPSHOT persistito su factions.score a ogni campionamento: lo legge
+    // il SITO per la classifica (evita di duplicare la formula e i pesi del config in PHP). Nel gioco il
+    // punteggio si ricalcola sempre live (ScoreManager.score); questo e' solo la copia per l'esterno.
+    private double score = 0;
+    public double getScore() { return score; }
+    public void setScore(double v) { this.score = v; }
+
     public Member getMember(UUID uuid) { return members.get(uuid); }
     public boolean isMember(UUID uuid) { return members.containsKey(uuid); }
     public int size() { return members.size(); }

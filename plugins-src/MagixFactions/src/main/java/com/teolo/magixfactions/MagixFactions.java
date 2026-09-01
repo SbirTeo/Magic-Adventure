@@ -33,6 +33,7 @@ public final class MagixFactions extends JavaPlugin {
     private DbExecutor dbExecutor;
     private FactionManager factionManager;
     private PowerManager powerManager;
+    private com.teolo.magixfactions.manage.ScoreManager scoreManager;
     private ChatService chatService;
     private com.teolo.magixfactions.resourcepack.ResourcePackService resourcePackService;
 
@@ -91,6 +92,12 @@ public final class MagixFactions extends JavaPlugin {
             getLogger().severe("Errore caricamento potenza/territori: " + e.getMessage());
         }
         factionManager.setClaimManager(claimManager);
+        // Punteggio fazione + classifica (/f top): sintesi pesata di territori, membri, banca (giacenza
+        // media), longevita' e potenza (media). Un campionatore periodico aggiorna le medie nel tempo e le
+        // salva, cosi' un crash perde al massimo l'ultimo intervallo (vedi ScoreManager).
+        scoreManager = new com.teolo.magixfactions.manage.ScoreManager(this, factionManager, powerManager, claimManager);
+        long scoreInterval = 20L * scoreManager.sampleIntervalSeconds();
+        Bukkit.getScheduler().runTaskTimer(this, scoreManager::sampleAll, scoreInterval, scoreInterval);
         getServer().getPluginManager().registerEvents(new PowerListener(powerManager), this);
         com.teolo.magixfactions.listener.TerritoryListener territory =
                 new com.teolo.magixfactions.listener.TerritoryListener(this, factionManager, claimManager);
@@ -176,13 +183,13 @@ public final class MagixFactions extends JavaPlugin {
         Bukkit.getOnlinePlayers().forEach(powerManager::reattachMinimap); // dopo /reload
 
         // Comando
-        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, mapService, minimap, resourcePackService);
+        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, resourcePackService);
         getCommand("magixfactions").setExecutor(cmd);
         getCommand("magixfactions").setTabCompleter(cmd); // suggerimenti contestuali filtrati sui permessi
 
         // Placeholder propri (registra l'espansione %magixfactions_...%)
         if (Papi.enabled()) {
-            new MagixPlaceholders(this, factionManager, powerManager, claimManager).register();
+            new MagixPlaceholders(this, factionManager, powerManager, claimManager, scoreManager).register();
             getLogger().info("Placeholder %magixfactions_...% registrati in PlaceholderAPI.");
         }
 
@@ -232,6 +239,10 @@ public final class MagixFactions extends JavaPlugin {
     public void onDisable() {
         if (resourcePackService != null) resourcePackService.stop();
         if (powerManager != null) powerManager.saveAllOnline(); // accoda il salvataggio Potenza dei giocatori online
+        // Ultimo campione delle medie prima di chiudere: le scritture vanno in coda al dbExecutor e
+        // vengono flushate dallo shutdown ordinato piu' sotto, cosi' la giacenza/potenza media non perde
+        // l'intervallo aperto dall'ultimo campionamento.
+        if (scoreManager != null) scoreManager.sampleAll();
         // Le scritture sopra (e qualunque altra ancora in coda) sono asincrone: prima di chiudere il
         // pool Hikari bisogna aspettare che il thread seriale le abbia davvero eseguite, altrimenti si
         // perdono scritture pendenti o falliscono su una connessione gia' chiusa.
@@ -393,6 +404,28 @@ public final class MagixFactions extends JavaPlugin {
                                 + "della **RELAZIONE** con chi legge. Sono due colori diversi perché dicono due cose "
                                 + "diverse, e non vanno uniformati.")
 
+                .sezione("Punteggio e classifica",
+                        "/f top ordina le fazioni per un **PUNTEGGIO** unico da 0 a 100, non per un solo numero: "
+                                + "una classifica basata solo sui territori (o solo sui soldi) premierebbe chi eccelle "
+                                + "in una cosa sola. Il punteggio è la sintesi **PESATA** di cinque caratteristiche, e i "
+                                + "pesi li decidi tu nel config, sezione score.",
+                        "Ogni caratteristica diventa prima un livello 0-100 con un tetto **MORBIDO** "
+                                + "(livello = 100 × valore / (valore + K), dove K = score.references è il valore a cui "
+                                + "quella voce vale 50): la curva cresce sempre — due fazioni diverse non pareggiano mai — "
+                                + "ma non arriva mai a 100, così un milione in banca non fa schizzare il punteggio. Poi i "
+                                + "livelli si mediano coi **PESI** di score.weights. I pesi sono relativi: falli sommare a "
+                                + "100 e diventano percentuali dirette. Un peso a 0 esclude la caratteristica.",
+                        "Territori (peso {{cfg:score.weights.land}}) e longevità (peso {{cfg:score.weights.longevity}}, "
+                                + "in giorni dalla creazione) contano col valore attuale. Banca (peso "
+                                + "{{cfg:score.weights.bank}}) e potenza (peso {{cfg:score.weights.power}}) contano invece "
+                                + "con la loro **MEDIA NEL TEMPO** — la giacenza media, non il saldo di un attimo: un "
+                                + "deposito lampo per scalare la classifica non serve. La media si costruisce campionando "
+                                + "ogni {{secondi:score.sample-interval-seconds}} e si salva sul database.",
+                        "Due cose da sapere quando ti chiedono spiegazioni: la media di banca e potenza per le fazioni "
+                                + "**già esistenti** parte dal momento in cui abbiamo aggiornato il plugin (non c'era uno "
+                                + "storico passato), quindi all'inizio riflette il presente e si assesta col tempo; e il "
+                                + "punteggio compare anche in /f info e sul sito, alimentato dagli stessi numeri.")
+
                 .sezione("Mappa e minimap",
                         // Come risponde /f map lo dice il config: la frase cambia da sola con map.mode, cosi'
                         // questo capitolo non puo' descrivere una modalita' che non e' piu' quella in uso.
@@ -426,6 +459,9 @@ public final class MagixFactions extends JavaPlugin {
                         "power.death-loss", "Quanta Potenza si perde morendo.",
                         "power.gain-interval-seconds", "Ogni quanti secondi online si guadagna Potenza.",
                         "claims.max-percent", "Percentuale del maxpower che diventa tetto dei territori.",
+                        "score.weights", "Peso di ogni caratteristica nel punteggio della classifica (territori, "
+                                + "membri, banca, longevità, potenza).",
+                        "score.references", "Il valore a cui ogni caratteristica vale metà punteggio (tetto morbido).",
                         "decay.grace-hours", "Ore di grazia prima che il sovraccarico cominci a togliere territori.",
                         "map.mode", "Come risponde /f map: chat (mappa testuale, default) oppure item (mappa "
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")

@@ -3,6 +3,7 @@ package com.teolo.magixfactions.hook;
 import com.teolo.magixfactions.manage.ClaimManager;
 import com.teolo.magixfactions.manage.FactionManager;
 import com.teolo.magixfactions.manage.PowerManager;
+import com.teolo.magixfactions.manage.ScoreManager;
 import com.teolo.magixfactions.model.Faction;
 import com.teolo.magixfactions.model.Member;
 import com.teolo.magixfactions.util.Colors;
@@ -29,6 +30,10 @@ import java.util.Locale;
  *   %magixfactions_power%               -> Potenza attuale della fazione
  *   %magixfactions_maxpower%            -> Potenza massima della fazione
  *   %magixfactions_claims%              -> territori posseduti dalla fazione
+ *   %magixfactions_score%               -> punteggio composito della fazione (classifica)
+ *   %magixfactions_position%            -> posizione della fazione nella classifica (1 = prima)
+ *   %magixfactions_top_<n>_name%        -> nome della n-esima fazione in classifica (es. top_1_name)
+ *   %magixfactions_top_<n>_score%       -> punteggio della n-esima fazione in classifica
  *   %magixfactions_maxclaims_fazione%   -> tetto territori attuale (20% del maxpower)
  *   %magixfactions_power_player%        -> Potenza del singolo giocatore
  *   %magixfactions_maxpower_player%     -> Potenza massima del singolo giocatore
@@ -45,12 +50,15 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
     private final FactionManager fm;
     private final PowerManager power;
     private final ClaimManager claims;
+    private final ScoreManager score;
 
-    public MagixPlaceholders(JavaPlugin plugin, FactionManager fm, PowerManager power, ClaimManager claims) {
+    public MagixPlaceholders(JavaPlugin plugin, FactionManager fm, PowerManager power, ClaimManager claims,
+                             ScoreManager score) {
         this.plugin = plugin;
         this.fm = fm;
         this.power = power;
         this.claims = claims;
+        this.score = score;
     }
 
     @Override
@@ -80,6 +88,22 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
             String facName = params.substring("relation_".length());
             return relationName(player, facName);
         }
+        // %magixfactions_top_<n>_name% / %magixfactions_top_<n>_score% : n-esima fazione in classifica.
+        // Non dipende dal giocatore, quindi sta prima del controllo player==null (utile in una scoreboard
+        // globale o sul sito).
+        if (lp.startsWith("top_")) {
+            String[] parts = lp.substring("top_".length()).split("_", 2);
+            if (parts.length == 2) {
+                int n;
+                try { n = Integer.parseInt(parts[0]); } catch (NumberFormatException e) { return ""; }
+                java.util.List<ScoreManager.Entry> rank = score.ranking();
+                if (n < 1 || n > rank.size()) return "";
+                ScoreManager.Entry e = rank.get(n - 1);
+                if (parts[1].equals("name")) return e.faction.getName();
+                if (parts[1].equals("score")) return score.formatScore(e.score);
+            }
+            return "";
+        }
         if (player == null) {
             return "";
         }
@@ -95,6 +119,10 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                 return f != null ? String.valueOf(power.factionMaxPower(f)) : "";
             case "claims":
                 return f != null ? String.valueOf(claims.count(f.getId())) : "";
+            case "score":
+                return f != null ? score.formatScore(score.score(f)) : "";
+            case "position":
+                return f != null ? String.valueOf(score.position(f)) : "";
             case "maxclaims_fazione":
                 return f != null ? String.valueOf(claims.maxClaims(power.factionMaxPower(f))) : "";
             case "power_player":

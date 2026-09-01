@@ -184,6 +184,8 @@ info:
   status: "&6Stato: {statuscolor}{claims}/{power}/{maxpower} &7(territori/potenza/potenza-max)"
   # Saldo della banca di fazione (mostrato solo con un'economia Vault attiva).
   bank: "&6Banca: &e{bank}"
+  # Punteggio composito + posizione in classifica (/f top). {score} = punteggio 0-100, {pos} = posizione.
+  score: "&6Punteggio: &b{score} &7(#{pos} in classifica)"
   status-safe-color: "&a"
   status-raid-color: "&c"
   status-none-color: "&f"
@@ -273,6 +275,16 @@ list:
   header: "&8&m---&r &6Fazioni del server &7({count}) &8&m---"
   entry: "  {relcolor}{name} &7- &f{members}&7/&f{max} membri"
 
+# ---------------------------------------------------------------- /f top (classifica)
+# Classifica per PUNTEGGIO composito (territori, membri, banca, longevita', potenza; pesi in config
+# score.weights). {pos} = posizione, {name} = fazione (colorata per relazione), {score} = punteggio 0-100.
+top:
+  empty: "&7Non esiste ancora nessuna fazione da mettere in classifica."
+  header: "&8&m---&r &6Classifica fazioni &7({count}) &8&m---"
+  entry: "  &7#{pos} &r{relcolor}{name} &8- &b{score}"
+  entry-own: "  &e#{pos} &r{relcolor}{name} &8- &b{score} &7(tu)"
+  separator: "  &8..."
+
 db:
   no-perm: "&cNon hai il permesso."
   info-header: "&6[DB] &eBackend attivo: &f{type}"
@@ -314,6 +326,7 @@ help:
         - "/f create <nome> :: crea una fazione (sei il leader)"
         - "/f info [fazione] :: scheda della fazione"
         - "/f list :: elenca tutte le fazioni del server"
+        - "/f top :: la classifica delle fazioni per punteggio"
         - "/f description <testo> :: descrizione della fazione (o /f desc)"
         - "/f leave :: esci (da unico leader, scioglie la fazione)"
         - "/f disband :: sciogli la fazione (solo leader)"

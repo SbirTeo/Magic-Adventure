@@ -132,6 +132,9 @@ def guide_texts(folder):
         return []
     with open(tut, encoding="utf-8") as f:
         html = f.read()
+    # The file's own encoding declaration ("# -*- coding: utf-8 -*-", encoding="utf-8") is not a
+    # hand-written config number: without this its "8" collides with any config value that happens to be 8.
+    html = re.sub(r"utf-8", " ", html, flags=re.I)
     html = STYLE.sub(" ", html)
     html = CHAPTER_NUMBER.sub(" ", html)   # "8" in the title bubble is not a config value
     html = TOC.sub(" ", html)              # nor the table-of-contents numbering

@@ -85,6 +85,15 @@ public final class Database {
             aggiungiSeManca(c, st, "players", "power_progress", "INT DEFAULT 0");
             aggiungiSeManca(c, st, "factions", "bank", "DOUBLE DEFAULT 0");
             aggiungiSeManca(c, st, "claims", "paid", "DOUBLE DEFAULT 0");
+            // Medie nel tempo per il punteggio fazione (giacenza media banca, potenza media): vedi
+            // ScoreManager. Sulle fazioni gia' esistenti partono a 0 e la finestra parte dall'upgrade
+            // (FactionManager.loadAll inizializza score_since/score_sampled_at al primo caricamento).
+            aggiungiSeManca(c, st, "factions", "bank_avg_accum", "DOUBLE DEFAULT 0");
+            aggiungiSeManca(c, st, "factions", "power_avg_accum", "DOUBLE DEFAULT 0");
+            aggiungiSeManca(c, st, "factions", "score_sampled_at", "BIGINT DEFAULT 0");
+            aggiungiSeManca(c, st, "factions", "score_since", "BIGINT DEFAULT 0");
+            // Punteggio composito calcolato: snapshot letto dal sito per la classifica (vedi ScoreManager).
+            aggiungiSeManca(c, st, "factions", "score", "DOUBLE DEFAULT 0");
         }
     }
 
@@ -141,7 +150,9 @@ public final class Database {
         l.add("CREATE TABLE IF NOT EXISTS factions (" +
                 "id " + autoId + ", name VARCHAR(64), tag VARCHAR(16), description VARCHAR(255), " +
                 "leader VARCHAR(36), power DOUBLE DEFAULT 0, created_at BIGINT DEFAULT 0, " +
-                "member_limit_bonus BIGINT DEFAULT 0, bank DOUBLE DEFAULT 0)");
+                "member_limit_bonus BIGINT DEFAULT 0, bank DOUBLE DEFAULT 0, " +
+                "bank_avg_accum DOUBLE DEFAULT 0, power_avg_accum DOUBLE DEFAULT 0, " +
+                "score_sampled_at BIGINT DEFAULT 0, score_since BIGINT DEFAULT 0, score DOUBLE DEFAULT 0)");
         l.add("CREATE TABLE IF NOT EXISTS faction_members (" +
                 "uuid VARCHAR(36) PRIMARY KEY, faction_id BIGINT, rank VARCHAR(32), " +
                 "rank_since BIGINT DEFAULT 0, joined_at BIGINT DEFAULT 0)");

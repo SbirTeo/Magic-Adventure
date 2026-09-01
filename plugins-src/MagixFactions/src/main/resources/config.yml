@@ -156,6 +156,53 @@ members:
 # Il limite puo' aumentare con permessi VIP del leader: magixfactions.members.<numero>
 # (es. magixfactions.members.10 -> fino a 10). In futuro anche con missioni/soldi.
 
+# ------------------- PUNTEGGIO / CLASSIFICA (/f top) --------------
+# La "Top fazioni" NON ordina per un solo numero (chi ha piu' territori, o piu' membri, o piu' soldi):
+# sarebbe fuorviante. Ordina per un PUNTEGGIO 0-100 che sintetizza piu' caratteristiche, ognuna PESATA
+# quanto vuoi tu qui sotto.
+#
+# COME NASCE IL PUNTEGGIO (due passaggi):
+#   1) LIVELLO 0-100 di ogni caratteristica, con un "tetto morbido a rendimenti decrescenti":
+#          livello = 100 * valore / (valore + K)
+#      K = "references" qui sotto = il valore a cui la caratteristica vale 50 (meta'). La curva CRESCE
+#      sempre (piu' e' sempre un po' di piu': due fazioni diverse non pareggiano mai) ma non arriva mai a
+#      100: cosi' un milione in banca NON fa "schizzare" il punteggio, il contributo di ogni voce resta
+#      sotto il suo peso. Esempi con K=1.000.000 sulla banca: 500k->33, 1M->50, 2M->67, 5M->83, 50M->98.
+#   2) PESO: il punteggio finale e' la media dei livelli PESATA con "weights". I pesi sono RELATIVI fra
+#      loro (se li fai sommare a 100 diventano percentuali dirette: "banca 15" = la banca conta il 15%).
+#      Un peso a 0 esclude del tutto quella caratteristica.
+#
+# MEDIE NEL TEMPO: banca e potenza NON entrano col valore di ADESSO ma con la loro MEDIA dalla creazione
+# della fazione ("giacenza media" della banca, "potenza media"): un picco momentaneo non gonfia la
+# classifica. La media si costruisce campionando i valori ogni sample-interval-seconds (dato salvato sul
+# database). Territori e longevita' usano invece il valore corrente (numero di chunk, giorni dalla nascita).
+# NB: sulle fazioni gia' esistenti la media parte dal momento dell'aggiornamento del plugin (non c'e' uno
+# storico passato da cui calcolarla); da li' in avanti e' esatta.
+score:
+  # Peso di ogni caratteristica (relativo). Metti 0 per escluderne una.
+  weights:
+    land: 30          # territori (chunk) posseduti
+    members: 20       # numero di membri
+    bank: 15          # giacenza MEDIA della banca di fazione
+    longevity: 15     # da quanti giorni esiste la fazione
+    power: 20         # potenza MEDIA (totale di fazione) nel tempo
+  # "K" di ogni caratteristica = il valore a cui vale 50 (meta' livello). Alza K per rendere piu' difficile
+  # salire su quella voce, abbassalo per premiare prima. Devono essere > 0 (un K <= 0 disattiva la voce).
+  references:
+    land: 40          # 40 territori -> livello 50 (80 -> ~67, 120 -> 75...)
+    members: 8        # 8 membri -> livello 50
+    bank: 500000      # 500.000 di giacenza media -> livello 50
+    longevity: 90     # 90 giorni di vita -> livello 50
+    power: 200        # 200 di potenza media -> livello 50
+  # Ogni quanti secondi si campiona banca/potenza per costruirne la media nel tempo (min 5). Piu' basso =
+  # media piu' precisa ma piu' scritture su DB; 300 (5 min) e' un buon compromesso.
+  sample-interval-seconds: 300
+  # Quante fazioni mostrare in /f top (le prime N). La tua fazione, se e' fuori dai primi, viene comunque
+  # aggiunta in coda con la sua posizione.
+  top-size: 10
+  # Cifre decimali del punteggio mostrato (0-4).
+  decimals: 1
+
 # ------------------- COSTO/CONDIZIONI CREAZIONE -------------------
 # Tutto opzionale: lascia vuoto/0 cio' che non vuoi richiedere.
 create-cost:
