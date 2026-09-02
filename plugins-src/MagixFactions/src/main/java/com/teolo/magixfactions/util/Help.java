@@ -31,22 +31,22 @@ import java.util.List;
 public final class Help {
 
     /** Il viola di "MAGIC": il nome del plugin, i titoli, le cose da staff. */
-    public static final TextColor VIOLA = TextColor.color(0xC0, 0x46, 0xE8);
+    public static final TextColor PURPLE = TextColor.color(0xC0, 0x46, 0xE8);
 
     /** Il verde di "ADVENTURE": i comandi, cioe' tutto quello che si puo' cliccare. */
-    public static final TextColor VERDE = TextColor.color(0xA8, 0xDC, 0x2C);
+    public static final TextColor GREEN = TextColor.color(0xA8, 0xDC, 0x2C);
 
     /** Il testo di servizio: spiegazioni e argomenti. */
-    public static final TextColor GRIGIO = TextColor.color(0x9A, 0x8C, 0xA8);
+    public static final TextColor GREY = TextColor.color(0x9A, 0x8C, 0xA8);
 
     /** Cornici, separatori, frecce spente: si vede che c'e', non ruba l'occhio. */
-    public static final TextColor TENUE = TextColor.color(0x5A, 0x50, 0x68);
+    public static final TextColor FAINT = TextColor.color(0x5A, 0x50, 0x68);
 
     /** Quante righe per pagina: la chat ne mostra una decina, e servono titolo e frecce. */
-    private static final int PER_PAGINA = 8;
+    private static final int PER_PAGE = 8;
 
     /** Il separatore fra comando e spiegazione nelle voci scritte in messages.yml. */
-    private static final String SEPARATORE = "::";
+    private static final String SEPARATOR = "::";
 
     /**
      * Una voce dell'elenco.
@@ -57,20 +57,20 @@ public final class Help {
      * @param sezione     il gruppo sotto cui compare (vuoto = nessun titolo)
      * @param soloStaff   se la riga si vede solo con il permesso di amministrazione
      */
-    public record Voce(String comando, String argomenti, String spiegazione,
-                       String sezione, boolean soloStaff) {
+    public record Entry(String command, String arguments, String explanation,
+                       String section, boolean staffOnly) {
 
-        public static Voce di(String comando, String argomenti, String spiegazione) {
-            return new Voce(comando, argomenti, spiegazione, "", false);
+        public static Entry di(String command, String arguments, String explanation) {
+            return new Entry(command, arguments, explanation, "", false);
         }
 
-        public static Voce staff(String comando, String argomenti, String spiegazione) {
-            return new Voce(comando, argomenti, spiegazione, "", true);
+        public static Entry staff(String command, String arguments, String explanation) {
+            return new Entry(command, arguments, explanation, "", true);
         }
 
         /** La stessa voce, messa sotto un titolo di sezione. */
-        public Voce in(String sezione) {
-            return new Voce(comando, argomenti, spiegazione, sezione, soloStaff);
+        public Entry in(String section) {
+            return new Entry(command, arguments, explanation, section, staffOnly);
         }
     }
 
@@ -86,27 +86,27 @@ public final class Help {
      * @param pagina la pagina chiesta, a partire da 1
      * @param staff  se chi legge puo' vedere anche i comandi di amministrazione
      */
-    public static void mostra(CommandSender a, String titolo, String radice,
-                              List<Voce> voci, int pagina, boolean staff) {
-        List<Voce> visibili = new ArrayList<>();
-        for (Voce v : voci) {
-            if (!v.soloStaff() || staff) {
-                visibili.add(v);
+    public static void show(CommandSender a, String title, String root,
+                              List<Entry> entries, int page, boolean staff) {
+        List<Entry> visible = new ArrayList<>();
+        for (Entry v : entries) {
+            if (!v.staffOnly() || staff) {
+                visible.add(v);
             }
         }
-        if (visibili.isEmpty()) {
-            a.sendMessage(Component.text("Nessun comando disponibile.", GRIGIO));
+        if (visible.isEmpty()) {
+            a.sendMessage(Component.text("Nessun comando disponibile.", GREY));
             return;
         }
 
-        List<List<Component>> pagine = impagina(visibili);
-        int p = Math.max(1, Math.min(pagina, pagine.size()));
+        List<List<Component>> pages = paginate(visible);
+        int p = Math.max(1, Math.min(page, pages.size()));
 
-        a.sendMessage(intestazione(titolo, p, pagine.size()));
-        for (Component riga : pagine.get(p - 1)) {
-            a.sendMessage(riga);
+        a.sendMessage(header(title, p, pages.size()));
+        for (Component row : pages.get(p - 1)) {
+            a.sendMessage(row);
         }
-        a.sendMessage(pieDiPagina(radice, p, pagine.size()));
+        a.sendMessage(footer(root, p, pages.size()));
     }
 
     /**
@@ -127,57 +127,57 @@ public final class Help {
      *         - "/f claim :: conquista il territorio in cui ti trovi"
      * </pre>
      */
-    public static List<Voce> daConfig(ConfigurationSection sezioni) {
-        List<Voce> voci = new ArrayList<>();
-        if (sezioni == null) {
-            return voci;
+    public static List<Entry> fromConfig(ConfigurationSection sections) {
+        List<Entry> entries = new ArrayList<>();
+        if (sections == null) {
+            return entries;
         }
-        for (String chiave : sezioni.getKeys(false)) {
-            ConfigurationSection s = sezioni.getConfigurationSection(chiave);
+        for (String key : sections.getKeys(false)) {
+            ConfigurationSection s = sections.getConfigurationSection(key);
             if (s == null) {
                 continue;
             }
-            String titolo = s.getString("title", "");
-            boolean soloStaff = s.getBoolean("staff", false);
-            for (String riga : s.getStringList("entries")) {
-                Voce v = voce(riga, titolo, soloStaff);
+            String title = s.getString("title", "");
+            boolean staffOnly = s.getBoolean("staff", false);
+            for (String row : s.getStringList("entries")) {
+                Entry v = entry(row, title, staffOnly);
                 if (v != null) {
-                    voci.add(v);
+                    entries.add(v);
                 }
             }
         }
-        return voci;
+        return entries;
     }
 
     /** Una riga "comando <args> :: spiegazione" letta da messages.yml. */
-    private static Voce voce(String riga, String sezione, boolean soloStaff) {
-        if (riga == null || riga.isBlank()) {
+    private static Entry entry(String row, String section, boolean staffOnly) {
+        if (row == null || row.isBlank()) {
             return null;
         }
-        int taglio = riga.indexOf(SEPARATORE);
-        String sinistra = (taglio >= 0 ? riga.substring(0, taglio) : riga).trim();
-        String spiegazione = taglio >= 0 ? riga.substring(taglio + SEPARATORE.length()).trim() : "";
-        if (sinistra.isEmpty()) {
+        int cut = row.indexOf(SEPARATOR);
+        String left = (cut >= 0 ? row.substring(0, cut) : row).trim();
+        String explanation = cut >= 0 ? row.substring(cut + SEPARATOR.length()).trim() : "";
+        if (left.isEmpty()) {
             return null;
         }
         // Il comando e' il primo pezzo: "/f claim <nome>" -> comando "/f claim", argomenti "<nome>".
         // Il taglio cade dove finiscono le parole semplici: cosi' i sottocomandi restano attaccati
         // al comando (e il clic li scrive), mentre <nome> e [pagina] restano da riempire a mano.
-        String[] pezzi = sinistra.split("\\s+");
-        StringBuilder comando = new StringBuilder(pezzi[0]);
+        String[] pieces = left.split("\\s+");
+        StringBuilder command = new StringBuilder(pieces[0]);
         int i = 1;
-        while (i < pezzi.length && pezzi[i].matches("[A-Za-z0-9_-]+")) {
-            comando.append(' ').append(pezzi[i]);
+        while (i < pieces.length && pieces[i].matches("[A-Za-z0-9_-]+")) {
+            command.append(' ').append(pieces[i]);
             i++;
         }
-        StringBuilder argomenti = new StringBuilder();
-        for (; i < pezzi.length; i++) {
-            if (argomenti.length() > 0) {
-                argomenti.append(' ');
+        StringBuilder arguments = new StringBuilder();
+        for (; i < pieces.length; i++) {
+            if (arguments.length() > 0) {
+                arguments.append(' ');
             }
-            argomenti.append(pezzi[i]);
+            arguments.append(pieces[i]);
         }
-        return new Voce(comando.toString(), argomenti.toString(), spiegazione, sezione, soloStaff);
+        return new Entry(command.toString(), arguments.toString(), explanation, section, staffOnly);
     }
 
     // -------------------------------------------------------------------------------
@@ -189,50 +189,50 @@ public final class Help {
      * niente a nessuno, quindi in quel caso la pagina si chiude prima e il titolo scende insieme
      * alle sue voci. Se una sezione prosegue nella pagina dopo, il titolo si ripete.
      */
-    private static List<List<Component>> impagina(List<Voce> voci) {
-        List<List<Component>> pagine = new ArrayList<>();
-        List<Component> corrente = new ArrayList<>();
-        String sezioneStampata = null;
+    private static List<List<Component>> paginate(List<Entry> entries) {
+        List<List<Component>> pages = new ArrayList<>();
+        List<Component> current = new ArrayList<>();
+        String printedSection = null;
 
-        for (Voce v : voci) {
-            boolean nuovaSezione = !v.sezione().isEmpty() && !v.sezione().equals(sezioneStampata);
-            int servono = nuovaSezione ? 2 : 1; // il titolo non va mai lasciato solo in fondo
+        for (Entry v : entries) {
+            boolean newSection = !v.section().isEmpty() && !v.section().equals(printedSection);
+            int needed = newSection ? 2 : 1; // il titolo non va mai lasciato solo in fondo
 
-            if (corrente.size() + servono > PER_PAGINA && !corrente.isEmpty()) {
-                pagine.add(corrente);
-                corrente = new ArrayList<>();
+            if (current.size() + needed > PER_PAGE && !current.isEmpty()) {
+                pages.add(current);
+                current = new ArrayList<>();
                 // A pagina nuova il titolo si riscrive: chi sfoglia deve sapere dove si trova.
-                nuovaSezione = !v.sezione().isEmpty();
-                sezioneStampata = null;
+                newSection = !v.section().isEmpty();
+                printedSection = null;
             }
-            if (nuovaSezione) {
-                corrente.add(titoloSezione(v.sezione()));
-                sezioneStampata = v.sezione();
+            if (newSection) {
+                current.add(sectionTitle(v.section()));
+                printedSection = v.section();
             }
-            corrente.add(riga(v));
+            current.add(row(v));
         }
-        if (!corrente.isEmpty()) {
-            pagine.add(corrente);
+        if (!current.isEmpty()) {
+            pages.add(current);
         }
-        return pagine;
+        return pages;
     }
 
     /** Una riga di titolo con dei trattini ai lati, per staccare l'elenco dalla chat. */
-    private static Component intestazione(String titolo, int pagina, int pagine) {
-        Component filo = Component.text("─────", TENUE);
-        Component nome = Component.text(" " + titolo + " ", VIOLA)
+    private static Component header(String title, int page, int pages) {
+        Component rule = Component.text("─────", FAINT);
+        Component name = Component.text(" " + title + " ", PURPLE)
                 .decorate(TextDecoration.BOLD);
-        Component conta = pagine > 1
-                ? Component.text(" " + pagina + "/" + pagine + " ", GRIGIO)
+        Component counter = pages > 1
+                ? Component.text(" " + page + "/" + pages + " ", GREY)
                 : Component.text(" ");
-        return Component.empty().append(filo).append(nome).append(conta).append(filo);
+        return Component.empty().append(rule).append(name).append(counter).append(rule);
     }
 
     /** Il titolo di un gruppo di comandi. */
-    private static Component titoloSezione(String titolo) {
+    private static Component sectionTitle(String title) {
         return Component.empty()
-                .append(Component.text(" ▸ ", TENUE))
-                .append(Component.text(titolo, VIOLA).decorate(TextDecoration.BOLD));
+                .append(Component.text(" ▸ ", FAINT))
+                .append(Component.text(title, PURPLE).decorate(TextDecoration.BOLD));
     }
 
     /**
@@ -242,54 +242,54 @@ public final class Help {
      * quasi tutti vogliono un argomento, e mandarli in esecuzione a vuoto produrrebbe solo un
      * messaggio d'errore.
      */
-    private static Component riga(Voce v) {
-        Component testo = Component.text("  " + v.comando(), v.soloStaff() ? VIOLA : VERDE);
-        if (!v.argomenti().isEmpty()) {
-            testo = testo.append(Component.text(" " + v.argomenti(), GRIGIO));
+    private static Component row(Entry v) {
+        Component text = Component.text("  " + v.command(), v.staffOnly() ? PURPLE : GREEN);
+        if (!v.arguments().isEmpty()) {
+            text = text.append(Component.text(" " + v.arguments(), GREY));
         }
-        if (!v.spiegazione().isEmpty()) {
-            testo = testo.append(Component.text("  " + v.spiegazione(), GRIGIO));
+        if (!v.explanation().isEmpty()) {
+            text = text.append(Component.text("  " + v.explanation(), GREY));
         }
 
-        Component suggerimento = Component.text("Clicca per scriverlo", NamedTextColor.WHITE)
+        Component suggestion = Component.text("Clicca per scriverlo", NamedTextColor.WHITE)
                 .append(Component.newline())
-                .append(Component.text(v.comando()
-                        + (v.argomenti().isEmpty() ? "" : " " + v.argomenti()), VERDE));
-        if (v.soloStaff()) {
-            suggerimento = suggerimento.append(Component.newline())
-                    .append(Component.text("Riservato allo staff", VIOLA));
+                .append(Component.text(v.command()
+                        + (v.arguments().isEmpty() ? "" : " " + v.arguments()), GREEN));
+        if (v.staffOnly()) {
+            suggestion = suggestion.append(Component.newline())
+                    .append(Component.text("Riservato allo staff", PURPLE));
         }
 
-        return testo
-                .clickEvent(ClickEvent.suggestCommand(v.comando() + " "))
-                .hoverEvent(HoverEvent.showText(suggerimento));
+        return text
+                .clickEvent(ClickEvent.suggestCommand(v.command() + " "))
+                .hoverEvent(HoverEvent.showText(suggestion));
     }
 
     /** Le frecce per sfogliare (spente dove non c'e' nulla) e il promemoria del clic. */
-    private static Component pieDiPagina(String radice, int pagina, int pagine) {
-        Component nota = Component.text("clicca un comando per scriverlo", TENUE);
-        if (pagine <= 1) {
-            return Component.text("  ").append(nota);
+    private static Component footer(String root, int page, int pages) {
+        Component note = Component.text("clicca un comando per scriverlo", FAINT);
+        if (pages <= 1) {
+            return Component.text("  ").append(note);
         }
 
-        Component indietro = pagina > 1
-                ? Component.text(" ‹ indietro ", VERDE)
-                        .clickEvent(ClickEvent.runCommand(radice + " " + (pagina - 1)))
-                        .hoverEvent(HoverEvent.showText(Component.text("Pagina " + (pagina - 1), GRIGIO)))
-                : Component.text(" ‹ indietro ", TENUE);
+        Component back = page > 1
+                ? Component.text(" ‹ indietro ", GREEN)
+                        .clickEvent(ClickEvent.runCommand(root + " " + (page - 1)))
+                        .hoverEvent(HoverEvent.showText(Component.text("Pagina " + (page - 1), GREY)))
+                : Component.text(" ‹ indietro ", FAINT);
 
-        Component avanti = pagina < pagine
-                ? Component.text(" avanti › ", VERDE)
-                        .clickEvent(ClickEvent.runCommand(radice + " " + (pagina + 1)))
-                        .hoverEvent(HoverEvent.showText(Component.text("Pagina " + (pagina + 1), GRIGIO)))
-                : Component.text(" avanti › ", TENUE);
+        Component forward = page < pages
+                ? Component.text(" avanti › ", GREEN)
+                        .clickEvent(ClickEvent.runCommand(root + " " + (page + 1)))
+                        .hoverEvent(HoverEvent.showText(Component.text("Pagina " + (page + 1), GREY)))
+                : Component.text(" avanti › ", FAINT);
 
         return Component.empty()
                 .append(Component.text("  "))
-                .append(indietro)
-                .append(Component.text("·", TENUE))
-                .append(avanti)
+                .append(back)
+                .append(Component.text("·", FAINT))
+                .append(forward)
                 .append(Component.text("  "))
-                .append(nota);
+                .append(note);
     }
 }

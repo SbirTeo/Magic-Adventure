@@ -41,10 +41,10 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
         }
         String sub = args.length == 0 ? "info" : args[0].toLowerCase(Locale.ROOT);
         // Il numero da solo sfoglia l'aiuto: e' quello che mandano le frecce in fondo all'elenco.
-        if (!sub.isEmpty() && sub.chars().allMatch(Character::isDigit)) { help(sender, pagina(sub)); return true; }
+        if (!sub.isEmpty() && sub.chars().allMatch(Character::isDigit)) { help(sender, page(sub)); return true; }
         switch (sub) {
             case "info" -> info(sender);
-            case "help", "?" -> help(sender, args.length >= 2 ? pagina(args[1]) : 1);
+            case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
             case "season", "stagione" -> season(sender, args);
             case "weather", "meteo" -> weather(sender, args);
             case "worlds", "mondi" -> worlds(sender);
@@ -66,15 +66,15 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
      * degli altri plugin Magix: sezioni, frecce per sfogliare, ogni riga cliccabile. I comandi che
      * spostano l'ora li vede solo chi ha magixtime.admin.
      */
-    private void help(CommandSender sender, int pagina) {
+    private void help(CommandSender sender, int page) {
         org.bukkit.configuration.ConfigurationSection h = msg.section("help");
-        String titolo = h != null ? h.getString("title", "MagixTime") : "MagixTime";
-        Help.mostra(sender, titolo, "/mtime help", Help.daConfig(msg.section("help.sections")),
-                pagina, sender.hasPermission(ADMIN));
+        String title = h != null ? h.getString("title", "MagixTime") : "MagixTime";
+        Help.show(sender, title, "/mtime help", Help.fromConfig(msg.section("help.sections")),
+                page, sender.hasPermission(ADMIN));
     }
 
     /** Il numero di pagina scritto dall'utente; qualsiasi cosa strana vale 1. */
-    private static int pagina(String s) {
+    private static int page(String s) {
         try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 1; }
     }
 

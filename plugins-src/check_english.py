@@ -60,6 +60,34 @@ ITALIAN_WORDS = {
     "motivo", "pausa", "massimo", "minimo", "grado", "gradi", "modo", "descrizione",
     "attivo", "attiva", "dimezzamento", "soglie", "soglia", "nome", "nomi", "automatico", "automatica",
     "regolamento", "sanzioni", "provvedimento", "provvedimenti",
+    # Broadened 2026-09-01 for the deep scan (method/field/local identifiers). Only unambiguously
+    # Italian whole words — never a legitimate English identifier word. Homographs with English
+    # (fine, via, note, form, real, male, pause) are deliberately left out.
+    "apri", "apre", "chiudi", "chiude", "avvia", "ferma", "fermo", "fermi", "carica", "scarica",
+    "salva", "leggi", "leggo", "scrivi", "crea", "genera", "cerca", "cerco", "trova", "trovato",
+    "aggiungi", "togli", "tolgo", "rimuovi", "mostra", "nascondi", "invia", "manda", "aggiorna",
+    "applica", "controlla", "avvisa", "segnala", "revoca", "sanziona", "disegna", "calcola",
+    "componi", "prendi", "tieni", "butta", "rompe", "chiama", "annuncia", "separa", "allinea",
+    "allineo", "dimentica", "normalizza", "ricongela", "riproponi", "accogli", "libera", "abbandona",
+    "registra", "registrato", "verifica", "decidi", "ricorda", "consegna", "piazza", "aggancia",
+    "scalda", "impagina", "sostituisci", "descrivi", "riporta", "pulisci", "corrisponde",
+    "codici", "comando", "comandi", "messaggio", "messaggi", "sezione", "sezioni", "riga", "righe",
+    "chiave", "chiavi", "giocatore", "giocatori", "categoria", "categorie", "punti", "punto",
+    "potere", "poteri", "grado", "gradi", "motivo", "durata", "durate", "pausa", "ambito", "contesto",
+    "esito", "esiti", "sanzione", "violazione", "violazioni", "rilevatore", "servizio", "registro",
+    "memoria", "politica", "descrizione", "introduzione", "dialogo", "dialoghi", "azione", "azioni",
+    "casella", "caselle", "requisito", "requisiti", "colore", "colori", "contenuto", "gestore",
+    "tipo", "tipi", "campo", "campi", "bersaglio", "storico", "mondo", "dispositivo", "biscotto",
+    "gettone", "busta", "cartella", "fase", "fasi", "scelta", "segno", "forma", "corpo", "fonti",
+    "blocchi", "operatore", "radice", "filo", "pagina", "pagine", "pezzi", "intestazione", "taglio",
+    "spiegazione", "suggerimento", "titolo", "etichetta", "documento", "paragrafi", "problema",
+    "versione", "marchio", "modulo", "inizio", "giro", "ordine", "celle", "prova", "tentativo",
+    "tentativi", "sessione", "sessioni", "indirizzo", "indirizzi", "posizione", "direzione",
+    "aperto", "chiuso", "pulito", "nudo", "grezzo", "corrente", "giusto", "giusta", "uguale",
+    "visibile", "visibili", "massimo", "minimo", "finale", "entrante", "entrato", "fissato",
+    "occupato", "rimasto", "vera", "vero", "sinistra", "dentro", "fuori", "avanti", "indietro",
+    "adesso", "altro", "insieme", "servono", "cifre", "segreto", "passo", "manca", "rifiuto",
+    "bloccato", "dove", "modo", "nascondo", "mostro",
 }
 # Words that look Italian but are accepted (Minecraft/domain jargon or acronyms). Remove from the set.
 ITALIAN_WORDS.discard("spawn")
@@ -74,6 +102,53 @@ def words_of(identifier):
 
 def italian_words_in(identifier):
     return [w for w in words_of(identifier) if w in ITALIAN_WORDS]
+
+
+# --- deep scan: method/field/local identifiers, not just the structure --------------------------
+# The structural check above is the settled, always-fatal gate. The deep scan below reaches into
+# ordinary identifiers (methods, fields, params, locals, nested types) using the shared java_spans
+# tokenizer, so strings and comments — the Italian a person is meant to read — are never scanned.
+sys.path.insert(0, HERE)
+import java_spans as _js  # noqa: E402
+
+# A plugin joins FULLY_ENGLISH only once it is fully converted; from then on the deep scan FAILS on
+# any Italian left in its code. All seven were converted on 2026-09-01, so the deep scan is now the
+# enforced gate everywhere: any Italian method/field/local reintroduced later makes the check fail.
+FULLY_ENGLISH = {"MagixAuth", "MagixEntities", "MagixFactions", "MagixGuard",
+                 "MagixMenus", "MagixTime", "MagixWeb"}
+
+# Classes byte-identical in every plugin (check_config enforces it): their Italian internals are
+# translated in one coordinated pass, so the per-plugin deep scan skips them.
+COMMON_FILES = {"Help.java", "StaffGuide.java", "ConfigValues.java", "DurationText.java", "Aiuto.java"}
+
+_JAVA_KW = set("abstract assert boolean break byte case catch char class const continue default do "
+               "double else enum extends final finally float for goto if implements import instanceof "
+               "int interface long native new package private protected public return short static "
+               "strictfp super switch synchronized this throw throws transient try void volatile while "
+               "var record yield sealed permits true false null".split())
+_IDENT = re.compile(r'[A-Za-z_$][A-Za-z0-9_$]*')
+
+
+def deep_italian(name):
+    """Distinct code identifiers carrying an Italian word (minus common classes and keywords)."""
+    java_root = os.path.join(HERE, name, "src", "main", "java")
+    found = {}
+    for root, _, files in os.walk(java_root):
+        for f in files:
+            if not f.endswith(".java") or f in COMMON_FILES:
+                continue
+            src = open(os.path.join(root, f), encoding="utf-8", errors="ignore").read()
+            for kind, text in _js.spans(src):
+                if kind != "code":
+                    continue
+                for m in _IDENT.finditer(text):
+                    w = m.group(0)
+                    if w in _JAVA_KW:
+                        continue
+                    hits = italian_words_in(w)
+                    if hits:
+                        found.setdefault(w, set()).update(hits)
+    return found
 
 
 def present_plugins():
@@ -141,6 +216,22 @@ def main():
         for rel, kind, ident, hits in problems:
             print(f"  {rel}  {kind} «{ident}» -> Italian words: {', '.join(hits)}")
         total += len(problems)
+
+        # Deep scan: enforced for fully-converted plugins, informational for the rest.
+        deep = deep_italian(name)
+        if name in FULLY_ENGLISH:
+            if deep:
+                print(f"  DEEP: {len(deep)} Italian identifier(s) — must be English (FULLY_ENGLISH):")
+                for w in sorted(deep):
+                    print(f"    «{w}» ({', '.join(sorted(deep[w]))})")
+                total += len(deep)
+            else:
+                print("  DEEP: every identifier is English.")
+        elif deep:
+            sample = ", ".join(sorted(deep)[:8])
+            print(f"  deep: {len(deep)} Italian code identifier(s) still to translate "
+                  f"(informational) — e.g. {sample}")
+
     print(f"\nTOTAL not in English: {total}")
     return 1 if total else 0
 

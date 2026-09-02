@@ -69,11 +69,14 @@ otp:
   order: password-prima
 
 gate:
-  # Chi non ha ancora fatto il login compare al punto di spawn del mondo, girato nella
-  # direzione dello spawn (quella di /setworldspawn), invisibile
-  # agli altri e con gli altri invisibili a lui, e viene riportato dove si trovava
-  # appena entra. Serve a due cose: non far leggere le coordinate altrui a chi entra
-  # col nick di un altro, e non caricare i chunk di chi non entrera' mai.
+  # Chi non ha ancora fatto il login compare al CANCELLO di login, invisibile agli altri e
+  # con gli altri invisibili a lui, e viene riportato dove si trovava appena entra. Il
+  # cancello e' sempre lo stesso, anche per chi si era disconnesso nel Nether o nell'End:
+  # quei mondi non hanno una zona di login, e lo spawn dell'End e' la piattaforma di ossidiana.
+  # Dove sia il cancello si decide con /magixauth setspawn, stando sul punto voluto (per es.
+  # lo spawn di CMI, che NON e' lo stesso di /setworldspawn). Finche' non lo si imposta, si
+  # usa lo spawn del mondo principale. Serve a due cose: non far leggere le coordinate altrui
+  # a chi entra col nick di un altro, e non caricare i chunk di chi non entrera' mai.
   spawn_instead_of_position: true
   # Chi non ha ancora fatto il login non lo vede nessuno: niente nome che compare allo spawn
   # prima che si sappia se e' davvero lui.

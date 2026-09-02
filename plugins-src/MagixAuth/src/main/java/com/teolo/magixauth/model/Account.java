@@ -13,33 +13,33 @@ import java.util.UUID;
 public final class Account {
 
     /** Chiave del sito (`users.id`): serve per le tabelle che vi si agganciano. */
-    public final int idSito;
+    public final int siteId;
     public final UUID uuid;
-    public final String nome;
+    public final String name;
 
     /** bcrypt, oppure null: null significa "conosciuto ma mai registrato". */
     public final String passwordHash;
 
     /** Segreto TOTP ancora nella busta cifrata del sito (vedi OtpCodici#decifraSegreto). */
     public final String totpSecretCifrato;
-    public final Long totpUltimoPasso;
-    public final int totpTentativi;
-    public final LocalDateTime totpBloccatoFino;
+    public final Long totpLastStep;
+    public final int totpAttempts;
+    public final LocalDateTime totpLockedUntil;
 
     /** Amministratore del sito: per lui la verifica in due passaggi non e' facoltativa. */
     public final boolean webAdmin;
 
-    public Account(int idSito, UUID uuid, String nome, String passwordHash,
-                   String totpSecretCifrato, Long totpUltimoPasso, int totpTentativi,
-                   LocalDateTime totpBloccatoFino, boolean webAdmin) {
-        this.idSito = idSito;
+    public Account(int siteId, UUID uuid, String name, String passwordHash,
+                   String totpSecretCifrato, Long totpLastStep, int totpAttempts,
+                   LocalDateTime totpLockedUntil, boolean webAdmin) {
+        this.siteId = siteId;
         this.uuid = uuid;
-        this.nome = nome;
+        this.name = name;
         this.passwordHash = passwordHash;
         this.totpSecretCifrato = totpSecretCifrato;
-        this.totpUltimoPasso = totpUltimoPasso;
-        this.totpTentativi = totpTentativi;
-        this.totpBloccatoFino = totpBloccatoFino;
+        this.totpLastStep = totpLastStep;
+        this.totpAttempts = totpAttempts;
+        this.totpLockedUntil = totpLockedUntil;
         this.webAdmin = webAdmin;
     }
 
@@ -50,7 +50,7 @@ public final class Account {
      * dal sito e' gia' registrato e deve solo entrare; chi non l'ha mai fatto ha la colonna
      * vuota e va portato alla registrazione. Nessuno dei due deve fare migrazioni.
      */
-    public boolean registrato() {
+    public boolean registered() {
         return passwordHash != null && !passwordHash.isEmpty();
     }
 
@@ -60,7 +60,7 @@ public final class Account {
     }
 
     /** Il codice e' bloccato per troppi tentativi sbagliati? */
-    public boolean otpBloccato() {
-        return totpBloccatoFino != null && totpBloccatoFino.isAfter(LocalDateTime.now());
+    public boolean otpLocked() {
+        return totpLockedUntil != null && totpLockedUntil.isAfter(LocalDateTime.now());
     }
 }

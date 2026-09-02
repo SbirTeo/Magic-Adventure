@@ -32,17 +32,17 @@ import java.util.UUID;
 public final class ViolationCommand implements CommandExecutor {
 
     private final JavaPlugin plugin;
-    private final Detector rilevatore;
+    private final Detector detector;
     private final SanctionsDao dao;
 
-    public ViolationCommand(JavaPlugin plugin, Detector rilevatore, SanctionsDao dao) {
+    public ViolationCommand(JavaPlugin plugin, Detector detector, SanctionsDao dao) {
         this.plugin = plugin;
-        this.rilevatore = rilevatore;
+        this.detector = detector;
         this.dao = dao;
     }
 
     @Override
-    public boolean onCommand(CommandSender chi, Command comando, String etichetta, String[] args) {
+    public boolean onCommand(CommandSender chi, Command command, String label, String[] args) {
         if (args.length < 2) {
             chi.sendMessage(Text.msg("&#FFD166Uso: &f/mgviolation <giocatore> <categoria> [dettaglio]"));
             chi.sendMessage(Text.panel("&7Lo chiama l'anticheat, non una persona. Categorie: "
@@ -50,18 +50,18 @@ public final class ViolationCommand implements CommandExecutor {
             return true;
         }
 
-        String bersaglio = args[0];
-        String categoria = args[1];
+        String target = args[0];
+        String category = args[1];
         String dettaglio = args.length > 2
                 ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : "";
 
-        Player online = Bukkit.getPlayerExact(bersaglio);
+        Player online = Bukkit.getPlayerExact(target);
         String chiHaChiamato = chi instanceof Player p ? p.getName() : "console";
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            UUID uuid = online != null ? online.getUniqueId() : cerca(bersaglio);
+            UUID uuid = online != null ? online.getUniqueId() : search(target);
             if (uuid == null) {
-                plugin.getLogger().warning("Violazione ignorata: giocatore sconosciuto '" + bersaglio + "'.");
+                plugin.getLogger().warning("Violazione ignorata: giocatore sconosciuto '" + target + "'.");
                 return;
             }
             String prove = "Rilevata dall'anticheat.\n"
@@ -78,22 +78,22 @@ public final class ViolationCommand implements CommandExecutor {
                     + "Vale quanto vale la taratura di quell'anticheat: prima di un provvedimento grave "
                     + "conviene guardare il replay o le sue statistiche.";
 
-            rilevatore.rileva(uuid, online != null ? online.getName() : bersaglio,
-                    categoria, "anticheat", prove);
+            detector.rileva(uuid, online != null ? online.getName() : target,
+                    category, "anticheat", prove);
         });
         return true;
     }
 
-    private UUID cerca(String nome) {
+    private UUID search(String name) {
         try {
-            UUID daSito = dao.uuidDalNome(nome);
-            if (daSito != null) {
-                return daSito;
+            UUID fromSite = dao.uuidFromName(name);
+            if (fromSite != null) {
+                return fromSite;
             }
         } catch (SQLException ignored) {
             // il sito non risponde: si prova con quello che sa Bukkit
         }
-        org.bukkit.OfflinePlayer off = Bukkit.getOfflinePlayer(nome);
+        org.bukkit.OfflinePlayer off = Bukkit.getOfflinePlayer(name);
         return off.hasPlayedBefore() ? off.getUniqueId() : null;
     }
 }

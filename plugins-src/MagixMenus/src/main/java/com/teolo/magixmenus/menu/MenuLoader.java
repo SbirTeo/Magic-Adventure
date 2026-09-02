@@ -41,7 +41,7 @@ public final class MenuLoader {
     }
 
     public static MenuDef daFile(File file) {
-        String nome = file.getName().toLowerCase(Locale.ROOT).endsWith(".yml")
+        String name = file.getName().toLowerCase(Locale.ROOT).endsWith(".yml")
                 ? file.getName().substring(0, file.getName().length() - 4)
                 : file.getName();
         List<String> errori = new ArrayList<>();
@@ -51,75 +51,75 @@ public final class MenuLoader {
             yaml.load(file);
         } catch (Exception e) {
             errori.add("il file non e' YAML valido: " + e.getMessage());
-            return vuoto(nome, errori);
+            return vuoto(name, errori);
         }
-        return da(nome, yaml, errori);
+        return da(name, yaml, errori);
     }
 
-    static MenuDef da(String nome, ConfigurationSection radice, List<String> errori) {
-        ConfigurationSection m = radice.getConfigurationSection("menu");
+    static MenuDef da(String name, ConfigurationSection root, List<String> errori) {
+        ConfigurationSection m = root.getConfigurationSection("menu");
         if (m == null) {
             // Anche senza il blocco "menu:" il file si legge: le chiavi si cercano in cima.
-            m = radice;
+            m = root;
         }
 
-        MenuType tipo = MenuType.leggi(testoCon(m, "chest", "type", "tipo"));
-        if (tipo == null) {
-            errori.add("tipo di menu sconosciuto: \"" + testo(m, "type", "tipo") + "\" (validi: "
-                    + String.join(", ", MenuType.nomi()) + "). Uso il baule.");
-            tipo = MenuType.CHEST;
+        MenuType type = MenuType.read(textWith(m, "chest", "type", "tipo"));
+        if (type == null) {
+            errori.add("tipo di menu sconosciuto: \"" + text(m, "type", "tipo") + "\" (validi: "
+                    + String.join(", ", MenuType.names()) + "). Uso il baule.");
+            type = MenuType.CHEST;
         }
 
-        int righe = interoCon(m, 3, "rows", "righe");
-        if (tipo.righeSuMisura() && (righe < 1 || righe > 6)) {
-            errori.add("un baule ha da 1 a 6 righe, non " + righe + ". Uso 3.");
-            righe = 3;
+        int rows = interoCon(m, 3, "rows", "righe");
+        if (type.customRows() && (rows < 1 || rows > 6)) {
+            errori.add("un baule ha da 1 a 6 righe, non " + rows + ". Uso 3.");
+            rows = 3;
         }
-        if (!tipo.righeSuMisura() && (m.isSet("rows") || m.isSet("righe"))) {
-            errori.add("il tipo " + tipo.name().toLowerCase(Locale.ROOT)
+        if (!type.customRows() && (m.isSet("rows") || m.isSet("righe"))) {
+            errori.add("il tipo " + type.name().toLowerCase(Locale.ROOT)
                     + " ha una forma fissa: la chiave rows non ha effetto.");
         }
 
-        int dimensione = tipo.dimensione(righe);
-        int larghezza = tipo.larghezza();
+        int dimensione = type.dimensione(rows);
+        int larghezza = type.larghezza();
 
-        String titolo = testoCon(m, "", "title", "titolo");
+        String title = textWith(m, "", "title", "titolo");
         int aggiornamento = interoCon(m, 0, "update", "aggiornamento");
         if (aggiornamento < 0) {
             errori.add("aggiornamento negativo: lo tratto come 0 (nessun aggiornamento).");
             aggiornamento = 0;
         }
 
-        List<String> comandi = new ArrayList<>();
-        for (String c : elencoDiTesti(m, "commands", "command", "comandi", "comando")) {
-            String pulito = c.trim().toLowerCase(Locale.ROOT);
-            if (pulito.startsWith("/")) {
-                pulito = pulito.substring(1);
+        List<String> commands = new ArrayList<>();
+        for (String c : textList(m, "commands", "command", "comandi", "comando")) {
+            String clean = c.trim().toLowerCase(Locale.ROOT);
+            if (clean.startsWith("/")) {
+                clean = clean.substring(1);
             }
-            if (!pulito.isEmpty()) {
-                comandi.add(pulito);
+            if (!clean.isEmpty()) {
+                commands.add(clean);
             }
         }
 
-        String permesso = testo(m, "permission", "permesso");
-        List<String> argomenti = elencoDiTesti(m, "arguments", "args", "argomenti");
+        String permesso = text(m, "permission", "permesso");
+        List<String> arguments = textList(m, "arguments", "args", "argomenti");
 
-        Requirements apriSe = requisiti(m, errori, "open_requirements", "open_requirement", "apri_se", "apri_requisiti");
-        List<Action> apertura = azioni(m, errori, "open_actions", "azioni_apertura");
-        List<Action> chiusura = azioni(m, errori, "close_actions", "azioni_chiusura");
-        boolean chiusuraLibera = booleanoCon(m, true, "closeable", "chiusura_libera");
+        Requirements openIf = requirements(m, errori, "open_requirements", "open_requirement", "apri_se", "apri_requisiti");
+        List<Action> apertura = actions(m, errori, "open_actions", "azioni_apertura");
+        List<Action> chiusura = actions(m, errori, "close_actions", "azioni_chiusura");
+        boolean freeClose = booleanoCon(m, true, "closeable", "chiusura_libera");
 
         // --- gli item ---
         List<ItemDef> item = new ArrayList<>();
-        ConfigurationSection sezioneItem = primaSezione(radice, "items", "item", "oggetti");
-        if (sezioneItem != null) {
-            for (String chiave : sezioneItem.getKeys(false)) {
-                ConfigurationSection s = sezioneItem.getConfigurationSection(chiave);
+        ConfigurationSection itemSection = firstSection(root, "items", "item", "oggetti");
+        if (itemSection != null) {
+            for (String key : itemSection.getKeys(false)) {
+                ConfigurationSection s = itemSection.getConfigurationSection(key);
                 if (s == null) {
-                    errori.add("l'item \"" + chiave + "\" non e' un blocco di impostazioni.");
+                    errori.add("l'item \"" + key + "\" non e' un blocco di impostazioni.");
                     continue;
                 }
-                ItemDef def = item(chiave, s, larghezza, dimensione, errori, true);
+                ItemDef def = item(key, s, larghezza, dimensione, errori, true);
                 if (def != null) {
                     item.add(def);
                 }
@@ -127,65 +127,65 @@ public final class MenuLoader {
         }
 
         // --- il contenuto che si genera da solo ---
-        Content contenuto = null;
-        ConfigurationSection sezioneContenuto = primaSezione(radice, "content", "contenuto", "elenco");
-        if (sezioneContenuto != null) {
-            contenuto = contenuto(sezioneContenuto, larghezza, dimensione, errori);
+        Content content = null;
+        ConfigurationSection contentSection = firstSection(root, "content", "contenuto", "elenco");
+        if (contentSection != null) {
+            content = content(contentSection, larghezza, dimensione, errori);
         }
 
         // --- la parte da finestra di dialogo ---
-        MenuDialog dialogo = tipo.dialogo() ? dialogo(m, radice, errori) : null;
+        MenuDialog dialog = type.dialog() ? dialog(m, root, errori) : null;
 
-        if (item.isEmpty() && contenuto == null && !tipo.dialogo()) {
+        if (item.isEmpty() && content == null && !type.dialog()) {
             errori.add("questo menu non ha nessun item: si aprira' vuoto.");
         }
 
-        return new MenuDef(nome, tipo, righe, titolo, aggiornamento, comandi, permesso, argomenti,
-                apriSe, apertura, chiusura, item, contenuto, dialogo, chiusuraLibera, errori);
+        return new MenuDef(name, type, rows, title, aggiornamento, commands, permesso, arguments,
+                openIf, apertura, chiusura, item, content, dialog, freeClose, errori);
     }
 
-    static MenuDef vuoto(String nome, List<String> errori) {
-        return new MenuDef(nome, MenuType.CHEST, 3, "&cMenu con errori", 0, List.of(), null,
+    static MenuDef vuoto(String name, List<String> errori) {
+        return new MenuDef(name, MenuType.CHEST, 3, "&cMenu con errori", 0, List.of(), null,
                 List.of(), Requirements.NESSUNO, List.of(), List.of(), List.of(), null, null, true, errori);
     }
 
     // ----------------------------------------------------------------- dialogo
 
-    private static MenuDialog dialogo(ConfigurationSection m, ConfigurationSection radice,
+    private static MenuDialog dialog(ConfigurationSection m, ConfigurationSection root,
                                    List<String> errori) {
         // Le chiavi del dialogo si accettano sia dentro "menu:" sia in cima al file: sono la
         // sostanza di questo menu, e discutere di dove metterle e' tempo perso per chi lo scrive.
-        List<String> corpo = elencoDiTesti(m, "body", "corpo", "testo");
-        if (corpo.isEmpty()) {
-            corpo = elencoDiTesti(radice, "body", "corpo", "testo");
+        List<String> body = textList(m, "body", "corpo", "testo");
+        if (body.isEmpty()) {
+            body = textList(root, "body", "corpo", "testo");
         }
 
-        List<MenuDialog.Campo> campi = new ArrayList<>();
-        ConfigurationSection sezioneCampi = primaSezione(m, "inputs", "campi");
-        if (sezioneCampi == null) {
-            sezioneCampi = primaSezione(radice, "inputs", "campi");
+        List<MenuDialog.Field> fields = new ArrayList<>();
+        ConfigurationSection fieldsSection = firstSection(m, "inputs", "campi");
+        if (fieldsSection == null) {
+            fieldsSection = firstSection(root, "inputs", "campi");
         }
-        if (sezioneCampi != null) {
-            for (String chiave : sezioneCampi.getKeys(false)) {
-                ConfigurationSection s = sezioneCampi.getConfigurationSection(chiave);
+        if (fieldsSection != null) {
+            for (String key : fieldsSection.getKeys(false)) {
+                ConfigurationSection s = fieldsSection.getConfigurationSection(key);
                 if (s == null) {
-                    errori.add("il campo \"" + chiave + "\" non e' un blocco di impostazioni.");
+                    errori.add("il campo \"" + key + "\" non e' un blocco di impostazioni.");
                     continue;
                 }
-                MenuDialog.TipoCampo tipoCampo = MenuDialog.TipoCampo.leggi(testoCon(s, "text", "type", "tipo"));
-                if (tipoCampo == null) {
-                    errori.add("campo \"" + chiave + "\": tipo sconosciuto \"" + testo(s, "type", "tipo")
+                MenuDialog.FieldType fieldType = MenuDialog.FieldType.read(textWith(s, "text", "type", "tipo"));
+                if (fieldType == null) {
+                    errori.add("campo \"" + key + "\": tipo sconosciuto \"" + text(s, "type", "tipo")
                             + "\" (validi: testo, booleano, numero, scelta).");
                     continue;
                 }
-                List<String> opzioni = elencoDiTesti(s, "opzioni", "options", "valori");
-                if (tipoCampo == MenuDialog.TipoCampo.SCELTA && opzioni.isEmpty()) {
-                    errori.add("campo \"" + chiave + "\": una scelta senza opzioni non si puo' fare.");
+                List<String> opzioni = textList(s, "opzioni", "options", "valori");
+                if (fieldType == MenuDialog.FieldType.CHOICE && opzioni.isEmpty()) {
+                    errori.add("campo \"" + key + "\": una scelta senza opzioni non si puo' fare.");
                     continue;
                 }
-                campi.add(new MenuDialog.Campo(chiave, tipoCampo,
-                        testoCon(s, chiave, "label", "etichetta"),
-                        testoCon(s, "", "default", "iniziale"),
+                fields.add(new MenuDialog.Field(key, fieldType,
+                        textWith(s, key, "label", "etichetta"),
+                        textWith(s, "", "default", "iniziale"),
                         (float) s.getDouble("da", s.getDouble("min", 0)),
                         (float) s.getDouble("a", s.getDouble("max", 100)),
                         (float) s.getDouble("passo", s.getDouble("step", 1)),
@@ -197,12 +197,12 @@ public final class MenuLoader {
         }
 
         List<MenuDialog.Bottone> bottoni = new ArrayList<>();
-        Object grezzoBottoni = primo(m, "buttons", "bottoni");
-        if (grezzoBottoni == null) {
-            grezzoBottoni = primo(radice, "buttons", "bottoni");
+        Object rawButtons = primo(m, "buttons", "bottoni");
+        if (rawButtons == null) {
+            rawButtons = primo(root, "buttons", "bottoni");
         }
-        if (grezzoBottoni instanceof List<?> lista) {
-            for (Object o : lista) {
+        if (rawButtons instanceof List<?> list) {
+            for (Object o : list) {
                 Map<String, Object> b = mappa(o);
                 if (b == null) {
                     errori.add("un bottone non e' scritto come un blocco: lo salto.");
@@ -212,16 +212,16 @@ public final class MenuLoader {
                 for (Map.Entry<String, Object> e : b.entrySet()) {
                     metti(finto, e.getKey(), e.getValue());
                 }
-                String etichetta = testo(b, "label", "etichetta", "nome", "testo");
-                if (etichetta == null) {
+                String label = text(b, "label", "etichetta", "nome", "testo");
+                if (label == null) {
                     errori.add("un bottone non ha l'etichetta: lo salto.");
                     continue;
                 }
-                bottoni.add(new MenuDialog.Bottone(etichetta,
-                        testo(b, "tooltip", "suggerimento", "descrizione"),
+                bottoni.add(new MenuDialog.Bottone(label,
+                        text(b, "tooltip", "suggerimento", "descrizione"),
                         primo(b, "width", "larghezza") instanceof Number n ? n.intValue() : 150,
-                        requisiti(finto, errori, "show_requirements", "mostra_se"),
-                        azioni(finto, errori, "actions", "azioni")));
+                        requirements(finto, errori, "show_requirements", "mostra_se"),
+                        actions(finto, errori, "actions", "azioni")));
             }
         }
 
@@ -230,8 +230,8 @@ public final class MenuLoader {
             // e per un messaggio di sola lettura va benissimo.
             errori.add("dialogo senza bottoni: si potra' solo leggere e chiudere.");
         }
-        boolean pausa = booleanoCon(m, booleanoCon(radice, false, "pause", "pausa"), "pause", "pausa");
-        return new MenuDialog(corpo, campi, bottoni, pausa);
+        boolean paused = booleanoCon(m, booleanoCon(root, false, "pause", "pausa"), "pause", "pausa");
+        return new MenuDialog(body, fields, bottoni, paused);
     }
 
     // ------------------------------------------------------------------- item
@@ -240,32 +240,32 @@ public final class MenuLoader {
      * @param conCaselle falso per l'item modello di un contenuto: quello non ha caselle proprie,
      *                   le prende dall'elenco che lo ospita.
      */
-    private static ItemDef item(String chiave, ConfigurationSection s, int larghezza, int dimensione,
-                                List<String> errori, boolean conCaselle) {
+    private static ItemDef item(String key, ConfigurationSection s, int larghezza, int dimensione,
+                                List<String> errori, boolean withSlots) {
         ItemDef def = new ItemDef();
-        def.nome(chiave);
+        def.name(key);
 
-        if (conCaselle) {
+        if (withSlots) {
             Object slot = primo(s, "slot", "slots", "casella", "caselle");
             if (slot == null) {
-                errori.add("l'item \"" + chiave + "\" non dice in quale casella va (chiave slot).");
+                errori.add("l'item \"" + key + "\" non dice in quale casella va (chiave slot).");
                 return null;
             }
             List<String> problemiSlot = new ArrayList<>();
-            List<Integer> caselle = Slot.leggi(slot, larghezza, dimensione, problemiSlot);
+            List<Integer> slots = Slot.read(slot, larghezza, dimensione, problemiSlot);
             for (String p : problemiSlot) {
-                errori.add("item \"" + chiave + "\": " + p);
+                errori.add("item \"" + key + "\": " + p);
             }
-            if (caselle.isEmpty()) {
-                errori.add("l'item \"" + chiave + "\" non finisce in nessuna casella valida: lo salto.");
+            if (slots.isEmpty()) {
+                errori.add("l'item \"" + key + "\" non finisce in nessuna casella valida: lo salto.");
                 return null;
             }
-            def.caselle(caselle);
+            def.slots(slots);
         }
 
-        String materiale = testo(s, "id", "material", "materiale", "item", "tipo");
-        if (materiale == null && testo(s, "head", "testa", "skull") == null) {
-            errori.add("l'item \"" + chiave + "\" non dice che item e' (chiave id).");
+        String materiale = text(s, "id", "material", "materiale", "item", "tipo");
+        if (materiale == null && text(s, "head", "testa", "skull") == null) {
+            errori.add("l'item \"" + key + "\" non dice che item e' (chiave id).");
             return null;
         }
         def.materiale(materiale == null ? "PLAYER_HEAD" : materiale);
@@ -275,121 +275,121 @@ public final class MenuLoader {
             def.quantita(String.valueOf(quantita));
         }
 
-        String nomeVisibile = testo(s, "display_name", "name", "nome", "titolo");
-        if (nomeVisibile != null) {
-            def.titolo(nomeVisibile);
+        String displayName = text(s, "display_name", "name", "nome", "titolo");
+        if (displayName != null) {
+            def.title(displayName);
         }
-        def.descrizione(elencoDiTesti(s, "lore", "descrizione", "testo"));
-        def.incantesimi(elencoDiTesti(s, "enchantments", "enchants", "incantesimi"));
+        def.description(textList(s, "lore", "descrizione", "testo"));
+        def.incantesimi(textList(s, "enchantments", "enchants", "incantesimi"));
         def.luccica(booleanoCon(s, false, "glow", "luccica"));
         def.indistruttibile(booleanoCon(s, false, "unbreakable", "indistruttibile"));
-        def.nascondiDettagli(booleanoCon(s, false, "hide_details", "hide_attributes", "hide_all",
+        def.hideDetails(booleanoCon(s, false, "hide_details", "hide_attributes", "hide_all",
                 "nascondi_dettagli"));
 
         Object modello = primo(s, "custom_model_data", "modello_custom", "modello");
         if (modello != null) {
             def.modelloCustom(String.valueOf(modello));
         }
-        String modelloItem = testo(s, "item_model", "modello_item");
+        String modelloItem = text(s, "item_model", "modello_item");
         if (modelloItem != null) {
             def.modelloItem(modelloItem);
         }
-        String colore = testo(s, "color", "colore");
-        if (colore != null) {
-            def.colore(colore);
+        String color = text(s, "color", "colore");
+        if (color != null) {
+            def.color(color);
         }
-        String testa = testo(s, "head", "testa", "skull", "owner");
+        String testa = text(s, "head", "testa", "skull", "owner");
         if (testa != null) {
             def.testa(testa);
         }
-        String grezzo = testo(s, "components", "nbt", "custom_nbt", "avanzate", "componenti");
-        if (grezzo != null) {
-            def.grezzo(grezzo);
+        String raw = text(s, "components", "nbt", "custom_nbt", "avanzate", "componenti");
+        if (raw != null) {
+            def.raw(raw);
         }
 
-        String prezzo = testo(s, "price", "prezzo", "costo");
+        String prezzo = text(s, "price", "prezzo", "costo");
         if (prezzo != null) {
             def.prezzo(prezzo);
         }
-        String dai = testo(s, "give", "dai", "merce", "articolo");
+        String dai = text(s, "give", "dai", "merce", "articolo");
         if (dai != null) {
             def.dai(dai);
         }
-        String vendi = testo(s, "sell", "vendi", "prezzo_vendita");
+        String vendi = text(s, "sell", "vendi", "prezzo_vendita");
         if (vendi != null) {
             def.vendi(vendi);
         }
         if (vendi != null && dai == null) {
-            errori.add("l'item \"" + chiave + "\" si puo' vendere ma non dice cosa: aggiungi la chiave give.");
+            errori.add("l'item \"" + key + "\" si puo' vendere ma non dice cosa: aggiungi la chiave give.");
         }
 
-        def.mostraSe(requisiti(s, errori, "show_requirements", "mostra_se", "mostra_requisiti"));
+        def.showIf(requirements(s, errori, "show_requirements", "mostra_se", "mostra_requisiti"));
         for (Click c : Click.values()) {
-            Requirements r = requisiti(s, errori, c.chiaveRequisiti(), c.chiaveRequisitiItaliana());
+            Requirements r = requirements(s, errori, c.requirementsKey(), c.requirementsKeyItalian());
             if (!r.vuoto()) {
-                def.clicSe(c, r);
+                def.clickIf(c, r);
             }
-            List<Action> a = azioni(s, errori, c.chiaveAzioni(), c.chiaveAzioniItaliana());
+            List<Action> a = actions(s, errori, c.actionsKey(), c.actionsKeyItalian());
             if (!a.isEmpty()) {
-                def.azioni(c, a);
+                def.actions(c, a);
             }
         }
-        def.attesaFraClic(interoCon(s, 0, "cooldown", "attesa_fra_clic"));
+        def.clickDelay(interoCon(s, 0, "cooldown", "attesa_fra_clic"));
 
-        def.calcolaSeDinamico();
+        def.computeIfDynamic();
         return def;
     }
 
-    private static Content contenuto(ConfigurationSection s, int larghezza, int dimensione,
+    private static Content content(ConfigurationSection s, int larghezza, int dimensione,
                                        List<String> errori) {
-        Content.Fonte fonte = Content.Fonte.leggi(testo(s, "source", "fonte"));
+        Content.Fonte fonte = Content.Fonte.read(text(s, "source", "fonte"));
         if (fonte == null) {
-            errori.add("contenuto: fonte sconosciuta \"" + testo(s, "source", "fonte")
+            errori.add("contenuto: fonte sconosciuta \"" + text(s, "source", "fonte")
                     + "\" (valide: giocatori_online, lista, placeholder). Salto il contenuto.");
             return null;
         }
 
         List<String> problemiSlot = new ArrayList<>();
-        List<Integer> caselle = Slot.leggi(primo(s, "slot", "slots", "caselle"),
+        List<Integer> slots = Slot.read(primo(s, "slot", "slots", "caselle"),
                 larghezza, dimensione, problemiSlot);
         for (String p : problemiSlot) {
             errori.add("contenuto: " + p);
         }
-        if (caselle.isEmpty()) {
+        if (slots.isEmpty()) {
             errori.add("contenuto: nessuna casella valida in cui mettere le voci. Salto il contenuto.");
             return null;
         }
 
-        ConfigurationSection sezioneVoce = primaSezione(s, "entry", "voce", "modello", "item");
-        if (sezioneVoce == null) {
+        ConfigurationSection entrySection = firstSection(s, "entry", "voce", "modello", "item");
+        if (entrySection == null) {
             errori.add("contenuto: manca il blocco \"entry\" che dice com'e' fatta una voce.");
             return null;
         }
-        ItemDef voce = item("voce", sezioneVoce, larghezza, dimensione, errori, false);
-        if (voce == null) {
+        ItemDef entry = item("voce", entrySection, larghezza, dimensione, errori, false);
+        if (entry == null) {
             return null;
         }
 
-        return new Content(fonte, testoCon(s, "", "placeholder", "parametro"),
-                elencoDiTesti(s, "list", "lista"), testoCon(s, ",", "separator", "separatore"),
-                caselle, voce);
+        return new Content(fonte, textWith(s, "", "placeholder", "parametro"),
+                textList(s, "list", "lista"), textWith(s, ",", "separator", "separatore"),
+                slots, entry);
     }
 
     // ------------------------------------------------------------- requisiti
 
-    private static Requirements requisiti(ConfigurationSection padre, List<String> errori, String... chiavi) {
-        Object grezzo = primo(padre, chiavi);
-        if (grezzo == null) {
+    private static Requirements requirements(ConfigurationSection padre, List<String> errori, String... keys) {
+        Object raw = primo(padre, keys);
+        if (raw == null) {
             return Requirements.NESSUNO;
         }
 
         List<Requirement> elenco = new ArrayList<>();
-        int minimo = 0;
+        int minimum = 0;
         List<Action> negate = List.of();
 
-        if (grezzo instanceof List<?> lista) {
-            for (Object o : lista) {
-                Requirement r = requisito(mappa(o), errori);
+        if (raw instanceof List<?> list) {
+            for (Object o : list) {
+                Requirement r = requirement(mappa(o), errori);
                 if (r != null) {
                     elenco.add(r);
                 }
@@ -397,83 +397,83 @@ public final class MenuLoader {
             return new Requirements(elenco, 0, negate);
         }
 
-        ConfigurationSection s = primaSezione(padre, chiavi);
+        ConfigurationSection s = firstSection(padre, keys);
         if (s == null) {
-            errori.add("il blocco " + chiavi[0] + " non e' scritto come mi aspetto: lo ignoro.");
+            errori.add("il blocco " + keys[0] + " non e' scritto come mi aspetto: lo ignoro.");
             return Requirements.NESSUNO;
         }
-        minimo = interoCon(s, 0, "minimum", "minimum_requirements", "minimo");
-        negate = azioni(s, errori, "deny_actions", "deny_commands", "azioni_negate");
+        minimum = interoCon(s, 0, "minimum", "minimum_requirements", "minimo");
+        negate = actions(s, errori, "deny_actions", "deny_commands", "azioni_negate");
 
-        ConfigurationSection dentro = primaSezione(s, "requirements", "requisiti");
-        ConfigurationSection dove = dentro != null ? dentro : s;
-        for (String k : dove.getKeys(false)) {
-            if (dove == s && CHIAVI_DI_SERVIZIO.contains(k)) {
+        ConfigurationSection inside = firstSection(s, "requirements", "requisiti");
+        ConfigurationSection where = inside != null ? inside : s;
+        for (String k : where.getKeys(false)) {
+            if (where == s && SERVICE_KEYS.contains(k)) {
                 continue;
             }
-            ConfigurationSection uno = dove.getConfigurationSection(k);
+            ConfigurationSection uno = where.getConfigurationSection(k);
             if (uno == null) {
                 errori.add("il requisito \"" + k + "\" non e' un blocco di impostazioni.");
                 continue;
             }
-            Requirement r = requisito(uno.getValues(false), errori);
+            Requirement r = requirement(uno.getValues(false), errori);
             if (r != null) {
                 elenco.add(r);
             }
         }
-        return new Requirements(elenco, minimo, negate);
+        return new Requirements(elenco, minimum, negate);
     }
 
-    private static Requirement requisito(Map<String, Object> valori, List<String> errori) {
-        if (valori == null) {
+    private static Requirement requirement(Map<String, Object> values, List<String> errori) {
+        if (values == null) {
             return null;
         }
-        Object tipoScritto = valori.get("type") != null ? valori.get("type") : valori.get("tipo");
-        Requirement.Tipo tipo = Requirement.Tipo.leggi(tipoScritto == null ? null : String.valueOf(tipoScritto));
-        if (tipo == null) {
-            errori.add("requisito di tipo sconosciuto: \"" + tipoScritto + "\" (validi: "
-                    + String.join(", ", Requirement.tipiDisponibili()) + ").");
+        Object writtenType = values.get("type") != null ? values.get("type") : values.get("tipo");
+        Requirement.Type type = Requirement.Type.read(writtenType == null ? null : String.valueOf(writtenType));
+        if (type == null) {
+            errori.add("requisito di tipo sconosciuto: \"" + writtenType + "\" (validi: "
+                    + String.join(", ", Requirement.availableTypes()) + ").");
             return null;
         }
-        String chiave = testo(valori, "key", "chiave", "input", "placeholder", "permission", "permesso");
-        String valore = testo(valori, "value", "valore", "output", "nome");
-        Object quantita = primo(valori, "amount", "quantity", "quantita", "importo");
-        Object uguale = primo(valori, "match", "uguale", "risultato");
+        String key = text(values, "key", "chiave", "input", "placeholder", "permission", "permesso");
+        String value = text(values, "value", "valore", "output", "nome");
+        Object quantita = primo(values, "amount", "quantity", "quantita", "importo");
+        Object equal = primo(values, "match", "uguale", "risultato");
 
         int q = 1;
         if (quantita != null) {
-            Double n = com.teolo.magixmenus.util.Text.numero(String.valueOf(quantita));
+            Double n = com.teolo.magixmenus.util.Text.number(String.valueOf(quantita));
             if (n == null) {
-                errori.add("requisito " + tipo + ": la quantita' \"" + quantita + "\" non e' un numero.");
+                errori.add("requisito " + type + ": la quantita' \"" + quantita + "\" non e' un numero.");
             } else {
                 q = (int) (double) n;
             }
         }
-        if (chiave == null && (tipo == Requirement.Tipo.PERMESSO || tipo == Requirement.Tipo.EQUAZIONE)) {
-            errori.add("requisito " + tipo + ": manca la chiave.");
+        if (key == null && (type == Requirement.Type.PERMESSO || type == Requirement.Type.EQUATION)) {
+            errori.add("requisito " + type + ": manca la chiave.");
             return null;
         }
-        return new Requirement(tipo, chiave == null ? "" : chiave, valore == null ? "" : valore, q,
-                uguale == null || Boolean.parseBoolean(String.valueOf(uguale)));
+        return new Requirement(type, key == null ? "" : key, value == null ? "" : value, q,
+                equal == null || Boolean.parseBoolean(String.valueOf(equal)));
     }
 
     // ---------------------------------------------------------------- azioni
 
-    private static List<Action> azioni(ConfigurationSection padre, List<String> errori, String... chiavi) {
-        Object grezzo = primo(padre, chiavi);
-        if (grezzo == null) {
+    private static List<Action> actions(ConfigurationSection padre, List<String> errori, String... keys) {
+        Object raw = primo(padre, keys);
+        if (raw == null) {
             return List.of();
         }
         List<Action> out = new ArrayList<>();
-        if (grezzo instanceof List<?> lista) {
-            for (Object o : lista) {
-                Action a = azione(o, errori);
+        if (raw instanceof List<?> list) {
+            for (Object o : list) {
+                Action a = action(o, errori);
                 if (a != null) {
                     out.add(a);
                 }
             }
         } else {
-            Action a = azione(grezzo, errori);
+            Action a = action(raw, errori);
             if (a != null) {
                 out.add(a);
             }
@@ -481,7 +481,7 @@ public final class MenuLoader {
         return out;
     }
 
-    private static Action azione(Object o, List<String> errori) {
+    private static Action action(Object o, List<String> errori) {
         if (o == null) {
             return null;
         }
@@ -494,54 +494,54 @@ public final class MenuLoader {
                 errori.add("azione a blocco senza la chiave \"if\": la salto.");
                 return null;
             }
-            Requirements requisiti;
-            if (condizione instanceof String testo) {
+            Requirements requirements;
+            if (condizione instanceof String text) {
                 // La forma corta: "if: %saldo% >= 100" e' un'equazione, il caso che capita sempre.
-                requisiti = new Requirements(List.of(new Requirement(Requirement.Tipo.EQUAZIONE,
-                        testo, "", 1, true)), 0, List.of());
+                requirements = new Requirements(List.of(new Requirement(Requirement.Type.EQUATION,
+                        text, "", 1, true)), 0, List.of());
             } else {
-                requisiti = requisiti(sezioneFinta("if", condizione), errori, "if");
+                requirements = requirements(fakeSection("if", condizione), errori, "if");
             }
-            List<Action> allora = sottoAzioni(mappa.get("then") != null ? mappa.get("then") : mappa.get("allora"), errori);
-            List<Action> altrimenti = sottoAzioni(mappa.get("else") != null ? mappa.get("else") : mappa.get("altrimenti"), errori);
-            return new Action(Action.Tipo.SE, "", requisiti, allora, altrimenti);
+            List<Action> allora = subActions(mappa.get("then") != null ? mappa.get("then") : mappa.get("allora"), errori);
+            List<Action> altrimenti = subActions(mappa.get("else") != null ? mappa.get("else") : mappa.get("altrimenti"), errori);
+            return new Action(Action.Type.SE, "", requirements, allora, altrimenti);
         }
 
-        String riga = String.valueOf(o).trim();
-        if (riga.isEmpty()) {
+        String row = String.valueOf(o).trim();
+        if (row.isEmpty()) {
             return null;
         }
-        int duePunti = riga.indexOf(':');
-        String nomeTipo = duePunti < 0 ? riga : riga.substring(0, duePunti);
-        String argomento = duePunti < 0 ? "" : riga.substring(duePunti + 1).trim();
+        int colon = row.indexOf(':');
+        String typeName = colon < 0 ? row : row.substring(0, colon);
+        String argomento = colon < 0 ? "" : row.substring(colon + 1).trim();
 
-        Action.Tipo tipo = Action.Tipo.leggi(nomeTipo);
-        if (tipo == null) {
-            errori.add("azione sconosciuta: \"" + riga + "\" (tipi validi: "
-                    + String.join(", ", Action.tipiDisponibili()) + ").");
+        Action.Type type = Action.Type.read(typeName);
+        if (type == null) {
+            errori.add("azione sconosciuta: \"" + row + "\" (tipi validi: "
+                    + String.join(", ", Action.availableTypes()) + ").");
             return null;
         }
-        if (tipo.vuoleArgomento() && argomento.isEmpty()) {
-            errori.add("l'azione \"" + nomeTipo + "\" vuole qualcosa dopo i due punti.");
+        if (type.vuoleArgomento() && argomento.isEmpty()) {
+            errori.add("l'azione \"" + typeName + "\" vuole qualcosa dopo i due punti.");
             return null;
         }
-        return Action.di(tipo, argomento);
+        return Action.di(type, argomento);
     }
 
-    private static List<Action> sottoAzioni(Object o, List<String> errori) {
+    private static List<Action> subActions(Object o, List<String> errori) {
         if (o == null) {
             return List.of();
         }
         List<Action> out = new ArrayList<>();
-        if (o instanceof List<?> lista) {
-            for (Object x : lista) {
-                Action a = azione(x, errori);
+        if (o instanceof List<?> list) {
+            for (Object x : list) {
+                Action a = action(x, errori);
                 if (a != null) {
                     out.add(a);
                 }
             }
         } else {
-            Action a = azione(o, errori);
+            Action a = action(o, errori);
             if (a != null) {
                 out.add(a);
             }
@@ -559,18 +559,18 @@ public final class MenuLoader {
      * sezioni: senza questo passaggio un {@code mostra_se} scritto dentro un bottone non verrebbe
      * riconosciuto, e sarebbe uno di quegli errori che non danno nessun messaggio.
      */
-    private static ConfigurationSection sezioneFinta(String chiave, Object valore) {
+    private static ConfigurationSection fakeSection(String key, Object value) {
         YamlConfiguration finta = new YamlConfiguration();
-        metti(finta, chiave, valore);
+        metti(finta, key, value);
         return finta;
     }
 
-    private static void metti(ConfigurationSection dove, String chiave, Object valore) {
-        Map<String, Object> m = mappa(valore);
+    private static void metti(ConfigurationSection where, String key, Object value) {
+        Map<String, Object> m = mappa(value);
         if (m != null) {
-            dove.createSection(chiave, m);
+            where.createSection(key, m);
         } else {
-            dove.set(chiave, valore);
+            where.set(key, value);
         }
     }
 
@@ -581,36 +581,36 @@ public final class MenuLoader {
      * volta che ci si dimentica, quella chiave viene letta come se fosse una condizione e il
      * menu si comporta in un modo che non si spiega guardando il file.
      */
-    private static final java.util.Set<String> CHIAVI_DI_SERVIZIO = java.util.Set.of(
+    private static final java.util.Set<String> SERVICE_KEYS = java.util.Set.of(
             "minimum", "minimum_requirements", "minimo",
             "deny_actions", "deny_commands", "azioni_negate");
 
     /** Come {@link #testo} ma con un valore di ripiego se nessuna delle chiavi c'e'. */
-    private static String testoCon(ConfigurationSection s, String ripiego, String... chiavi) {
-        String v = testo(s, chiavi);
-        return v == null ? ripiego : v;
+    private static String textWith(ConfigurationSection s, String fallback, String... keys) {
+        String v = text(s, keys);
+        return v == null ? fallback : v;
     }
 
-    private static int interoCon(ConfigurationSection s, int ripiego, String... chiavi) {
-        Object o = primo(s, chiavi);
+    private static int interoCon(ConfigurationSection s, int fallback, String... keys) {
+        Object o = primo(s, keys);
         if (o instanceof Number n) {
             return n.intValue();
         }
-        Double d = o == null ? null : com.teolo.magixmenus.util.Text.numero(String.valueOf(o));
-        return d == null ? ripiego : (int) (double) d;
+        Double d = o == null ? null : com.teolo.magixmenus.util.Text.number(String.valueOf(o));
+        return d == null ? fallback : (int) (double) d;
     }
 
-    private static boolean booleanoCon(ConfigurationSection s, boolean ripiego, String... chiavi) {
-        Object o = primo(s, chiavi);
+    private static boolean booleanoCon(ConfigurationSection s, boolean fallback, String... keys) {
+        Object o = primo(s, keys);
         if (o instanceof Boolean b) {
             return b;
         }
-        return o == null ? ripiego : Boolean.parseBoolean(String.valueOf(o));
+        return o == null ? fallback : Boolean.parseBoolean(String.valueOf(o));
     }
 
     /** Il valore della prima chiave che esiste, fra quelle passate (le altre sono i sinonimi). */
-    private static Object primo(ConfigurationSection s, String... chiavi) {
-        for (String k : chiavi) {
+    private static Object primo(ConfigurationSection s, String... keys) {
+        for (String k : keys) {
             if (k != null && s.isSet(k)) {
                 return s.get(k);
             }
@@ -618,8 +618,8 @@ public final class MenuLoader {
         return null;
     }
 
-    private static Object primo(Map<String, Object> m, String... chiavi) {
-        for (String k : chiavi) {
+    private static Object primo(Map<String, Object> m, String... keys) {
+        for (String k : keys) {
             if (k != null && m.containsKey(k)) {
                 return m.get(k);
             }
@@ -627,8 +627,8 @@ public final class MenuLoader {
         return null;
     }
 
-    private static ConfigurationSection primaSezione(ConfigurationSection s, String... chiavi) {
-        for (String k : chiavi) {
+    private static ConfigurationSection firstSection(ConfigurationSection s, String... keys) {
+        for (String k : keys) {
             if (k != null && s.isConfigurationSection(k)) {
                 return s.getConfigurationSection(k);
             }
@@ -636,13 +636,13 @@ public final class MenuLoader {
         return null;
     }
 
-    private static String testo(ConfigurationSection s, String... chiavi) {
-        Object o = primo(s, chiavi);
+    private static String text(ConfigurationSection s, String... keys) {
+        Object o = primo(s, keys);
         return o == null ? null : String.valueOf(o);
     }
 
-    private static String testo(Map<String, Object> m, String... chiavi) {
-        Object o = primo(m, chiavi);
+    private static String text(Map<String, Object> m, String... keys) {
+        Object o = primo(m, keys);
         return o == null ? null : String.valueOf(o);
     }
 
@@ -651,14 +651,14 @@ public final class MenuLoader {
      * e {@code lore: ["una", "due"]} sono tutte e due valide, perche' pretendere le parentesi
      * quadre per una riga sola e' l'errore che si fa piu' spesso.
      */
-    private static List<String> elencoDiTesti(ConfigurationSection s, String... chiavi) {
-        Object o = primo(s, chiavi);
+    private static List<String> textList(ConfigurationSection s, String... keys) {
+        Object o = primo(s, keys);
         if (o == null) {
             return List.of();
         }
         List<String> out = new ArrayList<>();
-        if (o instanceof List<?> lista) {
-            for (Object x : lista) {
+        if (o instanceof List<?> list) {
+            for (Object x : list) {
                 out.add(String.valueOf(x));
             }
         } else {

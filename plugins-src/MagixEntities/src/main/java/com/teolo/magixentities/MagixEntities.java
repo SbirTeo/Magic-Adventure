@@ -38,7 +38,7 @@ public final class MagixEntities extends JavaPlugin {
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
         // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         messages = new Messages(this);
         npcs = new NpcManager(this);
@@ -96,22 +96,22 @@ public final class MagixEntities extends JavaPlugin {
     // ------------------------------------------------- GUIDA PER LO STAFF
 
     /** Capitolo di MagixEntities nella guida del gestionale: si riscrive a ogni avvio. */
-    private void scriviGuidaStaff() {
-        StaffGuide.crea(this, "MagixEntities — NPC ed entità da comando", 70)
+    private void writeStaffGuide() {
+        StaffGuide.create(this, "MagixEntities — NPC ed entità da comando", 70)
                 // Numeri presi dal config vero: cambiando una chiave, questo capitolo
                 // sulla guida del gestionale cambia da solo (vedi util/ConfigValues).
-                .valori(new com.teolo.magixentities.util.ConfigValues(this))
+                .values(new com.teolo.magixentities.util.ConfigValues(this))
                 .intro("Crea entità ferme dove servono: guide allo spawn, mercanti, statue di giocatori. Fa il "
                         + "lavoro che di solito fa Citizens, ma con le entità vanilla e senza ProtocolLib.")
 
-                .sezione("Dove vivono le entità",
+                .section("Dove vivono le entità",
                         "Sono scritte in entities.yml e ricreate a ogni avvio: se qualcuno ne uccide una, o un "
                                 + "chunk fa i capricci, al riavvio torna dov'era. Il file è la verità, il mondo è "
                                 + "solo la copia.",
                         "All'avvio il plugin fa due cose in fila: toglie le copie che non riconosce e ricrea "
                                 + "quelle che mancano. Per questo non serve intervenire a mano quasi mai.")
 
-                .sezione("Il tipo «player»",
+                .section("Il tipo «player»",
                         "Usa il Mannequin vanilla con la skin presa dal profilo del giocatore indicato: niente "
                                 + "pacchetti finti, niente ProtocolLib, niente da riscrivere a ogni versione di "
                                 + "Minecraft.",
@@ -121,39 +121,39 @@ public final class MagixEntities extends JavaPlugin {
                                 + "nome non esiste su minecraft.net il plugin lo scrive in console una volta sola e "
                                 + "riprova ogni mezz'ora (skin.retry-minutes).")
 
-                .sezione("Aspetto, equipaggiamento e sguardo",
+                .section("Aspetto, equipaggiamento e sguardo",
                         "Nome visibile, equipaggiamento e posa si cambiano dai comandi o dal menu in gioco, senza "
                                 + "toccare il file.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
                                 + "Si accende per singola entità.")
 
-                .sezione("Azioni al clic",
+                .section("Azioni al clic",
                         "A un'entità si può attaccare un'azione: eseguire un comando, aprire un menu, mandare un "
                                 + "messaggio. È il modo con cui una guida allo spawn può portare un nuovo giocatore "
                                 + "dove serve senza che debba sapere nessun comando.")
 
-                .comandiDettagliati()
-                .comandi()
-                .permessi()
+                .detailedCommands()
+                .commands()
+                .permissions()
 
-                .guasto("/me apre l'emote invece del plugin",
+                .issue("/me apre l'emote invece del plugin",
                         "È l'emote di Minecraft, e CMI ne registra una sua. Usa /mentities, /ment oppure la forma "
                                 + "esplicita /magixentities:me.")
-                .guasto("Un'entità è sparita",
+                .issue("Un'entità è sparita",
                         "/ment respawn <nome> la ricrea. Se ne mancano molte, /ment reload rilegge tutto il file.")
-                .guasto("Ne sono comparse due uguali",
+                .issue("Ne sono comparse due uguali",
                         "È un doppione rimasto nel mondo: /ment purge toglie le copie che il plugin non riconosce.")
-                .guasto("In console torna «Texture skin non trovate per ...»",
+                .issue("In console torna «Texture skin non trovate per ...»",
                         "Quel nome non ha una skin su minecraft.net (di solito è un nome inventato). L'entità "
                                 + "resta con la skin standard: cambiale nome con /ment skin <entità> <nick> oppure "
                                 + "ignora il messaggio, che compare una volta sola per nome.")
-                .guasto("La skin di un'entità player è quella sbagliata",
+                .issue("La skin di un'entità player è quella sbagliata",
                         "Il profilo viene risolto dal nome: se il nome è stato cambiato su minecraft.net, ricrea "
                                 + "l'entità.")
 
                 // Tabella con la colonna "Ora vale": i valori li legge dal config al momento di
                 // pubblicare, quindi restano allineati da soli a quello che il server fa davvero.
-                .impostazioni(
+                .settings(
                         "check-interval-seconds", "Ogni quanti secondi il plugin controlla che le entità esistano ancora e le ricrea se sono sparite (0 = mai).",
                         "defaults.invulnerable", "Le entità appena create non subiscono danni (fuoco, mob, cadute, giocatori).",
                         "defaults.nametag", "Mostra il nome sopra la testa delle entità appena create.",
@@ -161,10 +161,10 @@ public final class MagixEntities extends JavaPlugin {
                         "defaults.gravity", "Le entità appena create subiscono la gravità.",
                         "defaults.collidable", "Le entità appena create bloccano il passaggio dei giocatori.")
 
-                .mai("Non modificare entities.yml mentre il server gira: al primo salvataggio del plugin le tue "
+                .never("Non modificare entities.yml mentre il server gira: al primo salvataggio del plugin le tue "
                         + "modifiche vengono sovrascritte.")
-                .mai("Non piazzare entità in chunk che nessuno tiene caricati aspettandoti che facciano qualcosa: "
+                .never("Non piazzare entità in chunk che nessuno tiene caricati aspettandoti che facciano qualcosa: "
                         + "fuori dai chunk caricati non esistono.")
-                .scrivi();
+                .write();
     }
 }

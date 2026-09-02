@@ -19,21 +19,21 @@ import java.util.UUID;
  * @param automatica true se non c'e' stata una persona a deciderla
  * @param impronta   SHA-256 del rapporto firmato, se c'e'
  */
-public record Sanction(int id, UUID uuid, String nome, Type tipo, String categoria, String motivo,
-                       Scope ambito, int punti, long inizio, long fine, String staff,
-                       boolean automatica, String impronta) {
+public record Sanction(int id, UUID uuid, String name, Type type, String category, String reason,
+                       Scope scope, int points, long beginning, long fine, String staff,
+                       boolean automaticMode, String impronta) {
 
     /** Il provvedimento e' ancora in corso adesso? */
-    public boolean attiva() {
+    public boolean activate() {
         return fine == Duration.PERMANENTE || fine > System.currentTimeMillis();
     }
 
     /** Duration complessiva, per come la si racconta. */
-    public String durataLeggibile() {
-        if (!tipo.haDurata()) {
+    public String readableDuration() {
+        if (!type.hasDuration()) {
             return "immediata";
         }
-        return fine == Duration.PERMANENTE ? "permanente" : Duration.scrivi(fine - inizio);
+        return fine == Duration.PERMANENTE ? "permanente" : Duration.write(fine - beginning);
     }
 
     /** Chi l'ha decisa, detto a un umano. */
@@ -41,12 +41,12 @@ public record Sanction(int id, UUID uuid, String nome, Type tipo, String categor
         if (staff != null && !staff.isBlank()) {
             return staff;
         }
-        return automatica ? "Sistema automatico" : "Staff";
+        return automaticMode ? "Sistema automatico" : "Staff";
     }
 
     /** La stessa sanzione, con il numero assegnato dal database. */
     public Sanction conId(int nuovoId) {
-        return new Sanction(nuovoId, uuid, nome, tipo, categoria, motivo, ambito, punti,
-                inizio, fine, staff, automatica, impronta);
+        return new Sanction(nuovoId, uuid, name, type, category, reason, scope, points,
+                beginning, fine, staff, automaticMode, impronta);
     }
 }

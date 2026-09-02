@@ -62,9 +62,9 @@ public final class ViolationsDao {
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, v.uuid().toString());
-            ps.setString(2, v.nome());
-            ps.setString(3, v.categoria());
-            ps.setInt(4, v.punti());
+            ps.setString(2, v.name());
+            ps.setString(3, v.category());
+            ps.setInt(4, v.points());
             ps.setString(5, v.fonte());
             ps.setString(6, v.dettaglio());
             ps.setTimestamp(7, new Timestamp(v.quando()));
@@ -76,7 +76,7 @@ public final class ViolationsDao {
     }
 
     /** Le violazioni che contano ancora per il registro punti di un giocatore. */
-    public List<Violation> perPunti(UUID uuid) throws SQLException {
+    public List<Violation> perPoints(UUID uuid) throws SQLException {
         String sql = "SELECT * FROM punishment_violations WHERE mc_uuid = ? AND cancelled = 0 "
                 + "AND points > 0 ORDER BY id DESC LIMIT 300";
         List<Violation> out = new ArrayList<>();
@@ -124,12 +124,12 @@ public final class ViolationsDao {
     }
 
     /** Collega la violazione al provvedimento che ha fatto scattare. */
-    public void collega(int idViolazione, int idSanzione) throws SQLException {
+    public void collega(int violationId, int sanctionId) throws SQLException {
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE punishment_violations SET punishment_id = ? WHERE id = ?")) {
-            ps.setInt(1, idSanzione);
-            ps.setInt(2, idViolazione);
+            ps.setInt(1, sanctionId);
+            ps.setInt(2, violationId);
             ps.executeUpdate();
         }
     }
@@ -139,11 +139,11 @@ public final class ViolationsDao {
      * Se non lo si facesse, un ricorso accolto lascerebbe comunque il giocatore a un passo
      * dalla soglia successiva — cioe' mezzo punito lo stesso.
      */
-    public int annullaPerSanzione(int idSanzione) throws SQLException {
+    public int cancelForSanction(int sanctionId) throws SQLException {
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE punishment_violations SET cancelled = 1 WHERE punishment_id = ?")) {
-            ps.setInt(1, idSanzione);
+            ps.setInt(1, sanctionId);
             return ps.executeUpdate();
         }
     }

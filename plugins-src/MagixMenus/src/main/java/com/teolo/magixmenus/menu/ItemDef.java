@@ -31,23 +31,23 @@ import java.util.Map;
  */
 public final class ItemDef {
 
-    private String nome = "";
-    private List<Integer> caselle = List.of();
+    private String name = "";
+    private List<Integer> slots = List.of();
 
     // --- aspetto (tutti i testi possono contenere placeholder) ---
     private String materiale = "STONE";
     private String quantita = "1";
-    private String titolo;                       // il nome visibile; null = quello dell'item
-    private List<String> descrizione = List.of();
+    private String title;                       // il nome visibile; null = quello dell'item
+    private List<String> description = List.of();
     private List<String> incantesimi = List.of();
     private boolean luccica;
     private boolean indistruttibile;
-    private boolean nascondiDettagli;
+    private boolean hideDetails;
     private String modelloCustom;                // custom_model_data
     private String modelloItem;                  // item_model (1.21.4+)
-    private String colore;                       // pelle, pozione, fuoco d'artificio: "#RRGGBB"
+    private String color;                       // pelle, pozione, fuoco d'artificio: "#RRGGBB"
     private String testa;                        // nome giocatore, URL o texture base64
-    private String grezzo;                       // NBT/componenti per quello che qui non e' previsto
+    private String raw;                       // NBT/componenti per quello che qui non e' previsto
 
     // --- negozio: vedi negozio/Shop.java per il perche' non sono requisiti e azioni ---
     private String prezzo;                       // quanto costa comprarlo
@@ -55,10 +55,10 @@ public final class ItemDef {
     private String vendi;                        // a quanto lo ricompra il server (clic destro)
 
     // --- comportamento ---
-    private Requirements mostraSe = Requirements.NESSUNO;
-    private final Map<Click, Requirements> clicSe = new EnumMap<>(Click.class);
-    private final Map<Click, List<Action>> azioni = new EnumMap<>(Click.class);
-    private int attesaFraClic;                   // secondi di pausa fra un clic e il successivo
+    private Requirements showIf = Requirements.NESSUNO;
+    private final Map<Click, Requirements> clickIf = new EnumMap<>(Click.class);
+    private final Map<Click, List<Action>> actions = new EnumMap<>(Click.class);
+    private int clickDelay;                   // secondi di pausa fra un clic e il successivo
     private boolean dinamico;
 
     ItemDef() {
@@ -66,12 +66,12 @@ public final class ItemDef {
 
     // ------------------------------------------------------------------ lettura
 
-    public String nome() {
-        return nome;
+    public String name() {
+        return name;
     }
 
-    public List<Integer> caselle() {
-        return caselle;
+    public List<Integer> slots() {
+        return slots;
     }
 
     public String materiale() {
@@ -82,12 +82,12 @@ public final class ItemDef {
         return quantita;
     }
 
-    public String titolo() {
-        return titolo;
+    public String title() {
+        return title;
     }
 
-    public List<String> descrizione() {
-        return descrizione;
+    public List<String> description() {
+        return description;
     }
 
     public List<String> incantesimi() {
@@ -102,8 +102,8 @@ public final class ItemDef {
         return indistruttibile;
     }
 
-    public boolean nascondiDettagli() {
-        return nascondiDettagli;
+    public boolean hideDetails() {
+        return hideDetails;
     }
 
     public String modelloCustom() {
@@ -114,16 +114,16 @@ public final class ItemDef {
         return modelloItem;
     }
 
-    public String colore() {
-        return colore;
+    public String color() {
+        return color;
     }
 
     public String testa() {
         return testa;
     }
 
-    public String grezzo() {
-        return grezzo;
+    public String raw() {
+        return raw;
     }
 
     public String prezzo() {
@@ -143,20 +143,20 @@ public final class ItemDef {
         return (prezzo != null && !prezzo.isBlank()) || (vendi != null && !vendi.isBlank());
     }
 
-    public Requirements mostraSe() {
-        return mostraSe;
+    public Requirements showIf() {
+        return showIf;
     }
 
-    public Requirements clicSe(Click c) {
-        return clicSe.getOrDefault(c, Requirements.NESSUNO);
+    public Requirements clickIf(Click c) {
+        return clickIf.getOrDefault(c, Requirements.NESSUNO);
     }
 
-    public boolean haRequisitiDiClic() {
-        return !clicSe.isEmpty();
+    public boolean hasClickRequirements() {
+        return !clickIf.isEmpty();
     }
 
-    public int attesaFraClic() {
-        return attesaFraClic;
+    public int clickDelay() {
+        return clickDelay;
     }
 
     public boolean dinamico() {
@@ -167,9 +167,9 @@ public final class ItemDef {
      * Le azioni da eseguire per questo clic: prima quelle del tasto premuto, poi quelle generiche.
      * Vedi il perche' in {@link Click}.
      */
-    public List<Action> azioniPer(Click c) {
-        List<Action> proprie = azioni.get(c);
-        List<Action> generiche = azioni.get(Click.QUALSIASI);
+    public List<Action> actionsFor(Click c) {
+        List<Action> proprie = actions.get(c);
+        List<Action> generiche = actions.get(Click.QUALSIASI);
         if (proprie == null || proprie.isEmpty()) {
             return generiche == null ? List.of() : generiche;
         }
@@ -182,7 +182,7 @@ public final class ItemDef {
     }
 
     public boolean cliccabile() {
-        return !azioni.isEmpty();
+        return !actions.isEmpty();
     }
 
     /**
@@ -192,19 +192,19 @@ public final class ItemDef {
      * del sito: unire i due gruppi come fa {@link #azioniPer} li farebbe comparire due volte al
      * prossimo salvataggio.
      */
-    public List<Action> azioniGrezze(Click c) {
-        List<Action> a = azioni.get(c);
+    public List<Action> rawActions(Click c) {
+        List<Action> a = actions.get(c);
         return a == null ? List.of() : a;
     }
 
     // ------------------------------------------------------- scrittura (caricatore)
 
-    void nome(String v) {
-        this.nome = v;
+    void name(String v) {
+        this.name = v;
     }
 
-    void caselle(List<Integer> v) {
-        this.caselle = List.copyOf(v);
+    void slots(List<Integer> v) {
+        this.slots = List.copyOf(v);
     }
 
     void materiale(String v) {
@@ -215,12 +215,12 @@ public final class ItemDef {
         this.quantita = v;
     }
 
-    void titolo(String v) {
-        this.titolo = v;
+    void title(String v) {
+        this.title = v;
     }
 
-    void descrizione(List<String> v) {
-        this.descrizione = List.copyOf(v);
+    void description(List<String> v) {
+        this.description = List.copyOf(v);
     }
 
     void incantesimi(List<String> v) {
@@ -235,8 +235,8 @@ public final class ItemDef {
         this.indistruttibile = v;
     }
 
-    void nascondiDettagli(boolean v) {
-        this.nascondiDettagli = v;
+    void hideDetails(boolean v) {
+        this.hideDetails = v;
     }
 
     void modelloCustom(String v) {
@@ -247,16 +247,16 @@ public final class ItemDef {
         this.modelloItem = v;
     }
 
-    void colore(String v) {
-        this.colore = v;
+    void color(String v) {
+        this.color = v;
     }
 
     void testa(String v) {
         this.testa = v;
     }
 
-    void grezzo(String v) {
-        this.grezzo = v;
+    void raw(String v) {
+        this.raw = v;
     }
 
     void prezzo(String v) {
@@ -271,20 +271,20 @@ public final class ItemDef {
         this.vendi = v;
     }
 
-    void mostraSe(Requirements v) {
-        this.mostraSe = v;
+    void showIf(Requirements v) {
+        this.showIf = v;
     }
 
-    void clicSe(Click c, Requirements v) {
-        this.clicSe.put(c, v);
+    void clickIf(Click c, Requirements v) {
+        this.clickIf.put(c, v);
     }
 
-    void azioni(Click c, List<Action> v) {
-        this.azioni.put(c, List.copyOf(v));
+    void actions(Click c, List<Action> v) {
+        this.actions.put(c, List.copyOf(v));
     }
 
-    void attesaFraClic(int v) {
-        this.attesaFraClic = v;
+    void clickDelay(int v) {
+        this.clickDelay = v;
     }
 
     /**
@@ -294,14 +294,14 @@ public final class ItemDef {
      * scritto il file, e ricalcolarla sessanta volte al secondo per ogni item di ogni menu aperto
      * sarebbe esattamente il genere di spreco che questo campo serve a evitare.
      */
-    void calcolaSeDinamico() {
-        dinamico = Text.dinamico(materiale) || Text.dinamico(quantita) || Text.dinamico(titolo)
-                || Text.dinamico(descrizione) || Text.dinamico(testa) || Text.dinamico(colore)
+    void computeIfDynamic() {
+        dinamico = Text.dinamico(materiale) || Text.dinamico(quantita) || Text.dinamico(title)
+                || Text.dinamico(description) || Text.dinamico(testa) || Text.dinamico(color)
                 || Text.dinamico(modelloCustom) || Text.dinamico(modelloItem)
-                || Text.dinamico(grezzo) || Text.dinamico(incantesimi)
+                || Text.dinamico(raw) || Text.dinamico(incantesimi)
                 // Un item con dei mostra_se e' vivo per forza: quelle condizioni possono
                 // diventare vere mentre il menu e' aperto, e allora l'item deve comparire.
-                || !mostraSe.vuoto()
+                || !showIf.vuoto()
                 || Text.dinamico(prezzo) || Text.dinamico(vendi);
     }
 }

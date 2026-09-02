@@ -2,11 +2,11 @@ package com.teolo.magixauth.gate;
 
 import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.MagixAuth;
-import com.teolo.magixauth.crypt.OtpCodici;
+import com.teolo.magixauth.crypt.OtpCodes;
 import com.teolo.magixauth.crypt.Password;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.model.Account;
-import com.teolo.magixauth.model.Fase;
+import com.teolo.magixauth.model.Phase;
 import com.teolo.magixauth.premium.MojangLookup;
 import com.teolo.magixauth.util.Texts;
 import com.teolo.magixauth.util.DurationText;
@@ -14,8 +14,11 @@ import io.papermc.paper.connection.PlayerLoginConnection;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
@@ -40,34 +43,99 @@ public final class AuthGate {
     private final MagixAuth plugin;
     private final AuthConfig config;
     private final AuthDao dao;
-    private final OtpPolicy politica;
-    private final Visibilita visibilita;
+    private final OtpPolicy policy;
+    private final Visibility visibility;
     private final MojangLookup mojang;
-    private final Biscotto biscotto;
+    private final Cookie cookie;
+
+    /**
+     * Il punto esatto in cui compare chi deve ancora fare il login, deciso a mano con
+     * /magixauth setspawn. Il punto di spawn del mondo (/setworldspawn) e quello di CMI non
+     * sono la stessa cosa: chi vuole il cancello sullo spawn di CMI lo mette qui stando li'.
+     * Null finche' nessuno l'ha impostato: allora si ripiega sullo spawn del mondo principale.
+     */
+    private volatile Location loginSpawn;
 
     /** Chi e' fermo al cancello adesso. */
-    private final Map<UUID, StatoIngresso> fermi = new ConcurrentHashMap<>();
+    private final Map<UUID, EntryState> frozen = new ConcurrentHashMap<>();
 
     /** Deciso al pre-login, ritirato al momento dell'ingresso. */
-    private final Map<UUID, StatoIngresso> decisioni = new ConcurrentHashMap<>();
+    private final Map<UUID, EntryState> decisions = new ConcurrentHashMap<>();
 
-    public AuthGate(MagixAuth plugin, AuthConfig config, AuthDao dao, OtpPolicy politica,
-                    Visibilita visibilita, MojangLookup mojang) {
+    public AuthGate(MagixAuth plugin, AuthConfig config, AuthDao dao, OtpPolicy policy,
+                    Visibility visibility, MojangLookup mojang) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
-        this.politica = politica;
-        this.visibilita = visibilita;
+        this.policy = policy;
+        this.visibility = visibility;
         this.mojang = mojang;
-        this.biscotto = new Biscotto(plugin, config.cookieAttesaMillis);
+        this.cookie = new Cookie(plugin, config.cookieWaitMillis);
+        this.loginSpawn = readLoginSpawn();
     }
 
-    public StatoIngresso stato(Player p) {
-        return fermi.get(p.getUniqueId());
+    /** Il file che tiene il punto del cancello fra un avvio e l'altro. */
+    private File loginSpawnFile() {
+        return new File(plugin.getDataFolder(), "cancello.yml");
     }
 
-    public boolean fermo(Player p) {
-        return fermi.containsKey(p.getUniqueId());
+    /**
+     * Rilegge da disco il punto del cancello, o null se non e' mai stato impostato o se il
+     * mondo salvato non esiste piu' (su questo server i mondi si rigenerano da zero).
+     */
+    private Location readLoginSpawn() {
+        File f = loginSpawnFile();
+        if (!f.exists()) {
+            return null;
+        }
+        YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
+        String worldName = y.getString("world");
+        if (worldName == null) {
+            return null;
+        }
+        World targetWorld = Bukkit.getWorld(worldName);
+        if (targetWorld == null) {
+            plugin.getLogger().warning("MagixAuth: il cancello era nel mondo \"" + worldName
+                    + "\", che non esiste piu'. Reimpostalo con /magixauth setspawn.");
+            return null;
+        }
+        return new Location(targetWorld, y.getDouble("x"), y.getDouble("y"), y.getDouble("z"),
+                (float) y.getDouble("yaw"), (float) y.getDouble("pitch"));
+    }
+
+    /**
+     * Fissa il cancello dove sta chi ha dato /magixauth setspawn, sguardo compreso, e lo
+     * scrive su disco: da qui in poi chi deve fare il login compare esattamente li'.
+     */
+    public void setLoginSpawn(Location where) {
+        Location chosen = where.clone();
+        this.loginSpawn = chosen;
+        YamlConfiguration y = new YamlConfiguration();
+        y.set("world", chosen.getWorld().getName());
+        y.set("x", chosen.getX());
+        y.set("y", chosen.getY());
+        y.set("z", chosen.getZ());
+        y.set("yaw", (double) chosen.getYaw());
+        y.set("pitch", (double) chosen.getPitch());
+        try {
+            y.save(loginSpawnFile());
+        } catch (IOException e) {
+            plugin.getLogger().warning("MagixAuth: cancello non salvato su disco ("
+                    + e.getMessage() + "). Vale fino al prossimo riavvio.");
+        }
+    }
+
+    /** Dov'e' il cancello adesso, o null se si usa ancora lo spawn del mondo. */
+    public Location loginSpawn() {
+        return loginSpawn == null ? null : loginSpawn.clone();
+    }
+
+    public EntryState state(Player p) {
+        return frozen.get(p.getUniqueId());
+    }
+
+    public boolean isFrozen(Player p) {
+        return frozen.containsKey(p.getUniqueId());
     }
 
     // =================================================================================
@@ -77,21 +145,21 @@ public final class AuthGate {
     /**
      * @return null se il giocatore puo' proseguire, altrimenti il motivo del rifiuto
      */
-    public String decidi(UUID uuidProposto, String nome, String ip,
-                         PlayerLoginConnection connessione, ProfiloSetter profilo) {
+    public String decide(UUID proposedUuid, String name, String ip,
+                         PlayerLoginConnection conn, ProfileSetter prof) {
         try {
-            java.time.LocalDateTime bloccato = dao.bloccatoFino(ip);
-            if (bloccato != null) {
-                return Texts.kickTroppiTentativi(DurationText.finoA(bloccato));
+            java.time.LocalDateTime blocked = dao.blockedUntil(ip);
+            if (blocked != null) {
+                return Texts.kickTooManyAttempts(DurationText.until(blocked));
             }
 
-            Account account = dao.perNome(nome);
+            Account account = dao.byName(name);
 
             // L'UUID e' un dato dell'account, non una funzione del nome: chi ha gia' una
             // riga si riprende il suo di sempre, compreso quello premium di quando il
             // server era in online mode. E' cio' che evita ogni migrazione di ops.json,
             // LuckPerms, fazioni e permessi.
-            UUID uuid = account != null ? account.uuid : AuthDao.uuidOffline(nome);
+            UUID uuid = account != null ? account.uuid : AuthDao.uuidOffline(name);
 
             // La skin va rimessa a mano: in offline mode il gioco non la chiede piu' a
             // nessuno, e senza questo si entra con la faccia di serie — o, da un launcher
@@ -99,21 +167,21 @@ public final class AuthGate {
             // sul servizio di skin del launcher. Le si passa anche l'UUID dell'account:
             // quando e' un UUID Mojang, la skin si chiede direttamente con quello.
             String[] skin = null;
-            if (config.skinDaMojang) {
-                MojangLookup.Ritrovata ritrovata = mojang.skinDi(uuid, nome);
-                skin = ritrovata.skin();
-                if (ritrovata.fallita()) {
+            if (config.skinFromMojang) {
+                MojangLookup.Found found = mojang.skinOf(uuid, name);
+                skin = found.skin();
+                if (found.failed()) {
                     // Un buco di rete non deve diventare permanente ne' invisibile: non
                     // viene messo in cache, e almeno si sa perche' quel giocatore e' entrato
                     // senza la sua faccia.
-                    plugin.getLogger().warning("MagixAuth: skin di " + nome
-                            + " non recuperata (" + ritrovata.motivo() + "). Si riprova al prossimo ingresso.");
+                    plugin.getLogger().warning("MagixAuth: skin di " + name
+                            + " non recuperata (" + found.reason() + "). Si riprova al prossimo ingresso.");
                 }
             }
-            profilo.applica(uuid.equals(uuidProposto) ? null : uuid, skin);
+            prof.apply(uuid.equals(proposedUuid) ? null : uuid, skin);
 
             if (Bukkit.getPlayer(uuid) != null) {
-                return Texts.KICK_NOME_OCCUPATO;
+                return Texts.KICK_NAME_TAKEN;
             }
 
             // Il dispositivo si riconosce in DUE modi, e basta che ne funzioni uno.
@@ -124,39 +192,39 @@ public final class AuthGate {
             // Il gettone da solo non basta neppure: vive nella memoria del client e sparisce
             // quando il giocatore chiude il gioco, quindi non riconoscerebbe mai chi rientra
             // il giorno dopo. Uno copre il buco dell'altro.
-            String dispositivo = ip;
-            String cookieDispositivo = config.cookieDispositivo
-                    ? biscotto.dispositivoDi(connessione) : null;
+            String deviceKey = ip;
+            String deviceCookie = config.deviceCookie
+                    ? cookie.deviceOf(conn) : null;
 
-            Fase fase;
-            if (account == null || !account.registrato()) {
-                fase = Fase.REGISTRAZIONE;
+            Phase phase;
+            if (account == null || !account.registered()) {
+                phase = Phase.REGISTRAZIONE;
             } else {
                 // Computer gia' conosciuto e sessione ancora buona: si salta la password.
-                Boolean sessioneConOtp = cookieDispositivo == null
-                        ? null : dao.sessione(uuid, cookieDispositivo);
-                if (sessioneConOtp == null) {
-                    sessioneConOtp = dao.sessione(uuid, dispositivo);
+                Boolean sessionWithOtp = deviceCookie == null
+                        ? null : dao.session(uuid, deviceCookie);
+                if (sessionWithOtp == null) {
+                    sessionWithOtp = dao.session(uuid, deviceKey);
                 }
-                boolean serveOtp = politica.serve(account, uuid) && account.haOtp();
+                boolean needsOtp = policy.required(account, uuid) && account.haOtp();
 
-                if (sessioneConOtp == null) {
-                    fase = Fase.PASSWORD;
-                } else if (serveOtp && config.otpSegueLaSessione && !sessioneConOtp) {
-                    fase = Fase.OTP;
+                if (sessionWithOtp == null) {
+                    phase = Phase.PASSWORD;
+                } else if (needsOtp && config.otpFollowsSession && !sessionWithOtp) {
+                    phase = Phase.OTP;
                 } else {
-                    fase = Fase.LIBERO;
+                    phase = Phase.LIBERO;
                 }
             }
 
-            StatoIngresso stato = new StatoIngresso(uuid, nome, ip, account, dispositivo,
-                    cookieDispositivo, fase);
-            decisioni.put(uuid, stato);
+            EntryState state = new EntryState(uuid, name, ip, account, deviceKey,
+                    deviceCookie, phase);
+            decisions.put(uuid, state);
             return null;
 
         } catch (SQLException e) {
             plugin.getLogger().warning("MagixAuth: database non raggiungibile al pre-login di "
-                    + nome + " (" + e.getMessage() + ").");
+                    + name + " (" + e.getMessage() + ").");
             // Non si puo' sapere chi sia: si tiene fuori. Preferibile chiudere fuori il
             // proprietario per qualche minuto che far entrare chiunque col suo nome.
             return Texts.KICK_DATABASE;
@@ -174,18 +242,18 @@ public final class AuthGate {
      * Il gettone vecchio viene buttato: e' la rotazione, l'unica cosa che impedisce a una
      * copia intercettata di valere per sempre.
      */
-    private void ricorda(Player p, StatoIngresso stato, boolean otpOk) throws SQLException {
-        dao.salvaSessione(stato.uuid, stato.dispositivo, stato.ip, config.oreSessione, otpOk);
+    private void remember(Player p, EntryState state, boolean otpOk) throws SQLException {
+        dao.saveSession(state.uuid, state.deviceKey, state.ip, config.sessionHours, otpOk);
 
-        if (!config.cookieDispositivo) {
+        if (!config.deviceCookie) {
             return;
         }
-        byte[] gettone = Biscotto.nuovoGettone();
-        dao.salvaSessione(stato.uuid, Biscotto.dispositivo(gettone), stato.ip, config.oreSessione, otpOk);
-        if (stato.cookieDispositivo != null) {
-            dao.dimenticaDispositivo(stato.uuid, stato.cookieDispositivo);
+        byte[] cookieToken = Cookie.newCookieToken();
+        dao.saveSession(state.uuid, Cookie.deviceKey(cookieToken), state.ip, config.sessionHours, otpOk);
+        if (state.deviceCookie != null) {
+            dao.forgetDevice(state.uuid, state.deviceCookie);
         }
-        sulMain(() -> biscotto.consegna(p, gettone));
+        onMain(() -> cookie.deliver(p, cookieToken));
     }
 
     /**
@@ -194,8 +262,8 @@ public final class AuthGate {
      * @param uuid l'UUID da imporre, oppure null se quello proposto va gia' bene
      * @param skin {valore, firma} delle texture, oppure null per lasciare quella di serie
      */
-    public interface ProfiloSetter {
-        void applica(UUID uuid, String[] skin);
+    public interface ProfileSetter {
+        void apply(UUID uuid, String[] skin);
     }
 
     // =================================================================================
@@ -205,81 +273,94 @@ public final class AuthGate {
     /**
      * @return la posizione a cui farlo comparire, o null per lasciarlo dov'era
      */
-    public Location dirottaSpawn(UUID uuid, Location vera) {
-        StatoIngresso stato = decisioni.get(uuid);
-        if (stato == null || stato.fase == Fase.LIBERO || !config.spawnAlPostoDellaPosizione) {
+    public Location hijackSpawn(UUID uuid, Location real) {
+        EntryState state = decisions.get(uuid);
+        if (state == null || state.phase == Phase.LIBERO || !config.spawnInsteadOfPosition) {
             return null;
         }
-        stato.posizioneVera = vera == null ? null : vera.clone();
+        state.realPosition = real == null ? null : real.clone();
 
         // La posizione va anche nel database, e non solo qui in memoria: se si disconnette
         // mentre e' fermo allo spawn, il server salverebbe lo spawn come sua ultima
         // posizione e quella vera sarebbe persa per sempre.
-        if (stato.posizioneVera != null && stato.posizioneVera.getWorld() != null) {
-            Location l = stato.posizioneVera;
+        if (state.realPosition != null && state.realPosition.getWorld() != null) {
+            Location l = state.realPosition;
             plugin.async(() -> {
                 try {
-                    dao.salvaPosizione(uuid, l.getWorld().getName(), l.getX(), l.getY(), l.getZ(),
+                    dao.savePosition(uuid, l.getWorld().getName(), l.getX(), l.getY(), l.getZ(),
                             l.getYaw(), l.getPitch());
                 } catch (SQLException e) {
-                    plugin.getLogger().warning("MagixAuth: posizione di " + stato.nome
+                    plugin.getLogger().warning("MagixAuth: posizione di " + state.name
                             + " non salvata (" + e.getMessage() + ").");
                 }
             });
         }
 
-        World mondo = vera != null && vera.getWorld() != null
-                ? vera.getWorld() : Bukkit.getWorlds().get(0);
+        // Il cancello e' UNO solo, per tutti, in qualunque mondo si fossero disconnessi:
+        // chi era nell'End o nel Nether NON va portato allo spawn di quel mondo — la
+        // piattaforma di ossidiana dell'End non e' un posto dove chiedere una password.
+        // La posizione vera e' gia' stata salvata qui sopra, quindi dopo il login torna
+        // esattamente dov'era, End compreso.
+        //
+        // Se qualcuno ha fissato il cancello a mano con /magixauth setspawn — perche' lo
+        // spawn di CMI non e' quello di /setworldspawn — si usa quel punto esatto, sguardo
+        // compreso. Altrimenti si ripiega sullo spawn del mondo principale.
+        Location pinned = this.loginSpawn;
+        if (pinned != null && pinned.getWorld() != null) {
+            return pinned.clone();
+        }
+
+        World targetWorld = Bukkit.getWorlds().get(0);
 
         // Al CENTRO del blocco, non sul suo spigolo: `getSpawnLocation` restituisce le
         // coordinate intere del blocco, e chi ci viene messo sopra si ritrova incastrato
         // fra quattro blocchi invece che in piedi su uno. Mezzo blocco su ciascun asse
         // rimette il giocatore dove starebbe naturalmente.
-        Location dove = mondo.getSpawnLocation().clone();
-        dove.setX(dove.getBlockX() + 0.5);
-        dove.setZ(dove.getBlockZ() + 0.5);
+        Location where = targetWorld.getSpawnLocation().clone();
+        where.setX(where.getBlockX() + 0.5);
+        where.setZ(where.getBlockZ() + 0.5);
         // Lo sguardo e' quello dello spawn, non quello che aveva prima di uscire: il
         // cancello e' un posto costruito apposta (cartelli, tastierino) e chi arriva deve
         // trovarselo davanti. `getSpawnLocation` porta con se' l'angolo del punto di spawn
         // (yaw e pitch, quelli che /setworldspawn ha memorizzato), quindi la direzione
         // giusta e' gia' nel clone: basta non sovrascriverla con quella del giocatore.
-        return dove;
+        return where;
     }
 
     // =================================================================================
     // 3. Ingresso
     // =================================================================================
 
-    public void accogli(Player p) {
-        StatoIngresso stato = decisioni.remove(p.getUniqueId());
-        if (stato == null) {
+    public void welcome(Player p) {
+        EntryState state = decisions.remove(p.getUniqueId());
+        if (state == null) {
             // Non dovrebbe succedere: vuol dire che il pre-login non e' passato di qui.
             // Nel dubbio si tratta come non autenticato, mai come autenticato.
-            stato = new StatoIngresso(p.getUniqueId(), p.getName(),
+            state = new EntryState(p.getUniqueId(), p.getName(),
                     p.getAddress() == null ? "" : p.getAddress().getAddress().getHostAddress(),
-                    null, ipDi(p), null, Fase.REGISTRAZIONE);
+                    null, ipOf(p), null, Phase.REGISTRAZIONE);
         }
 
-        if (stato.fase == Fase.LIBERO) {
+        if (state.phase == Phase.LIBERO) {
             // Computer conosciuto, sessione valida: entra senza accorgersi di nulla.
-            fermi.put(p.getUniqueId(), stato);
-            libera(p, false);
+            frozen.put(p.getUniqueId(), state);
+            release(p, false);
             return;
         }
 
-        fermi.put(p.getUniqueId(), stato);
-        visibilita.nascondi(p);
-        avviaCronometro(p, stato);
+        frozen.put(p.getUniqueId(), state);
+        visibility.hide(p);
+        startTimer(p, state);
 
         // Il pacchetto parte subito, ma non lo si aspetta: al primo ingresso di un giocatore
         // nuovo non fara' in tempo, e il tastierino resta leggibile lo stesso.
 
-        StatoIngresso finale = stato;
+        EntryState finalState = state;
         // Un attimo di respiro: al join il client sta ancora ricevendo il mondo, e un
         // messaggio mandato troppo presto scorre via prima che si veda qualcosa.
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (p.isOnline() && fermo(p)) {
-                istruzioni(p, finale);
+            if (p.isOnline() && isFrozen(p)) {
+                instructions(p, finalState);
             }
         }, 10L);
     }
@@ -291,31 +372,31 @@ public final class AuthGate {
      * parlano perderebbe l'unico messaggio che gli spiega come entrare, e resterebbe fermo
      * senza capire perche'.
      */
-    private void istruzioni(Player p, StatoIngresso stato) {
-        if (stato.aspettaCodice()) {
-            p.sendMessage(Texts.c(config.prefisso, Texts.OTP_SERVE));
+    private void instructions(Player p, EntryState state) {
+        if (state.awaitsCode()) {
+            p.sendMessage(Texts.c(config.prefix, Texts.OTP_SERVE));
             p.sendMessage(Texts.c("&7Scrivi &f/otp <codice a sei cifre>"));
-        } else if (stato.inRegistrazione()) {
-            p.sendMessage(Texts.c(config.prefisso, Texts.BENVENUTO_NUOVO));
+        } else if (state.inRegistration()) {
+            p.sendMessage(Texts.c(config.prefix, Texts.BENVENUTO_NUOVO));
             p.sendMessage(Texts.c("&7Scrivi &f/register <password> <ripeti password>"));
         } else {
-            p.sendMessage(Texts.c(config.prefisso, Texts.BENTORNATO));
+            p.sendMessage(Texts.c(config.prefix, Texts.BENTORNATO));
             p.sendMessage(Texts.c("&7Scrivi &f/login <password>"));
         }
     }
 
-    private void avviaCronometro(Player p, StatoIngresso stato) {
-        stato.taskScadenza = Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (p.isOnline() && fermo(p)) {
+    private void startTimer(Player p, EntryState state) {
+        state.expiryTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (p.isOnline() && isFrozen(p)) {
                 p.kick(Texts.c(Texts.KICK_TEMPO_SCADUTO));
             }
-        }, config.secondiMassimi * 20L).getTaskId();
+        }, config.maxSeconds * 20L).getTaskId();
 
-        stato.taskCartello = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (p.isOnline() && fermo(p)) {
-                istruzioni(p, stato);
-            } else if (stato.taskCartello != -1) {
-                Bukkit.getScheduler().cancelTask(stato.taskCartello);
+        state.signTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (p.isOnline() && isFrozen(p)) {
+                instructions(p, state);
+            } else if (state.signTask != -1) {
+                Bukkit.getScheduler().cancelTask(state.signTask);
             }
         }, 300L, 300L).getTaskId();
     }
@@ -331,168 +412,168 @@ public final class AuthGate {
      * principale vorrebbe dire fermare tutto il server a ogni tentativo, quindi si sposta
      * di la' e si torna qui solo per parlare col giocatore.
      */
-    public void provaPassword(Player p, String scritta) {
-        StatoIngresso stato = stato(p);
-        if (stato == null || stato.occupato) {
+    public void tryPassword(Player p, String typed) {
+        EntryState state = state(p);
+        if (state == null || state.busy) {
             return;
         }
-        stato.occupato = true;
+        state.busy = true;
         plugin.async(() -> {
             try {
-                verifica(p, stato, scritta);
+                checkPassword(p, state, typed);
             } finally {
-                stato.occupato = false;
+                state.busy = false;
             }
         });
     }
 
     /** La registrazione, chiamata da /register quando le due password coincidono. */
-    public void registra(Player p, String scelta) {
-        StatoIngresso stato = stato(p);
-        if (stato == null || stato.occupato) {
+    public void register(Player p, String chosen) {
+        EntryState state = state(p);
+        if (state == null || state.busy) {
             return;
         }
-        stato.occupato = true;
+        state.busy = true;
         plugin.async(() -> {
             try {
-                registra(p, stato, scelta);
+                register(p, state, chosen);
             } finally {
-                stato.occupato = false;
+                state.busy = false;
             }
         });
     }
 
-    private void registra(Player p, StatoIngresso stato, String scritta) {
-        String no = Password.perche_no(scritta, stato.nome, config.passwordMinima);
+    private void register(Player p, EntryState state, String typed) {
+        String no = Password.whyNot(typed, state.name, config.minPasswordLength);
         if (no != null) {
-            riproponi(p, "&c" + no);
+            reprompt(p, "&c" + no);
             return;
         }
 
         // Annotazione premium: interessa sapere se il nome appartiene a un account vero,
         // ma non deve impedire la registrazione se Mojang non risponde.
-        UUID premium = config.annotaUuidPremium ? mojang.cerca(stato.nome) : null;
+        UUID premium = config.noteUuidPremium ? mojang.lookup(state.name) : null;
 
         try {
-            int id = dao.registra(stato.uuid, stato.nome, Password.impronta(scritta), premium);
+            int id = dao.register(state.uuid, state.name, Password.fingerprint(typed), premium);
             if (id < 0) {
-                sulMain(() -> p.kick(Texts.c(Texts.KICK_NOME_OCCUPATO)));
+                onMain(() -> p.kick(Texts.c(Texts.KICK_NAME_TAKEN)));
                 return;
             }
-            ricorda(p, stato, false);
+            remember(p, state, false);
         } catch (SQLException e) {
-            plugin.getLogger().warning("MagixAuth: registrazione di " + stato.nome
+            plugin.getLogger().warning("MagixAuth: registrazione di " + state.name
                     + " fallita (" + e.getMessage() + ").");
-            sulMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
+            onMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
             return;
         }
 
-        sulMain(() -> {
-            p.sendMessage(Texts.c(Texts.REGISTRATO));
-            libera(p, true);
+        onMain(() -> {
+            p.sendMessage(Texts.c(Texts.REGISTERED));
+            release(p, true);
         });
     }
 
-    private void verifica(Player p, StatoIngresso stato, String scritta) {
-        Account account = stato.account;
-        boolean giusta = account != null && Password.corrisponde(scritta, account.passwordHash);
+    private void checkPassword(Player p, EntryState state, String typed) {
+        Account account = state.account;
+        boolean correct = account != null && Password.matchesHash(typed, account.passwordHash);
 
-        if (!giusta) {
+        if (!correct) {
             try {
-                int falliti = dao.registraFallimento(stato.ip, stato.nome,
-                        config.tentativiMassimi, config.bloccoMinuti);
-                if (falliti >= config.tentativiMassimi) {
+                int falliti = dao.recordFailure(state.ip, state.name,
+                        config.maxAttempts, config.lockoutMinutes);
+                if (falliti >= config.maxAttempts) {
                     // Il blocco parte adesso, quindi manca esattamente quanto dura.
-                    String manca = DurationText.daSecondi(config.bloccoMinuti * 60L);
-                    sulMain(() -> p.kick(Texts.c(Texts.kickTroppiTentativi(manca))));
+                    String remaining = DurationText.fromSeconds(config.lockoutMinutes * 60L);
+                    onMain(() -> p.kick(Texts.c(Texts.kickTooManyAttempts(remaining))));
                     return;
                 }
             } catch (SQLException e) {
                 plugin.getLogger().warning("MagixAuth: tentativo non registrato (" + e.getMessage() + ").");
             }
-            riproponi(p, Texts.CREDENZIALI_NO);
+            reprompt(p, Texts.CREDENZIALI_NO);
             return;
         }
 
         try {
-            dao.azzeraTentativi(stato.ip);
-            if (!stato.nome.equals(account.nome)) {
-                dao.allineaNome(account.idSito, stato.nome);
+            dao.resetAttempts(state.ip);
+            if (!state.name.equals(account.name)) {
+                dao.alignName(account.siteId, state.name);
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("MagixAuth: pulizia tentativi fallita (" + e.getMessage() + ").");
         }
 
-        boolean serveCodice = politica.serve(account, stato.uuid) && account.haOtp();
-        if (serveCodice) {
-            stato.fase = Fase.OTP;
-            sulMain(() -> {
-                p.sendMessage(Texts.c(config.prefisso, Texts.OTP_SERVE));
+        boolean needsCode = policy.required(account, state.uuid) && account.haOtp();
+        if (needsCode) {
+            state.phase = Phase.OTP;
+            onMain(() -> {
+                p.sendMessage(Texts.c(config.prefix, Texts.OTP_SERVE));
                 p.sendMessage(Texts.c("&7Scrivi &f/otp <codice a sei cifre>"));
             });
             return;
         }
 
         try {
-            ricorda(p, stato, false);
+            remember(p, state, false);
         } catch (SQLException e) {
             plugin.getLogger().warning("MagixAuth: sessione non salvata (" + e.getMessage() + ").");
         }
-        sulMain(() -> libera(p, true));
+        onMain(() -> release(p, true));
     }
 
     /** Il codice digitato sul tastierino. */
-    public void provaCodice(Player p, String cifre) {
-        StatoIngresso stato = stato(p);
-        if (stato == null || stato.account == null || stato.occupato) {
+    public void tryCode(Player p, String digits) {
+        EntryState state = state(p);
+        if (state == null || state.account == null || state.busy) {
             return;
         }
-        stato.occupato = true;
+        state.busy = true;
 
         plugin.async(() -> {
             try {
-                Account account = stato.account;
-                if (account.otpBloccato()) {
-                    String manca = DurationText.finoA(account.totpBloccatoFino);
-                    sulMain(() -> p.sendMessage(Texts.c(config.prefisso, Texts.otpBloccato(manca))));
+                Account account = state.account;
+                if (account.otpLocked()) {
+                    String remaining = DurationText.until(account.totpLockedUntil);
+                    onMain(() -> p.sendMessage(Texts.c(config.prefix, Texts.otpLocked(remaining))));
                     return;
                 }
-                String segreto = OtpCodici.decifraSegreto(account.totpSecretCifrato, config.chiaveOtpBase64);
-                if (segreto == null) {
+                String secret = OtpCodes.decryptSecret(account.totpSecretCifrato, config.otpKeyBase64);
+                if (secret == null) {
                     // La chiave in configurazione non apre la busta del sito: e' un errore
                     // di installazione, non del giocatore, e va detto a chi gestisce.
                     plugin.getLogger().severe("MagixAuth: impossibile leggere il segreto OTP di "
-                            + stato.nome + ". Controlla database.chiave_otp_base64 (OTP_CHIAVE del sito).");
-                    sulMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
+                            + state.name + ". Controlla database.chiave_otp_base64 (OTP_CHIAVE del sito).");
+                    onMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
                     return;
                 }
 
-                long passo = OtpCodici.verifica(OtpCodici.base32Decode(segreto), cifre, account.totpUltimoPasso);
-                if (passo < 0) {
+                long step = OtpCodes.checkPassword(OtpCodes.base32Decode(secret), digits, account.totpLastStep);
+                if (step < 0) {
                     try {
-                        dao.otpFallito(account.idSito, config.tentativiMassimi, config.bloccoMinuti);
+                        dao.otpFailed(account.siteId, config.maxAttempts, config.lockoutMinutes);
                     } catch (SQLException ignored) {
                         // Il conteggio e' un di piu': il codice resta comunque rifiutato.
                     }
-                    sulMain(() -> p.sendMessage(Texts.c(config.prefisso, Texts.OTP_NO)));
+                    onMain(() -> p.sendMessage(Texts.c(config.prefix, Texts.OTP_NO)));
                     return;
                 }
 
-                dao.otpPassoSpeso(account.idSito, passo);
-                ricorda(p, stato, true);
-                sulMain(() -> libera(p, true));
+                dao.otpStepSpent(account.siteId, step);
+                remember(p, state, true);
+                onMain(() -> release(p, true));
 
             } catch (SQLException e) {
                 plugin.getLogger().warning("MagixAuth: verifica codice fallita (" + e.getMessage() + ").");
-                sulMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
+                onMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
             } finally {
-                stato.occupato = false;
+                state.busy = false;
             }
         });
     }
 
-    private void riproponi(Player p, String messaggio) {
-        sulMain(() -> p.sendMessage(Texts.c(config.prefisso, messaggio)));
+    private void reprompt(Player p, String message) {
+        onMain(() -> p.sendMessage(Texts.c(config.prefix, message)));
     }
 
     // =================================================================================
@@ -500,86 +581,86 @@ public final class AuthGate {
     // =================================================================================
 
     /** Il giocatore ha finito: si riprende il suo posto nel mondo. */
-    public void libera(Player p, boolean annuncia) {
-        StatoIngresso stato = fermi.remove(p.getUniqueId());
-        if (stato == null) {
+    public void release(Player p, boolean announce) {
+        EntryState state = frozen.remove(p.getUniqueId());
+        if (state == null) {
             return;
         }
-        if (stato.taskScadenza != -1) {
-            Bukkit.getScheduler().cancelTask(stato.taskScadenza);
+        if (state.expiryTask != -1) {
+            Bukkit.getScheduler().cancelTask(state.expiryTask);
         }
-        if (stato.taskCartello != -1) {
-            Bukkit.getScheduler().cancelTask(stato.taskCartello);
+        if (state.signTask != -1) {
+            Bukkit.getScheduler().cancelTask(state.signTask);
         }
-        stato.fase = Fase.LIBERO;
+        state.phase = Phase.LIBERO;
 
-        visibilita.mostra(p);
+        visibility.show(p);
 
-        riportaAlPosto(p, stato);
+        sendBackToPlace(p, state);
 
-        if (annuncia) {
-            p.sendMessage(Texts.c(config.prefisso, Texts.DENTRO));
+        if (announce) {
+            p.sendMessage(Texts.c(config.prefix, Texts.INSIDE));
         }
         // Solo adesso il server dice che e' arrivato: prima sarebbe stato l'annuncio di un
         // tentativo, non di un ingresso.
-        if (config.ritardaMessaggioIngresso && stato.messaggioIngresso != null) {
-            Bukkit.getServer().sendMessage(stato.messaggioIngresso);
+        if (config.delayJoinMessage && state.savedJoinMessage != null) {
+            Bukkit.getServer().sendMessage(state.savedJoinMessage);
         }
     }
 
-    private void riportaAlPosto(Player p, StatoIngresso stato) {
-        if (stato.posizioneVera != null) {
-            Location dove = stato.posizioneVera;
-            plugin.getLogger().info("MagixAuth: riporto " + stato.nome + " a "
-                    + dove.getWorld().getName() + " "
-                    + Math.round(dove.getX()) + "/" + Math.round(dove.getY())
-                    + "/" + Math.round(dove.getZ()) + ".");
+    private void sendBackToPlace(Player p, EntryState state) {
+        if (state.realPosition != null) {
+            Location where = state.realPosition;
+            plugin.getLogger().info("MagixAuth: riporto " + state.name + " a "
+                    + where.getWorld().getName() + " "
+                    + Math.round(where.getX()) + "/" + Math.round(where.getY())
+                    + "/" + Math.round(where.getZ()) + ".");
             // Con qualche tick di ritardo, e non subito: al momento del login altri plugin
             // stanno ancora sistemando il giocatore (CMI e le fazioni lo fanno al join), e
             // un teletrasporto mandato nello stesso istante viene sovrascritto dal loro.
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (p.isOnline()) {
-                    p.teleportAsync(dove);
+                    p.teleportAsync(where);
                 }
             }, 5L);
-            pulisciPosizione(stato.uuid);
+            clearPosition(state.uuid);
             return;
         }
-        plugin.getLogger().info("MagixAuth: nessuna posizione in memoria per " + stato.nome
+        plugin.getLogger().info("MagixAuth: nessuna posizione in memoria per " + state.name
                 + ", la cerco nel database.");
         // In memoria non c'e': puo' essere rientrato dopo essersi disconnesso al cancello,
         // e allora la posizione buona e' quella che avevamo messo nel database.
         plugin.async(() -> {
             try {
-                Object[] riga = dao.leggiPosizione(stato.uuid);
-                if (riga == null) {
+                Object[] row = dao.readPosition(state.uuid);
+                if (row == null) {
                     return;
                 }
-                World mondo = Bukkit.getWorld((String) riga[0]);
-                if (mondo == null) {
+                World targetWorld = Bukkit.getWorld((String) row[0]);
+                if (targetWorld == null) {
                     return;
                 }
-                Location dove = new Location(mondo, (Double) riga[1], (Double) riga[2],
-                        (Double) riga[3], (Float) riga[4], (Float) riga[5]);
-                plugin.getLogger().info("MagixAuth: riporto " + stato.nome
+                Location where = new Location(targetWorld, (Double) row[1], (Double) row[2],
+                        (Double) row[3], (Float) row[4], (Float) row[5]);
+                plugin.getLogger().info("MagixAuth: riporto " + state.name
                         + " alla posizione salvata nel database.");
-                sulMain(() -> Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                onMain(() -> Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     if (p.isOnline()) {
-                        p.teleportAsync(dove);
+                        p.teleportAsync(where);
                     }
                 }, 5L));
-                dao.cancellaPosizione(stato.uuid);
+                dao.deletePosition(state.uuid);
             } catch (SQLException e) {
-                plugin.getLogger().warning("MagixAuth: posizione di " + stato.nome
+                plugin.getLogger().warning("MagixAuth: posizione di " + state.name
                         + " non ripristinata (" + e.getMessage() + ").");
             }
         });
     }
 
-    private void pulisciPosizione(UUID uuid) {
+    private void clearPosition(UUID uuid) {
         plugin.async(() -> {
             try {
-                dao.cancellaPosizione(uuid);
+                dao.deletePosition(uuid);
             } catch (SQLException ignored) {
                 // Resta una riga vecchia: la prossima entrata la sovrascrive.
             }
@@ -595,32 +676,32 @@ public final class AuthGate {
      * — non ha senso spedirlo allo spawn, la sua posizione l'ha gia' vista — ma torna muto,
      * fermo e invisibile finche' non ridigita il codice.
      */
-    public void ricongela(Player p, String motivo) {
-        if (fermo(p)) {
+    public void refreeze(Player p, String reason) {
+        if (isFrozen(p)) {
             return;
         }
         plugin.async(() -> {
             try {
-                Account account = dao.perUuid(p.getUniqueId());
+                Account account = dao.byUuid(p.getUniqueId());
                 if (account == null || !account.haOtp()) {
                     // Senza un secondo fattore non avrebbe modo di ripassare: rimandarlo al
                     // cancello vorrebbe dire chiuderlo fuori dal gioco finche' non esce.
                     return;
                 }
-                dao.revocaSessioni(p.getUniqueId());
+                dao.revokeSessions(p.getUniqueId());
 
                 String ip = p.getAddress() == null ? "" : p.getAddress().getAddress().getHostAddress();
-                StatoIngresso stato = new StatoIngresso(p.getUniqueId(), p.getName(), ip, account,
-                        ip, null, Fase.OTP);
+                EntryState state = new EntryState(p.getUniqueId(), p.getName(), ip, account,
+                        ip, null, Phase.OTP);
 
-                sulMain(() -> {
+                onMain(() -> {
                     if (!p.isOnline()) {
                         return;
                     }
-                    fermi.put(p.getUniqueId(), stato);
-                    visibilita.nascondi(p);
-                    avviaCronometro(p, stato);
-                    p.sendMessage(Texts.c(config.prefisso, "&e" + motivo));
+                    frozen.put(p.getUniqueId(), state);
+                    visibility.hide(p);
+                    startTimer(p, state);
+                    p.sendMessage(Texts.c(config.prefix, "&e" + reason));
                     p.sendMessage(Texts.c("&7Scrivi &f/otp <codice a sei cifre>"));
                 });
             } catch (SQLException e) {
@@ -631,38 +712,38 @@ public final class AuthGate {
     }
 
     /** Se ne e' andato prima di finire: si smonta tutto, la posizione resta nel database. */
-    public void abbandona(Player p) {
-        StatoIngresso stato = fermi.remove(p.getUniqueId());
-        decisioni.remove(p.getUniqueId());
-        if (stato == null) {
+    public void abandon(Player p) {
+        EntryState state = frozen.remove(p.getUniqueId());
+        decisions.remove(p.getUniqueId());
+        if (state == null) {
             return;
         }
-        if (stato.taskScadenza != -1) {
-            Bukkit.getScheduler().cancelTask(stato.taskScadenza);
+        if (state.expiryTask != -1) {
+            Bukkit.getScheduler().cancelTask(state.expiryTask);
         }
-        if (stato.taskCartello != -1) {
-            Bukkit.getScheduler().cancelTask(stato.taskCartello);
+        if (state.signTask != -1) {
+            Bukkit.getScheduler().cancelTask(state.signTask);
         }
     }
 
     /** Chi e' ancora al cancello quando il server si ferma. */
-    public void chiudiTutto() {
-        for (UUID uuid : fermi.keySet()) {
+    public void closeAll() {
+        for (UUID uuid : frozen.keySet()) {
             Player p = Bukkit.getPlayer(uuid);
             // Niente da chiudere: si entra scrivendo un comando, non aprendo finestre.
         }
-        fermi.clear();
-        decisioni.clear();
+        frozen.clear();
+        decisions.clear();
     }
 
     // -----------------------------------------------------------------------------
 
     /** L'indirizzo da cui sta arrivando, o vuoto se non si riesce a saperlo. */
-    private static String ipDi(Player p) {
+    private static String ipOf(Player p) {
         return p.getAddress() == null ? "" : p.getAddress().getAddress().getHostAddress();
     }
 
-    private void sulMain(Runnable r) {
+    private void onMain(Runnable r) {
         Bukkit.getScheduler().runTask(plugin, r);
     }
 

@@ -40,69 +40,69 @@ import java.util.Map;
 public final class OpenMenu implements InventoryHolder, Context {
 
     private final MagixMenus plugin;
-    private final Player giocatore;
+    private final Player player;
     private final MenuDef def;
-    private final List<String> argomenti;
+    private final List<String> arguments;
     private final OpenMenu provenienza;
 
     private final Map<String, String> variabili = new LinkedHashMap<>();
     private final ItemDef[] disegnati;
     private final String[] vociDisegnate;
-    private final boolean[] casellaViva;
-    private final Map<String, Long> ultimoClic = new HashMap<>();
+    private final boolean[] liveSlot;
+    private final Map<String, Long> lastClick = new HashMap<>();
 
     private Inventory inventario;
     private BukkitTask aggiornamento;
-    private int pagina = 1;
-    private int pagineTotali = 1;
+    private int page = 1;
+    private int totalPages = 1;
     private boolean chiusuraVoluta;
 
-    OpenMenu(MagixMenus plugin, Player giocatore, MenuDef def, List<String> argomenti,
+    OpenMenu(MagixMenus plugin, Player player, MenuDef def, List<String> arguments,
                OpenMenu provenienza) {
         this.plugin = plugin;
-        this.giocatore = giocatore;
+        this.player = player;
         this.def = def;
-        this.argomenti = List.copyOf(argomenti);
+        this.arguments = List.copyOf(arguments);
         this.provenienza = provenienza;
 
         int dimensione = def.dimensione();
         this.disegnati = new ItemDef[dimensione];
         this.vociDisegnate = new String[dimensione];
-        this.casellaViva = new boolean[dimensione];
-        calcolaCaselleVive();
-        aggiornaVariabili();
+        this.liveSlot = new boolean[dimensione];
+        computeLiveSlots();
+        refreshVariables();
     }
 
     // ------------------------------------------------------------------ apertura
 
-    void apri() {
-        net.kyori.adventure.text.Component titolo =
-                Colors.component(Text.grezzo(giocatore, variabili, def.titolo()));
+    void open() {
+        net.kyori.adventure.text.Component title =
+                Colors.component(Text.raw(player, variabili, def.title()));
         try {
-            inventario = def.tipo().righeSuMisura()
-                    ? Bukkit.createInventory(this, def.dimensione(), titolo)
-                    : Bukkit.createInventory(this, def.tipo().inventario(), titolo);
+            inventario = def.type().customRows()
+                    ? Bukkit.createInventory(this, def.dimensione(), title)
+                    : Bukkit.createInventory(this, def.type().inventario(), title);
         } catch (Exception e) {
             // Non tutti i tipi di finestra si lasciano creare fuori dal loro blocco: meglio dirlo
             // con il nome del menu che lasciare il giocatore davanti a niente.
-            plugin.getLogger().warning("Il menu \"" + def.nome() + "\" e' di tipo "
-                    + def.tipo().name().toLowerCase(java.util.Locale.ROOT)
+            plugin.getLogger().warning("Il menu \"" + def.name() + "\" e' di tipo "
+                    + def.type().name().toLowerCase(java.util.Locale.ROOT)
                     + ", che questo server non permette di aprire cosi': " + e.getMessage());
-            plugin.messaggi().send(giocatore, "type-not-openable",
-                    "type", def.tipo().name().toLowerCase(java.util.Locale.ROOT));
+            plugin.messages().send(player, "type-not-openable",
+                    "type", def.type().name().toLowerCase(java.util.Locale.ROOT));
             return;
         }
 
-        disegna(true);
-        giocatore.openInventory(inventario);
+        draw(true);
+        player.openInventory(inventario);
 
-        if (!def.azioniApertura().isEmpty()) {
-            Actions.esegui(plugin, this, def.azioniApertura());
+        if (!def.openActions().isEmpty()) {
+            Actions.esegui(plugin, this, def.openActions());
         }
-        avviaAggiornamento();
+        startRefresh();
     }
 
-    private void avviaAggiornamento() {
+    private void startRefresh() {
         int ogni = def.aggiornamentoTick();
         if (ogni <= 0 || !def.dinamico()) {
             // Un menu senza niente di dinamico non si ridisegna nemmeno se lo chiede: sarebbe
@@ -111,15 +111,15 @@ public final class OpenMenu implements InventoryHolder, Context {
         }
         ogni = Math.max(plugin.getConfig().getInt("min-update-ticks", 1), ogni);
         aggiornamento = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!giocatore.isOnline() || inventario.getViewers().isEmpty()) {
-                ferma();
+            if (!player.isOnline() || inventario.getViewers().isEmpty()) {
+                stop();
                 return;
             }
-            disegna(false);
+            draw(false);
         }, ogni, ogni);
     }
 
-    public void ferma() {
+    public void stop() {
         if (aggiornamento != null) {
             aggiornamento.cancel();
             aggiornamento = null;
@@ -133,100 +133,100 @@ public final class OpenMenu implements InventoryHolder, Context {
      *
      * @param tutte al primo disegno si fa tutto; dopo, solo quello che puo' essere cambiato.
      */
-    void disegna(boolean tutte) {
-        aggiornaVariabili();
+    void draw(boolean tutte) {
+        refreshVariables();
         segnati.clear();
 
         for (ItemDef item : def.item()) {
-            boolean visibile = item.mostraSe().vuoto()
-                    || item.mostraSe().soddisfatti(giocatore, variabili);
-            for (int casella : item.caselle()) {
-                if (!tutte && !casellaViva[casella]) {
+            boolean visible = item.showIf().vuoto()
+                    || item.showIf().soddisfatti(player, variabili);
+            for (int slot : item.slots()) {
+                if (!tutte && !liveSlot[slot]) {
                     continue;
                 }
-                if (segnati.contains(casella)) {
+                if (segnati.contains(slot)) {
                     continue;   // una casella la prende il primo item scritto che ha diritto a starci
                 }
-                if (!visibile) {
+                if (!visible) {
                     continue;
                 }
-                metti(casella, item, null, variabili);
+                metti(slot, item, null, variabili);
             }
         }
         // Le caselle rimaste senza padrone vanno svuotate: un item che smette di essere visibile
         // deve sparire, non restare li' dal giro precedente.
-        for (int casella = 0; casella < disegnati.length; casella++) {
-            if ((tutte || casellaViva[casella]) && !segnati.contains(casella) && disegnati[casella] != null) {
-                disegnati[casella] = null;
-                vociDisegnate[casella] = null;
-                inventario.setItem(casella, null);
+        for (int slot = 0; slot < disegnati.length; slot++) {
+            if ((tutte || liveSlot[slot]) && !segnati.contains(slot) && disegnati[slot] != null) {
+                disegnati[slot] = null;
+                vociDisegnate[slot] = null;
+                inventario.setItem(slot, null);
             }
         }
-        contenuto(tutte);
-        titoloVivo();
+        content(tutte);
+        liveTitle();
     }
 
     /** Le caselle gia' assegnate in questo giro di disegno (la priorita' fra item sovrapposti). */
     private final java.util.Set<Integer> segnati = new java.util.HashSet<>();
 
-    private void metti(int casella, ItemDef item, String voce, Map<String, String> locali) {
-        segnati.add(casella);
-        ItemStack stack = ItemBuilder.costruisci(plugin, giocatore, locali, item);
-        disegnati[casella] = item;
-        vociDisegnate[casella] = voce;
-        inventario.setItem(casella, stack);
+    private void metti(int slot, ItemDef item, String entry, Map<String, String> locali) {
+        segnati.add(slot);
+        ItemStack stack = ItemBuilder.costruisci(plugin, player, locali, item);
+        disegnati[slot] = item;
+        vociDisegnate[slot] = entry;
+        inventario.setItem(slot, stack);
     }
 
-    private void contenuto(boolean tutte) {
-        Content c = def.contenuto();
+    private void content(boolean tutte) {
+        Content c = def.content();
         if (c == null) {
             return;
         }
-        List<String> voci = c.voci(giocatore, variabili);
-        int perPagina = c.perPagina();
-        pagineTotali = Math.max(1, (int) Math.ceil(voci.size() / (double) perPagina));
-        if (pagina > pagineTotali) {
-            pagina = pagineTotali;
+        List<String> entries = c.entries(player, variabili);
+        int perPage = c.perPage();
+        totalPages = Math.max(1, (int) Math.ceil(entries.size() / (double) perPage));
+        if (page > totalPages) {
+            page = totalPages;
         }
-        aggiornaVariabili();
+        refreshVariables();
 
-        int primo = (pagina - 1) * perPagina;
-        List<Integer> caselle = c.caselle();
-        for (int i = 0; i < caselle.size(); i++) {
-            int casella = caselle.get(i);
+        int primo = (page - 1) * perPage;
+        List<Integer> slots = c.slots();
+        for (int i = 0; i < slots.size(); i++) {
+            int slot = slots.get(i);
             int indice = primo + i;
-            if (indice >= voci.size()) {
-                if (segnati.contains(casella)) {
+            if (indice >= entries.size()) {
+                if (segnati.contains(slot)) {
                     continue;   // niente da mostrare qui: resta lo sfondo, se c'era
                 }
-                disegnati[casella] = null;
-                vociDisegnate[casella] = null;
-                inventario.setItem(casella, null);
+                disegnati[slot] = null;
+                vociDisegnate[slot] = null;
+                inventario.setItem(slot, null);
                 continue;
             }
             Map<String, String> locali = new LinkedHashMap<>(variabili);
-            locali.put("entry", voci.get(indice));
-            locali.put("voce", voci.get(indice));
+            locali.put("entry", entries.get(indice));
+            locali.put("voce", entries.get(indice));
             locali.put("entry_index", String.valueOf(indice + 1));
             locali.put("voce_numero", String.valueOf(indice + 1));
-            metti(casella, c.voce(), voci.get(indice), locali);
+            metti(slot, c.entry(), entries.get(indice), locali);
         }
     }
 
     /** Il titolo puo' contenere placeholder: se cambia, va riscritto sulla finestra aperta. */
-    private void titoloVivo() {
-        if (!Text.dinamico(def.titolo()) || inventario == null) {
+    private void liveTitle() {
+        if (!Text.dinamico(def.title()) || inventario == null) {
             return;
         }
         // Fra un giro di aggiornamento e l'altro il giocatore puo' aver aperto altro: senza
         // questo controllo si riscriverebbe il titolo della finestra di qualcun altro.
-        if (giocatore.getOpenInventory().getTopInventory() != inventario) {
+        if (player.getOpenInventory().getTopInventory() != inventario) {
             return;
         }
-        String nuovo = Colors.translate(Text.grezzo(giocatore, variabili, def.titolo()));
+        String nuovo = Colors.translate(Text.raw(player, variabili, def.title()));
         try {
-            if (!nuovo.equals(giocatore.getOpenInventory().getTitle())) {
-                giocatore.getOpenInventory().setTitle(nuovo);
+            if (!nuovo.equals(player.getOpenInventory().getTitle())) {
+                player.getOpenInventory().setTitle(nuovo);
             }
         } catch (Throwable ignored) {
             // Non tutte le finestre accettano di cambiare titolo mentre sono aperte: se non si
@@ -234,28 +234,28 @@ public final class OpenMenu implements InventoryHolder, Context {
         }
     }
 
-    private void calcolaCaselleVive() {
+    private void computeLiveSlots() {
         for (ItemDef item : def.item()) {
             if (!item.dinamico()) {
                 continue;
             }
-            for (int casella : item.caselle()) {
-                if (casella < casellaViva.length) {
-                    casellaViva[casella] = true;
+            for (int slot : item.slots()) {
+                if (slot < liveSlot.length) {
+                    liveSlot[slot] = true;
                 }
             }
         }
         // Se due item si contendono una casella, quella casella e' viva comunque: il secondo deve
         // poter prendere il posto del primo quando il primo smette di avere diritto a starci.
-        for (int casella = 0; casella < casellaViva.length; casella++) {
-            if (def.candidatiPer(casella).size() > 1) {
-                casellaViva[casella] = true;
+        for (int slot = 0; slot < liveSlot.length; slot++) {
+            if (def.candidatiPer(slot).size() > 1) {
+                liveSlot[slot] = true;
             }
         }
-        if (def.contenuto() != null) {
-            for (int casella : def.contenuto().caselle()) {
-                if (casella < casellaViva.length) {
-                    casellaViva[casella] = true;
+        if (def.content() != null) {
+            for (int slot : def.content().slots()) {
+                if (slot < liveSlot.length) {
+                    liveSlot[slot] = true;
                 }
             }
         }
@@ -263,25 +263,25 @@ public final class OpenMenu implements InventoryHolder, Context {
 
     // ---------------------------------------------------------------- variabili
 
-    private void aggiornaVariabili() {
-        variabili.put("menu", def.nome());
+    private void refreshVariables() {
+        variabili.put("menu", def.name());
         // Ogni variabile sta nella mappa DUE volte, col nome inglese e con quello vecchio
         // italiano: i menu gia' scritti con %pagina% continuano a funzionare, e non serve
         // decidere quale delle due forme "vince".
-        variabili.put("page", String.valueOf(pagina));
-        variabili.put("pagina", String.valueOf(pagina));
-        variabili.put("pages", String.valueOf(pagineTotali));
-        variabili.put("pagine", String.valueOf(pagineTotali));
-        for (int i = 0; i < argomenti.size(); i++) {
-            variabili.put("arg_" + (i + 1), argomenti.get(i));
-            if (i < def.argomenti().size()) {
-                variabili.put("arg_" + def.argomenti().get(i), argomenti.get(i));
+        variabili.put("page", String.valueOf(page));
+        variabili.put("pagina", String.valueOf(page));
+        variabili.put("pages", String.valueOf(totalPages));
+        variabili.put("pagine", String.valueOf(totalPages));
+        for (int i = 0; i < arguments.size(); i++) {
+            variabili.put("arg_" + (i + 1), arguments.get(i));
+            if (i < def.arguments().size()) {
+                variabili.put("arg_" + def.arguments().get(i), arguments.get(i));
             }
         }
         // Gli argomenti dichiarati ma non passati devono comunque sparire dal testo, altrimenti
         // in un menu si leggerebbe "%arg_categoria%" invece di niente.
-        for (int i = argomenti.size(); i < def.argomenti().size(); i++) {
-            variabili.putIfAbsent("arg_" + def.argomenti().get(i), "");
+        for (int i = arguments.size(); i < def.arguments().size(); i++) {
+            variabili.putIfAbsent("arg_" + def.arguments().get(i), "");
             variabili.putIfAbsent("arg_" + (i + 1), "");
         }
     }
@@ -289,8 +289,8 @@ public final class OpenMenu implements InventoryHolder, Context {
     // ------------------------------------------------------------------ contesto
 
     @Override
-    public Player giocatore() {
-        return giocatore;
+    public Player player() {
+        return player;
     }
 
     @Override
@@ -299,52 +299,52 @@ public final class OpenMenu implements InventoryHolder, Context {
     }
 
     @Override
-    public void chiudi() {
+    public void close() {
         chiusuraVoluta = true;
         // Fuori dal giro di eventi: chiudere un inventario mentre si sta gestendo un clic su
         // quello stesso inventario e' il modo classico per ritrovarsi con l'item sul cursore.
-        Bukkit.getScheduler().runTask(plugin, () -> giocatore.closeInventory());
+        Bukkit.getScheduler().runTask(plugin, () -> player.closeInventory());
     }
 
     @Override
-    public void aggiorna() {
-        disegna(true);
+    public void refresh() {
+        draw(true);
     }
 
     @Override
-    public void pagina(String dove) {
-        int prima = pagina;
-        if (dove.equalsIgnoreCase("avanti") || dove.equalsIgnoreCase("next")) {
-            pagina = Math.min(pagina + 1, pagineTotali);
-        } else if (dove.equalsIgnoreCase("indietro") || dove.equalsIgnoreCase("prev")) {
-            pagina = Math.max(1, pagina - 1);
+    public void page(String where) {
+        int prima = page;
+        if (where.equalsIgnoreCase("avanti") || where.equalsIgnoreCase("next")) {
+            page = Math.min(page + 1, totalPages);
+        } else if (where.equalsIgnoreCase("indietro") || where.equalsIgnoreCase("prev")) {
+            page = Math.max(1, page - 1);
         } else {
-            Double n = Text.numero(dove);
+            Double n = Text.number(where);
             if (n != null) {
-                pagina = Math.max(1, Math.min((int) (double) n, pagineTotali));
+                page = Math.max(1, Math.min((int) (double) n, totalPages));
             }
         }
-        if (pagina != prima) {
-            disegna(true);
+        if (page != prima) {
+            draw(true);
         }
     }
 
     @Override
-    public void indietro() {
+    public void back() {
         if (provenienza == null) {
-            chiudi();
+            close();
             return;
         }
-        plugin.menu().apri(giocatore, provenienza.def, provenienza.argomenti, provenienza.provenienza);
+        plugin.menu().open(player, provenienza.def, provenienza.arguments, provenienza.provenienza);
     }
 
     @Override
-    public void apriMenu(String nomeEArgomenti) {
-        String[] pezzi = nomeEArgomenti.trim().split("\\s+");
-        List<String> args = pezzi.length > 1
-                ? List.of(java.util.Arrays.copyOfRange(pezzi, 1, pezzi.length))
+    public void openMenu(String nameAndArgs) {
+        String[] pieces = nameAndArgs.trim().split("\\s+");
+        List<String> args = pieces.length > 1
+                ? List.of(java.util.Arrays.copyOfRange(pieces, 1, pieces.length))
                 : List.of();
-        plugin.menu().apriPerNome(giocatore, pezzi[0], args, this);
+        plugin.menu().openByName(player, pieces[0], args, this);
     }
 
     // ------------------------------------------------------------------ lettura
@@ -359,7 +359,7 @@ public final class OpenMenu implements InventoryHolder, Context {
     }
 
     public Player proprietario() {
-        return giocatore;
+        return player;
     }
 
     public boolean chiusuraVoluta() {
@@ -370,23 +370,23 @@ public final class OpenMenu implements InventoryHolder, Context {
         this.chiusuraVoluta = v;
     }
 
-    public ItemDef itemIn(int casella) {
-        return casella >= 0 && casella < disegnati.length ? disegnati[casella] : null;
+    public ItemDef itemIn(int slot) {
+        return slot >= 0 && slot < disegnati.length ? disegnati[slot] : null;
     }
 
-    public String voceIn(int casella) {
-        return casella >= 0 && casella < vociDisegnate.length ? vociDisegnate[casella] : null;
+    public String voceIn(int slot) {
+        return slot >= 0 && slot < vociDisegnate.length ? vociDisegnate[slot] : null;
     }
 
     /** Le variabili per un clic su questa casella: quelle del menu piu' la voce, se c'era. */
-    public Map<String, String> variabiliPer(int casella) {
-        String voce = voceIn(casella);
-        if (voce == null) {
+    public Map<String, String> variabiliPer(int slot) {
+        String entry = voceIn(slot);
+        if (entry == null) {
             return variabili;
         }
         Map<String, String> locali = new LinkedHashMap<>(variabili);
-        locali.put("entry", voce);
-        locali.put("voce", voce);
+        locali.put("entry", entry);
+        locali.put("voce", entry);
         return locali;
     }
 
@@ -398,15 +398,15 @@ public final class OpenMenu implements InventoryHolder, Context {
      * azioni con delle attese dentro: se nel frattempo si scrivesse sulle variabili condivise, la
      * ripresa dell'azione userebbe la voce di un clic successivo.
      */
-    public Context contestoCon(Map<String, String> locali) {
+    public Context contextWith(Map<String, String> locali) {
         if (locali == variabili) {
             return this;
         }
         OpenMenu menu = this;
         return new Context() {
             @Override
-            public Player giocatore() {
-                return menu.giocatore;
+            public Player player() {
+                return menu.player;
             }
 
             @Override
@@ -415,28 +415,28 @@ public final class OpenMenu implements InventoryHolder, Context {
             }
 
             @Override
-            public void chiudi() {
-                menu.chiudi();
+            public void close() {
+                menu.close();
             }
 
             @Override
-            public void aggiorna() {
-                menu.aggiorna();
+            public void refresh() {
+                menu.refresh();
             }
 
             @Override
-            public void pagina(String dove) {
-                menu.pagina(dove);
+            public void page(String where) {
+                menu.page(where);
             }
 
             @Override
-            public void indietro() {
-                menu.indietro();
+            public void back() {
+                menu.back();
             }
 
             @Override
-            public void apriMenu(String nomeEArgomenti) {
-                menu.apriMenu(nomeEArgomenti);
+            public void openMenu(String nameAndArgs) {
+                menu.openMenu(nameAndArgs);
             }
         };
     }
@@ -447,20 +447,20 @@ public final class OpenMenu implements InventoryHolder, Context {
      * @return i secondi che mancano, 0 se si puo' cliccare
      */
     public long attesaRimasta(ItemDef item) {
-        if (item.attesaFraClic() <= 0) {
+        if (item.clickDelay() <= 0) {
             return 0;
         }
-        Long ultimo = ultimoClic.get(item.nome());
+        Long ultimo = lastClick.get(item.name());
         if (ultimo == null) {
             return 0;
         }
         long passati = (System.currentTimeMillis() - ultimo) / 1000L;
-        return Math.max(0, item.attesaFraClic() - passati);
+        return Math.max(0, item.clickDelay() - passati);
     }
 
-    public void segnaClic(ItemDef item) {
-        if (item.attesaFraClic() > 0) {
-            ultimoClic.put(item.nome(), System.currentTimeMillis());
+    public void markClick(ItemDef item) {
+        if (item.clickDelay() > 0) {
+            lastClick.put(item.name(), System.currentTimeMillis());
         }
     }
 }

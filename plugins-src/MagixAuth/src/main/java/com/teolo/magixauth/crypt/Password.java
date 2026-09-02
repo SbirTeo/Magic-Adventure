@@ -29,7 +29,7 @@ public final class Password {
     }
 
     /** L'impronta da scrivere nel database. Mai la password in chiaro, mai un log. */
-    public static String impronta(String inChiaro) {
+    public static String fingerprint(String inChiaro) {
         return BCrypt.with(BCrypt.Version.VERSION_2Y).hashToString(COSTO, inChiaro.toCharArray());
     }
 
@@ -39,13 +39,13 @@ public final class Password {
      * Accetta qualunque variante di bcrypt ($2a$, $2b$, $2y$): il sito puo' aver scritto
      * quella riga anni fa, con una versione di PHP diversa da quella di oggi.
      */
-    public static boolean corrisponde(String inChiaro, String impronta) {
-        if (inChiaro == null || impronta == null || impronta.isEmpty()) {
+    public static boolean matchesHash(String inChiaro, String fingerprint) {
+        if (inChiaro == null || fingerprint == null || fingerprint.isEmpty()) {
             return false;
         }
         try {
             return BCrypt.verifyer().verify(inChiaro.getBytes(StandardCharsets.UTF_8),
-                    impronta.getBytes(StandardCharsets.UTF_8)).verified;
+                    fingerprint.getBytes(StandardCharsets.UTF_8)).verified;
         } catch (IllegalArgumentException e) {
             // Impronta illeggibile (riga rovinata a mano, o formato che non conosciamo):
             // si nega l'accesso, non si tenta di indovinare.
@@ -61,14 +61,14 @@ public final class Password {
      * piu' difficili da indovinare, rendono piu' probabile che vengano scritte su un
      * foglietto — o, qui, nella chat pubblica.
      */
-    public static String perche_no(String inChiaro, String nomeGiocatore, int minima) {
+    public static String whyNot(String inChiaro, String playerName, int minima) {
         if (inChiaro == null || inChiaro.length() < minima) {
             return "La password deve essere lunga almeno " + minima + " caratteri.";
         }
         if (inChiaro.length() > 64) {
             return "La password non puo' superare i 64 caratteri.";
         }
-        if (nomeGiocatore != null && inChiaro.equalsIgnoreCase(nomeGiocatore)) {
+        if (playerName != null && inChiaro.equalsIgnoreCase(playerName)) {
             return "La password non puo' essere uguale al tuo nome.";
         }
         return null;

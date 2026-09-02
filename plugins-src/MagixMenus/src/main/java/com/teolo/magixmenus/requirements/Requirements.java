@@ -19,7 +19,7 @@ import java.util.Map;
  * apre una segnalazione. Su un {@code mostra_se} non hanno senso — l'item semplicemente non c'e'
  * — e infatti li' non vengono nemmeno lette.
  */
-public record Requirements(List<Requirement> elenco, int minimo, List<Action> azioniNegate) {
+public record Requirements(List<Requirement> elenco, int minimum, List<Action> deniedActions) {
 
     /** Nessuna condizione: sempre soddisfatto. E' il valore di chi non scrive niente nel file. */
     public static final Requirements NESSUNO = new Requirements(List.of(), 0, List.of());
@@ -29,30 +29,30 @@ public record Requirements(List<Requirement> elenco, int minimo, List<Action> az
     }
 
     /** Quante condizioni servono davvero: quelle scritte, o il "minimo" se e' stato indicato. */
-    public int quanteServono() {
-        return minimo > 0 ? Math.min(minimo, elenco.size()) : elenco.size();
+    public int howManyNeeded() {
+        return minimum > 0 ? Math.min(minimum, elenco.size()) : elenco.size();
     }
 
     public boolean soddisfatti(Player p, Map<String, String> variabili) {
         if (elenco.isEmpty()) {
             return true;
         }
-        int servono = quanteServono();
+        int needed = howManyNeeded();
         int ok = 0;
         int mancanti = elenco.size();
         for (Requirement r : elenco) {
             mancanti--;
             if (r.soddisfatto(p, variabili)) {
                 ok++;
-                if (ok >= servono) {
+                if (ok >= needed) {
                     return true;
                 }
-            } else if (ok + mancanti < servono) {
+            } else if (ok + mancanti < needed) {
                 // Non ne restano abbastanza per arrivare al minimo: inutile valutare il resto,
                 // e ogni condizione in meno e' un placeholder in meno da risolvere.
                 return false;
             }
         }
-        return ok >= servono;
+        return ok >= needed;
     }
 }

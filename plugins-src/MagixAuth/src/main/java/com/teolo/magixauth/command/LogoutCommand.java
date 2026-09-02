@@ -52,27 +52,27 @@ public final class LogoutCommand implements CommandExecutor {
             return true;
         }
         // Chi e' ancora al cancello non ha niente da chiudere: non e' mai entrato.
-        if (gate.fermo(p)) {
+        if (gate.isFrozen(p)) {
             return true;
         }
         // Nessun argomento e nessuna conferma: chi lo scrive sa cosa vuole, e l'unica
         // conseguenza e' dover ridigitare la password. Una richiesta di conferma qui
         // servirebbe solo a rallentare chi ha fretta di chiudere un accesso altrui.
-        plugin.async(() -> chiudi(p));
+        plugin.async(() -> close(p));
         return true;
     }
 
-    private void chiudi(Player p) {
+    private void close(Player p) {
         try {
-            Account account = dao.perUuid(p.getUniqueId());
+            Account account = dao.byUuid(p.getUniqueId());
 
             // In gioco: via l'accesso ricordato per questo indirizzo e per tutti gli altri.
-            dao.revocaSessioni(p.getUniqueId());
+            dao.revokeSessions(p.getUniqueId());
 
             // Sul sito: `session_epoch` fa cadere le sessioni aperte, e i "resta collegato"
             // vanno buttati a parte perche' sopravvivrebbero alla chiusura del browser.
             if (account != null) {
-                dao.chiudiSessioniSito(account.idSito);
+                dao.closeSiteSessions(account.siteId);
             }
 
             plugin.getLogger().info("MagixAuth: " + p.getName() + " ha chiuso l'accesso ovunque.");
@@ -92,7 +92,7 @@ public final class LogoutCommand implements CommandExecutor {
                     + " fallito (" + e.getMessage() + ").");
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (p.isOnline()) {
-                    p.sendMessage(Texts.c(config.prefisso,
+                    p.sendMessage(Texts.c(config.prefix,
                             "&cNon sono riuscito a chiudere l'accesso adesso. Riprova."));
                 }
             });

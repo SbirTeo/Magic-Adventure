@@ -11,82 +11,82 @@ import org.bukkit.configuration.file.FileConfiguration;
 public final class AuthConfig {
 
     public final String dbHost;
-    public final int dbPorta;
-    public final String dbNome;
-    public final String dbUtente;
+    public final int dbPort;
+    public final String dbName;
+    public final String dbUser;
     public final String dbPassword;
-    public final String chiaveOtpBase64;
+    public final String otpKeyBase64;
 
-    public final int secondiMassimi;
-    public final int tentativiMassimi;
-    public final int bloccoMinuti;
-    public final int passwordMinima;
-    public final int oreSessione;
-    public final boolean otpSegueLaSessione;
-    public final boolean cookieDispositivo;
-    public final long cookieAttesaMillis;
+    public final int maxSeconds;
+    public final int maxAttempts;
+    public final int lockoutMinutes;
+    public final int minPasswordLength;
+    public final int sessionHours;
+    public final boolean otpFollowsSession;
+    public final boolean deviceCookie;
+    public final long cookieWaitMillis;
 
-    public final String trackStaff;
-    public final boolean otpFacoltativoPerGiocatori;
-    public final boolean passwordPrima;
-    public final int controlloRevocheSecondi;
+    public final String staffTrack;
+    public final boolean otpOptionalForPlayers;
+    public final boolean passwordFirst;
+    public final int revocationCheckSeconds;
 
-    public final boolean spawnAlPostoDellaPosizione;
-    public final boolean invisibileAgliAltri;
-    public final boolean nascondiGliAltri;
-    public final boolean nascondiChat;
-    public final boolean ritardaMessaggioIngresso;
+    public final boolean spawnInsteadOfPosition;
+    public final boolean hideFromOthers;
+    public final boolean hideOthers;
+    public final boolean hideChat;
+    public final boolean delayJoinMessage;
 
-    public final boolean skinDaMojang;
-    public final int skinMinutiCache;
-    public final boolean annotaUuidPremium;
+    public final boolean skinFromMojang;
+    public final int skinCacheMinutes;
+    public final boolean noteUuidPremium;
     public final int premiumTimeoutMillis;
 
-    public final String prefisso;
+    public final String prefix;
 
     public AuthConfig(FileConfiguration c) {
         this.dbHost = c.getString("database.host", "localhost");
-        this.dbPorta = c.getInt("database.port", 3306);
-        this.dbNome = c.getString("database.name", "magicadventure_web");
-        this.dbUtente = c.getString("database.user", "magicadventure");
+        this.dbPort = c.getInt("database.port", 3306);
+        this.dbName = c.getString("database.name", "magicadventure_web");
+        this.dbUser = c.getString("database.user", "magicadventure");
         this.dbPassword = c.getString("database.password", "");
-        this.chiaveOtpBase64 = c.getString("database.otp_key_base64", "");
+        this.otpKeyBase64 = c.getString("database.otp_key_base64", "");
 
-        this.secondiMassimi = c.getInt("login.max_seconds", 120);
-        this.tentativiMassimi = c.getInt("login.max_attempts", 5);
-        this.bloccoMinuti = c.getInt("login.lockout_minutes", 10);
-        this.passwordMinima = c.getInt("login.min_password_length", 8);
-        this.oreSessione = c.getInt("login.session_hours", 24);
-        this.otpSegueLaSessione = c.getBoolean("login.otp_follows_session", true);
-        this.cookieDispositivo = c.getBoolean("login.device_cookie", true);
-        this.cookieAttesaMillis = c.getLong("login.cookie_wait_millis", 1500L);
+        this.maxSeconds = c.getInt("login.max_seconds", 120);
+        this.maxAttempts = c.getInt("login.max_attempts", 5);
+        this.lockoutMinutes = c.getInt("login.lockout_minutes", 10);
+        this.minPasswordLength = c.getInt("login.min_password_length", 8);
+        this.sessionHours = c.getInt("login.session_hours", 24);
+        this.otpFollowsSession = c.getBoolean("login.otp_follows_session", true);
+        this.deviceCookie = c.getBoolean("login.device_cookie", true);
+        this.cookieWaitMillis = c.getLong("login.cookie_wait_millis", 1500L);
 
-        this.trackStaff = c.getString("otp.staff_track", "staff");
-        this.otpFacoltativoPerGiocatori = c.getBoolean("otp.optional_for_players", true);
+        this.staffTrack = c.getString("otp.staff_track", "staff");
+        this.otpOptionalForPlayers = c.getBoolean("otp.optional_for_players", true);
         // Volutamente non un enum: il valore ha senso solo in due modi, e chiunque apra il
         // file deve capire dal nome che invertirlo e' una scelta, non una preferenza.
-        this.passwordPrima = !"otp-first".equalsIgnoreCase(c.getString("otp.order", "password-first"));
-        this.controlloRevocheSecondi = Math.max(2, c.getInt("otp.revocation_check_seconds", 5));
+        this.passwordFirst = !"otp-first".equalsIgnoreCase(c.getString("otp.order", "password-first"));
+        this.revocationCheckSeconds = Math.max(2, c.getInt("otp.revocation_check_seconds", 5));
 
-        this.spawnAlPostoDellaPosizione = c.getBoolean("gate.spawn_instead_of_position", true);
-        this.invisibileAgliAltri = c.getBoolean("gate.hide_from_others", true);
-        this.nascondiGliAltri = c.getBoolean("gate.hide_others", true);
-        this.nascondiChat = c.getBoolean("gate.hide_chat", true);
-        this.ritardaMessaggioIngresso = c.getBoolean("gate.delay_join_message", true);
+        this.spawnInsteadOfPosition = c.getBoolean("gate.spawn_instead_of_position", true);
+        this.hideFromOthers = c.getBoolean("gate.hide_from_others", true);
+        this.hideOthers = c.getBoolean("gate.hide_others", true);
+        this.hideChat = c.getBoolean("gate.hide_chat", true);
+        this.delayJoinMessage = c.getBoolean("gate.delay_join_message", true);
 
-        this.skinDaMojang = c.getBoolean("premium.skin_from_mojang", true);
-        this.skinMinutiCache = c.getInt("premium.skin_cache_minutes", 30);
-        this.annotaUuidPremium = c.getBoolean("premium.note_uuid", true);
+        this.skinFromMojang = c.getBoolean("premium.skin_from_mojang", true);
+        this.skinCacheMinutes = c.getInt("premium.skin_cache_minutes", 30);
+        this.noteUuidPremium = c.getBoolean("premium.note_uuid", true);
         this.premiumTimeoutMillis = c.getInt("premium.timeout_millis", 3000);
 
-        this.prefisso = c.getString("messages.prefix", "&#C046E8&lMagixAuth &8» &r");
+        this.prefix = c.getString("messages.prefix", "&#C046E8&lMagixAuth &8» &r");
     }
 
     /** Senza questa il segreto OTP resta nella sua busta e nessun codice si puo' verificare. */
-    public boolean chiaveOtpPronta() {
+    public boolean otpKeyReady() {
         try {
-            return chiaveOtpBase64 != null
-                    && java.util.Base64.getDecoder().decode(chiaveOtpBase64.trim()).length == 32;
+            return otpKeyBase64 != null
+                    && java.util.Base64.getDecoder().decode(otpKeyBase64.trim()).length == 32;
         } catch (Exception e) {
             return false;
         }

@@ -17,23 +17,23 @@ import java.util.Map;
  */
 public interface Context {
 
-    Player giocatore();
+    Player player();
 
     /** Le variabili del menu: %pagina%, %arg_1%, %voce_nome%... */
     Map<String, String> variabili();
 
     /** Chiude quello che e' aperto. Fuori da un menu non fa niente. */
-    void chiudi();
+    void close();
 
     /** Ridisegna subito. */
-    void aggiorna();
+    void refresh();
 
     /** "avanti", "indietro" o un numero di pagina. */
-    void pagina(String dove);
+    void page(String where);
 
     /** Torna al menu precedente, se se ne ricorda uno. */
-    void indietro();
+    void back();
 
     /** Apre un altro menu: nome ed eventuali argomenti separati da spazio. */
-    void apriMenu(String nomeEArgomenti);
+    void openMenu(String nameAndArgs);
 }

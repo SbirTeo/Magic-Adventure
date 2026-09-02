@@ -31,37 +31,37 @@ public final class Actions {
     private Actions() {
     }
 
-    public static void esegui(MagixMenus plugin, Context contesto, List<Action> azioni) {
-        esegui(plugin, contesto, azioni, 0);
+    public static void esegui(MagixMenus plugin, Context context, List<Action> actions) {
+        esegui(plugin, context, actions, 0);
     }
 
-    private static void esegui(MagixMenus plugin, Context contesto, List<Action> azioni, int da) {
-        Player p = contesto.giocatore();
-        for (int i = da; i < azioni.size(); i++) {
-            Action a = azioni.get(i);
+    private static void esegui(MagixMenus plugin, Context context, List<Action> actions, int da) {
+        Player p = context.player();
+        for (int i = da; i < actions.size(); i++) {
+            Action a = actions.get(i);
 
-            if (a.tipo() == Action.Tipo.SE) {
-                List<Action> ramo = a.condizione().soddisfatti(p, contesto.variabili())
+            if (a.type() == Action.Type.SE) {
+                List<Action> ramo = a.condizione().soddisfatti(p, context.variabili())
                         ? a.allora() : a.altrimenti();
-                esegui(plugin, contesto, ramo, 0);
+                esegui(plugin, context, ramo, 0);
                 continue;
             }
 
-            if (a.tipo() == Action.Tipo.ATTESA) {
+            if (a.type() == Action.Type.ATTESA) {
                 long tick = tick(a.argomento());
                 final int riprendiDa = i + 1;
                 if (tick <= 0) {
                     continue;
                 }
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (contesto.giocatore().isOnline()) {
-                        esegui(plugin, contesto, azioni, riprendiDa);
+                    if (context.player().isOnline()) {
+                        esegui(plugin, context, actions, riprendiDa);
                     }
                 }, tick);
                 return;
             }
 
-            if (!una(plugin, contesto, a)) {
+            if (!una(plugin, context, a)) {
                 // Un'azione che fallisce (soldi insufficienti) ferma il resto: le azioni dopo
                 // davano per scontato che quella fosse riuscita.
                 return;
@@ -70,16 +70,16 @@ public final class Actions {
     }
 
     /** @return false se la catena si deve fermare qui. */
-    private static boolean una(MagixMenus plugin, Context contesto, Action a) {
-        Player p = contesto.giocatore();
-        String arg = Text.grezzo(p, contesto.variabili(), a.argomento());
+    private static boolean una(MagixMenus plugin, Context context, Action a) {
+        Player p = context.player();
+        String arg = Text.raw(p, context.variabili(), a.argomento());
 
-        switch (a.tipo()) {
-            case COMANDO -> p.performCommand(togliBarra(arg));
+        switch (a.type()) {
+            case COMMAND -> p.performCommand(removeBar(arg));
 
-            case CONSOLE -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), togliBarra(arg));
+            case CONSOLE -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), removeBar(arg));
 
-            case COMANDO_OP -> {
+            case COMMAND_OP -> {
                 if (!plugin.getConfig().getBoolean("actions.allow-op-commands", false)) {
                     plugin.getLogger().warning("Azione 'comando_op' ignorata (" + arg + "): e' spenta nel "
                             + "config, chiave azioni.permetti-comandi-op. Quasi sempre 'console' fa lo stesso.");
@@ -88,7 +88,7 @@ public final class Actions {
                 boolean eraOp = p.isOp();
                 try {
                     p.setOp(true);
-                    p.performCommand(togliBarra(arg));
+                    p.performCommand(removeBar(arg));
                 } finally {
                     // Nel "finally" apposta: se il comando esplode, l'op deve tornare com'era
                     // lo stesso, altrimenti un errore lascerebbe un giocatore operatore.
@@ -96,15 +96,15 @@ public final class Actions {
                 }
             }
 
-            case MESSAGGIO -> p.sendMessage(Colors.translate(arg));
+            case MESSAGE -> p.sendMessage(Colors.translate(arg));
 
             case ANNUNCIO -> Bukkit.broadcast(Colors.component(arg));
 
-            case TITOLO -> {
-                String[] pezzi = arg.split("\\|", 2);
+            case TITLE -> {
+                String[] pieces = arg.split("\\|", 2);
                 p.showTitle(net.kyori.adventure.title.Title.title(
-                        Colors.component(pezzi[0]),
-                        pezzi.length > 1 ? Colors.component(pezzi[1]) : Component.empty(),
+                        Colors.component(pieces[0]),
+                        pieces.length > 1 ? Colors.component(pieces[1]) : Component.empty(),
                         net.kyori.adventure.title.Title.Times.times(
                                 Duration.ofMillis(250), Duration.ofSeconds(2), Duration.ofMillis(500))));
             }
@@ -113,15 +113,15 @@ public final class Actions {
 
             case SUONO -> suono(plugin, p, arg);
 
-            case APRI_MENU -> contesto.apriMenu(arg);
+            case OPEN_MENU -> context.openMenu(arg);
 
-            case INDIETRO -> contesto.indietro();
+            case BACK -> context.back();
 
-            case CHIUDI -> contesto.chiudi();
+            case CLOSE -> context.close();
 
-            case AGGIORNA -> contesto.aggiorna();
+            case REFRESH -> context.refresh();
 
-            case PAGINA -> contesto.pagina(arg.isBlank() ? "avanti" : arg.trim());
+            case PAGE -> context.page(arg.isBlank() ? "avanti" : arg.trim());
 
             case DAI_SOLDI -> {
                 if (!EconomyHook.disponibile()) {
@@ -131,12 +131,12 @@ public final class Actions {
                 EconomyHook.dai(p, quanto(arg));
             }
 
-            case TOGLI_SOLDI -> {
+            case TAKE_MONEY -> {
                 if (!EconomyHook.disponibile()) {
                     plugin.getLogger().warning("Azione 'togli_soldi' ignorata: Vault non e' installato.");
                     return true;
                 }
-                if (!EconomyHook.togli(p, quanto(arg))) {
+                if (!EconomyHook.remove(p, quanto(arg))) {
                     return false;
                 }
             }
@@ -149,37 +149,37 @@ public final class Actions {
 
     /** "BLOCK_NOTE_BLOCK_PLING", oppure "SUONO|volume|tono". */
     private static void suono(MagixMenus plugin, Player p, String arg) {
-        String[] pezzi = arg.split("\\|");
-        String nome = pezzi[0].trim().toUpperCase(Locale.ROOT).replace('.', '_');
-        float volume = pezzi.length > 1 ? (float) quanto(pezzi[1]) : 1f;
-        float tono = pezzi.length > 2 ? (float) quanto(pezzi[2]) : 1f;
+        String[] pieces = arg.split("\\|");
+        String name = pieces[0].trim().toUpperCase(Locale.ROOT).replace('.', '_');
+        float volume = pieces.length > 1 ? (float) quanto(pieces[1]) : 1f;
+        float tono = pieces.length > 2 ? (float) quanto(pieces[2]) : 1f;
         Sound suono;
         try {
             // Il nome com'e' scritto ovunque ("BLOCK_NOTE_BLOCK_PLING"); se non e' quello,
             // ci prova il registro, che accetta anche la forma "block.note_block.pling".
-            suono = Sound.valueOf(nome);
+            suono = Sound.valueOf(name);
         } catch (IllegalArgumentException e) {
-            suono = org.bukkit.Registry.SOUND_EVENT.match(pezzi[0].trim());
+            suono = org.bukkit.Registry.SOUND_EVENT.match(pieces[0].trim());
         }
         if (suono == null) {
-            plugin.getLogger().warning("Suono sconosciuto: " + pezzi[0]);
+            plugin.getLogger().warning("Suono sconosciuto: " + pieces[0]);
             return;
         }
         p.playSound(p.getLocation(), suono, volume, tono);
     }
 
-    private static String togliBarra(String comando) {
-        String c = comando.trim();
+    private static String removeBar(String command) {
+        String c = command.trim();
         return c.startsWith("/") ? c.substring(1) : c;
     }
 
     private static long tick(String s) {
-        Double d = Text.numero(s);
+        Double d = Text.number(s);
         return d == null ? 0 : Math.max(0, Math.round(d));
     }
 
     private static double quanto(String s) {
-        Double d = Text.numero(s);
+        Double d = Text.number(s);
         return d == null ? 0 : d;
     }
 }

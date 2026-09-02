@@ -285,6 +285,13 @@ top:
   entry-own: "  &e#{pos} &r{relcolor}{name} &8- &b{score} &7(tu)"
   separator: "  &8..."
 
+# Tooltip (hover) che spiega COME si arriva al punteggio: passando il mouse sul valore (in /f info e
+# /f top) compare l'intestazione + una riga per caratteristica. {label}=nome voce, {value}=valore usato,
+# {level}=livello 0-100 di quella voce, {weight}=quota di peso, {points}=punti che aggiunge al totale.
+score-tooltip:
+  header: "&b&lPunteggio &f{score}&7/100 &8— come si compone:"
+  line: "&7{label}: &f{value} &8· &7liv &f{level}&7/100 &8· &7peso &f{weight} &8= &b{points}"
+
 db:
   no-perm: "&cNon hai il permesso."
   info-header: "&6[DB] &eBackend attivo: &f{type}"

@@ -44,7 +44,7 @@ public final class MenuManager {
     private final Map<String, MenuDef> menu = new LinkedHashMap<>();
     private final Map<UUID, OpenMenu> aperti = new HashMap<>();
     /** I comandi registrati, per nome. Non si svuota mai: vedi registraComandi(). */
-    private final Map<String, MenuCommand> comandi = new LinkedHashMap<>();
+    private final Map<String, MenuCommand> commands = new LinkedHashMap<>();
 
     public MenuManager(MagixMenus plugin) {
         this.plugin = plugin;
@@ -52,48 +52,48 @@ public final class MenuManager {
 
     // ------------------------------------------------------------------ caricamento
 
-    public void carica() {
-        chiudiTutti();
+    public void load() {
+        closeAll();
         menu.clear();
 
-        File cartella = new File(plugin.getDataFolder(), "menus");
-        if (!cartella.exists()) {
-            cartella.mkdirs();
-            copiaEsempio(cartella);
+        File folder = new File(plugin.getDataFolder(), "menus");
+        if (!folder.exists()) {
+            folder.mkdirs();
+            copyExample(folder);
         }
 
-        File[] file = cartella.listFiles((d, n) -> n.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        File[] file = folder.listFiles((d, n) -> n.toLowerCase(Locale.ROOT).endsWith(".yml"));
         if (file == null || file.length == 0) {
-            plugin.getLogger().warning("Nessun menu in " + cartella.getPath() + ".");
+            plugin.getLogger().warning("Nessun menu in " + folder.getPath() + ".");
             return;
         }
 
         int conErrori = 0;
         for (File f : file) {
             MenuDef def = MenuLoader.daFile(f);
-            if (menu.containsKey(def.nome())) {
-                plugin.getLogger().warning("Due menu si chiamano \"" + def.nome() + "\": tengo il primo.");
+            if (menu.containsKey(def.name())) {
+                plugin.getLogger().warning("Due menu si chiamano \"" + def.name() + "\": tengo il primo.");
                 continue;
             }
-            menu.put(def.nome(), def);
+            menu.put(def.name(), def);
             if (!def.errori().isEmpty()) {
                 conErrori++;
-                plugin.getLogger().warning("Il menu \"" + def.nome() + "\" ha " + def.errori().size()
+                plugin.getLogger().warning("Il menu \"" + def.name() + "\" ha " + def.errori().size()
                         + " problemi:");
                 for (String e : def.errori()) {
                     plugin.getLogger().warning("  - " + e);
                 }
             }
         }
-        registraComandi();
+        registerCommands();
 
         // Quello che il plugin ha capito, per l'editor del sito. Fuori dal filo principale:
         // e' scrittura su disco, e il catalogo degli item del gioco non e' piccolo.
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> JsonExport.scrivi(plugin, this));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> JsonExport.write(plugin, this));
 
         plugin.getLogger().info("Menu caricati: " + menu.size()
                 + (conErrori > 0 ? " (" + conErrori + " con errori, vedi sopra)" : "")
-                + ", comandi registrati: " + comandi.size() + ".");
+                + ", comandi registrati: " + commands.size() + ".");
     }
 
     /**
@@ -102,15 +102,15 @@ public final class MenuManager {
      * Si copiano solo se la cartella non c'era: sono file da modificare, e riscriverli a ogni
      * avvio cancellerebbe le prove di chi li sta usando per imparare.
      */
-    private void copiaEsempio(File cartella) {
-        for (String nome : List.of("test.yml", "test-dialogo.yml")) {
-            try (InputStream in = plugin.getResource("menus/" + nome)) {
+    private void copyExample(File folder) {
+        for (String name : List.of("test.yml", "test-dialogo.yml")) {
+            try (InputStream in = plugin.getResource("menus/" + name)) {
                 if (in != null) {
-                    Files.copy(in, new File(cartella, nome).toPath(),
+                    Files.copy(in, new File(folder, name).toPath(),
                             StandardCopyOption.REPLACE_EXISTING);
                 }
             } catch (IOException e) {
-                plugin.getLogger().warning("Non sono riuscito a scrivere " + nome + ": " + e.getMessage());
+                plugin.getLogger().warning("Non sono riuscito a scrivere " + name + ": " + e.getMessage());
             }
         }
         plugin.getLogger().info("Creati i menu di prova: /test e /testdialogo.");
@@ -137,50 +137,50 @@ public final class MenuManager {
      *       alias si dichiarano al momento della registrazione.</li>
      * </ul>
      */
-    private void registraComandi() {
+    private void registerCommands() {
         CommandMap mappa = Bukkit.getCommandMap();
         Set<String> serviti = new HashSet<>();
 
         for (MenuDef def : menu.values()) {
-            if (def.comandi().isEmpty()) {
+            if (def.commands().isEmpty()) {
                 continue;
             }
-            String principale = def.comandi().get(0);
+            String principale = def.commands().get(0);
             serviti.add(principale);
 
-            MenuCommand gia = comandi.get(principale);
+            MenuCommand gia = commands.get(principale);
             if (gia != null) {
-                gia.punta(def.nome(), def.permesso());
+                gia.punta(def.name(), def.permesso());
                 continue;
             }
-            List<String> alias = def.comandi().size() > 1
-                    ? def.comandi().subList(1, def.comandi().size())
+            List<String> alias = def.commands().size() > 1
+                    ? def.commands().subList(1, def.commands().size())
                     : List.of();
-            MenuCommand c = new MenuCommand(plugin, principale, alias, def.nome(),
-                    def.permesso(), "Apre il menu " + def.nome());
+            MenuCommand c = new MenuCommand(plugin, principale, alias, def.name(),
+                    def.permesso(), "Apre il menu " + def.name());
             if (mappa.register("magixmenus", c)) {
-                comandi.put(principale, c);
+                commands.put(principale, c);
             } else {
                 // Il nome era gia' di qualcun altro: il comando esiste ma con il prefisso
                 // (/magixmenus:nome). Meglio dirlo che lasciar credere che funzioni.
-                plugin.getLogger().warning("Il comando /" + principale + " del menu \"" + def.nome()
+                plugin.getLogger().warning("Il comando /" + principale + " del menu \"" + def.name()
                         + "\" era gia' di un altro plugin: si apre con /magixmenus:" + principale + ".");
-                comandi.put(principale, c);
+                commands.put(principale, c);
             }
         }
 
-        for (Map.Entry<String, MenuCommand> e : comandi.entrySet()) {
+        for (Map.Entry<String, MenuCommand> e : commands.entrySet()) {
             if (!serviti.contains(e.getKey()) && e.getValue().menu() != null) {
                 e.getValue().punta(null, null);
                 plugin.getLogger().info("Il comando /" + e.getKey() + " non apre piu' nessun menu "
                         + "(sparira' del tutto al prossimo riavvio).");
             }
         }
-        aggiornaClient();
+        refreshClient();
     }
 
     /** I client tengono una copia dell'elenco comandi: dopo un reload va rimandata. */
-    private void aggiornaClient() {
+    private void refreshClient() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.updateCommands();
         }
@@ -188,31 +188,31 @@ public final class MenuManager {
 
     // ------------------------------------------------------------------ apertura
 
-    public void apriPerNome(Player p, String nome, List<String> argomenti, OpenMenu provenienza) {
-        MenuDef def = trova(nome);
+    public void openByName(Player p, String name, List<String> arguments, OpenMenu provenienza) {
+        MenuDef def = find(name);
         if (def == null) {
-            plugin.messaggi().send(p, "menu-not-found", "menu", nome);
+            plugin.messages().send(p, "menu-not-found", "menu", name);
             return;
         }
-        apri(p, def, argomenti, provenienza);
+        open(p, def, arguments, provenienza);
     }
 
-    public void apri(Player p, MenuDef def, List<String> argomenti, OpenMenu provenienza) {
+    public void open(Player p, MenuDef def, List<String> arguments, OpenMenu provenienza) {
         if (def.permesso() != null && !def.permesso().isBlank() && !p.hasPermission(def.permesso())) {
-            plugin.messaggi().send(p, "no-permission");
+            plugin.messages().send(p, "no-permission");
             return;
         }
-        if (def.tipo().dialogo()) {
-            plugin.dialoghi().apri(p, def, argomenti, provenienza);
+        if (def.type().dialog()) {
+            plugin.dialogs().open(p, def, arguments, provenienza);
             return;
         }
 
-        OpenMenu nuovo = new OpenMenu(plugin, p, def, argomenti, provenienza);
-        if (!def.apriSe().vuoto() && !def.apriSe().soddisfatti(p, nuovo.variabili())) {
-            if (!def.apriSe().azioniNegate().isEmpty()) {
-                Actions.esegui(plugin, nuovo, def.apriSe().azioniNegate());
+        OpenMenu nuovo = new OpenMenu(plugin, p, def, arguments, provenienza);
+        if (!def.openIf().vuoto() && !def.openIf().soddisfatti(p, nuovo.variabili())) {
+            if (!def.openIf().deniedActions().isEmpty()) {
+                Actions.esegui(plugin, nuovo, def.openIf().deniedActions());
             } else {
-                plugin.messaggi().send(p, "requirements-not-met");
+                plugin.messages().send(p, "requirements-not-met");
             }
             return;
         }
@@ -223,37 +223,37 @@ public final class MenuManager {
             // le sue azioni di chiusura, altrimenti aprire un sottomenu manderebbe il messaggio
             // "hai chiuso il menu" ogni volta.
             vecchio.chiusuraVoluta(true);
-            vecchio.ferma();
+            vecchio.stop();
         }
         aperti.put(p.getUniqueId(), nuovo);
-        nuovo.apri();
+        nuovo.open();
     }
 
-    public MenuDef trova(String nome) {
-        if (nome == null) {
+    public MenuDef find(String name) {
+        if (name == null) {
             return null;
         }
-        return menu.get(nome.toLowerCase(Locale.ROOT).trim());
+        return menu.get(name.toLowerCase(Locale.ROOT).trim());
     }
 
     public Collection<MenuDef> tutti() {
         return menu.values();
     }
 
-    public OpenMenu apertoDi(Player p) {
+    public OpenMenu openedBy(Player p) {
         return aperti.get(p.getUniqueId());
     }
 
-    public void dimentica(Player p) {
+    public void forget(Player p) {
         OpenMenu m = aperti.remove(p.getUniqueId());
         if (m != null) {
-            m.ferma();
+            m.stop();
         }
     }
 
-    public void chiudiTutti() {
+    public void closeAll() {
         for (OpenMenu m : new ArrayList<>(aperti.values())) {
-            m.ferma();
+            m.stop();
             m.chiusuraVoluta(true);
             if (m.proprietario().isOnline()) {
                 m.proprietario().closeInventory();

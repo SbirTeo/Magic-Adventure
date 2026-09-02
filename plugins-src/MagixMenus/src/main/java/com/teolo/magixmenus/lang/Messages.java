@@ -78,7 +78,7 @@ public final class Messages {
      * get() le colorerebbe, e "BLOCK_NOTE_BLOCK_PLING" con dentro dei codici colore non e' piu'
      * il nome di un suono.
      */
-    public String grezzo(String path) {
+    public String raw(String path) {
         return cfg.getString(path);
     }
 

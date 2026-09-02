@@ -2,8 +2,8 @@ package com.teolo.magixauth.command;
 
 import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.gate.AuthGate;
-import com.teolo.magixauth.model.Fase;
-import com.teolo.magixauth.gate.StatoIngresso;
+import com.teolo.magixauth.model.Phase;
+import com.teolo.magixauth.gate.EntryState;
 import com.teolo.magixauth.util.Texts;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -33,27 +33,27 @@ public final class LoginCommand implements CommandExecutor {
             sender.sendMessage("Solo un giocatore puo' accedere.");
             return true;
         }
-        StatoIngresso stato = gate.stato(p);
-        if (stato == null) {
-            p.sendMessage(Texts.c(config.prefisso, "&7Sei gia' dentro."));
+        EntryState state = gate.state(p);
+        if (state == null) {
+            p.sendMessage(Texts.c(config.prefix, "&7Sei gia' dentro."));
             return true;
         }
-        if (stato.fase == Fase.REGISTRAZIONE) {
-            p.sendMessage(Texts.c(config.prefisso,
+        if (state.phase == Phase.REGISTRAZIONE) {
+            p.sendMessage(Texts.c(config.prefix,
                     "&7Non hai ancora un account: usa &f/register <password> <password>&7."));
             return true;
         }
-        if (stato.fase == Fase.OTP) {
-            p.sendMessage(Texts.c(config.prefisso,
+        if (state.phase == Phase.OTP) {
+            p.sendMessage(Texts.c(config.prefix,
                     "&7Manca solo il codice: usa &f/otp <codice>&7."));
             return true;
         }
         if (args.length != 1) {
-            p.sendMessage(Texts.c(config.prefisso, "&7Uso: &f/login <password>"));
+            p.sendMessage(Texts.c(config.prefix, "&7Uso: &f/login <password>"));
             p.sendMessage(Texts.c("&7Tutti i comandi: &f/mauth"));
             return true;
         }
-        gate.provaPassword(p, args[0]);
+        gate.tryPassword(p, args[0]);
         return true;
     }
 }

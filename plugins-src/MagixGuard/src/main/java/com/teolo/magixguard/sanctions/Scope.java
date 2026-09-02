@@ -10,23 +10,23 @@ package com.teolo.magixguard.sanctions;
 public enum Scope {
 
     GIOCO("gioco", "Solo in gioco"),
-    SITO("sito", "Solo sul sito"),
+    SITE("sito", "Solo sul sito"),
     ENTRAMBI("entrambi", "Gioco e sito");
 
-    private final String codice;
-    private final String etichetta;
+    private final String code;
+    private final String label;
 
-    Scope(String codice, String etichetta) {
-        this.codice = codice;
-        this.etichetta = etichetta;
+    Scope(String code, String label) {
+        this.code = code;
+        this.label = label;
     }
 
-    public String codice() {
-        return codice;
+    public String code() {
+        return code;
     }
 
-    public String etichetta() {
-        return etichetta;
+    public String label() {
+        return label;
     }
 
     /** Vale in partita? */
@@ -34,7 +34,7 @@ public enum Scope {
         if (this == ENTRAMBI) {
             return true;
         }
-        return inGioco ? this == GIOCO : this == SITO;
+        return inGioco ? this == GIOCO : this == SITE;
     }
 
     public static Scope da(String s) {
@@ -42,7 +42,7 @@ public enum Scope {
             return ENTRAMBI;
         }
         for (Scope a : values()) {
-            if (a.codice.equalsIgnoreCase(s.trim())) {
+            if (a.code.equalsIgnoreCase(s.trim())) {
                 return a;
             }
         }

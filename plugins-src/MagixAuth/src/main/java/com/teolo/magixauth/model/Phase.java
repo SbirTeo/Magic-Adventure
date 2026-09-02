@@ -8,7 +8,7 @@ package com.teolo.magixauth.model;
  * sbagliarlo di proposito finche' il conto dei tentativi non lo blocca — chiudendolo fuori
  * dal suo stesso server senza aver mai saputo nulla della sua password.
  */
-public enum Fase {
+public enum Phase {
 
     /** Nome mai visto: deve scegliersi una password. */
     REGISTRAZIONE,

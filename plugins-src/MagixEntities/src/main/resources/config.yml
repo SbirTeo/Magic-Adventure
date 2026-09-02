@@ -81,4 +81,4 @@ skin:
 # Se true, quando un chunk viene caricato il plugin rimuove le entita' con il tag
 # MagixEntities che non esistono piu' in entities.yml (residui di /me remove
 # eseguito mentre il chunk era scaricato).
-pulisci-orfani: true
+clean-orphans: true

@@ -33,39 +33,39 @@ import java.util.Locale;
  *
  * Quello che il giocatore scrive nei campi arriva alle azioni come {@code %campo_<nome>%}.
  */
-public record MenuDialog(List<String> corpo, List<Campo> campi, List<Bottone> bottoni,
-                      boolean mettiInPausa) {
+public record MenuDialog(List<String> body, List<Field> fields, List<Bottone> bottoni,
+                      boolean pauseUpdates) {
 
     /** Che cosa si chiede al giocatore. */
-    public enum TipoCampo {
+    public enum FieldType {
         /** Una riga (o piu') di testo libero. */
-        TESTO,
+        TEXT,
         /** Una spunta: si' o no. */
         BOOLEANO,
         /** Un numero da scegliere con un cursore, fra un minimo e un massimo. */
         NUMERO,
         /** Una scelta fra valori decisi da chi ha scritto il menu. */
-        SCELTA;
+        CHOICE;
 
         /** Il nome con cui questo campo si scrive nei file. */
-        public String nomeFile() {
+        public String fileName() {
             return switch (this) {
-                case TESTO -> "text";
+                case TEXT -> "text";
                 case BOOLEANO -> "boolean";
                 case NUMERO -> "number";
-                case SCELTA -> "option";
+                case CHOICE -> "option";
             };
         }
 
-        public static TipoCampo leggi(String s) {
+        public static FieldType read(String s) {
             if (s == null) {
-                return TESTO;
+                return TEXT;
             }
             return switch (s.trim().toUpperCase(Locale.ROOT)) {
-                case "TESTO", "TEXT", "STRINGA" -> TESTO;
+                case "TESTO", "TEXT", "STRINGA" -> TEXT;
                 case "BOOLEANO", "BOOLEAN", "SPUNTA", "SI_NO" -> BOOLEANO;
                 case "NUMERO", "NUMBER", "RANGE" -> NUMERO;
-                case "SCELTA", "OPZIONE", "OPTION", "SINGLE_OPTION" -> SCELTA;
+                case "SCELTA", "OPZIONE", "OPTION", "SINGLE_OPTION" -> CHOICE;
                 default -> null;
             };
         }
@@ -77,9 +77,9 @@ public record MenuDialog(List<String> corpo, List<Campo> campi, List<Bottone> bo
      * @param chiave    il nome con cui il valore arriva alle azioni: %campo_chiave%
      * @param opzioni   solo per SCELTA: i valori possibili
      */
-    public record Campo(String chiave, TipoCampo tipo, String etichetta, String iniziale,
-                        float minimo, float massimo, float passo, int lunghezza, int larghezza,
-                        boolean piuRighe, List<String> opzioni) {
+    public record Field(String key, FieldType type, String label, String iniziale,
+                        float minimum, float maximum, float step, int lunghezza, int larghezza,
+                        boolean multiLine, List<String> opzioni) {
     }
 
     /**
@@ -89,7 +89,7 @@ public record MenuDialog(List<String> corpo, List<Campo> campi, List<Bottone> bo
      * in un dialogo non c'e' spazio per spiegare accanto, e i bottoni stanno in fila uno accanto
      * all'altro. Per questo c'e' {@code mostra_se} ma non un {@code click_se}.
      */
-    public record Bottone(String etichetta, String suggerimento, int larghezza,
-                          Requirements mostraSe, List<Action> azioni) {
+    public record Bottone(String label, String suggestion, int larghezza,
+                          Requirements showIf, List<Action> actions) {
     }
 }

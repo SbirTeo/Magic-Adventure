@@ -19,7 +19,7 @@ final class Readme {
     }
 
     static void rigenera(MagixAuth plugin, AuthConfig config) {
-        String testo = """
+        String text = """
                 # MagixAuth
 
                 Registrazione e login per il server non premium.
@@ -122,25 +122,25 @@ final class Readme {
                   senza usarne l'UUID, cosi' quel giorno si sapra' gia' chi migrare.
                 """.formatted(
                 LocalDate.now(),
-                config.trackStaff,
-                config.secondiMassimi,
-                config.tentativiMassimi,
-                config.bloccoMinuti,
-                config.passwordMinima,
-                config.oreSessione,
-                config.annotaUuidPremium ? "attiva" : "spenta",
-                config.skinDaMojang ? "attiva" : "spenta",
-                config.skinMinutiCache,
+                config.staffTrack,
+                config.maxSeconds,
+                config.maxAttempts,
+                config.lockoutMinutes,
+                config.minPasswordLength,
+                config.sessionHours,
+                config.noteUuidPremium ? "attiva" : "spenta",
+                config.skinFromMojang ? "attiva" : "spenta",
+                config.skinCacheMinutes,
                 // I due qui sotto sono della sezione "Chiuso fuori per troppi tentativi",
                 // che nel testo viene dopo: l'ordine e' quello in cui compaiono, non quello
                 // in cui li si legge nel config.
-                config.tentativiMassimi,
-                config.bloccoMinuti);
+                config.maxAttempts,
+                config.lockoutMinutes);
 
         try {
-            Path cartella = plugin.getDataFolder().toPath();
-            Files.createDirectories(cartella);
-            Files.writeString(cartella.resolve("README.md"), testo, StandardCharsets.UTF_8);
+            Path folder = plugin.getDataFolder().toPath();
+            Files.createDirectories(folder);
+            Files.writeString(folder.resolve("README.md"), text, StandardCharsets.UTF_8);
         } catch (IOException e) {
             plugin.getLogger().warning("MagixAuth: README non aggiornato (" + e.getMessage() + ").");
         }

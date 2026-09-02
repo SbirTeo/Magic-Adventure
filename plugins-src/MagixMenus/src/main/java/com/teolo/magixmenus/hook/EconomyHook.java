@@ -39,7 +39,7 @@ public final class EconomyHook {
         return economia != null;
     }
 
-    public static String nome() {
+    public static String name() {
         return economia == null ? "nessuna" : economia.getName();
     }
 
@@ -54,7 +54,7 @@ public final class EconomyHook {
     }
 
     /** @return false se i soldi non bastavano: in quel caso non viene tolto niente. */
-    public static boolean togli(Player p, double quanto) {
+    public static boolean remove(Player p, double quanto) {
         if (economia == null) {
             return false;
         }

@@ -52,22 +52,22 @@ public class MagixWeb extends JavaPlugin {
 
     /** MagixWeb's own chapter in the admin panel's guide (plugins-src/GUIDA-STAFF.md). */
     private void writeStaffGuide() {
-        StaffGuide.crea(this, "MagixWeb — il ponte con il sito", 40)
+        StaffGuide.create(this, "MagixWeb — il ponte con il sito", 40)
                 // The numbers come from the real config: change a key and this chapter in the
                 // admin panel follows along on its own (see util/ConfigValues).
-                .valori(new com.teolo.magixweb.util.ConfigValues(this))
+                .values(new com.teolo.magixweb.util.ConfigValues(this))
                 .intro("Tiene insieme gioco e sito: gradi, chat live, consegna degli acquisti e la guida che "
                         + "stai leggendo. Non ha comandi in gioco: lavora da solo, in sottofondo. È l'unico "
                         + "plugin che conosce le credenziali del sito.")
 
-                .sezione("I gradi",
+                .section("I gradi",
                         "Quando LuckPerms cambia il gruppo o il prefisso di qualcuno, il sito lo sa subito: il "
                                 + "plugin ascolta l'evento invece di aspettare il giro periodico. Il giro periodico "
                                 + "resta come rete di sicurezza, e riallinea anche chi è online da prima.",
                         "Sul sito arrivano gruppo, prefisso completo con i colori, peso e colore del nome: sono "
                                 + "quelli che fanno comparire il tag accanto al nickname nelle pagine e nella chat.")
 
-                .sezione("La chat live",
+                .section("La chat live",
                         "La chat **PUBBLICA** del gioco si vede nella home, e quello che si scrive nella home "
                                 + "ricompare in partita. Le chat di fazione e alleati non escono mai dal gioco: "
                                 + "quella è una scelta, non una dimenticanza.",
@@ -75,7 +75,7 @@ public class MagixWeb extends JavaPlugin {
                                 + "vengono riversati tutti in chat all'avvio: oltre una certa età si scartano, "
                                 + "altrimenti chi entra troverebbe un muro di righe vecchie.")
 
-                .sezione("La consegna degli acquisti",
+                .section("La consegna degli acquisti",
                         "Quando PayPal conferma un pagamento, il sito accoda i comandi da eseguire e il server li "
                                 + "esegue dalla console entro pochi secondi. Funziona anche se il giocatore è "
                                 + "offline: i comandi partono lo stesso.",
@@ -83,7 +83,7 @@ public class MagixWeb extends JavaPlugin {
                                 + "in un ciclo infinito. Lo stato di ogni consegna si vede nel gestionale, nella "
                                 + "scheda Store.")
 
-                .sezione("La guida per amministratori",
+                .section("La guida per amministratori",
                         "Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html; "
                                 + "MagixWeb passa a raccoglierli e li porta in questa pagina. Il primo giro parte "
                                 + "una decina di secondi dopo l'avvio, poi si ripete ogni "
@@ -91,33 +91,33 @@ public class MagixWeb extends JavaPlugin {
                         "Se un capitolo non compare, il file sul disco dice da che parte sta il problema: se c'è, "
                                 + "non è arrivato al sito; se non c'è, non l'ha scritto il plugin.")
 
-                .comandi()
-                .permessi()
-                .impostazioni(
+                .commands()
+                .permissions()
+                .settings(
                         "chat.enabled", "Spegne la chat live in home senza toccare il resto.",
                         "chat.mirror-game-chat", "Se la chat del gioco si vede sul sito.",
                         "chat.skip-older-than-minutes", "Oltre quanti minuti un messaggio del sito non viene più ripubblicato in gioco.",
                         "store.check-interval-seconds", "Ogni quanto il server guarda se ci sono acquisti da consegnare.",
                         "guide.check-interval-minutes", "Ogni quanto si rileggono i capitoli della guida.")
 
-                .guasto("Sul sito i gradi sono vecchi",
+                .issue("Sul sito i gradi sono vecchi",
                         "Il giro periodico li rimette in pari da solo. Se non succede, il database del sito non è "
                                 + "raggiungibile: il log lo dice all'avvio.")
-                .guasto("Un acquisto pagato non è arrivato",
+                .issue("Un acquisto pagato non è arrivato",
                         "Nel gestionale, in Store, si vede lo stato di ogni consegna e la si può rilanciare. Se "
                                 + "il comando è sbagliato, correggilo nel pacchetto prima di ritentare.")
-                .guasto("La chat del sito non arriva in gioco (o viceversa)",
+                .issue("La chat del sito non arriva in gioco (o viceversa)",
                         "Controlla che il modulo chat sia acceso. Se il server è appena ripartito, i messaggi "
                                 + "vecchi vengono scartati apposta.")
-                .guasto("La guida per amministratori è vuota",
+                .issue("La guida per amministratori è vuota",
                         "Nessun plugin ha ancora scritto il suo capitolo: succede finché il server non viene "
                                 + "riavviato con le versioni che lo generano.")
 
-                .mai("Non spostare le credenziali del sito dentro un altro plugin: stanno qui per un motivo, "
+                .never("Non spostare le credenziali del sito dentro un altro plugin: stanno qui per un motivo, "
                         + "così una falla altrove non arriva al database del sito.")
-                .mai("Non cancellare a mano righe dalla coda degli acquisti: un pagamento incassato resterebbe "
+                .never("Non cancellare a mano righe dalla coda degli acquisti: un pagamento incassato resterebbe "
                         + "senza consegna e senza traccia.")
-                .scrivi();
+                .write();
     }
 
     /** The site's live chat: mirrors public chat onto the site, and speaks in game what is written there. */

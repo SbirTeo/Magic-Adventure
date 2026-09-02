@@ -61,7 +61,7 @@ public final class MagixTime extends JavaPlugin {
         // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Il capitolo della guida per amministratori sul sito. Va scritto DOPO che il config
         // e' stato caricato, perche' ci mette dentro i valori davvero in uso.
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         messages = new Messages(this);
         readWorldSettings();
@@ -212,16 +212,16 @@ public final class MagixTime extends JavaPlugin {
      * Capitolo di MagixTime nella guida del gestionale. Comandi, permessi e valori di
      * configurazione non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
      */
-    private void scriviGuidaStaff() {
-        StaffGuide.crea(this, "MagixTime — ora, stagioni e meteo reali", 60)
+    private void writeStaffGuide() {
+        StaffGuide.create(this, "MagixTime — ora, stagioni e meteo reali", 60)
                 // Numeri presi dal config vero: cambiando una chiave, questo capitolo
                 // sulla guida del gestionale cambia da solo (vedi util/ConfigValues).
-                .valori(new com.teolo.magixtime.util.ConfigValues(this))
+                .values(new com.teolo.magixtime.util.ConfigValues(this))
                 .intro("Fa scorrere l'ora di Minecraft insieme a quella vera e cambia le stagioni col "
                         + "calendario: d'inverno nevica, d'estate no. Chi gioca la sera trova notte anche "
                         + "nel gioco.")
 
-                .sezione("L'ora",
+                .section("L'ora",
                         "L'orologio dei mondi gestiti viene riscritto di continuo a partire dall'ora vera del "
                                 + "fuso indicato nel config. Il VPS lavora in UTC: se il fuso non è Europe/Rome il "
                                 + "server è indietro di un'ora o due rispetto a chi gioca, ed è l'errore più facile "
@@ -232,7 +232,7 @@ public final class MagixTime extends JavaPlugin {
                         "Il Nether e l'End non hanno ciclo giorno/notte né meteo: sono esclusi in partenza, non è "
                                 + "un difetto.")
 
-                .sezione("Le stagioni",
+                .section("Le stagioni",
                         "La stagione si ricava dalla data reale. In modo astronomico segue gli equinozi e i "
                                 + "solstizi veri; l'emisfero decide quali mesi sono estate e quali inverno.",
                         "Al cambio di stagione, se configurato, parte un annuncio con titolo e suono. E il meteo "
@@ -240,14 +240,14 @@ public final class MagixTime extends JavaPlugin {
                                 + "stagione appena finita, e si vedrebbe un temporale estivo il primo giorno "
                                 + "d'inverno.")
 
-                .sezione("Meteo e neve",
+                .section("Meteo e neve",
                         "Pioggia, temporali e durata delle fasi dipendono dalla stagione in corso. La neve segue "
                                 + "la stagione E il bioma: in un bioma caldo non nevica nemmeno a gennaio, ed è "
                                 + "corretto così.",
                         "Lo stato del meteo viene salvato allo spegnimento, quindi un riavvio non azzera la fase "
                                 + "in corso.")
 
-                .sezione("Perché i comandi di CMI «non funzionano»",
+                .section("Perché i comandi di CMI «non funzionano»",
                         "/time set e /weather di CMI funzionano eccome, ma dopo {{cfg:time.update-interval-ticks}} tick "
                                 + "(pochi secondi) MagixTime rimette "
                                 + "le cose a posto: è il suo mestiere. Per un cambio che resta serve il permesso "
@@ -256,10 +256,10 @@ public final class MagixTime extends JavaPlugin {
                         "È la segnalazione che arriva più spesso dallo staff nuovo: non è un guasto, è la ragione "
                                 + "per cui il plugin esiste.")
 
-                .comandiDettagliati()
-                .comandi()
-                .permessi()
-                .impostazioni(
+                .detailedCommands()
+                .commands()
+                .permissions()
+                .settings(
                         "time.timezone", "Il fuso su cui si allinea l'ora. Il VPS è in UTC: qui ci va Europe/Rome.",
                         "time.enabled", "Spegnendolo, l'ora torna a scorrere come in un server normale.",
                         "time.update-interval-ticks", "Ogni quanti tick si riscrive l'ora dei mondi.",
@@ -267,21 +267,21 @@ public final class MagixTime extends JavaPlugin {
                         "seasons.hemisphere", "Emisfero: cambia quali mesi sono estate e quali inverno.",
                         "weather.enabled", "Spegnendolo, pioggia e neve tornano quelle di Minecraft.")
 
-                .guasto("L'ora in gioco non segue quella vera",
+                .issue("L'ora in gioco non segue quella vera",
                         "Controlla che il mondo non sia fra quelli esclusi e che il modulo ora sia acceso. "
                                 + "/mtime worlds mostra lo stato reale di ogni mondo gestito.")
-                .guasto("/time e /weather sembrano non fare effetto",
+                .issue("/time e /weather sembrano non fare effetto",
                         "È voluto: il plugin riallinea tutto dopo pochi secondi. Serve magixtime.bypass, "
                                 + "oppure /mtime pause.")
-                .guasto("Non nevica dove dovrebbe",
+                .issue("Non nevica dove dovrebbe",
                         "La neve segue stagione E bioma. In un bioma caldo non nevica in nessuna stagione.")
-                .guasto("Dopo aver tolto il plugin il tempo resta fermo",
+                .issue("Dopo aver tolto il plugin il tempo resta fermo",
                         "Le gamerule vivono nel mondo: vanno rimesse a mano se il plugin non è stato spento "
                                 + "in modo pulito.")
 
-                .mai("Non toccare la gamerule doDaylightCycle a mano mentre il plugin gira: la rimette come vuole lui.")
-                .mai("Non cambiare il fuso pensando che il VPS sia in Italia: il VPS è in UTC.")
-                .scrivi();
+                .never("Non toccare la gamerule doDaylightCycle a mano mentre il plugin gira: la rimette come vuole lui.")
+                .never("Non cambiare il fuso pensando che il VPS sia in Italia: il VPS è in UTC.")
+                .write();
     }
 
     // ------------------------------------------------------------- README

@@ -2,7 +2,7 @@ package com.teolo.magixauth.command;
 
 import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.gate.AuthGate;
-import com.teolo.magixauth.gate.StatoIngresso;
+import com.teolo.magixauth.gate.EntryState;
 import com.teolo.magixauth.util.Texts;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -32,16 +32,16 @@ public final class OtpCommand implements CommandExecutor {
             sender.sendMessage("Solo un giocatore puo' verificarsi.");
             return true;
         }
-        StatoIngresso stato = gate.stato(p);
-        if (stato == null || !stato.aspettaCodice()) {
-            p.sendMessage(Texts.c(config.prefisso, "&7Non ti sta venendo chiesto nessun codice."));
+        EntryState state = gate.state(p);
+        if (state == null || !state.awaitsCode()) {
+            p.sendMessage(Texts.c(config.prefix, "&7Non ti sta venendo chiesto nessun codice."));
             return true;
         }
         if (args.length != 1) {
-            p.sendMessage(Texts.c(config.prefisso, "&7Uso: &f/otp <codice a sei cifre>"));
+            p.sendMessage(Texts.c(config.prefix, "&7Uso: &f/otp <codice a sei cifre>"));
             return true;
         }
-        gate.provaCodice(p, args[0]);
+        gate.tryCode(p, args[0]);
         return true;
     }
 }

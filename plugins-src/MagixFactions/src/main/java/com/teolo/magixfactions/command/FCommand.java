@@ -95,8 +95,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
         // L'aiuto risponde anche alla console, quindi sta prima del controllo "solo giocatori".
         // Il numero da solo sfoglia le pagine: e' quello che mandano le frecce in fondo all'elenco.
-        if (sub.equals("help") || sub.equals("?")) { help(sender, args.length >= 2 ? pagina(args[1]) : 1); return true; }
-        if (!sub.isEmpty() && sub.chars().allMatch(Character::isDigit)) { help(sender, pagina(sub)); return true; }
+        if (sub.equals("help") || sub.equals("?")) { help(sender, args.length >= 2 ? page(args[1]) : 1); return true; }
+        if (!sub.isEmpty() && sub.chars().allMatch(Character::isDigit)) { help(sender, page(sub)); return true; }
 
         if (sub.equals("db")) return dbCommand(sender, args);
         if (sub.equals("admin")) return adminCommand(sender, args);
@@ -746,7 +746,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             com.teolo.magixfactions.manage.ScoreManager.Entry e = rank.get(i);
             boolean isOwn = own != null && own.getId() == e.faction.getId();
             if (isOwn) ownShown = true;
-            panel(s, M.get(isOwn ? "top.entry-own" : "top.entry",
+            sendScoreLine(s, e.faction, M.get(isOwn ? "top.entry-own" : "top.entry",
                     "pos", String.valueOf(i + 1),
                     "relcolor", relColor(own, e.faction), "name", e.faction.getName(),
                     "score", score.formatScore(e.score)));
@@ -756,7 +756,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             for (int i = size; i < rank.size(); i++) {
                 if (rank.get(i).faction.getId() == own.getId()) {
                     panel(s, M.get("top.separator"));
-                    panel(s, M.get("top.entry-own", "pos", String.valueOf(i + 1),
+                    sendScoreLine(s, own, M.get("top.entry-own", "pos", String.valueOf(i + 1),
                             "relcolor", relColor(own, own), "name", own.getName(),
                             "score", score.formatScore(rank.get(i).score)));
                     break;
@@ -764,6 +764,31 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             }
         }
         return true;
+    }
+
+    /**
+     * Invia una riga che mostra il punteggio con, al passaggio del mouse, il DETTAGLIO di come ci si
+     * arriva (una voce per caratteristica: valore, livello, peso, contributo). In gioco e' un tooltip
+     * (hover) sul componente; alla console — che non ha hover — si manda la riga liscia.
+     */
+    private void sendScoreLine(CommandSender s, Faction f, String legacyLine) {
+        if (!(s instanceof Player p)) { panel(s, legacyLine); return; }
+        String line = Papi.resolve(p, legacyLine);
+        BaseComponent[] comps = TextComponent.fromLegacyText(line);
+        HoverEvent he = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(scoreTooltip(f))));
+        for (BaseComponent c : comps) c.setHoverEvent(he);
+        p.spigot().sendMessage(comps);
+    }
+
+    /** Testo del tooltip del punteggio: intestazione + una riga per caratteristica (dal breakdown live). */
+    private String scoreTooltip(Faction f) {
+        StringBuilder sb = new StringBuilder(M.get("score-tooltip.header", "score", score.formatScore(score.score(f))));
+        for (com.teolo.magixfactions.manage.ScoreManager.Component c : score.breakdown(f)) {
+            sb.append("\n").append(M.get("score-tooltip.line",
+                    "label", c.label, "value", c.valueText, "level", c.levelStr(),
+                    "weight", c.pctStr(), "points", c.pointsStr()));
+        }
+        return sb.toString();
     }
 
     /** Lista di nomi fazione, ognuno colorato in base alla relazione. Voce e separatore da messages.yml. */
@@ -895,7 +920,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         // Punteggio composito + posizione in classifica (/f top): la sintesi pesata di territori, membri,
         // banca, longevita' e potenza. Un tooltip spiega da cosa e' composto senza allungare la scheda.
         int pos = score.position(f);
-        panel(p, M.get("info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(pos)));
+        sendScoreLine(p, f, M.get("info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(pos)));
         sendAlliesLine(p, f, own, own != null && own.getId() == f.getId());
         if (own != null && own.getId() != f.getId()) {
             RelationType rel = fm.effectiveRelation(own.getId(), f.getId());
@@ -928,7 +953,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             if (vip.speed != 100) {
                 msg(p, M.get("power.speed",
                         "speed", String.valueOf(vip.speed),
-                        "minutes", com.teolo.magixfactions.util.DurationText.daSecondi(power.secondsPerGain(p))));
+                        "minutes", com.teolo.magixfactions.util.DurationText.fromSeconds(power.secondsPerGain(p))));
             }
             if (vip.loss != 100) {
                 msg(p, M.get("power.loss-speed", "speed", String.valueOf(vip.loss)));
@@ -1049,17 +1074,17 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * degli altri plugin Magix: sezioni, frecce per sfogliare, ogni riga cliccabile per scriversi
      * il comando in chat. I comandi di /mf li vede solo chi ha magixfactions.admin.
      */
-    private void help(CommandSender s, int pagina) {
-        List<Help.Voce> voci = Help.daConfig(M.section("help.sections"));
-        if (voci.isEmpty()) {
+    private void help(CommandSender s, int page) {
+        List<Help.Entry> entries = Help.fromConfig(M.section("help.sections"));
+        if (entries.isEmpty()) {
             // messages.yml di una versione precedente (elenco piatto): meglio quello che niente.
             for (String line : M.getList("help")) panel(s, line);
             if (s.hasPermission("magixfactions.admin")) for (String line : M.getList("help-admin")) panel(s, line);
             return;
         }
         ConfigurationSection h = M.section("help");
-        String titolo = h != null ? h.getString("title", "MagixFactions") : "MagixFactions";
-        Help.mostra(s, titolo, "/f help", voci, pagina, s.hasPermission("magixfactions.admin"));
+        String title = h != null ? h.getString("title", "MagixFactions") : "MagixFactions";
+        Help.show(s, title, "/f help", entries, page, s.hasPermission("magixfactions.admin"));
     }
 
     // ---- TAB COMPLETION -----------------------------------------------------------------------------
@@ -1149,7 +1174,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
     /** Filtra le opzioni per prefisso (case-insensitive) e le ordina: e' il contratto standard del tab. */
     /** Il numero di pagina scritto dall'utente; qualsiasi cosa strana vale 1. */
-    private static int pagina(String s) {
+    private static int page(String s) {
         try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 1; }
     }
 

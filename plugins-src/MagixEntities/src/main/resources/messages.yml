@@ -149,7 +149,7 @@ help:
         - "/mentities cmd <nome> remove <n> :: toglie il comando numero n"
         - "/mentities cmd <nome> clear :: toglie tutti i comandi"
         - "/mentities set <nome> interact on :: lascia passare il clic ad altri plugin (CMI...)"
-    posizione:
+    position:
       title: "Posizione e utilita'"
       entries:
         - "/mentities tp <nome> :: teletrasportati dall'entita'"

@@ -5,9 +5,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
 /**
  * PUNTEGGIO di fazione e CLASSIFICA (/f top).
@@ -123,31 +122,94 @@ public final class ScoreManager {
 
     // ------------------------------ PUNTEGGIO --------------------------
 
-    /** Punteggio composito 0-100 della fazione: media dei livelli pesata coi pesi del config. */
+    /** Punteggio composito 0-100 della fazione: somma dei contributi delle caratteristiche (=media dei
+     *  livelli pesata coi pesi del config). Vedi {@link #breakdown(Faction)} per il dettaglio voce per voce. */
     public double score(Faction f) {
-        double s = 0, wsum = 0;
-
-        double wLand = weight("land", 30);
-        if (wLand > 0) { s += wLand * level(claims.count(f.getId()), reference("land", 40)); wsum += wLand; }
-
-        double wMembers = weight("members", 20);
-        if (wMembers > 0) { s += wMembers * level(f.size(), reference("members", 8)); wsum += wMembers; }
-
-        double wBank = weight("bank", 15);
-        if (wBank > 0) { s += wBank * level(averageBank(f), reference("bank", 500_000)); wsum += wBank; }
-
-        double wLong = weight("longevity", 15);
-        if (wLong > 0) { s += wLong * level(ageDays(f), reference("longevity", 90)); wsum += wLong; }
-
-        double wPower = weight("power", 20);
-        if (wPower > 0) { s += wPower * level(averagePower(f), reference("power", 200)); wsum += wPower; }
-
-        return wsum > 0 ? s / wsum : 0;
+        double s = 0;
+        for (Component c : breakdown(f)) s += c.contribution;
+        return s;
     }
+
+    /** Somma di TUTTI i pesi (le voci a peso 0 non contano): denominatore della media pesata. */
+    private double totalWeight() {
+        return weight("land", 30) + weight("members", 20) + weight("bank", 15)
+                + weight("longevity", 15) + weight("power", 20);
+    }
+
+    /**
+     * Il dettaglio del punteggio, una voce per caratteristica: valore usato, livello 0-100, quota di peso
+     * e contributo al totale. Serve al TOOLTIP che spiega "come si arriva a quel punteggio" (in gioco al
+     * passaggio del mouse in chat, sul sito nella classifica). La somma dei contributi = {@link #score}.
+     */
+    public List<Component> breakdown(Faction f) {
+        List<Component> out = new ArrayList<>();
+        double total = totalWeight();
+        if (total <= 0) return out;
+        int claimN = claims.count(f.getId());
+        add(out, "land", "Territori", claimN, reference("land", 40), weight("land", 30), total, intText(claimN));
+        add(out, "members", "Membri", f.size(), reference("members", 8), weight("members", 20), total, intText(f.size()));
+        double avgBank = averageBank(f);
+        add(out, "bank", "Banca (media)", avgBank, reference("bank", 500_000), weight("bank", 15), total, moneyText(avgBank));
+        double days = ageDays(f);
+        add(out, "longevity", "Longevità", days, reference("longevity", 90), weight("longevity", 15), total, daysText(days));
+        double avgPow = averagePower(f);
+        add(out, "power", "Potenza (media)", avgPow, reference("power", 200), weight("power", 20), total, intText(avgPow));
+        return out;
+    }
+
+    private void add(List<Component> out, String key, String label, double v, double k, double w, double total, String valueText) {
+        if (w <= 0) return;   // caratteristica esclusa (peso 0): non compare nel dettaglio
+        double lvl = level(v, k);
+        double share = w / total;
+        out.add(new Component(key, label, valueText, lvl, share, share * lvl));
+    }
+
+    private static String intText(double v) { return String.valueOf(Math.round(v)); }
+    private static String moneyText(double v) { return String.format(Locale.ITALY, "%,.0f", v); }
+    private static String daysText(double v) { return Math.round(v) + "g"; }
+
+    /** Una riga del dettaglio del punteggio (una caratteristica). I testi sono già formattati (locale IT),
+     *  così gioco e sito mostrano gli stessi valori senza riformattare ognuno per conto suo. */
+    public static final class Component {
+        public final String key, label, valueText;
+        public final double level, weightShare, contribution;
+        Component(String key, String label, String valueText, double level, double weightShare, double contribution) {
+            this.key = key; this.label = label; this.valueText = valueText;
+            this.level = level; this.weightShare = weightShare; this.contribution = contribution;
+        }
+        public String levelStr() { return String.valueOf(Math.round(level)); }
+        public String pctStr() { return Math.round(weightShare * 100) + "%"; }
+        public String pointsStr() { return String.format(Locale.ITALY, "%.1f", contribution); }
+    }
+
+    /**
+     * Il dettaglio come JSON compatto, SNAPSHOT salvato su {@code factions.score_detail} a ogni campione:
+     * lo legge il SITO per il tooltip della classifica (i testi sono già formattati, il sito li mostra e
+     * basta). In gioco il tooltip si costruisce live da {@link #breakdown(Faction)}, quindi qui non serve.
+     * Forma: {@code [{"l":"Territori","v":"40","lv":"50","w":"30%","p":"15,0"}, ...]}.
+     */
+    public String detailJson(Faction f) {
+        return detailJsonOf(breakdown(f));
+    }
+
+    /** Come {@link #detailJson(Faction)} ma su un dettaglio GIÀ calcolato (evita di ricalcolarlo). */
+    public String detailJsonOf(List<Component> parts) {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (Component c : parts) {
+            if (!first) sb.append(","); first = false;
+            sb.append("{\"l\":\"").append(escapeHtml(c.label)).append("\",\"v\":\"").append(escapeHtml(c.valueText))
+              .append("\",\"lv\":\"").append(c.levelStr()).append("\",\"w\":\"").append(c.pctStr())
+              .append("\",\"p\":\"").append(escapeHtml(c.pointsStr())).append("\"}");
+        }
+        return sb.append("]").toString();
+    }
+
+    private static String escapeHtml(String s) { return s.replace("\\", "\\\\").replace("\"", "\\\""); }
 
     /** Punteggio formattato per la visualizzazione (decimali da {@code score.decimals}). */
     public String formatScore(double v) {
-        return String.format(java.util.Locale.ITALY, "%,." + decimals() + "f", v);
+        return String.format(Locale.ITALY, "%,." + decimals() + "f", v);
     }
 
     // ------------------------------ CLASSIFICA -------------------------
@@ -190,8 +252,12 @@ public final class ScoreManager {
             f.setBankAvgAccum(f.getBankAvgAccum() + f.getBank() * dtSec);
             f.setPowerAvgAccum(f.getPowerAvgAccum() + power.factionPower(f) * dtSec);
             f.setScoreSampledAt(now);
-            // Snapshot del punteggio calcolato, per la classifica del sito (legge factions.score).
-            f.setScore(score(f));
+            // Snapshot del punteggio + dettaglio, per la classifica del sito (legge factions.score /
+            // score_detail). Il dettaglio si costruisce una volta e vale sia per lo score sia per il JSON.
+            List<Component> parts = breakdown(f);
+            double sc = 0; for (Component c : parts) sc += c.contribution;
+            f.setScore(sc);
+            f.setScoreDetail(detailJsonOf(parts));
             fm.saveScoreSample(f);
         }
     }

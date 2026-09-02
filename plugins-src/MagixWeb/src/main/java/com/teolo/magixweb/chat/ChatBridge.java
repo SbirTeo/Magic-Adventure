@@ -58,7 +58,7 @@ public class ChatBridge implements Listener {
      * dopo il broadcast (per non perdere messaggi se il server si spegne a meta'), quindi senza
      * questo insieme il giro successivo potrebbe rileggere gli stessi id e mandarli due volte.
      */
-    private final Set<Long> inConsegna = Collections.synchronizedSet(new HashSet<>());
+    private final Set<Long> inDelivery = Collections.synchronizedSet(new HashSet<>());
 
     public ChatBridge(MagixWeb plugin, Database database, boolean specchiaGioco,
                       String formato, int lotto, int oreDaTenere) {
@@ -81,17 +81,17 @@ public class ChatBridge implements Listener {
         Player p = e.getPlayer();
         if (!canalePubblico(p)) return;
 
-        String testo = PlainTextComponentSerializer.plainText().serialize(e.message()).trim();
-        if (testo.isEmpty()) return;
-        if (testo.length() > MAX_LUNGHEZZA) testo = testo.substring(0, MAX_LUNGHEZZA);
+        String text = PlainTextComponentSerializer.plainText().serialize(e.message()).trim();
+        if (text.isEmpty()) return;
+        if (text.length() > MAX_LUNGHEZZA) text = text.substring(0, MAX_LUNGHEZZA);
 
-        final String messaggio = testo;
+        final String message = text;
         final String uuid = p.getUniqueId().toString();
-        final String nome = p.getName();
+        final String name = p.getName();
 
         // L'evento e' asincrono di suo, ma non sempre (un messaggio inviato da un plugin puo'
         // arrivare sul main thread): il salvataggio va comunque fuori dal tick.
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> salva(uuid, nome, messaggio));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> save(uuid, name, message));
     }
 
     /** Il messaggio e' sul canale pubblico? Senza metadata (nessun MagixFactions) si assume di si'. */
@@ -105,14 +105,14 @@ public class ChatBridge implements Listener {
         return true;
     }
 
-    private void salva(String uuid, String nome, String messaggio) {
+    private void save(String uuid, String name, String message) {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "INSERT INTO web_chat (source, mc_uuid, mc_username, message, delivered) "
                              + "VALUES ('game', ?, ?, ?, 1)")) {
             ps.setString(1, uuid);
-            ps.setString(2, nome);
-            ps.setString(3, messaggio);
+            ps.setString(2, name);
+            ps.setString(3, message);
             ps.executeUpdate();
         } catch (SQLException ex) {
             plugin.getLogger().warning("MagixWeb: errore salvando un messaggio di chat per il sito: " + ex.getMessage());
@@ -126,14 +126,14 @@ public class ChatBridge implements Listener {
     /** Da chiamare periodicamente: legge i messaggi del sito (async) e li manda in chat (main thread). */
     public void deliverToGame() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            List<Messaggio> nuovi = leggiDaConsegnare();
+            List<Message> nuovi = readToDeliver();
             if (nuovi.isEmpty()) return;
             Bukkit.getScheduler().runTask(plugin, () -> pubblica(nuovi));
         });
     }
 
-    private List<Messaggio> leggiDaConsegnare() {
-        List<Messaggio> out = new ArrayList<>();
+    private List<Message> readToDeliver() {
+        List<Message> out = new ArrayList<>();
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      // Il prefisso del grado arriva da mc_ranks (lo scrive RankSync): chi scrive
@@ -147,8 +147,8 @@ public class ChatBridge implements Listener {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     long id = rs.getLong("id");
-                    if (!inConsegna.add(id)) continue; // gia' in corso in questo momento
-                    out.add(new Messaggio(id, rs.getString("mc_uuid"),
+                    if (!inDelivery.add(id)) continue; // gia' in corso in questo momento
+                    out.add(new Message(id, rs.getString("mc_uuid"),
                             rs.getString("mc_username"), rs.getString("message"),
                             rs.getString("prefix_raw")));
                 }
@@ -159,19 +159,19 @@ public class ChatBridge implements Listener {
         return out;
     }
 
-    private void pubblica(List<Messaggio> messaggi) {
+    private void pubblica(List<Message> messages) {
         List<Long> fatti = new ArrayList<>();
-        for (Messaggio m : messaggi) {
+        for (Message m : messages) {
             if (!pubblicaConMagixFactions(m)) {
                 // Ripiego (MagixFactions assente o troppo vecchio): formato semplice nostro.
                 // {message} si sostituisce per ULTIMO, dopo la traduzione dei colori, cosi' un
                 // messaggio scritto sul sito resta testo letterale e non puo' colorare la chat.
-                String riga = ChatColor.translateAlternateColorCodes('&', formato.replace("{name}", m.nome))
-                        .replace("{message}", m.testo);
+                String row = ChatColor.translateAlternateColorCodes('&', formato.replace("{name}", m.name))
+                        .replace("{message}", m.text);
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    p.sendMessage(riga);
+                    p.sendMessage(row);
                 }
-                Bukkit.getConsoleSender().sendMessage(riga);
+                Bukkit.getConsoleSender().sendMessage(row);
             }
             fatti.add(m.id);
         }
@@ -187,7 +187,7 @@ public class ChatBridge implements Listener {
      * dipendenza di compilazione, nessun ordine di caricamento da garantire) e se il metodo non
      * c'e' si torna al formato semplice invece di rompersi.
      */
-    private boolean pubblicaConMagixFactions(Messaggio m) {
+    private boolean pubblicaConMagixFactions(Message m) {
         if (m.uuid == null || m.uuid.isEmpty()) {
             return false;
         }
@@ -197,10 +197,10 @@ public class ChatBridge implements Listener {
         }
         try {
             java.util.UUID uuid = java.util.UUID.fromString(m.uuid);
-            Object esito = mf.getClass()
+            Object outcome = mf.getClass()
                     .getMethod("broadcastWebChat", java.util.UUID.class, String.class, String.class, String.class)
-                    .invoke(mf, uuid, m.nome, m.testo, m.prefisso == null ? "" : m.prefisso);
-            return Boolean.TRUE.equals(esito);
+                    .invoke(mf, uuid, m.name, m.text, m.prefisso == null ? "" : m.prefisso);
+            return Boolean.TRUE.equals(outcome);
         } catch (NoSuchMethodException e) {
             return false; // versione di MagixFactions precedente a questa API
         } catch (Exception e) {
@@ -223,7 +223,7 @@ public class ChatBridge implements Listener {
             } catch (SQLException e) {
                 plugin.getLogger().warning("MagixWeb: errore marcando i messaggi del sito come consegnati: " + e.getMessage());
             } finally {
-                inConsegna.removeAll(ids);
+                inDelivery.removeAll(ids);
             }
         });
     }
@@ -269,19 +269,19 @@ public class ChatBridge implements Listener {
         });
     }
 
-    private static final class Messaggio {
+    private static final class Message {
         final long id;
         final String uuid;
-        final String nome;
-        final String testo;
+        final String name;
+        final String text;
         /** Prefisso del grado (da mc_ranks), passato a MagixFactions al posto di %luckperms_prefix%. */
         final String prefisso;
 
-        Messaggio(long id, String uuid, String nome, String testo, String prefisso) {
+        Message(long id, String uuid, String name, String text, String prefisso) {
             this.id = id;
             this.uuid = uuid;
-            this.nome = nome;
-            this.testo = testo;
+            this.name = name;
+            this.text = text;
             this.prefisso = prefisso;
         }
     }

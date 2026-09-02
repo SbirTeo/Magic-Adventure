@@ -21,13 +21,13 @@ public final class Texts {
     public static final String BENTORNATO = "&bBentornato!&r &7Accedi con la tua password.";
     public static final String CREDENZIALI_NO = "&cPassword non corretta.&r &7Riprova.";
     public static final String NON_COINCIDONO = "&cLe due password non coincidono.&r &7Ricominciamo.";
-    public static final String DENTRO = "&aAccesso effettuato.&r &7Buon gioco!";
-    public static final String REGISTRATO = "&aRegistrazione completata.&r\n&7Da adesso puoi entrare anche su &fmagicadventure.it&7 con lo stesso\n&7nome e la stessa password.";
+    public static final String INSIDE = "&aAccesso effettuato.&r &7Buon gioco!";
+    public static final String REGISTERED = "&aRegistrazione completata.&r\n&7Da adesso puoi entrare anche su &fmagicadventure.it&7 con lo stesso\n&7nome e la stessa password.";
     public static final String OTP_SERVE = "&eVerifica in due passaggi.&r &7Serve il codice della tua app.";
     public static final String OTP_NO = "&cCodice non valido.&r &7Controlla l'app e riprova.";
     public static final String KICK_TEMPO_SCADUTO = "&cTempo scaduto&r\n\n&7Non hai completato l'accesso in tempo.\n&7Rientra pure e riprova.";
     public static final String KICK_DATABASE = "&cAccesso non disponibile&r\n\n&7Non riusciamo a verificare il tuo account in questo momento.\n&7Riprova fra qualche minuto: e' un problema nostro, non tuo.";
-    public static final String KICK_NOME_OCCUPATO = "&cNome gia' in uso&r\n\n&7Qualcuno sta gia' giocando con questo nome.";
+    public static final String KICK_NAME_TAKEN = "&cNome gia' in uso&r\n\n&7Qualcuno sta gia' giocando con questo nome.";
 
     /**
      * "Troppi codici sbagliati": con scritto quanto manca davvero.
@@ -35,25 +35,25 @@ public final class Texts {
      * Il tempo va detto e non lasciato a "fra qualche minuto": chi non sa quanto deve
      * aspettare ritenta ogni mezzo minuto, e ogni tentativo e' un altro errore.
      */
-    public static String otpBloccato(String quantoManca) {
-        return "&cTroppi codici sbagliati.&r &7Riprova fra &f" + quantoManca + "&7.";
+    public static String otpLocked(String howMuchLeft) {
+        return "&cTroppi codici sbagliati.&r &7Riprova fra &f" + howMuchLeft + "&7.";
     }
 
     /** Lo stesso, per chi viene respinto al cancello prima ancora di entrare. */
-    public static String kickTroppiTentativi(String quantoManca) {
+    public static String kickTooManyAttempts(String howMuchLeft) {
         return "&cTroppi tentativi&r\n\n"
-                + "&7Questo indirizzo e' bloccato: riprova fra &f" + quantoManca + "&7.\n"
+                + "&7Questo indirizzo e' bloccato: riprova fra &f" + howMuchLeft + "&7.\n"
                 + "&7Se hai dimenticato la password, puoi reimpostarla su\n&fmagicadventure.it&7.\n\n"
                 + "&8Il blocco vale per la connessione, non per il tuo nome.";
     }
 
     /** Il testo colorato, pronto da mandare al giocatore. */
-    public static Component c(String testo) {
-        return AMPERSAND.deserialize(testo);
+    public static Component c(String text) {
+        return AMPERSAND.deserialize(text);
     }
 
     /** Prefisso + testo, colorati insieme (i due pezzi si attaccano senza spazi in mezzo). */
-    public static Component c(String prefisso, String testo) {
-        return AMPERSAND.deserialize(prefisso + testo);
+    public static Component c(String prefix, String text) {
+        return AMPERSAND.deserialize(prefix + text);
     }
 }

@@ -67,10 +67,10 @@ public final class MojangLookup {
      * giorni. Da qui le due regole di sotto: le voci scadono, e i FALLIMENTI non si
      * scrivono affatto.
      */
-    private final Map<String, Voce> skinViste = new ConcurrentHashMap<>();
+    private final Map<String, Entry> skinViste = new ConcurrentHashMap<>();
 
     /** Una skin in cache, con il momento in cui va richiesta di nuovo. */
-    private record Voce(String[] skin, long scadenza) {
+    private record Entry(String[] skin, long scadenza) {
         boolean valida() {
             return System.currentTimeMillis() < scadenza;
         }
@@ -84,19 +84,19 @@ public final class MojangLookup {
      * e merita una riga nel log, altrimenti un problema di rete resta invisibile per sempre
      * — che e' esattamente com'era prima.
      */
-    public record Ritrovata(String[] skin, boolean fallita, String motivo) {
-        static Ritrovata riuscita(String[] skin) {
-            return new Ritrovata(skin, false, "");
+    public record Found(String[] skin, boolean failed, String reason) {
+        static Found riuscita(String[] skin) {
+            return new Found(skin, false, "");
         }
-        static Ritrovata fallita(String motivo) {
-            return new Ritrovata(null, true, motivo);
+        static Found failed(String reason) {
+            return new Found(null, true, reason);
         }
     }
 
     /** Com'e' andata una singola chiamata. */
-    private enum Esito { OK, ASSENTE, FALLITA }
+    private enum Outcome { OK, ASSENTE, FALLITA }
 
-    private record Risposta(Esito esito, String corpo, String motivo) {}
+    private record Reply(Outcome outcome, String body, String reason) {}
 
     public MojangLookup(int timeoutMillis, int minutiCache, Logger log) {
         this.timeoutMillis = timeoutMillis;
@@ -123,57 +123,57 @@ public final class MojangLookup {
      * @param uuidAccount l'UUID salvato per questo account, o null se non ne ha uno
      * @param nome        il nome con cui si sta collegando
      */
-    public Ritrovata skinDi(UUID uuidAccount, String nome) {
-        if (nome == null) {
-            return Ritrovata.riuscita(null);
+    public Found skinOf(UUID accountUuid, String name) {
+        if (name == null) {
+            return Found.riuscita(null);
         }
-        String chiave = nome.toLowerCase(Locale.ROOT);
-        Voce inCache = skinViste.get(chiave);
+        String key = name.toLowerCase(Locale.ROOT);
+        Entry inCache = skinViste.get(key);
         if (inCache != null && inCache.valida()) {
-            return Ritrovata.riuscita(inCache.skin());
+            return Found.riuscita(inCache.skin());
         }
 
         // La scorciatoia: se l'UUID dell'account e' un UUID Mojang (versione 4, mentre
         // quelli ricavati dal nome in offline mode sono di versione 3) il profilo si puo'
         // chiedere subito, senza passare dal nome.
-        if (uuidAccount != null && uuidAccount.version() == 4) {
-            Risposta profilo = chiama(PROFILO + senzaTrattini(uuidAccount) + "?unsigned=false");
-            if (profilo.esito() == Esito.OK) {
-                return ricorda(chiave, texture(profilo.corpo(), uuidAccount));
+        if (accountUuid != null && accountUuid.version() == 4) {
+            Reply prof = invoke(PROFILO + withoutDashes(accountUuid) + "?unsigned=false");
+            if (prof.outcome() == Outcome.OK) {
+                return remember(key, texture(prof.body(), accountUuid));
             }
-            if (profilo.esito() == Esito.FALLITA) {
-                return Ritrovata.fallita(profilo.motivo());
+            if (prof.outcome() == Outcome.FALLITA) {
+                return Found.failed(prof.reason());
             }
             // ASSENTE: quell'UUID non esiste piu'. Si riprova per nome.
         }
 
-        Risposta cercato = chiama(ENDPOINT + nome);
-        if (cercato.esito() == Esito.FALLITA) {
-            return Ritrovata.fallita(cercato.motivo());
+        Reply cercato = invoke(ENDPOINT + name);
+        if (cercato.outcome() == Outcome.FALLITA) {
+            return Found.failed(cercato.reason());
         }
-        if (cercato.esito() == Esito.ASSENTE) {
+        if (cercato.outcome() == Outcome.ASSENTE) {
             // Nome libero: nessun account premium si chiama cosi'. E' una risposta vera, e
             // come tale si puo' tenere da parte.
-            return ricorda(chiave, null);
+            return remember(key, null);
         }
-        UUID premium = uuidDa(cercato.corpo());
+        UUID premium = uuidFrom(cercato.body());
         if (premium == null) {
-            return ricorda(chiave, null);
+            return remember(key, null);
         }
-        Risposta profilo = chiama(PROFILO + senzaTrattini(premium) + "?unsigned=false");
-        if (profilo.esito() == Esito.FALLITA) {
-            return Ritrovata.fallita(profilo.motivo());
+        Reply prof = invoke(PROFILO + withoutDashes(premium) + "?unsigned=false");
+        if (prof.outcome() == Outcome.FALLITA) {
+            return Found.failed(prof.reason());
         }
-        return ricorda(chiave, profilo.esito() == Esito.OK ? texture(profilo.corpo(), premium) : null);
+        return remember(key, prof.outcome() == Outcome.OK ? texture(prof.body(), premium) : null);
     }
 
     /** L'UUID Mojang di un nome, se il nome e' un account premium. */
-    public UUID cerca(String nome) {
-        if (nome == null || !nome.matches("[A-Za-z0-9_]{3,16}")) {
+    public UUID lookup(String name) {
+        if (name == null || !name.matches("[A-Za-z0-9_]{3,16}")) {
             return null;
         }
-        Risposta r = chiama(ENDPOINT + nome);
-        return r.esito() == Esito.OK ? uuidDa(r.corpo()) : null;
+        Reply r = invoke(ENDPOINT + name);
+        return r.outcome() == Outcome.OK ? uuidFrom(r.body()) : null;
     }
 
     /** La skin di un UUID, chiesta adesso, senza passare dalla cache. */
@@ -181,13 +181,13 @@ public final class MojangLookup {
         if (uuid == null) {
             return null;
         }
-        Risposta r = chiama(PROFILO + senzaTrattini(uuid) + "?unsigned=false");
-        return r.esito() == Esito.OK ? texture(r.corpo(), uuid) : null;
+        Reply r = invoke(PROFILO + withoutDashes(uuid) + "?unsigned=false");
+        return r.outcome() == Outcome.OK ? texture(r.body(), uuid) : null;
     }
 
-    private Ritrovata ricorda(String chiave, String[] skin) {
-        skinViste.put(chiave, new Voce(skin, System.currentTimeMillis() + cacheMillis));
-        return Ritrovata.riuscita(skin);
+    private Found remember(String key, String[] skin) {
+        skinViste.put(key, new Entry(skin, System.currentTimeMillis() + cacheMillis));
+        return Found.riuscita(skin);
     }
 
     /**
@@ -201,8 +201,8 @@ public final class MojangLookup {
      * dall'altro, subito dopo l'avvio, e tutto a posto ai collegamenti successivi.
      * Qui il conto lo paga il server mentre nessuno sta ancora entrando.
      */
-    public void scalda() {
-        chiama(PROFILO + "00000000000000000000000000000000");
+    public void warmUp() {
+        invoke(PROFILO + "00000000000000000000000000000000");
     }
 
     /**
@@ -211,21 +211,21 @@ public final class MojangLookup {
      * Non lancia mai: chi la usa non deve poter impedire a nessuno di entrare per colpa di
      * un servizio esterno finito sul percorso di ingresso al server.
      */
-    private Risposta chiama(String url) {
-        Risposta primo = tentativo(url);
-        if (primo.esito() != Esito.FALLITA) {
+    private Reply invoke(String url) {
+        Reply primo = attempt(url);
+        if (primo.outcome() != Outcome.FALLITA) {
             return primo;
         }
         // Un secondo tentativo subito: quasi tutti i guasti visti qui sono del primo colpo
         // (stretta di mano TLS chiusa dal CDN, collegamento ancora freddo). Riprovare costa
         // molto meno che lasciare entrare qualcuno con la faccia sbagliata.
-        Risposta secondo = tentativo(url);
-        return secondo.esito() == Esito.FALLITA
-                ? new Risposta(Esito.FALLITA, "", secondo.motivo() + " (al secondo tentativo)")
+        Reply secondo = attempt(url);
+        return secondo.outcome() == Outcome.FALLITA
+                ? new Reply(Outcome.FALLITA, "", secondo.reason() + " (al secondo tentativo)")
                 : secondo;
     }
 
-    private Risposta tentativo(String url) {
+    private Reply attempt(String url) {
         try {
             HttpRequest richiesta = HttpRequest.newBuilder(URI.create(url))
                     .timeout(Duration.ofMillis(timeoutMillis))
@@ -233,32 +233,32 @@ public final class MojangLookup {
                     .GET()
                     .build();
             HttpResponse<String> risposta = client.send(richiesta, HttpResponse.BodyHandlers.ofString());
-            int codice = risposta.statusCode();
-            if (codice == 200) {
-                return new Risposta(Esito.OK, risposta.body(), "");
+            int code = risposta.statusCode();
+            if (code == 200) {
+                return new Reply(Outcome.OK, risposta.body(), "");
             }
             // 204 e 404 sono una risposta: quel nome non esiste. Tutto il resto (429 troppe
             // richieste, 5xx, ...) e' un guaio momentaneo di Mojang, non un dato sul nome.
-            return new Risposta(codice == 204 || codice == 404 ? Esito.ASSENTE : Esito.FALLITA, "",
-                    "risposta " + codice);
+            return new Reply(code == 204 || code == 404 ? Outcome.ASSENTE : Outcome.FALLITA, "",
+                    "risposta " + code);
         } catch (Exception e) {
-            return new Risposta(Esito.FALLITA, "", e.toString());
+            return new Reply(Outcome.FALLITA, "", e.toString());
         }
     }
 
-    private static String senzaTrattini(UUID uuid) {
+    private static String withoutDashes(UUID uuid) {
         return uuid.toString().replace("-", "");
     }
 
-    private static UUID uuidDa(String corpo) {
-        Matcher m = ID.matcher(corpo);
+    private static UUID uuidFrom(String body) {
+        Matcher m = ID.matcher(body);
         if (!m.find()) {
             return null;
         }
-        String nudo = m.group(1);
+        String bare = m.group(1);
         return UUID.fromString(
-                nudo.substring(0, 8) + "-" + nudo.substring(8, 12) + "-" +
-                nudo.substring(12, 16) + "-" + nudo.substring(16, 20) + "-" + nudo.substring(20));
+                bare.substring(0, 8) + "-" + bare.substring(8, 12) + "-" +
+                bare.substring(12, 16) + "-" + bare.substring(16, 20) + "-" + bare.substring(20));
     }
 
     /**
@@ -271,26 +271,26 @@ public final class MojangLookup {
      * quello che si vede e' un giocatore che si lamenta di avere la skin di un altro, e nel
      * log non c'e' niente. Meglio nessuna skin che la skin sbagliata.
      */
-    private String[] texture(String corpo, UUID atteso) {
-        Matcher m = TEXTURES.matcher(corpo);
+    private String[] texture(String body, UUID expected) {
+        Matcher m = TEXTURES.matcher(body);
         if (!m.find()) {
             return null;
         }
-        String valore = m.group(1);
-        if (atteso != null && !diChi(valore).isEmpty()
-                && !diChi(valore).equalsIgnoreCase(senzaTrattini(atteso))) {
-            log.warning("MagixAuth: Mojang ha risposto con la skin del profilo " + diChi(valore)
-                    + " invece di quella di " + senzaTrattini(atteso) + ". Skin NON applicata.");
+        String value = m.group(1);
+        if (expected != null && !diChi(value).isEmpty()
+                && !diChi(value).equalsIgnoreCase(withoutDashes(expected))) {
+            log.warning("MagixAuth: Mojang ha risposto con la skin del profilo " + diChi(value)
+                    + " invece di quella di " + withoutDashes(expected) + ". Skin NON applicata.");
             return null;
         }
-        return new String[]{valore, m.group(2)};
+        return new String[]{value, m.group(2)};
     }
 
     /** Di chi e' questa texture, secondo quello che Mojang ci ha scritto dentro. */
-    private static String diChi(String valoreBase64) {
+    private static String diChi(String base64Value) {
         try {
-            String dentro = new String(Base64.getDecoder().decode(valoreBase64), StandardCharsets.UTF_8);
-            Matcher m = PROFILE_ID.matcher(dentro);
+            String inside = new String(Base64.getDecoder().decode(base64Value), StandardCharsets.UTF_8);
+            Matcher m = PROFILE_ID.matcher(inside);
             return m.find() ? m.group(1) : "";
         } catch (IllegalArgumentException e) {
             return "";

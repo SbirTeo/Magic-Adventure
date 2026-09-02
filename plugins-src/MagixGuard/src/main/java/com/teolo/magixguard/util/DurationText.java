@@ -15,16 +15,16 @@ public final class DurationText {
     private DurationText() {}
 
     /** Numero senza decimali inutili: 2.0 -&gt; "2", 1.5 -&gt; "1,5" (virgola, non punto). */
-    public static String numero(double v) {
+    public static String number(double v) {
         if (v == Math.rint(v)) return String.valueOf((long) v);
         return String.format(Locale.ITALIAN, "%.1f", v);
     }
 
     /** Durata da SECONDI: "45 secondi", "1 minuto", "10 minuti", "1,5 minuti". */
-    public static String daSecondi(long secondi) {
+    public static String fromSeconds(long secondi) {
         if (secondi < 60) return secondi + (secondi == 1 ? " secondo" : " secondi");
         double minuti = secondi / 60.0;
-        String n = numero(minuti);
+        String n = number(minuti);
         return n + (n.equals("1") ? " minuto" : " minuti");
     }
 
@@ -35,19 +35,19 @@ public final class DurationText {
      * dovuto arrivare qui, ma un arrotondamento sfortunato non deve far leggere
      * "riprova fra 0 secondi".
      */
-    public static String finoA(java.time.LocalDateTime fine) {
+    public static String until(java.time.LocalDateTime fine) {
         long secondi = java.time.Duration.between(java.time.LocalDateTime.now(), fine).getSeconds();
-        return daSecondi(Math.max(1, secondi));
+        return fromSeconds(Math.max(1, secondi));
     }
 
     /** Durata da ORE (anche frazionarie): "30 minuti", "1 ora", "48 ore", "7 giorni". */
-    public static String daOre(double ore) {
-        if (ore < 1) return daSecondi(Math.round(ore * 3600));
+    public static String fromHours(double ore) {
+        if (ore < 1) return fromSeconds(Math.round(ore * 3600));
         if (ore >= 48 && ore % 24 == 0) {
             long giorni = (long) (ore / 24);
             return giorni + " giorni";
         }
-        String n = numero(ore);
+        String n = number(ore);
         return n + (n.equals("1") ? " ora" : " ore");
     }
 }

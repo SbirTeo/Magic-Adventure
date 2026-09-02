@@ -50,42 +50,42 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class MiningAnalysis implements Listener {
 
     /** Quello che sappiamo di una sessione di scavo. */
-    private static final class Sessione {
-        int blocchi;                       // blocchi "di roccia" rotti
+    private static final class Session {
+        int blocks;                       // blocchi "di roccia" rotti
         int preziosi;                      // minerali preziosi trovati
         int chiusi;                        // preziosi rotti mentre erano circondati
         long ultimoAvviso;
-        final Map<Material, Integer> perTipo = new LinkedHashMap<>();
+        final Map<Material, Integer> perType = new LinkedHashMap<>();
     }
 
     private final JavaPlugin plugin;
-    private final Detector rilevatore;
+    private final Detector detector;
 
-    private final boolean attivo;
+    private final boolean active;
     private final boolean soloOsservazione;
-    private final int blocchiMinimi;
+    private final int minBlocks;
     private final double allarmePerMille;
     private final double estremoPerMille;
     private final long intervalloAvvisi;
     private final Set<Material> preziosi = new HashSet<>();
 
-    private final Map<UUID, Sessione> sessioni = new ConcurrentHashMap<>();
+    private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
 
-    public MiningAnalysis(JavaPlugin plugin, Detector rilevatore, ConfigurationSection cfg) {
+    public MiningAnalysis(JavaPlugin plugin, Detector detector, ConfigurationSection cfg) {
         this.plugin = plugin;
-        this.rilevatore = rilevatore;
-        this.attivo = cfg == null || cfg.getBoolean("attivo", true);
+        this.detector = detector;
+        this.active = cfg == null || cfg.getBoolean("attivo", true);
         this.soloOsservazione = cfg == null
                 || !"attivo".equalsIgnoreCase(cfg.getString("modo", "osservazione"));
-        this.blocchiMinimi = cfg == null ? 800 : Math.max(100, cfg.getInt("blocchi-minimi", 800));
+        this.minBlocks = cfg == null ? 800 : Math.max(100, cfg.getInt("blocchi-minimi", 800));
         this.allarmePerMille = cfg == null ? 10 : cfg.getDouble("allarme-per-mille", 10);
         this.estremoPerMille = cfg == null ? 20 : cfg.getDouble("estremo-per-mille", 20);
         this.intervalloAvvisi = (cfg == null ? 30 : Math.max(5, cfg.getInt("intervallo-avvisi-minuti", 30)))
                 * 60_000L;
 
         if (cfg != null && !cfg.getStringList("minerali-preziosi").isEmpty()) {
-            for (String nome : cfg.getStringList("minerali-preziosi")) {
-                Material m = Material.matchMaterial(nome.trim().toUpperCase());
+            for (String name : cfg.getStringList("minerali-preziosi")) {
+                Material m = Material.matchMaterial(name.trim().toUpperCase());
                 if (m != null) {
                     preziosi.add(m);
                 }
@@ -100,7 +100,7 @@ public final class MiningAnalysis implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void suRottura(BlockBreakEvent e) {
-        if (!attivo) {
+        if (!active) {
             return;
         }
         Player p = e.getPlayer();
@@ -110,16 +110,16 @@ public final class MiningAnalysis implements Listener {
         Block b = e.getBlock();
         Material m = b.getType();
 
-        Sessione s = sessioni.computeIfAbsent(p.getUniqueId(), k -> new Sessione());
+        Session s = sessions.computeIfAbsent(p.getUniqueId(), k -> new Session());
 
         if (preziosi.contains(m)) {
             s.preziosi++;
-            s.perTipo.merge(m, 1, Integer::sum);
-            if (eraChiuso(b)) {
+            s.perType.merge(m, 1, Integer::sum);
+            if (wasClosed(b)) {
                 s.chiusi++;
             }
         } else if (eRoccia(m)) {
-            s.blocchi++;
+            s.blocks++;
         } else {
             return;   // legno, terra, foglie: non c'entrano niente con lo scavo
         }
@@ -131,50 +131,50 @@ public final class MiningAnalysis implements Listener {
     public void suUscita(PlayerQuitEvent e) {
         // La sessione muore con l'uscita: e' una misura di quello che ha fatto ADESSO, non di
         // una carriera. Il registro punti pensa al lungo periodo, questo no.
-        sessioni.remove(e.getPlayer().getUniqueId());
+        sessions.remove(e.getPlayer().getUniqueId());
     }
 
     // ------------------------------------------------------------------ giudizio
 
-    private void valuta(Player p, Sessione s) {
-        int totale = s.blocchi + s.preziosi;
-        if (totale < blocchiMinimi) {
+    private void valuta(Player p, Session s) {
+        int totale = s.blocks + s.preziosi;
+        if (totale < minBlocks) {
             return;
         }
         double perMille = (s.preziosi * 1000.0) / totale;
         if (perMille < allarmePerMille) {
             return;
         }
-        long adesso = System.currentTimeMillis();
-        if (adesso - s.ultimoAvviso < intervalloAvvisi) {
+        long now = System.currentTimeMillis();
+        if (now - s.ultimoAvviso < intervalloAvvisi) {
             return;
         }
-        s.ultimoAvviso = adesso;
+        s.ultimoAvviso = now;
 
-        String prove = componiProve(p, s, totale, perMille);
+        String prove = buildEvidence(p, s, totale, perMille);
 
         if (soloOsservazione || perMille < estremoPerMille) {
             // Sotto la soglia estrema, o in sola osservazione: si avvisa e basta. Nessun punto,
             // nessun provvedimento. E' il comportamento giusto finche' le soglie non sono tarate.
-            Bukkit.getScheduler().runTask(plugin, () -> avvisa(p, perMille, s, totale));
+            Bukkit.getScheduler().runTask(plugin, () -> notify(p, perMille, s, totale));
             plugin.getLogger().info("[xray] " + p.getName() + ": " + arrotonda(perMille)
                     + " preziosi/1000 su " + totale + " blocchi (sola osservazione).");
             return;
         }
 
-        rilevatore.rileva(p.getUniqueId(), p.getName(), "cheat.xray", "xray", prove,
+        detector.rileva(p.getUniqueId(), p.getName(), "cheat.xray", "xray", prove,
                 Math.min(3.0, perMille / estremoPerMille));
     }
 
     /** L'avviso allo staff: dice il numero, non la conclusione. */
-    private void avvisa(Player p, double perMille, Sessione s, int totale) {
-        String riga = "&#FFD166Scavo anomalo&f " + p.getName() + " &7— " + arrotonda(perMille)
+    private void notify(Player p, double perMille, Session s, int totale) {
+        String row = "&#FFD166Scavo anomalo&f " + p.getName() + " &7— " + arrotonda(perMille)
                 + " preziosi ogni 1000 blocchi (" + s.preziosi + " su " + totale + ")"
                 + (s.chiusi > 0 ? ", di cui " + s.chiusi + " chiusi" : "");
-        Bukkit.getConsoleSender().sendMessage(Text.msg(riga));
+        Bukkit.getConsoleSender().sendMessage(Text.msg(row));
         for (Player staff : Bukkit.getOnlinePlayers()) {
             if (staff.hasPermission("magixguard.alerts")) {
-                staff.sendMessage(Text.msg(riga));
+                staff.sendMessage(Text.msg(row));
             }
         }
     }
@@ -183,7 +183,7 @@ public final class MiningAnalysis implements Listener {
      * Le prove, scritte perche' le legga una persona che non sa cos'e' una deviazione standard.
      * Dichiarano anche cosa NON dimostrano: e' quello che le rende utilizzabili in un ricorso.
      */
-    private String componiProve(Player p, Sessione s, int totale, double perMille) {
+    private String buildEvidence(Player p, Session s, int totale, double perMille) {
         StringBuilder b = new StringBuilder();
         b.append("Sessione di scavo di ").append(p.getName()).append('\n');
         b.append("Blocchi di roccia scavati: ").append(totale).append('\n');
@@ -192,10 +192,10 @@ public final class MiningAnalysis implements Listener {
         b.append("Soglia di allarme: ").append(arrotonda(allarmePerMille))
          .append(" - soglia estrema: ").append(arrotonda(estremoPerMille)).append('\n');
         b.append("Minerali rotti mentre erano completamente circondati: ").append(s.chiusi).append('\n');
-        if (!s.perTipo.isEmpty()) {
+        if (!s.perType.isEmpty()) {
             b.append("Dettaglio: ");
-            for (Map.Entry<Material, Integer> voce : s.perTipo.entrySet()) {
-                b.append(voce.getKey().name().toLowerCase()).append(" x").append(voce.getValue()).append("  ");
+            for (Map.Entry<Material, Integer> entry : s.perType.entrySet()) {
+                b.append(entry.getKey().name().toLowerCase()).append(" x").append(entry.getValue()).append("  ");
             }
             b.append('\n');
         }
@@ -215,7 +215,7 @@ public final class MiningAnalysis implements Listener {
     // ------------------------------------------------------------------ utilita'
 
     /** Il blocco era invisibile? Lo e' se tutti e sei i lati danno su qualcosa di pieno. */
-    private static boolean eraChiuso(Block b) {
+    private static boolean wasClosed(Block b) {
         for (BlockFace faccia : new BlockFace[] { BlockFace.UP, BlockFace.DOWN, BlockFace.NORTH,
                                                   BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST }) {
             Material vicino = b.getRelative(faccia).getType();
@@ -242,13 +242,13 @@ public final class MiningAnalysis implements Listener {
     /** Le statistiche vive, per un comando di diagnostica. */
     public Map<String, String> riassunto() {
         Map<String, String> out = new HashMap<>();
-        for (Map.Entry<UUID, Sessione> voce : sessioni.entrySet()) {
-            Player p = Bukkit.getPlayer(voce.getKey());
+        for (Map.Entry<UUID, Session> entry : sessions.entrySet()) {
+            Player p = Bukkit.getPlayer(entry.getKey());
             if (p == null) {
                 continue;
             }
-            Sessione s = voce.getValue();
-            int totale = s.blocchi + s.preziosi;
+            Session s = entry.getValue();
+            int totale = s.blocks + s.preziosi;
             double perMille = totale == 0 ? 0 : (s.preziosi * 1000.0) / totale;
             out.put(p.getName(), totale + " blocchi, " + s.preziosi + " preziosi ("
                     + arrotonda(perMille) + "/1000)");

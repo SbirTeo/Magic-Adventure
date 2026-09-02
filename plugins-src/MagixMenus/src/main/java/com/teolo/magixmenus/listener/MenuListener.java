@@ -47,7 +47,7 @@ public final class MenuListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void suClic(InventoryClickEvent e) {
+    public void onClick(InventoryClickEvent e) {
         Inventory alto = e.getView().getTopInventory();
         if (!(alto.getHolder() instanceof OpenMenu menu)) {
             return;
@@ -70,11 +70,11 @@ public final class MenuListener implements Listener {
 
         long attesa = menu.attesaRimasta(item);
         if (attesa > 0) {
-            plugin.messaggi().send(p, "cooldown-wait", "seconds", String.valueOf(attesa));
+            plugin.messages().send(p, "cooldown-wait", "seconds", String.valueOf(attesa));
             return;
         }
 
-        Click clic = Click.da(e.getClick());
+        Click click = Click.da(e.getClick());
         Map<String, String> variabili = new LinkedHashMap<>(menu.variabiliPer(e.getSlot()));
         if (alto instanceof AnvilInventory incudine) {
             // Il testo scritto nell'incudine e' l'unica ragione per cui si sceglie questo tipo
@@ -85,15 +85,15 @@ public final class MenuListener implements Listener {
 
         // Prima i requisiti del tasto premuto, poi quelli validi per qualunque tasto: se uno dei
         // due dice no, il clic non ha effetto e partono le sue azioni di rifiuto.
-        for (Click quale : List.of(clic, Click.QUALSIASI)) {
-            Requirements r = item.clicSe(quale);
+        for (Click quale : List.of(click, Click.QUALSIASI)) {
+            Requirements r = item.clickIf(quale);
             if (r.vuoto() || r.soddisfatti(p, variabili)) {
                 continue;
             }
-            if (!r.azioniNegate().isEmpty()) {
-                Actions.esegui(plugin, menu.contestoCon(variabili), r.azioniNegate());
+            if (!r.deniedActions().isEmpty()) {
+                Actions.esegui(plugin, menu.contextWith(variabili), r.deniedActions());
             } else {
-                plugin.messaggi().send(p, "requirements-not-met");
+                plugin.messages().send(p, "requirements-not-met");
             }
             return;
         }
@@ -102,14 +102,14 @@ public final class MenuListener implements Listener {
         // scambio della merce. Se qualcosa non va, le azioni NON partono — altrimenti un
         // "console: give" scritto sotto regalerebbe la merce a chi non ha pagato.
         if (item.articolo()) {
-            Shop.Esito esito = Shop.clic(plugin, p, item, clic, variabili);
-            if (esito == Shop.Esito.NIENTE_DA_FARE) {
+            Shop.Outcome outcome = Shop.click(plugin, p, item, click, variabili);
+            if (outcome == Shop.Outcome.NIENTE_DA_FARE) {
                 return;
             }
         }
 
-        menu.segnaClic(item);
-        Actions.esegui(plugin, menu.contestoCon(variabili), item.azioniPer(clic));
+        menu.markClick(item);
+        Actions.esegui(plugin, menu.contextWith(variabili), item.actionsFor(click));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -118,8 +118,8 @@ public final class MenuListener implements Listener {
         if (!(alto.getHolder() instanceof OpenMenu)) {
             return;
         }
-        for (int casella : e.getRawSlots()) {
-            if (casella < alto.getSize()) {
+        for (int slot : e.getRawSlots()) {
+            if (slot < alto.getSize()) {
                 e.setCancelled(true);
                 return;
             }
@@ -139,28 +139,28 @@ public final class MenuListener implements Listener {
             return;
         }
 
-        if (!menu.definizione().chiusuraLibera() && p.isOnline()) {
+        if (!menu.definizione().freeClose() && p.isOnline()) {
             // Si riapre un tick dopo: riaprire dentro l'evento di chiusura lascia il client e il
             // server con due idee diverse su cosa sia aperto.
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (p.isOnline() && plugin.menu().apertoDi(p) == menu) {
-                    plugin.menu().apri(p, menu.definizione(), List.of(), null);
+                if (p.isOnline() && plugin.menu().openedBy(p) == menu) {
+                    plugin.menu().open(p, menu.definizione(), List.of(), null);
                 }
             });
             return;
         }
 
-        menu.ferma();
-        if (!menu.definizione().azioniChiusura().isEmpty()) {
-            Actions.esegui(plugin, menu, menu.definizione().azioniChiusura());
+        menu.stop();
+        if (!menu.definizione().closeActions().isEmpty()) {
+            Actions.esegui(plugin, menu, menu.definizione().closeActions());
         }
-        if (plugin.menu().apertoDi(p) == menu) {
-            plugin.menu().dimentica(p);
+        if (plugin.menu().openedBy(p) == menu) {
+            plugin.menu().forget(p);
         }
     }
 
     @EventHandler
     public void suUscita(PlayerQuitEvent e) {
-        plugin.menu().dimentica(e.getPlayer());
+        plugin.menu().forget(e.getPlayer());
     }
 }

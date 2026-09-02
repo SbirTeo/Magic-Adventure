@@ -18,65 +18,65 @@ import java.util.Map;
 public final class SanctionsConfig {
 
     /** Una categoria di violazione, con quanto pesa e dove vale. */
-    public record Categoria(String codice, String nome, String descrizione, int punti,
-                            Scope ambito, boolean automatico) { }
+    public record Category(String code, String name, String description, int points,
+                            Scope scope, boolean automatic) { }
 
     /** Una soglia del registro punti: raggiunti i punti, scatta il provvedimento. */
-    public record Soglia(int punti, Type tipo, long durata) { }
+    public record Threshold(int points, Type type, long duration) { }
 
     /** Il tetto di durata di un grado dello staff. */
     public record Tetto(long mute, long ban) {
 
         /** Il grado puo' dare questa sanzione con questa durata? */
-        public boolean consente(Type tipo, long durata) {
-            long limite = tipo == Type.BAN ? ban : mute;
+        public boolean consente(Type type, long duration) {
+            long limite = type == Type.BAN ? ban : mute;
             if (limite < 0) {
                 return true;                 // -1 = nessun limite
             }
             if (limite == 0) {
                 return false;                // 0 = non puo' proprio
             }
-            if (durata == Duration.PERMANENTE) {
+            if (duration == Duration.PERMANENTE) {
                 return false;                // il permanente sta sopra qualunque tetto finito
             }
-            return durata <= limite;
+            return duration <= limite;
         }
     }
 
     // --- collegamento al sito ---
-    public final String sitoHost;
-    public final int sitoPort;
-    public final String sitoDatabase;
-    public final String sitoUser;
-    public final String sitoPassword;
-    public final int sitoPool;
+    public final String siteHost;
+    public final int sitePort;
+    public final String siteDatabase;
+    public final String siteUser;
+    public final String sitePassword;
+    public final int sitePool;
     public final int controlloSecondi;
 
     // --- applicazione ---
     /** misto | automatico | proposta */
-    public final String modo;
-    public final long durataMassimaAutomatica;
-    public final String messaggioBan;
-    public final String messaggioKick;
-    public final String messaggioMute;
+    public final String mode;
+    public final long maxAutomaticDuration;
+    public final String banMessage;
+    public final String kickMessage;
+    public final String muteMessage;
 
     // --- punti ---
-    public final double dimezzamentoGiorni;
-    public final List<Soglia> soglie = new ArrayList<>();
+    public final double halfLifeDays;
+    public final List<Threshold> thresholds = new ArrayList<>();
 
     // --- categorie e poteri ---
-    public final Map<String, Categoria> categorie = new LinkedHashMap<>();
-    public final Map<String, Tetto> poteri = new LinkedHashMap<>();
+    public final Map<String, Category> categories = new LinkedHashMap<>();
+    public final Map<String, Tetto> powers = new LinkedHashMap<>();
 
     // --- segnalazioni ---
-    public final boolean reportAttivo;
-    public final int reportPausaSecondi;
-    public final int reportMassimoAperti;
-    public final int reportMotivoMinimo;
+    public final boolean reportActive;
+    public final int reportCooldownSeconds;
+    public final int reportMaxOpen;
+    public final int reportMinReason;
 
     // --- regolamento ---
-    public final boolean generaRegolamento;
-    public final String introduzioneRegolamento;
+    public final boolean generateRules;
+    public final String rulesIntro;
 
 
     /**
@@ -88,7 +88,7 @@ public final class SanctionsConfig {
      * cosa che e' successa davvero, ed e' la ragione per cui questo metodo esiste. Chi legge
      * questo file deve passare SEMPRE di qui.</p>
      */
-    public static org.bukkit.configuration.file.FileConfiguration carica(java.io.File file) {
+    public static org.bukkit.configuration.file.FileConfiguration load(java.io.File file) {
         org.bukkit.configuration.file.YamlConfiguration yml =
                 new org.bukkit.configuration.file.YamlConfiguration();
         yml.options().pathSeparator('/');
@@ -102,44 +102,44 @@ public final class SanctionsConfig {
     }
 
     public SanctionsConfig(FileConfiguration c) {
-        this.sitoHost = c.getString("site/host", "127.0.0.1");
-        this.sitoPort = c.getInt("site/port", 3306);
-        this.sitoDatabase = c.getString("site/database", "magicadventure_web");
-        this.sitoUser = c.getString("site/user", "magicweb");
-        this.sitoPassword = c.getString("site/password", "");
-        this.sitoPool = Math.max(1, c.getInt("site/pool-size", 3));
+        this.siteHost = c.getString("site/host", "127.0.0.1");
+        this.sitePort = c.getInt("site/port", 3306);
+        this.siteDatabase = c.getString("site/database", "magicadventure_web");
+        this.siteUser = c.getString("site/user", "magicweb");
+        this.sitePassword = c.getString("site/password", "");
+        this.sitePool = Math.max(1, c.getInt("site/pool-size", 3));
         this.controlloSecondi = Math.max(3, c.getInt("site/check-seconds", 10));
 
-        this.modo = c.getString("application/mode", "misto").trim().toLowerCase();
-        this.durataMassimaAutomatica = Duration.leggi(c.getString("application/auto-max-duration", "30d"));
-        this.messaggioBan = c.getString("application/ban-message", "&cSei stato bandito.\n&7{motivo}");
-        this.messaggioKick = c.getString("application/kick-message", "&eSei stato espulso.\n&7{motivo}");
-        this.messaggioMute = c.getString("application/mute-message", "&cNon puoi scrivere in chat: &f{motivo}");
+        this.mode = c.getString("application/mode", "misto").trim().toLowerCase();
+        this.maxAutomaticDuration = Duration.read(c.getString("application/auto-max-duration", "30d"));
+        this.banMessage = c.getString("application/ban-message", "&cSei stato bandito.\n&7{motivo}");
+        this.kickMessage = c.getString("application/kick-message", "&eSei stato espulso.\n&7{motivo}");
+        this.muteMessage = c.getString("application/mute-message", "&cNon puoi scrivere in chat: &f{motivo}");
 
-        this.dimezzamentoGiorni = Math.max(1, c.getDouble("points/halving-days", 90));
+        this.halfLifeDays = Math.max(1, c.getDouble("points/halving-days", 90));
 
-        for (Map<?, ?> riga : c.getMapList("points/thresholds")) {
-            Object p = riga.get("points");
-            Type t = Type.da(String.valueOf(riga.get("type")));
+        for (Map<?, ?> row : c.getMapList("points/thresholds")) {
+            Object p = row.get("points");
+            Type t = Type.da(String.valueOf(row.get("type")));
             if (p == null || t == null) {
                 continue;
             }
-            long durata = Duration.leggi(String.valueOf(riga.get("duration")));
-            soglie.add(new Soglia(((Number) p).intValue(), t, durata));
+            long duration = Duration.read(String.valueOf(row.get("duration")));
+            thresholds.add(new Threshold(((Number) p).intValue(), t, duration));
         }
         // Ordinate dalla piu' alta: cosi' basta prendere la prima superata.
-        soglie.sort((a, b) -> Integer.compare(b.punti(), a.punti()));
+        thresholds.sort((a, b) -> Integer.compare(b.points(), a.points()));
 
         ConfigurationSection cat = c.getConfigurationSection("categories");
         if (cat != null) {
-            for (String codice : cat.getKeys(false)) {
-                ConfigurationSection s = cat.getConfigurationSection(codice);
+            for (String code : cat.getKeys(false)) {
+                ConfigurationSection s = cat.getConfigurationSection(code);
                 if (s == null) {
                     continue;
                 }
-                categorie.put(codice, new Categoria(
-                        codice,
-                        s.getString("name", codice),
+                categories.put(code, new Category(
+                        code,
+                        s.getString("name", code),
                         s.getString("description", ""),
                         s.getInt("points", 0),
                         Scope.da(s.getString("scope", "entrambi")),
@@ -149,43 +149,43 @@ public final class SanctionsConfig {
 
         ConfigurationSection pot = c.getConfigurationSection("powers");
         if (pot != null) {
-            for (String grado : pot.getKeys(false)) {
-                ConfigurationSection s = pot.getConfigurationSection(grado);
+            for (String rank : pot.getKeys(false)) {
+                ConfigurationSection s = pot.getConfigurationSection(rank);
                 if (s == null) {
                     continue;
                 }
-                poteri.put(grado.toLowerCase(), new Tetto(
-                        Duration.leggi(s.getString("mute", "0")),
-                        Duration.leggi(s.getString("ban", "0"))));
+                powers.put(rank.toLowerCase(), new Tetto(
+                        Duration.read(s.getString("mute", "0")),
+                        Duration.read(s.getString("ban", "0"))));
             }
         }
 
-        this.reportAttivo = c.getBoolean("report/active", true);
-        this.reportPausaSecondi = Math.max(0, c.getInt("report/pause-seconds", 60));
-        this.reportMassimoAperti = Math.max(1, c.getInt("report/max-open", 3));
-        this.reportMotivoMinimo = Math.max(1, c.getInt("report/min-reason", 15));
+        this.reportActive = c.getBoolean("report/active", true);
+        this.reportCooldownSeconds = Math.max(0, c.getInt("report/pause-seconds", 60));
+        this.reportMaxOpen = Math.max(1, c.getInt("report/max-open", 3));
+        this.reportMinReason = Math.max(1, c.getInt("report/min-reason", 15));
 
-        this.generaRegolamento = c.getBoolean("rulebook/generate", true);
-        this.introduzioneRegolamento = c.getString("rulebook/intro", "");
+        this.generateRules = c.getBoolean("rulebook/generate", true);
+        this.rulesIntro = c.getString("rulebook/intro", "");
     }
 
     /** La categoria, o quella "manuale" se il codice non e' fra quelle dichiarate. */
-    public Categoria categoria(String codice) {
-        Categoria k = categorie.get(codice);
+    public Category category(String code) {
+        Category k = categories.get(code);
         if (k != null) {
             return k;
         }
-        Categoria manuale = categorie.get("manuale");
+        Category manuale = categories.get("manuale");
         return manuale != null ? manuale
-                : new Categoria(codice, codice, "", 0, Scope.ENTRAMBI, false);
+                : new Category(code, code, "", 0, Scope.ENTRAMBI, false);
     }
 
     /**
      * Il tetto del grado indicato. Se il grado non e' elencato in {@code poteri} non puo'
      * sanzionare: e' la scelta prudente, un grado sconosciuto non deve ereditare poteri.
      */
-    public Tetto tetto(String grado) {
-        Tetto t = grado == null ? null : poteri.get(grado.toLowerCase());
+    public Tetto tetto(String rank) {
+        Tetto t = rank == null ? null : powers.get(rank.toLowerCase());
         return t != null ? t : new Tetto(0, 0);
     }
 }

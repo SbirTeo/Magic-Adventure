@@ -47,7 +47,7 @@ import java.util.Map;
 public final class Shop {
 
     /** Cosa e' successo: serve a chi ha cliccato per sapere se le azioni devono proseguire. */
-    public enum Esito {
+    public enum Outcome {
         /** Non c'era niente da comprare o da vendere: si prosegue normalmente. */
         NON_E_UN_ARTICOLO,
         FATTO,
@@ -63,12 +63,12 @@ public final class Shop {
      *
      * @return cosa deve fare chi ha chiamato: proseguire con le azioni o fermarsi
      */
-    public static Esito clic(MagixMenus plugin, Player p, ItemDef def, Click tasto,
+    public static Outcome click(MagixMenus plugin, Player p, ItemDef def, Click tasto,
                              Map<String, String> variabili) {
         boolean compra = def.prezzo() != null && !def.prezzo().isBlank();
         boolean vende = def.vendi() != null && !def.vendi().isBlank();
         if (!compra && !vende) {
-            return Esito.NON_E_UN_ARTICOLO;
+            return Outcome.NON_E_UN_ARTICOLO;
         }
 
         // Sinistro compra, destro vende: e' la convenzione di tutti i negozi che si sono mai
@@ -78,85 +78,85 @@ public final class Shop {
             return vendi(plugin, p, def, variabili);
         }
         if (!compra) {
-            return Esito.NON_E_UN_ARTICOLO;
+            return Outcome.NON_E_UN_ARTICOLO;
         }
         return compra(plugin, p, def, variabili);
     }
 
     // ------------------------------------------------------------------ comprare
 
-    private static Esito compra(MagixMenus plugin, Player p, ItemDef def, Map<String, String> variabili) {
+    private static Outcome compra(MagixMenus plugin, Player p, ItemDef def, Map<String, String> variabili) {
         double prezzo = quanto(p, variabili, def.prezzo());
         if (!EconomyHook.disponibile()) {
-            plugin.getLogger().warning("L'articolo \"" + def.nome() + "\" ha un prezzo ma non c'e' "
+            plugin.getLogger().warning("L'articolo \"" + def.name() + "\" ha un prezzo ma non c'e' "
                     + "nessuna economia (serve Vault e un plugin che la fornisca).");
-            plugin.messaggi().send(p, "shop.no-economy");
-            return Esito.NIENTE_DA_FARE;
+            plugin.messages().send(p, "shop.no-economy");
+            return Outcome.NIENTE_DA_FARE;
         }
 
         double saldo = EconomyHook.saldo(p);
         if (saldo < prezzo) {
-            plugin.messaggi().send(p, "shop.not-enough-money",
-                    "price", numero(prezzo),
-                    "missing", numero(prezzo - saldo),
-                    "balance", numero(saldo));
+            plugin.messages().send(p, "shop.not-enough-money",
+                    "price", number(prezzo),
+                    "missing", number(prezzo - saldo),
+                    "balance", number(saldo));
             suono(p, plugin, "shop.sound-fail");
-            return Esito.NIENTE_DA_FARE;
+            return Outcome.NIENTE_DA_FARE;
         }
 
         ItemStack merce = merce(plugin, p, variabili, def);
         if (merce != null && !c_e_posto(p, merce)) {
             // Prima il posto, poi i soldi: vedi il commento in cima alla classe.
-            plugin.messaggi().send(p, "shop.inventory-full");
+            plugin.messages().send(p, "shop.inventory-full");
             suono(p, plugin, "shop.sound-fail");
-            return Esito.NIENTE_DA_FARE;
+            return Outcome.NIENTE_DA_FARE;
         }
 
-        if (prezzo > 0 && !EconomyHook.togli(p, prezzo)) {
-            plugin.messaggi().send(p, "shop.payment-failed");
-            return Esito.NIENTE_DA_FARE;
+        if (prezzo > 0 && !EconomyHook.remove(p, prezzo)) {
+            plugin.messages().send(p, "shop.payment-failed");
+            return Outcome.NIENTE_DA_FARE;
         }
         if (merce != null) {
             p.getInventory().addItem(merce);
         }
 
-        plugin.messaggi().send(p, "shop.bought",
-                "price", numero(prezzo),
-                "what", nomeMerce(def, merce),
-                "balance", numero(EconomyHook.saldo(p)));
+        plugin.messages().send(p, "shop.bought",
+                "price", number(prezzo),
+                "what", productName(def, merce),
+                "balance", number(EconomyHook.saldo(p)));
         suono(p, plugin, "shop.sound-ok");
-        return Esito.FATTO;
+        return Outcome.FATTO;
     }
 
     // ------------------------------------------------------------------- vendere
 
-    private static Esito vendi(MagixMenus plugin, Player p, ItemDef def, Map<String, String> variabili) {
+    private static Outcome vendi(MagixMenus plugin, Player p, ItemDef def, Map<String, String> variabili) {
         double prezzo = quanto(p, variabili, def.vendi());
         if (!EconomyHook.disponibile()) {
-            plugin.messaggi().send(p, "shop.no-economy");
-            return Esito.NIENTE_DA_FARE;
+            plugin.messages().send(p, "shop.no-economy");
+            return Outcome.NIENTE_DA_FARE;
         }
 
         ItemStack merce = merce(plugin, p, variabili, def);
         if (merce == null) {
-            plugin.getLogger().warning("L'articolo \"" + def.nome() + "\" si puo' vendere ma non dice "
+            plugin.getLogger().warning("L'articolo \"" + def.name() + "\" si puo' vendere ma non dice "
                     + "cosa (manca la chiave give).");
-            return Esito.NIENTE_DA_FARE;
+            return Outcome.NIENTE_DA_FARE;
         }
         if (!p.getInventory().containsAtLeast(merce, merce.getAmount())) {
-            plugin.messaggi().send(p, "shop.nothing-to-sell", "what", nomeMerce(def, merce));
+            plugin.messages().send(p, "shop.nothing-to-sell", "what", productName(def, merce));
             suono(p, plugin, "shop.sound-fail");
-            return Esito.NIENTE_DA_FARE;
+            return Outcome.NIENTE_DA_FARE;
         }
 
         p.getInventory().removeItem(merce);
         EconomyHook.dai(p, prezzo);
-        plugin.messaggi().send(p, "shop.sold",
-                "price", numero(prezzo),
-                "what", nomeMerce(def, merce),
-                "balance", numero(EconomyHook.saldo(p)));
+        plugin.messages().send(p, "shop.sold",
+                "price", number(prezzo),
+                "what", productName(def, merce),
+                "balance", number(EconomyHook.saldo(p)));
         suono(p, plugin, "shop.sound-ok");
-        return Esito.FATTO;
+        return Outcome.FATTO;
     }
 
     // -------------------------------------------------------------------- pezzi
@@ -170,27 +170,27 @@ public final class Shop {
      * dire per esteso cosa si da'.
      */
     public static ItemStack merce(MagixMenus plugin, Player p, Map<String, String> variabili, ItemDef def) {
-        String cosa = def.dai();
-        if (cosa == null || cosa.isBlank()) {
+        String what = def.dai();
+        if (what == null || what.isBlank()) {
             return null;
         }
-        String risolto = Text.grezzo(p, variabili, cosa).trim();
+        String risolto = Text.raw(p, variabili, what).trim();
         if (risolto.equalsIgnoreCase("self") || risolto.equalsIgnoreCase("se_stesso")
                 || risolto.equalsIgnoreCase("questo")) {
-            ItemStack copia = ItemBuilder.costruisci(plugin, p, variabili, def, false);
-            return copia.getType().isAir() ? null : copia;
+            ItemStack copy = ItemBuilder.costruisci(plugin, p, variabili, def, false);
+            return copy.getType().isAir() ? null : copy;
         }
 
-        String[] pezzi = risolto.split("[\\s:x*]+");
-        Material m = Material.matchMaterial(pezzi[0]);
+        String[] pieces = risolto.split("[\\s:x*]+");
+        Material m = Material.matchMaterial(pieces[0]);
         if (m == null || m.isAir()) {
-            plugin.getLogger().warning("L'articolo \"" + def.nome() + "\": non esiste l'item \""
-                    + pezzi[0] + "\" scritto in \"dai\".");
+            plugin.getLogger().warning("L'articolo \"" + def.name() + "\": non esiste l'item \""
+                    + pieces[0] + "\" scritto in \"dai\".");
             return null;
         }
         int quanti = 1;
-        if (pezzi.length > 1) {
-            Double n = Text.numero(pezzi[1]);
+        if (pieces.length > 1) {
+            Double n = Text.number(pieces[1]);
             if (n != null) {
                 quanti = Math.max(1, (int) (double) n);
             }
@@ -218,45 +218,45 @@ public final class Shop {
         return posto >= merce.getAmount();
     }
 
-    private static String nomeMerce(ItemDef def, ItemStack merce) {
+    private static String productName(ItemDef def, ItemStack merce) {
         if (merce == null) {
-            return def.nome();
+            return def.name();
         }
-        String nome = merce.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
-        return merce.getAmount() > 1 ? merce.getAmount() + " " + nome : nome;
+        String name = merce.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
+        return merce.getAmount() > 1 ? merce.getAmount() + " " + name : name;
     }
 
     private static double quanto(Player p, Map<String, String> variabili, String scritto) {
-        Double n = Text.numero(Text.grezzo(p, variabili, scritto));
+        Double n = Text.number(Text.raw(p, variabili, scritto));
         return n == null ? 0 : Math.max(0, n);
     }
 
     /** Il prezzo come lo legge una persona: 1000 e non 1000.0, 12,5 e non 12.5. */
-    public static String numero(double v) {
+    public static String number(double v) {
         if (v == Math.rint(v)) {
             return String.valueOf((long) v);
         }
         return String.format(Locale.ITALIAN, "%.2f", v);
     }
 
-    private static void suono(Player p, MagixMenus plugin, String chiave) {
-        String nome = plugin.messaggi().grezzo(chiave);
-        if (nome == null || nome.isBlank()) {
+    private static void suono(Player p, MagixMenus plugin, String key) {
+        String name = plugin.messages().raw(key);
+        if (name == null || name.isBlank()) {
             return;
         }
         try {
-            p.playSound(p.getLocation(), org.bukkit.Sound.valueOf(nome.trim().toUpperCase(Locale.ROOT)), 1f, 1f);
+            p.playSound(p.getLocation(), org.bukkit.Sound.valueOf(name.trim().toUpperCase(Locale.ROOT)), 1f, 1f);
         } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning("Suono sconosciuto in " + chiave + ": " + nome);
+            plugin.getLogger().warning("Suono sconosciuto in " + key + ": " + name);
         }
     }
 
     /** Le righe di descrizione che il plugin aggiunge da solo a un articolo. */
-    public static Map<String, String> valoriPerLaDescrizione(Player p, Map<String, String> variabili,
+    public static Map<String, String> valuesForDescription(Player p, Map<String, String> variabili,
                                                              ItemDef def) {
         Map<String, String> v = new HashMap<>();
-        v.put("price", numero(quanto(p, variabili, def.prezzo())));
-        v.put("sell", numero(quanto(p, variabili, def.vendi())));
+        v.put("price", number(quanto(p, variabili, def.prezzo())));
+        v.put("sell", number(quanto(p, variabili, def.vendi())));
         return v;
     }
 }

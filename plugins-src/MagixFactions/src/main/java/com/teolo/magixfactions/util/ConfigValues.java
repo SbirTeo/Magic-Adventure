@@ -54,24 +54,24 @@ import java.util.regex.Pattern;
 public final class ConfigValues {
 
     /** {{forma:chiave.del.config|ripiego}} */
-    private static final Pattern SEGNAPOSTO =
+    private static final Pattern PLACEHOLDER =
             Pattern.compile("\\{\\{(cfg|secondi|ore|percento|simbolo):([A-Za-z0-9_./\\-]+)(?:\\|([^}]*))?}}");
     /** {{se:chiave=valore}} ...pezzo di testo... {{/se}} — vedi #blocchi(String). */
-    private static final Pattern BLOCCO = Pattern.compile(
+    private static final Pattern BLOCK = Pattern.compile(
             "\\{\\{se:([A-Za-z0-9_./\\-]+)(!?=)([^}]*)}}((?:(?!\\{\\{se:).)*?)\\{\\{/se}}", Pattern.DOTALL);
     /** Codici colore di Minecraft (&a, &#RRGGBB): in una guida scritta non hanno senso. */
-    private static final Pattern CODICI_COLORE = Pattern.compile("(?i)&#[0-9a-f]{6}|&[0-9a-fk-or]");
+    private static final Pattern COLOR_CODES = Pattern.compile("(?i)&#[0-9a-f]{6}|&[0-9a-fk-or]");
     /** Un segnaposto qualunque, per accorgersi di quelli rimasti senza valore. */
-    private static final Pattern RIMASTO = Pattern.compile("\\{\\{[^}]{1,80}}}");
+    private static final Pattern LEFTOVER = Pattern.compile("\\{\\{[^}]{1,80}}}");
 
     private final JavaPlugin plugin;
     private final Map<String, String> extra = new LinkedHashMap<>();
     /** Config in cui cercare le chiavi, in ordine: il config.yml del plugin e poi gli altri aggiunti. */
-    private final List<Configuration> fonti = new ArrayList<>();
+    private final List<Configuration> sources = new ArrayList<>();
 
     public ConfigValues(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.fonti.add(plugin.getConfig());
+        this.sources.add(plugin.getConfig());
     }
 
     /**
@@ -79,45 +79,45 @@ public final class ConfigValues {
      * MagixGuard, che non e' il config.yml del plugin). Si cerca nell'ordine in cui sono stati aggiunti,
      * partendo dal config.yml.
      */
-    public ConfigValues inoltre(Configuration conf) {
-        if (conf != null) fonti.add(conf);
+    public ConfigValues also(Configuration conf) {
+        if (conf != null) sources.add(conf);
         return this;
     }
 
     /** Aggiunge un testo derivato: {@code extra("PERDITA_OFFLINE", "<li>...</li>")} -> {@code {{PERDITA_OFFLINE}}}. */
-    public ConfigValues extra(String nome, String testo) {
-        extra.put(nome, testo == null ? "" : testo);
+    public ConfigValues extra(String name, String text) {
+        extra.put(name, text == null ? "" : text);
         return this;
     }
 
     /** Applica tutte le sostituzioni al testo e segnala nel log i segnaposto rimasti senza valore. */
-    public String applica(String testo) {
-        if (testo == null || testo.isEmpty()) return testo;
-        testo = blocchi(testo);   // prima i pezzi da tenere o buttare, poi i valori dentro a quel che resta
+    public String apply(String text) {
+        if (text == null || text.isEmpty()) return text;
+        text = blocks(text);   // prima i pezzi da tenere o buttare, poi i valori dentro a quel che resta
 
         StringBuilder sb = new StringBuilder();
-        Matcher m = SEGNAPOSTO.matcher(testo);
+        Matcher m = PLACEHOLDER.matcher(text);
         while (m.find()) {
-            String forma = m.group(1), chiave = m.group(2), ripiego = m.group(3);
+            String shape = m.group(1), key = m.group(2), fallback = m.group(3);
             Configuration c = null;
-            for (Configuration f : fonti) { if (f != null && f.isSet(chiave)) { c = f; break; } }
-            String valore;
+            for (Configuration f : sources) { if (f != null && f.isSet(key)) { c = f; break; } }
+            String value;
             if (c == null) {
-                valore = ripiego != null ? ripiego : "";
-                if (ripiego == null) {
-                    plugin.getLogger().warning("[Guide] chiave di config assente: " + chiave
+                value = fallback != null ? fallback : "";
+                if (fallback == null) {
+                    plugin.getLogger().warning("[Guide] chiave di config assente: " + key
                             + " (segnaposto " + m.group() + " lasciato vuoto).");
                 }
             } else {
-                valore = switch (forma) {
-                    case "secondi" -> DurationText.daSecondi(c.getLong(chiave));
-                    case "ore" -> DurationText.daOre(c.getDouble(chiave));
-                    case "percento" -> DurationText.numero(c.getDouble(chiave)) + "%";
-                    case "simbolo" -> CODICI_COLORE.matcher(String.valueOf(c.get(chiave))).replaceAll("");
-                    default -> String.valueOf(c.get(chiave));
+                value = switch (shape) {
+                    case "secondi" -> DurationText.fromSeconds(c.getLong(key));
+                    case "ore" -> DurationText.fromHours(c.getDouble(key));
+                    case "percento" -> DurationText.number(c.getDouble(key)) + "%";
+                    case "simbolo" -> COLOR_CODES.matcher(String.valueOf(c.get(key))).replaceAll("");
+                    default -> String.valueOf(c.get(key));
                 };
             }
-            m.appendReplacement(sb, Matcher.quoteReplacement(valore));
+            m.appendReplacement(sb, Matcher.quoteReplacement(value));
         }
         m.appendTail(sb);
         String out = sb.toString();
@@ -127,9 +127,9 @@ public final class ConfigValues {
         }
 
         // Rete di sicurezza: meglio accorgersene dal log all'avvio che da un giocatore che legge "{{...}}".
-        Matcher rimasto = RIMASTO.matcher(out);
-        if (rimasto.find()) {
-            plugin.getLogger().warning("[Guide] segnaposto senza valore: " + rimasto.group()
+        Matcher leftover = LEFTOVER.matcher(out);
+        if (leftover.find()) {
+            plugin.getLogger().warning("[Guide] segnaposto senza valore: " + leftover.group()
                     + " — aggiungilo al config o passalo con ConfigValues.extra().");
         }
         return out;
@@ -149,33 +149,33 @@ public final class ConfigValues {
      * — che agganciava il primo {@code {{/se}}} incontrato — quel pezzo di guida usciva a pezzi.
      * Per il testo che non e' un semplice "c'e'/non c'e'" resta {@link #extra(String, String)}.
      */
-    private String blocchi(String testo) {
+    private String blocks(String text) {
         // Un giro per livello di annidamento: il pattern aggancia solo i blocchi PIU' INTERNI (quelli
         // che non ne contengono altri), quindi risolto un livello quello sopra diventa a sua volta il
         // piu' interno. Serve davvero: la frase sulla minimap sta DENTRO il blocco della mappa in chat.
-        for (int giro = 0; giro < 20 && testo.contains("{{se:"); giro++) {
-            Matcher m = BLOCCO.matcher(testo);
+        for (int pass = 0; pass < 20 && text.contains("{{se:"); pass++) {
+            Matcher m = BLOCK.matcher(text);
             StringBuilder sb = new StringBuilder();
-            boolean trovato = false;
+            boolean found = false;
             while (m.find()) {
-                trovato = true;
-                String chiave = m.group(1), operatore = m.group(2), atteso = m.group(3).trim(), corpo = m.group(4);
-                String valore = null;
-                for (Configuration f : fonti) { if (f != null && f.isSet(chiave)) { valore = String.valueOf(f.get(chiave)); break; } }
-                if (valore == null) {
-                    plugin.getLogger().warning("[Guide] chiave di config assente: " + chiave
-                            + " (blocco {{se:" + chiave + operatore + atteso + "}} trattato come falso).");
+                found = true;
+                String key = m.group(1), operator = m.group(2), expected = m.group(3).trim(), body = m.group(4);
+                String value = null;
+                for (Configuration f : sources) { if (f != null && f.isSet(key)) { value = String.valueOf(f.get(key)); break; } }
+                if (value == null) {
+                    plugin.getLogger().warning("[Guide] chiave di config assente: " + key
+                            + " (blocco {{se:" + key + operator + expected + "}} trattato come falso).");
                 }
-                boolean uguale = valore != null && valore.trim().equalsIgnoreCase(atteso);
-                boolean tieni = "=".equals(operatore) == uguale;   // "!=" ribalta
-                m.appendReplacement(sb, Matcher.quoteReplacement(tieni ? corpo : ""));
+                boolean equal = value != null && value.trim().equalsIgnoreCase(expected);
+                boolean keep = "=".equals(operator) == equal;   // "!=" ribalta
+                m.appendReplacement(sb, Matcher.quoteReplacement(keep ? body : ""));
             }
             m.appendTail(sb);
-            if (!trovato) {
+            if (!found) {
                 break;      // restano solo {{se:}} senza chiusura: li segnala la rete di sicurezza
             }
-            testo = sb.toString();
+            text = sb.toString();
         }
-        return testo;
+        return text;
     }
 }

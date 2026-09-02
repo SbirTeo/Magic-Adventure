@@ -130,19 +130,19 @@ public final class PowerManager {
             // L'ordine conta: "...speed.loss.<n>" comincia per "...speed.", quindi il prefisso piu'
             // lungo va provato per primo, altrimenti la perdita verrebbe letta come recupero.
             if (n.startsWith(PERM_LOSS)) {
-                Integer v = numero(n, PERM_LOSS);
+                Integer v = number(n, PERM_LOSS);
                 if (v != null) loss = (loss == null ? v : Math.min(loss, v));
             } else if (n.startsWith(PERM_SPEED)) {
-                Integer v = numero(n, PERM_SPEED);
+                Integer v = number(n, PERM_SPEED);
                 if (v != null) speed = (speed == null ? v : Math.max(speed, v));
             } else if (n.startsWith(PERM_MAXPOWER)) {
-                Integer v = numero(n, PERM_MAXPOWER);
+                Integer v = number(n, PERM_MAXPOWER);
                 if (v != null) maxPower = (maxPower == null ? v : Math.max(maxPower, v));
             }
         }
 
         /** La coda numerica del permesso, o null se non e' un numero (es. un nodo scritto male). */
-        private static Integer numero(String permesso, String prefisso) {
+        private static Integer number(String permesso, String prefisso) {
             try {
                 int v = Integer.parseInt(permesso.substring(prefisso.length()));
                 return v < 0 ? null : Math.min(10000, v);
@@ -170,9 +170,9 @@ public final class PowerManager {
     }
 
     /** I vantaggi di un giocatore OFFLINE, dai permessi letti via LuckPerms ({@link LuckPermsHook}). */
-    private Vantaggi vantaggi(Map<String, Boolean> permessi) {
+    private Vantaggi vantaggi(Map<String, Boolean> permissions) {
         Raccolta r = new Raccolta();
-        for (Map.Entry<String, Boolean> e : permessi.entrySet()) {
+        for (Map.Entry<String, Boolean> e : permissions.entrySet()) {
             if (Boolean.TRUE.equals(e.getValue())) r.offri(e.getKey());
         }
         return risolvi(r);
@@ -364,7 +364,7 @@ public final class PowerManager {
         Vantaggi vip = vantaggi(p);
         // Coda di decadimento: il giro offline (tickOffline) ha gia' consumato i periodi interi mentre era
         // via, qui si chiude quello eventualmente maturato dall'ultimo giro a questo istante.
-        applicaDecadimento(pp, now, vip.loss);
+        applyDecay(pp, now, vip.loss);
         // Il tetto lo dettano i permessi: un VIP scaduto (o appena promosso) ha il valore giusto gia' al
         // primo tick di gioco, senza aspettare la riconciliazione periodica.
         pp.maxPower = vip.maxPower;
@@ -433,7 +433,7 @@ public final class PowerManager {
      */
     public void tickOnline() {
         int gain = gainAmount();
-        int soglia = gainIntervalSeconds() * 100; // "secondi x percentuale" per un punto di Potenza
+        int threshold = gainIntervalSeconds() * 100; // "secondi x percentuale" per un punto di Potenza
         int tick = tickSeconds();
         boolean minimapUp = minimapManager != null && minimapManager.isAvailable();
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -451,10 +451,10 @@ public final class PowerManager {
                 continue;
             }
             pp.progress += tick * Math.max(0, vip.speed);
-            if (pp.progress < soglia) continue;     // ancora in mezzo al giro: nessuna scrittura
-            int punti = pp.progress / soglia;
-            pp.progress -= punti * soglia;
-            pp.power = Math.min(pp.maxPower, pp.power + gain * punti);
+            if (pp.progress < threshold) continue;     // ancora in mezzo al giro: nessuna scrittura
+            int points = pp.progress / threshold;
+            pp.progress -= points * threshold;
+            pp.power = Math.min(pp.maxPower, pp.power + gain * points);
             if (pp.power >= pp.maxPower) pp.progress = 0;
             save(u);
         }
@@ -492,15 +492,15 @@ public final class PowerManager {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             Map<UUID, Vantaggi> letti = new HashMap<>();
             for (UUID u : candidati) {
-                Map<String, Boolean> permessi = lpPronto ? luckPerms.permessi(u) : null;
-                if (permessi != null) letti.put(u, vantaggi(permessi));
+                Map<String, Boolean> permissions = lpPronto ? luckPerms.permissions(u) : null;
+                if (permissions != null) letti.put(u, vantaggi(permissions));
             }
-            Bukkit.getScheduler().runTask(plugin, () -> applicaGiroOffline(candidati, letti));
+            Bukkit.getScheduler().runTask(plugin, () -> applyOfflinePass(candidati, letti));
         });
     }
 
     /** Applica sul main thread l'esito del giro offline: tetto dai permessi + decadimento maturato. */
-    private void applicaGiroOffline(java.util.List<UUID> candidati, Map<UUID, Vantaggi> letti) {
+    private void applyOfflinePass(java.util.List<UUID> candidati, Map<UUID, Vantaggi> letti) {
         long now = System.currentTimeMillis();
         for (UUID u : candidati) {
             if (Bukkit.getPlayer(u) != null) continue; // e' rientrato nel frattempo: ci pensa applyJoin
@@ -513,7 +513,7 @@ public final class PowerManager {
                 clamp(pp);
                 cambiato = true;
             }
-            if (applicaDecadimento(pp, now, vip == null ? 100 : vip.loss) > 0) cambiato = true;
+            if (applyDecay(pp, now, vip == null ? 100 : vip.loss) > 0) cambiato = true;
             if (cambiato) save(u);
         }
     }
@@ -559,7 +559,7 @@ public final class PowerManager {
      *
      * @return quanta Potenza e' stata tolta (0 se niente).
      */
-    private int applicaDecadimento(PP pp, long now, int lossPercent) {
+    private int applyDecay(PP pp, long now, int lossPercent) {
         int amount = plugin.getConfig().getInt("power.offline-decay.amount", 0);
         if (amount <= 0 || lossPercent <= 0 || pp.lastSeen <= 0 || now <= pp.lastSeen) return 0;
         long periodoMs = Math.max(1L, unitaDecadimentoMs() * 100 / lossPercent);

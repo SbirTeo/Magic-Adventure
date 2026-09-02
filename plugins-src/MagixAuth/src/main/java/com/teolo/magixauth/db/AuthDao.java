@@ -29,7 +29,7 @@ import java.util.UUID;
 public final class AuthDao {
 
     /** Le colonne di `users` che interessano al gate. */
-    private static final String CAMPI =
+    private static final String FIELDS =
             "id, mc_uuid, mc_username, password_hash, totp_secret, totp_last_step, " +
             "totp_attempts, totp_locked_until, is_admin";
 
@@ -50,29 +50,29 @@ public final class AuthDao {
      * offline mode l'UUID lo decidiamo noi, quindi il nome e' l'unica cosa che il giocatore
      * porta con se' quando bussa.
      */
-    public Account perNome(String nome) throws SQLException {
+    public Account byName(String name) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT " + CAMPI + " FROM users WHERE mc_username = ? LIMIT 1")) {
-            ps.setString(1, nome);
+                     "SELECT " + FIELDS + " FROM users WHERE mc_username = ? LIMIT 1")) {
+            ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? leggi(rs) : null;
+                return rs.next() ? read(rs) : null;
             }
         }
     }
 
-    public Account perUuid(UUID uuid) throws SQLException {
+    public Account byUuid(UUID uuid) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT " + CAMPI + " FROM users WHERE mc_uuid = ? LIMIT 1")) {
+                     "SELECT " + FIELDS + " FROM users WHERE mc_uuid = ? LIMIT 1")) {
             ps.setString(1, uuid.toString());
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? leggi(rs) : null;
+                return rs.next() ? read(rs) : null;
             }
         }
     }
 
-    private Account leggi(ResultSet rs) throws SQLException {
+    private Account read(ResultSet rs) throws SQLException {
         UUID uuid;
         try {
             uuid = UUID.fromString(rs.getString("mc_uuid"));
@@ -81,18 +81,18 @@ public final class AuthDao {
             // Meglio trattarlo come inesistente che far entrare qualcuno per sbaglio.
             return null;
         }
-        long ultimoPasso = rs.getLong("totp_last_step");
-        boolean passoNullo = rs.wasNull();
-        Timestamp bloccato = rs.getTimestamp("totp_locked_until");
+        long lastStep = rs.getLong("totp_last_step");
+        boolean nullStep = rs.wasNull();
+        Timestamp blocked = rs.getTimestamp("totp_locked_until");
         return new Account(
                 rs.getInt("id"),
                 uuid,
                 rs.getString("mc_username"),
                 rs.getString("password_hash"),
                 rs.getString("totp_secret"),
-                passoNullo ? null : ultimoPasso,
+                nullStep ? null : lastStep,
                 rs.getInt("totp_attempts"),
-                bloccato == null ? null : bloccato.toLocalDateTime(),
+                blocked == null ? null : blocked.toLocalDateTime(),
                 rs.getInt("is_admin") == 1);
     }
 
@@ -107,14 +107,14 @@ public final class AuthDao {
      *
      * @return l'id assegnato, o -1 se il nome era gia' stato preso nel frattempo
      */
-    public int registra(UUID uuid, String nome, String passwordHash, UUID premiumUuid) throws SQLException {
+    public int register(UUID uuid, String name, String passwordHash, UUID premiumUuid) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "INSERT INTO users (mc_uuid, mc_username, password_hash, premium_uuid, " +
                      "premium_checked_at, registered_in_game_at, created_at) " +
                      "VALUES (?, ?, ?, ?, ?, NOW(), NOW())", Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, uuid.toString());
-            ps.setString(2, nome);
+            ps.setString(2, name);
             ps.setString(3, passwordHash);
             ps.setString(4, premiumUuid == null ? null : premiumUuid.toString());
             ps.setTimestamp(5, premiumUuid == null ? null : Timestamp.valueOf(LocalDateTime.now()));
@@ -139,17 +139,17 @@ public final class AuthDao {
      * chiavi. E' la colonna che il sito usa proprio per far cadere le sessioni aperte, e i
      * "resta collegato" vanno buttati per lo stesso motivo.
      */
-    public void cambiaPassword(int idSito, String passwordHash) throws SQLException {
+    public void changePassword(int siteId, String passwordHash) throws SQLException {
         try (Connection c = database.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement(
                     "UPDATE users SET password_hash = ?, session_epoch = session_epoch + 1 WHERE id = ?")) {
                 ps.setString(1, passwordHash);
-                ps.setInt(2, idSito);
+                ps.setInt(2, siteId);
                 ps.executeUpdate();
             }
             try (PreparedStatement ps = c.prepareStatement(
                     "DELETE FROM remember_tokens WHERE user_id = ?")) {
-                ps.setInt(1, idSito);
+                ps.setInt(1, siteId);
                 ps.executeUpdate();
             }
         }
@@ -162,28 +162,28 @@ public final class AuthDao {
      * mentre i "resta collegato" vivono in una tabella a parte e sopravvivrebbero alla
      * chiusura del browser — sono proprio quelli che riaprirebbero l'accesso da soli.
      */
-    public void chiudiSessioniSito(int idSito) throws SQLException {
+    public void closeSiteSessions(int siteId) throws SQLException {
         try (Connection c = database.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement(
                     "UPDATE users SET session_epoch = session_epoch + 1 WHERE id = ?")) {
-                ps.setInt(1, idSito);
+                ps.setInt(1, siteId);
                 ps.executeUpdate();
             }
             try (PreparedStatement ps = c.prepareStatement(
                     "DELETE FROM remember_tokens WHERE user_id = ?")) {
-                ps.setInt(1, idSito);
+                ps.setInt(1, siteId);
                 ps.executeUpdate();
             }
         }
     }
 
     /** Il nome cambia solo di maiuscole/minuscole: si allinea la riga, senza toccare l'UUID. */
-    public void allineaNome(int idSito, String nome) throws SQLException {
+    public void alignName(int siteId, String name) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE users SET mc_username = ?, last_login = NOW() WHERE id = ?")) {
-            ps.setString(1, nome);
-            ps.setInt(2, idSito);
+            ps.setString(1, name);
+            ps.setInt(2, siteId);
             ps.executeUpdate();
         }
     }
@@ -197,7 +197,7 @@ public final class AuthDao {
      *
      * @return null se non ce n'e' una valida; altrimenti se aveva superato anche l'OTP
      */
-    public Boolean sessione(UUID uuid, String device) throws SQLException {
+    public Boolean session(UUID uuid, String device) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT otp_ok_at FROM auth_sessions " +
@@ -213,7 +213,7 @@ public final class AuthDao {
         }
     }
 
-    public void salvaSessione(UUID uuid, String device, String ip, int ore, boolean otpOk) throws SQLException {
+    public void saveSession(UUID uuid, String device, String ip, int ore, boolean otpOk) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "INSERT INTO auth_sessions (mc_uuid, device, ip, password_ok_at, otp_ok_at, expires_at) " +
@@ -235,7 +235,7 @@ public final class AuthDao {
      * Serve alla rotazione del gettone: appena il client ne riceve uno nuovo, il vecchio non
      * deve piu' aprire niente, altrimenti chi l'avesse intercettato lo userebbe per sempre.
      */
-    public void dimenticaDispositivo(UUID uuid, String device) throws SQLException {
+    public void forgetDevice(UUID uuid, String device) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "DELETE FROM auth_sessions WHERE mc_uuid = ? AND device = ?")) {
@@ -246,7 +246,7 @@ public final class AuthDao {
     }
 
     /** Al cambio password cadono tutti i dispositivi: era il senso del cambio. */
-    public void revocaSessioni(UUID uuid) throws SQLException {
+    public void revokeSessions(UUID uuid) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement("DELETE FROM auth_sessions WHERE mc_uuid = ?")) {
             ps.setString(1, uuid.toString());
@@ -255,7 +255,7 @@ public final class AuthDao {
     }
 
     /** Manutenzione all'avvio: le righe scadute non servono a nessuno. */
-    public int potaSessioniScadute() throws SQLException {
+    public int pruneExpiredSessions() throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement("DELETE FROM auth_sessions WHERE expires_at < NOW()")) {
             return ps.executeUpdate();
@@ -273,7 +273,7 @@ public final class AuthDao {
      * cancello, il server salverebbe lo spawn come sua ultima posizione e quella vera
      * sparirebbe per sempre.
      */
-    public void salvaPosizione(UUID uuid, String world, double x, double y, double z,
+    public void savePosition(UUID uuid, String world, double x, double y, double z,
                                float yaw, float pitch) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
@@ -293,7 +293,7 @@ public final class AuthDao {
     }
 
     /** @return {world, x, y, z, yaw, pitch} oppure null se non c'e' niente da ripristinare */
-    public Object[] leggiPosizione(UUID uuid) throws SQLException {
+    public Object[] readPosition(UUID uuid) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT world, x, y, z, yaw, pitch FROM auth_positions WHERE mc_uuid = ?")) {
@@ -308,7 +308,7 @@ public final class AuthDao {
         }
     }
 
-    public void cancellaPosizione(UUID uuid) throws SQLException {
+    public void deletePosition(UUID uuid) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement("DELETE FROM auth_positions WHERE mc_uuid = ?")) {
             ps.setString(1, uuid.toString());
@@ -327,7 +327,7 @@ public final class AuthDao {
      * chiunque, sbagliando apposta la password di un altro, puo' chiuderlo fuori dal server
      * sapendone soltanto il nick.
      */
-    public LocalDateTime bloccatoFino(String ip) throws SQLException {
+    public LocalDateTime blockedUntil(String ip) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT locked_until FROM auth_attempts WHERE ip = ? AND locked_until > NOW()")) {
@@ -345,13 +345,13 @@ public final class AuthDao {
      *             Non cambia di una virgola a chi si applica il blocco, che resta l'indirizzo.
      * @return quanti tentativi falliti risultano ora a questo indirizzo
      */
-    public int registraFallimento(String ip, String nome, int massimo, int minutiBlocco) throws SQLException {
+    public int recordFailure(String ip, String name, int maximum, int minutiBlocco) throws SQLException {
         try (Connection c = database.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement(
                     "INSERT INTO auth_attempts (ip, failures, last_at, last_username) VALUES (?, 1, NOW(), ?) " +
                     "ON DUPLICATE KEY UPDATE failures = failures + 1, last_at = NOW(), last_username = VALUES(last_username)")) {
                 ps.setString(1, ip);
-                ps.setString(2, nome);
+                ps.setString(2, name);
                 ps.executeUpdate();
             }
             int failures = 0;
@@ -364,7 +364,7 @@ public final class AuthDao {
                     }
                 }
             }
-            if (failures >= massimo) {
+            if (failures >= maximum) {
                 try (PreparedStatement ps = c.prepareStatement(
                         "UPDATE auth_attempts SET locked_until = DATE_ADD(NOW(), INTERVAL ? MINUTE), " +
                         "failures = 0 WHERE ip = ?")) {
@@ -377,7 +377,7 @@ public final class AuthDao {
         }
     }
 
-    public void azzeraTentativi(String ip) throws SQLException {
+    public void resetAttempts(String ip) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement("DELETE FROM auth_attempts WHERE ip = ?")) {
             ps.setString(1, ip);
@@ -391,19 +391,19 @@ public final class AuthDao {
      * Sono piu' d'uno quando la stessa persona ha provato da casa e dal telefono: si
      * sbloccano tutti, altrimenti la si libera da una porta e la si lascia chiusa dall'altra.
      */
-    public List<String> indirizziBloccatiDi(String nome) throws SQLException {
-        List<String> fuori = new ArrayList<>();
+    public List<String> blockedAddressesOf(String name) throws SQLException {
+        List<String> outside = new ArrayList<>();
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT ip FROM auth_attempts WHERE last_username = ? AND locked_until > NOW()")) {
-            ps.setString(1, nome);
+            ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    fuori.add(rs.getString("ip"));
+                    outside.add(rs.getString("ip"));
                 }
             }
         }
-        return fuori;
+        return outside;
     }
 
     /**
@@ -412,8 +412,8 @@ public final class AuthDao {
      * E' la seconda rete: l'annotazione del nome esiste solo dai tentativi fatti dopo
      * l'aggiornamento, mentre i dispositivi ricordati raccontano da dove gioca di solito.
      */
-    public List<String> indirizziBloccatiNoti(UUID uuid) throws SQLException {
-        List<String> fuori = new ArrayList<>();
+    public List<String> knownBlockedAddresses(UUID uuid) throws SQLException {
+        List<String> outside = new ArrayList<>();
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT DISTINCT t.ip FROM auth_attempts t " +
@@ -422,20 +422,20 @@ public final class AuthDao {
             ps.setString(1, uuid.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    fuori.add(rs.getString("ip"));
+                    outside.add(rs.getString("ip"));
                 }
             }
         }
-        return fuori;
+        return outside;
     }
 
     /** Toglie il blocco del codice in due passaggi (la stessa riga che guarda il sito). */
-    public boolean sbloccaOtp(int idSito) throws SQLException {
+    public boolean unlockOtp(int siteId) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE users SET totp_attempts = 0, totp_locked_until = NULL " +
                      "WHERE id = ? AND (totp_locked_until IS NOT NULL OR totp_attempts > 0)")) {
-            ps.setInt(1, idSito);
+            ps.setInt(1, siteId);
             return ps.executeUpdate() > 0;
         }
     }
@@ -450,26 +450,26 @@ public final class AuthDao {
      * E' cio' che impedisce di riusare un codice gia' visto, e vale fra i due mondi: un
      * codice bruciato sul sito risulta bruciato anche in gioco, perche' la riga e' la stessa.
      */
-    public void otpPassoSpeso(int idSito, long passo) throws SQLException {
+    public void otpStepSpent(int siteId, long step) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE users SET totp_last_step = ?, totp_attempts = 0, " +
                      "totp_locked_until = NULL WHERE id = ?")) {
-            ps.setLong(1, passo);
-            ps.setInt(2, idSito);
+            ps.setLong(1, step);
+            ps.setInt(2, siteId);
             ps.executeUpdate();
         }
     }
 
-    public void otpFallito(int idSito, int massimo, int minutiBlocco) throws SQLException {
+    public void otpFailed(int siteId, int maximum, int minutiBlocco) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE users SET totp_attempts = totp_attempts + 1, " +
                      "totp_locked_until = IF(totp_attempts + 1 >= ?, " +
                      "DATE_ADD(NOW(), INTERVAL ? MINUTE), totp_locked_until) WHERE id = ?")) {
-            ps.setInt(1, massimo);
+            ps.setInt(1, maximum);
             ps.setInt(2, minutiBlocco);
-            ps.setInt(3, idSito);
+            ps.setInt(3, siteId);
             ps.executeUpdate();
         }
     }
@@ -486,8 +486,8 @@ public final class AuthDao {
      * stessa transazione — se il server si spegnesse nel mezzo, il biglietto deve restare
      * li' per la prossima volta, non sparire senza aver fatto effetto.
      */
-    public java.util.List<UUID> raccogliRevoche() throws SQLException {
-        java.util.List<UUID> fuori = new java.util.ArrayList<>();
+    public java.util.List<UUID> collectRevocations() throws SQLException {
+        java.util.List<UUID> outside = new java.util.ArrayList<>();
         try (Connection c = database.getConnection()) {
             boolean autoPrima = c.getAutoCommit();
             c.setAutoCommit(false);
@@ -497,13 +497,13 @@ public final class AuthDao {
                      ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         try {
-                            fuori.add(UUID.fromString(rs.getString(1)));
+                            outside.add(UUID.fromString(rs.getString(1)));
                         } catch (IllegalArgumentException ignored) {
                             // Biglietto con un UUID storto: si butta insieme agli altri.
                         }
                     }
                 }
-                if (!fuori.isEmpty()) {
+                if (!outside.isEmpty()) {
                     try (PreparedStatement ps = c.prepareStatement("DELETE FROM otp_game_revoke")) {
                         ps.executeUpdate();
                     }
@@ -516,7 +516,7 @@ public final class AuthDao {
                 c.setAutoCommit(autoPrima);
             }
         }
-        return fuori;
+        return outside;
     }
 
     // -----------------------------------------------------------------------------
@@ -530,12 +530,12 @@ public final class AuthDao {
      * migrato e su quali nomi aspettarsi una contesa fra chi li ha registrati qui e chi li
      * possiede davvero.
      */
-    public void annotaPremium(int idSito, UUID premiumUuid) throws SQLException {
+    public void annotaPremium(int siteId, UUID premiumUuid) throws SQLException {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE users SET premium_uuid = ?, premium_checked_at = NOW() WHERE id = ?")) {
             ps.setString(1, premiumUuid == null ? null : premiumUuid.toString());
-            ps.setInt(2, idSito);
+            ps.setInt(2, siteId);
             ps.executeUpdate();
         }
     }
@@ -545,13 +545,13 @@ public final class AuthDao {
     // -----------------------------------------------------------------------------
 
     /** L'UUID che il server userebbe da solo per un nome mai visto, in offline mode. */
-    public static UUID uuidOffline(String nome) {
+    public static UUID uuidOffline(String name) {
         return UUID.nameUUIDFromBytes(
-                ("OfflinePlayer:" + nome).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                ("OfflinePlayer:" + name).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     /** I nomi si confrontano senza badare alle maiuscole, come fa il server. */
-    public static String normalizza(String nome) {
-        return nome == null ? "" : nome.toLowerCase(Locale.ROOT);
+    public static String normalize(String name) {
+        return name == null ? "" : name.toLowerCase(Locale.ROOT);
     }
 }

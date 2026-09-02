@@ -31,8 +31,8 @@ public final class Database {
 
     public Database(AuthConfig config) {
         HikariConfig hc = new HikariConfig();
-        hc.setJdbcUrl("jdbc:mariadb://" + config.dbHost + ":" + config.dbPorta + "/" + config.dbNome);
-        hc.setUsername(config.dbUtente);
+        hc.setJdbcUrl("jdbc:mariadb://" + config.dbHost + ":" + config.dbPort + "/" + config.dbName);
+        hc.setUsername(config.dbUser);
         hc.setPassword(config.dbPassword);
         hc.setPoolName("MagixAuth");
         // Poche connessioni ma reattive: le richieste sono brevi (una lettura al pre-login,

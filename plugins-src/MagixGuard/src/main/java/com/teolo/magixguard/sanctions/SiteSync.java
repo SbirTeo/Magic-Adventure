@@ -23,16 +23,16 @@ public final class SiteSync {
 
     private final JavaPlugin plugin;
     private final SanctionsDao dao;
-    private final SanctionsService servizio;
+    private final SanctionsService service;
 
-    public SiteSync(JavaPlugin plugin, SanctionsDao dao, SanctionsService servizio) {
+    public SiteSync(JavaPlugin plugin, SanctionsDao dao, SanctionsService service) {
         this.plugin = plugin;
         this.dao = dao;
-        this.servizio = servizio;
+        this.service = service;
     }
 
     /** Un giro di controllo. Va chiamato fuori dal thread principale. */
-    public void giro() {
+    public void pass() {
         eseguiRevoche();
         eseguiConferme();
     }
@@ -41,10 +41,10 @@ public final class SiteSync {
         try {
             List<Sanction> revoche = dao.revocheDaApplicare();
             for (Sanction s : revoche) {
-                Bukkit.getScheduler().runTask(plugin, () -> servizio.applicaRevocaDalSito(s));
-                dao.revocaApplicata(s.id());
+                Bukkit.getScheduler().runTask(plugin, () -> service.applyRevokeFromSite(s));
+                dao.revokeApplied(s.id());
                 plugin.getLogger().info("Revoca eseguita dal gestionale: n." + s.id()
-                        + " (" + s.nome() + ", " + s.tipo().codice() + ").");
+                        + " (" + s.name() + ", " + s.type().code() + ").");
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("Revoche non lette dal sito: " + e.getMessage());
@@ -55,17 +55,17 @@ public final class SiteSync {
         try {
             List<SanctionsDao.Proposta> confermate = dao.proposteConfermate();
             for (SanctionsDao.Proposta p : confermate) {
-                long adesso = System.currentTimeMillis();
-                long fine = p.durataSecondi() == null || !p.tipo().haDurata()
+                long now = System.currentTimeMillis();
+                long fine = p.durationSeconds() == null || !p.type().hasDuration()
                         ? Duration.PERMANENTE
-                        : adesso + p.durataSecondi() * 1000L;
+                        : now + p.durationSeconds() * 1000L;
 
-                Sanction s = new Sanction(0, p.uuid(), p.nome(), p.tipo(), p.categoria(), p.motivo(),
-                        p.ambito(), p.punti(), adesso, fine, p.decisaDa(), false, null);
+                Sanction s = new Sanction(0, p.uuid(), p.name(), p.type(), p.category(), p.reason(),
+                        p.scope(), p.points(), now, fine, p.decisaDa(), false, null);
 
                 // Qui non si ricontrolla niente: la conferma di una persona E' la decisione.
-                int id = servizio.applica(s, Policy.Esito.si(), "coda", null,
-                        p.durataSecondi() == null ? Duration.PERMANENTE : p.durataSecondi() * 1000L);
+                int id = service.apply(s, Policy.Outcome.si(), "coda", null,
+                        p.durationSeconds() == null ? Duration.PERMANENTE : p.durationSeconds() * 1000L);
                 if (id > 0) {
                     dao.codaEseguita(p.id(), id);
                     plugin.getLogger().info("Proposta confermata ed eseguita: coda n." + p.id()

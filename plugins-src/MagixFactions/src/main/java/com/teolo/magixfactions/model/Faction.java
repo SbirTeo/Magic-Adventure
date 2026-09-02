@@ -71,6 +71,12 @@ public final class Faction {
     public double getScore() { return score; }
     public void setScore(double v) { this.score = v; }
 
+    // Dettaglio del punteggio in JSON (una voce per caratteristica), SNAPSHOT persistito su
+    // factions.score_detail: lo legge il sito per il tooltip "come si arriva a questo punteggio".
+    private String scoreDetail = "[]";
+    public String getScoreDetail() { return scoreDetail == null ? "[]" : scoreDetail; }
+    public void setScoreDetail(String v) { this.scoreDetail = v; }
+
     public Member getMember(UUID uuid) { return members.get(uuid); }
     public boolean isMember(UUID uuid) { return members.containsKey(uuid); }
     public int size() { return members.size(); }

@@ -24,9 +24,9 @@ public final class SanctionsService {
     private final JavaPlugin plugin;
     private final SanctionsConfig cfg;
     private final SanctionsDao dao;
-    private final PointsLog registro;
-    private final Policy politica;
-    private final ViolationsDao violazioni;
+    private final PointsLog log;
+    private final Policy policy;
+    private final ViolationsDao violations;
 
     /**
      * I silenziati in memoria: la chat non puo' aspettare una query a ogni messaggio.
@@ -35,25 +35,25 @@ public final class SanctionsService {
     private final Map<UUID, Sanction> muti = new ConcurrentHashMap<>();
 
     public SanctionsService(JavaPlugin plugin, SanctionsConfig cfg, SanctionsDao dao,
-                            PointsLog registro, Policy politica, ViolationsDao violazioni) {
+                            PointsLog log, Policy policy, ViolationsDao violations) {
         this.plugin = plugin;
         this.cfg = cfg;
         this.dao = dao;
-        this.registro = registro;
-        this.politica = politica;
-        this.violazioni = violazioni;
+        this.log = log;
+        this.policy = policy;
+        this.violations = violations;
     }
 
     public SanctionsDao dao() {
         return dao;
     }
 
-    public PointsLog registro() {
-        return registro;
+    public PointsLog log() {
+        return log;
     }
 
-    public Policy politica() {
-        return politica;
+    public Policy policy() {
+        return policy;
     }
 
     // ------------------------------------------------------------------ applicare
@@ -67,12 +67,12 @@ public final class SanctionsService {
      * @param dettaglio riassunto delle prove per la coda, o null
      * @return il numero del provvedimento se e' stato applicato, 0 se e' finito in coda
      */
-    public int applica(Sanction s, Policy.Esito esito, String fonte, String dettaglio, long durata) {
+    public int apply(Sanction s, Policy.Outcome outcome, String fonte, String dettaglio, long duration) {
         try {
-            if (!esito.applica()) {
-                dao.proponi(s, durata, fonte, dettaglio);
-                avvisaStaff("&#FFD166Proposta in attesa: &f" + s.nome() + " &7— "
-                        + s.tipo().etichetta().toLowerCase() + ", " + esito.motivoProposta()
+            if (!outcome.apply()) {
+                dao.proponi(s, duration, fonte, dettaglio);
+                notifyStaff("&#FFD166Proposta in attesa: &f" + s.name() + " &7— "
+                        + s.type().label().toLowerCase() + ", " + outcome.proposedReason()
                         + ". &7Aperta nel gestionale.");
                 return 0;
             }
@@ -81,12 +81,12 @@ public final class SanctionsService {
             Sanction applicata = s.conId(id);
             Bukkit.getScheduler().runTask(plugin, () -> faiValere(applicata));
 
-            avvisaStaff("&#A8DC2C" + s.tipo().etichetta() + "&f " + s.nome() + " &7— "
-                    + s.motivo() + " &8(" + applicata.durataLeggibile() + ", da " + s.autore() + ")");
+            notifyStaff("&#A8DC2C" + s.type().label() + "&f " + s.name() + " &7— "
+                    + s.reason() + " &8(" + applicata.readableDuration() + ", da " + s.autore() + ")");
             return id;
         } catch (SQLException e) {
-            plugin.getLogger().severe("Sanzione non registrata (" + s.nome() + "): " + e.getMessage());
-            avvisaStaff("&#FF6B6BSanzione NON registrata per &f" + s.nome()
+            plugin.getLogger().severe("Sanzione non registrata (" + s.name() + "): " + e.getMessage());
+            notifyStaff("&#FF6B6BSanzione NON registrata per &f" + s.name()
                     + "&#FF6B6B: il database del sito non risponde. Riprova.");
             return 0;
         }
@@ -94,42 +94,42 @@ public final class SanctionsService {
 
     /** Fa valere il provvedimento su chi e' collegato adesso. Solo thread principale. */
     private void faiValere(Sanction s) {
-        if (!s.ambito().tocca(true)) {
+        if (!s.scope().tocca(true)) {
             return;   // e' una sanzione da sito: in partita non cambia niente
         }
         Player p = Bukkit.getPlayer(s.uuid());
 
-        switch (s.tipo()) {
+        switch (s.type()) {
             case BAN -> {
                 if (p != null) {
-                    p.kick(Text.c(messaggioBan(s)));
+                    p.kick(Text.c(banMessage(s)));
                 }
             }
             case KICK -> {
                 if (p != null) {
-                    p.kick(Text.c(Text.sostituisci(cfg.messaggioKick, "{motivo}", s.motivo())));
+                    p.kick(Text.c(Text.replace(cfg.kickMessage, "{motivo}", s.reason())));
                 }
             }
             case MUTE -> {
                 muti.put(s.uuid(), s);
                 if (p != null) {
-                    p.sendMessage(Text.msg("&#FF6B6BSei stato silenziato: &f" + s.motivo()
-                            + " &7(" + s.durataLeggibile() + ")"));
+                    p.sendMessage(Text.msg("&#FF6B6BSei stato silenziato: &f" + s.reason()
+                            + " &7(" + s.readableDuration() + ")"));
                 }
             }
             case WARN -> {
                 if (p != null) {
-                    p.sendMessage(Text.msg("&#FFD166Richiamo: &f" + s.motivo()));
+                    p.sendMessage(Text.msg("&#FFD166Richiamo: &f" + s.reason()));
                 }
             }
         }
     }
 
     /** Il messaggio di espulsione di un ban, coi segnaposto gia' sostituiti. */
-    public String messaggioBan(Sanction s) {
-        return Text.sostituisci(cfg.messaggioBan,
-                "{motivo}", s.motivo(),
-                "{durata}", s.durataLeggibile(),
+    public String banMessage(Sanction s) {
+        return Text.replace(cfg.banMessage,
+                "{motivo}", s.reason(),
+                "{durata}", s.readableDuration(),
                 "{scadenza}", s.fine() == Duration.PERMANENTE ? "mai" : Duration.mancante(s.fine()),
                 "{id}", String.valueOf(s.id()));
     }
@@ -137,23 +137,23 @@ public final class SanctionsService {
     // ------------------------------------------------------------------ revocare
 
     /** Toglie l'ultima sanzione attiva di quel tipo. Ritorna l'id revocato, 0 se non c'era. */
-    public int revoca(UUID uuid, Type tipo, String staff, String motivo) throws SQLException {
-        int id = dao.revocaUltima(uuid, tipo, staff, motivo);
-        if (id > 0 && tipo == Type.MUTE) {
+    public int revoke(UUID uuid, Type type, String staff, String reason) throws SQLException {
+        int id = dao.revokeLast(uuid, type, staff, reason);
+        if (id > 0 && type == Type.MUTE) {
             muti.remove(uuid);
         }
-        if (id > 0 && violazioni != null) {
+        if (id > 0 && violations != null) {
             // I punti che avevano fatto scattare il provvedimento non contano piu': se il
             // ricorso e' stato accolto, lasciare il giocatore a un passo dalla soglia
             // successiva vorrebbe dire punirlo lo stesso, a meta'.
-            violazioni.annullaPerSanzione(id);
+            violations.cancelForSanction(id);
         }
         return id;
     }
 
     /** Esegue in partita una revoca decisa sul sito. */
-    public void applicaRevocaDalSito(Sanction s) {
-        if (s.tipo() == Type.MUTE) {
+    public void applyRevokeFromSite(Sanction s) {
+        if (s.type() == Type.MUTE) {
             muti.remove(s.uuid());
             Player p = Bukkit.getPlayer(s.uuid());
             if (p != null) {
@@ -172,7 +172,7 @@ public final class SanctionsService {
         if (s == null) {
             return null;
         }
-        if (!s.attiva()) {
+        if (!s.activate()) {
             muti.remove(uuid);
             return null;
         }
@@ -180,10 +180,10 @@ public final class SanctionsService {
     }
 
     /** Rilegge dal database i provvedimenti di chi entra, per tenere aggiornata la memoria. */
-    public void caricaAllIngresso(UUID uuid) {
+    public void loadOnJoin(UUID uuid) {
         try {
             for (Sanction s : dao.attiveInGioco(uuid)) {
-                if (s.tipo() == Type.MUTE) {
+                if (s.type() == Type.MUTE) {
                     muti.put(uuid, s);
                     return;
                 }
@@ -194,19 +194,19 @@ public final class SanctionsService {
         }
     }
 
-    public void dimentica(UUID uuid) {
+    public void forget(UUID uuid) {
         muti.remove(uuid);
     }
 
     // ------------------------------------------------------------------ staff
 
     /** Un messaggio a chi ha il permesso di ricevere gli avvisi. */
-    public void avvisaStaff(String testo) {
+    public void notifyStaff(String text) {
         Bukkit.getScheduler().runTask(plugin, () -> {
-            Bukkit.getConsoleSender().sendMessage(Text.msg(testo));
+            Bukkit.getConsoleSender().sendMessage(Text.msg(text));
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.hasPermission("magixguard.alerts")) {
-                    p.sendMessage(Text.msg(testo));
+                    p.sendMessage(Text.msg(text));
                 }
             }
         });

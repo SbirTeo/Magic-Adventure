@@ -67,7 +67,7 @@ public final class FreezeListener implements Listener {
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void movimento(PlayerMoveEvent e) {
-        if (!gate.fermo(e.getPlayer()) || e.getTo() == null) {
+        if (!gate.isFrozen(e.getPlayer()) || e.getTo() == null) {
             return;
         }
         if (e.getFrom().getBlockX() != e.getTo().getBlockX()
@@ -80,7 +80,7 @@ public final class FreezeListener implements Listener {
     /** Nemmeno per mano di altri plugin. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void teletrasporto(PlayerTeleportEvent e) {
-        if (gate.fermo(e.getPlayer())
+        if (gate.isFrozen(e.getPlayer())
                 && e.getCause() != PlayerTeleportEvent.TeleportCause.PLUGIN) {
             e.setCancelled(true);
         }
@@ -93,18 +93,18 @@ public final class FreezeListener implements Listener {
     /** Non parla. */
     @EventHandler(priority = EventPriority.LOWEST)
     public void parla(AsyncChatEvent e) {
-        if (gate.fermo(e.getPlayer())) {
+        if (gate.isFrozen(e.getPlayer())) {
             e.setCancelled(true);
             return;
         }
-        if (!config.nascondiChat) {
+        if (!config.hideChat) {
             return;
         }
         // E non sente: chi e' fermo al cancello viene tolto dai destinatari. Serve a non
         // far leggere le conversazioni del server a chi sta provando il nome di un altro.
         for (Iterator<Audience> it = e.viewers().iterator(); it.hasNext(); ) {
             Audience chi = it.next();
-            if (chi instanceof Player p && gate.fermo(p)) {
+            if (chi instanceof Player p && gate.isFrozen(p)) {
                 it.remove();
             }
         }
@@ -112,8 +112,8 @@ public final class FreezeListener implements Listener {
 
     /** I soli comandi che si possono usare prima di aver fatto l'accesso. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void comando(PlayerCommandPreprocessEvent e) {
-        if (!gate.fermo(e.getPlayer())) {
+    public void command(PlayerCommandPreprocessEvent e) {
+        if (!gate.isFrozen(e.getPlayer())) {
             return;
         }
         // Passano SOLO i comandi che servono a entrare. Tutti gli altri no, nemmeno quelli
@@ -131,35 +131,35 @@ public final class FreezeListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void interagisce(PlayerInteractEvent e) {
-        if (gate.fermo(e.getPlayer())) {
+        if (gate.isFrozen(e.getPlayer())) {
             e.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void rompe(BlockBreakEvent e) {
-        if (gate.fermo(e.getPlayer())) {
+    public void breaks(BlockBreakEvent e) {
+        if (gate.isFrozen(e.getPlayer())) {
             e.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void piazza(BlockPlaceEvent e) {
-        if (gate.fermo(e.getPlayer())) {
+    public void place(BlockPlaceEvent e) {
+        if (gate.isFrozen(e.getPlayer())) {
             e.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void butta(PlayerDropItemEvent e) {
-        if (gate.fermo(e.getPlayer())) {
+    public void discard(PlayerDropItemEvent e) {
+        if (gate.isFrozen(e.getPlayer())) {
             e.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void raccoglie(EntityPickupItemEvent e) {
-        if (e.getEntity() instanceof Player p && gate.fermo(p)) {
+        if (e.getEntity() instanceof Player p && gate.isFrozen(p)) {
             e.setCancelled(true);
         }
     }
@@ -176,22 +176,22 @@ public final class FreezeListener implements Listener {
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void danno(EntityDamageEvent e) {
-        if (e.getEntity() instanceof Player p && gate.fermo(p)) {
+        if (e.getEntity() instanceof Player p && gate.isFrozen(p)) {
             e.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void dannoDaAltri(EntityDamageByEntityEvent e) {
-        if (e.getDamager() instanceof Player p && gate.fermo(p)) {
+        if (e.getDamager() instanceof Player p && gate.isFrozen(p)) {
             e.setCancelled(true);
         }
     }
 
     /** I mostri non se ne accorgono nemmeno. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void bersaglio(EntityTargetEvent e) {
-        if (e.getTarget() instanceof Player p && gate.fermo(p)) {
+    public void target(EntityTargetEvent e) {
+        if (e.getTarget() instanceof Player p && gate.isFrozen(p)) {
             e.setCancelled(true);
         }
     }

@@ -12,7 +12,7 @@ commands:
   magixauth:
     description: Amministrazione del login
     aliases: [mauth]
-    usage: /mauth <info|register|reset|unlock|sessions|reload>
+    usage: /mauth <info|setspawn|register|reset|unlock|sessions|reload>
     permission: magixauth.admin
   login:
     description: Entrare con la propria password

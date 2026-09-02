@@ -52,7 +52,7 @@ import java.util.Map;
 public final class DialogManager {
 
     /** Per quanto un bottone resta collegato alle sue azioni. */
-    private static final Duration DURATA_BOTTONI = Duration.ofMinutes(10);
+    private static final Duration BUTTON_DURATION = Duration.ofMinutes(10);
 
     private final MagixMenus plugin;
 
@@ -60,102 +60,102 @@ public final class DialogManager {
         this.plugin = plugin;
     }
 
-    public void apri(Player p, MenuDef def, List<String> argomenti, OpenMenu provenienza) {
-        MenuDialog dlg = def.dialogo();
+    public void open(Player p, MenuDef def, List<String> arguments, OpenMenu provenienza) {
+        MenuDialog dlg = def.dialog();
         if (dlg == null) {
-            plugin.getLogger().warning("Il menu \"" + def.nome() + "\" e' di tipo dialogo ma non ha "
+            plugin.getLogger().warning("Il menu \"" + def.name() + "\" e' di tipo dialogo ma non ha "
                     + "il blocco del dialogo: non lo apro.");
             return;
         }
 
-        Map<String, String> variabili = variabili(def, argomenti);
-        Context contesto = new DialogContext(plugin, p, variabili, def, provenienza);
+        Map<String, String> variabili = variabili(def, arguments);
+        Context context = new DialogContext(plugin, p, variabili, def, provenienza);
 
-        if (!def.apriSe().vuoto() && !def.apriSe().soddisfatti(p, variabili)) {
-            if (!def.apriSe().azioniNegate().isEmpty()) {
-                Actions.esegui(plugin, contesto, def.apriSe().azioniNegate());
+        if (!def.openIf().vuoto() && !def.openIf().soddisfatti(p, variabili)) {
+            if (!def.openIf().deniedActions().isEmpty()) {
+                Actions.esegui(plugin, context, def.openIf().deniedActions());
             } else {
-                plugin.messaggi().send(p, "requirements-not-met");
+                plugin.messages().send(p, "requirements-not-met");
             }
             return;
         }
 
-        List<DialogBody> corpo = new ArrayList<>();
-        for (String riga : dlg.corpo()) {
-            corpo.add(DialogBody.plainMessage(Colors.component(Text.grezzo(p, variabili, riga)), 300));
+        List<DialogBody> body = new ArrayList<>();
+        for (String row : dlg.body()) {
+            body.add(DialogBody.plainMessage(Colors.component(Text.raw(p, variabili, row)), 300));
         }
 
-        List<DialogInput> campi = new ArrayList<>();
-        for (MenuDialog.Campo c : dlg.campi()) {
-            DialogInput input = campo(p, variabili, c);
+        List<DialogInput> fields = new ArrayList<>();
+        for (MenuDialog.Field c : dlg.fields()) {
+            DialogInput input = field(p, variabili, c);
             if (input != null) {
-                campi.add(input);
+                fields.add(input);
             }
         }
 
         List<ActionButton> bottoni = new ArrayList<>();
         for (MenuDialog.Bottone b : dlg.bottoni()) {
-            if (!b.mostraSe().vuoto() && !b.mostraSe().soddisfatti(p, variabili)) {
+            if (!b.showIf().vuoto() && !b.showIf().soddisfatti(p, variabili)) {
                 continue;
             }
-            bottoni.add(bottone(p, variabili, b, contesto));
+            bottoni.add(bottone(p, variabili, b, context));
         }
 
-        DialogBase base = DialogBase.builder(Colors.component(Text.grezzo(p, variabili, def.titolo())))
-                .canCloseWithEscape(def.chiusuraLibera())
-                .pause(dlg.mettiInPausa())
-                .body(corpo)
-                .inputs(campi)
+        DialogBase base = DialogBase.builder(Colors.component(Text.raw(p, variabili, def.title())))
+                .canCloseWithEscape(def.freeClose())
+                .pause(dlg.pauseUpdates())
+                .body(body)
+                .inputs(fields)
                 .build();
 
-        Dialog dialogo = bottoni.isEmpty()
+        Dialog dialog = bottoni.isEmpty()
                 ? Dialog.create(f -> f.empty().base(base).type(DialogType.notice()))
                 : Dialog.create(f -> f.empty().base(base).type(DialogType.multiAction(bottoni).build()));
 
-        if (!def.azioniApertura().isEmpty()) {
-            Actions.esegui(plugin, contesto, def.azioniApertura());
+        if (!def.openActions().isEmpty()) {
+            Actions.esegui(plugin, context, def.openActions());
         }
-        p.showDialog(dialogo);
+        p.showDialog(dialog);
     }
 
     // ------------------------------------------------------------------- pezzi
 
-    private DialogInput campo(Player p, Map<String, String> variabili, MenuDialog.Campo c) {
-        String etichetta = Text.grezzo(p, variabili, c.etichetta());
-        switch (c.tipo()) {
-            case TESTO -> {
-                TextDialogInput.Builder b = DialogInput.text(c.chiave(), Colors.component(etichetta))
-                        .initial(Text.grezzo(p, variabili, c.iniziale()))
+    private DialogInput field(Player p, Map<String, String> variabili, MenuDialog.Field c) {
+        String label = Text.raw(p, variabili, c.label());
+        switch (c.type()) {
+            case TEXT -> {
+                TextDialogInput.Builder b = DialogInput.text(c.key(), Colors.component(label))
+                        .initial(Text.raw(p, variabili, c.iniziale()))
                         .maxLength(Math.max(1, c.lunghezza()))
                         .width(larghezza(c.larghezza()));
-                if (c.piuRighe()) {
+                if (c.multiLine()) {
                     b.multiline(TextDialogInput.MultilineOptions.create(null, 80));
                 }
                 return b.build();
             }
             case BOOLEANO -> {
-                return DialogInput.bool(c.chiave(), Colors.component(etichetta))
+                return DialogInput.bool(c.key(), Colors.component(label))
                         .initial(Boolean.parseBoolean(c.iniziale()))
                         .onTrue("true")
                         .onFalse("false")
                         .build();
             }
             case NUMERO -> {
-                return DialogInput.numberRange(c.chiave(), Colors.component(etichetta),
-                                c.minimo(), c.massimo())
-                        .step(c.passo() > 0 ? c.passo() : null)
+                return DialogInput.numberRange(c.key(), Colors.component(label),
+                                c.minimum(), c.maximum())
+                        .step(c.step() > 0 ? c.step() : null)
                         .initial(numeroIniziale(c))
                         .width(larghezza(c.larghezza()))
                         .build();
             }
-            case SCELTA -> {
-                List<SingleOptionDialogInput.OptionEntry> voci = new ArrayList<>();
+            case CHOICE -> {
+                List<SingleOptionDialogInput.OptionEntry> entries = new ArrayList<>();
                 for (int i = 0; i < c.opzioni().size(); i++) {
-                    String o = Text.grezzo(p, variabili, c.opzioni().get(i));
-                    voci.add(SingleOptionDialogInput.OptionEntry.create(o, Colors.component(o),
+                    String o = Text.raw(p, variabili, c.opzioni().get(i));
+                    entries.add(SingleOptionDialogInput.OptionEntry.create(o, Colors.component(o),
                             i == 0 || o.equalsIgnoreCase(c.iniziale())));
                 }
-                return DialogInput.singleOption(c.chiave(), Colors.component(etichetta), voci)
+                return DialogInput.singleOption(c.key(), Colors.component(label), entries)
                         .width(larghezza(c.larghezza()))
                         .build();
             }
@@ -165,8 +165,8 @@ public final class DialogManager {
         }
     }
 
-    private static Float numeroIniziale(MenuDialog.Campo c) {
-        Double n = Text.numero(c.iniziale());
+    private static Float numeroIniziale(MenuDialog.Field c) {
+        Double n = Text.number(c.iniziale());
         return n == null ? null : (float) (double) n;
     }
 
@@ -176,54 +176,54 @@ public final class DialogManager {
     }
 
     private ActionButton bottone(Player p, Map<String, String> variabili, MenuDialog.Bottone b,
-                                 Context contesto) {
+                                 Context context) {
         ActionButton.Builder builder = ActionButton
-                .builder(Colors.component(Text.grezzo(p, variabili, b.etichetta())))
+                .builder(Colors.component(Text.raw(p, variabili, b.label())))
                 .width(Math.max(1, Math.min(1024, b.larghezza())));
-        if (b.suggerimento() != null && !b.suggerimento().isBlank()) {
-            builder.tooltip(Colors.component(Text.grezzo(p, variabili, b.suggerimento())));
+        if (b.suggestion() != null && !b.suggestion().isBlank()) {
+            builder.tooltip(Colors.component(Text.raw(p, variabili, b.suggestion())));
         }
 
         ClickCallback.Options opzioni = ClickCallback.Options.builder()
                 .uses(ClickCallback.UNLIMITED_USES)
-                .lifetime(DURATA_BOTTONI)
+                .lifetime(BUTTON_DURATION)
                 .build();
 
         builder.action(DialogAction.customClick((risposta, chi) -> {
             // Quello che il giocatore ha scritto nei campi diventa %field_<nome>%, disponibile
             // alle azioni come qualunque altra variabile.
-            Map<String, String> conCampi = new LinkedHashMap<>(variabili);
-            for (MenuDialog.Campo c : campiDi(contesto)) {
-                String v = valore(risposta, c);
-                conCampi.put("field_" + c.chiave(), v);
-                conCampi.put("campo_" + c.chiave(), v);   // il vecchio nome, per i menu gia' scritti
+            Map<String, String> withFields = new LinkedHashMap<>(variabili);
+            for (MenuDialog.Field c : fieldsOf(context)) {
+                String v = value(risposta, c);
+                withFields.put("field_" + c.key(), v);
+                withFields.put("campo_" + c.key(), v);   // il vecchio nome, per i menu gia' scritti
             }
             // Le azioni toccano il mondo: vanno eseguite sul filo principale del server, non da
             // dove arriva la risposta del client.
             Bukkit.getScheduler().runTask(plugin, () ->
-                    Actions.esegui(plugin, ((DialogContext) contesto).con(conCampi), b.azioni()));
+                    Actions.esegui(plugin, ((DialogContext) context).con(withFields), b.actions()));
         }, opzioni));
 
         return builder.build();
     }
 
-    private static List<MenuDialog.Campo> campiDi(Context contesto) {
-        if (contesto instanceof DialogContext d && d.menu().dialogo() != null) {
-            return d.menu().dialogo().campi();
+    private static List<MenuDialog.Field> fieldsOf(Context context) {
+        if (context instanceof DialogContext d && d.menu().dialog() != null) {
+            return d.menu().dialog().fields();
         }
         return List.of();
     }
 
-    private static String valore(io.papermc.paper.dialog.DialogResponseView risposta, MenuDialog.Campo c) {
+    private static String value(io.papermc.paper.dialog.DialogResponseView risposta, MenuDialog.Field c) {
         try {
-            return switch (c.tipo()) {
-                case TESTO, SCELTA -> {
-                    String s = risposta.getText(c.chiave());
+            return switch (c.type()) {
+                case TEXT, CHOICE -> {
+                    String s = risposta.getText(c.key());
                     yield s == null ? "" : s;
                 }
-                case BOOLEANO -> String.valueOf(Boolean.TRUE.equals(risposta.getBoolean(c.chiave())));
+                case BOOLEANO -> String.valueOf(Boolean.TRUE.equals(risposta.getBoolean(c.key())));
                 case NUMERO -> {
-                    Float f = risposta.getFloat(c.chiave());
+                    Float f = risposta.getFloat(c.key());
                     if (f == null) {
                         yield "";
                     }
@@ -237,21 +237,21 @@ public final class DialogManager {
         }
     }
 
-    private Map<String, String> variabili(MenuDef def, List<String> argomenti) {
+    private Map<String, String> variabili(MenuDef def, List<String> arguments) {
         Map<String, String> v = new LinkedHashMap<>();
-        v.put("menu", def.nome());
+        v.put("menu", def.name());
         v.put("page", "1");
         v.put("pagina", "1");
         v.put("pages", "1");
         v.put("pagine", "1");
-        for (int i = 0; i < argomenti.size(); i++) {
-            v.put("arg_" + (i + 1), argomenti.get(i));
-            if (i < def.argomenti().size()) {
-                v.put("arg_" + def.argomenti().get(i), argomenti.get(i));
+        for (int i = 0; i < arguments.size(); i++) {
+            v.put("arg_" + (i + 1), arguments.get(i));
+            if (i < def.arguments().size()) {
+                v.put("arg_" + def.arguments().get(i), arguments.get(i));
             }
         }
-        for (int i = argomenti.size(); i < def.argomenti().size(); i++) {
-            v.putIfAbsent("arg_" + def.argomenti().get(i), "");
+        for (int i = arguments.size(); i < def.arguments().size(); i++) {
+            v.putIfAbsent("arg_" + def.arguments().get(i), "");
             v.putIfAbsent("arg_" + (i + 1), "");
         }
         return v;

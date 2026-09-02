@@ -132,7 +132,7 @@ public final class ChatService {
      */
     public void broadcastWeb(UUID senderUuid, String senderName, String message, String prefix) {
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            viewer.sendMessage(conSuggerimento(formatWebFor(viewer, senderUuid, senderName, message, prefix), true));
+            viewer.sendMessage(withSuggestion(formatWebFor(viewer, senderUuid, senderName, message, prefix), true));
         }
         // Console: se chi ha scritto e' anche in partita si usa il suo punto di vista, altrimenti
         // nessuno (viewer null) — la riga resta comunque quella vera, fazione e grado compresi.
@@ -142,7 +142,7 @@ public final class ChatService {
 
     public void broadcastPublic(Player sender, String message) {
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            viewer.sendMessage(conSuggerimento(formatPublicFor(viewer, sender, message), false));
+            viewer.sendMessage(withSuggestion(formatPublicFor(viewer, sender, message), false));
         }
         Bukkit.getConsoleSender().sendMessage(formatPublicFor(sender, sender, message));
     }
@@ -161,23 +161,23 @@ public final class ChatService {
      * @param legacy riga gia' formattata e tradotta (con i codici sezione)
      * @param dalSito true se il messaggio arriva dalla chat del sito
      */
-    private net.kyori.adventure.text.Component conSuggerimento(String legacy, boolean dalSito) {
+    private net.kyori.adventure.text.Component withSuggestion(String legacy, boolean fromSite) {
         net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer serializer =
                 net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection();
-        net.kyori.adventure.text.Component riga = serializer.deserialize(legacy);
-        if (!plugin.getConfig().getBoolean("chat.hover-info", true)) return riga;
+        net.kyori.adventure.text.Component row = serializer.deserialize(legacy);
+        if (!plugin.getConfig().getBoolean("chat.hover-info", true)) return row;
 
         String ora = java.time.LocalTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
         String origine = plugin.getConfig().getString(
-                dalSito ? "chat.hover-web" : "chat.hover-gioco",
-                dalSito ? "&b☁ scritto dal sito" : "&a⛏ scritto in gioco");
-        String testo = plugin.getConfig().getString("chat.hover-format", "&7{ora}  &8•  {origine}")
+                fromSite ? "chat.hover-web" : "chat.hover-gioco",
+                fromSite ? "&b☁ scritto dal sito" : "&a⛏ scritto in gioco");
+        String text = plugin.getConfig().getString("chat.hover-format", "&7{ora}  &8•  {origine}")
                 .replace("{ora}", ora)
                 .replace("{origine}", origine);
 
-        return riga.hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                serializer.deserialize(com.teolo.magixfactions.util.Colors.translate(testo))));
+        return row.hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                serializer.deserialize(com.teolo.magixfactions.util.Colors.translate(text))));
     }
 
     /**
@@ -223,7 +223,7 @@ public final class ChatService {
             // Nome della fazione del mittente colorato con la relazione del DESTINATARIO che legge.
             String facName = fm.relationColor(fm.getFaction(u), f) + f.getName();
             String prefix = Papi.resolve(sender, M.get(prefixKey, "faction", facName));
-            p.sendMessage(conSuggerimento(prefix + body, false));
+            p.sendMessage(withSuggestion(prefix + body, false));
         }
         return true;
     }

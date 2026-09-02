@@ -45,7 +45,7 @@ public enum MenuType {
     FUCINA("SMITHING", 4, 4, false),
     TAGLIAPIETRE("STONECUTTER", 2, 2, false),
     /** La finestra di dialogo di Minecraft: testo, bottoni e campi da riempire. Non e' un inventario. */
-    DIALOGO(null, 0, 0, false);
+    DIALOG(null, 0, 0, false);
 
     /**
      * Il nome del tipo di finestra di Minecraft, non il tipo stesso.
@@ -58,13 +58,13 @@ public enum MenuType {
     private final String inventario;
     private final int dimensione;
     private final int larghezza;
-    private final boolean righeSuMisura;
+    private final boolean customRows;
 
-    MenuType(String inventario, int dimensione, int larghezza, boolean righeSuMisura) {
+    MenuType(String inventario, int dimensione, int larghezza, boolean customRows) {
         this.inventario = inventario;
         this.dimensione = dimensione;
         this.larghezza = larghezza;
-        this.righeSuMisura = righeSuMisura;
+        this.customRows = customRows;
     }
 
     /**
@@ -73,7 +73,7 @@ public enum MenuType {
      * Le costanti Java restano in italiano (il codice del progetto parla italiano); i file, no:
      * le chiavi e i valori dei config di tutti i plugin Magix si scrivono in inglese.
      */
-    public String nomeFile() {
+    public String fileName() {
         return switch (this) {
             case CHEST -> "chest";
             case BARILE -> "barrel";
@@ -90,7 +90,7 @@ public enum MenuType {
             case CARTOGRAFO -> "cartography";
             case FUCINA -> "smithing";
             case TAGLIAPIETRE -> "stonecutter";
-            case DIALOGO -> "dialog";
+            case DIALOG -> "dialog";
         };
     }
 
@@ -103,24 +103,24 @@ public enum MenuType {
     }
 
     /** Le righe si scelgono nel file? Vero solo per il baule. */
-    public boolean righeSuMisura() {
-        return righeSuMisura;
+    public boolean customRows() {
+        return customRows;
     }
 
-    public boolean dialogo() {
-        return this == DIALOGO;
+    public boolean dialog() {
+        return this == DIALOG;
     }
 
     /** Quante caselle ha, viste le righe scelte (che contano solo per il baule). */
-    public int dimensione(int righe) {
-        return righeSuMisura ? Math.max(1, Math.min(6, righe)) * 9 : dimensione;
+    public int dimensione(int rows) {
+        return customRows ? Math.max(1, Math.min(6, rows)) * 9 : dimensione;
     }
 
     /**
      * Il tipo scritto nel file. Accetta l'italiano e il nome inglese di Minecraft, cosi' un menu
      * copiato da un altro plugin si apre senza doverlo tradurre.
      */
-    public static MenuType leggi(String s) {
+    public static MenuType read(String s) {
         if (s == null || s.isBlank()) {
             return CHEST;
         }
@@ -142,16 +142,16 @@ public enum MenuType {
             case "CARTOGRAPHY", "CARTOGRAPHY_TABLE", "CARTOGRAFO" -> CARTOGRAFO;
             case "SMITHING", "SMITHING_TABLE", "FUCINA" -> FUCINA;
             case "STONECUTTER", "TAGLIAPIETRE" -> TAGLIAPIETRE;
-            case "DIALOG", "DIALOGO", "FINESTRA" -> DIALOGO;
+            case "DIALOG", "DIALOGO", "FINESTRA" -> DIALOG;
             default -> null;
         };
     }
 
     /** I nomi scrivibili nel file, per i messaggi d'errore e per l'editor sul sito. */
-    public static List<String> nomi() {
+    public static List<String> names() {
         List<String> out = new ArrayList<>();
         for (MenuType t : values()) {
-            out.add(t.nomeFile());
+            out.add(t.fileName());
         }
         return out;
     }

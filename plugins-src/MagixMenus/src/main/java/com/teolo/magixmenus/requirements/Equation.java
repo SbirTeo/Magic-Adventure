@@ -37,8 +37,8 @@ public final class Equation {
 
     /** Condizione che non sta in piedi: chi chiama decide se e' un no o un errore da scrivere nel log. */
     public static final class Errore extends RuntimeException {
-        public Errore(String messaggio) {
-            super(messaggio);
+        public Errore(String message) {
+            super(message);
         }
     }
 
@@ -46,23 +46,23 @@ public final class Equation {
     }
 
     /** Vero o falso per la condizione scritta. Lancia {@link Errore} se non e' leggibile. */
-    public static boolean vera(String condizione) {
+    public static boolean real(String condizione) {
         if (condizione == null || condizione.isBlank()) {
             return false;
         }
         Analisi a = new Analisi(tokenizza(condizione));
         Object v = a.oppure();
         if (!a.finito()) {
-            throw new Errore("non capisco cosa ci fa '" + a.corrente() + "' qui");
+            throw new Errore("non capisco cosa ci fa '" + a.current() + "' qui");
         }
         return verita(v);
     }
 
     // ------------------------------------------------------------------ i pezzi
 
-    private enum Genere { NUMERO, TESTO, PAROLA, OPERATORE }
+    private enum Genere { NUMERO, TEXT, PAROLA, OPERATOR }
 
-    private record Pezzo(Genere genere, String testo) {
+    private record Pezzo(Genere genere, String text) {
     }
 
     private static final String[] OPERATORI_DOPPI = {"&&", "||", ">=", "<=", "==", "!="};
@@ -71,7 +71,7 @@ public final class Equation {
     private static final String SIMBOLI = "+-*/%^()<>!&|'\"";
 
     private static List<Pezzo> tokenizza(String s) {
-        List<Pezzo> pezzi = new ArrayList<>();
+        List<Pezzo> pieces = new ArrayList<>();
         int i = 0;
         while (i < s.length()) {
             char c = s.charAt(i);
@@ -84,7 +84,7 @@ public final class Equation {
                 if (fine < 0) {
                     throw new Errore("virgolette aperte e mai chiuse");
                 }
-                pezzi.add(new Pezzo(Genere.TESTO, s.substring(i + 1, fine)));
+                pieces.add(new Pezzo(Genere.TEXT, s.substring(i + 1, fine)));
                 i = fine + 1;
                 continue;
             }
@@ -95,7 +95,7 @@ public final class Equation {
                 // "%a% == %a%" e' vero mentre "%a% >= 10" e' semplicemente falso.
                 int chiusura = s.indexOf('%', i + 1);
                 if (chiusura > i + 1 && s.substring(i + 1, chiusura).matches("[A-Za-z0-9_.:\\-]+")) {
-                    pezzi.add(new Pezzo(Genere.PAROLA, s.substring(i, chiusura + 1)));
+                    pieces.add(new Pezzo(Genere.PAROLA, s.substring(i, chiusura + 1)));
                     i = chiusura + 1;
                     continue;
                 }
@@ -103,7 +103,7 @@ public final class Equation {
             boolean doppio = false;
             for (String op : OPERATORI_DOPPI) {
                 if (s.startsWith(op, i)) {
-                    pezzi.add(new Pezzo(Genere.OPERATORE, op));
+                    pieces.add(new Pezzo(Genere.OPERATOR, op));
                     i += 2;
                     doppio = true;
                     break;
@@ -113,7 +113,7 @@ public final class Equation {
                 continue;
             }
             if (SIMBOLI.indexOf(c) >= 0) {
-                pezzi.add(new Pezzo(Genere.OPERATORE, String.valueOf(c)));
+                pieces.add(new Pezzo(Genere.OPERATOR, String.valueOf(c)));
                 i++;
                 continue;
             }
@@ -122,7 +122,7 @@ public final class Equation {
                 while (fine < s.length() && (Character.isDigit(s.charAt(fine)) || s.charAt(fine) == '.')) {
                     fine++;
                 }
-                pezzi.add(new Pezzo(Genere.NUMERO, s.substring(i, fine)));
+                pieces.add(new Pezzo(Genere.NUMERO, s.substring(i, fine)));
                 i = fine;
                 continue;
             }
@@ -131,36 +131,36 @@ public final class Equation {
                     && SIMBOLI.indexOf(s.charAt(fine)) < 0) {
                 fine++;
             }
-            pezzi.add(new Pezzo(Genere.PAROLA, s.substring(i, fine)));
+            pieces.add(new Pezzo(Genere.PAROLA, s.substring(i, fine)));
             i = fine;
         }
-        return pezzi;
+        return pieces;
     }
 
     // ---------------------------------------------------------------- la lettura
 
     private static final class Analisi {
-        private final List<Pezzo> pezzi;
+        private final List<Pezzo> pieces;
         private int i;
 
-        Analisi(List<Pezzo> pezzi) {
-            this.pezzi = pezzi;
+        Analisi(List<Pezzo> pieces) {
+            this.pieces = pieces;
         }
 
         boolean finito() {
-            return i >= pezzi.size();
+            return i >= pieces.size();
         }
 
-        String corrente() {
-            return finito() ? "" : pezzi.get(i).testo();
+        String current() {
+            return finito() ? "" : pieces.get(i).text();
         }
 
-        private boolean operatore(String... quali) {
-            if (finito() || pezzi.get(i).genere() != Genere.OPERATORE) {
+        private boolean operator(String... quali) {
+            if (finito() || pieces.get(i).genere() != Genere.OPERATOR) {
                 return false;
             }
             for (String q : quali) {
-                if (pezzi.get(i).testo().equals(q)) {
+                if (pieces.get(i).text().equals(q)) {
                     return true;
                 }
             }
@@ -168,92 +168,92 @@ public final class Equation {
         }
 
         Object oppure() {
-            Object sinistra = entrambi();
-            while (operatore("||")) {
+            Object left = entrambi();
+            while (operator("||")) {
                 i++;
                 Object destra = entrambi();
-                sinistra = verita(sinistra) || verita(destra);
+                left = verita(left) || verita(destra);
             }
-            return sinistra;
+            return left;
         }
 
         Object entrambi() {
-            Object sinistra = confronto();
-            while (operatore("&&")) {
+            Object left = confronto();
+            while (operator("&&")) {
                 i++;
                 Object destra = confronto();
-                sinistra = verita(sinistra) && verita(destra);
+                left = verita(left) && verita(destra);
             }
-            return sinistra;
+            return left;
         }
 
         Object confronto() {
-            Object sinistra = somma();
-            if (operatore(">=", "<=", "==", "!=", "<", ">")) {
-                String op = pezzi.get(i).testo();
+            Object left = somma();
+            if (operator(">=", "<=", "==", "!=", "<", ">")) {
+                String op = pieces.get(i).text();
                 i++;
                 Object destra = somma();
-                return confronta(sinistra, op, destra);
+                return confronta(left, op, destra);
             }
-            return sinistra;
+            return left;
         }
 
         Object somma() {
-            Object sinistra = prodotto();
-            while (operatore("+", "-")) {
-                String op = pezzi.get(i).testo();
+            Object left = prodotto();
+            while (operator("+", "-")) {
+                String op = pieces.get(i).text();
                 i++;
                 Object destra = prodotto();
                 // Il "+" fra due cose che numeri non sono unisce il testo: e' l'unico modo
                 // di comporre una frase dentro una condizione, e non costa niente.
-                if (op.equals("+") && (comeNumero(sinistra) == null || comeNumero(destra) == null)) {
-                    sinistra = testo(sinistra) + testo(destra);
+                if (op.equals("+") && (comeNumero(left) == null || comeNumero(destra) == null)) {
+                    left = text(left) + text(destra);
                 } else {
-                    sinistra = op.equals("+") ? numero(sinistra) + numero(destra)
-                            : numero(sinistra) - numero(destra);
+                    left = op.equals("+") ? number(left) + number(destra)
+                            : number(left) - number(destra);
                 }
             }
-            return sinistra;
+            return left;
         }
 
         Object prodotto() {
-            Object sinistra = potenza();
-            while (operatore("*", "/", "%")) {
-                String op = pezzi.get(i).testo();
+            Object left = potenza();
+            while (operator("*", "/", "%")) {
+                String op = pieces.get(i).text();
                 i++;
-                double destra = numero(potenza());
-                double a = numero(sinistra);
+                double destra = number(potenza());
+                double a = number(left);
                 if ((op.equals("/") || op.equals("%")) && destra == 0) {
                     throw new Errore("divisione per zero");
                 }
-                sinistra = switch (op) {
+                left = switch (op) {
                     case "*" -> a * destra;
                     case "/" -> a / destra;
                     default -> a % destra;
                 };
             }
-            return sinistra;
+            return left;
         }
 
         Object potenza() {
             Object base = unario();
-            if (operatore("^")) {
+            if (operator("^")) {
                 i++;
-                return Math.pow(numero(base), numero(unario()));
+                return Math.pow(number(base), number(unario()));
             }
             return base;
         }
 
         Object unario() {
-            if (operatore("-")) {
+            if (operator("-")) {
                 i++;
-                return -numero(unario());
+                return -number(unario());
             }
-            if (operatore("!")) {
+            if (operator("!")) {
                 i++;
                 return !verita(unario());
             }
-            if (operatore("+")) {
+            if (operator("+")) {
                 i++;
                 return unario();
             }
@@ -264,31 +264,31 @@ public final class Equation {
             if (finito()) {
                 throw new Errore("la condizione finisce a meta'");
             }
-            Pezzo p = pezzi.get(i);
-            if (p.genere() == Genere.OPERATORE && p.testo().equals("(")) {
+            Pezzo p = pieces.get(i);
+            if (p.genere() == Genere.OPERATOR && p.text().equals("(")) {
                 i++;
-                Object dentro = oppure();
-                if (!operatore(")")) {
+                Object inside = oppure();
+                if (!operator(")")) {
                     throw new Errore("manca una parentesi chiusa");
                 }
                 i++;
-                return dentro;
+                return inside;
             }
             if (p.genere() == Genere.NUMERO) {
                 i++;
-                return Double.valueOf(p.testo());
+                return Double.valueOf(p.text());
             }
-            if (p.genere() == Genere.TESTO) {
+            if (p.genere() == Genere.TEXT) {
                 i++;
-                return p.testo();
+                return p.text();
             }
             if (p.genere() == Genere.PAROLA) {
                 // Parole di seguito senza operatore in mezzo: una frase sola (vedi il commento
                 // in cima alla classe, il caso dei nomi con gli spazi).
-                StringBuilder sb = new StringBuilder(p.testo());
+                StringBuilder sb = new StringBuilder(p.text());
                 i++;
-                while (!finito() && pezzi.get(i).genere() == Genere.PAROLA) {
-                    sb.append(' ').append(pezzi.get(i).testo());
+                while (!finito() && pieces.get(i).genere() == Genere.PAROLA) {
+                    sb.append(' ').append(pieces.get(i).text());
                     i++;
                 }
                 String parola = sb.toString();
@@ -301,7 +301,7 @@ public final class Equation {
                 }
                 return parola;
             }
-            throw new Errore("non capisco '" + p.testo() + "'");
+            throw new Errore("non capisco '" + p.text() + "'");
         }
     }
 
@@ -322,7 +322,7 @@ public final class Equation {
         }
         // Non sono numeri: si confrontano come parole. L'uguaglianza ignora maiuscole e
         // minuscole, perche' un nome scritto "Draghi" o "draghi" e' lo stesso nome.
-        int c = testo(a).compareToIgnoreCase(testo(b));
+        int c = text(a).compareToIgnoreCase(text(b));
         return switch (op) {
             case ">" -> c > 0;
             case "<" -> c < 0;
@@ -351,7 +351,7 @@ public final class Equation {
         }
     }
 
-    private static double numero(Object o) {
+    private static double number(Object o) {
         Double d = comeNumero(o);
         if (d == null) {
             if (o instanceof Boolean b) {
@@ -362,7 +362,7 @@ public final class Equation {
         return d;
     }
 
-    private static String testo(Object o) {
+    private static String text(Object o) {
         if (o instanceof Double d && d == Math.rint(d) && !d.isInfinite()) {
             return String.valueOf((long) (double) d);   // 10.0 -> "10", altrimenti nessun confronto tornerebbe
         }

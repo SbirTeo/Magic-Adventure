@@ -45,7 +45,7 @@ public final class MagixFactions extends JavaPlugin {
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
         // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeTutorial);
 
         // Hook opzionali
@@ -264,21 +264,21 @@ public final class MagixFactions extends JavaPlugin {
      * segnaposto servono a evitare. Va in asincrono perche' e' solo I/O su file.
      */
     public void riscriviGuide() {
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeTutorial);
     }
 
     /** Capitolo di MagixFactions nella guida del gestionale (plugins-src/GUIDA-STAFF.md). */
-    private void scriviGuidaStaff() {
-        StaffGuide.crea(this, "MagixFactions — fazioni, territori e potenza", 30)
+    private void writeStaffGuide() {
+        StaffGuide.create(this, "MagixFactions — fazioni, territori e potenza", 30)
                 // Numeri presi dal config vero: se cambia una chiave, cambia anche questo capitolo sul
                 // sito, senza che nessuno debba ricordarsi di riscriverlo.
-                .valori(valoriGuide())
+                .values(guideValues())
                 .intro("È la modalità del server: i giocatori si uniscono in fazioni, rivendicano terreno e "
                         + "se lo contendono. Il plugin più grosso che abbiamo, e quello su cui arriveranno "
                         + "quasi tutte le domande dei giocatori.")
 
-                .sezione("La fazione",
+                .section("La fazione",
                         "La crea chi scrive /f create: quel giocatore ne diventa il **LEADER**, e il leader è sempre "
                                 + "uno solo. Il nome passa da un filtro di parole vietate e dalle regole di lunghezza e "
                                 + "caratteri fissate nel config: un nome offensivo viene rifiutato subito, e se sfugge "
@@ -290,7 +290,7 @@ public final class MagixFactions extends JavaPlugin {
                         "Il limite di membri parte dal valore nel config (adesso {{cfg:members.base}}) e si alza con i permessi VIP "
                                 + "del **LEADER**: conta il suo, non quello dei membri. È la domanda che arriva sempre.")
 
-                .sezione("Successione: cosa succede se il leader se ne va",
+                .section("Successione: cosa succede se il leader se ne va",
                         "Con /f transfer il comando passa a chi si sceglie, e il vecchio leader scende al grado "
                                 + "più alto disponibile.",
                         "Se il leader esce con /f leave e ci sono altri membri, il comando passa DA **SOLO** al più "
@@ -300,7 +300,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "territori tornano neutrali. È il caso in cui arriva la richiesta «rimettetemi la "
                                 + "fazione»: ricrearla si può, ma il terreno è tornato libero per tutti.")
 
-                .sezione("Potenza: il motore di tutto",
+                .section("Potenza: il motore di tutto",
                         "Ogni giocatore ha una Potenza, che va dal negativo al positivo del tetto (adesso "
                                 + "{{cfg:power.max}}). Si parte da {{cfg:power.start}} al primo ingresso, sale stando "
                                 + "**ONLINE** (+{{cfg:power.gain-amount}} ogni {{secondi:power.gain-interval-seconds}}), "
@@ -356,7 +356,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "ingiusta). Il tetto invece non si tocca più da comando: se qualcuno chiede "
                                 + "/mf admin setpowermax sta guardando una guida vecchia, ora è il permesso.")
 
-                .sezione("Territori: quando si può rivendicare",
+                .section("Territori: quando si può rivendicare",
                         "/f claim prende il chunk in cui ti trovi. Su terreno **NEUTRALE** servono due condizioni "
                                 + "insieme: la fazione deve tenere meno territori del suo tetto (una percentuale del "
                                 + "maxpower, adesso il {{percento:claims.max-percent}}) e la sua Potenza attuale deve "
@@ -368,7 +368,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "quindi il primo tentativo mostra solo un avviso rosso con suono di pericolo: per "
                                 + "farlo davvero il comando va ripetuto entro pochi secondi.")
 
-                .sezione("Decadimento: il terreno che si perde da solo",
+                .section("Decadimento: il terreno che si perde da solo",
                         "Da non confondere con la conquista, e i giocatori le confondono. Il **DECADIMENTO** è quando "
                                 + "una fazione tiene più terreno di quanto la sua Potenza regga — succede tipicamente "
                                 + "quando un membro se ne va e il tetto scende. La **CONQUISTA** è quando è un'altra "
@@ -381,7 +381,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "smettere di morire. Il conto alla rovescia sopravvive ai riavvii: non si azzera "
                                 + "spegnendo il server.")
 
-                .sezione("Protezioni dentro i territori",
+                .section("Protezioni dentro i territori",
                         "Dentro un claim gli estranei non rompono e non piazzano blocchi, non aprono contenitori e "
                                 + "non innescano quello che il config protegge. Fuori dai claim vale il survival puro: "
                                 + "lì il grief è parte del gioco e non è una violazione del regolamento.",
@@ -389,14 +389,14 @@ public final class MagixFactions extends JavaPlugin {
                                 + "dentro un claim è un problema di permessi di grado o di fiducia mal riposta; fuori "
                                 + "dal claim è semplicemente il gioco.")
 
-                .sezione("Relazioni fra fazioni",
+                .section("Relazioni fra fazioni",
                         "Esistono due sole relazioni, **NEMICO** e **ALLEATO**, e di partenza ogni fazione è nemica di "
                                 + "tutte le altre: nel database si registrano solo le alleanze.",
                         "L'alleanza si forma solo se **ENTRAMBE** le fazioni fanno /f ally sull'altra. /f enemy è "
                                 + "immediato e serve a tre cose: sciogliere un'alleanza (basta una delle due parti), "
                                 + "annullare una richiesta mandata, rifiutare una ricevuta.")
 
-                .sezione("Chat",
+                .section("Chat",
                         "/f chat gira fra tre canali: pubblica, fazione, alleati. Il canale fazione resta dentro la "
                                 + "fazione, quello alleati arriva anche alle fazioni alleate. Nessuno dei due esce "
                                 + "verso il sito: nella chat live della home passa solo la chat pubblica.",
@@ -404,7 +404,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "della **RELAZIONE** con chi legge. Sono due colori diversi perché dicono due cose "
                                 + "diverse, e non vanno uniformati.")
 
-                .sezione("Punteggio e classifica",
+                .section("Punteggio e classifica",
                         "/f top ordina le fazioni per un **PUNTEGGIO** unico da 0 a 100, non per un solo numero: "
                                 + "una classifica basata solo sui territori (o solo sui soldi) premierebbe chi eccelle "
                                 + "in una cosa sola. Il punteggio è la sintesi **PESATA** di cinque caratteristiche, e i "
@@ -426,7 +426,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "storico passato), quindi all'inizio riflette il presente e si assesta col tempo; e il "
                                 + "punteggio compare anche in /f info e sul sito, alimentato dagli stessi numeri.")
 
-                .sezione("Mappa e minimap",
+                .section("Mappa e minimap",
                         // Come risponde /f map lo dice il config: la frase cambia da sola con map.mode, cosi'
                         // questo capitolo non puo' descrivere una modalita' che non e' piu' quella in uso.
                         "/f map disegna i territori con i colori della relazione. "
@@ -445,16 +445,16 @@ public final class MagixFactions extends JavaPlugin {
                         "I giocatori in vanish e quelli con la pozione di invisibilità non compaiono su nessuna "
                                 + "delle due: sarebbe un modo troppo comodo per trovare chi non vuole essere trovato.")
 
-                .sezione("Pacchetto risorse",
+                .section("Pacchetto risorse",
                         "È obbligatorio: senza, la mappa e diversi elementi grafici non si vedono. Chi lo rifiuta "
                                 + "viene espulso con un messaggio che glielo spiega. Il permesso "
                                 + "magixfactions.resourcepack.bypass serve a chi deve entrare senza — prove, riprese, "
                                 + "ospiti di passaggio.")
 
-                .comandiDettagliati()
-                .comandi()
-                .permessi()
-                .impostazioni(
+                .detailedCommands()
+                .commands()
+                .permissions()
+                .settings(
                         "power.max", "Tetto di Potenza di un giocatore.",
                         "power.death-loss", "Quanta Potenza si perde morendo.",
                         "power.gain-interval-seconds", "Ogni quanti secondi online si guadagna Potenza.",
@@ -466,27 +466,27 @@ public final class MagixFactions extends JavaPlugin {
                         "map.mode", "Come risponde /f map: chat (mappa testuale, default) oppure item (mappa "
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")
 
-                .guasto("«Non riesco a fare claim»",
+                .issue("«Non riesco a fare claim»",
                         "Quasi sempre è Potenza insufficiente o tetto raggiunto, non un guasto. /f info sulla sua "
                                 + "fazione mostra territori, Potenza e stato: se la riga è rossa la fazione è "
                                 + "raidabile e non può espandersi.")
-                .guasto("«Mi stanno sparendo i territori»",
+                .issue("«Mi stanno sparendo i territori»",
                         "È il decadimento, non un ladro: la fazione tiene più terreno di quanto la sua Potenza "
                                 + "regga. Si ferma facendo entrare qualcuno o liberando terreno a mano.")
-                .guasto("I messaggi in chat compaiono due volte",
+                .issue("I messaggi in chat compaiono due volte",
                         "Non è MagixFactions: sono i ClickHoverMessages di CMI, si spengono nel config di CMI.")
-                .guasto("La mappa è grigia o non si aggiorna",
+                .issue("La mappa è grigia o non si aggiorna",
                         "Manca il pacchetto risorse, oppure il giocatore è in un mondo che il plugin non gestisce.")
-                .guasto("Un giocatore è stato espulso appena entrato",
+                .issue("Un giocatore è stato espulso appena entrato",
                         "Ha rifiutato il pacchetto risorse. Se deve entrare comunque, serve il permesso di bypass.")
 
-                .mai("Non modificare il config live a mano: al prossimo aggiornamento viene riportato a quello del "
+                .never("Non modificare il config live a mano: al prossimo aggiornamento viene riportato a quello del "
                         + "sorgente. Se serve un valore diverso, va messo nel sorgente.")
-                .mai("Non cancellare righe dal database dei claim per «fare pulizia»: restano fazioni con "
+                .never("Non cancellare righe dal database dei claim per «fare pulizia»: restano fazioni con "
                         + "territori fantasma e i conti della Potenza non tornano più.")
-                .mai("Non promettere a un giocatore che gli si «rimette» un territorio decaduto: si può "
+                .never("Non promettere a un giocatore che gli si «rimette» un territorio decaduto: si può "
                         + "ri-rivendicare solo se le condizioni di Potenza lo consentono.")
-                .scrivi();
+                .write();
     }
 
     private void writeReadme() {
@@ -513,7 +513,7 @@ public final class MagixFactions extends JavaPlugin {
      * un pezzo che deve sparire del tutto quando la funzione e' spenta — meglio una guida che tace su
      * una regola che non c'e', che una guida che la descrive.
      */
-    private ConfigValues valoriGuide() {
+    private ConfigValues guideValues() {
         var c = getConfig();
         ConfigValues v = new ConfigValues(this);
 
@@ -559,7 +559,7 @@ public final class MagixFactions extends JavaPlugin {
             }
             java.nio.file.Path out = new java.io.File(getDataFolder(), "tutorial.html").toPath();
             String html = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            html = valoriGuide().applica(html);
+            html = guideValues().apply(html);
             java.nio.file.Files.writeString(out, html, java.nio.charset.StandardCharsets.UTF_8);
             getLogger().info("Tutorial HTML aggiornato (v" + getDescription().getVersion() + ").");
         } catch (Exception e) {

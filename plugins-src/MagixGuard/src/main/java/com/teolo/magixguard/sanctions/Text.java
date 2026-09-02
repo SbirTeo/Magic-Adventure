@@ -39,8 +39,8 @@ public final class Text {
      * Sostituisce i segnaposto di un messaggio configurabile.
      * Le chiavi si passano a coppie: {@code sostituisci(testo, "{motivo}", motivo, ...)}.
      */
-    public static String sostituisci(String testo, String... coppie) {
-        String out = testo == null ? "" : testo;
+    public static String replace(String text, String... coppie) {
+        String out = text == null ? "" : text;
         for (int i = 0; i + 1 < coppie.length; i += 2) {
             out = out.replace(coppie[i], coppie[i + 1] == null ? "" : coppie[i + 1]);
         }

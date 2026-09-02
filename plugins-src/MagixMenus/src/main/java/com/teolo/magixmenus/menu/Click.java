@@ -24,17 +24,17 @@ public enum Click {
     NUMERO("number_key_actions", "azioni_numero"),
     DOPPIO("double_click_actions", "azioni_doppio");
 
-    private final String chiaveAzioni;
-    private final String chiaveAzioniIt;
+    private final String actionsKey;
+    private final String actionsKeyIt;
 
-    Click(String chiaveAzioni, String chiaveAzioniIt) {
-        this.chiaveAzioni = chiaveAzioni;
-        this.chiaveAzioniIt = chiaveAzioniIt;
+    Click(String actionsKey, String actionsKeyIt) {
+        this.actionsKey = actionsKey;
+        this.actionsKeyIt = actionsKeyIt;
     }
 
     /** La chiave delle azioni nel file: "right_click_actions". */
-    public String chiaveAzioni() {
-        return chiaveAzioni;
+    public String actionsKey() {
+        return actionsKey;
     }
 
     /**
@@ -44,19 +44,19 @@ public enum Click {
      * menu gia' scritti in italiano devono continuare ad aprirsi: il nome vecchio resta valido
      * come sinonimo e basta.
      */
-    public String chiaveAzioniItaliana() {
-        return chiaveAzioniIt;
+    public String actionsKeyItalian() {
+        return actionsKeyIt;
     }
 
     /** La chiave dei requisiti nel file: "right_click_requirements". */
-    public String chiaveRequisiti() {
+    public String requirementsKey() {
         return this == QUALSIASI ? "click_requirements"
-                : chiaveAzioni.substring(0, chiaveAzioni.length() - "actions".length()) + "requirements";
+                : actionsKey.substring(0, actionsKey.length() - "actions".length()) + "requirements";
     }
 
     /** Il vecchio nome italiano dei requisiti ("click_se_destro"). */
-    public String chiaveRequisitiItaliana() {
-        return this == QUALSIASI ? "click_se" : "click_se" + chiaveAzioniIt.substring("azioni".length());
+    public String requirementsKeyItalian() {
+        return this == QUALSIASI ? "click_se" : "click_se" + actionsKeyIt.substring("azioni".length());
     }
 
     /** Il modo in cui Minecraft dice che e' stato cliccato, tradotto nel nostro. */
@@ -74,7 +74,7 @@ public enum Click {
     }
 
     /** Il nome scritto nel file, per i messaggi d'errore. */
-    public static Click leggi(String s) {
+    public static Click read(String s) {
         if (s == null) {
             return null;
         }

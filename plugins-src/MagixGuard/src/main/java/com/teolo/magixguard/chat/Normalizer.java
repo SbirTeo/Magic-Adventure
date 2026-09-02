@@ -23,11 +23,11 @@ public final class Normalizer {
     }
 
     /** Il messaggio in minuscolo, coi trucchi tipografici sciolti e le parole ancora separate. */
-    public static String aParole(String testo) {
-        if (testo == null) {
+    public static String aParole(String text) {
+        if (text == null) {
             return "";
         }
-        String s = sciogliCodici(testo.toLowerCase());
+        String s = expandCodes(text.toLowerCase());
         StringBuilder b = new StringBuilder(s.length());
         for (char c : s.toCharArray()) {
             if (Character.isLetterOrDigit(c)) {
@@ -43,15 +43,15 @@ public final class Normalizer {
     }
 
     /** Lo stesso messaggio senza piu' nessuno spazio: e' la forma che smaschera "s p a m". */
-    public static String compatta(String testo) {
-        return aParole(testo).replace(" ", "");
+    public static String compatta(String text) {
+        return aParole(text).replace(" ", "");
     }
 
     /**
      * I caratteri usati al posto delle lettere. Si tengono solo le sostituzioni davvero comuni:
      * ogni riga in piu' e' un falso positivo in piu'.
      */
-    private static String sciogliCodici(String s) {
+    private static String expandCodes(String s) {
         StringBuilder b = new StringBuilder(s.length());
         for (char c : s.toCharArray()) {
             b.append(switch (c) {
@@ -99,41 +99,41 @@ public final class Normalizer {
         if (a.equals(b)) {
             return 1;
         }
-        int massimo = Math.max(a.length(), b.length());
-        if (massimo == 0) {
+        int maximum = Math.max(a.length(), b.length());
+        if (maximum == 0) {
             return 1;
         }
-        if (massimo > 200) {
+        if (maximum > 200) {
             return a.equals(b) ? 1 : 0;   // messaggi lunghissimi: non vale la pena
         }
-        return 1.0 - (double) distanza(a, b) / massimo;
+        return 1.0 - (double) distanza(a, b) / maximum;
     }
 
     private static int distanza(String a, String b) {
         int[] precedente = new int[b.length() + 1];
-        int[] corrente = new int[b.length() + 1];
+        int[] current = new int[b.length() + 1];
         for (int j = 0; j <= b.length(); j++) {
             precedente[j] = j;
         }
         for (int i = 1; i <= a.length(); i++) {
-            corrente[0] = i;
+            current[0] = i;
             for (int j = 1; j <= b.length(); j++) {
                 int costo = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
-                corrente[j] = Math.min(Math.min(corrente[j - 1] + 1, precedente[j] + 1),
+                current[j] = Math.min(Math.min(current[j - 1] + 1, precedente[j] + 1),
                         precedente[j - 1] + costo);
             }
             int[] scambio = precedente;
-            precedente = corrente;
-            corrente = scambio;
+            precedente = current;
+            current = scambio;
         }
         return precedente[b.length()];
     }
 
     /** La percentuale di lettere maiuscole, contando solo le lettere. */
-    public static int percentualeMaiuscole(String testo) {
+    public static int percentualeMaiuscole(String text) {
         int lettere = 0;
         int maiuscole = 0;
-        for (char c : testo.toCharArray()) {
+        for (char c : text.toCharArray()) {
             if (Character.isLetter(c)) {
                 lettere++;
                 if (Character.isUpperCase(c)) {

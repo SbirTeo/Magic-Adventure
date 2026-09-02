@@ -24,24 +24,24 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ChatMemory {
 
     /** Una riga di chat come la ricordiamo. */
-    public record Riga(String autore, String messaggio, long quando) { }
+    public record Row(String autore, String message, long quando) { }
 
-    private final int righeContesto;
-    private final Deque<Riga> globale = new ArrayDeque<>();
-    private final Map<UUID, Deque<Riga>> perGiocatore = new ConcurrentHashMap<>();
+    private final int contextRows;
+    private final Deque<Row> globale = new ArrayDeque<>();
+    private final Map<UUID, Deque<Row>> perPlayer = new ConcurrentHashMap<>();
 
-    public ChatMemory(int righeContesto) {
-        this.righeContesto = Math.max(2, righeContesto);
+    public ChatMemory(int contextRows) {
+        this.contextRows = Math.max(2, contextRows);
     }
 
     /** Registra una riga appena scritta. */
-    public synchronized void aggiungi(UUID uuid, String autore, String messaggio) {
-        Riga r = new Riga(autore, messaggio, System.currentTimeMillis());
+    public synchronized void add(UUID uuid, String autore, String message) {
+        Row r = new Row(autore, message, System.currentTimeMillis());
         globale.addLast(r);
-        while (globale.size() > righeContesto * 4) {
+        while (globale.size() > contextRows * 4) {
             globale.removeFirst();
         }
-        Deque<Riga> sue = perGiocatore.computeIfAbsent(uuid, k -> new ArrayDeque<>());
+        Deque<Row> sue = perPlayer.computeIfAbsent(uuid, k -> new ArrayDeque<>());
         synchronized (sue) {
             sue.addLast(r);
             while (sue.size() > 12) {
@@ -52,30 +52,30 @@ public final class ChatMemory {
 
     /** Quanti messaggi ha scritto quel giocatore negli ultimi N millisecondi. */
     public int quantiNegliUltimi(UUID uuid, long millis) {
-        Deque<Riga> sue = perGiocatore.get(uuid);
+        Deque<Row> sue = perPlayer.get(uuid);
         if (sue == null) {
             return 0;
         }
         long da = System.currentTimeMillis() - millis;
-        int conta = 0;
+        int counter = 0;
         synchronized (sue) {
-            for (Riga r : sue) {
+            for (Row r : sue) {
                 if (r.quando() >= da) {
-                    conta++;
+                    counter++;
                 }
             }
         }
-        return conta;
+        return counter;
     }
 
     /** L'ultimo messaggio di quel giocatore, o null. */
     public String ultimoDi(UUID uuid) {
-        Deque<Riga> sue = perGiocatore.get(uuid);
+        Deque<Row> sue = perPlayer.get(uuid);
         if (sue == null) {
             return null;
         }
         synchronized (sue) {
-            return sue.isEmpty() ? null : sue.peekLast().messaggio();
+            return sue.isEmpty() ? null : sue.peekLast().message();
         }
     }
 
@@ -83,23 +83,23 @@ public final class ChatMemory {
      * Il contesto da allegare a una violazione: le ultime righe della chat pubblica, in ordine,
      * con l'ora. E' quello che una persona leggera' fra sei mesi per decidere un ricorso.
      */
-    public synchronized String contesto() {
+    public synchronized String context() {
         if (globale.isEmpty()) {
             return "";
         }
-        List<Riga> ultime = new ArrayList<>(globale);
-        int da = Math.max(0, ultime.size() - righeContesto);
+        List<Row> ultime = new ArrayList<>(globale);
+        int da = Math.max(0, ultime.size() - contextRows);
         StringBuilder b = new StringBuilder("Contesto della chat (dal piu' vecchio):\n");
         for (int i = da; i < ultime.size(); i++) {
-            Riga r = ultime.get(i);
+            Row r = ultime.get(i);
             b.append("  [").append(com.teolo.magixguard.util.Fmt.shortDateTime(r.quando()))
-             .append("] ").append(r.autore()).append(": ").append(r.messaggio()).append('\n');
+             .append("] ").append(r.autore()).append(": ").append(r.message()).append('\n');
         }
         return b.toString();
     }
 
     /** Un giocatore se ne va: la sua finestra non serve piu'. */
-    public void dimentica(UUID uuid) {
-        perGiocatore.remove(uuid);
+    public void forget(UUID uuid) {
+        perPlayer.remove(uuid);
     }
 }

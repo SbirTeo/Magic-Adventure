@@ -34,33 +34,33 @@ import java.util.concurrent.TimeUnit;
  *       proprietario a ritrovarsi la password da digitare — cioe' se ne accorge.</li>
  * </ul>
  */
-public final class Biscotto {
+public final class Cookie {
 
     /** Il prefisso distingue le righe da gettone da quelle da indirizzo nella stessa tabella. */
     private static final String PREFISSO = "cookie:";
 
     private static final SecureRandom CASO = new SecureRandom();
 
-    private final NamespacedKey chiave;
+    private final NamespacedKey key;
     private final long attesaMillis;
 
-    public Biscotto(Plugin plugin, long attesaMillis) {
-        this.chiave = new NamespacedKey(plugin, "sessione");
+    public Cookie(Plugin plugin, long attesaMillis) {
+        this.key = new NamespacedKey(plugin, "sessione");
         this.attesaMillis = attesaMillis;
     }
 
     /** Un gettone nuovo di zecca. */
-    public static byte[] nuovoGettone() {
+    public static byte[] newCookieToken() {
         byte[] b = new byte[32];
         CASO.nextBytes(b);
         return b;
     }
 
     /** Il nome con cui questo gettone e' conosciuto nella tabella dei dispositivi. */
-    public static String dispositivo(byte[] gettone) {
+    public static String deviceKey(byte[] cookieToken) {
         try {
-            byte[] impronta = MessageDigest.getInstance("SHA-256").digest(gettone);
-            return PREFISSO + Base64.getUrlEncoder().withoutPadding().encodeToString(impronta);
+            byte[] fingerprint = MessageDigest.getInstance("SHA-256").digest(cookieToken);
+            return PREFISSO + Base64.getUrlEncoder().withoutPadding().encodeToString(fingerprint);
         } catch (Exception e) {
             // SHA-256 c'e' sempre: se mancasse, sarebbe una JVM da buttare.
             throw new IllegalStateException(e);
@@ -77,21 +77,21 @@ public final class Biscotto {
      *
      * @return il nome del dispositivo, oppure null
      */
-    public String dispositivoDi(ReadablePlayerCookieConnection connessione) {
-        if (connessione == null) {
+    public String deviceOf(ReadablePlayerCookieConnection conn) {
+        if (conn == null) {
             return null;
         }
         try {
-            CompletableFuture<byte[]> richiesta = connessione.retrieveCookie(chiave);
-            byte[] gettone = richiesta.get(attesaMillis, TimeUnit.MILLISECONDS);
-            return gettone == null || gettone.length == 0 ? null : dispositivo(gettone);
+            CompletableFuture<byte[]> richiesta = conn.retrieveCookie(key);
+            byte[] cookieToken = richiesta.get(attesaMillis, TimeUnit.MILLISECONDS);
+            return cookieToken == null || cookieToken.length == 0 ? null : deviceKey(cookieToken);
         } catch (Exception e) {
             return null;
         }
     }
 
     /** Consegna il gettone al client, che se lo tiene finche' non chiude il gioco. */
-    public void consegna(Player p, byte[] gettone) {
-        p.storeCookie(chiave, gettone);
+    public void deliver(Player p, byte[] cookieToken) {
+        p.storeCookie(key, cookieToken);
     }
 }

@@ -45,34 +45,34 @@ public final class Slot {
      * @param dimensione quante caselle ha in tutto
      * @param errori     dove finiscono i pezzi che non si sono capiti (mai null)
      */
-    public static List<Integer> leggi(Object valore, int larghezza, int dimensione, List<String> errori) {
-        Set<Integer> caselle = new LinkedHashSet<>();
-        aggiungi(valore, larghezza, dimensione, caselle, errori);
-        return new ArrayList<>(caselle);
+    public static List<Integer> read(Object value, int larghezza, int dimensione, List<String> errori) {
+        Set<Integer> slots = new LinkedHashSet<>();
+        add(value, larghezza, dimensione, slots, errori);
+        return new ArrayList<>(slots);
     }
 
-    private static void aggiungi(Object valore, int larghezza, int dimensione,
-                                 Set<Integer> caselle, List<String> errori) {
-        if (valore == null) {
+    private static void add(Object value, int larghezza, int dimensione,
+                                 Set<Integer> slots, List<String> errori) {
+        if (value == null) {
             return;
         }
-        if (valore instanceof Iterable<?> elenco) {
+        if (value instanceof Iterable<?> elenco) {
             for (Object o : elenco) {
-                aggiungi(o, larghezza, dimensione, caselle, errori);
+                add(o, larghezza, dimensione, slots, errori);
             }
             return;
         }
-        if (valore instanceof Number n) {
-            metti(n.intValue(), dimensione, caselle, errori, String.valueOf(n));
+        if (value instanceof Number n) {
+            metti(n.intValue(), dimensione, slots, errori, String.valueOf(n));
             return;
         }
-        for (String pezzo : String.valueOf(valore).split(",")) {
-            pezzo(pezzo.trim(), larghezza, dimensione, caselle, errori);
+        for (String pezzo : String.valueOf(value).split(",")) {
+            pezzo(pezzo.trim(), larghezza, dimensione, slots, errori);
         }
     }
 
     private static void pezzo(String p, int larghezza, int dimensione,
-                              Set<Integer> caselle, List<String> errori) {
+                              Set<Integer> slots, List<String> errori) {
         if (p.isEmpty()) {
             return;
         }
@@ -86,27 +86,27 @@ public final class Slot {
 
         if (basso.equals("all") || basso.equals("tutte") || basso.equals("*")) {
             for (int i = 0; i < dimensione; i++) {
-                caselle.add(i);
+                slots.add(i);
             }
             return;
         }
         if (basso.equals("border") || basso.equals("bordo")) {
-            int righe = (int) Math.ceil(dimensione / (double) larghezza);
+            int rows = (int) Math.ceil(dimensione / (double) larghezza);
             for (int i = 0; i < dimensione; i++) {
-                int riga = i / larghezza, colonna = i % larghezza;
-                if (riga == 0 || riga == righe - 1 || colonna == 0 || colonna == larghezza - 1) {
-                    caselle.add(i);
+                int row = i / larghezza, colonna = i % larghezza;
+                if (row == 0 || row == rows - 1 || colonna == 0 || colonna == larghezza - 1) {
+                    slots.add(i);
                 }
             }
             return;
         }
         if (basso.startsWith("row:") || basso.startsWith("riga:")) {
-            int riga = intero(basso.substring(basso.indexOf(':') + 1), errori, p);
-            if (riga < 1) {
+            int row = intero(basso.substring(basso.indexOf(':') + 1), errori, p);
+            if (row < 1) {
                 return;
             }
             for (int c = 0; c < larghezza; c++) {
-                metti((riga - 1) * larghezza + c, dimensione, caselle, null, p);
+                metti((row - 1) * larghezza + c, dimensione, slots, null, p);
             }
             return;
         }
@@ -119,7 +119,7 @@ public final class Slot {
                 return;
             }
             for (int i = colonna - 1; i < dimensione; i += larghezza) {
-                caselle.add(i);
+                slots.add(i);
             }
             return;
         }
@@ -137,27 +137,27 @@ public final class Slot {
                 a = t;
             }
             for (int i = da; i <= a; i++) {
-                metti(i, dimensione, caselle, null, p);
+                metti(i, dimensione, slots, null, p);
             }
             return;
         }
 
-        metti(intero(basso, errori, p), dimensione, caselle, errori, p);
+        metti(intero(basso, errori, p), dimensione, slots, errori, p);
     }
 
-    private static void metti(int casella, int dimensione, Set<Integer> caselle,
+    private static void metti(int slot, int dimensione, Set<Integer> slots,
                               List<String> errori, String scritto) {
-        if (casella < 0) {
+        if (slot < 0) {
             return;
         }
-        if (casella >= dimensione) {
+        if (slot >= dimensione) {
             if (errori != null) {
                 errori.add("casella " + scritto + " fuori dal menu (ne ha " + dimensione + ", da 0 a "
                         + (dimensione - 1) + ")");
             }
             return;
         }
-        caselle.add(casella);
+        slots.add(slot);
     }
 
     private static int intero(String s, List<String> errori, String scritto) {

@@ -57,12 +57,12 @@ public final class MeCommand implements TabExecutor {
             return true;
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("help") || args[0].equals("?")) {
-            help(sender, args.length >= 2 ? pagina(args[1]) : 1);
+            help(sender, args.length >= 2 ? page(args[1]) : 1);
             return true;
         }
         // Il numero da solo sfoglia l'aiuto: e' quello che mandano le frecce in fondo all'elenco.
         if (args[0].chars().allMatch(Character::isDigit)) {
-            help(sender, pagina(args[0]));
+            help(sender, page(args[0]));
             return true;
         }
 
@@ -98,15 +98,15 @@ public final class MeCommand implements TabExecutor {
      * degli altri plugin Magix: sezioni, frecce per sfogliare, ogni riga cliccabile per scriversi
      * il comando in chat. La sezione Staff la vede solo chi ha magixentities.admin.
      */
-    private void help(CommandSender sender, int pagina) {
+    private void help(CommandSender sender, int page) {
         ConfigurationSection h = M.section("help");
-        String titolo = h != null ? h.getString("title", "MagixEntities") : "MagixEntities";
-        Help.mostra(sender, titolo, "/mentities help", Help.daConfig(M.section("help.sections")),
-                pagina, sender.hasPermission("magixentities.admin"));
+        String title = h != null ? h.getString("title", "MagixEntities") : "MagixEntities";
+        Help.show(sender, title, "/mentities help", Help.fromConfig(M.section("help.sections")),
+                page, sender.hasPermission("magixentities.admin"));
     }
 
     /** Il numero di pagina scritto dall'utente; qualsiasi cosa strana vale 1. */
-    private static int pagina(String s) {
+    private static int page(String s) {
         try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 1; }
     }
 

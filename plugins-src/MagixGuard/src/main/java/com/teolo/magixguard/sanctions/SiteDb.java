@@ -26,11 +26,11 @@ public final class SiteDb {
 
     public SiteDb(SanctionsConfig cfg) {
         HikariConfig hc = new HikariConfig();
-        hc.setJdbcUrl("jdbc:mariadb://" + cfg.sitoHost + ":" + cfg.sitoPort + "/" + cfg.sitoDatabase
+        hc.setJdbcUrl("jdbc:mariadb://" + cfg.siteHost + ":" + cfg.sitePort + "/" + cfg.siteDatabase
                 + "?useUnicode=true&characterEncoding=utf8");
-        hc.setUsername(cfg.sitoUser);
-        hc.setPassword(cfg.sitoPassword);
-        hc.setMaximumPoolSize(cfg.sitoPool);
+        hc.setUsername(cfg.siteUser);
+        hc.setPassword(cfg.sitePassword);
+        hc.setMaximumPoolSize(cfg.sitePool);
         hc.setPoolName("MagixGuard-Sito");
         this.ds = new HikariDataSource(hc);
     }

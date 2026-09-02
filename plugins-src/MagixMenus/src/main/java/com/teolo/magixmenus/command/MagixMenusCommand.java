@@ -32,46 +32,46 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(CommandSender m, Command c, String etichetta, String[] a) {
+    public boolean onCommand(CommandSender m, Command c, String label, String[] a) {
         boolean staff = m.hasPermission("magixmenus.admin");
 
         if (a.length == 0 || a[0].equalsIgnoreCase("help")) {
-            int pagina = a.length > 1 ? intero(a[1], 1) : 1;
-            Help.mostra(m, "MagixMenus", "/" + etichetta + " help",
-                    Help.daConfig(plugin.messaggi().section("help.sections")), pagina, staff);
+            int page = a.length > 1 ? intero(a[1], 1) : 1;
+            Help.show(m, "MagixMenus", "/" + label + " help",
+                    Help.fromConfig(plugin.messages().section("help.sections")), page, staff);
             return true;
         }
 
         switch (a[0].toLowerCase(Locale.ROOT)) {
             case "reload" -> {
                 if (!staff) {
-                    plugin.messaggi().send(m, "no-permission");
+                    plugin.messages().send(m, "no-permission");
                     return true;
                 }
-                plugin.ricaricaTutto();
-                plugin.messaggi().send(m, "reloaded",
+                plugin.reloadAll();
+                plugin.messages().send(m, "reloaded",
                         "count", String.valueOf(plugin.menu().quanti()),
                         "errors", String.valueOf(quantiConErrori()));
                 if (quantiConErrori() > 0) {
-                    plugin.messaggi().send(m, "reloaded-with-errors");
+                    plugin.messages().send(m, "reloaded-with-errors");
                 }
             }
 
             case "list" -> {
                 if (!staff) {
-                    plugin.messaggi().send(m, "no-permission");
+                    plugin.messages().send(m, "no-permission");
                     return true;
                 }
-                lista(m);
+                list(m);
             }
 
             case "info" -> {
                 if (!staff) {
-                    plugin.messaggi().send(m, "no-permission");
+                    plugin.messages().send(m, "no-permission");
                     return true;
                 }
                 if (a.length < 2) {
-                    plugin.messaggi().send(m, "usage-info");
+                    plugin.messages().send(m, "usage-info");
                     return true;
                 }
                 info(m, a[1]);
@@ -79,67 +79,67 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
 
             case "open" -> {
                 if (!staff) {
-                    plugin.messaggi().send(m, "no-permission");
+                    plugin.messages().send(m, "no-permission");
                     return true;
                 }
                 if (a.length < 2) {
-                    plugin.messaggi().send(m, "usage-open");
+                    plugin.messages().send(m, "usage-open");
                     return true;
                 }
-                apri(m, a);
+                open(m, a);
             }
 
-            default -> plugin.messaggi().send(m, "unknown-subcommand", "command", a[0]);
+            default -> plugin.messages().send(m, "unknown-subcommand", "command", a[0]);
         }
         return true;
     }
 
     // ------------------------------------------------------------------ pezzi
 
-    private void lista(CommandSender m) {
-        plugin.messaggi().sendList(m, "list-header",
+    private void list(CommandSender m) {
+        plugin.messages().sendList(m, "list-header",
                 "count", String.valueOf(plugin.menu().quanti()),
                 "open", String.valueOf(plugin.menu().quantiAperti()));
         for (MenuDef d : plugin.menu().tutti()) {
-            m.sendMessage(Colors.translate(plugin.messaggi().get("list-row",
-                    "menu", d.nome(),
-                    "type", d.tipo().nomeFile(),
+            m.sendMessage(Colors.translate(plugin.messages().get("list-row",
+                    "menu", d.name(),
+                    "type", d.type().fileName(),
                     "slots", String.valueOf(d.dimensione()),
-                    "commands", d.comandi().isEmpty() ? "—" : "/" + String.join(", /", d.comandi()),
-                    "status", d.errori().isEmpty() ? plugin.messaggi().get("status-ok")
-                            : plugin.messaggi().get("status-errors", "count",
+                    "commands", d.commands().isEmpty() ? "—" : "/" + String.join(", /", d.commands()),
+                    "status", d.errori().isEmpty() ? plugin.messages().get("status-ok")
+                            : plugin.messages().get("status-errors", "count",
                                     String.valueOf(d.errori().size())))));
         }
     }
 
-    private void info(CommandSender m, String nome) {
-        MenuDef d = plugin.menu().trova(nome);
+    private void info(CommandSender m, String name) {
+        MenuDef d = plugin.menu().find(name);
         if (d == null) {
-            plugin.messaggi().send(m, "menu-not-found", "menu", nome);
+            plugin.messages().send(m, "menu-not-found", "menu", name);
             return;
         }
-        plugin.messaggi().sendList(m, "info",
-                "menu", d.nome(),
-                "type", d.tipo().nomeFile(),
+        plugin.messages().sendList(m, "info",
+                "menu", d.name(),
+                "type", d.type().fileName(),
                 "slots", String.valueOf(d.dimensione()),
-                "title", d.titolo() == null ? "—" : d.titolo(),
+                "title", d.title() == null ? "—" : d.title(),
                 "update", d.aggiornamentoTick() <= 0 ? "mai" : d.aggiornamentoTick() + " tick",
                 "item", String.valueOf(d.item().size()),
-                "commands", d.comandi().isEmpty() ? "—" : "/" + String.join(", /", d.comandi()),
+                "commands", d.commands().isEmpty() ? "—" : "/" + String.join(", /", d.commands()),
                 "permission", d.permesso() == null ? "—" : d.permesso(),
                 "dynamic", d.dinamico() ? "si" : "no");
         if (!d.errori().isEmpty()) {
-            plugin.messaggi().send(m, "info-errors", "count", String.valueOf(d.errori().size()));
+            plugin.messages().send(m, "info-errors", "count", String.valueOf(d.errori().size()));
             for (String e : d.errori()) {
                 m.sendMessage(Colors.translate("  &#FF6B6B• &7" + e));
             }
         }
     }
 
-    private void apri(CommandSender m, String[] a) {
-        MenuDef d = plugin.menu().trova(a[1]);
+    private void open(CommandSender m, String[] a) {
+        MenuDef d = plugin.menu().find(a[1]);
         if (d == null) {
-            plugin.messaggi().send(m, "menu-not-found", "menu", a[1]);
+            plugin.messages().send(m, "menu-not-found", "menu", a[1]);
             return;
         }
 
@@ -152,16 +152,16 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
             destinatario = p;
             primoArgomento = 2;
         } else {
-            plugin.messaggi().send(m, "player-required");
+            plugin.messages().send(m, "player-required");
             return;
         }
 
-        List<String> argomenti = a.length > primoArgomento
+        List<String> arguments = a.length > primoArgomento
                 ? Arrays.asList(Arrays.copyOfRange(a, primoArgomento, a.length))
                 : List.of();
-        plugin.menu().apri(destinatario, d, argomenti, null);
+        plugin.menu().open(destinatario, d, arguments, null);
         if (destinatario != m) {
-            plugin.messaggi().send(m, "opened-for", "menu", d.nome(), "player", destinatario.getName());
+            plugin.messages().send(m, "opened-for", "menu", d.name(), "player", destinatario.getName());
         }
     }
 
@@ -175,18 +175,18 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
         return n;
     }
 
-    private static int intero(String s, int ripiego) {
+    private static int intero(String s, int fallback) {
         try {
             return Integer.parseInt(s);
         } catch (NumberFormatException e) {
-            return ripiego;
+            return fallback;
         }
     }
 
     // ------------------------------------------------------------ completamento
 
     @Override
-    public List<String> onTabComplete(CommandSender m, Command c, String etichetta, String[] a) {
+    public List<String> onTabComplete(CommandSender m, Command c, String label, String[] a) {
         List<String> out = new ArrayList<>();
         if (!m.hasPermission("magixmenus.admin")) {
             return out;
@@ -201,8 +201,8 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
         }
         if (a.length == 2 && (a[0].equalsIgnoreCase("open") || a[0].equalsIgnoreCase("info"))) {
             for (MenuDef d : plugin.menu().tutti()) {
-                if (d.nome().startsWith(a[1].toLowerCase(Locale.ROOT))) {
-                    out.add(d.nome());
+                if (d.name().startsWith(a[1].toLowerCase(Locale.ROOT))) {
+                    out.add(d.name());
                 }
             }
             return out;

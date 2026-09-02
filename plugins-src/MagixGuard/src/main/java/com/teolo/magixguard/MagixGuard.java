@@ -54,8 +54,8 @@ public final class MagixGuard extends JavaPlugin {
 
     // Modulo sanzioni (0.2.0): vive sul database del SITO, separato da quello della
     // profilazione. Gli IP restano di qua, i provvedimenti pubblici di la'.
-    private SiteDb sitoDb;
-    private SanctionsService sanzioni;
+    private SiteDb siteDb;
+    private SanctionsService sanctions;
 
     @Override
     public void onEnable() {
@@ -65,7 +65,7 @@ public final class MagixGuard extends JavaPlugin {
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
         // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::scriviGuidaStaff);
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         GuardConfig config = new GuardConfig(getConfig());
         if (config.pepperIsDefault()) {
@@ -108,11 +108,11 @@ public final class MagixGuard extends JavaPlugin {
             }, 20L * 30, period);
         }
 
-        avviaSanzioni();
+        startSanctions();
 
         getLogger().info("MagixGuard " + getPluginMeta().getVersion()
                 + " attivo: profilazione in osservazione, sanzioni "
-                + (sanzioni != null ? "operative." : "NON attive (database del sito non raggiungibile)."));
+                + (sanctions != null ? "operative." : "NON attive (database del sito non raggiungibile)."));
     }
 
     // ------------------------------------------------------------- SANZIONI
@@ -122,74 +122,74 @@ public final class MagixGuard extends JavaPlugin {
      * ma il resto del plugin continua a funzionare: la profilazione non deve fermarsi perche'
      * il sito e' giu', e un sistema sanzionatorio a meta' e' peggio di nessuno.
      */
-    private void avviaSanzioni() {
+    private void startSanctions() {
         java.io.File file = new java.io.File(getDataFolder(), "sanctions.yml");
         if (!file.exists()) {
             saveResource("sanctions.yml", false);
         }
-        SanctionsConfig cfg = new SanctionsConfig(SanctionsConfig.carica(file));
+        SanctionsConfig cfg = new SanctionsConfig(SanctionsConfig.load(file));
 
-        sitoDb = new SiteDb(cfg);
-        if (!sitoDb.raggiungibile()) {
+        siteDb = new SiteDb(cfg);
+        if (!siteDb.raggiungibile()) {
             getLogger().severe("Sanzioni NON attive: il database del sito non risponde. "
                     + "Controlla la sezione 'sito' in sanctions.yml. Ban e mute non funzioneranno.");
-            sitoDb.close();
-            sitoDb = null;
+            siteDb.close();
+            siteDb = null;
             return;
         }
 
-        SanctionsDao dao = new SanctionsDao(sitoDb);
-        ViolationsDao violazioni = new ViolationsDao(sitoDb);
+        SanctionsDao dao = new SanctionsDao(siteDb);
+        ViolationsDao violations = new ViolationsDao(siteDb);
         try {
-            violazioni.assicuraTabella();
+            violations.assicuraTabella();
         } catch (java.sql.SQLException e) {
             getLogger().warning("Tabella delle violazioni non pronta: " + e.getMessage()
                     + ". I punti non verranno registrati.");
         }
-        PointsLog registro = new PointsLog(violazioni, cfg);
-        Policy politica = new Policy(cfg);
-        sanzioni = new SanctionsService(this, cfg, dao, registro, politica, violazioni);
+        PointsLog log = new PointsLog(violations, cfg);
+        Policy policy = new Policy(cfg);
+        sanctions = new SanctionsService(this, cfg, dao, log, policy, violations);
 
         // Il registro delle violazioni: TUTTO quello che il server nota passa di qui, e da qui
         // escono i punti. I rilevatori qui sotto non sanno niente di soglie e provvedimenti.
-        Detector rilevatore = new Detector(this, cfg, sanzioni, violazioni, registro);
-        avviaRilevatori(cfg, rilevatore, dao);
+        Detector detector = new Detector(this, cfg, sanctions, violations, log);
+        startDetectors(cfg, detector, dao);
 
         getServer().getPluginManager().registerEvents(
-                new SanctionsListener(this, cfg, sanzioni, dao), this);
+                new SanctionsListener(this, cfg, sanctions, dao), this);
 
-        SanctionCommands comandi = new SanctionCommands(this, cfg, sanzioni, dao);
-        String[] nomi = { "ban", "tempban", "mute", "tempmute", "kick", "warn",
+        SanctionCommands commands = new SanctionCommands(this, cfg, sanctions, dao);
+        String[] names = { "ban", "tempban", "mute", "tempmute", "kick", "warn",
                           "unban", "unmute", "history", "sanctions" };
-        for (String nome : nomi) {
-            org.bukkit.command.PluginCommand c = getCommand(nome);
+        for (String name : names) {
+            org.bukkit.command.PluginCommand c = getCommand(name);
             if (c != null) {
-                c.setExecutor(comandi);
-                c.setTabCompleter(comandi);
+                c.setExecutor(commands);
+                c.setTabCompleter(commands);
             }
         }
         // /report lo usano i giocatori, non lo staff: sta a parte anche nel codice.
         org.bukkit.command.PluginCommand cmdReport = getCommand("report");
         if (cmdReport != null) {
-            ReportCommand report = new ReportCommand(this, cfg, sanzioni, dao);
+            ReportCommand report = new ReportCommand(this, cfg, sanctions, dao);
             cmdReport.setExecutor(report);
             cmdReport.setTabCompleter(report);
         }
 
-        prendiIComandi(nomi);
-        prendiIComandi(new String[] { "report" });
+        grabCommands(names);
+        grabCommands(new String[] { "report" });
 
         // Le decisioni prese sul sito (revoche, proposte confermate) arrivano di qui.
-        SiteSync sync = new SiteSync(this, dao, sanzioni);
+        SiteSync sync = new SiteSync(this, dao, sanctions);
         long ticks = cfg.controlloSecondi * 20L;
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, sync::giro, 200L, ticks);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, sync::pass, 200L, ticks);
 
         // Il regolamento pubblico si rigenera da questa configurazione: la pagina del sito
         // non descrive le sanzioni, le rispecchia.
-        if (cfg.generaRegolamento) {
+        if (cfg.generateRules) {
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 try {
-                    dao.scriviRegolamento(Rulebook.genera(cfg), getPluginMeta().getVersion());
+                    dao.writeRules(Rulebook.generate(cfg), getPluginMeta().getVersion());
                     getLogger().info("Regolamento: tabella delle sanzioni rigenerata sul sito.");
                 } catch (java.sql.SQLException e) {
                     getLogger().warning("Regolamento non aggiornato: " + e.getMessage());
@@ -197,7 +197,7 @@ public final class MagixGuard extends JavaPlugin {
             });
         }
 
-        getLogger().info("Sanzioni attive (modo " + cfg.modo + ", controllo sito ogni "
+        getLogger().info("Sanzioni attive (modo " + cfg.mode + ", controllo sito ogni "
                 + cfg.controlloSecondi + "s).");
     }
 
@@ -239,8 +239,8 @@ public final class MagixGuard extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (sitoDb != null) {
-            sitoDb.close();
+        if (siteDb != null) {
+            siteDb.close();
         }
         if (collector != null) collector.closeAllOpenSessions();
         if (dbExecutor != null) dbExecutor.shutdown();
@@ -253,34 +253,34 @@ public final class MagixGuard extends JavaPlugin {
      * dalla sua sezione in sanctions.yml, e nessuno di loro decide niente — si limitano a dire
      * cosa hanno visto.
      */
-    private void avviaRilevatori(SanctionsConfig cfg, Detector rilevatore, SanctionsDao dao) {
+    private void startDetectors(SanctionsConfig cfg, Detector detector, SanctionsDao dao) {
         org.bukkit.configuration.file.FileConfiguration conf =
-                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanctions.yml"));
+                SanctionsConfig.load(new java.io.File(getDataFolder(), "sanctions.yml"));
 
         org.bukkit.configuration.ConfigurationSection sezChat = conf.getConfigurationSection("chat");
         if (sezChat == null || sezChat.getBoolean("attivo", true)) {
-            getServer().getPluginManager().registerEvents(new ChatFilter(rilevatore, sezChat), this);
+            getServer().getPluginManager().registerEvents(new ChatFilter(detector, sezChat), this);
             getLogger().info("Filtro chat attivo (spam, insulti, pubblicita', dati personali).");
         }
 
         org.bukkit.configuration.ConfigurationSection sezXray = conf.getConfigurationSection("xray");
         if (sezXray == null || sezXray.getBoolean("attivo", true)) {
-            getServer().getPluginManager().registerEvents(new MiningAnalysis(this, rilevatore, sezXray), this);
-            String modo = sezXray == null ? "osservazione" : sezXray.getString("modo", "osservazione");
-            getLogger().info("Anti-xray statistico attivo (modo " + modo + ").");
+            getServer().getPluginManager().registerEvents(new MiningAnalysis(this, detector, sezXray), this);
+            String mode = sezXray == null ? "osservazione" : sezXray.getString("modo", "osservazione");
+            getLogger().info("Anti-xray statistico attivo (modo " + mode + ").");
         }
 
         org.bukkit.configuration.ConfigurationSection sezAfk = conf.getConfigurationSection("afk");
         if (sezAfk == null || sezAfk.getBoolean("attivo", true)) {
-            AfkGuard afk = new AfkGuard(this, rilevatore, sezAfk);
+            AfkGuard afk = new AfkGuard(this, detector, sezAfk);
             getServer().getPluginManager().registerEvents(afk, this);
-            afk.avvia();
+            afk.start();
             getLogger().info("Anti-AFK attivo (niente guadagni da fermo + caccia ai dispositivi).");
         }
 
         org.bukkit.command.PluginCommand cmd = getCommand("mgviolation");
         if (cmd != null) {
-            cmd.setExecutor(new ViolationCommand(this, rilevatore, dao));
+            cmd.setExecutor(new ViolationCommand(this, detector, dao));
         }
     }
 
@@ -297,24 +297,24 @@ public final class MagixGuard extends JavaPlugin {
      * archivi, e un provvedimento che non passa di qui non esiste per il sito ne' per il
      * ricorso. Per questo il nome se lo prende MagixGuard, e scrive nel log cosa ha scavalcato.</p>
      */
-    private void prendiIComandi(String[] nomi) {
+    private void grabCommands(String[] names) {
         try {
             org.bukkit.command.CommandMap mappa = getServer().getCommandMap();
             java.util.Map<String, org.bukkit.command.Command> note =
                     ((org.bukkit.command.SimpleCommandMap) mappa).getKnownCommands();
 
             java.util.List<String> presi = new java.util.ArrayList<>();
-            for (String nome : nomi) {
-                org.bukkit.command.PluginCommand nostro = getCommand(nome);
+            for (String name : names) {
+                org.bukkit.command.PluginCommand nostro = getCommand(name);
                 if (nostro == null) {
                     continue;
                 }
-                org.bukkit.command.Command chiCera = note.get(nome);
+                org.bukkit.command.Command chiCera = note.get(name);
                 if (chiCera == nostro) {
                     continue;   // il nome era libero: Bukkit ce l'aveva gia' dato
                 }
-                note.put(nome, nostro);
-                presi.add(nome + (chiCera == null ? "" : " (era di " + descrivi(chiCera) + ")"));
+                note.put(name, nostro);
+                presi.add(name + (chiCera == null ? "" : " (era di " + describe(chiCera) + ")"));
             }
 
             if (!presi.isEmpty()) {
@@ -333,7 +333,7 @@ public final class MagixGuard extends JavaPlugin {
     }
 
     /** Di chi era un comando, detto in modo leggibile. */
-    private static String descrivi(org.bukkit.command.Command c) {
+    private static String describe(org.bukkit.command.Command c) {
         if (c instanceof org.bukkit.command.PluginCommand pc) {
             return pc.getPlugin().getName();
         }
@@ -341,20 +341,20 @@ public final class MagixGuard extends JavaPlugin {
     }
 
     /** Capitolo di MagixGuard nella guida del gestionale (plugins-src/GUIDA-STAFF.md). */
-    private void scriviGuidaStaff() {
+    private void writeStaffGuide() {
         org.bukkit.configuration.file.FileConfiguration sanz =
-                SanctionsConfig.carica(new java.io.File(getDataFolder(), "sanctions.yml"));
+                SanctionsConfig.load(new java.io.File(getDataFolder(), "sanctions.yml"));
 
-        StaffGuide.crea(this, "MagixGuard — sanzioni, multi-account e prove", 10)
+        StaffGuide.create(this, "MagixGuard — sanzioni, multi-account e prove", 10)
                 // Numeri presi dal config VERO (config.yml + sanctions.yml): cambiando una soglia o i
                 // punti di una categoria, questo capitolo sul sito cambia da solo.
-                .valori(new com.teolo.magixguard.util.ConfigValues(this).inoltre(sanz))
+                .values(new com.teolo.magixguard.util.ConfigValues(this).also(sanz))
                 .intro("Il plugin che tiene l'ordine: decide e registra **ogni** provvedimento del "
                         + "server, e in parallelo guarda chi entra per capire quando due nickname "
                         + "sono la stessa persona. È l'unico posto da cui si sanziona.")
 
                 // ---------------------------------------------------------- sanzioni
-                .sezione("Come si sanziona",
+                .section("Come si sanziona",
                         "I comandi sono quelli standard — **/ban**, **/mute**, **/kick**, **/warn** — "
                                 + "di proposito: non si devono imparare comandi nuovi, e soprattutto non "
                                 + "deve esistere una seconda strada che sfugga all'archivio. Per questo i "
@@ -368,7 +368,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "la pagina del ricorso però resta sempre raggiungibile, altrimenti la "
                                 + "sanzione diventerebbe inappellabile di fatto.")
 
-                .sezione("I punti, e perché una cosa vecchia pesa meno",
+                .section("I punti, e perché una cosa vecchia pesa meno",
                         "Ogni violazione vale dei punti. I punti si sommano e **dimezzano** ogni "
                                 + "{{cfg:points/halving-days}} giorni: chi ha sbagliato una volta a "
                                 + "marzo non se lo porta dietro per sempre, chi insiste paga di più. "
@@ -382,7 +382,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "una soglia riscrive il regolamento pubblico da solo. Non esiste il caso "
                                 + "in cui il server punisce in un modo e promette un altro.")
 
-                .sezione("Cosa può fare da solo il plugin, e cosa no",
+                .section("Cosa può fare da solo il plugin, e cosa no",
                         "Il modo predefinito è **misto**: il plugin applica da solo solo quello di cui "
                                 + "è ragionevolmente certo e che sta entro un tetto di durata; tutto il "
                                 + "resto diventa una **proposta** nella coda del gestionale, con le prove "
@@ -395,7 +395,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "è in larga parte minorenne, e qui un falso positivo pesa molto meno di "
                                 + "uno staff che non viene avvisato.")
 
-                .sezione("Il tetto del tuo grado",
+                .section("Il tetto del tuo grado",
                         "Ogni grado dello staff ha un limite di durata. Se provi a dare una sanzione "
                                 + "che lo supera **non viene rifiutata**: diventa una proposta motivata "
                                 + "per il grado superiore, con tutto già pronto. Chi vede il problema non "
@@ -403,7 +403,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "ricostruire niente.",
                         "I tetti si impostano in sanctions.yml, sezione **poteri**, per gruppo LuckPerms.")
 
-                .sezione("Il sito e il server si parlano",
+                .section("Il sito e il server si parlano",
                         "Le sanzioni le **scrive solo il plugin**: il sito le mostra e basta. Quello che "
                                 + "nasce sul sito sono i ricorsi e le decisioni dello staff nel gestionale "
                                 + "— revoche e conferme dalla coda — che il plugin rilegge ed esegue in "
@@ -412,7 +412,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "che il server è spento o che il plugin non gira: in gioco quel ban c'è "
                                 + "ancora, ed è giusto che il gestionale lo dica invece di far finta.")
 
-                .sezione("Il filtro della chat",
+                .section("Il filtro della chat",
                         "Quattro cose diverse, con quattro reazioni diverse — e la differenza non e' "
                                 + "un dettaglio. **Pubblicita'** di altri server e **dati personali**: "
                                 + "messaggio **bloccato**, non lo vede nessuno. **Insulti**: passa "
@@ -432,7 +432,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "un indirizzo o una parola per spiegare perche' e' vietata, senza "
                                 + "sanzionarsi da solo.")
 
-                .sezione("Anti-xray: perche' e' statistico",
+                .section("Anti-xray: perche' e' statistico",
                         "L'xray **non e' un problema di pacchetti**: il client non fa niente di strano, "
                                 + "guarda soltanto dei blocchi che il server gli ha gia' mandato. Nessun "
                                 + "anticheat lo rileva bene, e non e' colpa loro. La prima difesa e' "
@@ -449,7 +449,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "`modo: attivo` prima di aver guardato i numeri vuol dire accusare "
                                 + "qualcuno con una soglia inventata.")
 
-                .sezione("Anti-AFK: due misure che rispondono a due problemi",
+                .section("Anti-AFK: due misure che rispondono a due problemi",
                         "**Niente guadagni da fermo.** Dopo i minuti indicati nel config, attorno a chi "
                                 + "e' immobile i mostri non nascono piu', e oggetti ed esperienza non gli "
                                 + "arrivano addosso. Non viene espulso e non viene punito: semplicemente il "
@@ -465,7 +465,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "interi. Nelle prove finisce la serie: quanti click, per quanto tempo, "
                                 + "con che scarto.")
 
-                .sezione("L'aggancio all'anticheat",
+                .section("L'aggancio all'anticheat",
                         "Grim non parla con MagixGuard attraverso un'API: gli si fa **eseguire un "
                                 + "comando** quando un giocatore supera una sua soglia. Nel suo "
                                 + "`punishments.yml` la riga e' `\"40:40 mgviolation %player% "
@@ -477,7 +477,7 @@ public final class MagixGuard extends JavaPlugin {
                         "Chi decide **quando** chiamare e' l'anticheat; chi decide **cosa succede** e' il "
                                 + "registro punti. Si tarano separatamente.")
 
-                .sezione("«Da controllare»: da dove cominciare quando hai dieci minuti",
+                .section("«Da controllare»: da dove cominciare quando hai dieci minuti",
                         "Nel gestionale c'e' una scheda che mette i giocatori **in ordine di quanto "
                                 + "conviene andarli a guardare** — non di quanto sono colpevoli. Il "
                                 + "punteggio somma tre cose: i punti delle violazioni (col decadimento, "
@@ -496,7 +496,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "staff dopodomani. Se e' rimasto sospetto c'e' il pulsante apposta, e "
                                 + "resta in cima.")
 
-                .sezione("Come i punti diventano un provvedimento",
+                .section("Come i punti diventano un provvedimento",
                         "Ogni fatto rilevato — un messaggio bloccato, un verdetto dell'anticheat, uno "
                                 + "scavo fuori scala — viene registrato come **violazione** con i punti "
                                 + "della sua categoria. La maggior parte non produce nessuna sanzione, e "
@@ -509,7 +509,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "il giocatore resterebbe a un passo dalla soglia dopo, cioe' punito lo "
                                 + "stesso, a meta'.")
 
-                .sezione("Le segnalazioni dei giocatori",
+                .section("Le segnalazioni dei giocatori",
                         "**/report <giocatore> <motivo>** e' aperto a tutti ed e' il canale che fa "
                                 + "emergere quello che nessun algoritmo vede: truffe, molestie, accordi "
                                 + "fra due account, comportamenti che stanno nelle intenzioni e non nei "
@@ -528,7 +528,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "davvero — «barare» non dice niente a chi dovra' controllare. Chi apre "
                                 + "segnalazioni false lo si vede dalla coda, e resta comunque sanzionabile.")
 
-                .sottocomandi("I comandi di moderazione",
+                .subcommands("I comandi di moderazione",
                         "/ban <nome> <motivo>", "Bandisce per sempre. Il giocatore vede il motivo e il collegamento al ricorso.",
                         "/mute <nome> <motivo>", "Gli impedisce di scrivere in chat, finche' non lo togli.",
                         "/tempban <nome> <durata> <motivo>", "Ban a tempo: 30m, 6h, 3d, 2w.",
@@ -543,7 +543,7 @@ public final class MagixGuard extends JavaPlugin {
                         "/mgviolation <nome> <categoria> [dettaglio]", "Ingresso per i verdetti dell'anticheat: lo chiama Grim, non una persona.")
 
                 // ---------------------------------------------------------- multi-account
-                .sezione("L'altra metà: i multi-account",
+                .section("L'altra metà: i multi-account",
                         "Su un server non premium il nome non prova niente e un account nuovo costa "
                                 + "zero. MagixGuard guarda ogni accesso e mette insieme indizi deboli "
                                 + "finché non diventano un quadro.",
@@ -556,7 +556,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "quindi si perde quando il giocatore chiude Minecraft. La sua assenza "
                                 + "non prova niente; la sua presenza sì.")
 
-                .sezione("Le tre correzioni che rendono onesto il punteggio",
+                .section("Le tre correzioni che rendono onesto il punteggio",
                         "Un indirizzo usato da trenta account vale quasi zero: sono le reti mobili "
                                 + "italiane, dove centinaia di estranei escono dallo stesso indirizzo.",
                         "Una prova di sei mesi fa pesa la metà di una di oggi, perché gli indirizzi "
@@ -567,7 +567,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "fenomeno, non lo aggravano, altrimenti chi gioca molto risulterebbe più "
                                 + "colpevole di chi gioca poco.")
 
-                .sezione("Il dossier e la firma",
+                .section("Il dossier e la firma",
                         "Esce in due versioni: quella **interna** contiene tutto, indirizzi compresi, e "
                                 + "non si pubblica mai; quella **pubblica** li maschera ed è quella da "
                                 + "allegare alla risposta a un ricorso.",
@@ -578,7 +578,7 @@ public final class MagixGuard extends JavaPlugin {
                         "Ogni dossier è firmato e la firma entra in un registro a catena: dimostra che "
                                 + "il documento esisteva già in quella forma **prima** della decisione.")
 
-                .sottocomandi("I comandi delle indagini (/mg, /guard, /alts)",
+                .subcommands("I comandi delle indagini (/mg, /guard, /alts)",
                         "/mg alts <nome>", "Gli account collegati a quel giocatore, col dettaglio degli indizi.",
                         "/mg dossier <nome> [nome2] [pubblico]", "Genera il documento completo. Con «pubblico» gli indirizzi sono mascherati: è quello da allegare al ricorso.",
                         "/mg sessions <nome> [n]", "Gli ultimi accessi con tutti i dati tecnici.",
@@ -590,9 +590,9 @@ public final class MagixGuard extends JavaPlugin {
                         "/mg stats", "I numeri generali.",
                         "/mg reload", "Ricarica la configurazione.")
 
-                .comandi()
-                .permessi()
-                .impostazioniDa(sanz, "Impostazioni delle sanzioni",
+                .commands()
+                .permissions()
+                .settingsFrom(sanz, "Impostazioni delle sanzioni",
                         "applicazione/modo", "misto, automatico o proposta: quanto può decidere il plugin da solo.",
                         "applicazione/durata-massima-automatica", "Oltre questa durata nessun automatismo procede: si passa dalla coda.",
                         "punti/dimezzamento-giorni", "Ogni quanti giorni i punti valgono la metà.",
@@ -608,69 +608,69 @@ public final class MagixGuard extends JavaPlugin {
                         "xray/estremo-per-mille", "Minerali preziosi ogni 1000 blocchi oltre i quali scatta il provvedimento.",
                         "afk/minuti-inattivo", "Dopo quanti minuti fermo il gioco smette di produrre intorno a lui.",
                         "afk/dispositivi/scarto-massimo-ms", "Quanto puo' essere regolare la cadenza dei click prima di essere disumana.")
-                .impostazioni(
+                .settings(
                         "analysis.link-threshold", "Punteggio oltre il quale due account risultano collegati.",
                         "analysis.alert-threshold", "Punteggio oltre il quale parte la segnalazione allo staff.",
                         "privacy.session-retention-days", "Per quanti giorni si tengono gli indirizzi in chiaro.")
 
-                .guasto("«Ho bannato ma il giocatore è ancora dentro»",
+                .issue("«Ho bannato ma il giocatore è ancora dentro»",
                         "Il ban vale all'ingresso: se era già collegato viene espulso subito, ma solo se "
                                 + "l'ambito comprende il gioco. Un provvedimento con ambito «sito» in "
                                 + "partita non fa niente, ed è voluto.")
-                .guasto("«Il comando /ban non risponde, o risponde un altro plugin»",
+                .issue("«Il comando /ban non risponde, o risponde un altro plugin»",
                         "Qualcun altro si è preso il nome. Usa /mgban, /mgmute e compagnia: funzionano "
                                 + "sempre. Poi disabilita quel comando nell'altro plugin, perché due "
                                 + "sistemi di ban vuol dire due archivi e nessuna verità.")
-                .guasto("La revoca fatta sul sito non ha effetto in gioco",
+                .issue("La revoca fatta sul sito non ha effetto in gioco",
                         "Il server la esegue entro pochi secondi. Se resta ferma, il server è spento o "
                                 + "il plugin non gira: nel gestionale la vedi nell'elenco «revoche in "
                                 + "attesa del server».")
-                .guasto("«Ho scritto una parola normale e me l'ha censurata»",
+                .issue("«Ho scritto una parola normale e me l'ha censurata»",
                         "Guarda quale parola ha fatto scattare il filtro: e' scritta nelle prove della "
                                 + "violazione. Se e' un falso positivo, si toglie dal dizionario in "
                                 + "sanctions.yml — e la violazione si annulla revocando il provvedimento.")
-                .guasto("L'anti-xray segnala un minatore che sembra onesto",
+                .issue("L'anti-xray segnala un minatore che sembra onesto",
                         "Puo' succedere: e' una statistica, non una prova. Per questo di serie il modulo "
                                 + "e' in sola osservazione e il provvedimento automatico scatta solo oltre "
                                 + "la soglia estrema. Guarda i numeri nelle prove prima di decidere.")
-                .guasto("«Non mi nascono piu' i mostri nella mia farm»",
+                .issue("«Non mi nascono piu' i mostri nella mia farm»",
                         "E' l'anti-AFK: da fermo il gioco non produce piu' nulla intorno a lui. Basta "
                                 + "muoversi. Se c'e' un altro giocatore sveglio nel raggio, gli spawn "
                                 + "riprendono comunque.")
-                .guasto("Grim segnala ma non arriva nessuna violazione",
+                .issue("Grim segnala ma non arriva nessuna violazione",
                         "Controlla che nel suo punishments.yml ci sia la riga con mgviolation, e che il "
                                 + "comando non sia stato preso da un altro plugin: /mgviolation da "
                                 + "console deve rispondere.")
-                .guasto("«Ho segnalato uno e non e' successo niente»",
+                .issue("«Ho segnalato uno e non e' successo niente»",
                         "Una segnalazione apre un caso, non applica una pena: la trovi in coda nel "
                                 + "gestionale finche' qualcuno non la chiude. Se ne arrivano molte e "
                                 + "restano ferme, il problema non e' il comando.")
-                .guasto("Due fratelli risultano collegati",
+                .issue("Due fratelli risultano collegati",
                         "Guarda le sessioni sovrapposte nel dossier: se hanno giocato insieme il "
                                 + "punteggio scende già da solo. Con /mg unlink si chiude il caso.")
-                .guasto("Un collegamento sembra sbagliato",
+                .issue("Un collegamento sembra sbagliato",
                         "/mg dossier <nome1> <nome2> stampa tutti gli indizi con il peso applicato: si "
                                 + "vede quale ha fatto la differenza. Se è un indirizzo affollato, il "
                                 + "dossier lo dice da sé.")
-                .guasto("Il registro non passa il controllo",
+                .issue("Il registro non passa il controllo",
                         "/mg verify dice che la catena delle firme non torna: qualcuno ha toccato il "
                                 + "database a mano. È esattamente il caso per cui la catena esiste.")
 
-                .mai("Non sanzionare da un altro plugin: quello che non passa di qui non esiste per "
+                .never("Non sanzionare da un altro plugin: quello che non passa di qui non esiste per "
                         + "l'archivio, per il sito e per il ricorso.")
-                .mai("Non scrivere motivi che non vorresti vedere pubblicati: finiscono nell'elenco "
+                .never("Non scrivere motivi che non vorresti vedere pubblicati: finiscono nell'elenco "
                         + "pubblico, con il tuo nome accanto.")
-                .mai("Non pubblicare mai il dossier interno: contiene gli indirizzi in chiaro. Per il "
+                .never("Non pubblicare mai il dossier interno: contiene gli indirizzi in chiaro. Per il "
                         + "forum c'è la versione pubblica.")
-                .mai("Non cambiare il segreto usato per gli hash a cuor leggero: gli indizi già "
+                .never("Non cambiare il segreto usato per gli hash a cuor leggero: gli indizi già "
                         + "raccolti smettono di combaciare con quelli nuovi.")
-                .mai("Non dire a un giocatore quale indizio lo ha tradito: se lo sa, la volta dopo "
+                .never("Non dire a un giocatore quale indizio lo ha tradito: se lo sa, la volta dopo "
                         + "cambia proprio quello.")
-                .mai("Non mettere l'anti-xray in modo attivo prima di aver guardato i numeri veri di "
+                .never("Non mettere l'anti-xray in modo attivo prima di aver guardato i numeri veri di "
                         + "questo server: le soglie di partenza sono una stima, non una misura.")
-                .mai("Non alzare l'anti-AFK a pochi minuti per «liberare slot»: colpirebbe chi sta "
+                .never("Non alzare l'anti-AFK a pochi minuti per «liberare slot»: colpirebbe chi sta "
                         + "leggendo la chat, non chi ha una farm.")
-                .scrivi();
+                .write();
     }
 
     /**

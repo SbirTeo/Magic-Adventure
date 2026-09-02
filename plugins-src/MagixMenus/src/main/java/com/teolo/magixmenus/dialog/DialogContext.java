@@ -19,15 +19,15 @@ import java.util.Map;
 final class DialogContext implements Context {
 
     private final MagixMenus plugin;
-    private final Player giocatore;
+    private final Player player;
     private final Map<String, String> variabili;
     private final MenuDef menu;
     private final OpenMenu provenienza;
 
-    DialogContext(MagixMenus plugin, Player giocatore, Map<String, String> variabili,
+    DialogContext(MagixMenus plugin, Player player, Map<String, String> variabili,
                     MenuDef menu, OpenMenu provenienza) {
         this.plugin = plugin;
-        this.giocatore = giocatore;
+        this.player = player;
         this.variabili = variabili;
         this.menu = menu;
         this.provenienza = provenienza;
@@ -35,7 +35,7 @@ final class DialogContext implements Context {
 
     /** Lo stesso dialogo con delle variabili in piu' (i campi appena compilati). */
     DialogContext con(Map<String, String> altre) {
-        return new DialogContext(plugin, giocatore, altre, menu, provenienza);
+        return new DialogContext(plugin, player, altre, menu, provenienza);
     }
 
     MenuDef menu() {
@@ -43,8 +43,8 @@ final class DialogContext implements Context {
     }
 
     @Override
-    public Player giocatore() {
-        return giocatore;
+    public Player player() {
+        return player;
     }
 
     @Override
@@ -53,43 +53,43 @@ final class DialogContext implements Context {
     }
 
     @Override
-    public void chiudi() {
-        giocatore.closeDialog();
+    public void close() {
+        player.closeDialog();
     }
 
     @Override
-    public void aggiorna() {
-        plugin.dialoghi().apri(giocatore, menu, argomenti(), provenienza);
+    public void refresh() {
+        plugin.dialogs().open(player, menu, arguments(), provenienza);
     }
 
     @Override
-    public void pagina(String dove) {
+    public void page(String where) {
         // Un dialogo non ha pagine: l'azione non fa niente invece di lamentarsi, cosi' lo stesso
         // gruppo di azioni si puo' riusare fra un menu a pagine e un dialogo.
     }
 
     @Override
-    public void indietro() {
+    public void back() {
         if (provenienza == null) {
-            chiudi();
+            close();
             return;
         }
-        giocatore.closeDialog();
-        plugin.menu().apri(giocatore, provenienza.definizione(), List.of(), null);
+        player.closeDialog();
+        plugin.menu().open(player, provenienza.definizione(), List.of(), null);
     }
 
     @Override
-    public void apriMenu(String nomeEArgomenti) {
-        String[] pezzi = nomeEArgomenti.trim().split("\\s+");
-        List<String> args = pezzi.length > 1
-                ? List.of(java.util.Arrays.copyOfRange(pezzi, 1, pezzi.length))
+    public void openMenu(String nameAndArgs) {
+        String[] pieces = nameAndArgs.trim().split("\\s+");
+        List<String> args = pieces.length > 1
+                ? List.of(java.util.Arrays.copyOfRange(pieces, 1, pieces.length))
                 : List.of();
-        giocatore.closeDialog();
-        plugin.menu().apriPerNome(giocatore, pezzi[0], args, null);
+        player.closeDialog();
+        plugin.menu().openByName(player, pieces[0], args, null);
     }
 
     /** Gli argomenti con cui era stato aperto, ricavati dalle variabili. */
-    private List<String> argomenti() {
+    private List<String> arguments() {
         List<String> out = new java.util.ArrayList<>();
         for (int i = 1; variabili.containsKey("arg_" + i); i++) {
             out.add(variabili.get("arg_" + i));

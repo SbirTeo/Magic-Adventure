@@ -57,22 +57,22 @@ public final class JsonExport {
     private JsonExport() {
     }
 
-    public static void scrivi(JavaPlugin plugin, MenuManager gestore) {
-        JsonObject radice = new JsonObject();
-        radice.addProperty("generato", ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        radice.addProperty("versione", plugin.getPluginMeta().getVersion());
+    public static void write(JavaPlugin plugin, MenuManager manager) {
+        JsonObject root = new JsonObject();
+        root.addProperty("generato", ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        root.addProperty("versione", plugin.getPluginMeta().getVersion());
 
         JsonObject menu = new JsonObject();
-        for (MenuDef d : gestore.tutti()) {
-            menu.add(d.nome(), menu(d));
+        for (MenuDef d : manager.tutti()) {
+            menu.add(d.name(), menu(d));
         }
-        radice.add("menu", menu);
-        radice.add("catalogo", catalogo());
+        root.add("menu", menu);
+        root.add("catalogo", catalogo());
 
         File f = new File(plugin.getDataFolder(), "menus.json");
         try {
             Files.writeString(f.toPath(),
-                    new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(radice),
+                    new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(root),
                     StandardCharsets.UTF_8);
         } catch (Exception e) {
             plugin.getLogger().warning("Non sono riuscito a scrivere menus.json per l'editor del sito: "
@@ -84,20 +84,20 @@ public final class JsonExport {
 
     private static JsonObject menu(MenuDef d) {
         JsonObject o = new JsonObject();
-        o.addProperty("nome", d.nome());
-        o.addProperty("tipo", d.tipo().nomeFile());
-        o.addProperty("righe", d.righe());
+        o.addProperty("nome", d.name());
+        o.addProperty("tipo", d.type().fileName());
+        o.addProperty("righe", d.rows());
         o.addProperty("caselle", d.dimensione());
-        o.addProperty("larghezza", d.tipo().larghezza());
-        o.addProperty("titolo", d.titolo());
+        o.addProperty("larghezza", d.type().larghezza());
+        o.addProperty("titolo", d.title());
         o.addProperty("aggiornamento", d.aggiornamentoTick());
-        o.add("comandi", testi(d.comandi()));
+        o.add("comandi", texts(d.commands()));
         o.addProperty("permission", d.permesso());
-        o.add("argomenti", testi(d.argomenti()));
-        o.addProperty("chiusura_libera", d.chiusuraLibera());
-        o.add("apri_se", requisiti(d.apriSe()));
-        o.add("azioni_apertura", azioni(d.azioniApertura()));
-        o.add("azioni_chiusura", azioni(d.azioniChiusura()));
+        o.add("argomenti", texts(d.arguments()));
+        o.addProperty("chiusura_libera", d.freeClose());
+        o.add("apri_se", requirements(d.openIf()));
+        o.add("azioni_apertura", actions(d.openActions()));
+        o.add("azioni_chiusura", actions(d.closeActions()));
         o.addProperty("dinamico", d.dinamico());
 
         JsonArray item = new JsonArray();
@@ -106,94 +106,94 @@ public final class JsonExport {
         }
         o.add("item", item);
 
-        if (d.contenuto() != null) {
+        if (d.content() != null) {
             JsonObject c = new JsonObject();
-            c.addProperty("fonte", d.contenuto().fonte().nomeFile());
-            c.addProperty("placeholder", d.contenuto().parametro());
-            c.add("lista", testi(d.contenuto().lista()));
-            c.addProperty("separatore", d.contenuto().separatore());
-            c.add("slot", numeri(d.contenuto().caselle()));
-            c.add("voce", item(d.contenuto().voce(), false));
+            c.addProperty("fonte", d.content().fonte().fileName());
+            c.addProperty("placeholder", d.content().parametro());
+            c.add("lista", texts(d.content().list()));
+            c.addProperty("separatore", d.content().separatore());
+            c.add("slot", numeri(d.content().slots()));
+            c.add("voce", item(d.content().entry(), false));
             o.add("contenuto", c);
         }
-        if (d.dialogo() != null) {
-            o.add("dialogo", dialogo(d.dialogo()));
+        if (d.dialog() != null) {
+            o.add("dialogo", dialog(d.dialog()));
         }
-        o.add("errori", testi(d.errori()));
+        o.add("errori", texts(d.errori()));
         return o;
     }
 
-    private static JsonObject item(ItemDef i, boolean conCaselle) {
+    private static JsonObject item(ItemDef i, boolean withSlots) {
         JsonObject o = new JsonObject();
-        o.addProperty("nome", i.nome());
-        if (conCaselle) {
-            o.add("slot", numeri(i.caselle()));
+        o.addProperty("nome", i.name());
+        if (withSlots) {
+            o.add("slot", numeri(i.slots()));
         }
         o.addProperty("id", i.materiale());
         o.addProperty("quantita", i.quantita());
-        o.addProperty("titolo", i.titolo());
-        o.add("descrizione", testi(i.descrizione()));
-        o.add("incantesimi", testi(i.incantesimi()));
+        o.addProperty("titolo", i.title());
+        o.add("descrizione", texts(i.description()));
+        o.add("incantesimi", texts(i.incantesimi()));
         o.addProperty("luccica", i.luccica());
         o.addProperty("indistruttibile", i.indistruttibile());
-        o.addProperty("nascondi_dettagli", i.nascondiDettagli());
+        o.addProperty("nascondi_dettagli", i.hideDetails());
         o.addProperty("modello_custom", i.modelloCustom());
         o.addProperty("modello_item", i.modelloItem());
-        o.addProperty("colore", i.colore());
+        o.addProperty("colore", i.color());
         o.addProperty("testa", i.testa());
-        o.addProperty("avanzate", i.grezzo());
+        o.addProperty("avanzate", i.raw());
         o.addProperty("prezzo", i.prezzo());
         o.addProperty("dai", i.dai());
         o.addProperty("vendi", i.vendi());
-        o.addProperty("attesa_fra_clic", i.attesaFraClic());
+        o.addProperty("attesa_fra_clic", i.clickDelay());
         o.addProperty("dinamico", i.dinamico());
-        o.add("mostra_se", requisiti(i.mostraSe()));
+        o.add("mostra_se", requirements(i.showIf()));
 
         // Le chiavi sono quelle del FILE ("actions", "right_click_actions"): cosi' chi
         // riscrive lo YAML dal sito non deve tradurre niente, e un nome nuovo aggiunto a Click
         // arriva all'editor da solo.
-        JsonObject clic = new JsonObject();
-        JsonObject requisitiClic = new JsonObject();
+        JsonObject click = new JsonObject();
+        JsonObject clickRequirements = new JsonObject();
         for (Click c : Click.values()) {
-            clic.add(c.chiaveAzioni(), azioni(i.azioniGrezze(c)));
-            requisitiClic.add(c.chiaveRequisiti(), requisiti(i.clicSe(c)));
+            click.add(c.actionsKey(), actions(i.rawActions(c)));
+            clickRequirements.add(c.requirementsKey(), requirements(i.clickIf(c)));
         }
-        o.add("azioni", clic);
-        o.add("click_se", requisitiClic);
+        o.add("azioni", click);
+        o.add("click_se", clickRequirements);
         return o;
     }
 
-    private static JsonObject dialogo(MenuDialog d) {
+    private static JsonObject dialog(MenuDialog d) {
         JsonObject o = new JsonObject();
-        o.add("corpo", testi(d.corpo()));
-        o.addProperty("pausa", d.mettiInPausa());
+        o.add("corpo", texts(d.body()));
+        o.addProperty("pausa", d.pauseUpdates());
 
-        JsonArray campi = new JsonArray();
-        for (MenuDialog.Campo c : d.campi()) {
+        JsonArray fields = new JsonArray();
+        for (MenuDialog.Field c : d.fields()) {
             JsonObject x = new JsonObject();
-            x.addProperty("chiave", c.chiave());
-            x.addProperty("tipo", c.tipo().nomeFile());
-            x.addProperty("etichetta", c.etichetta());
+            x.addProperty("chiave", c.key());
+            x.addProperty("tipo", c.type().fileName());
+            x.addProperty("etichetta", c.label());
             x.addProperty("iniziale", c.iniziale());
-            x.addProperty("da", c.minimo());
-            x.addProperty("a", c.massimo());
-            x.addProperty("passo", c.passo());
+            x.addProperty("da", c.minimum());
+            x.addProperty("a", c.maximum());
+            x.addProperty("passo", c.step());
             x.addProperty("lunghezza", c.lunghezza());
             x.addProperty("larghezza", c.larghezza());
-            x.addProperty("piu_righe", c.piuRighe());
-            x.add("opzioni", testi(c.opzioni()));
-            campi.add(x);
+            x.addProperty("piu_righe", c.multiLine());
+            x.add("opzioni", texts(c.opzioni()));
+            fields.add(x);
         }
-        o.add("campi", campi);
+        o.add("campi", fields);
 
         JsonArray bottoni = new JsonArray();
         for (MenuDialog.Bottone b : d.bottoni()) {
             JsonObject x = new JsonObject();
-            x.addProperty("etichetta", b.etichetta());
-            x.addProperty("suggerimento", b.suggerimento());
+            x.addProperty("etichetta", b.label());
+            x.addProperty("suggerimento", b.suggestion());
             x.addProperty("larghezza", b.larghezza());
-            x.add("mostra_se", requisiti(b.mostraSe()));
-            x.add("azioni", azioni(b.azioni()));
+            x.add("mostra_se", requirements(b.showIf()));
+            x.add("azioni", actions(b.actions()));
             bottoni.add(x);
         }
         o.add("bottoni", bottoni);
@@ -202,34 +202,34 @@ public final class JsonExport {
 
     // ------------------------------------------------------- requisiti e azioni
 
-    private static JsonObject requisiti(Requirements r) {
+    private static JsonObject requirements(Requirements r) {
         JsonObject o = new JsonObject();
-        o.addProperty("minimo", r.minimo());
+        o.addProperty("minimo", r.minimum());
         JsonArray elenco = new JsonArray();
         for (Requirement x : r.elenco()) {
             JsonObject u = new JsonObject();
-            u.addProperty("tipo", x.tipo().nomeFile());
-            u.addProperty("chiave", x.chiave());
-            u.addProperty("valore", x.valore());
+            u.addProperty("tipo", x.type().fileName());
+            u.addProperty("chiave", x.key());
+            u.addProperty("valore", x.value());
             u.addProperty("quantita", x.quantita());
-            u.addProperty("uguale", x.uguale());
-            u.addProperty("descrizione", x.descrizione());
+            u.addProperty("uguale", x.equal());
+            u.addProperty("descrizione", x.description());
             elenco.add(u);
         }
         o.add("requisiti", elenco);
-        o.add("azioni_negate", azioni(r.azioniNegate()));
+        o.add("azioni_negate", actions(r.deniedActions()));
         return o;
     }
 
-    private static JsonArray azioni(List<Action> elenco) {
+    private static JsonArray actions(List<Action> elenco) {
         JsonArray a = new JsonArray();
         for (Action x : elenco) {
             JsonObject o = new JsonObject();
-            o.addProperty("tipo", x.tipo().nomeFile());
-            if (x.tipo() == Action.Tipo.SE) {
-                o.add("condizione", requisiti(x.condizione()));
-                o.add("allora", azioni(x.allora()));
-                o.add("altrimenti", azioni(x.altrimenti()));
+            o.addProperty("tipo", x.type().fileName());
+            if (x.type() == Action.Type.SE) {
+                o.add("condizione", requirements(x.condizione()));
+                o.add("allora", actions(x.allora()));
+                o.add("altrimenti", actions(x.altrimenti()));
             } else {
                 o.addProperty("argomento", x.argomento());
             }
@@ -242,17 +242,17 @@ public final class JsonExport {
 
     private static JsonObject catalogo() {
         JsonObject o = new JsonObject();
-        o.add("tipi_menu", testi(MenuType.nomi()));
-        o.add("tipi_requisito", testi(Requirement.tipiDisponibili()));
-        o.add("tipi_azione", testi(Action.tipiDisponibili()));
+        o.add("tipi_menu", texts(MenuType.names()));
+        o.add("tipi_requisito", texts(Requirement.availableTypes()));
+        o.add("tipi_azione", texts(Action.availableTypes()));
 
         // Anche qui i nomi del FILE, non quelli delle costanti Java: l'editor li usa come
         // chiavi, e devono combaciare con quelle dei gruppi di azioni.
-        JsonArray clic = new JsonArray();
+        JsonArray click = new JsonArray();
         for (Click c : Click.values()) {
-            clic.add(c.chiaveAzioni());
+            click.add(c.actionsKey());
         }
-        o.add("tasti", clic);
+        o.add("tasti", click);
 
         // Tutti gli item del gioco che si possono davvero mettere in una casella: i blocchi che
         // esistono solo come blocco piazzato (le porte a meta', il fuoco) non hanno un'icona da
@@ -279,7 +279,7 @@ public final class JsonExport {
         return o;
     }
 
-    private static JsonArray testi(List<String> elenco) {
+    private static JsonArray texts(List<String> elenco) {
         JsonArray a = new JsonArray();
         for (String s : elenco) {
             a.add(s);

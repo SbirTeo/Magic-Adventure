@@ -26,15 +26,15 @@ public final class Policy {
     }
 
     /** L'esito di un controllo: si applica, oppure si propone (e si dice perche'). */
-    public record Esito(boolean applica, String motivoProposta) {
+    public record Outcome(boolean apply, String proposedReason) {
 
         /** Si applica subito. (Non si puo' chiamare "applica": e' il nome dell'accessore.) */
-        public static Esito si() {
-            return new Esito(true, null);
+        public static Outcome si() {
+            return new Outcome(true, null);
         }
 
-        public static Esito proponi(String perche) {
-            return new Esito(false, perche);
+        public static Outcome proponi(String perche) {
+            return new Outcome(false, perche);
         }
     }
 
@@ -44,7 +44,7 @@ public final class Policy {
      * Il grado di chi ha dato il comando, per come lo conosce LuckPerms. La console e' "admin":
      * chi ha la console ha gia' tutto il server in mano, i tetti non aggiungerebbero niente.
      */
-    public String grado(CommandSender chi) {
+    public String rank(CommandSender chi) {
         if (!(chi instanceof Player p)) {
             return "admin";
         }
@@ -53,17 +53,17 @@ public final class Policy {
     }
 
     /** Puo' questa persona dare questa sanzione con questa durata? */
-    public Esito controllaStaff(CommandSender chi, Type tipo, long durata) {
+    public Outcome checkStaff(CommandSender chi, Type type, long duration) {
         if (!(chi instanceof Player)) {
-            return Esito.si();
+            return Outcome.si();
         }
-        String grado = grado(chi);
-        SanctionsConfig.Tetto tetto = cfg.tetto(grado);
-        if (tetto.consente(tipo, durata)) {
-            return Esito.si();
+        String rank = rank(chi);
+        SanctionsConfig.Tetto tetto = cfg.tetto(rank);
+        if (tetto.consente(type, duration)) {
+            return Outcome.si();
         }
-        String limite = tipo == Type.BAN ? Duration.scrivi(tetto.ban()) : Duration.scrivi(tetto.mute());
-        return Esito.proponi("il grado " + (grado.isEmpty() ? "senza poteri" : grado)
+        String limite = type == Type.BAN ? Duration.write(tetto.ban()) : Duration.write(tetto.mute());
+        return Outcome.proponi("il grado " + (rank.isEmpty() ? "senza poteri" : rank)
                 + " arriva fino a " + limite + ": la sanzione va confermata da un grado superiore");
     }
 
@@ -76,33 +76,33 @@ public final class Policy {
      * e' la decisione piu' grave che esista e non la prende una macchina. Non e' un valore
      * regolabile di proposito.</p>
      */
-    public Esito controllaAutomatismo(SanctionsConfig.Categoria categoria, Type tipo, long durata) {
-        if (tipo == Type.BAN && durata == Duration.PERMANENTE) {
-            return Esito.proponi("un ban permanente lo decide sempre una persona");
+    public Outcome checkAutomation(SanctionsConfig.Category category, Type type, long duration) {
+        if (type == Type.BAN && duration == Duration.PERMANENTE) {
+            return Outcome.proponi("un ban permanente lo decide sempre una persona");
         }
-        if (cfg.modo.equals("proposta")) {
-            return Esito.proponi("il plugin e' impostato per non applicare nulla da solo");
+        if (cfg.mode.equals("proposta")) {
+            return Outcome.proponi("il plugin e' impostato per non applicare nulla da solo");
         }
-        if (!categoria.automatico()) {
-            return Esito.proponi("la categoria " + categoria.nome() + " non e' mai automatica");
+        if (!category.automatic()) {
+            return Outcome.proponi("la categoria " + category.name() + " non e' mai automatica");
         }
-        if (cfg.modo.equals("automatico")) {
-            return dentroIlTetto(durata);
+        if (cfg.mode.equals("automatico")) {
+            return withinCap(duration);
         }
         // modo "misto": come automatico, ma sempre entro il tetto di durata
-        return dentroIlTetto(durata);
+        return withinCap(duration);
     }
 
-    private Esito dentroIlTetto(long durata) {
-        if (cfg.durataMassimaAutomatica <= 0) {
-            return durata == 0 ? Esito.si()
-                    : Esito.proponi("gli automatismi di durata sono spenti");
+    private Outcome withinCap(long duration) {
+        if (cfg.maxAutomaticDuration <= 0) {
+            return duration == 0 ? Outcome.si()
+                    : Outcome.proponi("gli automatismi di durata sono spenti");
         }
-        if (durata == Duration.PERMANENTE || durata > cfg.durataMassimaAutomatica) {
-            return Esito.proponi("supera il tetto automatico di "
-                    + Duration.scrivi(cfg.durataMassimaAutomatica));
+        if (duration == Duration.PERMANENTE || duration > cfg.maxAutomaticDuration) {
+            return Outcome.proponi("supera il tetto automatico di "
+                    + Duration.write(cfg.maxAutomaticDuration));
         }
-        return Esito.si();
+        return Outcome.si();
     }
 
     // ------------------------------------------------------------------ LuckPerms

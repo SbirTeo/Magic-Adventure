@@ -34,22 +34,22 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
 
     private final JavaPlugin plugin;
     private final SanctionsConfig cfg;
-    private final SanctionsService servizio;
+    private final SanctionsService service;
     private final SanctionsDao dao;
 
     /** Ultima segnalazione di ognuno, per far rispettare la pausa. */
     private final Map<UUID, Long> ultima = new ConcurrentHashMap<>();
 
-    public ReportCommand(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService servizio, SanctionsDao dao) {
+    public ReportCommand(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service, SanctionsDao dao) {
         this.plugin = plugin;
         this.cfg = cfg;
-        this.servizio = servizio;
+        this.service = service;
         this.dao = dao;
     }
 
     @Override
-    public boolean onCommand(CommandSender chi, Command comando, String etichetta, String[] args) {
-        if (!cfg.reportAttivo) {
+    public boolean onCommand(CommandSender chi, Command command, String label, String[] args) {
+        if (!cfg.reportActive) {
             chi.sendMessage(Text.msg("&7Le segnalazioni sono disattivate su questo server."));
             return true;
         }
@@ -64,41 +64,41 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        String bersaglio = args[0];
-        String motivo = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)).trim();
+        String target = args[0];
+        String reason = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)).trim();
 
-        if (bersaglio.equalsIgnoreCase(mittente.getName())) {
+        if (target.equalsIgnoreCase(mittente.getName())) {
             chi.sendMessage(Text.msg("&#FF6B6BNon puoi segnalare te stesso."));
             return true;
         }
-        if (motivo.length() < cfg.reportMotivoMinimo) {
+        if (reason.length() < cfg.reportMinReason) {
             chi.sendMessage(Text.msg("&#FF6B6BSpiega meglio: &7servono almeno "
-                    + cfg.reportMotivoMinimo + " caratteri. Cosa ha fatto, dove, quando."));
+                    + cfg.reportMinReason + " caratteri. Cosa ha fatto, dove, quando."));
             return true;
         }
 
-        long adesso = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         long precedente = ultima.getOrDefault(mittente.getUniqueId(), 0L);
-        long pausa = cfg.reportPausaSecondi * 1000L;
-        if (adesso - precedente < pausa) {
-            long restano = (pausa - (adesso - precedente)) / 1000;
+        long pause = cfg.reportCooldownSeconds * 1000L;
+        if (now - precedente < pause) {
+            long restano = (pause - (now - precedente)) / 1000;
             chi.sendMessage(Text.msg("&7Aspetta ancora &f" + restano + " secondi&7 prima di segnalare di nuovo."));
             return true;
         }
 
         // Da qui in poi si lavora sul database: fuori dal thread principale.
-        Player bersaglioOnline = Bukkit.getPlayerExact(bersaglio);
-        String dettaglio = componiContesto(mittente, bersaglio, bersaglioOnline);
+        Player targetOnline = Bukkit.getPlayerExact(target);
+        String dettaglio = buildContext(mittente, target, targetOnline);
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            UUID uuid = risolvi(bersaglio, bersaglioOnline);
+            UUID uuid = risolvi(target, targetOnline);
             if (uuid == null) {
                 chi.sendMessage(Text.msg("&#FF6B6BNon conosco nessuno con quel nome. &7Controlla come si scrive."));
                 return;
             }
             try {
                 int aperti = dao.reportApertiDi(mittente.getUniqueId().toString());
-                if (aperti >= cfg.reportMassimoAperti) {
+                if (aperti >= cfg.reportMaxOpen) {
                     chi.sendMessage(Text.msg("&7Hai gia' &f" + aperti + "&7 segnalazioni in attesa di risposta. "
                             + "Aspetta che lo staff le guardi."));
                     return;
@@ -106,18 +106,18 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
 
                 // Il tipo qui e' solo un segnaposto: la segnalazione non propone una pena,
                 // apre un caso. Chi lo chiude sceglie il provvedimento nel gestionale.
-                Sanction caso = new Sanction(0, uuid, bersaglio, Type.WARN, "report.confermato",
-                        motivo, Scope.ENTRAMBI, 0, adesso, Duration.PERMANENTE,
+                Sanction caso = new Sanction(0, uuid, target, Type.WARN, "report.confermato",
+                        reason, Scope.ENTRAMBI, 0, now, Duration.PERMANENTE,
                         mittente.getName(), false, null);
 
                 dao.proponi(caso, 0L, "report", dettaglio);
-                ultima.put(mittente.getUniqueId(), adesso);
+                ultima.put(mittente.getUniqueId(), now);
 
                 chi.sendMessage(Text.msg("&#A8DC2CSegnalazione inviata. &7Lo staff la trova nel gestionale "
                         + "con la tua posizione e l'ora. Grazie."));
 
-                servizio.avvisaStaff("&#FFD166Segnalazione&f " + mittente.getName() + " &7ha segnalato &f"
-                        + bersaglio + " &7— " + motivo);
+                service.notifyStaff("&#FFD166Segnalazione&f " + mittente.getName() + " &7ha segnalato &f"
+                        + target + " &7— " + reason);
             } catch (SQLException e) {
                 chi.sendMessage(Text.msg("&#FF6B6BSegnalazione non inviata: riprova fra poco."));
                 plugin.getLogger().warning("Segnalazione non registrata: " + e.getMessage());
@@ -131,46 +131,46 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
      * segnalato, e se in quel momento era collegato. Sono le prime tre cose che serve sapere
      * per capire se andare a guardare subito o con calma.
      */
-    private String componiContesto(Player mittente, String bersaglio, Player bersaglioOnline) {
+    private String buildContext(Player mittente, String target, Player targetOnline) {
         StringBuilder b = new StringBuilder();
         b.append("Segnalata da: ").append(mittente.getName()).append('\n');
         b.append("Quando: ").append(com.teolo.magixguard.util.Fmt.dateTime(System.currentTimeMillis())).append('\n');
-        b.append("Chi segnala si trovava: ").append(posizione(mittente.getLocation())).append('\n');
-        if (bersaglioOnline != null) {
-            b.append("Il segnalato era ONLINE, a ").append(posizione(bersaglioOnline.getLocation())).append('\n');
-            double distanza = bersaglioOnline.getWorld().equals(mittente.getWorld())
-                    ? bersaglioOnline.getLocation().distance(mittente.getLocation()) : -1;
+        b.append("Chi segnala si trovava: ").append(position(mittente.getLocation())).append('\n');
+        if (targetOnline != null) {
+            b.append("Il segnalato era ONLINE, a ").append(position(targetOnline.getLocation())).append('\n');
+            double distanza = targetOnline.getWorld().equals(mittente.getWorld())
+                    ? targetOnline.getLocation().distance(mittente.getLocation()) : -1;
             b.append("Distanza fra i due: ")
              .append(distanza < 0 ? "in mondi diversi" : Math.round(distanza) + " blocchi").append('\n');
         } else {
             b.append("Il segnalato NON era collegato in quel momento.").append('\n');
         }
-        b.append("Segnalato: ").append(bersaglio);
+        b.append("Segnalato: ").append(target);
         return b.toString();
     }
 
-    private static String posizione(Location l) {
+    private static String position(Location l) {
         return l.getWorld().getName() + " " + l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
     }
 
-    private UUID risolvi(String nome, Player online) {
+    private UUID risolvi(String name, Player online) {
         if (online != null) {
             return online.getUniqueId();
         }
         try {
-            UUID daSito = dao.uuidDalNome(nome);
-            if (daSito != null) {
-                return daSito;
+            UUID fromSite = dao.uuidFromName(name);
+            if (fromSite != null) {
+                return fromSite;
             }
         } catch (SQLException ignored) {
             // il sito non risponde: si prova con quello che sa Bukkit
         }
-        org.bukkit.OfflinePlayer off = Bukkit.getOfflinePlayer(nome);
+        org.bukkit.OfflinePlayer off = Bukkit.getOfflinePlayer(name);
         return off.hasPlayedBefore() ? off.getUniqueId() : null;
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender chi, Command comando, String etichetta, String[] args) {
+    public List<String> onTabComplete(CommandSender chi, Command command, String label, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (Player p : Bukkit.getOnlinePlayers()) {

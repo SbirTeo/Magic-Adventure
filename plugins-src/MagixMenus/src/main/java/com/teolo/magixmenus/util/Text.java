@@ -43,12 +43,12 @@ public final class Text {
     }
 
     /** Text pronto: variabili del menu, poi PlaceholderAPI, poi colori. */
-    public static String applica(Player p, Map<String, String> variabili, String s) {
-        return Colors.translate(grezzo(p, variabili, s));
+    public static String apply(Player p, Map<String, String> variabili, String s) {
+        return Colors.translate(raw(p, variabili, s));
     }
 
     /** Come {@link #applica} ma senza tradurre i colori: serve a chi confronta valori (i requisiti). */
-    public static String grezzo(Player p, Map<String, String> variabili, String s) {
+    public static String raw(Player p, Map<String, String> variabili, String s) {
         if (s == null || s.isEmpty()) {
             return "";
         }
@@ -67,12 +67,12 @@ public final class Text {
         return s;
     }
 
-    public static List<String> applica(Player p, Map<String, String> variabili, List<String> righe) {
-        List<String> out = new ArrayList<>(righe.size());
-        for (String r : righe) {
+    public static List<String> apply(Player p, Map<String, String> variabili, List<String> rows) {
+        List<String> out = new ArrayList<>(rows.size());
+        for (String r : rows) {
             // Un placeholder che restituisce piu' righe (una lore intera, un elenco) deve
             // diventare piu' righe di lore, non una riga sola con dentro degli "a capo".
-            String risolto = applica(p, variabili, r);
+            String risolto = apply(p, variabili, r);
             if (risolto.indexOf('\n') >= 0) {
                 for (String pezzo : risolto.split("\n", -1)) {
                     out.add(pezzo);
@@ -93,11 +93,11 @@ public final class Text {
         return s != null && DINAMICO.matcher(s).find();
     }
 
-    public static boolean dinamico(List<String> righe) {
-        if (righe == null) {
+    public static boolean dinamico(List<String> rows) {
+        if (rows == null) {
             return false;
         }
-        for (String r : righe) {
+        for (String r : rows) {
             if (dinamico(r)) {
                 return true;
             }
@@ -106,7 +106,7 @@ public final class Text {
     }
 
     /** Numero letto da un testo gia' risolto: "12", "12.5", "1.234" (le virgole si ignorano). */
-    public static Double numero(String s) {
+    public static Double number(String s) {
         if (s == null) {
             return null;
         }

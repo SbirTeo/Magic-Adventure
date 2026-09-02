@@ -32,18 +32,18 @@ public final class OtpPolicy {
     private final AuthConfig config;
 
     /** I gruppi che compongono la track dello staff, riletti a intervalli. */
-    private volatile Set<String> gruppiStaff = Collections.emptySet();
+    private volatile Set<String> staffGroups = Collections.emptySet();
 
     private LuckPerms luckPerms;
 
     public OtpPolicy(JavaPlugin plugin, AuthConfig config) {
         this.plugin = plugin;
         this.config = config;
-        aggancia();
+        attach();
     }
 
     /** LuckPerms e' facoltativo: se non c'e', resta la regola dei soli web-admin. */
-    private void aggancia() {
+    private void attach() {
         try {
             if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
                 luckPerms = Bukkit.getServicesManager().load(LuckPerms.class);
@@ -61,22 +61,22 @@ public final class OtpPolicy {
      * Si fa a intervalli e non a ogni ingresso: la composizione di una track cambia una
      * volta ogni mai, e chiedere a LuckPerms nel mezzo del login e' lavoro sprecato.
      */
-    public void aggiornaGruppi() {
+    public void refreshGroups() {
         if (luckPerms == null) {
             return;
         }
         try {
-            Track track = luckPerms.getTrackManager().getTrack(config.trackStaff);
+            Track track = luckPerms.getTrackManager().getTrack(config.staffTrack);
             if (track == null) {
                 // Nome sbagliato in configurazione: va detto, o si scoprirebbe solo il
                 // giorno in cui un amministratore entra senza che gli venga chiesto nulla.
-                plugin.getLogger().warning("MagixAuth: la track \"" + config.trackStaff
+                plugin.getLogger().warning("MagixAuth: la track \"" + config.staffTrack
                         + "\" non esiste in LuckPerms. Controlla /lp listtracks e la voce "
                         + "otp.track_staff nella configurazione.");
-                gruppiStaff = Collections.emptySet();
+                staffGroups = Collections.emptySet();
                 return;
             }
-            gruppiStaff = new HashSet<>(track.getGroups());
+            staffGroups = new HashSet<>(track.getGroups());
         } catch (Throwable t) {
             plugin.getLogger().warning("MagixAuth: track dello staff non aggiornata ("
                     + t.getMessage() + "). Resta valido l'elenco di prima.");
@@ -89,7 +89,7 @@ public final class OtpPolicy {
      * Gira nel pre-login, quindi fuori dal thread principale: l'utente di LuckPerms si
      * carica in modo asincrono, che e' esattamente cio' che si puo' fare qui.
      */
-    public boolean serve(Account account, UUID uuid) {
+    public boolean required(Account account, UUID uuid) {
         if (account == null) {
             // Nome mai registrato: si sta registrando adesso, non ha ancora un segreto.
             return false;
@@ -101,12 +101,12 @@ public final class OtpPolicy {
             return true;
         }
         // Giocatore normale: solo se l'ha attivata lui dal sito.
-        return config.otpFacoltativoPerGiocatori && account.haOtp();
+        return config.otpOptionalForPlayers && account.haOtp();
     }
 
     /** Sta in un gruppo della track dello staff? */
     public boolean staff(UUID uuid) {
-        if (luckPerms == null || gruppiStaff.isEmpty()) {
+        if (luckPerms == null || staffGroups.isEmpty()) {
             return false;
         }
         try {
@@ -118,13 +118,13 @@ public final class OtpPolicy {
                 return false;
             }
             String primario = user.getPrimaryGroup();
-            if (primario != null && gruppiStaff.contains(primario)) {
+            if (primario != null && staffGroups.contains(primario)) {
                 return true;
             }
             return user.getNodes().stream()
                     .filter(net.luckperms.api.node.NodeType.INHERITANCE::matches)
                     .map(net.luckperms.api.node.NodeType.INHERITANCE::cast)
-                    .anyMatch(n -> gruppiStaff.contains(n.getGroupName()));
+                    .anyMatch(n -> staffGroups.contains(n.getGroupName()));
         } catch (Throwable t) {
             // Nel dubbio su un account che potrebbe essere di staff, si chiede il codice:
             // e' il verso prudente in cui sbagliare.
@@ -133,11 +133,11 @@ public final class OtpPolicy {
     }
 
     /** Solo per i messaggi di diagnostica di /mauth info. */
-    public int quantiGruppiStaff() {
-        return gruppiStaff.size();
+    public int staffGroupCount() {
+        return staffGroups.size();
     }
 
-    public boolean luckPermsPresente() {
+    public boolean luckPermsPresent() {
         return luckPerms != null;
     }
 }

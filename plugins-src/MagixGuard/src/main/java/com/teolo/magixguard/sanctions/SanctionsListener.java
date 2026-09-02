@@ -25,13 +25,13 @@ public final class SanctionsListener implements Listener {
 
     private final JavaPlugin plugin;
     private final SanctionsConfig cfg;
-    private final SanctionsService servizio;
+    private final SanctionsService service;
     private final SanctionsDao dao;
 
-    public SanctionsListener(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService servizio, SanctionsDao dao) {
+    public SanctionsListener(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service, SanctionsDao dao) {
         this.plugin = plugin;
         this.cfg = cfg;
-        this.servizio = servizio;
+        this.service = service;
         this.dao = dao;
     }
 
@@ -41,9 +41,9 @@ public final class SanctionsListener implements Listener {
         try {
             List<Sanction> attive = dao.attiveInGioco(e.getUniqueId());
             for (Sanction s : attive) {
-                if (s.tipo() == Type.BAN) {
+                if (s.type() == Type.BAN) {
                     e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED,
-                            Text.c(servizio.messaggioBan(s)));
+                            Text.c(service.banMessage(s)));
                     return;
                 }
             }
@@ -59,24 +59,24 @@ public final class SanctionsListener implements Listener {
     @EventHandler
     public void suIngresso(PlayerJoinEvent e) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin,
-                () -> servizio.caricaAllIngresso(e.getPlayer().getUniqueId()));
+                () -> service.loadOnJoin(e.getPlayer().getUniqueId()));
     }
 
     @EventHandler
     public void suUscita(PlayerQuitEvent e) {
-        servizio.dimentica(e.getPlayer().getUniqueId());
+        service.forget(e.getPlayer().getUniqueId());
     }
 
     /** Chi e' silenziato non scrive. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void suChat(AsyncChatEvent e) {
-        Sanction s = servizio.muto(e.getPlayer().getUniqueId());
+        Sanction s = service.muto(e.getPlayer().getUniqueId());
         if (s == null) {
             return;
         }
         e.setCancelled(true);
         String scadenza = s.fine() == Duration.PERMANENTE ? "non scade" : Duration.mancante(s.fine());
-        e.getPlayer().sendMessage(Text.msg(Text.sostituisci(
-                cfg.messaggioMute, "{motivo}", s.motivo(), "{scadenza}", scadenza)));
+        e.getPlayer().sendMessage(Text.msg(Text.replace(
+                cfg.muteMessage, "{motivo}", s.reason(), "{scadenza}", scadenza)));
     }
 }

@@ -29,29 +29,29 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
 
     private final JavaPlugin plugin;
     private final SanctionsConfig cfg;
-    private final SanctionsService servizio;
+    private final SanctionsService service;
     private final SanctionsDao dao;
 
-    public SanctionCommands(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService servizio, SanctionsDao dao) {
+    public SanctionCommands(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service, SanctionsDao dao) {
         this.plugin = plugin;
         this.cfg = cfg;
-        this.servizio = servizio;
+        this.service = service;
         this.dao = dao;
     }
 
     @Override
-    public boolean onCommand(CommandSender chi, Command comando, String etichetta, String[] args) {
-        String nome = comando.getName().toLowerCase();
+    public boolean onCommand(CommandSender chi, Command command, String label, String[] args) {
+        String name = command.getName().toLowerCase();
 
-        switch (nome) {
+        switch (name) {
             case "ban", "tempban", "mute", "tempmute", "kick", "warn" -> {
-                return sanziona(chi, nome, args);
+                return sanction(chi, name, args);
             }
             case "unban", "unmute" -> {
-                return togli(chi, nome, args);
+                return remove(chi, name, args);
             }
             case "history" -> {
-                return storico(chi, args);
+                return history(chi, args);
             }
             case "sanctions" -> {
                 return riepilogo(chi, args);
@@ -64,105 +64,105 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
 
     // ------------------------------------------------------------------ sanzionare
 
-    private boolean sanziona(CommandSender chi, String comando, String[] args) {
+    private boolean sanction(CommandSender chi, String command, String[] args) {
         if (args.length < 1) {
-            chi.sendMessage(Text.msg("&#FFD166Uso: &f/" + comando + " " + usoDi(comando)));
+            chi.sendMessage(Text.msg("&#FFD166Uso: &f/" + command + " " + usoDi(command)));
             return true;
         }
 
-        Type tipo = switch (comando) {
+        Type type = switch (command) {
             case "ban", "tempban" -> Type.BAN;
             case "mute", "tempmute" -> Type.MUTE;
             case "kick" -> Type.KICK;
             default -> Type.WARN;
         };
 
-        String bersaglio = args[0];
-        int daDove = 1;
-        long durata;
+        String target = args[0];
+        int fromWhere = 1;
+        long duration;
 
-        if (tipo.haDurata()) {
+        if (type.hasDuration()) {
             // Due comandi, due mestieri, nessuna ambiguita': /ban e /mute sono PERMANENTI e vogliono
             // solo il motivo; /tempban e /tempmute sono quelli a tempo e la durata la pretendono.
             // (Prima /mute chiedeva la durata come /tempmute: chi scriveva "/mute Tizio spam" si vedeva
             // rifiutare il comando e credeva di aver silenziato qualcuno che invece non lo era mai stato.)
-            boolean aTempo = comando.equals("tempban") || comando.equals("tempmute");
-            long letta = args.length > 1 ? Duration.leggi(args[1]) : 0L;
+            boolean aTempo = command.equals("tempban") || command.equals("tempmute");
+            long letta = args.length > 1 ? Duration.read(args[1]) : 0L;
             if (aTempo) {
                 if (letta == Duration.PERMANENTE) {
                     chi.sendMessage(Text.msg("&#FF6B6BQui la durata serve davvero. &7Per il permanente "
-                            + "usa &f/" + comando.substring(4) + "&7."));
+                            + "usa &f/" + command.substring(4) + "&7."));
                     return true;
                 }
                 if (letta == 0L) {
                     chi.sendMessage(Text.msg("&#FF6B6BDurata non riconosciuta. &7Scrivila come 30m, 6h, 3d, 2w."));
                     return true;
                 }
-                durata = letta;
-                daDove = 2;
+                duration = letta;
+                fromWhere = 2;
             } else if (letta == Duration.PERMANENTE) {
-                durata = Duration.PERMANENTE;   // "permanente" scritto per abitudine: si accetta e si salta
-                daDove = 2;
+                duration = Duration.PERMANENTE;   // "permanente" scritto per abitudine: si accetta e si salta
+                fromWhere = 2;
             } else if (letta != 0L) {
                 // Il motivo comincia con una durata: quasi sicuramente si voleva la versione a tempo.
                 // Meglio chiederlo che trasformare per sbaglio un "3d" in un provvedimento per sempre.
-                chi.sendMessage(Text.msg("&#FFD166&f/" + comando + " &#FFD166e' permanente e non vuole una durata. "
-                        + "&7Per una sanzione a tempo usa &f/temp" + comando + " <giocatore> <durata> <motivo>&7."));
+                chi.sendMessage(Text.msg("&#FFD166&f/" + command + " &#FFD166e' permanente e non vuole una durata. "
+                        + "&7Per una sanzione a tempo usa &f/temp" + command + " <giocatore> <durata> <motivo>&7."));
                 return true;
             } else {
-                durata = Duration.PERMANENTE;
+                duration = Duration.PERMANENTE;
             }
         } else {
-            durata = 0L;
+            duration = 0L;
         }
 
-        String motivo = unisci(args, daDove);
-        if (motivo.isBlank()) {
+        String reason = unisci(args, fromWhere);
+        if (reason.isBlank()) {
             chi.sendMessage(Text.msg("&#FF6B6BIl motivo non e' facoltativo: &7lo legge il giocatore, "
                     + "e finisce nell'elenco pubblico."));
             return true;
         }
 
-        Policy.Esito esitoStaff = servizio.politica().controllaStaff(chi, tipo, durata);
-        long durataFinale = durata;
+        Policy.Outcome staffOutcome = service.policy().checkStaff(chi, type, duration);
+        long finalDuration = duration;
         String autore = chi instanceof Player p ? p.getName() : "Console";
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            UUID uuid = risolvi(bersaglio);
+            UUID uuid = risolvi(target);
             if (uuid == null) {
                 chi.sendMessage(Text.msg("&#FF6B6BNon conosco nessuno con quel nome. "
                         + "&7Deve essere entrato almeno una volta, o avere un account sul sito."));
                 return;
             }
 
-            long adesso = System.currentTimeMillis();
-            long fine = durataFinale == Duration.PERMANENTE || !tipo.haDurata()
-                    ? Duration.PERMANENTE : adesso + durataFinale;
+            long now = System.currentTimeMillis();
+            long fine = finalDuration == Duration.PERMANENTE || !type.hasDuration()
+                    ? Duration.PERMANENTE : now + finalDuration;
 
-            SanctionsConfig.Categoria categoria = cfg.categoria("manuale");
-            Sanction s = new Sanction(0, uuid, bersaglio, tipo, "manuale", motivo,
-                    categoria.ambito(), 0, adesso, fine, autore, false, null);
+            SanctionsConfig.Category category = cfg.category("manuale");
+            Sanction s = new Sanction(0, uuid, target, type, "manuale", reason,
+                    category.scope(), 0, now, fine, autore, false, null);
 
-            int id = servizio.applica(s, esitoStaff, "staff",
-                    esitoStaff.applica() ? null : "Chiesta da " + autore + ": " + esitoStaff.motivoProposta(),
-                    durataFinale);
+            int id = service.apply(s, staffOutcome, "staff",
+                    staffOutcome.apply() ? null : "Chiesta da " + autore + ": " + staffOutcome.proposedReason(),
+                    finalDuration);
 
             if (id > 0) {
-                chi.sendMessage(Text.msg("&#A8DC2CFatto. &f" + bersaglio + " &7— "
-                        + tipo.etichetta().toLowerCase() + ", "
-                        + (tipo.haDurata() ? Duration.scrivi(durataFinale) : "immediata")
+                chi.sendMessage(Text.msg("&#A8DC2CFatto. &f" + target + " &7— "
+                        + type.label().toLowerCase() + ", "
+                        + (type.hasDuration() ? Duration.write(finalDuration) : "immediata")
                         + ". &7Provvedimento n. " + id + "."));
             } else {
-                chi.sendMessage(Text.msg("&#FFD166Proposta inviata: &7" + esitoStaff.motivoProposta()
+                chi.sendMessage(Text.msg("&#FFD166Proposta inviata: &7" + staffOutcome.proposedReason()
                         + ". &7La trovi nel gestionale, con le prove gia' allegate."));
             }
         });
         return true;
     }
 
-    private String usoDi(String comando) {
-        return switch (comando) {
-            case "ban", "mute" -> "<giocatore> <motivo>  &7(permanente; a tempo: /temp" + comando + ")";
+    private String usoDi(String command) {
+        return switch (command) {
+            case "ban", "mute" -> "<giocatore> <motivo>  &7(permanente; a tempo: /temp" + command + ")";
             case "tempban", "tempmute" -> "<giocatore> <durata> <motivo>  &7(es. 30m, 6h, 3d)";
             default -> "<giocatore> <motivo>";
         };
@@ -170,35 +170,35 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
 
     // ------------------------------------------------------------------ togliere
 
-    private boolean togli(CommandSender chi, String comando, String[] args) {
+    private boolean remove(CommandSender chi, String command, String[] args) {
         if (args.length < 1) {
-            chi.sendMessage(Text.msg("&#FFD166Uso: &f/" + comando + " <giocatore> [motivo]"));
+            chi.sendMessage(Text.msg("&#FFD166Uso: &f/" + command + " <giocatore> [motivo]"));
             return true;
         }
-        Type tipo = comando.equals("unban") ? Type.BAN : Type.MUTE;
-        String bersaglio = args[0];
-        String motivo = args.length > 1 ? unisci(args, 1) : "Revocata dallo staff";
+        Type type = command.equals("unban") ? Type.BAN : Type.MUTE;
+        String target = args[0];
+        String reason = args.length > 1 ? unisci(args, 1) : "Revocata dallo staff";
         String autore = chi instanceof Player p ? p.getName() : "Console";
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            UUID uuid = risolvi(bersaglio);
+            UUID uuid = risolvi(target);
             if (uuid == null) {
                 chi.sendMessage(Text.msg("&#FF6B6BNon conosco nessuno con quel nome."));
                 return;
             }
             try {
-                int id = servizio.revoca(uuid, tipo, autore, motivo);
+                int id = service.revoke(uuid, type, autore, reason);
                 if (id == 0) {
-                    chi.sendMessage(Text.msg("&7Non c'e' nessun " + tipo.etichetta().toLowerCase()
-                            + " attivo per &f" + bersaglio + "&7."));
+                    chi.sendMessage(Text.msg("&7Non c'e' nessun " + type.label().toLowerCase()
+                            + " attivo per &f" + target + "&7."));
                     return;
                 }
                 Bukkit.getScheduler().runTask(plugin,
-                        () -> servizio.applicaRevocaDalSito(new Sanction(id, uuid, bersaglio, tipo,
-                                "manuale", motivo, Scope.ENTRAMBI, 0, 0, 0, autore, false, null)));
+                        () -> service.applyRevokeFromSite(new Sanction(id, uuid, target, type,
+                                "manuale", reason, Scope.ENTRAMBI, 0, 0, 0, autore, false, null)));
                 chi.sendMessage(Text.msg("&#A8DC2CRevocato. &7Provvedimento n. " + id + "."));
-                servizio.avvisaStaff("&#A8DC2CRevoca&f " + bersaglio + " &7— "
-                        + tipo.etichetta().toLowerCase() + ", da " + autore);
+                service.notifyStaff("&#A8DC2CRevoca&f " + target + " &7— "
+                        + type.label().toLowerCase() + ", da " + autore);
             } catch (SQLException e) {
                 chi.sendMessage(Text.msg("&#FF6B6BRevoca non riuscita: il database del sito non risponde."));
                 plugin.getLogger().warning("Revoca non riuscita: " + e.getMessage());
@@ -209,32 +209,32 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
 
     // ------------------------------------------------------------------ consultare
 
-    private boolean storico(CommandSender chi, String[] args) {
+    private boolean history(CommandSender chi, String[] args) {
         if (args.length < 1) {
             chi.sendMessage(Text.msg("&#FFD166Uso: &f/history <giocatore>"));
             return true;
         }
-        String bersaglio = args[0];
+        String target = args[0];
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            UUID uuid = risolvi(bersaglio);
+            UUID uuid = risolvi(target);
             if (uuid == null) {
                 chi.sendMessage(Text.msg("&#FF6B6BNon conosco nessuno con quel nome."));
                 return;
             }
             try {
-                List<Sanction> righe = dao.storico(uuid, 15);
-                double punti = servizio.registro().punti(uuid);
+                List<Sanction> rows = dao.history(uuid, 15);
+                double points = service.log().points(uuid);
 
-                chi.sendMessage(Text.panel("&#C046E8&lStorico di &f" + bersaglio
-                        + " &8(&f" + Math.round(punti) + "&8 punti attuali)"));
-                if (righe.isEmpty()) {
+                chi.sendMessage(Text.panel("&#C046E8&lStorico di &f" + target
+                        + " &8(&f" + Math.round(points) + "&8 punti attuali)"));
+                if (rows.isEmpty()) {
                     chi.sendMessage(Text.panel("&7Nessun provvedimento. "));
                     return;
                 }
-                for (Sanction s : righe) {
-                    String stato = s.attiva() ? "&#FF6B6Bin corso" : "&7conclusa";
-                    chi.sendMessage(Text.panel("&8- &f" + s.tipo().etichetta() + " &7"
-                            + s.durataLeggibile() + " &8| &7" + s.motivo()
+                for (Sanction s : rows) {
+                    String stato = s.activate() ? "&#FF6B6Bin corso" : "&7conclusa";
+                    chi.sendMessage(Text.panel("&8- &f" + s.type().label() + " &7"
+                            + s.readableDuration() + " &8| &7" + s.reason()
                             + " &8| " + stato + " &8| &7n." + s.id()));
                 }
             } catch (SQLException e) {
@@ -250,39 +250,39 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
             chi.sendMessage(Text.msg("&#FF6B6BPuoi vedere solo le tue."));
             return true;
         }
-        String bersaglio = suDiAltri ? args[0] : (chi instanceof Player p ? p.getName() : null);
-        if (bersaglio == null) {
+        String target = suDiAltri ? args[0] : (chi instanceof Player p ? p.getName() : null);
+        if (target == null) {
             chi.sendMessage(Text.msg("&#FFD166Uso: &f/sanctions <giocatore>"));
             return true;
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            UUID uuid = risolvi(bersaglio);
+            UUID uuid = risolvi(target);
             if (uuid == null) {
                 chi.sendMessage(Text.msg("&#FF6B6BNon conosco nessuno con quel nome."));
                 return;
             }
             try {
                 List<Sanction> attive = dao.attiveInGioco(uuid);
-                double punti = servizio.registro().punti(uuid);
-                double manca = servizio.registro().mancanteAllaProssima(punti);
+                double points = service.log().points(uuid);
+                double remaining = service.log().mancanteAllaProssima(points);
 
-                chi.sendMessage(Text.panel("&#C046E8&lSanzioni di &f" + bersaglio));
+                chi.sendMessage(Text.panel("&#C046E8&lSanzioni di &f" + target));
                 if (attive.isEmpty()) {
                     chi.sendMessage(Text.panel("&#A8DC2CNessun provvedimento in corso."));
                 } else {
                     for (Sanction s : attive) {
-                        chi.sendMessage(Text.panel("&8- &f" + s.tipo().etichetta() + " &7"
-                                + s.motivo() + " &8| &7"
+                        chi.sendMessage(Text.panel("&8- &f" + s.type().label() + " &7"
+                                + s.reason() + " &8| &7"
                                 + (s.fine() == Duration.PERMANENTE ? "non scade"
                                         : "finisce fra " + Duration.mancante(s.fine()))));
                     }
                 }
-                chi.sendMessage(Text.panel("&7Punti: &f" + Math.round(punti)
-                        + (manca < 0 ? "" : " &8(&7ne mancano " + Math.round(manca)
+                chi.sendMessage(Text.panel("&7Punti: &f" + Math.round(points)
+                        + (remaining < 0 ? "" : " &8(&7ne mancano " + Math.round(remaining)
                                 + " al prossimo provvedimento&8)")));
                 chi.sendMessage(Text.panel("&8I punti dimezzano ogni "
-                        + Math.round(cfg.dimezzamentoGiorni) + " giorni."));
+                        + Math.round(cfg.halfLifeDays) + " giorni."));
             } catch (SQLException e) {
                 chi.sendMessage(Text.msg("&#FF6B6BArchivio non raggiungibile."));
             }
@@ -297,20 +297,20 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
      * quello che Bukkit ricava dal nome: su un server non premium quest'ultimo e' calcolato
      * dal nome, quindi funziona anche per chi non e' mai entrato — ma e' bene provarlo per ultimo.
      */
-    private UUID risolvi(String nome) {
-        Player online = Bukkit.getPlayerExact(nome);
+    private UUID risolvi(String name) {
+        Player online = Bukkit.getPlayerExact(name);
         if (online != null) {
             return online.getUniqueId();
         }
         try {
-            UUID daSito = dao.uuidDalNome(nome);
-            if (daSito != null) {
-                return daSito;
+            UUID fromSite = dao.uuidFromName(name);
+            if (fromSite != null) {
+                return fromSite;
             }
         } catch (SQLException ignored) {
             // il sito non risponde: si prova comunque con quello che sa Bukkit
         }
-        OfflinePlayer off = Bukkit.getOfflinePlayer(nome);
+        OfflinePlayer off = Bukkit.getOfflinePlayer(name);
         return off.hasPlayedBefore() || off.isOnline() ? off.getUniqueId() : off.getUniqueId();
     }
 
@@ -322,7 +322,7 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender chi, Command comando, String etichetta, String[] args) {
+    public List<String> onTabComplete(CommandSender chi, Command command, String label, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -333,7 +333,7 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
             return out;
         }
         if (args.length == 2) {
-            String c = comando.getName().toLowerCase();
+            String c = command.getName().toLowerCase();
             if (c.equals("tempban") || c.equals("tempmute")) {   // /ban e /mute sono permanenti: niente durata
                 for (String d : List.of("30m", "1h", "6h", "24h", "3d", "7d", "30d")) {
                     if (d.startsWith(args[1].toLowerCase())) {

@@ -51,23 +51,23 @@ import java.util.List;
 public final class StaffGuide {
 
     private final JavaPlugin plugin;
-    private final String titolo;
-    private final int ordine;
+    private final String title;
+    private final int order;
     private final YamlConfiguration pluginYml;
 
     private final StringBuilder html = new StringBuilder();
     private final StringBuilder md = new StringBuilder();
-    private final List<String[]> guasti = new ArrayList<>();
-    private final List<String> mai = new ArrayList<>();
+    private final List<String[]> issues = new ArrayList<>();
+    private final List<String> never = new ArrayList<>();
     /** Se impostato, ogni testo scritto a mano passa di qui: i {{segnaposto}} diventano i valori veri
      *  del config (vedi {@link ConfigValues}). Va chiamato SUBITO dopo crea(), prima dei testi. */
-    private ConfigValues valori;
+    private ConfigValues values;
 
-    private StaffGuide(JavaPlugin plugin, String titolo, int ordine) {
+    private StaffGuide(JavaPlugin plugin, String title, int order) {
         this.plugin = plugin;
-        this.titolo = titolo;
-        this.ordine = ordine;
-        this.pluginYml = leggiPluginYml(plugin);
+        this.title = title;
+        this.order = order;
+        this.pluginYml = readPluginYml(plugin);
     }
 
     /**
@@ -75,8 +75,8 @@ public final class StaffGuide {
      * @param ordine posizione nell'elenco: piu' basso = piu' in alto. Chi lo staff tocca ogni
      *               giorno sta in cima.
      */
-    public static StaffGuide crea(JavaPlugin plugin, String titolo, int ordine) {
-        return new StaffGuide(plugin, titolo, ordine);
+    public static StaffGuide create(JavaPlugin plugin, String title, int order) {
+        return new StaffGuide(plugin, title, order);
     }
 
     /**
@@ -85,26 +85,26 @@ public final class StaffGuide {
      * della pubblicazione. Serve perche' una guida che cita numeri scritti a mano comincia a mentire
      * alla prima modifica del config, e nessuno se ne accorge.
      */
-    public StaffGuide valori(ConfigValues valori) { this.valori = valori; return this; }
+    public StaffGuide values(ConfigValues values) { this.values = values; return this; }
 
     /** Applica i segnaposto, se la guida e' stata legata al config con {@link #valori(ConfigValues)}. */
-    private String sost(String testo) { return valori == null ? testo : valori.applica(testo); }
+    private String substitute(String text) { return values == null ? text : values.apply(text); }
 
     /** Due righe oneste su cosa fa il plugin, senza gergo. Va per prima e si vede piu' grande. */
-    public StaffGuide intro(String testo) {
-        testo = sost(testo);
-        html.append("<p class=\"guida-apertura\">").append(ric(testo)).append("</p>\n");
-        md.append("> ").append(testo).append("\n\n");
+    public StaffGuide intro(String text) {
+        text = substitute(text);
+        html.append("<p class=\"guida-apertura\">").append(ric(text)).append("</p>\n");
+        md.append("> ").append(text).append("\n\n");
         return this;
     }
 
     /** Una sezione scritta a mano: titolo e uno o piu' paragrafi. */
-    public StaffGuide sezione(String titolo, String... paragrafi) {
-        titolo = sost(titolo);
-        html.append("<h4>").append(esc(titolo)).append("</h4>\n");
-        md.append("## ").append(titolo).append("\n\n");
-        for (String grezzo : paragrafi) {
-            String p = sost(grezzo);
+    public StaffGuide section(String title, String... paragraphs) {
+        title = substitute(title);
+        html.append("<h4>").append(escapeHtml(title)).append("</h4>\n");
+        md.append("## ").append(title).append("\n\n");
+        for (String raw : paragraphs) {
+            String p = substitute(raw);
             html.append("<p>").append(ric(p)).append("</p>\n");
             md.append(p).append("\n\n");
         }
@@ -119,39 +119,39 @@ public final class StaffGuide {
      * il lavoro vero lo fanno le decine di sottocomandi: senza questo, la guida direbbe che
      * MagixFactions ha un comando e basta.</p>
      */
-    public StaffGuide comandiDettagliati() {
-        ConfigurationSection sezioni = leggiSezioniAiuto();
-        if (sezioni == null) {
+    public StaffGuide detailedCommands() {
+        ConfigurationSection sections = readHelpSections();
+        if (sections == null) {
             return this;
         }
         html.append("<h4>Tutti i comandi</h4>\n<p class=\"guida-nota\">Sono gli stessi che si vedono "
                 + "con il comando di aiuto in gioco: escono da quel file, quindi non possono restare indietro.</p>\n");
         md.append("## Tutti i comandi\n\nSono gli stessi che si vedono con il comando di aiuto in gioco.\n\n");
 
-        for (String chiave : sezioni.getKeys(false)) {
-            ConfigurationSection s = sezioni.getConfigurationSection(chiave);
+        for (String key : sections.getKeys(false)) {
+            ConfigurationSection s = sections.getConfigurationSection(key);
             if (s == null) {
                 continue;
             }
-            List<String> voci = s.getStringList("entries");
-            if (voci.isEmpty()) {
+            List<String> entries = s.getStringList("entries");
+            if (entries.isEmpty()) {
                 continue;
             }
-            boolean soloStaff = s.getBoolean("staff", false);
-            String nome = s.getString("title", chiave);
+            boolean staffOnly = s.getBoolean("staff", false);
+            String name = s.getString("title", key);
 
-            html.append("<h5>").append(esc(nome))
-                .append(soloStaff ? " <span class=\"guida-tag\">solo staff</span>" : "").append("</h5>\n");
-            md.append("### ").append(nome).append(soloStaff ? " (solo staff)" : "").append("\n\n");
+            html.append("<h5>").append(escapeHtml(name))
+                .append(staffOnly ? " <span class=\"guida-tag\">solo staff</span>" : "").append("</h5>\n");
+            md.append("### ").append(name).append(staffOnly ? " (solo staff)" : "").append("\n\n");
 
-            apriTabella("Comando", "Cosa fa");
-            for (String riga : voci) {
-                int taglio = riga.indexOf("::");
-                String comando = taglio < 0 ? riga.trim() : riga.substring(0, taglio).trim();
-                String cosaFa = taglio < 0 ? "" : riga.substring(taglio + 2).trim();
-                riga(codice(comando), cosaFa);
+            openTable("Comando", "Cosa fa");
+            for (String row : entries) {
+                int cut = row.indexOf("::");
+                String command = cut < 0 ? row.trim() : row.substring(0, cut).trim();
+                String whatItDoes = cut < 0 ? "" : row.substring(cut + 2).trim();
+                row(code(command), whatItDoes);
             }
-            chiudiTabella();
+            closeTable();
         }
         return this;
     }
@@ -162,59 +162,59 @@ public final class StaffGuide {
      * @param titolo              il titolo del gruppo (es. "I comandi di /mg")
      * @param comandoESpiegazione coppie: il comando com'e' da scrivere, poi cosa fa
      */
-    public StaffGuide sottocomandi(String titolo, String... comandoESpiegazione) {
-        if (comandoESpiegazione.length < 2) {
+    public StaffGuide subcommands(String title, String... commandAndExplanation) {
+        if (commandAndExplanation.length < 2) {
             return this;
         }
-        html.append("<h4>").append(esc(titolo)).append("</h4>\n");
-        md.append("## ").append(titolo).append("\n\n");
-        apriTabella("Comando", "Cosa fa");
-        for (int i = 0; i + 1 < comandoESpiegazione.length; i += 2) {
-            riga(codice(comandoESpiegazione[i]), comandoESpiegazione[i + 1]);
+        html.append("<h4>").append(escapeHtml(title)).append("</h4>\n");
+        md.append("## ").append(title).append("\n\n");
+        openTable("Comando", "Cosa fa");
+        for (int i = 0; i + 1 < commandAndExplanation.length; i += 2) {
+            row(code(commandAndExplanation[i]), commandAndExplanation[i + 1]);
         }
-        chiudiTabella();
+        closeTable();
         return this;
     }
 
     /** Tabella dei comandi dichiarati nel plugin.yml: comando, cosa fa, permesso. */
-    public StaffGuide comandi() {
-        ConfigurationSection sezione = pluginYml == null ? null : pluginYml.getConfigurationSection("commands");
-        if (sezione == null) {
+    public StaffGuide commands() {
+        ConfigurationSection section = pluginYml == null ? null : pluginYml.getConfigurationSection("commands");
+        if (section == null) {
             return this;
         }
         html.append("<h4>Comandi registrati</h4>\n");
         md.append("## Comandi registrati\n\n");
-        apriTabella("Comando", "Cosa fa", "Permesso");
-        for (String nome : sezione.getKeys(false)) {
-            ConfigurationSection c = sezione.getConfigurationSection(nome);
+        openTable("Comando", "Cosa fa", "Permesso");
+        for (String name : section.getKeys(false)) {
+            ConfigurationSection c = section.getConfigurationSection(name);
             if (c == null) {
                 continue;
             }
             List<String> alias = c.getStringList("aliases");
-            String etichetta = "/" + nome + (alias.isEmpty() ? "" : " (" + String.join(", ", alias) + ")");
-            riga(codice(etichetta), c.getString("description", "—"), codice(c.getString("permission", "—")));
+            String label = "/" + name + (alias.isEmpty() ? "" : " (" + String.join(", ", alias) + ")");
+            row(code(label), c.getString("description", "—"), code(c.getString("permission", "—")));
         }
-        chiudiTabella();
+        closeTable();
         return this;
     }
 
     /** Tabella dei permessi, presa dal plugin.yml: chi li ha di serie e a cosa servono. */
-    public StaffGuide permessi() {
-        ConfigurationSection sezione = pluginYml == null ? null : pluginYml.getConfigurationSection("permissions");
-        if (sezione == null) {
+    public StaffGuide permissions() {
+        ConfigurationSection section = pluginYml == null ? null : pluginYml.getConfigurationSection("permissions");
+        if (section == null) {
             return this;
         }
         html.append("<h4>Chi può fare cosa</h4>\n");
         md.append("## Chi può fare cosa\n\n");
-        apriTabella("Permesso", "Significato", "Di serie");
-        for (String nome : sezione.getKeys(false)) {
-            ConfigurationSection p = sezione.getConfigurationSection(nome);
+        openTable("Permesso", "Significato", "Di serie");
+        for (String name : section.getKeys(false)) {
+            ConfigurationSection p = section.getConfigurationSection(name);
             if (p == null) {
                 continue;
             }
-            riga(codice(nome), p.getString("description", "—"), descriviDefault(p.getString("default", "op")));
+            row(code(name), p.getString("description", "—"), describeDefault(p.getString("default", "op")));
         }
-        chiudiTabella();
+        closeTable();
         return this;
     }
 
@@ -233,45 +233,45 @@ public final class StaffGuide {
      *                           dare una spiegazione migliore di quella del commento alle chiavi che lo
      *                           staff tocca ogni giorno; tutte le altre restano comunque in elenco.
      */
-    public StaffGuide impostazioni(String... chiaveESpiegazione) {
+    public StaffGuide settings(String... keyAndExplanation) {
         html.append("<h4>Impostazioni</h4>\n");
         md.append("## Impostazioni\n\n");
-        String nota = "Sono TUTTE le chiavi del config.yml, col valore in uso adesso e la spiegazione "
+        String note = "Sono TUTTE le chiavi del config.yml, col valore in uso adesso e la spiegazione "
                 + "presa dal commento del file. L'elenco si genera da solo: una chiave nuova compare "
                 + "qui da sola, e nessuna puo' restare fuori.";
-        html.append("<p class=\"guida-nota\">").append(esc(nota)).append("</p>\n");
-        md.append(nota).append("\n\n");
-        tabellaImpostazioni(plugin.getConfig(), aMano(chiaveESpiegazione));
+        html.append("<p class=\"guida-nota\">").append(escapeHtml(note)).append("</p>\n");
+        md.append(note).append("\n\n");
+        settingsTable(plugin.getConfig(), byHand(keyAndExplanation));
         return this;
     }
 
     /** Le coppie passate a mano, come mappa chiave -> spiegazione migliore. */
-    private static java.util.Map<String, String> aMano(String... chiaveESpiegazione) {
+    private static java.util.Map<String, String> byHand(String... keyAndExplanation) {
         java.util.Map<String, String> fuori = new java.util.LinkedHashMap<>();
-        for (int i = 0; i + 1 < chiaveESpiegazione.length; i += 2) {
-            fuori.put(chiaveESpiegazione[i], chiaveESpiegazione[i + 1]);
+        for (int i = 0; i + 1 < keyAndExplanation.length; i += 2) {
+            fuori.put(keyAndExplanation[i], keyAndExplanation[i + 1]);
         }
         return fuori;
     }
 
     /** La tabella vera: una riga per ogni chiave che ha un valore (le sezioni non ne hanno uno). */
-    private void tabellaImpostazioni(org.bukkit.configuration.Configuration conf,
-                                     java.util.Map<String, String> aMano) {
+    private void settingsTable(org.bukkit.configuration.Configuration conf,
+                                     java.util.Map<String, String> byHand) {
         if (conf == null) {
             return;
         }
-        apriTabella("Chiave", "Ora vale", "Cosa cambia");
-        for (String chiave : conf.getKeys(true)) {
-            if (conf.isConfigurationSection(chiave)) {
+        openTable("Chiave", "Ora vale", "Cosa cambia");
+        for (String key : conf.getKeys(true)) {
+            if (conf.isConfigurationSection(key)) {
                 continue;   // una sezione non ha un valore: parlano le chiavi che contiene
             }
-            String spiegazione = aMano.get(chiave);
-            if (spiegazione == null) {
-                spiegazione = commento(conf, chiave);
+            String explanation = byHand.get(key);
+            if (explanation == null) {
+                explanation = comment(conf, key);
             }
-            riga(codice(chiave), codice(valoreLeggibile(conf.get(chiave))), spiegazione);
+            row(code(key), code(readableValue(conf.get(key))), explanation);
         }
-        chiudiTabella();
+        closeTable();
     }
 
     /**
@@ -279,16 +279,16 @@ public final class StaffGuide {
      * scritta dove la legge chi configura, e non va riscritta da un'altra parte. Se la chiave non ha
      * un commento suo si sale alla sezione che la contiene, che di norma spiega il blocco intero.
      */
-    private static String commento(ConfigurationSection conf, String chiave) {
-        java.util.List<String> righe = new java.util.ArrayList<>(conf.getComments(chiave));
-        righe.addAll(conf.getInlineComments(chiave));
-        String risalita = chiave;
-        while (righe.isEmpty() && risalita.contains(".")) {
-            risalita = risalita.substring(0, risalita.lastIndexOf('.'));
-            righe = new java.util.ArrayList<>(conf.getComments(risalita));
+    private static String comment(ConfigurationSection conf, String key) {
+        java.util.List<String> rows = new java.util.ArrayList<>(conf.getComments(key));
+        rows.addAll(conf.getInlineComments(key));
+        String bubbleUp = key;
+        while (rows.isEmpty() && bubbleUp.contains(".")) {
+            bubbleUp = bubbleUp.substring(0, bubbleUp.lastIndexOf('.'));
+            rows = new java.util.ArrayList<>(conf.getComments(bubbleUp));
         }
         StringBuilder sb = new StringBuilder();
-        for (String r : righe) {
+        for (String r : rows) {
             String t = r == null ? "" : r.trim();
             if (t.isEmpty()) {
                 continue;
@@ -303,11 +303,11 @@ public final class StaffGuide {
     }
 
     /** Il valore in una cella: niente a capo, e le sfilze lunghe (messaggi, liste) si accorciano. */
-    private static String valoreLeggibile(Object valore) {
-        if (valore == null) {
+    private static String readableValue(Object value) {
+        if (value == null) {
             return "—";
         }
-        String t = String.valueOf(valore).replace("\n", " ").replace("|", "\\|").trim();
+        String t = String.valueOf(value).replace("\n", " ").replace("|", "\\|").trim();
         return t.length() <= 140 ? t : t.substring(0, 139) + "…";
     }
 
@@ -319,26 +319,26 @@ public final class StaffGuide {
      * @param conf   il file gia' caricato
      * @param titolo il titolo della sezione, es. "Impostazioni delle sanzioni"
      */
-    public StaffGuide impostazioniDa(org.bukkit.configuration.Configuration conf, String titolo,
-                                     String... chiaveESpiegazione) {
+    public StaffGuide settingsFrom(org.bukkit.configuration.Configuration conf, String title,
+                                     String... keyAndExplanation) {
         if (conf == null) {
             return this;
         }
-        html.append("<h4>").append(esc(titolo)).append("</h4>\n");
-        md.append("## ").append(titolo).append("\n\n");
-        tabellaImpostazioni(conf, aMano(chiaveESpiegazione));
+        html.append("<h4>").append(escapeHtml(title)).append("</h4>\n");
+        md.append("## ").append(title).append("\n\n");
+        settingsTable(conf, byHand(keyAndExplanation));
         return this;
     }
 
     /** Un guasto tipico di questo plugin e cosa fare. Vanno in fondo, tutti insieme. */
-    public StaffGuide guasto(String problema, String cosaFare) {
-        guasti.add(new String[] { problema, cosaFare });
+    public StaffGuide issue(String problem, String whatToDo) {
+        issues.add(new String[] { problem, whatToDo });
         return this;
     }
 
     /** Una trappola vera: cose che sembrano innocue e non lo sono. */
-    public StaffGuide mai(String cosa) {
-        mai.add(cosa);
+    public StaffGuide never(String what) {
+        never.add(what);
         return this;
     }
 
@@ -347,21 +347,21 @@ public final class StaffGuide {
      * Se qualcosa va storto lo dice nel log e basta: una guida mancante non deve mai
      * impedire a un plugin di partire.
      */
-    public void scrivi() {
-        if (!guasti.isEmpty()) {
+    public void write() {
+        if (!issues.isEmpty()) {
             html.append("<h4>Quando qualcosa non va</h4>\n<div class=\"guida-casi\">\n");
             md.append("## Quando qualcosa non va\n\n");
-            for (String[] g : guasti) {
+            for (String[] g : issues) {
                 html.append("<div class=\"guida-caso\"><p class=\"guida-caso-tit\">").append(ric(g[0]))
                     .append("</p><p>").append(ric(g[1])).append("</p></div>\n");
                 md.append("**").append(g[0]).append("** — ").append(g[1]).append("\n\n");
             }
             html.append("</div>\n");
         }
-        if (!mai.isEmpty()) {
+        if (!never.isEmpty()) {
             html.append("<h4>Cosa non fare</h4>\n<ul class=\"guida-mai\">\n");
             md.append("## Cosa non fare\n\n");
-            for (String m : mai) {
+            for (String m : never) {
                 html.append("<li>").append(ric(m)).append("</li>\n");
                 md.append("- ").append(m).append("\n");
             }
@@ -369,15 +369,15 @@ public final class StaffGuide {
             md.append("\n");
         }
 
-        String versione = pluginYml == null ? "" : pluginYml.getString("version", "");
-        String documento = "<!--guida\n"
-                + "title: " + titolo + "\n"
-                + "version: " + versione + "\n"
-                + "sort_order: " + ordine + "\n"
+        String version = pluginYml == null ? "" : pluginYml.getString("version", "");
+        String document = "<!--guida\n"
+                + "title: " + title + "\n"
+                + "version: " + version + "\n"
+                + "sort_order: " + order + "\n"
                 + "-->\n" + html;
 
-        String readme = "# " + titolo + "\n\n"
-                + "_Versione " + versione + ". Questo file e la Guida per amministratori del sito "
+        String readme = "# " + title + "\n\n"
+                + "_Versione " + version + ". Questo file e la Guida per amministratori del sito "
                 + "sono generati insieme dal plugin: non si modificano a mano, e non possono divergere._\n\n"
                 + md;
 
@@ -386,7 +386,7 @@ public final class StaffGuide {
                 return;
             }
             Files.writeString(plugin.getDataFolder().toPath().resolve("guida-staff.html"),
-                    documento, StandardCharsets.UTF_8);
+                    document, StandardCharsets.UTF_8);
             Files.writeString(plugin.getDataFolder().toPath().resolve("README.md"),
                     readme, StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -396,43 +396,43 @@ public final class StaffGuide {
 
     // ------------------------------------------------------------------ tabelle
 
-    private void apriTabella(String... intestazioni) {
+    private void openTable(String... headers) {
         html.append("<table><thead><tr>");
-        for (String t : intestazioni) {
-            html.append("<th>").append(esc(t)).append("</th>");
+        for (String t : headers) {
+            html.append("<th>").append(escapeHtml(t)).append("</th>");
         }
         html.append("</tr></thead><tbody>\n");
 
-        md.append("| ").append(String.join(" | ", intestazioni)).append(" |\n|");
-        for (int i = 0; i < intestazioni.length; i++) {
+        md.append("| ").append(String.join(" | ", headers)).append(" |\n|");
+        for (int i = 0; i < headers.length; i++) {
             md.append("---|");
         }
         md.append("\n");
     }
 
-    private void riga(String... celle) {
+    private void row(String... cells) {
         html.append("<tr>");
-        for (String c : celle) {
+        for (String c : cells) {
             html.append("<td>").append(ric(c)).append("</td>");
         }
         html.append("</tr>\n");
-        md.append("| ").append(String.join(" | ", celle)).append(" |\n");
+        md.append("| ").append(String.join(" | ", cells)).append(" |\n");
     }
 
-    private void chiudiTabella() {
+    private void closeTable() {
         html.append("</tbody></table>\n");
         md.append("\n");
     }
 
     /** Marca un pezzo come codice: nel markdown coi backtick, nell'HTML con &lt;code&gt;. */
-    private static String codice(String s) {
+    private static String code(String s) {
         return "`" + (s == null ? "" : s) + "`";
     }
 
     // ------------------------------------------------------------------ lettura
 
     /** Il plugin.yml dentro il jar: e' la fonte di comandi, permessi e versione. */
-    private static YamlConfiguration leggiPluginYml(JavaPlugin plugin) {
+    private static YamlConfiguration readPluginYml(JavaPlugin plugin) {
         try (InputStream in = plugin.getResource("plugin.yml")) {
             if (in == null) {
                 return null;
@@ -453,7 +453,7 @@ public final class StaffGuide {
      * Le sezioni dell'aiuto in gioco, da {@code messages.yml} nella cartella del plugin.
      * Si legge il file SUL DISCO, non quello nel jar: e' quello che il server sta usando davvero.
      */
-    private ConfigurationSection leggiSezioniAiuto() {
+    private ConfigurationSection readHelpSections() {
         java.io.File f = new java.io.File(plugin.getDataFolder(), "messages.yml");
         if (!f.isFile()) {
             return null;
@@ -462,8 +462,8 @@ public final class StaffGuide {
     }
 
     /** "op" e "true" non dicono niente a chi non e' un programmatore. */
-    private static String descriviDefault(String valore) {
-        return switch (String.valueOf(valore).toLowerCase()) {
+    private static String describeDefault(String value) {
+        return switch (String.valueOf(value).toLowerCase()) {
             case "true" -> "tutti";
             case "false" -> "nessuno";
             case "not op" -> "chi non è operatore";
@@ -482,37 +482,37 @@ public final class StaffGuide {
         if (s == null) {
             return "";
         }
-        String out = esc(s);
-        out = sostituisciCoppie(out, "**", "<strong>", "</strong>");
-        out = sostituisciCoppie(out, "`", "<code>", "</code>");
+        String out = escapeHtml(s);
+        out = replacePairs(out, "**", "<strong>", "</strong>");
+        out = replacePairs(out, "`", "<code>", "</code>");
         return out;
     }
 
     /** Sostituisce le coppie di delimitatori con i due tag, lasciando in pace i delimitatori spaiati. */
-    private static String sostituisciCoppie(String testo, String segno, String apre, String chiude) {
+    private static String replacePairs(String text, String sign, String opens, String closes) {
         StringBuilder out = new StringBuilder();
         int i = 0;
-        boolean aperto = false;
-        while (i < testo.length()) {
-            int p = testo.indexOf(segno, i);
+        boolean opened = false;
+        while (i < text.length()) {
+            int p = text.indexOf(sign, i);
             if (p < 0) {
-                out.append(testo, i, testo.length());
+                out.append(text, i, text.length());
                 break;
             }
             // Un delimitatore che non ha il suo compagno resta com'e': meglio un asterisco
             // visibile che mezza pagina in grassetto.
-            if (!aperto && testo.indexOf(segno, p + segno.length()) < 0) {
-                out.append(testo, i, testo.length());
+            if (!opened && text.indexOf(sign, p + sign.length()) < 0) {
+                out.append(text, i, text.length());
                 break;
             }
-            out.append(testo, i, p).append(aperto ? chiude : apre);
-            aperto = !aperto;
-            i = p + segno.length();
+            out.append(text, i, p).append(opened ? closes : opens);
+            opened = !opened;
+            i = p + sign.length();
         }
         return out.toString();
     }
 
-    private static String esc(String s) {
+    private static String escapeHtml(String s) {
         if (s == null) {
             return "";
         }

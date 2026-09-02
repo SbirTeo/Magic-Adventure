@@ -34,9 +34,9 @@ public final class MenuCommand extends Command {
      */
     private volatile String menu;
 
-    public MenuCommand(MagixMenus plugin, String nome, List<String> alias, String menu,
-                       String permesso, String descrizione) {
-        super(nome, descrizione, "/" + nome, alias);
+    public MenuCommand(MagixMenus plugin, String name, List<String> alias, String menu,
+                       String permesso, String description) {
+        super(name, description, "/" + name, alias);
         this.plugin = plugin;
         this.menu = menu;
         if (permesso != null && !permesso.isBlank()) {
@@ -55,16 +55,16 @@ public final class MenuCommand extends Command {
     }
 
     @Override
-    public boolean execute(CommandSender mittente, String etichetta, String[] argomenti) {
+    public boolean execute(CommandSender mittente, String label, String[] arguments) {
         if (menu == null) {
-            plugin.messaggi().send(mittente, "menu-removed", "command", etichetta);
+            plugin.messages().send(mittente, "menu-removed", "command", label);
             return true;
         }
         if (!(mittente instanceof Player p)) {
-            mittente.sendMessage(plugin.messaggi().get("players-only"));
+            mittente.sendMessage(plugin.messages().get("players-only"));
             return true;
         }
-        plugin.menu().apriPerNome(p, menu, Arrays.asList(argomenti), null);
+        plugin.menu().openByName(p, menu, Arrays.asList(arguments), null);
         return true;
     }
 }

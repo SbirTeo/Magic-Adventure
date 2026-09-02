@@ -105,6 +105,8 @@ public final class FactionManager {
                     f.setScoreSince(since);
                     f.setScoreSampledAt(sampledAt);
                     f.setScore(rs.getDouble("score"));
+                    String detail = rs.getString("score_detail");
+                    if (detail != null && !detail.isEmpty()) f.setScoreDetail(detail);
                     byId.put(f.getId(), f);
                     byName.put(f.getName().toLowerCase(Locale.ROOT), f.getId());
                 }
@@ -396,15 +398,17 @@ public final class FactionManager {
         final long fid = f.getId();
         final double bankAcc = f.getBankAvgAccum(), powAcc = f.getPowerAvgAccum(), sc = f.getScore();
         final long sampledAt = f.getScoreSampledAt(), since = f.getScoreSince();
+        final String detail = f.getScoreDetail();
         write("saveScoreSample", c -> {
             try (PreparedStatement ps = c.prepareStatement(
-                    "UPDATE factions SET bank_avg_accum=?, power_avg_accum=?, score_sampled_at=?, score_since=?, score=? WHERE id=?")) {
+                    "UPDATE factions SET bank_avg_accum=?, power_avg_accum=?, score_sampled_at=?, score_since=?, score=?, score_detail=? WHERE id=?")) {
                 ps.setDouble(1, bankAcc);
                 ps.setDouble(2, powAcc);
                 ps.setLong(3, sampledAt);
                 ps.setLong(4, since);
                 ps.setDouble(5, sc);
-                ps.setLong(6, fid);
+                ps.setString(6, detail);
+                ps.setLong(7, fid);
                 ps.executeUpdate();
             }
         });

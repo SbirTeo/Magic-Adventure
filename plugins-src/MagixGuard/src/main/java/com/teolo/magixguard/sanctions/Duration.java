@@ -27,11 +27,11 @@ public final class Duration {
      * oppure {@code 0} se la stringa non si capisce: chi chiama decide cosa farne, ma non
      * si inventa mai una durata al posto di chi ha scritto.
      */
-    public static long leggi(String testo) {
-        if (testo == null) {
+    public static long read(String text) {
+        if (text == null) {
             return 0L;
         }
-        String s = testo.trim().toLowerCase();
+        String s = text.trim().toLowerCase();
         if (s.isEmpty()) {
             return 0L;
         }
@@ -43,12 +43,12 @@ public final class Duration {
         }
 
         long totale = 0L;
-        long numero = 0L;
+        long number = 0L;
         boolean visto = false;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c >= '0' && c <= '9') {
-                numero = numero * 10 + (c - '0');
+                number = number * 10 + (c - '0');
                 visto = true;
                 continue;
             }
@@ -63,20 +63,20 @@ public final class Duration {
             if (unita == 0L || !visto) {
                 return 0L;   // carattere che non c'entra: meglio non capire che indovinare
             }
-            totale += numero * unita;
-            numero = 0L;
+            totale += number * unita;
+            number = 0L;
             visto = false;
         }
         // Un numero senza unita' finale (es. "30") si intende in minuti: e' la lettura
         // piu' prudente, ed e' quella che uno staff si aspetta scrivendo /mute Tizio 30.
         if (visto) {
-            totale += numero * MINUTO;
+            totale += number * MINUTO;
         }
         return totale;
     }
 
     /** Come si racconta a un essere umano: "3 giorni", "30 minuti", "permanente". */
-    public static String scrivi(long millis) {
+    public static String write(long millis) {
         if (millis == PERMANENTE) {
             return "permanente";
         }
@@ -102,6 +102,6 @@ public final class Duration {
     /** Quanto manca da adesso a quel momento, detto in italiano. */
     public static String mancante(long fineMillis) {
         long resta = fineMillis - System.currentTimeMillis();
-        return resta <= 0 ? "poco" : scrivi(resta);
+        return resta <= 0 ? "poco" : write(resta);
     }
 }

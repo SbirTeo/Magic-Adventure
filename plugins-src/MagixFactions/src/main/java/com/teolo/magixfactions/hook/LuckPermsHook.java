@@ -59,24 +59,24 @@ public final class LuckPermsHook {
      *
      * @return la mappa permesso -&gt; valore, o {@code null} se la lettura non e' riuscita.
      */
-    public Map<String, Boolean> permessi(UUID uuid) {
+    public Map<String, Boolean> permissions(UUID uuid) {
         if (api == null) return null;
         try {
             User user = api.getUserManager().getUser(uuid);
-            boolean caricatoDaNoi = false;
+            boolean loadedByUs = false;
             if (user == null) {
                 user = api.getUserManager().loadUser(uuid).join();
-                caricatoDaNoi = true;
+                loadedByUs = true;
             }
             if (user == null) return null;
             QueryOptions opzioni = api.getContextManager().getStaticQueryOptions();
             // Copia: la mappa di LuckPerms appartiene alla sua cache, che puo' essere ricalcolata sotto
             // di noi mentre la stiamo leggendo dal nostro thread.
-            Map<String, Boolean> copia = new HashMap<>(user.getCachedData().getPermissionData(opzioni).getPermissionMap());
+            Map<String, Boolean> copy = new HashMap<>(user.getCachedData().getPermissionData(opzioni).getPermissionMap());
             // Un utente caricato da noi lo scarichiamo noi: senza, ogni giro lascerebbe in memoria a
             // LuckPerms tutti i giocatori mai passati dal server.
-            if (caricatoDaNoi) api.getUserManager().cleanupUser(user);
-            return copia;
+            if (loadedByUs) api.getUserManager().cleanupUser(user);
+            return copy;
         } catch (Exception e) {
             plugin.getLogger().warning("[Potenza] lettura permessi offline di " + uuid + ": " + e.getMessage());
             return null;

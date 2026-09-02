@@ -38,17 +38,17 @@ import java.util.Locale;
  * che se ne aggiunge una in mezzo. Cosi' invece l'ordine di lettura e' l'ordine dei fatti, che e'
  * anche l'unico modo in cui l'editor sul sito puo' mostrarli come un elenco che si trascina.
  */
-public record Action(Tipo tipo, String argomento, Requirements condizione,
+public record Action(Type type, String argomento, Requirements condizione,
                      List<Action> allora, List<Action> altrimenti) {
 
     /** Action semplice: tipo e argomento, senza condizioni. */
-    public static Action di(Tipo tipo, String argomento) {
-        return new Action(tipo, argomento, Requirements.NESSUNO, List.of(), List.of());
+    public static Action di(Type type, String argomento) {
+        return new Action(type, argomento, Requirements.NESSUNO, List.of(), List.of());
     }
 
-    public enum Tipo {
+    public enum Type {
         /** Il comando viene eseguito DAL GIOCATORE, con i suoi permessi. */
-        COMANDO(true),
+        COMMAND(true),
         /** Il comando viene eseguito dalla console: serve per quello che il giocatore non potrebbe fare. */
         CONSOLE(true),
         /**
@@ -56,31 +56,31 @@ public record Action(Tipo tipo, String argomento, Requirements condizione,
          * Da usare il meno possibile: quasi sempre CONSOLE fa la stessa cosa senza dare niente a
          * nessuno. Si puo' spegnere del tutto dal config.
          */
-        COMANDO_OP(true),
+        COMMAND_OP(true),
         /** Un messaggio in chat solo a chi ha cliccato. */
-        MESSAGGIO(true),
+        MESSAGE(true),
         /** Un messaggio in chat a tutto il server. */
         ANNUNCIO(true),
         /** Titolo a schermo: {@code "titolo: Grande|piccolo"}. */
-        TITOLO(true),
+        TITLE(true),
         /** La riga sopra la barra degli oggetti. */
         ACTIONBAR(true),
         /** Un suono: {@code "suono: BLOCK_NOTE_BLOCK_PLING"}, o {@code "...|volume|tono"}. */
         SUONO(true),
         /** Apre un altro menu: {@code "menu: negozio"}, con eventuali argomenti dopo il nome. */
-        APRI_MENU(true),
+        OPEN_MENU(true),
         /** Torna al menu da cui si e' arrivati. */
-        INDIETRO(false),
+        BACK(false),
         /** Chiude il menu. */
-        CHIUDI(false),
+        CLOSE(false),
         /** Ridisegna subito il menu, senza aspettare il prossimo aggiornamento. */
-        AGGIORNA(false),
+        REFRESH(false),
         /** Cambia pagina: {@code "pagina: avanti"}, {@code "pagina: indietro"}, {@code "pagina: 3"}. */
-        PAGINA(true),
+        PAGE(true),
         /** Aggiunge monete (serve Vault). */
         DAI_SOLDI(true),
         /** Toglie monete (serve Vault). Se non bastano, l'azione fallisce e la catena si ferma. */
-        TOGLI_SOLDI(true),
+        TAKE_MONEY(true),
         /** Ferma la catena per tanti tick, poi riprende da dove era. */
         ATTESA(true),
         /** Blocco condizionale: vedi l'esempio in cima. */
@@ -88,7 +88,7 @@ public record Action(Tipo tipo, String argomento, Requirements condizione,
 
         private final boolean vuoleArgomento;
 
-        Tipo(boolean vuoleArgomento) {
+        Type(boolean vuoleArgomento) {
             this.vuoleArgomento = vuoleArgomento;
         }
 
@@ -97,50 +97,50 @@ public record Action(Tipo tipo, String argomento, Requirements condizione,
         }
 
         /** Il nome con cui questa azione si scrive nei file (inglese, come tutte le chiavi). */
-        public String nomeFile() {
+        public String fileName() {
             return switch (this) {
-                case COMANDO -> "command";
+                case COMMAND -> "command";
                 case CONSOLE -> "console";
-                case COMANDO_OP -> "op_command";
-                case MESSAGGIO -> "message";
+                case COMMAND_OP -> "op_command";
+                case MESSAGE -> "message";
                 case ANNUNCIO -> "broadcast";
-                case TITOLO -> "title";
+                case TITLE -> "title";
                 case ACTIONBAR -> "actionbar";
                 case SUONO -> "sound";
-                case APRI_MENU -> "menu";
-                case INDIETRO -> "back";
-                case CHIUDI -> "close";
-                case AGGIORNA -> "refresh";
-                case PAGINA -> "page";
+                case OPEN_MENU -> "menu";
+                case BACK -> "back";
+                case CLOSE -> "close";
+                case REFRESH -> "refresh";
+                case PAGE -> "page";
                 case DAI_SOLDI -> "give_money";
-                case TOGLI_SOLDI -> "take_money";
+                case TAKE_MONEY -> "take_money";
                 case ATTESA -> "wait";
                 case SE -> "if";
             };
         }
 
         /** Il nome scritto nel file: quello inglese, o il vecchio nome italiano. */
-        public static Tipo leggi(String s) {
+        public static Type read(String s) {
             if (s == null) {
                 return null;
             }
             String n = s.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
             return switch (n) {
-                case "COMANDO", "COMMAND", "GIOCATORE", "PLAYER", "PLAYER_COMMAND" -> COMANDO;
+                case "COMANDO", "COMMAND", "GIOCATORE", "PLAYER", "PLAYER_COMMAND" -> COMMAND;
                 case "CONSOLE", "CONSOLE_COMMAND" -> CONSOLE;
-                case "COMANDO_OP", "OP_COMMAND", "OP", "PLAYER_COMMAND_OP" -> COMANDO_OP;
-                case "MESSAGGIO", "MSG", "MESSAGE", "CHAT" -> MESSAGGIO;
+                case "COMANDO_OP", "OP_COMMAND", "OP", "PLAYER_COMMAND_OP" -> COMMAND_OP;
+                case "MESSAGGIO", "MSG", "MESSAGE", "CHAT" -> MESSAGE;
                 case "ANNUNCIO", "BROADCAST" -> ANNUNCIO;
-                case "TITOLO", "TITLE" -> TITOLO;
+                case "TITOLO", "TITLE" -> TITLE;
                 case "ACTIONBAR", "BARRA" -> ACTIONBAR;
                 case "SUONO", "SOUND" -> SUONO;
-                case "APRI_MENU", "MENU", "APRI", "OPEN_MENU", "OPEN" -> APRI_MENU;
-                case "INDIETRO", "BACK" -> INDIETRO;
-                case "CHIUDI", "CLOSE" -> CHIUDI;
-                case "AGGIORNA", "REFRESH", "UPDATE" -> AGGIORNA;
-                case "PAGINA", "PAGE" -> PAGINA;
+                case "APRI_MENU", "MENU", "APRI", "OPEN_MENU", "OPEN" -> OPEN_MENU;
+                case "INDIETRO", "BACK" -> BACK;
+                case "CHIUDI", "CLOSE" -> CLOSE;
+                case "AGGIORNA", "REFRESH", "UPDATE" -> REFRESH;
+                case "PAGINA", "PAGE" -> PAGE;
                 case "DAI_SOLDI", "GIVE_MONEY", "DEPOSIT" -> DAI_SOLDI;
-                case "TOGLI_SOLDI", "TAKE_MONEY", "WITHDRAW" -> TOGLI_SOLDI;
+                case "TOGLI_SOLDI", "TAKE_MONEY", "WITHDRAW" -> TAKE_MONEY;
                 case "ATTESA", "ASPETTA", "DELAY", "WAIT" -> ATTESA;
                 default -> null;
             };
@@ -148,11 +148,11 @@ public record Action(Tipo tipo, String argomento, Requirements condizione,
     }
 
     /** Elenco dei tipi scrivibili in un file, per i messaggi d'errore e per l'editor sul sito. */
-    public static List<String> tipiDisponibili() {
+    public static List<String> availableTypes() {
         List<String> out = new java.util.ArrayList<>();
-        for (Tipo t : Tipo.values()) {
-            if (t != Tipo.SE) {
-                out.add(t.nomeFile());   // il blocco "if" non si sceglie da una tendina: ha una forma sua
+        for (Type t : Type.values()) {
+            if (t != Type.SE) {
+                out.add(t.fileName());   // il blocco "if" non si sceglie da una tendina: ha una forma sua
             }
         }
         return out;

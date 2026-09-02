@@ -79,21 +79,23 @@ public final class Database {
                 st.execute(ddl);
             }
             // Migrazioni incrementali: la colonna si aggiunge solo se davvero non c'e'.
-            aggiungiSeManca(c, st, "players", "map_rows", "INT DEFAULT 0");
+            addIfMissing(c, st, "players", "map_rows", "INT DEFAULT 0");
             // Avanzamento verso il prossimo punto di Potenza, cosi' chi si scollega a meta' recupero non
             // ricomincia da capo (vedi PowerManager.tickOnline).
-            aggiungiSeManca(c, st, "players", "power_progress", "INT DEFAULT 0");
-            aggiungiSeManca(c, st, "factions", "bank", "DOUBLE DEFAULT 0");
-            aggiungiSeManca(c, st, "claims", "paid", "DOUBLE DEFAULT 0");
+            addIfMissing(c, st, "players", "power_progress", "INT DEFAULT 0");
+            addIfMissing(c, st, "factions", "bank", "DOUBLE DEFAULT 0");
+            addIfMissing(c, st, "claims", "paid", "DOUBLE DEFAULT 0");
             // Medie nel tempo per il punteggio fazione (giacenza media banca, potenza media): vedi
             // ScoreManager. Sulle fazioni gia' esistenti partono a 0 e la finestra parte dall'upgrade
             // (FactionManager.loadAll inizializza score_since/score_sampled_at al primo caricamento).
-            aggiungiSeManca(c, st, "factions", "bank_avg_accum", "DOUBLE DEFAULT 0");
-            aggiungiSeManca(c, st, "factions", "power_avg_accum", "DOUBLE DEFAULT 0");
-            aggiungiSeManca(c, st, "factions", "score_sampled_at", "BIGINT DEFAULT 0");
-            aggiungiSeManca(c, st, "factions", "score_since", "BIGINT DEFAULT 0");
+            addIfMissing(c, st, "factions", "bank_avg_accum", "DOUBLE DEFAULT 0");
+            addIfMissing(c, st, "factions", "power_avg_accum", "DOUBLE DEFAULT 0");
+            addIfMissing(c, st, "factions", "score_sampled_at", "BIGINT DEFAULT 0");
+            addIfMissing(c, st, "factions", "score_since", "BIGINT DEFAULT 0");
             // Punteggio composito calcolato: snapshot letto dal sito per la classifica (vedi ScoreManager).
-            aggiungiSeManca(c, st, "factions", "score", "DOUBLE DEFAULT 0");
+            addIfMissing(c, st, "factions", "score", "DOUBLE DEFAULT 0");
+            // Dettaglio del punteggio in JSON: lo legge il sito per il tooltip "come si arriva a questo valore".
+            addIfMissing(c, st, "factions", "score_detail", "TEXT");
         }
     }
 
@@ -106,12 +108,12 @@ public final class Database {
      * che sembravano un guasto senza esserlo. Chiedere prima l'elenco delle colonne costa una
      * query per tabella, una volta sola all'avvio.
      */
-    private void aggiungiSeManca(Connection c, Statement st, String tabella, String colonna, String tipo)
+    private void addIfMissing(Connection c, Statement st, String tabella, String colonna, String type)
             throws SQLException {
         String cercata = colonna.toLowerCase(Locale.ROOT);
         if (colonne(c, tabella).contains(cercata)) return;
         try {
-            st.execute("ALTER TABLE " + tabella + " ADD COLUMN " + colonna + " " + tipo);
+            st.execute("ALTER TABLE " + tabella + " ADD COLUMN " + colonna + " " + type);
         } catch (SQLException e) {
             // Se nonostante tutto la colonna adesso c'e' (metadati incompleti, o due avvii che si
             // sovrappongono), l'obiettivo e' raggiunto lo stesso: e' il solo caso che si ingoia.
@@ -128,8 +130,8 @@ public final class Database {
         Set<String> out = new HashSet<>();
         try (ResultSet rs = c.getMetaData().getColumns(catalogo, null, tabella, null)) {
             while (rs.next()) {
-                String nome = rs.getString("COLUMN_NAME");
-                if (nome != null) out.add(nome.toLowerCase(Locale.ROOT));
+                String name = rs.getString("COLUMN_NAME");
+                if (name != null) out.add(name.toLowerCase(Locale.ROOT));
             }
         }
         return out;
@@ -152,7 +154,8 @@ public final class Database {
                 "leader VARCHAR(36), power DOUBLE DEFAULT 0, created_at BIGINT DEFAULT 0, " +
                 "member_limit_bonus BIGINT DEFAULT 0, bank DOUBLE DEFAULT 0, " +
                 "bank_avg_accum DOUBLE DEFAULT 0, power_avg_accum DOUBLE DEFAULT 0, " +
-                "score_sampled_at BIGINT DEFAULT 0, score_since BIGINT DEFAULT 0, score DOUBLE DEFAULT 0)");
+                "score_sampled_at BIGINT DEFAULT 0, score_since BIGINT DEFAULT 0, score DOUBLE DEFAULT 0, " +
+                "score_detail TEXT)");
         l.add("CREATE TABLE IF NOT EXISTS faction_members (" +
                 "uuid VARCHAR(36) PRIMARY KEY, faction_id BIGINT, rank VARCHAR(32), " +
                 "rank_since BIGINT DEFAULT 0, joined_at BIGINT DEFAULT 0)");

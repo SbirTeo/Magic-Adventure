@@ -272,7 +272,7 @@ public final class NpcManager {
      * doppioni e residui di entita' cancellate mentre il chunk era scarico.
      */
     public void onChunkLoad(Chunk chunk) {
-        boolean purge = plugin.getConfig().getBoolean("pulisci-orfani", true);
+        boolean purge = plugin.getConfig().getBoolean("clean-orphans", true);
         boolean changed = false;
         for (Entity e : chunk.getEntities()) {
             String id = tagOf(e);
@@ -443,9 +443,9 @@ public final class NpcManager {
      */
     public void applySkin(NpcDef d, Mannequin man) {
         String nick = d.skinNick();
-        String chiave = nick.toLowerCase(Locale.ROOT);
+        String key = nick.toLowerCase(Locale.ROOT);
 
-        PlayerProfile inCache = skinCache.get(chiave);
+        PlayerProfile inCache = skinCache.get(key);
         if (inCache != null) {
             if (!vestita(man, nick)) man.setProfile(ResolvableProfile.resolvableProfile(inCache));
             return;
@@ -454,8 +454,8 @@ public final class NpcManager {
         Player online = Bukkit.getPlayerExact(nick);
         if (online != null) {
             PlayerProfile profilo = online.getPlayerProfile();
-            skinCache.put(chiave, profilo);
-            skinRetry.remove(chiave);
+            skinCache.put(key, profilo);
+            skinRetry.remove(key);
             man.setProfile(ResolvableProfile.resolvableProfile(profilo));
             return;
         }
@@ -463,7 +463,7 @@ public final class NpcManager {
         try {
             // Se il nome e' gia' quello giusto non ripetiamo il setter: rimandare il profilo a
             // ogni controllo farebbe ricaricare l'entita' ai client vicini.
-            if (!nick.equalsIgnoreCase(nomeProfilo(man))) {
+            if (!nick.equalsIgnoreCase(profileName(man))) {
                 man.setProfile(ResolvableProfile.resolvableProfile().name(nick).build());
             }
         } catch (RuntimeException ex) {
@@ -474,9 +474,9 @@ public final class NpcManager {
 
         // Nick gia' bocciato da poco (non esiste su Mojang, o Mojang non risponde): si riprova
         // solo allo scadere dell'attesa, non a ogni controllo.
-        Long riprovaDa = skinRetry.get(chiave);
+        Long riprovaDa = skinRetry.get(key);
         if (riprovaDa != null && System.currentTimeMillis() < riprovaDa) return;
-        if (!skinPending.add(chiave)) return; // richiesta gia' in volo per questo nick
+        if (!skinPending.add(key)) return; // richiesta gia' in volo per questo nick
 
         UUID entityId = man.getUniqueId();
         int minuti = Math.max(1, plugin.getConfig().getInt("skin.retry-minutes", 30));
@@ -488,19 +488,19 @@ public final class NpcManager {
             } catch (Exception ex) {
                 ok = false;
             } finally {
-                skinPending.remove(chiave);
+                skinPending.remove(key);
             }
             if (!ok) {
                 // Il messaggio esce una volta sola per nick: senza questo filtro il controllo
                 // periodico lo ripeterebbe ogni pochi secondi per sempre.
-                boolean primaVolta = skinRetry.put(chiave,
+                boolean primaVolta = skinRetry.put(key,
                         System.currentTimeMillis() + minuti * 60_000L) == null;
                 if (primaVolta) plugin.getLogger().info("Texture skin non trovate per '" + nick
                         + "' (entita' " + d.name + "): riprovo tra " + minuti + " minuti.");
                 return;
             }
-            skinRetry.remove(chiave);
-            skinCache.put(chiave, profile);
+            skinRetry.remove(key);
+            skinCache.put(key, profile);
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Entity e = Bukkit.getEntity(entityId);
                 if (e instanceof Mannequin m) m.setProfile(ResolvableProfile.resolvableProfile(profile));
@@ -515,7 +515,7 @@ public final class NpcManager {
     }
 
     /** Nome del profilo attualmente addosso all'entita' (null se non ne ha). */
-    private String nomeProfilo(Mannequin man) {
+    private String profileName(Mannequin man) {
         ResolvableProfile p = man.getProfile();
         return p == null ? null : p.name();
     }

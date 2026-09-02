@@ -244,11 +244,11 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             reply(sender, error("Uso: /mg link <nickname1> <nickname2> [motivo]"));
             return;
         }
-        String motivo = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) : "collegamento manuale";
+        String reason = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) : "collegamento manuale";
         withPair(sender, args[1], args[2], (a, b) -> {
             long now = System.currentTimeMillis();
             dao.setLinkManual(a.id(), b.id(), true, 100, now);
-            dao.appendAudit(sender.getName(), "LINK_MANUALE", a.name() + " <-> " + b.name(), motivo, now);
+            dao.appendAudit(sender.getName(), "LINK_MANUALE", a.name() + " <-> " + b.name(), reason, now);
             reply(sender, Component.text("Collegamento forzato fra " + a.name() + " e " + b.name()
                     + ". Resta registrato nel registro firmato.", NamedTextColor.GREEN));
         });
@@ -263,12 +263,12 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             reply(sender, error("Uso: /mg unlink <nickname1> <nickname2> [motivo]"));
             return;
         }
-        String motivo = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length))
+        String reason = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length))
                 : "coppia dichiarata legittima";
         withPair(sender, args[1], args[2], (a, b) -> {
             long now = System.currentTimeMillis();
-            dao.addWhitelist(a.id(), b.id(), sender.getName(), motivo, now);
-            dao.appendAudit(sender.getName(), "WHITELIST", a.name() + " <-> " + b.name(), motivo, now);
+            dao.addWhitelist(a.id(), b.id(), sender.getName(), reason, now);
+            dao.appendAudit(sender.getName(), "WHITELIST", a.name() + " <-> " + b.name(), reason, now);
             reply(sender, Component.text(a.name() + " e " + b.name()
                             + " sono ora dichiarati legittimi: niente piu' segnalazioni per questa coppia.",
                     NamedTextColor.GREEN));

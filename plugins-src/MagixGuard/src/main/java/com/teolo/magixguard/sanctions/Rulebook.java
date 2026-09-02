@@ -18,27 +18,27 @@ public final class Rulebook {
     }
 
     /** Costruisce il blocco HTML. Niente stile inline: le classi le veste il CSS del sito. */
-    public static String genera(SanctionsConfig cfg) {
+    public static String generate(SanctionsConfig cfg) {
         StringBuilder b = new StringBuilder();
 
-        String intro = cfg.introduzioneRegolamento;
+        String intro = cfg.rulesIntro;
         if (intro != null && !intro.isBlank()) {
-            b.append("<p>").append(esc(intro.replace("{dimezzamento}",
-                    String.valueOf(Math.round(cfg.dimezzamentoGiorni))))).append("</p>\n");
+            b.append("<p>").append(escapeHtml(intro.replace("{dimezzamento}",
+                    String.valueOf(Math.round(cfg.halfLifeDays))))).append("</p>\n");
         }
 
         // --- cosa costa cosa ---
         b.append("<table><thead><tr><th>Violazione</th><th>Punti</th><th>Dove vale</th></tr></thead><tbody>\n");
-        for (SanctionsConfig.Categoria c : cfg.categorie.values()) {
-            if (c.punti() <= 0) {
+        for (SanctionsConfig.Category c : cfg.categories.values()) {
+            if (c.points() <= 0) {
                 continue;   // le voci senza punti non sono violazioni: sono etichette di servizio
             }
-            b.append("<tr><td><strong>").append(esc(c.nome())).append("</strong>");
-            if (c.descrizione() != null && !c.descrizione().isBlank()) {
-                b.append("<br><span class=\"regolamento-dettaglio\">").append(esc(c.descrizione())).append("</span>");
+            b.append("<tr><td><strong>").append(escapeHtml(c.name())).append("</strong>");
+            if (c.description() != null && !c.description().isBlank()) {
+                b.append("<br><span class=\"regolamento-dettaglio\">").append(escapeHtml(c.description())).append("</span>");
             }
-            b.append("</td><td>").append(c.punti()).append("</td><td>")
-             .append(esc(c.ambito().etichetta())).append("</td></tr>\n");
+            b.append("</td><td>").append(c.points()).append("</td><td>")
+             .append(escapeHtml(c.scope().label())).append("</td></tr>\n");
         }
         b.append("</tbody></table>\n");
 
@@ -47,11 +47,11 @@ public final class Rulebook {
         b.append("<table><thead><tr><th>Punti</th><th>Provvedimento</th><th>Durata</th></tr></thead><tbody>\n");
         // Le soglie sono tenute dalla piu' alta perche' e' cosi' che si applicano;
         // per leggerle, pero', si va dalla piu' bassa: e' il percorso che fa una persona.
-        for (int i = cfg.soglie.size() - 1; i >= 0; i--) {
-            SanctionsConfig.Soglia s = cfg.soglie.get(i);
-            b.append("<tr><td>").append(s.punti()).append("</td><td>")
-             .append(esc(s.tipo().etichetta())).append("</td><td>")
-             .append(esc(Duration.scrivi(s.durata()))).append("</td></tr>\n");
+        for (int i = cfg.thresholds.size() - 1; i >= 0; i--) {
+            SanctionsConfig.Threshold s = cfg.thresholds.get(i);
+            b.append("<tr><td>").append(s.points()).append("</td><td>")
+             .append(escapeHtml(s.type().label())).append("</td><td>")
+             .append(escapeHtml(Duration.write(s.duration()))).append("</td></tr>\n");
         }
         b.append("</tbody></table>\n");
 
@@ -63,7 +63,7 @@ public final class Rulebook {
         return b.toString();
     }
 
-    private static String esc(String s) {
+    private static String escapeHtml(String s) {
         if (s == null) {
             return "";
         }

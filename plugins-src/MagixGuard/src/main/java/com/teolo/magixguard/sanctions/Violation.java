@@ -20,12 +20,12 @@ import java.util.UUID;
  * @param dettaglio le prove, gia' leggibili da una persona
  * @param quando    quando e' successa
  */
-public record Violation(int id, UUID uuid, String nome, String categoria, int punti,
+public record Violation(int id, UUID uuid, String name, String category, int points,
                          String fonte, String dettaglio, long quando) {
 
-    public static Violation nuova(UUID uuid, String nome, String categoria, int punti,
+    public static Violation nuova(UUID uuid, String name, String category, int points,
                                    String fonte, String dettaglio) {
-        return new Violation(0, uuid, nome, categoria, punti, fonte, dettaglio,
+        return new Violation(0, uuid, name, category, points, fonte, dettaglio,
                 System.currentTimeMillis());
     }
 }

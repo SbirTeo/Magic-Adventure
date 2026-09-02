@@ -15,26 +15,26 @@ public enum Type {
     /** Non puo' entrare (e, secondo l'ambito, nemmeno usare il sito). */
     BAN("ban", "Bandito");
 
-    private final String codice;
-    private final String etichetta;
+    private final String code;
+    private final String label;
 
-    Type(String codice, String etichetta) {
-        this.codice = codice;
-        this.etichetta = etichetta;
+    Type(String code, String label) {
+        this.code = code;
+        this.label = label;
     }
 
     /** Come si chiama nel database e sul sito. */
-    public String codice() {
-        return codice;
+    public String code() {
+        return code;
     }
 
     /** Come si dice a un essere umano. */
-    public String etichetta() {
-        return etichetta;
+    public String label() {
+        return label;
     }
 
     /** Ha una durata? Warn e kick no: valgono nell'istante in cui vengono dati. */
-    public boolean haDurata() {
+    public boolean hasDuration() {
         return this == MUTE || this == BAN;
     }
 
@@ -43,7 +43,7 @@ public enum Type {
             return null;
         }
         for (Type t : values()) {
-            if (t.codice.equalsIgnoreCase(s.trim())) {
+            if (t.code.equalsIgnoreCase(s.trim())) {
                 return t;
             }
         }

@@ -78,16 +78,16 @@ public final class ItemBuilder {
         Logger log = plugin.getLogger();
         List<String> problemi = new ArrayList<>();
 
-        String nomeMateriale = Text.grezzo(p, variabili, def.materiale()).trim();
+        String materialName = Text.raw(p, variabili, def.materiale()).trim();
         boolean testaRichiesta = def.testa() != null && !def.testa().isBlank();
-        Material materiale = Material.matchMaterial(nomeMateriale);
+        Material materiale = Material.matchMaterial(materialName);
         if (materiale == null && testaRichiesta) {
             // Chi scrive "testa: %player_name%" vuole una testa: e' inutile pretendere che si
             // ricordi anche di scrivere PLAYER_HEAD.
             materiale = Material.PLAYER_HEAD;
         }
         if (materiale == null || materiale.isAir()) {
-            return barriera(def.nome(), List.of("l'item \"" + nomeMateriale + "\" non esiste"));
+            return barriera(def.name(), List.of("l'item \"" + materialName + "\" non esiste"));
         }
         if (testaRichiesta && materiale == Material.PLAYER_HEAD) {
             materiale = Material.PLAYER_HEAD;
@@ -95,8 +95,8 @@ public final class ItemBuilder {
 
         ItemStack stack = new ItemStack(materiale, quantita(p, variabili, def, materiale));
 
-        if (def.grezzo() != null && !def.grezzo().isBlank()) {
-            stack = grezzo(log, p, variabili, def, stack, problemi);
+        if (def.raw() != null && !def.raw().isBlank()) {
+            stack = raw(log, p, variabili, def, stack, problemi);
         }
 
         ItemMeta meta = stack.getItemMeta();
@@ -104,35 +104,35 @@ public final class ItemBuilder {
             return stack;
         }
 
-        if (def.titolo() != null) {
-            meta.displayName(senzaCorsivo(Colors.component(Text.applica(p, variabili, def.titolo()))));
+        if (def.title() != null) {
+            meta.displayName(senzaCorsivo(Colors.component(Text.apply(p, variabili, def.title()))));
         }
-        List<String> descrizione = new ArrayList<>(def.descrizione());
+        List<String> description = new ArrayList<>(def.description());
         if (perIlMenu && def.articolo()
                 && plugin.getConfig().getBoolean("price-in-lore", true)) {
             // Il prezzo si scrive da solo in fondo alla descrizione: scritto a mano finirebbe in
             // due posti (la chiave prezzo e la riga di lore) e prima o poi i due direbbero cose
             // diverse. Come sono fatte quelle righe si decide in messages.yml, non qui.
-            Map<String, String> valori = Shop.valoriPerLaDescrizione(p, variabili, def);
+            Map<String, String> values = Shop.valuesForDescription(p, variabili, def);
             if (def.prezzo() != null && !def.prezzo().isBlank()) {
-                descrizione.addAll(plugin.messaggi().getList("shop.price-lore",
-                        "price", valori.get("price")));
+                description.addAll(plugin.messages().getList("shop.price-lore",
+                        "price", values.get("price")));
             }
             if (def.vendi() != null && !def.vendi().isBlank()) {
-                descrizione.addAll(plugin.messaggi().getList("shop.sell-lore",
-                        "sell", valori.get("sell")));
+                description.addAll(plugin.messages().getList("shop.sell-lore",
+                        "sell", values.get("sell")));
             }
         }
-        if (!descrizione.isEmpty()) {
-            List<Component> righe = new ArrayList<>();
-            for (String r : Text.applica(p, variabili, descrizione)) {
-                righe.add(senzaCorsivo(Colors.component(r)));
+        if (!description.isEmpty()) {
+            List<Component> rows = new ArrayList<>();
+            for (String r : Text.apply(p, variabili, description)) {
+                rows.add(senzaCorsivo(Colors.component(r)));
             }
-            meta.lore(righe);
+            meta.lore(rows);
         }
 
         for (String scritto : def.incantesimi()) {
-            incantesimo(meta, Text.grezzo(p, variabili, scritto), problemi);
+            incantesimo(meta, Text.raw(p, variabili, scritto), problemi);
         }
         if (def.luccica()) {
             // Prima si ottenevano i riflessi mettendo un incantesimo finto e nascondendolo con un
@@ -142,12 +142,12 @@ public final class ItemBuilder {
         if (def.indistruttibile()) {
             meta.setUnbreakable(true);
         }
-        if (def.nascondiDettagli()) {
+        if (def.hideDetails()) {
             meta.addItemFlags(ItemFlag.values());
         }
 
         if (def.modelloCustom() != null && !def.modelloCustom().isBlank()) {
-            Double n = Text.numero(Text.grezzo(p, variabili, def.modelloCustom()));
+            Double n = Text.number(Text.raw(p, variabili, def.modelloCustom()));
             if (n == null) {
                 problemi.add("modello_custom non e' un numero: " + def.modelloCustom());
             } else {
@@ -156,7 +156,7 @@ public final class ItemBuilder {
         }
         if (def.modelloItem() != null && !def.modelloItem().isBlank()) {
             NamespacedKey k = NamespacedKey.fromString(
-                    Text.grezzo(p, variabili, def.modelloItem()).trim().toLowerCase(Locale.ROOT));
+                    Text.raw(p, variabili, def.modelloItem()).trim().toLowerCase(Locale.ROOT));
             if (k == null) {
                 problemi.add("modello_item non e' un nome valido: " + def.modelloItem());
             } else {
@@ -164,11 +164,11 @@ public final class ItemBuilder {
             }
         }
 
-        if (def.colore() != null && !def.colore().isBlank()) {
-            colore(meta, Text.grezzo(p, variabili, def.colore()), problemi);
+        if (def.color() != null && !def.color().isBlank()) {
+            color(meta, Text.raw(p, variabili, def.color()), problemi);
         }
         if (testaRichiesta && meta instanceof SkullMeta teschio) {
-            testa(teschio, Text.grezzo(p, variabili, def.testa()).trim(), problemi);
+            testa(teschio, Text.raw(p, variabili, def.testa()).trim(), problemi);
         }
 
         if (!problemi.isEmpty()) {
@@ -188,10 +188,10 @@ public final class ItemBuilder {
     }
 
     /** L'item che compare al posto di quello che non si e' potuto costruire. */
-    public static ItemStack barriera(String nome, List<String> motivi) {
+    public static ItemStack barriera(String name, List<String> motivi) {
         ItemStack stack = new ItemStack(Material.BARRIER);
         ItemMeta meta = stack.getItemMeta();
-        meta.displayName(senzaCorsivo(Colors.component("&#FF6B6B&lItem con un errore &8· &7" + nome)));
+        meta.displayName(senzaCorsivo(Colors.component("&#FF6B6B&lItem con un errore &8· &7" + name)));
         List<Component> lore = new ArrayList<>();
         for (String m : motivi) {
             lore.add(senzaCorsivo(Colors.component("&#FF6B6B• &7" + m)));
@@ -206,14 +206,14 @@ public final class ItemBuilder {
     // ---------------------------------------------------------------- i pezzi
 
     private static int quantita(Player p, Map<String, String> variabili, ItemDef def, Material m) {
-        Double n = Text.numero(Text.grezzo(p, variabili, def.quantita()));
+        Double n = Text.number(Text.raw(p, variabili, def.quantita()));
         int q = n == null ? 1 : (int) (double) n;
         return Math.max(1, Math.min(q, Math.max(1, m.getMaxStackSize())));
     }
 
-    private static ItemStack grezzo(Logger log, Player p, Map<String, String> variabili,
+    private static ItemStack raw(Logger log, Player p, Map<String, String> variabili,
                                     ItemDef def, ItemStack stack, List<String> problemi) {
-        String snbt = Text.grezzo(p, variabili, def.grezzo()).trim();
+        String snbt = Text.raw(p, variabili, def.raw()).trim();
         if (snbt.isEmpty()) {
             return stack;
         }
@@ -226,34 +226,34 @@ public final class ItemBuilder {
             // Il formato dei componenti cambia fra le versioni di Minecraft: un errore qui e'
             // quasi sempre un menu scritto per una versione precedente, e va detto per intero.
             problemi.add("il campo avanzate non e' stato accettato: " + t.getMessage());
-            log.warning("[MagixMenus] item \"" + def.nome() + "\": componenti non validi \"" + snbt + "\"");
+            log.warning("[MagixMenus] item \"" + def.name() + "\": componenti non validi \"" + snbt + "\"");
             return stack;
         }
     }
 
     private static void incantesimo(ItemMeta meta, String scritto, List<String> problemi) {
         Matcher m = INCANTESIMO.matcher(scritto);
-        String nome;
+        String name;
         int livello = 1;
         if (m.matches()) {
-            nome = m.group(1);
+            name = m.group(1);
             livello = Integer.parseInt(m.group(2));
         } else {
-            nome = scritto.trim();
+            name = scritto.trim();
         }
-        if (nome.isEmpty()) {
+        if (name.isEmpty()) {
             return;
         }
-        Enchantment e = Registry.ENCHANTMENT.match(nome);
+        Enchantment e = Registry.ENCHANTMENT.match(name);
         if (e == null) {
-            problemi.add("incantesimo sconosciuto: " + nome);
+            problemi.add("incantesimo sconosciuto: " + name);
             return;
         }
         meta.addEnchant(e, Math.max(1, livello), true);   // true: anche oltre il limite del gioco
     }
 
-    private static void colore(ItemMeta meta, String scritto, List<String> problemi) {
-        Color c = leggiColore(scritto);
+    private static void color(ItemMeta meta, String scritto, List<String> problemi) {
+        Color c = readColor(scritto);
         if (c == null) {
             problemi.add("colore non valido: " + scritto + " (serve #RRGGBB o r,g,b)");
             return;
@@ -267,7 +267,7 @@ public final class ItemBuilder {
         }
     }
 
-    private static Color leggiColore(String s) {
+    private static Color readColor(String s) {
         String t = s.trim();
         try {
             if (t.startsWith("#")) {
@@ -293,17 +293,17 @@ public final class ItemBuilder {
      * non risponde. Si usa quello che il server ha gia' in memoria; se non ce l'ha, la testa
      * comincia anonima e prende la faccia giusta appena il server risolve il profilo per conto suo.
      */
-    private static void testa(SkullMeta meta, String valore, List<String> problemi) {
-        if (valore.isEmpty()) {
+    private static void testa(SkullMeta meta, String value, List<String> problemi) {
+        if (value.isEmpty()) {
             return;
         }
-        if (valore.startsWith("http://") || valore.startsWith("https://")) {
-            texture(meta, valore, problemi);
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            texture(meta, value, problemi);
             return;
         }
-        if (valore.length() > 60 && valore.matches("[A-Za-z0-9+/=]+")) {
+        if (value.length() > 60 && value.matches("[A-Za-z0-9+/=]+")) {
             try {
-                String json = new String(Base64.getDecoder().decode(valore), StandardCharsets.UTF_8);
+                String json = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
                 Matcher m = URL_TEXTURE.matcher(json);
                 if (m.find()) {
                     texture(meta, m.group(1), problemi);
@@ -314,17 +314,17 @@ public final class ItemBuilder {
             }
         }
 
-        Player online = Bukkit.getPlayerExact(valore);
+        Player online = Bukkit.getPlayerExact(value);
         if (online != null) {
             meta.setPlayerProfile(online.getPlayerProfile());
             return;
         }
-        OfflinePlayer conosciuto = Bukkit.getOfflinePlayerIfCached(valore);
+        OfflinePlayer conosciuto = Bukkit.getOfflinePlayerIfCached(value);
         if (conosciuto != null) {
             meta.setOwningPlayer(conosciuto);
             return;
         }
-        meta.setPlayerProfile(Bukkit.createProfile(valore));
+        meta.setPlayerProfile(Bukkit.createProfile(value));
     }
 
     private static void texture(SkullMeta meta, String url, List<String> problemi) {

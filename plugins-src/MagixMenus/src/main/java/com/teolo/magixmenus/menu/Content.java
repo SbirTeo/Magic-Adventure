@@ -44,28 +44,28 @@ public final class Content {
 
     public enum Fonte {
         /** I giocatori collegati (esclusi quelli che il giocatore non puo' vedere). */
-        GIOCATORI_ONLINE,
+        ONLINE_PLAYERS,
         /** Un elenco scritto a mano nel file. */
-        LISTA,
+        LIST,
         /** Un placeholder che restituisce i valori separati dal separatore scelto. */
         PLACEHOLDER;
 
         /** Il nome con cui questa fonte si scrive nei file. */
-        public String nomeFile() {
+        public String fileName() {
             return switch (this) {
-                case GIOCATORI_ONLINE -> "online_players";
-                case LISTA -> "list";
+                case ONLINE_PLAYERS -> "online_players";
+                case LIST -> "list";
                 case PLACEHOLDER -> "placeholder";
             };
         }
 
-        public static Fonte leggi(String s) {
+        public static Fonte read(String s) {
             if (s == null) {
                 return null;
             }
             return switch (s.trim().toUpperCase(Locale.ROOT).replace(' ', '_').replace('-', '_')) {
-                case "GIOCATORI_ONLINE", "GIOCATORI", "PLAYERS", "ONLINE_PLAYERS" -> GIOCATORI_ONLINE;
-                case "LISTA", "LIST", "ELENCO" -> LISTA;
+                case "GIOCATORI_ONLINE", "GIOCATORI", "PLAYERS", "ONLINE_PLAYERS" -> ONLINE_PLAYERS;
+                case "LISTA", "LIST", "ELENCO" -> LIST;
                 case "PLACEHOLDER", "SEGNAPOSTO" -> PLACEHOLDER;
                 default -> null;
             };
@@ -74,23 +74,23 @@ public final class Content {
 
     private final Fonte fonte;
     private final String parametro;
-    private final List<String> lista;
+    private final List<String> list;
     private final String separatore;
-    private final List<Integer> caselle;
-    private final ItemDef voce;
+    private final List<Integer> slots;
+    private final ItemDef entry;
 
-    Content(Fonte fonte, String parametro, List<String> lista, String separatore,
-              List<Integer> caselle, ItemDef voce) {
+    Content(Fonte fonte, String parametro, List<String> list, String separatore,
+              List<Integer> slots, ItemDef entry) {
         this.fonte = fonte;
         this.parametro = parametro;
-        this.lista = List.copyOf(lista);
+        this.list = List.copyOf(list);
         this.separatore = separatore;
-        this.caselle = List.copyOf(caselle);
-        this.voce = voce;
+        this.slots = List.copyOf(slots);
+        this.entry = entry;
     }
 
-    public List<Integer> caselle() {
-        return caselle;
+    public List<Integer> slots() {
+        return slots;
     }
 
     public Fonte fonte() {
@@ -101,44 +101,44 @@ public final class Content {
         return parametro;
     }
 
-    public List<String> lista() {
-        return lista;
+    public List<String> list() {
+        return list;
     }
 
     public String separatore() {
         return separatore;
     }
 
-    public ItemDef voce() {
-        return voce;
+    public ItemDef entry() {
+        return entry;
     }
 
     /** Quante voci stanno in una pagina. */
-    public int perPagina() {
-        return Math.max(1, caselle.size());
+    public int perPage() {
+        return Math.max(1, slots.size());
     }
 
     /** Le voci, risolte adesso per questo giocatore. */
-    public List<String> voci(Player p, Map<String, String> variabili) {
+    public List<String> entries(Player p, Map<String, String> variabili) {
         List<String> out = new ArrayList<>();
         switch (fonte) {
-            case GIOCATORI_ONLINE -> {
-                for (Player altro : Bukkit.getOnlinePlayers()) {
+            case ONLINE_PLAYERS -> {
+                for (Player other : Bukkit.getOnlinePlayers()) {
                     // Chi e' invisibile per questo giocatore non deve comparire in un elenco:
                     // sarebbe un modo per scoprire lo staff in vanish guardando un menu.
-                    if (p.canSee(altro)) {
-                        out.add(altro.getName());
+                    if (p.canSee(other)) {
+                        out.add(other.getName());
                     }
                 }
                 out.sort(String.CASE_INSENSITIVE_ORDER);
             }
-            case LISTA -> {
-                for (String s : lista) {
-                    out.add(Text.grezzo(p, variabili, s));
+            case LIST -> {
+                for (String s : list) {
+                    out.add(Text.raw(p, variabili, s));
                 }
             }
             case PLACEHOLDER -> {
-                String risolto = Text.grezzo(p, variabili, parametro);
+                String risolto = Text.raw(p, variabili, parametro);
                 if (!risolto.isBlank()) {
                     for (String pezzo : risolto.split(java.util.regex.Pattern.quote(separatore))) {
                         String v = pezzo.trim();

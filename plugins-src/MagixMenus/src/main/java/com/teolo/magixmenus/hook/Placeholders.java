@@ -63,17 +63,17 @@ public final class Placeholders extends PlaceholderExpansion {
             return String.valueOf(plugin.menu().quantiAperti());
         }
         if (p.startsWith("esiste_")) {
-            return plugin.menu().trova(p.substring(7)) != null ? "si" : "no";
+            return plugin.menu().find(p.substring(7)) != null ? "si" : "no";
         }
 
-        if (!(chi instanceof Player giocatore)) {
+        if (!(chi instanceof Player player)) {
             return "";
         }
-        OpenMenu aperto = plugin.menu().apertoDi(giocatore);
+        OpenMenu opened = plugin.menu().openedBy(player);
         return switch (p) {
-            case "aperto" -> aperto == null ? "" : aperto.definizione().nome();
-            case "pagina" -> aperto == null ? "" : aperto.variabili().getOrDefault("pagina", "1");
-            case "pagine" -> aperto == null ? "" : aperto.variabili().getOrDefault("pagine", "1");
+            case "aperto" -> opened == null ? "" : opened.definizione().name();
+            case "pagina" -> opened == null ? "" : opened.variabili().getOrDefault("pagina", "1");
+            case "pagine" -> opened == null ? "" : opened.variabili().getOrDefault("pagine", "1");
             default -> null;
         };
     }

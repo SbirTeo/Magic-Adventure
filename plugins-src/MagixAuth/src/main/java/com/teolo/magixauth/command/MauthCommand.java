@@ -35,77 +35,84 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
     private final MagixAuth plugin;
     private final AuthConfig config;
     private final AuthDao dao;
-    private final OtpPolicy politica;
+    private final OtpPolicy policy;
     private final AuthGate gate;
 
     public MauthCommand(MagixAuth plugin, AuthConfig config, AuthDao dao,
-                        OtpPolicy politica, AuthGate gate) {
+                        OtpPolicy policy, AuthGate gate) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
-        this.politica = politica;
+        this.policy = policy;
         this.gate = gate;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            aiuto(sender, 1);
+            help(sender, 1);
             return true;
         }
         // Il numero da solo sfoglia le pagine: e' quello che mandano le frecce.
         if (args[0].matches("\\d+")) {
-            aiuto(sender, Integer.parseInt(args[0]));
+            help(sender, Integer.parseInt(args[0]));
             return true;
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "reload" -> {
-                plugin.ricarica();
-                rispondi(sender, "&aConfigurazione ricaricata.");
+                plugin.reload();
+                reply(sender, "&aConfigurazione ricaricata.");
             }
             case "info" -> info(sender);
+            case "setspawn" -> {
+                if (!sender.hasPermission("magixauth.admin")) {
+                    reply(sender, "&cNon hai il permesso di spostare il cancello di login.");
+                    return true;
+                }
+                setspawn(sender);
+            }
             case "reset" -> {
                 if (!sender.hasPermission("magixauth.reset")) {
-                    rispondi(sender, "&cNon hai il permesso di azzerare le password.");
+                    reply(sender, "&cNon hai il permesso di azzerare le password.");
                     return true;
                 }
                 if (args.length < 2) {
-                    rispondi(sender, "&7Uso: &f/mauth reset <giocatore>");
+                    reply(sender, "&7Uso: &f/mauth reset <giocatore>");
                     return true;
                 }
                 reset(sender, args[1]);
             }
             case "register" -> {
                 if (!sender.hasPermission("magixauth.reset")) {
-                    rispondi(sender, "&cNon hai il permesso di registrare giocatori.");
+                    reply(sender, "&cNon hai il permesso di registrare giocatori.");
                     return true;
                 }
                 if (args.length < 3) {
-                    rispondi(sender, "&7Uso: &f/mauth register <giocatore> <password>");
+                    reply(sender, "&7Uso: &f/mauth register <giocatore> <password>");
                     return true;
                 }
-                registra(sender, args[1], args[2]);
+                register(sender, args[1], args[2]);
             }
             case "unlock" -> {
                 if (!sender.hasPermission("magixauth.unlock")) {
-                    rispondi(sender, "&cNon hai il permesso di togliere i blocchi.");
+                    reply(sender, "&cNon hai il permesso di togliere i blocchi.");
                     return true;
                 }
                 if (args.length < 2) {
-                    rispondi(sender, "&7Uso: &f/mauth unlock <giocatore|indirizzo>");
+                    reply(sender, "&7Uso: &f/mauth unlock <giocatore|indirizzo>");
                     return true;
                 }
-                sblocca(sender, args[1]);
+                unlock(sender, args[1]);
             }
             case "sessions" -> {
                 if (args.length < 2) {
-                    rispondi(sender, "&7Uso: &f/mauth sessions <giocatore>");
+                    reply(sender, "&7Uso: &f/mauth sessions <giocatore>");
                     return true;
                 }
-                sessioni(sender, args[1]);
+                sessions(sender, args[1]);
             }
-            default -> aiuto(sender, 1);
+            default -> help(sender, 1);
         }
         return true;
     }
@@ -116,46 +123,70 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * Sta tutto in una lista invece che in una sfilza di messaggi perche' cosi' si puo'
      * impaginare, filtrare per permesso e rendere cliccabile senza riscriverlo ogni volta.
      */
-    private void aiuto(CommandSender sender, int pagina) {
-        List<Help.Voce> voci = List.of(
-                Help.Voce.di("/login", "<password>", "entra con la tua password").in("Il tuo account"),
-                Help.Voce.di("/register", "<password> <ripeti>", "registrati al primo ingresso").in("Il tuo account"),
-                Help.Voce.di("/otp", "<codice>", "il codice della verifica in due passaggi").in("Il tuo account"),
-                Help.Voce.di("/changepassword", "<vecchia> <nuova> <ripeti> [codice]",
+    private void help(CommandSender sender, int page) {
+        List<Help.Entry> entries = List.of(
+                Help.Entry.di("/login", "<password>", "entra con la tua password").in("Il tuo account"),
+                Help.Entry.di("/register", "<password> <ripeti>", "registrati al primo ingresso").in("Il tuo account"),
+                Help.Entry.di("/otp", "<codice>", "il codice della verifica in due passaggi").in("Il tuo account"),
+                Help.Entry.di("/changepassword", "<vecchia> <nuova> <ripeti> [codice]",
                         "cambia la password (vale anche sul sito)").in("Il tuo account"),
-                Help.Voce.di("/logout", "", "chiude l'accesso in gioco e sul sito").in("Il tuo account"),
-                Help.Voce.staff("/mauth info", "", "stato del plugin e della verifica").in("Staff"),
-                Help.Voce.staff("/mauth register", "<giocatore> <password>",
+                Help.Entry.di("/logout", "", "chiude l'accesso in gioco e sul sito").in("Il tuo account"),
+                Help.Entry.staff("/mauth info", "", "stato del plugin e della verifica").in("Staff"),
+                Help.Entry.staff("/mauth setspawn", "",
+                        "fissa il cancello di login dove sei (es. sullo spawn di CMI)").in("Staff"),
+                Help.Entry.staff("/mauth register", "<giocatore> <password>",
                         "registra un giocatore o gli riscrive la password").in("Staff"),
-                Help.Voce.staff("/mauth reset", "<giocatore>", "azzera la password di chi l'ha dimenticata").in("Staff"),
-                Help.Voce.staff("/mauth unlock", "<giocatore|indirizzo>",
+                Help.Entry.staff("/mauth reset", "<giocatore>", "azzera la password di chi l'ha dimenticata").in("Staff"),
+                Help.Entry.staff("/mauth unlock", "<giocatore|indirizzo>",
                         "toglie l'attesa a chi ha sbagliato troppe volte").in("Staff"),
-                Help.Voce.staff("/mauth sessions", "<giocatore>", "dimentica i suoi accessi ricordati").in("Staff"),
-                Help.Voce.staff("/mauth reload", "", "rilegge la configurazione").in("Staff"));
+                Help.Entry.staff("/mauth sessions", "<giocatore>", "dimentica i suoi accessi ricordati").in("Staff"),
+                Help.Entry.staff("/mauth reload", "", "rilegge la configurazione").in("Staff"));
 
-        Help.mostra(sender, "MagixAuth", "/mauth", voci, pagina,
+        Help.show(sender, "MagixAuth", "/mauth", entries, page,
                 sender.hasPermission("magixauth.admin"));
     }
 
     private void info(CommandSender sender) {
-        rispondi(sender, "&7Account condiviso con &fmagicadventure.it&7 (tabella users).");
-        rispondi(sender, "&7Chiave OTP: " + (config.chiaveOtpPronta() ? "&apronta" : "&cmancante o non valida"));
-        rispondi(sender, "&7LuckPerms: " + (politica.luckPermsPresente()
-                ? "&acollegato&7, track \"&f" + config.trackStaff + "&7\" con &f"
-                  + politica.quantiGruppiStaff() + "&7 gruppi"
+        reply(sender, "&7Account condiviso con &fmagicadventure.it&7 (tabella users).");
+        reply(sender, "&7Chiave OTP: " + (config.otpKeyReady() ? "&apronta" : "&cmancante o non valida"));
+        reply(sender, "&7LuckPerms: " + (policy.luckPermsPresent()
+                ? "&acollegato&7, track \"&f" + config.staffTrack + "&7\" con &f"
+                  + policy.staffGroupCount() + "&7 gruppi"
                 : "&eassente&7 (verifica obbligatoria solo per i web-admin)"));
-        rispondi(sender, "&7Sessione dispositivo: &f" + config.oreSessione + "&7 ore");
-        rispondi(sender, "&7Fermi al cancello adesso: &f" + quantiFermi());
+        reply(sender, "&7Sessione dispositivo: &f" + config.sessionHours + "&7 ore");
+        reply(sender, "&7Fermi al cancello adesso: &f" + frozenCount());
     }
 
-    private int quantiFermi() {
+    private int frozenCount() {
         int n = 0;
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (gate.fermo(p)) {
+            if (gate.isFrozen(p)) {
                 n++;
             }
         }
         return n;
+    }
+
+    /**
+     * Fissa il cancello di login dove si trova chi da' il comando, sguardo compreso.
+     *
+     * Serve quando lo spawn "vero" del server e' quello di CMI, che non e' lo stesso di
+     * /setworldspawn: ci si mette li', si guarda nella direzione giusta, e da quel momento
+     * chi deve autenticarsi compare esattamente in quel punto invece che sullo spawn del
+     * mondo. Va dato in gioco: da console non c'e' una posizione da leggere.
+     */
+    private void setspawn(CommandSender sender) {
+        if (!(sender instanceof Player p)) {
+            reply(sender, "&cDallo in gioco, stando dove vuoi il cancello di login.");
+            return;
+        }
+        org.bukkit.Location l = p.getLocation();
+        gate.setLoginSpawn(l);
+        reply(sender, "&aCancello di login fissato qui: &f" + l.getWorld().getName() + " "
+                + Math.round(l.getX()) + "/" + Math.round(l.getY()) + "/" + Math.round(l.getZ())
+                + "&7, guardando dove guardi adesso.");
+        reply(sender, "&7Da ora chi deve fare il login compare esattamente qui, in qualunque "
+                + "mondo si fosse disconnesso.");
     }
 
     /**
@@ -167,17 +198,17 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * esiste nessun momento in cui una password provvisoria gira per la chat o per un
      * messaggio privato.
      */
-    private void reset(CommandSender sender, String nome) {
+    private void reset(CommandSender sender, String name) {
         plugin.async(() -> {
             try {
-                Account account = dao.perNome(nome);
+                Account account = dao.byName(name);
                 if (account == null) {
-                    rispondi(sender, "&cNessun account con questo nome.");
+                    reply(sender, "&cNessun account con questo nome.");
                     return;
                 }
-                dao.cambiaPassword(account.idSito, null);
-                dao.revocaSessioni(account.uuid);
-                rispondi(sender, "&aPassword di &f" + account.nome + "&a azzerata. "
+                dao.changePassword(account.siteId, null);
+                dao.revokeSessions(account.uuid);
+                reply(sender, "&aPassword di &f" + account.name + "&a azzerata. "
                         + "&7Al prossimo ingresso ne sceglie una nuova.");
 
                 Player online = Bukkit.getPlayer(account.uuid);
@@ -187,7 +218,7 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
                                     + "&7Rientra e scegline una nuova.")));
                 }
             } catch (SQLException e) {
-                rispondi(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
             }
         });
     }
@@ -201,36 +232,36 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * Se il nome non e' mai stato visto, l'account nasce adesso — con l'UUID che il server
      * gli darebbe comunque al primo ingresso, cosi' quando entrera' si ritrovera' il suo.
      */
-    private void registra(CommandSender sender, String nome, String password) {
-        String no = Password.perche_no(password, nome, config.passwordMinima);
+    private void register(CommandSender sender, String name, String password) {
+        String no = Password.whyNot(password, name, config.minPasswordLength);
         if (no != null) {
-            rispondi(sender, "&c" + no);
+            reply(sender, "&c" + no);
             return;
         }
         plugin.async(() -> {
             try {
-                Account account = dao.perNome(nome);
-                String impronta = Password.impronta(password);
+                Account account = dao.byName(name);
+                String fingerprint = Password.fingerprint(password);
 
                 if (account == null) {
-                    int id = dao.registra(AuthDao.uuidOffline(nome), nome, impronta, null);
+                    int id = dao.register(AuthDao.uuidOffline(name), name, fingerprint, null);
                     if (id < 0) {
-                        rispondi(sender, "&cNon sono riuscito a creare l'account.");
+                        reply(sender, "&cNon sono riuscito a creare l'account.");
                         return;
                     }
-                    rispondi(sender, "&aAccount &f" + nome + "&a creato.");
+                    reply(sender, "&aAccount &f" + name + "&a creato.");
                 } else {
-                    dao.cambiaPassword(account.idSito, impronta);
-                    dao.revocaSessioni(account.uuid);
-                    rispondi(sender, "&aPassword di &f" + account.nome + "&a impostata.");
+                    dao.changePassword(account.siteId, fingerprint);
+                    dao.revokeSessions(account.uuid);
+                    reply(sender, "&aPassword di &f" + account.name + "&a impostata.");
                 }
                 // La password gliela deve comunicare qualcuno a voce: scriverla qui in chat
                 // la lascerebbe nei registri del server e sotto gli occhi di chi passa.
-                rispondi(sender, "&7Comunicagliela a voce, e digli di cambiarla con "
+                reply(sender, "&7Comunicagliela a voce, e digli di cambiarla con "
                         + "&f/changepassword&7 appena entra.");
 
             } catch (SQLException e) {
-                rispondi(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
             }
         });
     }
@@ -250,16 +281,16 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * Chi ha l'indirizzo sotto mano lo puo' passare direttamente: e' la via d'uscita quando
      * il blocco non porta nessun nome riconoscibile.
      */
-    private void sblocca(CommandSender sender, String chi) {
+    private void unlock(CommandSender sender, String chi) {
         // Un nick di Minecraft e' fatto solo di lettere, cifre e trattini bassi: se compare
         // un punto o dei due punti, quello che ho in mano e' un indirizzo.
         if (chi.indexOf('.') >= 0 || chi.indexOf(':') >= 0) {
             plugin.async(() -> {
                 try {
-                    dao.azzeraTentativi(chi);
-                    rispondi(sender, "&aIndirizzo &f" + chi + "&a sbloccato.");
+                    dao.resetAttempts(chi);
+                    reply(sender, "&aIndirizzo &f" + chi + "&a sbloccato.");
                 } catch (SQLException e) {
-                    rispondi(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                    reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
                 }
             });
             return;
@@ -270,78 +301,78 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
                 // Prima il nome cosi' com'e' stato scritto: chi resta fuori mentre prova a
                 // REGISTRARSI non ha ancora un account, e sarebbe l'unico a non poter essere
                 // aiutato proprio nel momento in cui ne ha bisogno.
-                Set<String> indirizzi = new LinkedHashSet<>(dao.indirizziBloccatiDi(chi));
+                Set<String> addresses = new LinkedHashSet<>(dao.blockedAddressesOf(chi));
 
-                Account account = dao.perNome(chi);
+                Account account = dao.byName(chi);
                 boolean otp = false;
                 if (account != null) {
-                    indirizzi.addAll(dao.indirizziBloccatiDi(account.nome));
-                    indirizzi.addAll(dao.indirizziBloccatiNoti(account.uuid));
+                    addresses.addAll(dao.blockedAddressesOf(account.name));
+                    addresses.addAll(dao.knownBlockedAddresses(account.uuid));
                     Player online = Bukkit.getPlayer(account.uuid);
                     if (online != null && online.getAddress() != null) {
-                        indirizzi.add(online.getAddress().getAddress().getHostAddress());
+                        addresses.add(online.getAddress().getAddress().getHostAddress());
                     }
-                    otp = dao.sbloccaOtp(account.idSito);
+                    otp = dao.unlockOtp(account.siteId);
                 }
 
-                for (String ip : indirizzi) {
-                    dao.azzeraTentativi(ip);
+                for (String ip : addresses) {
+                    dao.resetAttempts(ip);
                 }
 
-                String nome = account != null ? account.nome : chi;
-                if (indirizzi.isEmpty() && !otp) {
+                String name = account != null ? account.name : chi;
+                if (addresses.isEmpty() && !otp) {
                     if (account == null) {
-                        rispondi(sender, "&eNessun account con questo nome e nessun blocco a suo carico.");
+                        reply(sender, "&eNessun account con questo nome e nessun blocco a suo carico.");
                     } else {
-                        rispondi(sender, "&e" + nome + " non risulta bloccato: puo' gia' entrare.");
+                        reply(sender, "&e" + name + " non risulta bloccato: puo' gia' entrare.");
                     }
-                    rispondi(sender, "&7Se il blocco resta, passami l'indirizzo: "
+                    reply(sender, "&7Se il blocco resta, passami l'indirizzo: "
                             + "&f/mauth unlock <indirizzo>&7.");
                     return;
                 }
 
-                if (!indirizzi.isEmpty()) {
-                    rispondi(sender, "&aSbloccato &f" + nome + "&a: "
-                            + indirizzi.size() + (indirizzi.size() == 1 ? " indirizzo" : " indirizzi")
-                            + " &7(" + String.join(", ", indirizzi) + "&7)");
+                if (!addresses.isEmpty()) {
+                    reply(sender, "&aSbloccato &f" + name + "&a: "
+                            + addresses.size() + (addresses.size() == 1 ? " indirizzo" : " indirizzi")
+                            + " &7(" + String.join(", ", addresses) + "&7)");
                 }
                 if (otp) {
-                    rispondi(sender, "&aTolto anche il blocco del codice in due passaggi.");
+                    reply(sender, "&aTolto anche il blocco del codice in due passaggi.");
                 }
-                rispondi(sender, "&7Puo' rientrare adesso.");
+                reply(sender, "&7Puo' rientrare adesso.");
 
             } catch (SQLException e) {
-                rispondi(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
             }
         });
     }
 
     /** Dimentica i dispositivi: al prossimo ingresso la password torna obbligatoria ovunque. */
-    private void sessioni(CommandSender sender, String nome) {
+    private void sessions(CommandSender sender, String name) {
         plugin.async(() -> {
             try {
-                Account account = dao.perNome(nome);
+                Account account = dao.byName(name);
                 if (account == null) {
-                    rispondi(sender, "&cNessun account con questo nome.");
+                    reply(sender, "&cNessun account con questo nome.");
                     return;
                 }
-                dao.revocaSessioni(account.uuid);
-                rispondi(sender, "&aDispositivi di &f" + account.nome + "&a dimenticati.");
+                dao.revokeSessions(account.uuid);
+                reply(sender, "&aDispositivi di &f" + account.name + "&a dimenticati.");
             } catch (SQLException e) {
-                rispondi(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
             }
         });
     }
 
-    private void rispondi(CommandSender sender, String testo) {
-        sender.sendMessage(Texts.c(config.prefisso, testo));
+    private void reply(CommandSender sender, String text) {
+        sender.sendMessage(Texts.c(config.prefix, text));
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> out = new ArrayList<>();
-            for (String s : List.of("info", "register", "reset", "unlock", "sessions", "reload")) {
+            for (String s : List.of("info", "setspawn", "register", "reset", "unlock", "sessions", "reload")) {
                 if (s.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     out.add(s);
                 }
@@ -352,9 +383,9 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
                 .contains(args[0].toLowerCase(Locale.ROOT))) {
             List<String> out = new ArrayList<>();
             for (OfflinePlayer p : Bukkit.getOfflinePlayers()) {
-                String nome = p.getName();
-                if (nome != null && nome.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    out.add(nome);
+                String name = p.getName();
+                if (name != null && name.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    out.add(name);
                 }
             }
             return out;

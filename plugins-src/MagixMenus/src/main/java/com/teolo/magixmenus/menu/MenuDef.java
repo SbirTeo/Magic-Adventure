@@ -21,59 +21,59 @@ import java.util.List;
  */
 public final class MenuDef {
 
-    private final String nome;
-    private final MenuType tipo;
-    private final int righe;
-    private final String titolo;
+    private final String name;
+    private final MenuType type;
+    private final int rows;
+    private final String title;
     private final int aggiornamentoTick;
-    private final List<String> comandi;
+    private final List<String> commands;
     private final String permesso;
-    private final List<String> argomenti;
-    private final Requirements apriSe;
-    private final List<Action> azioniApertura;
-    private final List<Action> azioniChiusura;
+    private final List<String> arguments;
+    private final Requirements openIf;
+    private final List<Action> openActions;
+    private final List<Action> closeActions;
     private final List<ItemDef> item;
-    private final Content contenuto;
-    private final MenuDialog dialogo;
-    private final boolean chiusuraLibera;
+    private final Content content;
+    private final MenuDialog dialog;
+    private final boolean freeClose;
     private final List<String> errori;
 
-    MenuDef(String nome, MenuType tipo, int righe, String titolo, int aggiornamentoTick,
-            List<String> comandi, String permesso, List<String> argomenti, Requirements apriSe,
-            List<Action> azioniApertura, List<Action> azioniChiusura, List<ItemDef> item,
-            Content contenuto, MenuDialog dialogo, boolean chiusuraLibera, List<String> errori) {
-        this.nome = nome;
-        this.tipo = tipo;
-        this.righe = righe;
-        this.titolo = titolo;
+    MenuDef(String name, MenuType type, int rows, String title, int aggiornamentoTick,
+            List<String> commands, String permesso, List<String> arguments, Requirements openIf,
+            List<Action> openActions, List<Action> closeActions, List<ItemDef> item,
+            Content content, MenuDialog dialog, boolean freeClose, List<String> errori) {
+        this.name = name;
+        this.type = type;
+        this.rows = rows;
+        this.title = title;
         this.aggiornamentoTick = aggiornamentoTick;
-        this.comandi = List.copyOf(comandi);
+        this.commands = List.copyOf(commands);
         this.permesso = permesso;
-        this.argomenti = List.copyOf(argomenti);
-        this.apriSe = apriSe;
-        this.azioniApertura = List.copyOf(azioniApertura);
-        this.azioniChiusura = List.copyOf(azioniChiusura);
+        this.arguments = List.copyOf(arguments);
+        this.openIf = openIf;
+        this.openActions = List.copyOf(openActions);
+        this.closeActions = List.copyOf(closeActions);
         this.item = List.copyOf(item);
-        this.contenuto = contenuto;
-        this.dialogo = dialogo;
-        this.chiusuraLibera = chiusuraLibera;
+        this.content = content;
+        this.dialog = dialog;
+        this.freeClose = freeClose;
         this.errori = List.copyOf(errori);
     }
 
-    public String nome() {
-        return nome;
+    public String name() {
+        return name;
     }
 
-    public MenuType tipo() {
-        return tipo;
+    public MenuType type() {
+        return type;
     }
 
-    public int righe() {
-        return righe;
+    public int rows() {
+        return rows;
     }
 
-    public String titolo() {
-        return titolo;
+    public String title() {
+        return title;
     }
 
     /** Ogni quanti tick si ridisegna. 0 = mai, si disegna solo all'apertura. */
@@ -81,8 +81,8 @@ public final class MenuDef {
         return aggiornamentoTick;
     }
 
-    public List<String> comandi() {
-        return comandi;
+    public List<String> commands() {
+        return commands;
     }
 
     public String permesso() {
@@ -90,38 +90,38 @@ public final class MenuDef {
     }
 
     /** I nomi degli argomenti del comando: /negozio &lt;categoria&gt; diventa %arg_categoria% e %arg_1%. */
-    public List<String> argomenti() {
-        return argomenti;
+    public List<String> arguments() {
+        return arguments;
     }
 
-    public Requirements apriSe() {
-        return apriSe;
+    public Requirements openIf() {
+        return openIf;
     }
 
-    public List<Action> azioniApertura() {
-        return azioniApertura;
+    public List<Action> openActions() {
+        return openActions;
     }
 
-    public List<Action> azioniChiusura() {
-        return azioniChiusura;
+    public List<Action> closeActions() {
+        return closeActions;
     }
 
     public List<ItemDef> item() {
         return item;
     }
 
-    public Content contenuto() {
-        return contenuto;
+    public Content content() {
+        return content;
     }
 
     /** La parte da finestra di dialogo: c'e' solo se il tipo e' "dialogo". */
-    public MenuDialog dialogo() {
-        return dialogo;
+    public MenuDialog dialog() {
+        return dialog;
     }
 
     /** Si puo' chiudere con Esc? A falso il menu si riapre da solo: da usare con parsimonia. */
-    public boolean chiusuraLibera() {
-        return chiusuraLibera;
+    public boolean freeClose() {
+        return freeClose;
     }
 
     public List<String> errori() {
@@ -129,12 +129,12 @@ public final class MenuDef {
     }
 
     public int dimensione() {
-        return tipo.dimensione(righe);
+        return type.dimensione(rows);
     }
 
     /** C'e' qualcosa che cambia da solo, o e' un menu fermo? */
     public boolean dinamico() {
-        if (contenuto != null) {
+        if (content != null) {
             return true;
         }
         for (ItemDef i : item) {
@@ -142,14 +142,14 @@ public final class MenuDef {
                 return true;
             }
         }
-        return com.teolo.magixmenus.util.Text.dinamico(titolo);
+        return com.teolo.magixmenus.util.Text.dinamico(title);
     }
 
     /** Gli item che possono finire in questa casella, nell'ordine di priorita' (il file). */
-    public List<ItemDef> candidatiPer(int casella) {
+    public List<ItemDef> candidatiPer(int slot) {
         List<ItemDef> out = new ArrayList<>(2);
         for (ItemDef i : item) {
-            if (i.caselle().contains(casella)) {
+            if (i.slots().contains(slot)) {
                 out.add(i);
             }
         }

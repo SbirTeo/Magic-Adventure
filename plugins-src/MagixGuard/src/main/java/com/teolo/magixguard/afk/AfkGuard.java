@@ -59,39 +59,39 @@ public final class AfkGuard implements Listener {
     }
 
     private final JavaPlugin plugin;
-    private final Detector rilevatore;
+    private final Detector detector;
 
-    private final boolean attivo;
+    private final boolean active;
     private final long inattivoDopo;
     private final boolean nienteGuadagni;
     private final int raggioSpawn;
-    private final boolean cacciaAttiva;
+    private final boolean huntActive;
     private final int clickMinimi;
-    private final double scartoMassimoMs;
-    private final long durataMinima;
+    private final double maxSkewMs;
+    private final long minDuration;
 
     private final Map<UUID, Stato> stati = new ConcurrentHashMap<>();
 
-    public AfkGuard(JavaPlugin plugin, Detector rilevatore, ConfigurationSection cfg) {
+    public AfkGuard(JavaPlugin plugin, Detector detector, ConfigurationSection cfg) {
         this.plugin = plugin;
-        this.rilevatore = rilevatore;
-        this.attivo = cfg == null || cfg.getBoolean("attivo", true);
+        this.detector = detector;
+        this.active = cfg == null || cfg.getBoolean("attivo", true);
         this.inattivoDopo = (cfg == null ? 10 : Math.max(1, cfg.getInt("minuti-inattivo", 10))) * 60_000L;
         this.nienteGuadagni = cfg == null || cfg.getBoolean("niente-guadagni", true);
         this.raggioSpawn = cfg == null ? 24 : Math.max(8, cfg.getInt("raggio-spawn", 24));
-        this.cacciaAttiva = cfg == null || cfg.getBoolean("dispositivi/attivo", true);
+        this.huntActive = cfg == null || cfg.getBoolean("dispositivi/attivo", true);
         this.clickMinimi = cfg == null ? 120 : Math.max(30, cfg.getInt("dispositivi/click-minimi", 120));
-        this.scartoMassimoMs = cfg == null ? 12 : cfg.getDouble("dispositivi/scarto-massimo-ms", 12);
-        this.durataMinima = (cfg == null ? 2 : Math.max(1, cfg.getInt("dispositivi/durata-minima-minuti", 2)))
+        this.maxSkewMs = cfg == null ? 12 : cfg.getDouble("dispositivi/scarto-massimo-ms", 12);
+        this.minDuration = (cfg == null ? 2 : Math.max(1, cfg.getInt("dispositivi/durata-minima-minuti", 2)))
                 * 60_000L;
     }
 
     /** Da lanciare all'avvio: aggiorna lo stato AFK di tutti, ogni 20 secondi. */
-    public void avvia() {
-        if (!attivo) {
+    public void start() {
+        if (!active) {
             return;
         }
-        Bukkit.getScheduler().runTaskTimer(plugin, this::aggiornaStati, 400L, 400L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::refreshStates, 400L, 400L);
     }
 
     // ------------------------------------------------------------------ attivita'
@@ -103,7 +103,7 @@ public final class AfkGuard implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void suMovimento(PlayerMoveEvent e) {
-        if (!attivo || e.getTo() == null) {
+        if (!active || e.getTo() == null) {
             return;
         }
         Location da = e.getFrom();
@@ -117,13 +117,13 @@ public final class AfkGuard implements Listener {
         Stato s = stato(e.getPlayer());
         segnaAttivita(e.getPlayer(), s);
         if (spostato) {
-            ricordaPosizione(s, a);
+            rememberPosition(s, a);
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void suInterazione(PlayerInteractEvent e) {
-        if (attivo) {
+        if (active) {
             segnaAttivita(e.getPlayer(), stato(e.getPlayer()));
         }
     }
@@ -131,14 +131,14 @@ public final class AfkGuard implements Listener {
     /** Ogni colpo di braccio: e' da qui che si riconoscono gli autoclicker. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void suColpo(PlayerAnimationEvent e) {
-        if (!attivo) {
+        if (!active) {
             return;
         }
         Player p = e.getPlayer();
         Stato s = stato(p);
         segnaAttivita(p, s);
-        if (cacciaAttiva) {
-            registraClick(p, s);
+        if (huntActive) {
+            recordClick(p, s);
         }
     }
 
@@ -156,7 +156,7 @@ public final class AfkGuard implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void suNascita(CreatureSpawnEvent e) {
-        if (!attivo || !nienteGuadagni) {
+        if (!active || !nienteGuadagni) {
             return;
         }
         if (e.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL
@@ -184,7 +184,7 @@ public final class AfkGuard implements Listener {
     /** Quello che cade per terra non arriva addosso a chi e' fermo. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void suRaccolta(EntityPickupItemEvent e) {
-        if (attivo && nienteGuadagni && e.getEntity() instanceof Player p && eAfk(p)) {
+        if (active && nienteGuadagni && e.getEntity() instanceof Player p && eAfk(p)) {
             e.setCancelled(true);
         }
     }
@@ -192,7 +192,7 @@ public final class AfkGuard implements Listener {
     /** E nemmeno l'esperienza. */
     @EventHandler(priority = EventPriority.HIGH)
     public void suEsperienza(PlayerExpChangeEvent e) {
-        if (attivo && nienteGuadagni && eAfk(e.getPlayer())) {
+        if (active && nienteGuadagni && eAfk(e.getPlayer())) {
             e.setAmount(0);
         }
     }
@@ -204,10 +204,10 @@ public final class AfkGuard implements Listener {
      * scarto fra i click di pochi millisecondi, mantenuto per minuti. Si guarda quello, e solo
      * quando i click sono abbastanza da non essere una coincidenza.
      */
-    private void registraClick(Player p, Stato s) {
-        long adesso = System.currentTimeMillis();
+    private void recordClick(Player p, Stato s) {
+        long now = System.currentTimeMillis();
         if (s.ultimoClick > 0) {
-            long intervallo = adesso - s.ultimoClick;
+            long intervallo = now - s.ultimoClick;
             if (intervallo > 0 && intervallo < 2000) {
                 s.click.addLast(intervallo);
                 while (s.click.size() > 400) {
@@ -217,47 +217,47 @@ public final class AfkGuard implements Listener {
                 s.click.clear();   // pausa lunga: la serie ricomincia
             }
         }
-        s.ultimoClick = adesso;
+        s.ultimoClick = now;
 
         if (s.click.size() < clickMinimi) {
             return;
         }
-        long durata = 0;
+        long duration = 0;
         for (long i : s.click) {
-            durata += i;
+            duration += i;
         }
-        if (durata < durataMinima) {
+        if (duration < minDuration) {
             return;
         }
-        if (adesso - s.ultimaSegnalazione < 10 * 60_000L) {
+        if (now - s.ultimaSegnalazione < 10 * 60_000L) {
             return;
         }
 
-        double media = durata / (double) s.click.size();
+        double media = duration / (double) s.click.size();
         double somma = 0;
         for (long i : s.click) {
             somma += (i - media) * (i - media);
         }
         double scarto = Math.sqrt(somma / s.click.size());
 
-        if (scarto > scartoMassimoMs) {
+        if (scarto > maxSkewMs) {
             return;
         }
-        s.ultimaSegnalazione = adesso;
+        s.ultimaSegnalazione = now;
 
         String prove = "Cadenza dei click di " + p.getName() + "\n"
                 + "Click osservati di fila: " + s.click.size() + '\n'
-                + "Durata della serie: " + (durata / 1000) + " secondi\n"
+                + "Durata della serie: " + (duration / 1000) + " secondi\n"
                 + "Intervallo medio: " + Math.round(media) + " ms\n"
                 + "Scarto fra i click: " + Math.round(scarto * 10) / 10.0 + " ms "
-                + "(soglia: " + scartoMassimoMs + " ms)\n"
+                + "(soglia: " + maxSkewMs + " ms)\n"
                 + "Posizione: " + p.getWorld().getName() + ' ' + p.getLocation().getBlockX() + ", "
                 + p.getLocation().getBlockY() + ", " + p.getLocation().getBlockZ() + "\n\n"
                 + "Cosa dimostra: una mano umana non tiene un intervallo costante al millisecondo "
                 + "per minuti interi. Uno scarto cosi' basso su una serie cosi' lunga si ottiene "
                 + "solo con una macro, un autoclicker o un peso appoggiato sul mouse.";
 
-        rilevatore.rileva(p.getUniqueId(), p.getName(), "afk.elusione", "afk", prove);
+        detector.rileva(p.getUniqueId(), p.getName(), "afk.elusione", "afk", prove);
     }
 
     /**
@@ -265,10 +265,10 @@ public final class AfkGuard implements Listener {
      * un pistone, passa sempre per gli stessi due o tre blocchi: il movimento c'e' ma non porta
      * da nessuna parte. Per ora la si misura e basta — diventa una prova solo insieme ad altro.
      */
-    private void ricordaPosizione(Stato s, Location l) {
-        String chiave = l.getBlockX() + ":" + l.getBlockY() + ":" + l.getBlockZ();
-        if (!chiave.equals(s.posizioni.peekLast())) {
-            s.posizioni.addLast(chiave);
+    private void rememberPosition(Stato s, Location l) {
+        String key = l.getBlockX() + ":" + l.getBlockY() + ":" + l.getBlockZ();
+        if (!key.equals(s.posizioni.peekLast())) {
+            s.posizioni.addLast(key);
             while (s.posizioni.size() > 200) {
                 s.posizioni.removeFirst();
             }
@@ -294,13 +294,13 @@ public final class AfkGuard implements Listener {
     }
 
     /** Il giro periodico: chi non tocca niente da abbastanza tempo passa in stato fermo. */
-    private void aggiornaStati() {
-        long adesso = System.currentTimeMillis();
+    private void refreshStates() {
+        long now = System.currentTimeMillis();
         for (Player p : Bukkit.getOnlinePlayers()) {
             Stato s = stato(p);
-            if (!s.afk && adesso - s.ultimoInput >= inattivoDopo) {
+            if (!s.afk && now - s.ultimoInput >= inattivoDopo) {
                 s.afk = true;
-                s.afkDa = adesso;
+                s.afkDa = now;
                 if (nienteGuadagni) {
                     p.sendMessage(Text.msg("&7Sei fermo da un po': &fda ora il gioco non produce piu' "
                             + "nulla intorno a te&7. Muoviti per riprendere."));
@@ -316,7 +316,7 @@ public final class AfkGuard implements Listener {
     }
 
     /** Da quanto e' fermo, in minuti. 0 se non lo e'. */
-    public long minutiFermo(Player p) {
+    public long frozenMinutes(Player p) {
         Stato s = stati.get(p.getUniqueId());
         return s == null || !s.afk ? 0 : (System.currentTimeMillis() - s.afkDa) / 60_000L;
     }

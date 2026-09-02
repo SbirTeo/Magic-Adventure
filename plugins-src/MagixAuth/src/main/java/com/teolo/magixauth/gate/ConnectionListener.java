@@ -25,16 +25,16 @@ import java.util.UUID;
  * scelta dello spawn si puo' ancora cambiare dove comparira' il giocatore, all'ingresso c'e'
  * finalmente un Player con cui parlare.
  */
-public final class ConnessioneListener implements Listener {
+public final class ConnectionListener implements Listener {
 
     private final AuthConfig config;
     private final AuthGate gate;
-    private final Visibilita visibilita;
+    private final Visibility visibility;
 
-    public ConnessioneListener(AuthConfig config, AuthGate gate, Visibilita visibilita) {
+    public ConnectionListener(AuthConfig config, AuthGate gate, Visibility visibility) {
         this.config = config;
         this.gate = gate;
-        this.visibilita = visibilita;
+        this.visibility = visibility;
     }
 
     /**
@@ -55,25 +55,25 @@ public final class ConnessioneListener implements Listener {
     public void alPreLogin(AsyncPlayerPreLoginEvent e) {
         String ip = e.getAddress() == null ? "" : e.getAddress().getHostAddress();
 
-        String rifiuto = gate.decidi(e.getUniqueId(), e.getName(), ip, e.getConnection(), (uuid, skin) -> {
+        String refusal = gate.decide(e.getUniqueId(), e.getName(), ip, e.getConnection(), (uuid, skin) -> {
             if (uuid == null && skin == null) {
                 return;
             }
-            PlayerProfile profilo = e.getPlayerProfile();
+            PlayerProfile prof = e.getPlayerProfile();
             if (uuid != null) {
-                profilo.setId(uuid);
+                prof.setId(uuid);
             }
             if (skin != null) {
                 // La firma di Mojang va tenuta: senza, il client rifiuta una skin che non
                 // ha chiesto lui e resta con quella di serie.
-                profilo.setProperty(new ProfileProperty("textures", skin[0],
+                prof.setProperty(new ProfileProperty("textures", skin[0],
                         skin.length > 1 ? skin[1] : null));
             }
-            e.setPlayerProfile(profilo);
+            e.setPlayerProfile(prof);
         });
 
-        if (rifiuto != null) {
-            e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Texts.c(rifiuto));
+        if (refusal != null) {
+            e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Texts.c(refusal));
         }
     }
 
@@ -92,7 +92,7 @@ public final class ConnessioneListener implements Listener {
         if (uuid == null) {
             return;
         }
-        Location dirottato = gate.dirottaSpawn(uuid, e.getSpawnLocation());
+        Location dirottato = gate.hijackSpawn(uuid, e.getSpawnLocation());
         if (dirottato != null) {
             e.setSpawnLocation(dirottato);
         }
@@ -112,18 +112,18 @@ public final class ConnessioneListener implements Listener {
 
         // I giocatori gia' dentro non devono vedere chi sta al cancello, e viceversa: al
         // momento in cui gli altri sono stati nascosti, questo giocatore non c'era ancora.
-        for (Player altro : Bukkit.getOnlinePlayers()) {
-            if (!altro.equals(p) && gate.fermo(altro)) {
-                visibilita.separa(p, altro);
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.equals(p) && gate.isFrozen(other)) {
+                visibility.separate(p, other);
             }
         }
 
-        gate.accogli(p);
+        gate.welcome(p);
 
-        if (gate.fermo(p) && config.ritardaMessaggioIngresso) {
-            StatoIngresso stato = gate.stato(p);
-            if (stato != null) {
-                stato.messaggioIngresso = e.joinMessage();
+        if (gate.isFrozen(p) && config.delayJoinMessage) {
+            EntryState state = gate.state(p);
+            if (state != null) {
+                state.savedJoinMessage = e.joinMessage();
             }
             e.joinMessage(null);
         }
@@ -138,9 +138,9 @@ public final class ConnessioneListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void allUscita(PlayerQuitEvent e) {
         Player p = e.getPlayer();
-        if (gate.fermo(p)) {
+        if (gate.isFrozen(p)) {
             e.quitMessage(null);
         }
-        gate.abbandona(p);
+        gate.abandon(p);
     }
 }

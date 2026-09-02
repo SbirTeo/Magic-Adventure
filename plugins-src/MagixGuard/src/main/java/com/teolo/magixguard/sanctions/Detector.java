@@ -30,17 +30,17 @@ public final class Detector {
 
     private final JavaPlugin plugin;
     private final SanctionsConfig cfg;
-    private final SanctionsService servizio;
-    private final ViolationsDao violazioni;
-    private final PointsLog registro;
+    private final SanctionsService service;
+    private final ViolationsDao violations;
+    private final PointsLog log;
 
-    public Detector(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService servizio,
-                      ViolationsDao violazioni, PointsLog registro) {
+    public Detector(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service,
+                      ViolationsDao violations, PointsLog log) {
         this.plugin = plugin;
         this.cfg = cfg;
-        this.servizio = servizio;
-        this.violazioni = violazioni;
-        this.registro = registro;
+        this.service = service;
+        this.violations = violations;
+        this.log = log;
     }
 
     /**
@@ -51,8 +51,8 @@ public final class Detector {
      * @param fonte     chi l'ha vista (chat, xray, afk, grim, staff)
      * @param dettaglio le prove, gia' scritte perche' le legga una persona
      */
-    public void rileva(UUID uuid, String nome, String categoria, String fonte, String dettaglio) {
-        rileva(uuid, nome, categoria, fonte, dettaglio, 1.0);
+    public void rileva(UUID uuid, String name, String category, String fonte, String dettaglio) {
+        rileva(uuid, name, category, fonte, dettaglio, 1.0);
     }
 
     /**
@@ -61,43 +61,43 @@ public final class Detector {
      * Resta comunque il tetto della categoria: un moltiplicatore non puo' trasformare uno
      * spam in un ban.
      */
-    public void rileva(UUID uuid, String nome, String categoria, String fonte, String dettaglio,
+    public void rileva(UUID uuid, String name, String category, String fonte, String dettaglio,
                        double moltiplicatore) {
-        SanctionsConfig.Categoria cat = cfg.categoria(categoria);
-        int punti = (int) Math.round(cat.punti() * Math.max(0.1, Math.min(3.0, moltiplicatore)));
+        SanctionsConfig.Category cat = cfg.category(category);
+        int points = (int) Math.round(cat.points() * Math.max(0.1, Math.min(3.0, moltiplicatore)));
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                double prima = registro.punti(uuid);
-                int idViolazione = violazioni.inserisci(
-                        Violation.nuova(uuid, nome, categoria, punti, fonte, dettaglio));
-                double dopo = prima + punti;
+                double prima = log.points(uuid);
+                int violationId = violations.inserisci(
+                        Violation.nuova(uuid, name, category, points, fonte, dettaglio));
+                double dopo = prima + points;
 
-                SanctionsConfig.Soglia soglia = sogliaAppenaSuperata(prima, dopo);
-                if (soglia == null) {
-                    avvisaSeServe(cat, nome, categoria, dettaglio, dopo);
+                SanctionsConfig.Threshold threshold = thresholdJustCrossed(prima, dopo);
+                if (threshold == null) {
+                    notifyIfNeeded(cat, name, category, dettaglio, dopo);
                     return;
                 }
 
-                long adesso = System.currentTimeMillis();
-                long fine = soglia.durata() == Duration.PERMANENTE || !soglia.tipo().haDurata()
-                        ? Duration.PERMANENTE : adesso + soglia.durata();
+                long now = System.currentTimeMillis();
+                long fine = threshold.duration() == Duration.PERMANENTE || !threshold.type().hasDuration()
+                        ? Duration.PERMANENTE : now + threshold.duration();
 
-                String motivo = cat.nome() + " (" + Math.round(dopo) + " punti)";
-                Sanction s = new Sanction(0, uuid, nome, soglia.tipo(), categoria, motivo,
-                        cat.ambito(), 0, adesso, fine, null, true, null);
+                String reason = cat.name() + " (" + Math.round(dopo) + " punti)";
+                Sanction s = new Sanction(0, uuid, name, threshold.type(), category, reason,
+                        cat.scope(), 0, now, fine, null, true, null);
 
-                Policy.Esito esito = servizio.politica()
-                        .controllaAutomatismo(cat, soglia.tipo(), soglia.durata());
+                Policy.Outcome outcome = service.policy()
+                        .checkAutomation(cat, threshold.type(), threshold.duration());
 
-                int idSanzione = servizio.applica(s, esito, fonte,
-                        componiDettaglio(dettaglio, prima, dopo, soglia), soglia.durata());
-                if (idSanzione > 0) {
-                    violazioni.collega(idViolazione, idSanzione);
+                int sanctionId = service.apply(s, outcome, fonte,
+                        buildDetail(dettaglio, prima, dopo, threshold), threshold.duration());
+                if (sanctionId > 0) {
+                    violations.collega(violationId, sanctionId);
                 }
             } catch (SQLException e) {
-                plugin.getLogger().warning("Violazione non registrata (" + nome + ", "
-                        + categoria + "): " + e.getMessage());
+                plugin.getLogger().warning("Violazione non registrata (" + name + ", "
+                        + category + "): " + e.getMessage());
             }
         });
     }
@@ -106,10 +106,10 @@ public final class Detector {
      * La soglia che il giocatore ha superato <b>adesso</b>, cioe' quella che prima non aveva
      * raggiunto e ora si'. Null se non ne ha superata nessuna con questa violazione.
      */
-    private SanctionsConfig.Soglia sogliaAppenaSuperata(double prima, double dopo) {
-        SanctionsConfig.Soglia trovata = null;
-        for (SanctionsConfig.Soglia s : cfg.soglie) {   // ordinate dalla piu' alta
-            if (dopo >= s.punti() && prima < s.punti()) {
+    private SanctionsConfig.Threshold thresholdJustCrossed(double prima, double dopo) {
+        SanctionsConfig.Threshold trovata = null;
+        for (SanctionsConfig.Threshold s : cfg.thresholds) {   // ordinate dalla piu' alta
+            if (dopo >= s.points() && prima < s.points()) {
                 trovata = s;
                 break;   // la piu' alta fra quelle appena superate
             }
@@ -121,39 +121,39 @@ public final class Detector {
      * Certe categorie non sanzionano mai da sole ma vanno viste subito da una persona:
      * i dati personali sono il caso per cui questa riga esiste.
      */
-    private void avvisaSeServe(SanctionsConfig.Categoria cat, String nome, String categoria,
-                               String dettaglio, double punti) {
-        if (cat.automatico()) {
+    private void notifyIfNeeded(SanctionsConfig.Category cat, String name, String category,
+                               String dettaglio, double points) {
+        if (cat.automatic()) {
             return;
         }
-        servizio.avvisaStaff("&#FFD166" + cat.nome() + "&f " + nome + " &7— "
-                + (dettaglio == null ? "" : primaRiga(dettaglio))
-                + " &8(" + Math.round(punti) + " punti)");
+        service.notifyStaff("&#FFD166" + cat.name() + "&f " + name + " &7— "
+                + (dettaglio == null ? "" : firstRow(dettaglio))
+                + " &8(" + Math.round(points) + " punti)");
     }
 
     /** Il dettaglio che finisce nella coda, con il conto dei punti gia' fatto. */
-    private String componiDettaglio(String dettaglio, double prima, double dopo,
-                                    SanctionsConfig.Soglia soglia) {
+    private String buildDetail(String dettaglio, double prima, double dopo,
+                                    SanctionsConfig.Threshold threshold) {
         StringBuilder b = new StringBuilder();
         b.append("Punti prima: ").append(Math.round(prima))
          .append(" -> dopo: ").append(Math.round(dopo))
-         .append(" (soglia superata: ").append(soglia.punti()).append(")\n");
-        b.append("Provvedimento previsto: ").append(soglia.tipo().etichetta())
-         .append(", ").append(Duration.scrivi(soglia.durata())).append("\n\n");
+         .append(" (soglia superata: ").append(threshold.points()).append(")\n");
+        b.append("Provvedimento previsto: ").append(threshold.type().label())
+         .append(", ").append(Duration.write(threshold.duration())).append("\n\n");
         if (dettaglio != null) {
             b.append(dettaglio);
         }
         return b.toString();
     }
 
-    private static String primaRiga(String s) {
+    private static String firstRow(String s) {
         int a_capo = s.indexOf('\n');
-        String riga = a_capo < 0 ? s : s.substring(0, a_capo);
-        return riga.length() > 90 ? riga.substring(0, 90) + "..." : riga;
+        String row = a_capo < 0 ? s : s.substring(0, a_capo);
+        return row.length() > 90 ? row.substring(0, 90) + "..." : row;
     }
 
     /** Comodita' per i rilevatori: il nome da mostrare per un giocatore. */
-    public static String nomeDi(Player p) {
+    public static String nameOf(Player p) {
         return p.getName();
     }
 }
