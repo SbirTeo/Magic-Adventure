@@ -56,6 +56,7 @@ function score_popup(?string $json, float $total): string {
          . '<div class="sp-intro">Ogni voce dà punti in base al <b>tuo livello</b> (0-100%) e a <b>quanto vale</b> '
          . '(i punti massimi che può dare). La somma delle voci è il punteggio.</div>'
          . '<table>'
+         . '<colgroup><col class="c-l"><col class="c-lvl"><col class="c-p"></colgroup>'
          . '<thead><tr><th>Voce</th><th>Il tuo livello</th><th>Punti / max</th></tr></thead>'
          . '<tbody>' . $body . '</tbody>'
          . '<tfoot><tr><td>Totale</td><td></td><td><b class="sp-tot">' . number_format($total, 1, ',', '.') . '</b> <span class="sp-max">/ 100</span></td></tr></tfoot>'
@@ -80,9 +81,10 @@ function score_popup(?string $json, float $total): string {
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
   }
   .score-pop table { table-layout: fixed; }
-  .score-pop .sp-l { width: 50%; white-space: normal; }
-  .score-pop .sp-lvl { width: 28%; }
-  .score-pop .sp-p { width: 22%; }
+  .score-pop col.c-l { width: 48%; }
+  .score-pop col.c-lvl { width: 30%; }
+  .score-pop col.c-p { width: 22%; }
+  .score-pop .sp-l { white-space: normal; }
   .score-cell:hover .score-pop, .score-cell:focus-within .score-pop { opacity: 1; visibility: visible; transform: translateY(0); }
   .score-pop .sp-head { font-family: var(--font-heading); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
   .score-pop .sp-intro { font-size: 12px; line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
