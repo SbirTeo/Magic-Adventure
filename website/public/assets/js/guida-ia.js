@@ -94,9 +94,13 @@
       }
       var meta = document.getElementById(ancora);
       if (meta) {
-        // Non scrollIntoView: l'intestazione del sito e' fissa e coprirebbe il titolo del
-        // capitolo appena raggiunto. Gli stessi 80px che usa la guida in /tutorial.
-        var y = Math.max(0, meta.getBoundingClientRect().top + window.pageYOffset - 80);
+        // Non scrollIntoView: l'intestazione del sito e' fissa (sticky) e coprirebbe il titolo
+        // del capitolo appena raggiunto. La sua altezza NON e' costante (a finestra stretta il
+        // menu va a capo), quindi si misura ogni volta invece di usare un numero fisso: un
+        // valore piu' basso dell'intestazione vera lasciava il titolo nascosto sotto di essa.
+        var headEl = document.querySelector('header');
+        var gap = (headEl ? headEl.getBoundingClientRect().height : 64) + 12;
+        var y = Math.max(0, meta.getBoundingClientRect().top + window.pageYOffset - gap);
         var partenza = window.pageYOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
         // Lo scorrimento morbido lo ignorano in silenzio certi browser incorporati e chi ha
