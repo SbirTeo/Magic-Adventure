@@ -33,28 +33,33 @@ try {
     $score_ready = false;
 }
 
-// Popup (card) che spiega COME si arriva al punteggio, dal JSON factions.score_detail scritto dal
-// plugin: una riga per caratteristica con valore usato, barra del livello 0-100, quota di peso e punti
-// aggiunti. Stessi numeri del tooltip in gioco. Torna stringa vuota se il dettaglio non c'e' ancora.
+// Popup (card) che spiega COME si calcola il punteggio, dal JSON factions.score_detail scritto dal
+// plugin. Deve essere AUTOESPLICATIVO per un giocatore qualunque: ogni voce dà punti in base al suo
+// LIVELLO (quanto sei bravo lì, 0-100%) e a QUANTO VALE (il massimo di punti che può dare); i punti
+// ottenuti sono il livello applicato a quel massimo, e la somma delle voci è il punteggio.
+// Nel JSON: l=etichetta, v=valore grezzo, lv=livello 0-100, w="30%" (=max punti della voce), p=punti.
 function score_popup(?string $json, float $total): string {
     $rows = $json ? json_decode($json, true) : null;
     if (!is_array($rows) || !$rows) return '';
-    $h = 'Come si compone <b class="sp-tot">' . number_format($total, 1, ',', '.') . '</b><span>/100</span>';
     $body = '';
     foreach ($rows as $r) {
-        $lv = max(0, min(100, (int) ($r['lv'] ?? 0)));
+        $lv  = max(0, min(100, (int) ($r['lv'] ?? 0)));       // livello 0-100
+        $max = (int) rtrim((string) ($r['w'] ?? '0'), '%');   // massimo punti della voce (= peso)
         $body .= '<tr>'
-              . '<td class="sp-l">' . h($r['l'] ?? '?') . '</td>'
-              . '<td class="sp-v">' . h($r['v'] ?? '?') . '</td>'
-              . '<td class="sp-bar"><i title="livello ' . $lv . '/100"><b style="width:' . $lv . '%"></b></i></td>'
-              . '<td class="sp-w">' . h($r['w'] ?? '') . '</td>'
-              . '<td class="sp-p">' . h($r['p'] ?? '?') . '</td>'
+              . '<td class="sp-l">' . h($r['l'] ?? '?') . ' <span class="sp-v">' . h($r['v'] ?? '') . '</span></td>'
+              . '<td class="sp-lvl"><i class="sp-bar"><b style="width:' . $lv . '%"></b></i><span>' . $lv . '%</span></td>'
+              . '<td class="sp-p"><b>' . h($r['p'] ?? '?') . '</b> <span class="sp-max">/ ' . $max . '</span></td>'
               . '</tr>';
     }
     return '<div class="score-pop" role="tooltip">'
-         . '<div class="sp-head">' . $h . '</div>'
-         . '<table><tbody>' . $body . '</tbody></table>'
-         . '<div class="sp-foot">valore · livello · peso = punti</div>'
+         . '<div class="sp-head">Come si calcola il punteggio</div>'
+         . '<div class="sp-intro">Ogni voce dà punti in base al <b>tuo livello</b> (0-100%) e a <b>quanto vale</b> '
+         . '(i punti massimi che può dare). La somma delle voci è il punteggio.</div>'
+         . '<table>'
+         . '<thead><tr><th>Voce</th><th>Il tuo livello</th><th>Punti / max</th></tr></thead>'
+         . '<tbody>' . $body . '</tbody>'
+         . '<tfoot><tr><td>Totale</td><td></td><td><b class="sp-tot">' . number_format($total, 1, ',', '.') . '</b> <span class="sp-max">/ 100</span></td></tr></tfoot>'
+         . '</table>'
          . '</div>';
 }
 ?>
@@ -64,31 +69,36 @@ function score_popup(?string $json, float $total): string {
   .rank-wrap { overflow: visible; }
   @media (max-width: 760px) { .rank-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; } }
   .score-cell { position: relative; }
-  .score-trigger { cursor: help; font-weight: 700; border-bottom: 1px dashed var(--border-strong); }
+  .score-trigger { cursor: pointer; font-weight: 700; border-bottom: 1px dashed var(--border-strong); }
   .score-cell .score-pop {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
-    display: block; min-width: 288px; max-width: 340px;
+    display: block; width: 340px; max-width: 92vw;
     background: var(--bg-elevated); border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm); padding: 12px 14px; text-align: left; white-space: normal;
+    border-radius: var(--radius-sm); padding: 14px 16px; text-align: left; white-space: normal;
     box-shadow: 0 18px 44px -14px rgba(0,0,0,.65);
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
   }
   .score-cell:hover .score-pop, .score-cell:focus-within .score-pop { opacity: 1; visibility: visible; transform: translateY(0); }
-  .score-pop .sp-head { display: block; font-family: var(--font-heading); font-size: 13px; color: var(--text-dim); margin-bottom: 9px; }
-  .score-pop .sp-head b.sp-tot { color: var(--purple); font-size: 17px; }
-  .score-pop .sp-head span { color: var(--text-dim); }
+  .score-pop .sp-head { font-family: var(--font-heading); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .score-pop .sp-intro { font-size: 12px; line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
+  .score-pop .sp-intro b { color: var(--text); font-weight: 600; }
   .score-pop table { width: 100%; border-collapse: collapse; }
-  .score-pop td { padding: 4px 0; font-size: 13px; border: 0; white-space: nowrap; vertical-align: middle; }
+  .score-pop th { font-family: var(--font-heading); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-dimmer); font-weight: 600; text-align: left; padding: 0 0 6px; border-bottom: 1px solid var(--border); }
+  .score-pop th:last-child, .score-pop td:last-child { text-align: right; }
+  .score-pop td { padding: 6px 0; font-size: 13px; border: 0; white-space: nowrap; vertical-align: middle; border-bottom: 1px solid var(--border); }
+  .score-pop tbody tr:last-child td { border-bottom: 0; }
   .score-pop .sp-l { color: var(--text); padding-right: 10px; }
-  .score-pop .sp-v { color: var(--text-dim); text-align: right; padding-right: 10px; }
-  .score-pop .sp-bar { width: 66px; padding-right: 10px; }
-  .score-pop .sp-bar i { display: block; height: 6px; border-radius: 4px; background: var(--border); }
-  .score-pop .sp-bar i b { display: block; height: 100%; border-radius: 4px; background: var(--purple); min-width: 2px; }
-  .score-pop .sp-w { color: var(--text-dimmer); text-align: right; padding-right: 10px; font-size: 12px; }
-  .score-pop .sp-p { color: var(--purple); font-weight: 700; text-align: right; }
-  .score-pop .sp-foot { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
-    color: var(--text-dimmer); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .score-pop .sp-l .sp-v { color: var(--text-dim); font-size: 12px; }
+  .score-pop .sp-lvl { padding-right: 10px; }
+  .score-pop .sp-lvl .sp-bar { display: inline-block; width: 54px; height: 6px; border-radius: 4px; background: var(--border); vertical-align: middle; overflow: hidden; }
+  .score-pop .sp-lvl .sp-bar b { display: block; height: 100%; border-radius: 4px; background: var(--purple); min-width: 2px; }
+  .score-pop .sp-lvl span { color: var(--text-dim); font-size: 12px; margin-left: 7px; }
+  .score-pop .sp-p b { color: var(--purple); font-weight: 700; }
+  .score-pop .sp-p .sp-max { color: var(--text-dimmer); font-size: 12px; }
+  .score-pop tfoot td { padding-top: 9px; border-top: 1px solid var(--border-strong); font-family: var(--font-heading); color: var(--text); }
+  .score-pop tfoot .sp-tot { color: var(--purple); font-size: 16px; }
 </style>
 <h1 class="page-title">Classifiche<?php if (!$score_ready): ?> <span class="badge-soon">In arrivo</span><?php endif; ?></h1>
 
