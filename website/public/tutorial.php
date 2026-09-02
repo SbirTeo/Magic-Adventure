@@ -178,6 +178,16 @@ require __DIR__ . '/../includes/header.php';
       }, 350);
     }
 
+    // L'intestazione del sito e' fissa (sticky) e la sua altezza NON e' costante: su finestre
+    // strette il menu va a capo e l'intestazione diventa piu' alta (qui misurata a 98px, ma a
+    // schermo largo e' ~65px). Un numero fisso (prima era 80) a volte era piu' basso
+    // dell'intestazione vera, cosi' il titolo del capitolo finiva NASCOSTO sotto di essa. Si
+    // misura ogni volta, con un piccolo margine sotto per staccare il titolo dal bordo.
+    function headerOffset() {
+      var h = document.querySelector('header');
+      return (h ? h.getBoundingClientRect().height : 64) + 12;
+    }
+
     function vaiA(id) {
       var doc;
       try { doc = frame.contentDocument; } catch (e) { return; }
@@ -185,7 +195,7 @@ require __DIR__ . '/../includes/header.php';
       var meta = id ? doc.getElementById(id) : null;
       var y = frame.getBoundingClientRect().top + window.pageYOffset
             + (meta ? meta.getBoundingClientRect().top + doc.documentElement.scrollTop : 0)
-            - 80;   // spazio per l'intestazione fissa del sito
+            - headerOffset();   // spazio per l'intestazione fissa del sito (altezza reale)
       scorriA(Math.max(0, y));
       // Un lampo sul capitolo appena raggiunto: senza, in mezzo a dodici riquadri uguali non
       // si capisce quale fosse quello giusto. Il colore arriva dal tema del sito.
