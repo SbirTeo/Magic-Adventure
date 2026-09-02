@@ -1233,6 +1233,21 @@
     });
   }
 
+  /**
+   * L'etichetta della quantita' da scrivere nell'angolo della casella, o null se non va scritta.
+   *
+   * Come in gioco: l'1 non si mostra. Un numero vero (10) si scrive tale e quale. Una quantita'
+   * scritta con un placeholder (%vault_eco%…) qui non si puo' calcolare — il valore lo sa solo il
+   * server — quindi si mette un "#" col valore vero nel suggerimento, invece di stiparci dentro
+   * una stringa che sborderebbe dalla casella.
+   */
+  function quantityLabel(q) {
+    q = String(q === undefined || q === null ? '1' : q).trim();
+    if (q === '' || q === '1') return null;
+    if (/^\d+$/.test(q)) return { testo: q, titolo: null };
+    return { testo: '#', titolo: 'Quantità dinamica: ' + q };
+  }
+
   // --- la griglia -----------------------------------------------------
   function griglia() {
     var box = el('div', 'panel me-griglia-box');
@@ -1257,11 +1272,24 @@
           cella.appendChild(makeIcon(it.id, 32, it.testa));
           cella.draggable = true;
           cella.title = stripColors(it.titolo || it.nome);
-          // Il numerino dice quanti item sono impilati qui: se ne vede uno solo, gli altri stanno
-          // sotto. Compare da 2 in su — come la striscia "conviventi" nel pannello di destra, cosi'
-          // griglia e pannello contano allo stesso modo e non si contraddicono.
+          // La quantita' vanilla dell'item (il "10" di 10 stone): in basso a destra, bianca su
+          // ombra nera, esattamente dove e come la disegna il gioco nella casella. L'1 non si
+          // scrive, come in gioco. Sta in un ANGOLO DIVERSO dal badge degli impilati, cosi' i due
+          // numeri non si confondono: questo e' la quantita' dell'item (lo stack vanilla), quello
+          // in alto e' quanti item diversi si impilano sulla stessa casella.
+          var etQ = quantityLabel(it.quantita);
+          if (etQ) {
+            var q = el('span', 'me-cella-quantita', etQ.testo);
+            if (etQ.titolo) q.title = etQ.titolo;
+            cella.appendChild(q);
+          }
+          // Il badge in alto a destra dice quanti item sono IMPILATI su questa casella: se ne vede
+          // uno solo, gli altri stanno sotto. Compare da 2 in su — come la striscia "conviventi" nel
+          // pannello di destra, cosi' griglia e pannello contano allo stesso modo e non si contraddicono.
           if (indici.length > 1) {
-            cella.appendChild(el('span', 'me-badge', String(indici.length)));
+            var badge = el('span', 'me-badge', '×' + indici.length);
+            badge.title = indici.length + ' item impilati su questa casella';
+            cella.appendChild(badge);
           }
           if (it.azioni && countActions(it)) cella.classList.add('me-cella-cliccabile');
           if (sceltoItem === vincente) cella.classList.add('me-cella-scelta');
@@ -1309,7 +1337,7 @@
     box.appendChild(scorri);
 
     var legenda = el('div', 'me-legenda');
-    legenda.appendChild(el('span', 'muted', 'Il bordo verde segna gli item che fanno qualcosa al clic. Il numerino dice quanti item sono impilati su quella casella: la prende il primo dell’elenco che ha i suoi show_requirements soddisfatti. Scorciatoie: item selezionato + Canc lo elimina, Ctrl+C lo copia, Ctrl+V lo incolla nella casella sotto il mouse.'));
+    legenda.appendChild(el('span', 'muted', 'Il bordo verde segna gli item che fanno qualcosa al clic. Il numero bianco in basso a destra è la quantità dell’item, come in gioco (il ×N in alto a destra, viola, è un’altra cosa: quanti item sono impilati su quella casella — la prende il primo dell’elenco che ha i suoi show_requirements soddisfatti). Scorciatoie: item selezionato + Canc lo elimina, Ctrl+C lo copia, Ctrl+V lo incolla nella casella sotto il mouse.'));
     box.appendChild(legenda);
     return box;
   }
