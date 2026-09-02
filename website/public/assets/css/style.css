@@ -1325,6 +1325,16 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 /* Per l'admin in alto a destra c'e' gia' la crocetta di eliminazione: la targhetta si sposta
    a sinistra invece di finirci sotto. */
 .chat-msg:has(.chat-msg-del) .chat-msg-info { right: 30px; }
+/* L'ULTIMO messaggio: la targhetta si apre verso l'ALTO invece che centrata sulla riga.
+   Centrata sporge sotto la riga e, trattandosi dell'ultima, quella sporgenza cade sul bordo
+   inferiore dell'elenco (che ritaglia quello che esce): finiva ritagliata a filo del pulsante
+   "Accedi per scrivere"/del campo di scrittura, che sembrava cosi' finirle sopra. Ancorandola
+   in basso cresce verso l'alto e resta tutta dentro l'elenco. */
+.chat-msg:last-child .chat-msg-info {
+  top: auto;
+  bottom: 6px;
+  transform: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .chat-msg-info { transition: none; animation: none; }
 }
