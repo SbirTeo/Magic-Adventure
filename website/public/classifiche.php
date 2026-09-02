@@ -72,13 +72,17 @@ function score_popup(?string $json, float $total): string {
   .score-trigger { cursor: pointer; font-weight: 700; border-bottom: 1px dashed var(--border-strong); }
   .score-cell .score-pop {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
-    display: block; width: 340px; max-width: 92vw;
+    display: block; width: 400px; max-width: 92vw; box-sizing: border-box;
     background: var(--bg-elevated); border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm); padding: 14px 16px; text-align: left; white-space: normal;
     box-shadow: 0 18px 44px -14px rgba(0,0,0,.65);
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
   }
+  .score-pop table { table-layout: fixed; }
+  .score-pop .sp-l { width: 50%; white-space: normal; }
+  .score-pop .sp-lvl { width: 28%; }
+  .score-pop .sp-p { width: 22%; }
   .score-cell:hover .score-pop, .score-cell:focus-within .score-pop { opacity: 1; visibility: visible; transform: translateY(0); }
   .score-pop .sp-head { font-family: var(--font-heading); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
   .score-pop .sp-intro { font-size: 12px; line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
