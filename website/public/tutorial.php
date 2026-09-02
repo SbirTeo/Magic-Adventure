@@ -158,7 +158,7 @@ require __DIR__ . '/../includes/header.php';
     // Il tema si cambia senza ricaricare la pagina: la guida deve seguirlo, altrimenti
     // resta coi colori di prima (e con lo schema sbagliato torna la fascia bianca).
     if (window.MutationObserver) {
-      new MutationObserver(integraNelSito).observe(document.documentElement,
+      new MutationObserver(integrateIntoSite).observe(document.documentElement,
         { attributes: true, attributeFilter: ['data-tema'] });
     }
 
