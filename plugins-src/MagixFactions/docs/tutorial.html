@@ -110,12 +110,13 @@
     <li><a href="#s5">Alleati e nemici</a></li>
     <li><a href="#s6">La Potenza</a></li>
     <li><a href="#s7">Conquistare territori</a></li>
-    <li><a href="#s8">La mappa (/f map)</a></li>
-    <li><a href="#s9">La casa (/f home)</a></li>
-    <li><a href="#s10">Perdere territori (sovraccarico)</a></li>
-    <li><a href="#s11">Guardare le info</a></li>
+    <li><a href="#s8">La banca della fazione</a></li>
+    <li><a href="#s9">La mappa (/f map)</a></li>
+    <li><a href="#s10">La casa (/f home)</a></li>
+    <li><a href="#s11">Perdere territori (sovraccarico)</a></li>
+    <li><a href="#s12">Guardare le info</a></li>
     <li><a href="#sTop">La classifica del server</a></li>
-    <li><a href="#s12">Tutti i comandi</a></li>
+    <li><a href="#s13">Tutti i comandi</a></li>
   </ol>
 </div>
 
@@ -237,8 +238,12 @@
   <h3>Rilasciare territori</h3>
   <p><span class="cmd">/f unclaim</span> — rilascia (rende neutrale) il chunk in cui ti trovi. La fazione recupera in banca una <b>parte di quanto aveva pagato</b> per quel territorio (di base il {{percento:claims.unclaim-refund-percent}}).</p>
   <p><span class="cmd">/f unclaimall</span> — rilascia TUTTI i territori della fazione in un colpo solo.</p>
+  <div class="warn"><b>/f unclaimall è IRREVERSIBILE.</b> La prima volta mostra solo un avviso a schermo (con un
+  suono di pericolo): devi rieseguire il comando entro {{secondi:claims.unclaim-all-confirm-seconds}} per confermare davvero.</div>
+</section>
 
-  <h2><span class="n">B</span>La Banca della fazione</h2>
+<section id="s8">
+  <h2><span class="n">8</span>La banca della fazione</h2>
   <p>Ogni fazione ha una <b>banca comune</b>: un salvadanaio condiviso per far crescere la fazione
   (costi di claim, progetti comuni, guerre...).</p>
   <p><span class="cmd">/f deposit &lt;soldi&gt;</span> (o <span class="cmd">/f d</span>) — <b>versa</b> i tuoi
@@ -249,12 +254,10 @@
   <p class="sub"><b>A cosa servono i soldi della banca?</b> A <b>conquistare territori</b>: ogni
   <span class="cmd">/f claim</span> costa denaro <b>dalla banca della fazione</b>, e il prezzo
   <b>cresce</b> a ogni territorio (i primi costano poco, poi sempre di più). Tenete la banca piena!</p>
-  <div class="warn"><b>/f unclaimall è IRREVERSIBILE.</b> La prima volta mostra solo un avviso a schermo (con un
-  suono di pericolo): devi rieseguire il comando entro {{secondi:claims.unclaim-all-confirm-seconds}} per confermare davvero.</div>
 </section>
 
-<section id="s8">
-  <h2><span class="n">8</span>La Mappa Fazioni — <span class="cmd" style="font-size:15px">/f map</span></h2>
+<section id="s9">
+  <h2><span class="n">9</span>La Mappa Fazioni — <span class="cmd" style="font-size:15px">/f map</span></h2>
 {{se:map.mode=chat}}
   <p>Il comando <span class="cmd">/f map</span> ti stampa <b>in chat</b> la mappa dei territori attorno a te: un
   quadrato di <b>{{cfg:map.chat.rows}}×{{cfg:map.chat.rows}}</b> caselle con <b>te al centro</b>. Ogni casella è un
@@ -316,8 +319,8 @@
 {{/se}}
 </section>
 
-<section id="s9">
-  <h2><span class="n">9</span>La casa della fazione — <span class="cmd" style="font-size:15px">/f home</span></h2>
+<section id="s10">
+  <h2><span class="n">10</span>La casa della fazione — <span class="cmd" style="font-size:15px">/f home</span></h2>
   <ol class="steps">
     <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.</li>
     <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione.</li>
@@ -326,8 +329,8 @@
   (vedi sotto).</div>
 </section>
 
-<section id="s10">
-  <h2><span class="n">10</span>Perdere territori (sovraccarico)</h2>
+<section id="s11">
+  <h2><span class="n">11</span>Perdere territori (sovraccarico)</h2>
   <p>Se la fazione possiede <b>più territori del tetto</b> — ad esempio dopo aver perso un membro — scatta un
   allarme: tutti i membri online ricevono un <b>avviso al centro dello schermo con un suono di pericolo</b>.</p>
   <p>Se non rientri nel limite (di solito <b>invitando un altro giocatore</b>) entro <b>{{ore:decay.grace-hours}}</b>, la fazione
@@ -349,8 +352,8 @@
   del tuo territorio.</div>
 </section>
 
-<section id="s11">
-  <h2><span class="n">11</span>Guardare le info</h2>
+<section id="s12">
+  <h2><span class="n">12</span>Guardare le info</h2>
   <p><span class="cmd">/f info</span> mostra tutto sulla tua fazione (o su un'altra: <span class="cmd">/f info &lt;nome&gt;</span>):</p>
   <div class="chat">
     <span class="g">Fazione:</span> <span class="gn">Draghi</span><br>
@@ -396,8 +399,8 @@
   <b>sito</b>.</p>
 </section>
 
-<section id="s12">
-  <h2><span class="n">12</span>Tutti i comandi</h2>
+<section id="s13">
+  <h2><span class="n">13</span>Tutti i comandi</h2>
   <table>
     <tr><th>Comando</th><th>Cosa fa</th></tr>
     <tr><td><span class="cmd">/f create &lt;nome&gt;</span></td><td>Crea una fazione (diventi leader)</td></tr>
