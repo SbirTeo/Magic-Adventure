@@ -90,6 +90,14 @@ require __DIR__ . '/../includes/header.php';
   </div>
 
   <script>
+  // Se il browser ripristina questa pagina dalla cache avanti/indietro (bfcache) — tipico
+  // tornando alla guida dal menu o col tasto Indietro — il codice che gira e' quello di
+  // ALLORA, non l'ultimo caricato dal server: si restava su uno script vecchio (es. con
+  // l'offset di scorrimento sbagliato, che nascondeva il titolo del capitolo sotto
+  // l'intestazione). La pagina e' no-store lato server, quindi basta rileggerla: se e' un
+  // ripristino da bfcache, forziamo un ricaricamento pulito.
+  window.addEventListener('pageshow', function (e) { if (e.persisted) window.location.reload(); });
+
   // La guida sta in un riquadro a parte (foglio di stile suo), ma deve leggersi come una
   // pagina sola: niente barra di scorrimento interna e i link dell'indice muovono la
   // pagina del sito, non il riquadro.
