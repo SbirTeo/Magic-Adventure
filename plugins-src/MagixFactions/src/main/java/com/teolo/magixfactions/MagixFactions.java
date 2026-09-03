@@ -405,26 +405,25 @@ public final class MagixFactions extends JavaPlugin {
                                 + "diverse, e non vanno uniformati.")
 
                 .section("Punteggio e classifica",
-                        "/f top ordina le fazioni per un **PUNTEGGIO** unico da 0 a 100, non per un solo numero: "
-                                + "una classifica basata solo sui territori (o solo sui soldi) premierebbe chi eccelle "
-                                + "in una cosa sola. Il punteggio è la sintesi **PESATA** di cinque caratteristiche, e i "
-                                + "pesi li decidi tu nel config, sezione score.",
-                        "Ogni caratteristica diventa prima un livello 0-100 con un tetto **MORBIDO** "
-                                + "(livello = 100 × valore / (valore + K), dove K = score.references è il valore a cui "
-                                + "quella voce vale 50): la curva cresce sempre — due fazioni diverse non pareggiano mai — "
-                                + "ma non arriva mai a 100, così un milione in banca non fa schizzare il punteggio. Poi i "
-                                + "livelli si mediano coi **PESI** di score.weights. I pesi sono relativi: falli sommare a "
-                                + "100 e diventano percentuali dirette. Un peso a 0 esclude la caratteristica.",
-                        "Territori (peso {{cfg:score.weights.land}}) e longevità (peso {{cfg:score.weights.longevity}}, "
-                                + "in giorni dalla creazione) contano col valore attuale. Banca (peso "
-                                + "{{cfg:score.weights.bank}}) e potenza (peso {{cfg:score.weights.power}}) contano invece "
-                                + "con la loro **MEDIA NEL TEMPO** — la giacenza media, non il saldo di un attimo: un "
-                                + "deposito lampo per scalare la classifica non serve. La media si costruisce campionando "
-                                + "ogni {{secondi:score.sample-interval-seconds}} e si salva sul database.",
-                        "Due cose da sapere quando ti chiedono spiegazioni: la media di banca e potenza per le fazioni "
-                                + "**già esistenti** parte dal momento in cui abbiamo aggiornato il plugin (non c'era uno "
-                                + "storico passato), quindi all'inizio riflette il presente e si assesta col tempo; e il "
-                                + "punteggio compare anche in /f info e sul sito, alimentato dagli stessi numeri.")
+                        "/f top ordina le fazioni per un **PUNTEGGIO** unico, non per un solo numero: una classifica "
+                                + "basata solo sui territori (o solo sui soldi) premierebbe chi eccelle in una cosa sola. "
+                                + "Il punteggio è la sintesi di cinque caratteristiche, con un metodo **RELATIVO**.",
+                        "In ogni caratteristica la fazione col valore più **ALTO** vale 1, le altre valgono in "
+                                + "proporzione a lei (proprio valore ÷ valore del migliore, quindi fra 0 e 1). Poi ogni "
+                                + "frazione si moltiplica per il **PESO** della voce (score.weights): col peso 1 vale al "
+                                + "massimo 1, col peso 2 il doppio. Il punteggio è la **SOMMA** dei contributi; il massimo "
+                                + "possibile è la somma dei pesi. Un peso 0 esclude la voce.",
+                        "Conseguenza da spiegare ai giocatori: il punteggio è **RELATIVO**, cioè può cambiare anche se una "
+                                + "fazione non fa nulla, solo perché un'altra ha alzato il record di una voce. È voluto: "
+                                + "misura quanto sei vicino al **MIGLIORE** del momento, non un valore assoluto.",
+                        "Territori, membri e longevità (giorni dalla creazione) contano col valore attuale. Banca e "
+                                + "potenza contano di default con la loro **MEDIA NEL TEMPO** (giacenza media, non il saldo "
+                                + "di un attimo: un deposito lampo non scala la classifica) — con score.bank-value / "
+                                + "score.power-value a `current` si usa invece il valore attuale. La media si campiona ogni "
+                                + "{{secondi:score.sample-interval-seconds}} e si salva sul database; per le fazioni **già "
+                                + "esistenti** parte dall'aggiornamento del plugin (niente storico passato), quindi "
+                                + "all'inizio riflette il presente e si assesta col tempo. Il punteggio compare anche in "
+                                + "/f info e sul sito, dagli stessi numeri.")
 
                 .section("Mappa e minimap",
                         // Come risponde /f map lo dice il config: la frase cambia da sola con map.mode, cosi'
@@ -459,9 +458,8 @@ public final class MagixFactions extends JavaPlugin {
                         "power.death-loss", "Quanta Potenza si perde morendo.",
                         "power.gain-interval-seconds", "Ogni quanti secondi online si guadagna Potenza.",
                         "claims.max-percent", "Percentuale del maxpower che diventa tetto dei territori.",
-                        "score.weights", "Peso di ogni caratteristica nel punteggio della classifica (territori, "
-                                + "membri, banca, longevità, potenza).",
-                        "score.references", "Il valore a cui ogni caratteristica vale metà punteggio (tetto morbido).",
+                        "score.weights", "Peso (= massimo) di ogni caratteristica nel punteggio: col peso 1 vale al "
+                                + "massimo 1, alzalo per farla contare di più, 0 la esclude.",
                         "decay.grace-hours", "Ore di grazia prima che il sovraccarico cominci a togliere territori.",
                         "map.mode", "Come risponde /f map: chat (mappa testuale, default) oppure item (mappa "
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")

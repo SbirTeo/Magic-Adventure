@@ -289,8 +289,8 @@ top:
 # /f top) compare l'intestazione + una riga per caratteristica. {label}=nome voce, {value}=valore usato,
 # {level}=livello 0-100 di quella voce, {weight}=quota di peso, {points}=punti che aggiunge al totale.
 score-tooltip:
-  header: "&b&lPunteggio &f{score}&7/100\n&8Ogni voce vale una fetta del punteggio; ne prendi una parte in base al tuo livello:"
-  line: "&7{label} &8(&f{value}&8)&7: livello &f{level}% &8· &7vale &f{weight} &8· &b{points} pt"
+  header: "&b&lPunteggio &f{score}&7/{max}\n&8In ogni voce il migliore vale il massimo; tu ne prendi la percentuale rispetto a lui:"
+  line: "&7{label} &8(&f{value}&8)&7: &f{pct} &7del migliore &8· &b{points}&7/{max}"
 
 db:
   no-perm: "&cNon hai il permesso."

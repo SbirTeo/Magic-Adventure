@@ -16,7 +16,7 @@ $factions = [];
 $score_ready = true;
 try {
     $stmt = db()->query(
-        'SELECT f.id, f.name, ROUND(f.score, 1) AS score, f.score_detail,
+        'SELECT f.id, f.name, ROUND(f.score, 2) AS score, f.score_detail,
                 (SELECT COUNT(*) FROM factions_magixfactions.claims c WHERE c.faction_id = f.id) AS claims,
                 (SELECT COUNT(*) FROM factions_magixfactions.faction_members m WHERE m.faction_id = f.id) AS members,
                 (SELECT COALESCE(SUM(pl.power), 0)
@@ -34,32 +34,35 @@ try {
 }
 
 // Popup (card) che spiega COME si calcola il punteggio, dal JSON factions.score_detail scritto dal
-// plugin. Deve essere AUTOESPLICATIVO per un giocatore qualunque: ogni voce dà punti in base al suo
-// LIVELLO (quanto sei bravo lì, 0-100%) e a QUANTO VALE (il massimo di punti che può dare); i punti
-// ottenuti sono il livello applicato a quel massimo, e la somma delle voci è il punteggio.
-// Nel JSON: l=etichetta, v=valore grezzo, lv=livello 0-100, w="30%" (=max punti della voce), p=punti.
+// plugin. Metodo RELATIVO: in ogni voce la fazione migliore vale il massimo (il suo peso), le altre ne
+// prendono la percentuale rispetto a lei; il punteggio è la somma. Il sito mostra e basta i numeri già
+// pronti, non ricalcola nulla. Nel JSON: l=etichetta, v=valore grezzo, pct="76%" (rispetto al migliore),
+// p=punti dati, m=massimo della voce (= peso).
 function score_popup(?string $json, float $total): string {
     $rows = $json ? json_decode($json, true) : null;
     if (!is_array($rows) || !$rows) return '';
     $body = '';
+    $maxTotal = 0.0;   // somma dei massimi delle voci = punteggio massimo possibile
     foreach ($rows as $r) {
-        $lv  = max(0, min(100, (int) ($r['lv'] ?? 0)));       // livello 0-100
-        $max = (int) rtrim((string) ($r['w'] ?? '0'), '%');   // massimo punti della voce (= peso)
+        $pct = max(0, min(100, (int) rtrim((string) ($r['pct'] ?? '0'), '%')));   // % rispetto al migliore
+        $maxTotal += (float) str_replace(',', '.', (string) ($r['m'] ?? '0'));
         $body .= '<tr>'
               . '<td class="sp-l">' . h($r['l'] ?? '?') . ' <span class="sp-v">' . h($r['v'] ?? '') . '</span></td>'
-              . '<td class="sp-lvl"><i class="sp-bar"><b style="width:' . $lv . '%"></b></i><span>' . $lv . '%</span></td>'
-              . '<td class="sp-p"><b>' . h($r['p'] ?? '?') . '</b> <span class="sp-max">/ ' . $max . '</span></td>'
+              . '<td class="sp-lvl"><i class="sp-bar"><b style="width:' . $pct . '%"></b></i><span>' . $pct . '%</span></td>'
+              . '<td class="sp-p"><b>' . h($r['p'] ?? '?') . '</b> <span class="sp-max">/ ' . h($r['m'] ?? '1') . '</span></td>'
               . '</tr>';
     }
+    // Massimo totale come testo pulito (5 invece di 5,00).
+    $maxTxt = rtrim(rtrim(number_format($maxTotal, 2, ',', '.'), '0'), ',');
     return '<div class="score-pop" role="tooltip">'
          . '<div class="sp-head">Come si calcola il punteggio</div>'
-         . '<div class="sp-intro">Ogni voce dà punti in base al <b>tuo livello</b> (0-100%) e a <b>quanto vale</b> '
-         . '(i punti massimi che può dare). La somma delle voci è il punteggio.</div>'
+         . '<div class="sp-intro">In ogni voce la fazione <b>migliore</b> vale il massimo; tu ne prendi la '
+         . '<b>percentuale rispetto a lei</b>. Il punteggio è la somma delle voci.</div>'
          . '<table>'
          . '<colgroup><col class="c-l"><col class="c-lvl"><col class="c-p"></colgroup>'
-         . '<thead><tr><th>Voce</th><th>Il tuo livello</th><th>Punti / max</th></tr></thead>'
+         . '<thead><tr><th>Voce</th><th>% del migliore</th><th>Punti / max</th></tr></thead>'
          . '<tbody>' . $body . '</tbody>'
-         . '<tfoot><tr><td>Totale</td><td></td><td><b class="sp-tot">' . number_format($total, 1, ',', '.') . '</b> <span class="sp-max">/ 100</span></td></tr></tfoot>'
+         . '<tfoot><tr><td>Totale</td><td></td><td><b class="sp-tot">' . number_format($total, 2, ',', '.') . '</b> <span class="sp-max">/ ' . h($maxTxt) . '</span></td></tr></tfoot>'
          . '</table>'
          . '</div>';
 }
@@ -111,9 +114,10 @@ function score_popup(?string $json, float $total): string {
 <h2>🏆 Top Fazioni</h2>
 <div class="panel">
   <p style="color:var(--text-dim);margin-top:0">
-    Il <b>Punteggio</b> (da 0 a 100) unisce piu cose, ognuna pesata: territori, membri,
-    <b>giacenza media</b> della banca, da quanto esiste la fazione e la sua potenza media. Strafare in
-    una cosa sola rende sempre meno: per salire conviene crescere su tutto.
+    Il <b>Punteggio</b> confronta le fazioni voce per voce: in ogni caratteristica (territori, membri,
+    <b>giacenza media</b> della banca, longevità, potenza media) la <b>migliore</b> vale il massimo e le
+    altre in proporzione a lei. La somma delle voci è il punteggio — passa il mouse su un valore per il
+    dettaglio.
   </p>
   <?php if (!$score_ready): ?>
     <p style="color:var(--text-dim)">La classifica reale sara disponibile appena il server si aggiorna. Torna a trovarci!</p>
@@ -134,7 +138,7 @@ function score_popup(?string $json, float $total): string {
               <td><?= h($f['name']) ?></td>
               <?php $pop = score_popup($f['score_detail'] ?? null, (float) $f['score']); ?>
               <td<?= $pop ? ' class="score-cell" tabindex="0"' : '' ?>>
-                <span<?= $pop ? ' class="score-trigger"' : ' style="font-weight:700"' ?>><?= h(number_format((float) $f['score'], 1, ',', '.')) ?></span>
+                <span<?= $pop ? ' class="score-trigger"' : ' style="font-weight:700"' ?>><?= h(number_format((float) $f['score'], 2, ',', '.')) ?></span>
                 <?= $pop ?>
               </td>
               <td><?= (int) $f['claims'] ?></td>

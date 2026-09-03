@@ -782,11 +782,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
     /** Testo del tooltip del punteggio: intestazione + una riga per caratteristica (dal breakdown live). */
     private String scoreTooltip(Faction f) {
-        StringBuilder sb = new StringBuilder(M.get("score-tooltip.header", "score", score.formatScore(score.score(f))));
+        StringBuilder sb = new StringBuilder(M.get("score-tooltip.header",
+                "score", score.formatScore(score.score(f)), "max", score.maxScoreStr()));
         for (com.teolo.magixfactions.manage.ScoreManager.Component c : score.breakdown(f)) {
             sb.append("\n").append(M.get("score-tooltip.line",
-                    "label", c.label, "value", c.valueText, "level", c.levelStr(),
-                    "weight", c.pctStr(), "points", c.pointsStr()));
+                    "label", c.label, "value", c.valueText, "pct", c.pctStr(),
+                    "points", c.pointsStr(), "max", c.maxStr()));
         }
         return sb.toString();
     }

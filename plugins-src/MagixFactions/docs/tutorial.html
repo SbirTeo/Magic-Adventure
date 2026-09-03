@@ -374,27 +374,30 @@
 <section id="sTop">
   <h2><span class="n">C</span>La classifica del server — <span class="cmd" style="font-size:15px">/f top</span></h2>
   <p><span class="cmd">/f top</span> mostra la <b>classifica</b> delle fazioni. Non conta chi ha più territori
-  e basta, o più soldi e basta: ogni fazione ha un <b>Punteggio</b> da zero a cento che <b>mette insieme</b>
-  più cose, ognuna che pesa quanto lo staff decide.</p>
+  e basta, o più soldi e basta: ogni fazione ha un <b>Punteggio</b> che la confronta con le altre <b>voce
+  per voce</b>.</p>
   <div class="chat">
     <span class="g">— Classifica fazioni (4) —</span><br>
-    <span class="gr">#1</span> <span class="gn">Draghi</span> <span class="gr">-</span> <span class="cy">72,5</span><br>
-    <span class="gr">#2</span> <span class="rd">Corvi</span> <span class="gr">-</span> <span class="cy">64,1</span><br>
-    <span class="gr">#3</span> <span class="rd">Lupi</span> <span class="gr">-</span> <span class="cy">51,8</span><br>
-    <span class="gr">#4</span> <span class="rd">Volpi</span> <span class="gr">-</span> <span class="cy">39,0</span>
+    <span class="gr">#1</span> <span class="gn">Draghi</span> <span class="gr">-</span> <span class="cy">3,84</span><br>
+    <span class="gr">#2</span> <span class="rd">Corvi</span> <span class="gr">-</span> <span class="cy">2,91</span><br>
+    <span class="gr">#3</span> <span class="rd">Lupi</span> <span class="gr">-</span> <span class="cy">1,57</span><br>
+    <span class="gr">#4</span> <span class="rd">Volpi</span> <span class="gr">-</span> <span class="cy">0,88</span>
   </div>
-  <p>Le cose che fanno salire il Punteggio sono cinque:</p>
+  <p><b>Come funziona:</b> per ogni caratteristica, la fazione <b>migliore</b> vale il massimo e tu vali
+  <b>in proporzione a lei</b> (metà dei suoi territori = metà del punteggio di quella voce). Sommando tutte
+  le voci esce il tuo Punteggio.</p>
+  <p>Le caratteristiche che contano sono cinque:</p>
   <ul>
-    <li><b>Territori</b> — quanti chunk possiede la fazione (peso {{cfg:score.weights.land}}).</li>
-    <li><b>Membri</b> — quanti siete (peso {{cfg:score.weights.members}}).</li>
-    <li><b>Banca</b> — la <b>giacenza media</b>, cioè quanti soldi tenete <b>nel tempo</b> (peso {{cfg:score.weights.bank}}).</li>
-    <li><b>Longevità</b> — da quanti giorni esiste la fazione (peso {{cfg:score.weights.longevity}}).</li>
-    <li><b>Potenza</b> — la potenza media della fazione (peso {{cfg:score.weights.power}}).</li>
+    <li><b>Territori</b> — quanti chunk possiede la fazione.</li>
+    <li><b>Membri</b> — quanti siete.</li>
+    <li><b>Banca</b> — la <b>giacenza media</b>, cioè quanti soldi tenete <b>nel tempo</b>.</li>
+    <li><b>Longevità</b> — da quanti giorni esiste la fazione.</li>
+    <li><b>Potenza</b> — la potenza media della fazione.</li>
   </ul>
   <p class="sub">Due cose importanti. La <b>banca</b> conta la <b>media nel tempo</b>: mettere un milione un
-  attimo prima di guardare la classifica <b>non serve</b> a scalarla — contano i soldi che tieni davvero.
-  E ogni voce ha un <b>tetto morbido</b>: strafare in una sola cosa rende sempre un po' di più, ma sempre
-  meno — per andare in alto conviene <b>crescere su tutto</b>.</p>
+  attimo prima di guardare la classifica <b>non serve</b> — contano i soldi che tieni davvero. E il
+  punteggio è <b>relativo</b>: può scendere anche senza che tu faccia nulla, se un'altra fazione batte un
+  record. Per salire, <b>cresci su tutto</b> e prova a essere il migliore in qualche voce.</p>
   <p class="sub">Il tuo Punteggio e la tua posizione li vedi anche in <span class="cmd">/f info</span> e sul
   <b>sito</b>.</p>
 </section>

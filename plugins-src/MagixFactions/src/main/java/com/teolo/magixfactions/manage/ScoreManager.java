@@ -5,41 +5,41 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * PUNTEGGIO di fazione e CLASSIFICA (/f top).
  *
- * <h2>Perche' esiste</h2>
- * Una "Top fazioni" che ordina per un solo numero (territori, o membri, o soldi) e' fuorviante: premia
- * chi eccelle in una cosa sola. Qui il punteggio e' la SINTESI di piu' caratteristiche, ognuna PESATA
- * quanto decide l'amministratore nel config.
- *
- * <h2>Come si calcola</h2>
- * Due passaggi, per far si' che caratteristiche con scale diversissime (territori ~decine, soldi
- * ~centinaia di migliaia) siano confrontabili e i pesi esprimano una vera IMPORTANZA:
- * <ol>
- *   <li><b>LIVELLO 0-100</b> per ogni caratteristica, con un <i>tetto morbido a rendimenti decrescenti</i>:
- *       {@code livello = 100 · v / (v + K)}. K (il "riferimento") e' il valore a cui la caratteristica
- *       vale 50. La curva CRESCE sempre (piu' e' sempre un po' di piu': niente pareggi in cima) ma non
- *       arriva mai a 100 (i numeri giganti non "schizzano": un milione in banca resta sotto il tetto).</li>
- *   <li><b>PESO</b>: il punteggio finale e' la media dei livelli pesata coi pesi del config
- *       ({@code score.weights.*}), normalizzata sulla somma dei pesi attivi -> sempre in 0-100. Cosi'
- *       "territori peso 30, banca peso 15" significa che i territori contano il DOPPIO dei soldi,
- *       indipendentemente dai numeri grezzi.</li>
- * </ol>
+ * <h2>Metodo (RELATIVO al migliore)</h2>
+ * Una "Top fazioni" che ordina per un solo numero (territori, o soldi) e' fuorviante. Qui il punteggio e'
+ * la SINTESI di piu' caratteristiche, ognuna misurata IN RELAZIONE alla fazione migliore:
+ * <ul>
+ *   <li>in ogni caratteristica la fazione col valore piu' alto vale <b>1</b>; le altre valgono
+ *       {@code proprio valore / valore del migliore} (quindi fra 0 e 1);</li>
+ *   <li>ogni frazione e' moltiplicata per il PESO della voce ({@code score.weights.<voce>}, default 1):
+ *       col peso 1 la voce vale al massimo 1, col peso 2 il doppio. Il punteggio e' la <b>somma</b> dei
+ *       contributi (peso × frazione); il massimo possibile e' la SOMMA DEI PESI (una fazione prima in
+ *       tutto). Coi pesi tutti a 1 il massimo e' il numero di caratteristiche.</li>
+ * </ul>
+ * Niente valori di riferimento e nessun tetto artificiale: il massimo di una voce e' semplicemente il suo
+ * peso. Conseguenza da sapere: il punteggio e' RELATIVO, cioe' cambia anche se una fazione non fa nulla ma
+ * un'altra alza il record di una voce.
  *
  * <h2>Medie nel tempo</h2>
- * Banca e Potenza NON entrano col valore istantaneo ma con la loro MEDIA nel tempo dalla creazione
- * ("giacenza media", "potenza media"): un picco momentaneo non gonfia la classifica. La media si tiene
- * con un integrale {@code valore × secondi} accumulato sulla fazione (colonne {@code factions.*_avg_accum},
- * {@code score_sampled_at}, {@code score_since}) e aggiornato da un campionatore periodico; qui il valore
- * "aperto" dall'ultimo campione a ORA viene aggiunto al volo a ogni lettura, cosi' il punteggio e' sempre
- * attuale anche fra un campione e l'altro. Territori e Longevita' usano invece il valore corrente (numero
- * di chunk, giorni dalla creazione).
+ * Banca e Potenza entrano, di default, con la loro MEDIA nel tempo ("giacenza media", "potenza media"),
+ * cosi' un picco momentaneo non gonfia la classifica; con {@code score.bank-value}/{@code score.power-value}
+ * a {@code current} si usa invece il valore attuale. La media si tiene con un integrale {@code valore ×
+ * secondi} accumulato sulla fazione (colonne {@code factions.*_avg_accum}, {@code score_sampled_at},
+ * {@code score_since}) e aggiornato da un campionatore periodico. Territori, Membri e Longevita' usano il
+ * valore corrente (numero di chunk, numero di membri, giorni dalla creazione).
  */
 public final class ScoreManager {
+
+    /** Le caratteristiche, in ordine di visualizzazione. */
+    private static final String[] KEYS = {"land", "members", "bank", "longevity", "power"};
 
     private final JavaPlugin plugin;
     private final FactionManager fm;
@@ -55,12 +55,21 @@ public final class ScoreManager {
 
     // ----------------------------- CONFIG -----------------------------
 
-    private double weight(String key, double def) {
-        return Math.max(0, plugin.getConfig().getDouble("score.weights." + key, def));
+    /** Peso della caratteristica (score.weights.<voce>, default 1). E' il MASSIMO che quella voce puo'
+     *  dare (quando sei tu il migliore): con peso 1 vale al massimo 1, con peso 2 vale il doppio. Peso 0
+     *  la esclude dal punteggio. */
+    private double weight(String key) {
+        return Math.max(0, plugin.getConfig().getDouble("score.weights." + key, 1.0));
     }
 
-    private double reference(String key, double def) {
-        return plugin.getConfig().getDouble("score.references." + key, def);
+    /** Banca: media nel tempo (default) o valore attuale? (score.bank-value: average|current). */
+    private boolean bankAverage() {
+        return !"current".equalsIgnoreCase(plugin.getConfig().getString("score.bank-value", "average"));
+    }
+
+    /** Potenza: media nel tempo (default) o valore attuale? (score.power-value: average|current). */
+    private boolean powerAverage() {
+        return !"current".equalsIgnoreCase(plugin.getConfig().getString("score.power-value", "average"));
     }
 
     public int sampleIntervalSeconds() {
@@ -72,20 +81,25 @@ public final class ScoreManager {
     }
 
     private int decimals() {
-        return Math.max(0, Math.min(4, plugin.getConfig().getInt("score.decimals", 1)));
+        return Math.max(0, Math.min(4, plugin.getConfig().getInt("score.decimals", 2)));
     }
 
-    // --------------------------- LIVELLI 0-100 -------------------------
-
-    /**
-     * Livello 0-100 di una caratteristica col tetto morbido {@code 100·v/(v+K)}.
-     * Valore negativo (puo' capitare alla Potenza) trattato come 0. K &le; 0 disattiva la caratteristica
-     * (livello 0): e' il modo per escluderne una dal riferimento oltre che dal peso.
-     */
-    public static double level(double v, double k) {
-        if (v <= 0 || k <= 0) return 0;
-        return 100.0 * v / (v + k);
+    /** Le caratteristiche attive (peso > 0), in ordine. */
+    private List<String> activeKeys() {
+        List<String> out = new ArrayList<>();
+        for (String k : KEYS) if (weight(k) > 0) out.add(k);
+        return out;
     }
+
+    /** Il punteggio massimo raggiungibile = somma dei pesi (una fazione prima in TUTTE le voci). */
+    public double maxScore() {
+        double m = 0;
+        for (String k : activeKeys()) m += weight(k);
+        return m;
+    }
+
+    /** Il massimo come testo pulito (senza decimali inutili), per il "/ max" mostrato. */
+    public String maxScoreStr() { return trimNum(maxScore()); }
 
     // --------------------------- MEDIE NEL TEMPO -----------------------
 
@@ -120,97 +134,147 @@ public final class ScoreManager {
         return Math.max(0, System.currentTimeMillis() - f.getCreatedAt()) / 86_400_000.0;
     }
 
-    // ------------------------------ PUNTEGGIO --------------------------
+    // --------------------------- VALORI DELLE VOCI ---------------------
 
-    /** Punteggio composito 0-100 della fazione: somma dei contributi delle caratteristiche (=media dei
-     *  livelli pesata coi pesi del config). Vedi {@link #breakdown(Faction)} per il dettaglio voce per voce. */
-    public double score(Faction f) {
-        double s = 0;
-        for (Component c : breakdown(f)) s += c.contribution;
-        return s;
+    /** Il valore grezzo di una caratteristica per una fazione (rispettando media/attuale del config). */
+    private double valueOf(String key, Faction f) {
+        return switch (key) {
+            case "land" -> claims.count(f.getId());
+            case "members" -> f.size();
+            case "bank" -> bankAverage() ? averageBank(f) : f.getBank();
+            case "longevity" -> ageDays(f);
+            case "power" -> powerAverage() ? averagePower(f) : power.factionPower(f);
+            default -> 0;
+        };
     }
 
-    /** Somma di TUTTI i pesi (le voci a peso 0 non contano): denominatore della media pesata. */
-    private double totalWeight() {
-        return weight("land", 30) + weight("members", 20) + weight("bank", 15)
-                + weight("longevity", 15) + weight("power", 20);
+    /** Etichetta leggibile della voce (Banca/Potenza dicono "(media)" quando lo sono). */
+    private String label(String key) {
+        return switch (key) {
+            case "land" -> "Territori";
+            case "members" -> "Membri";
+            case "bank" -> bankAverage() ? "Banca (media)" : "Banca";
+            case "longevity" -> "Longevità";
+            case "power" -> powerAverage() ? "Potenza (media)" : "Potenza";
+            default -> key;
+        };
     }
 
-    /**
-     * Il dettaglio del punteggio, una voce per caratteristica: valore usato, livello 0-100, quota di peso
-     * e contributo al totale. Serve al TOOLTIP che spiega "come si arriva a quel punteggio" (in gioco al
-     * passaggio del mouse in chat, sul sito nella classifica). La somma dei contributi = {@link #score}.
-     */
-    public List<Component> breakdown(Faction f) {
-        List<Component> out = new ArrayList<>();
-        double total = totalWeight();
-        if (total <= 0) return out;
-        int claimN = claims.count(f.getId());
-        add(out, "land", "Territori", claimN, reference("land", 40), weight("land", 30), total, intText(claimN));
-        add(out, "members", "Membri", f.size(), reference("members", 8), weight("members", 20), total, intText(f.size()));
-        double avgBank = averageBank(f);
-        add(out, "bank", "Banca (media)", avgBank, reference("bank", 500_000), weight("bank", 15), total, moneyText(avgBank));
-        double days = ageDays(f);
-        add(out, "longevity", "Longevità", days, reference("longevity", 90), weight("longevity", 15), total, daysText(days));
-        double avgPow = averagePower(f);
-        add(out, "power", "Potenza (media)", avgPow, reference("power", 200), weight("power", 20), total, intText(avgPow));
-        return out;
-    }
-
-    private void add(List<Component> out, String key, String label, double v, double k, double w, double total, String valueText) {
-        if (w <= 0) return;   // caratteristica esclusa (peso 0): non compare nel dettaglio
-        double lvl = level(v, k);
-        double share = w / total;
-        out.add(new Component(key, label, valueText, lvl, share, share * lvl));
+    /** Testo formattato del valore grezzo (interi, soldi con le migliaia, giorni con la "g"). */
+    private String valueText(String key, double v) {
+        return switch (key) {
+            case "bank" -> moneyText(v);
+            case "longevity" -> daysText(v);
+            default -> intText(v);
+        };
     }
 
     private static String intText(double v) { return String.valueOf(Math.round(v)); }
     private static String moneyText(double v) { return String.format(Locale.ITALY, "%,.0f", v); }
     private static String daysText(double v) { return Math.round(v) + "g"; }
 
-    /** Una riga del dettaglio del punteggio (una caratteristica). I testi sono già formattati (locale IT),
-     *  così gioco e sito mostrano gli stessi valori senza riformattare ognuno per conto suo. */
-    public static final class Component {
-        public final String key, label, valueText;
-        public final double level, weightShare, contribution;
-        Component(String key, String label, String valueText, double level, double weightShare, double contribution) {
-            this.key = key; this.label = label; this.valueText = valueText;
-            this.level = level; this.weightShare = weightShare; this.contribution = contribution;
+    // ------------------------------ MASSIMI ----------------------------
+
+    /** Il valore massimo di ogni caratteristica attiva su TUTTE le fazioni (il "migliore" = 1). */
+    private Map<String, Double> computeMaxes() {
+        Map<String, Double> max = new LinkedHashMap<>();
+        for (String k : activeKeys()) max.put(k, 0.0);
+        for (Faction f : fm.all()) {
+            for (String k : max.keySet()) {
+                double v = Math.max(0, valueOf(k, f));   // i negativi (Potenza) non contano
+                if (v > max.get(k)) max.put(k, v);
+            }
         }
-        public String levelStr() { return String.valueOf(Math.round(level)); }
-        public String pctStr() { return Math.round(weightShare * 100) + "%"; }
-        public String pointsStr() { return String.format(Locale.ITALY, "%.1f", contribution); }
+        return max;
     }
+
+    // ------------------------------ PUNTEGGIO --------------------------
 
     /**
-     * Il dettaglio come JSON compatto, SNAPSHOT salvato su {@code factions.score_detail} a ogni campione:
-     * lo legge il SITO per il tooltip della classifica (i testi sono già formattati, il sito li mostra e
-     * basta). In gioco il tooltip si costruisce live da {@link #breakdown(Faction)}, quindi qui non serve.
-     * Forma: {@code [{"l":"Territori","v":"40","lv":"50","w":"30%","p":"15,0"}, ...]}.
+     * Il dettaglio del punteggio, una voce per caratteristica: valore grezzo e FRAZIONE (0-1) rispetto al
+     * migliore. Serve al TOOLTIP che spiega "come si arriva a quel punteggio". La somma delle frazioni =
+     * {@link #score}.
      */
-    public String detailJson(Faction f) {
-        return detailJsonOf(breakdown(f));
+    public List<Component> breakdown(Faction f) {
+        return breakdown(f, computeMaxes());
     }
 
-    /** Come {@link #detailJson(Faction)} ma su un dettaglio GIÀ calcolato (evita di ricalcolarlo). */
-    public String detailJsonOf(List<Component> parts) {
-        StringBuilder sb = new StringBuilder("[");
-        boolean first = true;
-        for (Component c : parts) {
-            if (!first) sb.append(","); first = false;
-            sb.append("{\"l\":\"").append(escapeHtml(c.label)).append("\",\"v\":\"").append(escapeHtml(c.valueText))
-              .append("\",\"lv\":\"").append(c.levelStr()).append("\",\"w\":\"").append(c.pctStr())
-              .append("\",\"p\":\"").append(escapeHtml(c.pointsStr())).append("\"}");
+    private List<Component> breakdown(Faction f, Map<String, Double> maxes) {
+        List<Component> out = new ArrayList<>();
+        for (String k : activeKeys()) {
+            double v = Math.max(0, valueOf(k, f));
+            double mx = maxes.getOrDefault(k, 0.0);
+            double frac = mx > 0 ? v / mx : 0;
+            out.add(new Component(k, label(k), valueText(k, v), frac, weight(k)));
         }
-        return sb.append("]").toString();
+        return out;
     }
 
-    private static String escapeHtml(String s) { return s.replace("\\", "\\\\").replace("\"", "\\\""); }
+    /** Punteggio della fazione = somma dei contributi (peso × frazione) delle caratteristiche attive. */
+    public double score(Faction f) {
+        return score(f, computeMaxes());
+    }
+
+    private double score(Faction f, Map<String, Double> maxes) {
+        double s = 0;
+        for (Component c : breakdown(f, maxes)) s += c.contribution();
+        return s;
+    }
 
     /** Punteggio formattato per la visualizzazione (decimali da {@code score.decimals}). */
     public String formatScore(double v) {
         return String.format(Locale.ITALY, "%,." + decimals() + "f", v);
     }
+
+    /** Una riga del dettaglio: una caratteristica, col valore grezzo, la frazione rispetto al migliore
+     *  (0-1) e il peso. I punti dati = peso × frazione (quindi al massimo = il peso). */
+    public static final class Component {
+        public final String key, label, valueText;
+        public final double fraction;   // 0..1 (1 = sei tu il migliore in questa voce)
+        public final double weight;     // massimo che la voce puo' dare
+        Component(String key, String label, String valueText, double fraction, double weight) {
+            this.key = key; this.label = label; this.valueText = valueText; this.fraction = fraction; this.weight = weight;
+        }
+        /** Punti dati da questa voce = peso × frazione. */
+        public double contribution() { return weight * fraction; }
+        /** Percentuale rispetto al migliore ("76%"). */
+        public String pctStr() { return Math.round(fraction * 100) + "%"; }
+        /** Punti dati da questa voce, a due decimali. */
+        public String pointsStr() { return String.format(Locale.ITALY, "%.2f", contribution()); }
+        /** Il massimo della voce (= il peso), come testo pulito (senza decimali inutili). */
+        public String maxStr() { return trimNum(weight); }
+    }
+
+    /** Numero senza decimali inutili: 1.0 -> "1", 1.5 -> "1,5". */
+    private static String trimNum(double v) {
+        if (v == Math.rint(v)) return String.valueOf((long) v);
+        return String.format(Locale.ITALY, "%.2f", v).replaceAll("0+$", "").replaceAll(",$", "");
+    }
+
+    /**
+     * Il dettaglio come JSON compatto, SNAPSHOT salvato su {@code factions.score_detail} a ogni campione:
+     * lo legge il SITO per il tooltip della classifica. Forma (pct = % rispetto al migliore, p = punti dati,
+     * m = massimo della voce = peso):
+     * {@code [{"l":"Territori","v":"13","pct":"76%","p":"0,76","m":"1"}, ...]}.
+     */
+    public String detailJson(Faction f) {
+        return detailJsonOf(breakdown(f));
+    }
+
+    /** Come {@link #detailJson(Faction)} ma su un dettaglio GIA' calcolato (evita di ricalcolarlo). */
+    public String detailJsonOf(List<Component> parts) {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (Component c : parts) {
+            if (!first) sb.append(","); first = false;
+            sb.append("{\"l\":\"").append(escapeJson(c.label)).append("\",\"v\":\"").append(escapeJson(c.valueText))
+              .append("\",\"pct\":\"").append(c.pctStr()).append("\",\"p\":\"").append(escapeJson(c.pointsStr()))
+              .append("\",\"m\":\"").append(escapeJson(c.maxStr())).append("\"}");
+        }
+        return sb.append("]").toString();
+    }
+
+    private static String escapeJson(String s) { return s.replace("\\", "\\\\").replace("\"", "\\\""); }
 
     // ------------------------------ CLASSIFICA -------------------------
 
@@ -223,8 +287,9 @@ public final class ScoreManager {
 
     /** Tutte le fazioni ordinate per punteggio decrescente (a parita', per nome). */
     public List<Entry> ranking() {
+        Map<String, Double> maxes = computeMaxes();   // una volta sola per tutta la classifica
         List<Entry> list = new ArrayList<>();
-        for (Faction f : fm.all()) list.add(new Entry(f, score(f)));
+        for (Faction f : fm.all()) list.add(new Entry(f, score(f, maxes)));
         list.sort(Comparator.comparingDouble((Entry e) -> e.score).reversed()
                 .thenComparing(e -> e.faction.getName(), String.CASE_INSENSITIVE_ORDER));
         return list;
@@ -240,22 +305,25 @@ public final class ScoreManager {
     // ------------------------------ CAMPIONE ---------------------------
 
     /**
-     * Aggiorna gli integrali delle medie (banca, potenza) di TUTTE le fazioni fino a ORA e li salva su
-     * DB. Lo chiama il task periodico (ogni {@link #sampleIntervalSeconds()}) e onDisable, cosi' un crash
-     * perde al massimo l'ultimo intervallo. Solo main thread (legge la cache; il salvataggio e' async).
+     * Aggiorna gli integrali delle medie (banca, potenza) di TUTTE le fazioni fino a ORA, poi ricalcola e
+     * salva punteggio + dettaglio (che dipendono dai massimi di TUTTE le fazioni, quindi in un secondo
+     * giro dopo aver aggiornato tutti). Lo chiama il task periodico e onDisable. Solo main thread.
      */
     public void sampleAll() {
         long now = System.currentTimeMillis();
+        // 1) aggiorna gli integrali di tutte le fazioni (cosi' le medie sono al passo prima di calcolare i massimi)
         for (Faction f : fm.all()) {
             double dtSec = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
             if (dtSec <= 0) continue;
             f.setBankAvgAccum(f.getBankAvgAccum() + f.getBank() * dtSec);
             f.setPowerAvgAccum(f.getPowerAvgAccum() + power.factionPower(f) * dtSec);
             f.setScoreSampledAt(now);
-            // Snapshot del punteggio + dettaglio, per la classifica del sito (legge factions.score /
-            // score_detail). Il dettaglio si costruisce una volta e vale sia per lo score sia per il JSON.
-            List<Component> parts = breakdown(f);
-            double sc = 0; for (Component c : parts) sc += c.contribution;
+        }
+        // 2) massimi correnti + snapshot di punteggio e dettaglio per il sito
+        Map<String, Double> maxes = computeMaxes();
+        for (Faction f : fm.all()) {
+            List<Component> parts = breakdown(f, maxes);
+            double sc = 0; for (Component c : parts) sc += c.contribution();
             f.setScore(sc);
             f.setScoreDetail(detailJsonOf(parts));
             fm.saveScoreSample(f);
