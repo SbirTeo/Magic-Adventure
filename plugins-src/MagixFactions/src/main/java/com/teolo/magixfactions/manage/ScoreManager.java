@@ -214,17 +214,25 @@ public final class ScoreManager {
 
     // ------------------------------ MASSIMI ----------------------------
 
-    /** Il valore massimo di ogni caratteristica su TUTTE le fazioni ATTIVE (il "migliore" = 1). Le
-     *  fazioni inattive (oscurate) NON fanno da riferimento, cosi' una fazione morta con la banca piena
-     *  non falsa il metro delle altre. */
-    private Map<String, Double> computeMaxes() {
-        Map<String, Double> max = new LinkedHashMap<>();
-        for (String k : activeKeys()) max.put(k, 0.0);
+    /** Il migliore di una caratteristica: il valore massimo e la fazione che lo detiene (fa da riferimento). */
+    private static final class MaxInfo {
+        double value = 0;
+        long factionId = 0;
+        String name = "";
+    }
+
+    /** Per ogni caratteristica attiva, il MIGLIORE (valore massimo + fazione che lo tiene) fra tutte le
+     *  fazioni ATTIVE. Le inattive (oscurate) NON fanno da riferimento, cosi' una fazione morta con la
+     *  banca piena non falsa il metro delle altre. */
+    private Map<String, MaxInfo> computeMaxes() {
+        Map<String, MaxInfo> max = new LinkedHashMap<>();
+        for (String k : activeKeys()) max.put(k, new MaxInfo());
         for (Faction f : fm.all()) {
             if (!isActive(f)) continue;
-            for (String k : max.keySet()) {
-                double v = Math.max(0, valueOf(k, f));   // i negativi (Potenza) non contano
-                if (v > max.get(k)) max.put(k, v);
+            for (Map.Entry<String, MaxInfo> e : max.entrySet()) {
+                double v = Math.max(0, valueOf(e.getKey(), f));   // i negativi (Potenza) non contano
+                MaxInfo mi = e.getValue();
+                if (v > mi.value) { mi.value = v; mi.factionId = f.getId(); mi.name = f.getName(); }
             }
         }
         return max;
@@ -241,15 +249,18 @@ public final class ScoreManager {
         return breakdown(f, computeMaxes());
     }
 
-    private List<Component> breakdown(Faction f, Map<String, Double> maxes) {
+    private List<Component> breakdown(Faction f, Map<String, MaxInfo> maxes) {
         List<Component> out = new ArrayList<>();
         for (String k : activeKeys()) {
             double v = Math.max(0, valueOf(k, f));
-            double mx = maxes.getOrDefault(k, 0.0);
+            MaxInfo mi = maxes.get(k);
+            double mx = mi == null ? 0 : mi.value;
             // Clamp a 1: una fazione INATTIVA (fuori dai massimi) potrebbe superare il migliore ATTIVO;
             // il suo dettaglio non deve mostrare percentuali oltre il 100%.
             double frac = mx > 0 ? Math.min(1.0, v / mx) : 0;
-            out.add(new Component(k, label(k), valueText(k, v), frac, weight(k)));
+            boolean self = mi != null && mi.factionId == f.getId();
+            String bestName = mi == null ? "" : mi.name;
+            out.add(new Component(k, label(k), valueText(k, v), frac, weight(k), valueText(k, mx), bestName, self));
         }
         return out;
     }
@@ -259,7 +270,7 @@ public final class ScoreManager {
         return score(f, computeMaxes());
     }
 
-    private double score(Faction f, Map<String, Double> maxes) {
+    private double score(Faction f, Map<String, MaxInfo> maxes) {
         double s = 0;
         for (Component c : breakdown(f, maxes)) s += c.contribution();
         return s;
@@ -276,8 +287,13 @@ public final class ScoreManager {
         public final String key, label, valueText;
         public final double fraction;   // 0..1 (1 = sei tu il migliore in questa voce)
         public final double weight;     // massimo che la voce puo' dare
-        Component(String key, String label, String valueText, double fraction, double weight) {
+        public final String bestValueText;  // valore del migliore (il 100%)
+        public final String bestName;       // fazione che detiene il migliore (il riferimento)
+        public final boolean bestSelf;      // il migliore sei TU
+        Component(String key, String label, String valueText, double fraction, double weight,
+                  String bestValueText, String bestName, boolean bestSelf) {
             this.key = key; this.label = label; this.valueText = valueText; this.fraction = fraction; this.weight = weight;
+            this.bestValueText = bestValueText; this.bestName = bestName; this.bestSelf = bestSelf;
         }
         /** Punti dati da questa voce = peso × frazione. */
         public double contribution() { return weight * fraction; }
@@ -313,7 +329,10 @@ public final class ScoreManager {
             if (!first) sb.append(","); first = false;
             sb.append("{\"l\":\"").append(escapeJson(c.label)).append("\",\"v\":\"").append(escapeJson(c.valueText))
               .append("\",\"pct\":\"").append(c.pctStr()).append("\",\"p\":\"").append(escapeJson(c.pointsStr()))
-              .append("\",\"m\":\"").append(escapeJson(c.maxStr())).append("\"}");
+              .append("\",\"m\":\"").append(escapeJson(c.maxStr()))
+              .append("\",\"bv\":\"").append(escapeJson(c.bestValueText))
+              .append("\",\"bn\":\"").append(escapeJson(c.bestName))
+              .append("\",\"self\":").append(c.bestSelf ? "true" : "false").append("}");
         }
         return sb.append("]").toString();
     }
@@ -332,7 +351,7 @@ public final class ScoreManager {
     /** Le fazioni ATTIVE ordinate per punteggio decrescente (a parita', per nome). Le inattive (oscurate)
      *  non compaiono in classifica. */
     public List<Entry> ranking() {
-        Map<String, Double> maxes = computeMaxes();   // una volta sola per tutta la classifica
+        Map<String, MaxInfo> maxes = computeMaxes();   // una volta sola per tutta la classifica
         List<Entry> list = new ArrayList<>();
         for (Faction f : fm.all()) if (isActive(f)) list.add(new Entry(f, score(f, maxes)));
         list.sort(Comparator.comparingDouble((Entry e) -> e.score).reversed()
@@ -370,7 +389,7 @@ public final class ScoreManager {
             f.setScoreSampledAt(now);
         }
         // 2) massimi correnti + snapshot di punteggio e dettaglio per il sito
-        Map<String, Double> maxes = computeMaxes();
+        Map<String, MaxInfo> maxes = computeMaxes();
         for (Faction f : fm.all()) {
             List<Component> parts = breakdown(f, maxes);
             double sc = 0; for (Component c : parts) sc += c.contribution();

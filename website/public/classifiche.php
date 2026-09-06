@@ -47,8 +47,13 @@ function score_popup(?string $json, float $total): string {
     foreach ($rows as $r) {
         $pct = max(0, min(100, (int) rtrim((string) ($r['pct'] ?? '0'), '%')));   // % rispetto al migliore
         $maxTotal += (float) str_replace(',', '.', (string) ($r['m'] ?? '0'));
+        // Riferimento: la fazione che fa da "migliore" (il 100%) in questa voce, e il suo valore.
+        $self = !empty($r['self']);
+        $best = $self
+            ? '<span class="sp-best sp-best-self">★ sei tu il migliore</span>'
+            : '<span class="sp-best">migliore: ' . h($r['bn'] ?? '?') . ' · ' . h($r['bv'] ?? '?') . '</span>';
         $body .= '<tr>'
-              . '<td class="sp-l">' . h($r['l'] ?? '?') . ' <span class="sp-v">' . h($r['v'] ?? '') . '</span></td>'
+              . '<td class="sp-l">' . h($r['l'] ?? '?') . ' <span class="sp-v">' . h($r['v'] ?? '') . '</span>' . $best . '</td>'
               . '<td class="sp-lvl"><i class="sp-bar"><b style="width:' . $pct . '%"></b></i><span>' . $pct . '%</span></td>'
               . '<td class="sp-p"><b>' . h($r['p'] ?? '?') . '</b> <span class="sp-max">/ ' . h($r['m'] ?? '1') . '</span></td>'
               . '</tr>';
@@ -101,6 +106,8 @@ function score_popup(?string $json, float $total): string {
   .score-pop tbody tr:last-child td { border-bottom: 0; }
   .score-pop .sp-l { color: var(--text); padding-right: 10px; }
   .score-pop .sp-l .sp-v { color: var(--text-dim); font-size: 12px; }
+  .score-pop .sp-best { display: block; color: var(--text-dimmer); font-size: 11px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .score-pop .sp-best-self { color: var(--green); }
   .score-pop .sp-lvl { padding-right: 10px; }
   .score-pop .sp-lvl .sp-bar { display: inline-block; width: 54px; height: 6px; border-radius: 4px; background: var(--border); vertical-align: middle; overflow: hidden; }
   .score-pop .sp-lvl .sp-bar b { display: block; height: 100%; border-radius: 4px; background: var(--purple); min-width: 2px; }

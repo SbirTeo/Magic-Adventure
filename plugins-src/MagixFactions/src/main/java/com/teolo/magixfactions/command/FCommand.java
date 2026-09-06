@@ -785,9 +785,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         StringBuilder sb = new StringBuilder(M.get("score-tooltip.header",
                 "score", score.formatScore(score.score(f)), "max", score.maxScoreStr()));
         for (com.teolo.magixfactions.manage.ScoreManager.Component c : score.breakdown(f)) {
+            String best = c.bestSelf ? M.get("score-tooltip.best-self") : c.bestName;
             sb.append("\n").append(M.get("score-tooltip.line",
                     "label", c.label, "value", c.valueText, "pct", c.pctStr(),
-                    "points", c.pointsStr(), "max", c.maxStr()));
+                    "points", c.pointsStr(), "max", c.maxStr(),
+                    "best", best, "bestval", c.bestValueText));
         }
         return sb.toString();
     }

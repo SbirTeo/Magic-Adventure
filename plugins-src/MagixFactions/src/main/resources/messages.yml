@@ -294,7 +294,10 @@ top:
 # {level}=livello 0-100 di quella voce, {weight}=quota di peso, {points}=punti che aggiunge al totale.
 score-tooltip:
   header: "&b&lPunteggio &f{score}&7/{max}\n&8In ogni voce il migliore vale il massimo; tu ne prendi la percentuale rispetto a lui:"
-  line: "&7{label} &8(&f{value}&8)&7: &f{pct} &7del migliore &8· &b{points}&7/{max}"
+  # {best} = fazione migliore in quella voce, {bestval} = il suo valore (il 100%).
+  line: "&7{label} &8(&f{value}&8) &7{pct} &8· &7migliore: &f{best} &8(&7{bestval}&8) &8· &b{points}&7/{max}"
+  # Testo usato al posto del nome quando il migliore in una voce sei TU.
+  best-self: "&atu"
 
 db:
   no-perm: "&cNon hai il permesso."
