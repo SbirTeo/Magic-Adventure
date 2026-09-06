@@ -186,7 +186,16 @@ score:
     bank: 1           # banca di fazione (di default: giacenza media, vedi bank-value)
     longevity: 1      # da quanti giorni esiste la fazione
     power: 1          # potenza di fazione (di default: media nel tempo, vedi power-value)
-  # Banca nel punteggio: "average" = giacenza MEDIA nel tempo (default), "current" = saldo attuale.
+  # Fazioni INATTIVE fuori dalla classifica: se TUTTI i membri sono assenti da piu' di questi giorni (nessuno
+  # online e nessun accesso recente), la fazione NON compare in /f top ne' sul sito, e NON fa da "migliore"
+  # per le altre voci (cosi' una fazione morta con la banca piena non falsa il metro degli altri). Conta
+  # l'ultimo accesso reale (join/quit), non il decadimento. 0 = disattivato: tutte le fazioni in classifica.
+  inactive-days: 7
+  # Banca nel punteggio: "average" = giacenza MEDIA (default), "current" = saldo attuale.
+  # La GIACENZA MEDIA conta SOLO il tempo in cui almeno un membro e' ONLINE: il tempo scorre quando si
+  # gioca, si ferma a server vuoto. Cosi' misura i soldi tenuti MENTRE si gioca, e non si puo' gonfiare la
+  # media parcheggiando denaro da offline. (La media resta sempre visibile; e' solo il conteggio del tempo
+  # a fermarsi.) La POTENZA invece si media sul tempo REALE, perche' deve calare anche da offline.
   bank-value: average
   # Potenza nel punteggio: "average" = potenza MEDIA nel tempo (default), "current" = potenza attuale.
   power-value: average

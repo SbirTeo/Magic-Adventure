@@ -54,9 +54,15 @@ public final class Faction {
     private double powerAvgAccum = 0;   // Σ(potenza fazione × secondi) accumulato fino a scoreSampledAt
     private long scoreSampledAt = 0;    // ultimo istante (ms) in cui l'integrale è stato aggiornato
     private long scoreSince = 0;        // inizio della finestra di media (ms): creazione, o upgrade per le vecchie
+    // Secondi con almeno un membro ONLINE: e' il denominatore della GIACENZA MEDIA della banca, che conta
+    // solo il tempo in cui si gioca (a server vuoto il tempo si ferma per la banca). La potenza invece si
+    // media sul tempo reale (scoreSince): deve calare anche da offline.
+    private double bankActiveSeconds = 0;
 
     public double getBankAvgAccum() { return bankAvgAccum; }
     public void setBankAvgAccum(double v) { this.bankAvgAccum = v; }
+    public double getBankActiveSeconds() { return bankActiveSeconds; }
+    public void setBankActiveSeconds(double v) { this.bankActiveSeconds = v; }
     public double getPowerAvgAccum() { return powerAvgAccum; }
     public void setPowerAvgAccum(double v) { this.powerAvgAccum = v; }
     public long getScoreSampledAt() { return scoreSampledAt; }
@@ -76,6 +82,12 @@ public final class Faction {
     private String scoreDetail = "[]";
     public String getScoreDetail() { return scoreDetail == null ? "[]" : scoreDetail; }
     public void setScoreDetail(String v) { this.scoreDetail = v; }
+
+    // In classifica (true) o OSCURATA perche' inattiva (tutti i membri assenti da troppo): lo decide il
+    // campionatore (ScoreManager) e lo legge il sito. Persistito su factions.ranked.
+    private boolean ranked = true;
+    public boolean isRanked() { return ranked; }
+    public void setRanked(boolean v) { this.ranked = v; }
 
     public Member getMember(UUID uuid) { return members.get(uuid); }
     public boolean isMember(UUID uuid) { return members.containsKey(uuid); }

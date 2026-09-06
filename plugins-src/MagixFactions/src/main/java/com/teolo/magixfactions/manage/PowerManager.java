@@ -41,6 +41,7 @@ public final class PowerManager {
         int power;
         int maxPower;
         long lastSeen;
+        long lastLogin;    // ultimo accesso REALE (join/quit), NON toccato dal decadimento: vedi ScoreManager.isActive
         int mapRows;   // colonna storica 'map_rows' riusata come ZOOM mappa: 0=default config, 1..5=closest..farthest
         int progress;      // avanzamento verso il prossimo punto di Potenza, in "secondi x percentuale"
         PP(String name, int power, int maxPower, long lastSeen, int mapRows, int progress) {
@@ -188,15 +189,20 @@ public final class PowerManager {
     public void loadAll() throws SQLException {
         cache.clear();
         try (Connection c = db.getConnection(); Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress FROM players")) {
+             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login FROM players")) {
             while (rs.next()) {
                 UUID u = UUID.fromString(rs.getString("uuid"));
-                cache.put(u, new PP(rs.getString("name"),
+                PP pp = new PP(rs.getString("name"),
                         (int) Math.round(rs.getDouble("power")),
                         (int) Math.round(rs.getDouble("max_power")),
                         rs.getLong("last_seen"),
                         rs.getInt("map_rows"),
-                        rs.getInt("power_progress")));
+                        rs.getInt("power_progress"));
+                // Righe pre-feature: last_login a 0 -> ripiega su last_seen (valore ragionevole "di recente"),
+                // cosi' non risultano subito tutte inattive; da qui in avanti last_login e' pulito (join/quit).
+                long ll = rs.getLong("last_login");
+                pp.lastLogin = ll > 0 ? ll : pp.lastSeen;
+                cache.put(u, pp);
             }
         }
     }
@@ -205,19 +211,20 @@ public final class PowerManager {
         PP pp = cache.get(u);
         if (pp != null) return pp;
         pp = new PP(null, startPower(), defaultMax(), System.currentTimeMillis(), 0, 0);
+        pp.lastLogin = pp.lastSeen;
         cache.put(u, pp);
         // Cattura i valori qui (main thread) e scrivi in async, serializzato: l'INSERT resta ordinato
         // prima di qualsiasi UPDATE successivo dello stesso giocatore.
         final String us = u.toString();
         final int power = pp.power, maxPower = pp.maxPower, mapRows = pp.mapRows, progress = pp.progress;
-        final long lastSeen = pp.lastSeen;
+        final long lastSeen = pp.lastSeen, lastLogin = pp.lastLogin;
         dbExec.submit(() -> {
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "INSERT INTO players (uuid, name, power, max_power, last_seen, map_rows, power_progress) VALUES (?,?,?,?,?,?,?)")) {
+                         "INSERT INTO players (uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login) VALUES (?,?,?,?,?,?,?,?)")) {
                 ps.setString(1, us); ps.setString(2, null);
                 ps.setDouble(3, power); ps.setDouble(4, maxPower); ps.setLong(5, lastSeen); ps.setInt(6, mapRows);
-                ps.setInt(7, progress);
+                ps.setInt(7, progress); ps.setLong(8, lastLogin);
                 ps.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().warning("[Power] insert giocatore: " + e.getMessage()); }
         });
@@ -329,7 +336,7 @@ public final class PowerManager {
             PP fresh = null;
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "SELECT name, power, max_power, last_seen, map_rows, power_progress FROM players WHERE uuid=?")) {
+                         "SELECT name, power, max_power, last_seen, map_rows, power_progress, last_login FROM players WHERE uuid=?")) {
                 ps.setString(1, u.toString());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -339,6 +346,8 @@ public final class PowerManager {
                                 rs.getLong("last_seen"),
                                 rs.getInt("map_rows"),
                                 rs.getInt("power_progress"));
+                        long ll = rs.getLong("last_login");
+                        fresh.lastLogin = ll > 0 ? ll : fresh.lastSeen;
                     }
                 }
             } catch (SQLException e) {
@@ -370,6 +379,7 @@ public final class PowerManager {
         pp.maxPower = vip.maxPower;
         clamp(pp);
         pp.lastSeen = now;
+        pp.lastLogin = now;   // accesso reale: timestamp pulito per l'inattivita' (non lo tocca il decadimento)
         save(u);
         if (mapService != null) mapService.updateScale(p, resolveZoomFactor(pp.mapRows), resolveDisplayName(pp.mapRows));
         reattachMinimap(p);
@@ -396,8 +406,17 @@ public final class PowerManager {
     public void onQuit(UUID u) {
         PP pp = cache.get(u);
         if (pp == null) return;
-        pp.lastSeen = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        pp.lastSeen = now;
+        pp.lastLogin = now;   // ultimo momento in cui era davvero collegato
         save(u);
+    }
+
+    /** Ultimo accesso REALE del giocatore (join/quit), 0 se sconosciuto. Usato per capire da quanto una
+     *  fazione e' inattiva (vedi ScoreManager). NON e' last_seen, che il decadimento fa avanzare. */
+    public long lastLogin(UUID u) {
+        PP pp = cache.get(u);
+        return pp == null ? 0 : pp.lastLogin;
     }
 
     /** Morte: -death-loss (minimo -maxPower). Avvisa il giocatore (solo lui) di quanta Potenza ha perso
@@ -583,13 +602,13 @@ public final class PowerManager {
         // Snapshot dei valori sul main thread; l'UPDATE viene eseguito in async serializzato.
         final String us = u.toString(), name = pp.name;
         final int power = pp.power, maxPower = pp.maxPower, mapRows = pp.mapRows, progress = pp.progress;
-        final long lastSeen = pp.lastSeen;
+        final long lastSeen = pp.lastSeen, lastLogin = pp.lastLogin;
         dbExec.submit(() -> {
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=? WHERE uuid=?")) {
+                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=?, last_login=? WHERE uuid=?")) {
                 ps.setString(1, name); ps.setDouble(2, power); ps.setDouble(3, maxPower);
-                ps.setLong(4, lastSeen); ps.setInt(5, mapRows); ps.setInt(6, progress); ps.setString(7, us);
+                ps.setLong(4, lastSeen); ps.setInt(5, mapRows); ps.setInt(6, progress); ps.setLong(7, lastLogin); ps.setString(8, us);
                 ps.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().warning("[Power] salvataggio: " + e.getMessage()); }
         });

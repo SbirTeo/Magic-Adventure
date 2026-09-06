@@ -918,10 +918,14 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         panel(p, statusDesc);
         // Banca di fazione: mostrata solo se c'e' un'economia attiva (senza, il saldo non avrebbe senso).
         if (Econ.enabled()) panel(p, M.get("info.bank", "bank", Econ.format(f.getBank())));
-        // Punteggio composito + posizione in classifica (/f top): la sintesi pesata di territori, membri,
-        // banca, longevita' e potenza. Un tooltip spiega da cosa e' composto senza allungare la scheda.
-        int pos = score.position(f);
-        sendScoreLine(p, f, M.get("info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(pos)));
+        // Punteggio composito + posizione in classifica (/f top). Un tooltip spiega da cosa e' composto.
+        // Una fazione INATTIVA (tutti i membri assenti da troppo) e' oscurata: riga senza posizione + avviso.
+        boolean active = score.isActive(f);
+        String scoreLine = active
+                ? M.get("info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(score.position(f)))
+                : M.get("info.score-unranked", "score", score.formatScore(score.score(f)));
+        sendScoreLine(p, f, scoreLine);
+        if (!active) panel(p, M.get("info.inactive", "days", String.valueOf(score.inactiveDays())));
         sendAlliesLine(p, f, own, own != null && own.getId() == f.getId());
         if (own != null && own.getId() != f.getId()) {
             RelationType rel = fm.effectiveRelation(own.getId(), f.getId());

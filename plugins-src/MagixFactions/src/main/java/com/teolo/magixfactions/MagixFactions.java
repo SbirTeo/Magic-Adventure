@@ -416,14 +416,24 @@ public final class MagixFactions extends JavaPlugin {
                         "Conseguenza da spiegare ai giocatori: il punteggio è **RELATIVO**, cioè può cambiare anche se una "
                                 + "fazione non fa nulla, solo perché un'altra ha alzato il record di una voce. È voluto: "
                                 + "misura quanto sei vicino al **MIGLIORE** del momento, non un valore assoluto.",
+                        "Le fazioni **INATTIVE** vengono oscurate: se TUTTI i membri sono assenti da più di "
+                                + "{{cfg:score.inactive-days}} giorni (score.inactive-days, 0 = disattivato), la fazione "
+                                + "sparisce da /f top e dal sito e **non fa più da «migliore»** per le altre — così una "
+                                + "fazione morta con la banca piena non falsa il metro di chi gioca davvero. Conta "
+                                + "l'ultimo accesso vero (entrata/uscita), non il decadimento della Potenza. Torna in "
+                                + "classifica da sola appena un membro si ricollega.",
                         "Territori, membri e longevità (giorni dalla creazione) contano col valore attuale. Banca e "
                                 + "potenza contano di default con la loro **MEDIA NEL TEMPO** (giacenza media, non il saldo "
                                 + "di un attimo: un deposito lampo non scala la classifica) — con score.bank-value / "
-                                + "score.power-value a `current` si usa invece il valore attuale. La media si campiona ogni "
-                                + "{{secondi:score.sample-interval-seconds}} e si salva sul database; per le fazioni **già "
-                                + "esistenti** parte dall'aggiornamento del plugin (niente storico passato), quindi "
-                                + "all'inizio riflette il presente e si assesta col tempo. Il punteggio compare anche in "
-                                + "/f info e sul sito, dagli stessi numeri.")
+                                + "score.power-value a `current` si usa invece il valore attuale.",
+                        "Una differenza importante fra le due medie: la **GIACENZA MEDIA** della banca conta solo il "
+                                + "tempo in cui almeno un membro è **ONLINE** (il tempo scorre quando si gioca, si ferma a "
+                                + "server vuoto), così non si può gonfiare la media parcheggiando soldi da offline. La "
+                                + "**POTENZA** media invece scorre sul tempo reale, perché deve calare anche mentre i "
+                                + "giocatori sono via. La media si campiona ogni {{secondi:score.sample-interval-seconds}} e "
+                                + "si salva sul database; per le fazioni **già esistenti** parte dall'aggiornamento del "
+                                + "plugin (niente storico passato), quindi all'inizio riflette il presente e si assesta col "
+                                + "tempo. Il punteggio compare anche in /f info e sul sito, dagli stessi numeri.")
 
                 .section("Mappa e minimap",
                         // Come risponde /f map lo dice il config: la frase cambia da sola con map.mode, cosi'

@@ -184,8 +184,12 @@ info:
   status: "&6Stato: {statuscolor}{claims}/{power}/{maxpower} &7(territori/potenza/potenza-max)"
   # Saldo della banca di fazione (mostrato solo con un'economia Vault attiva).
   bank: "&6Banca: &e{bank}"
-  # Punteggio composito + posizione in classifica (/f top). {score} = punteggio 0-100, {pos} = posizione.
+  # Punteggio composito + posizione in classifica (/f top). {score} = punteggio, {pos} = posizione.
   score: "&6Punteggio: &b{score} &7(#{pos} in classifica)"
+  # Variante per una fazione INATTIVA, oscurata dalla classifica (nessuna posizione).
+  score-unranked: "&6Punteggio: &b{score} &7(fuori classifica - inattiva)"
+  # Avviso mostrato in /f info quando la fazione e' INATTIVA. {days} = giorni di assenza richiesti.
+  inactive: "&c⚠ Fazione inattiva: tutti i membri assenti da oltre {days} giorni. Fuori dalla classifica finché non rientra qualcuno."
   status-safe-color: "&a"
   status-raid-color: "&c"
   status-none-color: "&f"

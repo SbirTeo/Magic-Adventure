@@ -90,12 +90,20 @@ public final class Database {
             // (FactionManager.loadAll inizializza score_since/score_sampled_at al primo caricamento).
             addIfMissing(c, st, "factions", "bank_avg_accum", "DOUBLE DEFAULT 0");
             addIfMissing(c, st, "factions", "power_avg_accum", "DOUBLE DEFAULT 0");
+            // Secondi ATTIVI su cui si media la banca (la giacenza media si congela da inattivi): vedi ScoreManager.
+            addIfMissing(c, st, "factions", "bank_active_seconds", "DOUBLE DEFAULT 0");
             addIfMissing(c, st, "factions", "score_sampled_at", "BIGINT DEFAULT 0");
             addIfMissing(c, st, "factions", "score_since", "BIGINT DEFAULT 0");
             // Punteggio composito calcolato: snapshot letto dal sito per la classifica (vedi ScoreManager).
             addIfMissing(c, st, "factions", "score", "DOUBLE DEFAULT 0");
             // Dettaglio del punteggio in JSON: lo legge il sito per il tooltip "come si arriva a questo valore".
             addIfMissing(c, st, "factions", "score_detail", "TEXT");
+            // Fazione "in classifica" o oscurata perche' INATTIVA (tutti i membri assenti): lo calcola il
+            // campionatore (ScoreManager) e lo legge il sito per non mostrare le fazioni morte.
+            addIfMissing(c, st, "factions", "ranked", "INT DEFAULT 1");
+            // Ultimo accesso REALE del giocatore (join/quit), NON toccato dal decadimento di Potenza (che
+            // invece fa avanzare last_seen): serve a capire da quanto una fazione e' inattiva (vedi ScoreManager).
+            addIfMissing(c, st, "players", "last_login", "BIGINT DEFAULT 0");
         }
     }
 
@@ -145,7 +153,7 @@ public final class Database {
         l.add("CREATE TABLE IF NOT EXISTS players (" +
                 "uuid VARCHAR(36) PRIMARY KEY, name VARCHAR(16), " +
                 "power DOUBLE DEFAULT 0, max_power DOUBLE DEFAULT 10, last_seen BIGINT DEFAULT 0, " +
-                "map_rows INT DEFAULT 0, power_progress INT DEFAULT 0)");
+                "map_rows INT DEFAULT 0, power_progress INT DEFAULT 0, last_login BIGINT DEFAULT 0)");
         // NB: sui database gia' esistenti resta la colonna 'minimap_on', non piu' usata da quando la
         // minimap HUD e' un PERMESSO (magixfactions.minimap) e non piu' un interruttore per-giocatore.
         // Non viene cancellata: una DROP COLUMN su dati altrui non ripaga il poco spazio che libera.
@@ -155,7 +163,7 @@ public final class Database {
                 "member_limit_bonus BIGINT DEFAULT 0, bank DOUBLE DEFAULT 0, " +
                 "bank_avg_accum DOUBLE DEFAULT 0, power_avg_accum DOUBLE DEFAULT 0, " +
                 "score_sampled_at BIGINT DEFAULT 0, score_since BIGINT DEFAULT 0, score DOUBLE DEFAULT 0, " +
-                "score_detail TEXT)");
+                "score_detail TEXT, ranked INT DEFAULT 1, bank_active_seconds DOUBLE DEFAULT 0)");
         l.add("CREATE TABLE IF NOT EXISTS faction_members (" +
                 "uuid VARCHAR(36) PRIMARY KEY, faction_id BIGINT, rank VARCHAR(32), " +
                 "rank_since BIGINT DEFAULT 0, joined_at BIGINT DEFAULT 0)");

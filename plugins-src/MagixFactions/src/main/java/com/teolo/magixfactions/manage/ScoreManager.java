@@ -1,6 +1,7 @@
 package com.teolo.magixfactions.manage;
 
 import com.teolo.magixfactions.model.Faction;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * PUNTEGGIO di fazione e CLASSIFICA (/f top).
@@ -72,6 +74,37 @@ public final class ScoreManager {
         return !"current".equalsIgnoreCase(plugin.getConfig().getString("score.power-value", "average"));
     }
 
+    /** Giorni di assenza TOTALE (tutti i membri) oltre i quali una fazione e' considerata INATTIVA e
+     *  oscurata dalla classifica. 0 = disattivato (tutte in classifica). (score.inactive-days) */
+    public int inactiveDays() {
+        return Math.max(0, plugin.getConfig().getInt("score.inactive-days", 7));
+    }
+
+    /**
+     * La fazione e' ATTIVA (compare in classifica e fa da riferimento agli altri)? Lo e' se almeno un
+     * membro e' online adesso, o si e' collegato negli ultimi {@link #inactiveDays()} giorni. Se TUTTI i
+     * membri mancano da piu' di tanto (o non ha membri) e' inattiva -> oscurata. Con inactive-days a 0 la
+     * funzione e' spenta e sono tutte attive.
+     */
+    public boolean isActive(Faction f) {
+        int days = inactiveDays();
+        if (days <= 0) return true;
+        if (f.getMembers().isEmpty()) return false;
+        long threshold = System.currentTimeMillis() - days * 86_400_000L;
+        for (UUID u : f.getMembers().keySet()) {
+            if (Bukkit.getPlayer(u) != null) return true;      // qualcuno online = attiva
+            if (power.lastLogin(u) >= threshold) return true;  // visto di recente
+        }
+        return false;
+    }
+
+    /** Almeno un membro e' collegato ADESSO. La giacenza media della banca avanza solo in questi momenti
+     *  (conta i soldi tenuti MENTRE si gioca); la potenza invece si media sul tempo reale. */
+    private boolean anyMemberOnline(Faction f) {
+        for (UUID u : f.getMembers().keySet()) if (Bukkit.getPlayer(u) != null) return true;
+        return false;
+    }
+
     public int sampleIntervalSeconds() {
         return Math.max(5, plugin.getConfig().getInt("score.sample-interval-seconds", 300));
     }
@@ -103,22 +136,28 @@ public final class ScoreManager {
 
     // --------------------------- MEDIE NEL TEMPO -----------------------
 
-    private double openBankAccum(Faction f, long now) {
-        double dtSec = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
-        return f.getBankAvgAccum() + f.getBank() * dtSec;
-    }
-
     private double openPowerAccum(Faction f, long now) {
         double dtSec = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
         return f.getPowerAvgAccum() + power.factionPower(f) * dtSec;
     }
 
-    /** Giacenza MEDIA della banca dalla creazione (o dall'upgrade, per le fazioni piu' vecchie). */
+    /**
+     * Giacenza MEDIA della banca. Si media SOLO sul tempo in cui c'e' stato almeno un membro ONLINE: i
+     * soldi tenuti mentre nessuno gioca non contano (il "tempo si ferma" per la banca). Cosi' non si puo'
+     * gonfiare la media parcheggiando denaro e restando offline. Denominatore = secondi con qualcuno
+     * online ({@code bank_active_seconds}), non il tempo reale.
+     */
     public double averageBank(Faction f) {
         long now = System.currentTimeMillis();
-        double windowSec = (now - f.getScoreSince()) / 1000.0;
-        if (windowSec < sampleIntervalSeconds()) return f.getBank();   // troppo poco storico: valore attuale
-        return openBankAccum(f, now) / windowSec;
+        double accum = f.getBankAvgAccum();
+        double activeSec = f.getBankActiveSeconds();
+        if (anyMemberOnline(f)) {   // intervallo aperto: conta solo se qualcuno e' online
+            double dt = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
+            accum += f.getBank() * dt;
+            activeSec += dt;
+        }
+        if (activeSec < sampleIntervalSeconds()) return f.getBank();   // troppo poco tempo online: valore attuale
+        return accum / activeSec;
     }
 
     /** Potenza MEDIA (totale di fazione) nel tempo dalla creazione. */
@@ -175,11 +214,14 @@ public final class ScoreManager {
 
     // ------------------------------ MASSIMI ----------------------------
 
-    /** Il valore massimo di ogni caratteristica attiva su TUTTE le fazioni (il "migliore" = 1). */
+    /** Il valore massimo di ogni caratteristica su TUTTE le fazioni ATTIVE (il "migliore" = 1). Le
+     *  fazioni inattive (oscurate) NON fanno da riferimento, cosi' una fazione morta con la banca piena
+     *  non falsa il metro delle altre. */
     private Map<String, Double> computeMaxes() {
         Map<String, Double> max = new LinkedHashMap<>();
         for (String k : activeKeys()) max.put(k, 0.0);
         for (Faction f : fm.all()) {
+            if (!isActive(f)) continue;
             for (String k : max.keySet()) {
                 double v = Math.max(0, valueOf(k, f));   // i negativi (Potenza) non contano
                 if (v > max.get(k)) max.put(k, v);
@@ -204,7 +246,9 @@ public final class ScoreManager {
         for (String k : activeKeys()) {
             double v = Math.max(0, valueOf(k, f));
             double mx = maxes.getOrDefault(k, 0.0);
-            double frac = mx > 0 ? v / mx : 0;
+            // Clamp a 1: una fazione INATTIVA (fuori dai massimi) potrebbe superare il migliore ATTIVO;
+            // il suo dettaglio non deve mostrare percentuali oltre il 100%.
+            double frac = mx > 0 ? Math.min(1.0, v / mx) : 0;
             out.add(new Component(k, label(k), valueText(k, v), frac, weight(k)));
         }
         return out;
@@ -285,11 +329,12 @@ public final class ScoreManager {
         Entry(Faction faction, double score) { this.faction = faction; this.score = score; }
     }
 
-    /** Tutte le fazioni ordinate per punteggio decrescente (a parita', per nome). */
+    /** Le fazioni ATTIVE ordinate per punteggio decrescente (a parita', per nome). Le inattive (oscurate)
+     *  non compaiono in classifica. */
     public List<Entry> ranking() {
         Map<String, Double> maxes = computeMaxes();   // una volta sola per tutta la classifica
         List<Entry> list = new ArrayList<>();
-        for (Faction f : fm.all()) list.add(new Entry(f, score(f, maxes)));
+        for (Faction f : fm.all()) if (isActive(f)) list.add(new Entry(f, score(f, maxes)));
         list.sort(Comparator.comparingDouble((Entry e) -> e.score).reversed()
                 .thenComparing(e -> e.faction.getName(), String.CASE_INSENSITIVE_ORDER));
         return list;
@@ -315,8 +360,13 @@ public final class ScoreManager {
         for (Faction f : fm.all()) {
             double dtSec = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
             if (dtSec <= 0) continue;
-            f.setBankAvgAccum(f.getBankAvgAccum() + f.getBank() * dtSec);
+            // Potenza: SEMPRE (deve calare anche da inattiva, si media sul tempo reale via scoreSince).
             f.setPowerAvgAccum(f.getPowerAvgAccum() + power.factionPower(f) * dtSec);
+            // Banca: SOLO mentre almeno un membro e' online (i soldi tenuti a server vuoto non contano).
+            if (anyMemberOnline(f)) {
+                f.setBankAvgAccum(f.getBankAvgAccum() + f.getBank() * dtSec);
+                f.setBankActiveSeconds(f.getBankActiveSeconds() + dtSec);
+            }
             f.setScoreSampledAt(now);
         }
         // 2) massimi correnti + snapshot di punteggio e dettaglio per il sito
@@ -326,6 +376,7 @@ public final class ScoreManager {
             double sc = 0; for (Component c : parts) sc += c.contribution();
             f.setScore(sc);
             f.setScoreDetail(detailJsonOf(parts));
+            f.setRanked(isActive(f));   // fazione inattiva -> oscurata dalla classifica (sito)
             fm.saveScoreSample(f);
         }
     }

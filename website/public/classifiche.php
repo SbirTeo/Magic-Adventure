@@ -24,6 +24,7 @@ try {
                    JOIN factions_magixfactions.players pl ON pl.uuid = m2.uuid
                   WHERE m2.faction_id = f.id) AS power
            FROM factions_magixfactions.factions f
+          WHERE f.ranked = 1
           ORDER BY f.score DESC, f.name ASC
           LIMIT 20'
     );
