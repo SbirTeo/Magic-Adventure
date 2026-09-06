@@ -182,7 +182,7 @@ score:
   # esclusa.
   weights:
     land: 1           # territori (chunk) posseduti
-    members: 1        # numero di membri
+    members: 0        # numero di membri — 0 = ESCLUSO dal punteggio (resta come colonna informativa sul sito)
     bank: 1           # banca di fazione (di default: giacenza media, vedi bank-value)
     longevity: 1      # da quanti giorni esiste la fazione
     power: 1          # potenza di fazione (di default: media nel tempo, vedi power-value)
