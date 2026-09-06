@@ -74,6 +74,33 @@ try {
     $last_sample_ms = 0;
 }
 
+// Fazione del VISITATORE loggato (via MagixWeb /link), per colorare i nomi fazione secondo la RELAZIONE
+// in-game. Match dell'UUID tollerante al trattino (users.mc_uuid vs faction_members.uuid). Ospite = 0.
+$viewer_faction_id = 0;
+$allies = [];
+$viewer = current_user();
+if ($viewer && !empty($viewer['mc_uuid'])) {
+    $undashed = strtolower(str_replace('-', '', (string) $viewer['mc_uuid']));
+    try {
+        $q = db()->prepare('SELECT faction_id FROM factions_magixfactions.faction_members
+                             WHERE LOWER(REPLACE(uuid, "-", "")) = ? LIMIT 1');
+        $q->execute([$undashed]);
+        $viewer_faction_id = (int) ($q->fetchColumn() ?: 0);
+        if ($viewer_faction_id > 0) {
+            // Alleanze EFFETTIVE (mutue): una riga ALLY in ENTRAMBE le direzioni, come nel plugin.
+            $qa = db()->prepare('SELECT r1.other_id FROM factions_magixfactions.relations r1
+                                  JOIN factions_magixfactions.relations r2
+                                    ON r2.faction_id = r1.other_id AND r2.other_id = r1.faction_id AND r2.type = "ALLY"
+                                 WHERE r1.faction_id = ? AND r1.type = "ALLY"');
+            $qa->execute([$viewer_faction_id]);
+            foreach ($qa->fetchAll(PDO::FETCH_COLUMN) as $oid) $allies[(int) $oid] = true;
+        }
+    } catch (PDOException $e) {
+        $viewer_faction_id = 0;
+        $allies = [];
+    }
+}
+
 // Popup (card) che spiega COME si calcola il punteggio, dal JSON factions.score_detail scritto dal
 // plugin. Metodo RELATIVO: in ogni voce la fazione migliore vale il massimo (il suo peso), le altre ne
 // prendono la percentuale rispetto a lei; il punteggio è la somma. Il sito mostra e basta i numeri già
@@ -133,6 +160,16 @@ function kd_ratio(int $kills, int $deaths): string {
     return number_format($kills / $deaths, 2, ',', '.');
 }
 
+// Classe CSS del colore del nome fazione, in base alla RELAZIONE in-game col visitatore loggato (stesso
+// criterio del gioco): la TUA fazione verde, un'ALLEATA viola/magenta, una NEMICA rossa. Ospite non
+// loggato (o senza fazione) -> bianca (nessuna relazione da mostrare). $allies = insieme degli id alleati.
+function faction_rel_class(int $factionId, int $viewerFactionId, array $allies): string {
+    if ($viewerFactionId <= 0) return 'fac-guest';        // ospite / senza fazione
+    if ($factionId === $viewerFactionId) return 'fac-own';
+    if (isset($allies[$factionId])) return 'fac-ally';
+    return 'fac-enemy';
+}
+
 // Secondi di gioco in forma leggibile: "3g 4h", "5h 12m", "42m" (le due unita' piu' grandi che contano).
 function format_playtime(int $seconds): string {
     if ($seconds <= 0) return '—';
@@ -189,8 +226,13 @@ function format_playtime(int $seconds): string {
   .score-pop tfoot .sp-tot { color: var(--purple); font-size: 16px; }
   /* Uccisioni: morti e K/D non sono colonne, si leggono passando il mouse sul numero (tooltip nativo). */
   .kills-cell { border-bottom: 1px dotted var(--border-strong); cursor: help; }
-  /* Nome fazione/giocatore e punteggio colorati per farli risaltare in classifica. */
-  .rank .fac-name { color: var(--green); font-weight: 600; }
+  /* Nome fazione colorato per RELAZIONE in-game col visitatore (come nel gioco); punteggio in viola. */
+  .rank .fac-name { font-weight: 600; }
+  .rank .fac-own   { color: var(--green); }   /* la tua fazione */
+  .rank .fac-ally  { color: #d876e0; }        /* alleata (magenta, come in gioco) */
+  .rank .fac-enemy { color: #e05a5a; }        /* nemica (rossa) */
+  .rank .fac-guest { color: var(--text); }    /* ospite non loggato / senza fazione: bianca */
+  .rank .player-name { color: var(--text); font-weight: 600; }
   .rank .score-value { color: var(--purple); font-weight: 700; }
   /* Timer sobrio del prossimo aggiornamento delle statistiche. */
   .stats-refresh { color: var(--text-dimmer); font-size: 12.5px; margin: -6px 0 14px; }
@@ -225,7 +267,7 @@ function format_playtime(int $seconds): string {
           <?php foreach ($factions as $i => $f): ?>
             <tr>
               <td><?= $i + 1 ?></td>
-              <td class="fac-name"><?= h($f['name']) ?></td>
+              <td class="fac-name <?= faction_rel_class((int) $f['id'], $viewer_faction_id, $allies) ?>"><?= h($f['name']) ?></td>
               <?php $pop = score_popup($f['score_detail'] ?? null, (float) $f['score']); ?>
               <td<?= $pop ? ' class="score-cell" tabindex="0"' : '' ?>>
                 <span class="score-value<?= $pop ? ' score-trigger' : '' ?>"><?= h(number_format((float) $f['score'], 2, ',', '.')) ?></span>
@@ -249,10 +291,11 @@ function format_playtime(int $seconds): string {
 
 <?php
 // Classifiche dedicate al GIOCATORE, lette direttamente dalla tabella players del plugin (colonne
-// aggiunte da MagixFactions: play_seconds, money_avg_accum, kills, deaths). Come per le fazioni, se le
-// colonne non ci sono ancora (plugin non riaggiornato) la sezione degrada con un avviso invece di rompersi.
-// - Tempo di gioco: secondi totali online.
-// - Ricchezza media: giacenza MEDIA personale = money_avg_accum / play_seconds (media sul solo tempo online).
+// aggiunte da MagixFactions: play_seconds, money_avg_accum, money_seconds, kills, deaths). Come per le
+// fazioni, se le colonne non ci sono ancora (plugin non riaggiornato) la sezione degrada con un avviso.
+// - Tempo di gioco: TOTALE reale dalla statistica vanilla di Minecraft (storico incluso), in play_seconds.
+// - Ricchezza media: giacenza MEDIA personale = money_avg_accum / money_seconds (media sul solo tempo
+//   online da quando la feature è attiva — play_seconds NON è il denominatore, è il totale storico).
 // - Uccisioni / K-D: uccisioni PvP valide (l'anti fake-kill e' nel plugin), col K/D a fianco.
 $top_time = $top_money = $top_kills = [];
 $players_ready = true;
@@ -263,9 +306,9 @@ try {
           ORDER BY play_seconds DESC, name ASC LIMIT 10'
     )->fetchAll();
     $top_money = db()->query(
-        'SELECT name, (money_avg_accum / play_seconds) AS avg_money
+        'SELECT name, (money_avg_accum / money_seconds) AS avg_money
            FROM factions_magixfactions.players
-          WHERE play_seconds > 0 AND name IS NOT NULL
+          WHERE money_seconds > 0 AND name IS NOT NULL
           ORDER BY avg_money DESC, name ASC LIMIT 10'
     )->fetchAll();
     $top_kills = db()->query(
@@ -299,7 +342,7 @@ try {
           <?php if (!$top_time): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_time as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="fac-name"><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="player-name"><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -313,7 +356,7 @@ try {
           <?php if (!$top_money): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_money as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="fac-name"><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="player-name"><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -327,7 +370,7 @@ try {
           <?php if (!$top_kills): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_kills as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="fac-name"><?= h($p['name']) ?></td><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="player-name"><?= h($p['name']) ?></td><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
