@@ -174,6 +174,9 @@ function format_playtime(int $seconds): string {
   .score-pop .sp-p .sp-max { color: var(--text-dimmer); font-size: 12px; }
   .score-pop tfoot td { padding-top: 9px; border-top: 1px solid var(--border-strong); font-family: var(--font-heading); color: var(--text); }
   .score-pop tfoot .sp-tot { color: var(--purple); font-size: 16px; }
+  /* Le MORTI non sono una classifica a sé (un nuovo entrato con 0 morti risulterebbe "il migliore"):
+     compaiono solo come info sommessa accanto al K/D. */
+  .kd-deaths { color: var(--text-dimmer); font-size: 11px; margin-left: 5px; white-space: nowrap; }
 </style>
 <h1 class="page-title">Classifiche<?php if (!$score_ready): ?> <span class="badge-soon">In arrivo</span><?php endif; ?></h1>
 
@@ -195,7 +198,7 @@ function format_playtime(int $seconds): string {
     <div class="rank-wrap">
       <table class="rank">
         <thead>
-          <tr><th>#</th><th>Fazione</th><th>Punteggio</th><th>Territori</th><th>Membri</th><th>Banca</th><th>Longevità</th><th>Potenza</th><th>Uccisioni</th><th>Morti</th><th>K/D</th><th>Valore</th></tr>
+          <tr><th>#</th><th>Fazione</th><th>Punteggio</th><th>Territori</th><th>Membri</th><th>Banca</th><th>Longevità</th><th>Potenza</th><th>Uccisioni</th><th>K/D</th><th>Valore</th></tr>
         </thead>
         <tbody>
           <?php foreach ($factions as $i => $f): ?>
@@ -214,8 +217,7 @@ function format_playtime(int $seconds): string {
               <td><?= (int) $f['power'] ?></td>
               <?php $fs = $fstats[$f['id']] ?? ['kills' => 0, 'deaths' => 0, 'value' => 0]; ?>
               <td><?= (int) $fs['kills'] ?></td>
-              <td><?= (int) $fs['deaths'] ?></td>
-              <td><?= h(kd_ratio((int) $fs['kills'], (int) $fs['deaths'])) ?></td>
+              <td><?= h(kd_ratio((int) $fs['kills'], (int) $fs['deaths'])) ?> <span class="kd-deaths"><?= (int) $fs['deaths'] ?> morti</span></td>
               <td><?= h(number_format((float) $fs['value'], 0, ',', '.')) ?></td>
             </tr>
           <?php endforeach; ?>
@@ -300,12 +302,12 @@ try {
     <h3>⚔ Uccisioni e K/D</h3>
     <div class="rank-wrap">
       <table class="rank">
-        <thead><tr><th>#</th><th>Giocatore</th><th>Uccisioni</th><th>Morti</th><th>K/D</th></tr></thead>
+        <thead><tr><th>#</th><th>Giocatore</th><th>Uccisioni</th><th>K/D</th></tr></thead>
         <tbody>
           <?php if (!$top_kills): ?>
-            <tr><td colspan="5" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
+            <tr><td colspan="4" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_kills as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= (int) $p['kills'] ?></td><td><?= (int) $p['deaths'] ?></td><td><?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= (int) $p['kills'] ?></td><td><?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?> <span class="kd-deaths"><?= (int) $p['deaths'] ?> morti</span></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
