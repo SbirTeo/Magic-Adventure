@@ -412,7 +412,7 @@ function format_playtime(int $seconds): string {
   .rank .pl-card-info { display: flex; flex-direction: column; gap: 2px; }
   .rank .pl-card-name { font-weight: 700; font-size: 14px; }
   .rank .pl-card-fac { font-size: 12px; }
-  .rank .score-value { color: var(--purple); font-weight: 700; }
+  .rank .score-value { color: var(--text); font-weight: 700; }
   /* Popup "/f info" sul nome fazione (stessa meccanica del popup punteggio), stile schematico. */
   .fac-cell { position: relative; }
   .fac-trigger { cursor: pointer; }
