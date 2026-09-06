@@ -34,6 +34,7 @@ public final class FactionManager {
 
     private ClaimManager claimManager; // impostato dopo la costruzione (per pulire i claim al disband)
     private DecayManager decayManager; // per far partire/azzerare il timer del decadimento (sovraccarico) al cambio membri
+    private ScoreManager scoreManager; // per "chiudere" l'integrale della giacenza media a ogni cambio saldo (media esatta)
 
     /** Home di fazione (posizione salvata). */
     public static final class Home {
@@ -78,6 +79,8 @@ public final class FactionManager {
     public void setClaimManager(ClaimManager cm) { this.claimManager = cm; }
 
     public void setDecayManager(DecayManager dm) { this.decayManager = dm; }
+
+    public void setScoreManager(ScoreManager sm) { this.scoreManager = sm; }
 
     /** Fazione per id, o null. */
     public Faction getById(long id) { return byId.get(id); }
@@ -383,6 +386,9 @@ public final class FactionManager {
     /** Imposta il saldo della banca di fazione: cache subito, colonna factions.bank in async (stesso
      *  pattern di ogni altra scrittura). Il clamp a >=0 e' nel modello ({@link Faction#setBank}). */
     public void setBank(Faction f, double value) {
+        // Chiudi l'integrale col saldo VECCHIO fino a questo istante, poi cambia: cosi' ogni saldo pesa
+        // esattamente per il tempo in cui e' stato tenuto (giacenza media = integrale esatto).
+        if (scoreManager != null) scoreManager.flush(f);
         f.setBank(value);
         final long fid = f.getId(); final double v = f.getBank();
         write("setBank", c -> {

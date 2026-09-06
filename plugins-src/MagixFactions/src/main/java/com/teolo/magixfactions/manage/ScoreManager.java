@@ -108,6 +108,52 @@ public final class ScoreManager {
         return false;
     }
 
+    /** Come {@link #anyMemberOnline} ma IGNORANDO un membro (quello che sta entrando/uscendo): serve a
+     *  sapere se la fazione era gia' online PRIMA di quel giocatore, per attribuire correttamente
+     *  l'intervallo appena trascorso. */
+    private boolean anyMemberOnlineExcept(Faction f, UUID except) {
+        for (UUID u : f.getMembers().keySet()) if (!u.equals(except) && Bukkit.getPlayer(u) != null) return true;
+        return false;
+    }
+
+    // --------------------------- INTEGRALE ESATTO ----------------------
+    /**
+     * "Chiude" l'intervallo aperto [scoreSampledAt, ora] accreditando i valori TENUTI FINORA (saldo e
+     * potenza correnti) per la sua durata, poi sposta scoreSampledAt a ora. Chiamandolo a ogni cambio di
+     * stato (cambio saldo, ingresso/uscita di un membro) invece che solo ai campioni periodici, la media
+     * diventa un integrale ESATTO: ogni saldo pesa esattamente per il tempo in cui e' stato tenuto (niente
+     * approssimazione all'"estremo destro" che poteva far muovere la media nel verso sbagliato).
+     * <p>La banca accredita solo se {@code online} (i soldi tenuti a server vuoto non contano); la potenza
+     * sempre (deve calare anche da offline). {@code online} lo decide il chiamante in base allo stato che
+     * valeva DURANTE l'intervallo appena chiuso.
+     */
+    public void flush(Faction f, boolean online) {
+        long now = System.currentTimeMillis();
+        double dt = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
+        if (dt <= 0) return;
+        f.setPowerAvgAccum(f.getPowerAvgAccum() + power.factionPower(f) * dt);
+        if (online) {
+            f.setBankAvgAccum(f.getBankAvgAccum() + f.getBank() * dt);
+            f.setBankActiveSeconds(f.getBankActiveSeconds() + dt);
+        }
+        f.setScoreSampledAt(now);
+    }
+
+    /** Flush con lo stato online ATTUALE della fazione (per i campioni periodici e i cambi saldo). */
+    public void flush(Faction f) { flush(f, anyMemberOnline(f)); }
+
+    /** Un membro ENTRA: chiude l'intervallo appena trascorso attribuendolo allo stato di PRIMA (online solo
+     *  se c'erano gia' altri membri collegati), cosi' il tempo da offline non viene contato per la banca. */
+    public void onMemberJoin(Faction f, UUID joining) {
+        if (f != null) flush(f, anyMemberOnlineExcept(f, joining));
+    }
+
+    /** Un membro ESCE: chiude l'intervallo appena trascorso come ONLINE (durante l'evento di quit il
+     *  giocatore risulta ancora collegato), cosi' il tempo giocato viene accreditato prima che se ne vada. */
+    public void onMemberQuit(Faction f) {
+        if (f != null) flush(f, anyMemberOnline(f));
+    }
+
     public int sampleIntervalSeconds() {
         return Math.max(5, plugin.getConfig().getInt("score.sample-interval-seconds", 300));
     }
@@ -393,20 +439,9 @@ public final class ScoreManager {
      * giro dopo aver aggiornato tutti). Lo chiama il task periodico e onDisable. Solo main thread.
      */
     public void sampleAll() {
-        long now = System.currentTimeMillis();
-        // 1) aggiorna gli integrali di tutte le fazioni (cosi' le medie sono al passo prima di calcolare i massimi)
-        for (Faction f : fm.all()) {
-            double dtSec = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
-            if (dtSec <= 0) continue;
-            // Potenza: SEMPRE (deve calare anche da inattiva, si media sul tempo reale via scoreSince).
-            f.setPowerAvgAccum(f.getPowerAvgAccum() + power.factionPower(f) * dtSec);
-            // Banca: SOLO mentre almeno un membro e' online (i soldi tenuti a server vuoto non contano).
-            if (anyMemberOnline(f)) {
-                f.setBankAvgAccum(f.getBankAvgAccum() + f.getBank() * dtSec);
-                f.setBankActiveSeconds(f.getBankActiveSeconds() + dtSec);
-            }
-            f.setScoreSampledAt(now);
-        }
+        // 1) chiudi l'intervallo aperto di ogni fazione (potenza sempre, banca solo se online) — cosi' le
+        // medie sono al passo prima di calcolare i massimi. E' lo stesso flush usato ai cambi di stato.
+        for (Faction f : fm.all()) flush(f);
         // 2) massimi correnti + snapshot di punteggio e dettaglio per il sito
         Map<String, MaxInfo> maxes = computeMaxes();
         for (Faction f : fm.all()) {

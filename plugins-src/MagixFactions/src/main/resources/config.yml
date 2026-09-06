@@ -209,7 +209,7 @@ score:
   power-value: average
   # Ogni quanti secondi si campiona banca/potenza per costruirne la media nel tempo (min 5). Piu' basso =
   # media piu' precisa ma piu' scritture su DB; 300 (5 min) e' un buon compromesso.
-  sample-interval-seconds: 300
+  sample-interval-seconds: 30
   # Quante fazioni mostrare in /f top (le prime N). La tua fazione, se e' fuori dai primi, viene comunque
   # aggiunta in coda con la sua posizione.
   top-size: 10

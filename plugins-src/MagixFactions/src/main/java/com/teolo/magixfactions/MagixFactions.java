@@ -106,6 +106,8 @@ public final class MagixFactions extends JavaPlugin {
         // aggiorna le medie nel tempo (fazione + giocatori) e le salva, cosi' un crash perde al massimo
         // l'ultimo intervallo (vedi ScoreManager / PlayerStatsManager).
         scoreManager = new com.teolo.magixfactions.manage.ScoreManager(this, factionManager, powerManager, claimManager, playerStatsManager);
+        // La banca "chiude" il suo integrale a ogni cambio saldo (giacenza media esatta): vedi FactionManager.setBank.
+        factionManager.setScoreManager(scoreManager);
         long scoreInterval = 20L * scoreManager.sampleIntervalSeconds();
         final com.teolo.magixfactions.manage.PlayerStatsManager statsForTask = playerStatsManager;
         Bukkit.getScheduler().runTaskTimer(this, () -> { statsForTask.sampleAll(); scoreManager.sampleAll(); },
@@ -147,7 +149,7 @@ public final class MagixFactions extends JavaPlugin {
         // PvP di fazione: fuoco amico impedito fra compagni/alleati + conteggio uccisioni/morti valide (K/D)
         // con anti fake-kill (cooldown stessa vittima, stesso IP/alt, vita minima). Vedi CombatListener.
         getServer().getPluginManager().registerEvents(
-                new com.teolo.magixfactions.listener.CombatListener(this, factionManager, playerStatsManager, messages), this);
+                new com.teolo.magixfactions.listener.CombatListener(this, factionManager, playerStatsManager, scoreManager, messages), this);
         // Valore in minerali dentro le land: piazza/rompi i blocchi configurati in value-blocks. Vedi ValueListener.
         getServer().getPluginManager().registerEvents(
                 new com.teolo.magixfactions.listener.ValueListener(this, claimManager), this);

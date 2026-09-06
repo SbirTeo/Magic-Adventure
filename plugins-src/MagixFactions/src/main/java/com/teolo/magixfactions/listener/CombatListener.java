@@ -49,6 +49,7 @@ public final class CombatListener implements Listener {
     private final JavaPlugin plugin;
     private final FactionManager fm;
     private final PlayerStatsManager stats;
+    private final com.teolo.magixfactions.manage.ScoreManager score;
     private final Messages M;
 
     /** Anti-spam del messaggio di fuoco amico, per-giocatore. */
@@ -58,8 +59,9 @@ public final class CombatListener implements Listener {
     /** Istante (ms) dell'ultimo spawn/respawn/ingresso della vittima, per la vita minima. */
     private final Map<UUID, Long> spawnedAt = new HashMap<>();
 
-    public CombatListener(JavaPlugin plugin, FactionManager fm, PlayerStatsManager stats, Messages messages) {
-        this.plugin = plugin; this.fm = fm; this.stats = stats; this.M = messages;
+    public CombatListener(JavaPlugin plugin, FactionManager fm, PlayerStatsManager stats,
+                          com.teolo.magixfactions.manage.ScoreManager score, Messages messages) {
+        this.plugin = plugin; this.fm = fm; this.stats = stats; this.score = score; this.M = messages;
     }
 
     // ------------------------------ CONFIG -------------------------------
@@ -108,13 +110,16 @@ public final class CombatListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        spawnedAt.put(e.getPlayer().getUniqueId(), System.currentTimeMillis());
+        UUID u = e.getPlayer().getUniqueId();
+        spawnedAt.put(u, System.currentTimeMillis());
         stats.onJoin(e.getPlayer());   // allinea il tempo totale (vanilla) e apre la finestra della giacenza media
+        score.onMemberJoin(fm.getFaction(u), u);   // chiude l'integrale della fazione col vecchio stato (offline)
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         UUID u = e.getPlayer().getUniqueId();
+        score.onMemberQuit(fm.getFaction(u));   // accredita il tempo online prima che se ne vada
         stats.onQuit(u);   // ultimo campione del tempo giocato, poi chiude la finestra
         spawnedAt.remove(u);
         lastKill.remove(u);
