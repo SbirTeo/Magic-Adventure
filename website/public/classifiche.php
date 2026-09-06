@@ -68,8 +68,8 @@ if ($factions) {
 // Prossimo aggiornamento delle statistiche: il plugin ricalcola lo snapshot (fazioni + giocatori) ogni
 // score.sample-interval-seconds e aggiorna factions.score_sampled_at. Leggiamo l'ultimo campione per un
 // conto alla rovescia sobrio. NB: $stats_interval deve combaciare con score.sample-interval-seconds del
-// config del plugin (5 minuti).
-$stats_interval = 300;
+// config del plugin.
+$stats_interval = 30;
 $last_sample_ms = 0;
 try {
     $r = db()->query('SELECT MAX(score_sampled_at) AS last FROM factions_magixfactions.factions')->fetch();
@@ -457,7 +457,7 @@ function format_playtime(int $seconds): string {
 </style>
 <h1 class="page-title">Classifiche<?php if (!$score_ready): ?> <span class="badge-soon">In arrivo</span><?php endif; ?></h1>
 <?php if ($last_sample_ms > 0): ?>
-  <p class="stats-refresh">↻ Statistiche aggiornate ogni <?= intdiv($stats_interval, 60) ?> min · prossimo aggiornamento tra <b id="stats-refresh-countdown">—</b></p>
+  <p class="stats-refresh">↻ Statistiche aggiornate ogni <?= $stats_interval >= 60 ? intdiv($stats_interval, 60) . ' min' : $stats_interval . ' sec' ?> · prossimo aggiornamento tra <b id="stats-refresh-countdown">—</b></p>
 <?php endif; ?>
 
 <h2>🏆 Top Fazioni</h2>
