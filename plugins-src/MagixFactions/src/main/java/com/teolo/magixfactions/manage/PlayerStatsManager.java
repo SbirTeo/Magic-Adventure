@@ -5,7 +5,7 @@ import com.teolo.magixfactions.db.DbExecutor;
 import com.teolo.magixfactions.hook.Econ;
 import com.teolo.magixfactions.model.Faction;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -23,10 +23,12 @@ import java.util.UUID;
  * <ul>
  *   <li><b>uccisioni</b> e <b>morti</b> PvP valide (l'anti fake-kill sta in {@code CombatListener}: qui
  *       arrivano gia' filtrate), da cui il K/D;</li>
- *   <li><b>tempo di gioco</b> totale (secondi online);</li>
- *   <li><b>giacenza media</b> personale, misurata SOLO sul tempo online con lo stesso metodo dell'integrale
- *       della banca di fazione ({@link ScoreManager}): un integrale Σ(saldo × secondi) diviso i secondi
- *       giocati. Cosi' parcheggiare soldi da offline non gonfia la media.</li>
+ *   <li><b>tempo di gioco</b>: il TOTALE REALE, letto dalla statistica vanilla di Minecraft
+ *       ({@link Statistic#PLAY_ONE_MINUTE}, in tick), quindi include tutto lo storico del giocatore, non
+ *       solo il tempo da quando esiste questa feature;</li>
+ *   <li><b>giacenza media</b> personale, misurata SOLO sul tempo online DA QUANDO la feature e' attiva
+ *       (non c'e' storico dei saldi): integrale Σ(saldo × secondi) / secondi online contati
+ *       ({@code money_seconds}), lo stesso metodo della banca di fazione ({@link ScoreManager}).</li>
  * </ul>
  * Tutto vive sulle colonne aggiuntive della tabella {@code players} (la riga la crea {@link PowerManager}):
  * qui si fanno solo UPDATE, mai INSERT, per non entrare in conflitto con quella. Cache in memoria +
@@ -36,11 +38,12 @@ public final class PlayerStatsManager {
 
     /** Stato in cache di un giocatore (rispecchia le colonne statistiche di players). */
     private static final class PS {
-        long kills, deaths, playSeconds;
+        long kills, deaths, playSeconds, moneySeconds;
         double moneyAvgAccum;
         long lastSampledAt;   // ultimo istante (ms) campionato mentre online; 0 = non in corso (offline)
-        PS(long kills, long deaths, long playSeconds, double moneyAvgAccum) {
-            this.kills = kills; this.deaths = deaths; this.playSeconds = playSeconds; this.moneyAvgAccum = moneyAvgAccum;
+        PS(long kills, long deaths, long playSeconds, double moneyAvgAccum, long moneySeconds) {
+            this.kills = kills; this.deaths = deaths; this.playSeconds = playSeconds;
+            this.moneyAvgAccum = moneyAvgAccum; this.moneySeconds = moneySeconds;
         }
     }
 
@@ -56,17 +59,27 @@ public final class PlayerStatsManager {
     public void loadAll() throws SQLException {
         cache.clear();
         try (Connection c = db.getConnection(); Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery("SELECT uuid, kills, deaths, play_seconds, money_avg_accum FROM players")) {
+             ResultSet rs = st.executeQuery(
+                     "SELECT uuid, kills, deaths, play_seconds, money_avg_accum, money_seconds FROM players")) {
             while (rs.next()) {
                 UUID u = UUID.fromString(rs.getString("uuid"));
-                cache.put(u, new PS(rs.getLong("kills"), rs.getLong("deaths"),
-                        rs.getLong("play_seconds"), rs.getDouble("money_avg_accum")));
+                cache.put(u, new PS(rs.getLong("kills"), rs.getLong("deaths"), rs.getLong("play_seconds"),
+                        rs.getDouble("money_avg_accum"), rs.getLong("money_seconds")));
             }
         }
     }
 
     private PS ensure(UUID u) {
-        return cache.computeIfAbsent(u, k -> new PS(0, 0, 0, 0));
+        return cache.computeIfAbsent(u, k -> new PS(0, 0, 0, 0, 0));
+    }
+
+    /** Tempo di gioco TOTALE del giocatore in secondi, dalla statistica vanilla (0 se non disponibile). */
+    private long vanillaPlaySeconds(Player p) {
+        try {
+            return p.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20L;   // la statistica è in tick (20/s)
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     // ------------------------------ QUERY --------------------------------
@@ -74,11 +87,11 @@ public final class PlayerStatsManager {
     public long getDeaths(UUID u) { PS ps = cache.get(u); return ps == null ? 0 : ps.deaths; }
     public long getPlaySeconds(UUID u) { PS ps = cache.get(u); return ps == null ? 0 : ps.playSeconds; }
 
-    /** Giacenza media personale: integrale Σ(saldo × secondi) / secondi giocati (0 se non ha ancora giocato). */
+    /** Giacenza media personale: integrale Σ(saldo × secondi) / secondi online contati (0 se nessuno). */
     public double averageMoney(UUID u) {
         PS ps = cache.get(u);
-        if (ps == null || ps.playSeconds <= 0) return 0;
-        return ps.moneyAvgAccum / ps.playSeconds;
+        if (ps == null || ps.moneySeconds <= 0) return 0;
+        return ps.moneyAvgAccum / ps.moneySeconds;
     }
 
     /** Rapporto uccisioni/morti; con 0 morti vale il numero di uccisioni (evita la divisione per zero). */
@@ -109,56 +122,68 @@ public final class PlayerStatsManager {
     /** Registra una morte PvP VALIDA per la vittima (accoppiata a {@link #recordKill}). */
     public void recordDeath(UUID victim) { ensure(victim).deaths++; save(victim); }
 
-    /** Ingresso: apre la finestra di campionamento del tempo giocato da adesso (l'offline non conta). */
-    public void onJoin(UUID u) { ensure(u).lastSampledAt = System.currentTimeMillis(); }
+    /** Ingresso: allinea subito il tempo totale (vanilla) e apre la finestra della giacenza media. */
+    public void onJoin(Player p) {
+        PS ps = ensure(p.getUniqueId());
+        ps.playSeconds = vanillaPlaySeconds(p);
+        ps.lastSampledAt = System.currentTimeMillis();   // l'offline non conta per la giacenza media
+        save(p.getUniqueId());
+    }
 
-    /** Uscita: chiude la finestra con un ultimo campione, poi la ferma. */
+    /** Uscita: ultimo campione (tempo totale + giacenza), poi ferma la finestra. */
     public void onQuit(UUID u) {
         PS ps = cache.get(u);
         if (ps == null) return;
-        accumulate(ps, u);
+        Player p = Bukkit.getPlayer(u);   // nell'evento di quit è ancora online
+        if (p != null) accumulate(ps, p);
         ps.lastSampledAt = 0;
         save(u);
     }
 
     /**
-     * Campiona TUTTI i giocatori online: aggiunge il tempo trascorso al totale giocato e il prodotto
-     * saldo × secondi all'integrale della giacenza media. Lo chiama il task periodico (stesso passo del
-     * campionatore del punteggio) e onDisable.
+     * Campiona TUTTI i giocatori online: aggiorna il tempo totale (vanilla) e l'integrale della giacenza
+     * media. Lo chiama il task periodico (stesso passo del campionatore del punteggio) e onDisable.
      */
     public void sampleAll() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             PS ps = ensure(p.getUniqueId());
-            if (accumulate(ps, p.getUniqueId())) save(p.getUniqueId());
+            if (accumulate(ps, p)) save(p.getUniqueId());
         }
     }
 
-    /** Accumula sul giocatore i secondi online (interi) trascorsi dall'ultimo campione e la giacenza.
-     *  @return true se qualcosa e' cambiato (c'era del tempo da contare). */
-    private boolean accumulate(PS ps, UUID u) {
+    /** Aggiorna tempo totale (vanilla) e giacenza media di un giocatore ONLINE.
+     *  @return true se qualcosa è cambiato. */
+    private boolean accumulate(PS ps, Player p) {
+        boolean changed = false;
+        long vt = vanillaPlaySeconds(p);
+        if (vt > 0 && vt != ps.playSeconds) { ps.playSeconds = vt; changed = true; }
         long now = System.currentTimeMillis();
-        if (ps.lastSampledAt <= 0) { ps.lastSampledAt = now; return false; }   // prima volta: apri e basta
-        long dtSec = (now - ps.lastSampledAt) / 1000L;
-        if (dtSec <= 0) return false;
-        OfflinePlayer op = Bukkit.getOfflinePlayer(u);
-        ps.playSeconds += dtSec;
-        ps.moneyAvgAccum += Econ.balance(op) * dtSec;
-        ps.lastSampledAt += dtSec * 1000L;   // conserva il resto sotto il secondo
-        return true;
+        if (ps.lastSampledAt <= 0) {
+            ps.lastSampledAt = now;   // prima volta: apri la finestra e basta
+        } else {
+            long dtSec = (now - ps.lastSampledAt) / 1000L;
+            if (dtSec > 0) {
+                ps.moneySeconds += dtSec;
+                ps.moneyAvgAccum += Econ.balance(p) * dtSec;
+                ps.lastSampledAt += dtSec * 1000L;   // conserva il resto sotto il secondo
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     private void save(UUID u) {
         PS ps = cache.get(u);
         if (ps == null) return;
         final String us = u.toString();
-        final long kills = ps.kills, deaths = ps.deaths, playSeconds = ps.playSeconds;
+        final long kills = ps.kills, deaths = ps.deaths, playSeconds = ps.playSeconds, moneySeconds = ps.moneySeconds;
         final double moneyAcc = ps.moneyAvgAccum;
         dbExec.submit(() -> {
             try (Connection c = db.getConnection();
                  PreparedStatement psq = c.prepareStatement(
-                         "UPDATE players SET kills=?, deaths=?, play_seconds=?, money_avg_accum=? WHERE uuid=?")) {
+                         "UPDATE players SET kills=?, deaths=?, play_seconds=?, money_avg_accum=?, money_seconds=? WHERE uuid=?")) {
                 psq.setLong(1, kills); psq.setLong(2, deaths); psq.setLong(3, playSeconds);
-                psq.setDouble(4, moneyAcc); psq.setString(5, us);
+                psq.setDouble(4, moneyAcc); psq.setLong(5, moneySeconds); psq.setString(6, us);
                 psq.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().warning("[Stats] salvataggio: " + e.getMessage()); }
         });

@@ -153,7 +153,7 @@ public final class MagixFactions extends JavaPlugin {
                 new com.teolo.magixfactions.listener.ValueListener(this, claimManager), this);
         // Apri la finestra del tempo giocato per chi e' gia' online (es. dopo /reload): senza, il conteggio
         // partirebbe solo al loro prossimo ingresso.
-        Bukkit.getOnlinePlayers().forEach(p -> playerStatsManager.onJoin(p.getUniqueId()));
+        Bukkit.getOnlinePlayers().forEach(p -> playerStatsManager.onJoin(p));
         ChatService chat = new ChatService(this, factionManager, messages);
         this.chatService = chat; // usato da broadcastWebChat (API per MagixWeb)
         getServer().getPluginManager().registerEvents(new ChatListener(chat, messages), this);

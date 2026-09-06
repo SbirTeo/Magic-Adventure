@@ -108,9 +108,8 @@ public final class CombatListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        UUID u = e.getPlayer().getUniqueId();
-        spawnedAt.put(u, System.currentTimeMillis());
-        stats.onJoin(u);   // apre la finestra del tempo giocato / giacenza media
+        spawnedAt.put(e.getPlayer().getUniqueId(), System.currentTimeMillis());
+        stats.onJoin(e.getPlayer());   // allinea il tempo totale (vanilla) e apre la finestra della giacenza media
     }
 
     @EventHandler
