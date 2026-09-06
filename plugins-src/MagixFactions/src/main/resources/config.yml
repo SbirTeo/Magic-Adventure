@@ -186,6 +186,14 @@ score:
     bank: 1           # banca di fazione (di default: giacenza media, vedi bank-value)
     longevity: 1      # da quanti giorni esiste la fazione
     power: 1          # potenza di fazione (di default: media nel tempo, vedi power-value)
+    kills: 1          # uccisioni della fazione (somma dei membri; vedi combat-metric e sezione combat)
+    value: 1          # valore in minerali piazzati nelle land (vedi value-blocks in fondo al file)
+  # Cosa entra nella voce "combat" del punteggio:
+  #   kills = numero di UCCISIONI valide (default; volume, stabile per il metodo relativo)
+  #   kd    = rapporto K/D (uccisioni/morti). NB: un rapporto e' instabile in una classifica "relativa al
+  #           migliore" (una fazione con poche morti schiaccerebbe tutte le altre) -> consigliato "kills".
+  # Il K/D resta comunque mostrato come colonna informativa sul sito, comunque scegli qui.
+  combat-metric: kills
   # Fazioni INATTIVE fuori dalla classifica: se TUTTI i membri sono assenti da piu' di questi giorni (nessuno
   # online e nessun accesso recente), la fazione NON compare in /f top ne' sul sito, e NON fa da "migliore"
   # per le altre voci (cosi' una fazione morta con la banca piena non falsa il metro degli altri). Conta
@@ -235,6 +243,20 @@ sethome-cost:
 protection:
   enabled: true            # false = nessuna protezione (comportamento vecchio: tutti costruiscono ovunque)
   ally-can-build: false    # true = gli ALLEATI possono costruire/interagire nel tuo territorio
+
+# --------------------------- COMBAT (PvP) -------------------------
+# Regola il PvP di fazione: fuoco amico e conteggio uccisioni/morti valide per le classifiche (K/D).
+combat:
+  # FUOCO AMICO IMPEDITO: il danno viene ANNULLATO (non "niente crediti": proprio non ci si puo' colpire).
+  friendly-fire:
+    faction: true          # true = i membri della STESSA fazione non possono farsi danno
+    allies: true           # true = le fazioni ALLEATE non possono farsi danno
+  # ANTI FAKE-KILL: difese perche' un'uccisione conti verso il K/D (oltre al fuoco amico, che gia' impedisce
+  # di uccidere compagni/alleati). Un'uccisione non valida non conta ne' come kill per l'uccisore ne' come
+  # morte per la vittima: il K/D resta pulito. Le morti per ambiente non incidono sul K/D.
+  min-victim-lifetime-seconds: 60   # la vittima dev'essere viva da almeno tot secondi (0 = disattivato)
+  kill-cooldown-minutes: 10         # ri-uccidere la STESSA vittima entro tot minuti non da' crediti (0 = disattivato)
+  same-ip-no-credit: true           # niente crediti se uccisore e vittima condividono l'indirizzo di rete (alt)
 
 # I vantaggi VIP sulla Potenza sono PERMESSI (si danno al gruppo con LuckPerms), non comandi:
 #   magixfactions.power.powermax.<numero>  -> alza il tetto di Potenza (es. ...powermax.20 = 20)
@@ -633,3 +655,21 @@ leader:
 # vuoto). Il mondo si pre-genera cosi' nelle ore morte, e il lag da "primo accesso" (generazione dei
 # chunk al join) sparisce col tempo senza mai disturbare chi gioca. Inerte se Chunky non e' installato.
 chunky-autopilot: true
+
+# ----------------------- VALORE IN MINERALI -----------------------
+# Il "Valore" di una fazione (voce del punteggio, colonna sul sito) e' la somma del valore dei BLOCCHI
+# elencati qui piazzati DENTRO le sue land. Piazzare un blocco nel proprio territorio aggiunge il suo
+# valore, romperlo lo toglie; il valore viaggia col territorio quando viene conquistato. Fuori dalle land
+# non conta nulla. Decidi TU quali blocchi valgono e quanto: chiave = nome MATERIALE Minecraft (maiuscolo),
+# valore = quanto vale ogni blocco. Aggiungi/togli liberamente; togliere una riga = quel blocco vale 0.
+# NB: contano solo i blocchi piazzati DA QUANDO la funzione e' attiva (non c'e' scansione retroattiva del
+# mondo). I blocchi rotti da un conquistatore/raid tolgono valore alla fazione proprietaria del chunk.
+value-blocks:
+  NETHERITE_BLOCK: 500
+  DIAMOND_BLOCK: 100
+  EMERALD_BLOCK: 80
+  GOLD_BLOCK: 40
+  IRON_BLOCK: 20
+  LAPIS_BLOCK: 10
+  REDSTONE_BLOCK: 8
+  COAL_BLOCK: 5

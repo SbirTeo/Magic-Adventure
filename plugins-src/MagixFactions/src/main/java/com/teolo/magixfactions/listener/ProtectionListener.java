@@ -5,6 +5,7 @@ import com.teolo.magixfactions.manage.ClaimManager;
 import com.teolo.magixfactions.manage.FactionManager;
 import com.teolo.magixfactions.model.Faction;
 import com.teolo.magixfactions.model.RelationType;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -74,20 +75,57 @@ public final class ProtectionListener implements Listener {
     }
 
     private void deny(Player p, Faction owner) {
+        if (throttled(p)) return;                               // anti-spam
+        p.sendMessage(M.prefix() + M.get("protection.denied", "name", owner != null ? owner.getName() : "?"));
+    }
+
+    /** Rifiuto specifico: la land ha un PROPRIETARIO (/f owner) e chi agisce non e' lui ne' il leader. */
+    private void denyOwner(Player p, UUID ownerUuid) {
+        if (throttled(p)) return;
+        String name = Bukkit.getOfflinePlayer(ownerUuid).getName();
+        p.sendMessage(M.prefix() + M.get("protection.owner-denied", "owner", name != null ? name : "?"));
+    }
+
+    /** true se il messaggio di rifiuto e' gia' stato mostrato da meno di 1,5s (tenere premuto non spamma). */
+    private boolean throttled(Player p) {
         long now = System.currentTimeMillis();
         Long last = lastDenyMsg.get(p.getUniqueId());
-        if (last != null && now - last < 1500) return;          // anti-spam
+        if (last != null && now - last < 1500) return true;
         lastDenyMsg.put(p.getUniqueId(), now);
-        p.sendMessage(M.prefix() + M.get("protection.denied", "name", owner != null ? owner.getName() : "?"));
+        return false;
     }
 
     /** true se {@code p} puo' agire in {@code loc}; altrimenti avvisa e ritorna false. */
     private boolean allow(Player p, Location loc) {
         if (!enabled() || bypass(p)) return true;
         Faction owner = blockingOwner(p, loc);
-        if (owner == null) return true;
-        deny(p, owner);
-        return false;
+        if (owner != null) { deny(p, owner); return false; }
+        // Dentro il PROPRIO territorio: se il chunk ha un proprietario (/f owner), solo lui e il leader agiscono.
+        UUID lockOwner = ownerLock(p, loc);
+        if (lockOwner != null) { denyOwner(p, lockOwner); return false; }
+        return true;
+    }
+
+    /**
+     * UUID del proprietario della land se {@code p} e' un compagno di fazione BLOCCATO dal proprietario
+     * per-chunk (/f owner); null se puo' agire (nessun proprietario impostato, oppure e' lui o il leader,
+     * oppure non e' terreno della sua fazione — quel caso lo copre gia' {@link #blockingOwner}).
+     */
+    private UUID ownerLock(Player p, Location loc) {
+        if (loc.getWorld() == null) return null;
+        String world = loc.getWorld().getName();
+        int cx = loc.getBlockX() >> 4, cz = loc.getBlockZ() >> 4;
+        Long ownerId = claims.owner(world, cx, cz);
+        if (ownerId == null) return null;
+        Faction own = fm.getFaction(p.getUniqueId());
+        if (own == null || own.getId() != ownerId) return null;     // non e' terra sua: lo gestisce blockingOwner
+        String co = claims.chunkOwnerUuid(world, cx, cz);
+        if (co == null) return null;                                // nessun proprietario: liberi tutti i membri
+        UUID ownerUuid;
+        try { ownerUuid = UUID.fromString(co); } catch (IllegalArgumentException e) { return null; }
+        if (p.getUniqueId().equals(ownerUuid)) return null;         // e' il proprietario
+        if (own.getLeader() != null && p.getUniqueId().equals(own.getLeader())) return null; // il leader sempre
+        return ownerUuid;                                           // compagno senza titolo: bloccato
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)

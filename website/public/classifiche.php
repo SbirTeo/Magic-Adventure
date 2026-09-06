@@ -34,11 +34,50 @@ try {
     $score_ready = false;
 }
 
+// Colonne NUOVE (uccisioni/morti di fazione e valore in minerali): in una query SEPARATA e tollerante,
+// cosi' se le colonne del plugin non ci sono ancora (server non ancora riavviato dopo l'aggiornamento) la
+// classifica fazioni continua a mostrarsi lo stesso, solo senza questi tre valori. faction_id -> riga.
+$fstats = [];
+if ($factions) {
+    try {
+        $rows = db()->query(
+            'SELECT f.id,
+                    (SELECT COALESCE(SUM(pl.kills), 0)
+                       FROM factions_magixfactions.faction_members mk
+                       JOIN factions_magixfactions.players pl ON pl.uuid = mk.uuid
+                      WHERE mk.faction_id = f.id) AS kills,
+                    (SELECT COALESCE(SUM(pl.deaths), 0)
+                       FROM factions_magixfactions.faction_members md
+                       JOIN factions_magixfactions.players pl ON pl.uuid = md.uuid
+                      WHERE md.faction_id = f.id) AS deaths,
+                    (SELECT COALESCE(SUM(cv.value), 0)
+                       FROM factions_magixfactions.claims cv WHERE cv.faction_id = f.id) AS value
+               FROM factions_magixfactions.factions f
+              WHERE f.ranked = 1'
+        )->fetchAll();
+        foreach ($rows as $r) $fstats[$r['id']] = $r;
+    } catch (PDOException $e) {
+        $fstats = [];   // colonne non ancora presenti: le nuove colonne mostreranno 0
+    }
+}
+
 // Popup (card) che spiega COME si calcola il punteggio, dal JSON factions.score_detail scritto dal
 // plugin. Metodo RELATIVO: in ogni voce la fazione migliore vale il massimo (il suo peso), le altre ne
 // prendono la percentuale rispetto a lei; il punteggio è la somma. Il sito mostra e basta i numeri già
 // pronti, non ricalcola nulla. Nel JSON: l=etichetta, v=valore grezzo, pct="76%" (rispetto al migliore),
 // p=punti dati, m=massimo della voce (= peso).
+// Valore grezzo di una voce dal dettaglio (per le colonne di contorno della tabella), cercando per
+// prefisso dell'etichetta ("Banca" trova "Banca (media)", "Longev" trova "Longevità"). '—' se assente.
+function detail_value(?string $json, string $prefix): string {
+    $rows = $json ? json_decode($json, true) : null;
+    if (is_array($rows)) {
+        foreach ($rows as $r) {
+            if (isset($r['l'], $r['v']) && stripos($r['l'], $prefix) === 0) return (string) $r['v'];
+        }
+    }
+    return '—';
+}
+
 function score_popup(?string $json, float $total): string {
     $rows = $json ? json_decode($json, true) : null;
     if (!is_array($rows) || !$rows) return '';
@@ -60,6 +99,7 @@ function score_popup(?string $json, float $total): string {
     }
     // Massimo totale come testo pulito (5 invece di 5,00).
     $maxTxt = rtrim(rtrim(number_format($maxTotal, 2, ',', '.'), '0'), ',');
+    // (kd_ratio / format_playtime definite piu' sotto, usate anche dalle classifiche giocatore.)
     return '<div class="score-pop" role="tooltip">'
          . '<div class="sp-head">Come si calcola il punteggio</div>'
          . '<div class="sp-intro">In ogni voce la fazione <b>migliore</b> vale il massimo; tu ne prendi la '
@@ -71,6 +111,24 @@ function score_popup(?string $json, float $total): string {
          . '<tfoot><tr><td>Totale</td><td></td><td><b class="sp-tot">' . number_format($total, 2, ',', '.') . '</b> <span class="sp-max">/ ' . h($maxTxt) . '</span></td></tr></tfoot>'
          . '</table>'
          . '</div>';
+}
+
+// Rapporto K/D come testo: con 0 morti mostra le uccisioni (evita la divisione per zero), altrimenti
+// uccisioni/morti a due decimali. Stessa regola del plugin (ScoreManager/PlayerStatsManager).
+function kd_ratio(int $kills, int $deaths): string {
+    if ($deaths <= 0) return number_format((float) $kills, 2, ',', '.');
+    return number_format($kills / $deaths, 2, ',', '.');
+}
+
+// Secondi di gioco in forma leggibile: "3g 4h", "5h 12m", "42m" (le due unita' piu' grandi che contano).
+function format_playtime(int $seconds): string {
+    if ($seconds <= 0) return '—';
+    $d = intdiv($seconds, 86400);
+    $h = intdiv($seconds % 86400, 3600);
+    $m = intdiv($seconds % 3600, 60);
+    if ($d > 0) return $h > 0 ? "{$d}g {$h}h" : "{$d}g";
+    if ($h > 0) return $m > 0 ? "{$h}h {$m}m" : "{$h}h";
+    return "{$m}m";
 }
 ?>
 <style>
@@ -137,7 +195,7 @@ function score_popup(?string $json, float $total): string {
     <div class="rank-wrap">
       <table class="rank">
         <thead>
-          <tr><th>#</th><th>Fazione</th><th>Punteggio</th><th>Territori</th><th>Membri</th><th>Potenza</th></tr>
+          <tr><th>#</th><th>Fazione</th><th>Punteggio</th><th>Territori</th><th>Membri</th><th>Banca</th><th>Longevità</th><th>Potenza</th><th>Uccisioni</th><th>Morti</th><th>K/D</th><th>Valore</th></tr>
         </thead>
         <tbody>
           <?php foreach ($factions as $i => $f): ?>
@@ -151,7 +209,14 @@ function score_popup(?string $json, float $total): string {
               </td>
               <td><?= (int) $f['claims'] ?></td>
               <td><?= (int) $f['members'] ?></td>
+              <td><?= h(detail_value($f['score_detail'] ?? null, 'Banca')) ?></td>
+              <td><?= h(detail_value($f['score_detail'] ?? null, 'Longev')) ?></td>
               <td><?= (int) $f['power'] ?></td>
+              <?php $fs = $fstats[$f['id']] ?? ['kills' => 0, 'deaths' => 0, 'value' => 0]; ?>
+              <td><?= (int) $fs['kills'] ?></td>
+              <td><?= (int) $fs['deaths'] ?></td>
+              <td><?= h(kd_ratio((int) $fs['kills'], (int) $fs['deaths'])) ?></td>
+              <td><?= h(number_format((float) $fs['value'], 0, ',', '.')) ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
@@ -160,9 +225,92 @@ function score_popup(?string $json, float $total): string {
   <?php endif; ?>
 </div>
 
+<?php
+// Classifiche dedicate al GIOCATORE, lette direttamente dalla tabella players del plugin (colonne
+// aggiunte da MagixFactions: play_seconds, money_avg_accum, kills, deaths). Come per le fazioni, se le
+// colonne non ci sono ancora (plugin non riaggiornato) la sezione degrada con un avviso invece di rompersi.
+// - Tempo di gioco: secondi totali online.
+// - Ricchezza media: giacenza MEDIA personale = money_avg_accum / play_seconds (media sul solo tempo online).
+// - Uccisioni / K-D: uccisioni PvP valide (l'anti fake-kill e' nel plugin), col K/D a fianco.
+$top_time = $top_money = $top_kills = [];
+$players_ready = true;
+try {
+    $top_time = db()->query(
+        'SELECT name, play_seconds FROM factions_magixfactions.players
+          WHERE play_seconds > 0 AND name IS NOT NULL
+          ORDER BY play_seconds DESC, name ASC LIMIT 10'
+    )->fetchAll();
+    $top_money = db()->query(
+        'SELECT name, (money_avg_accum / play_seconds) AS avg_money
+           FROM factions_magixfactions.players
+          WHERE play_seconds > 0 AND name IS NOT NULL
+          ORDER BY avg_money DESC, name ASC LIMIT 10'
+    )->fetchAll();
+    $top_kills = db()->query(
+        'SELECT name, kills, deaths FROM factions_magixfactions.players
+          WHERE kills > 0 AND name IS NOT NULL
+          ORDER BY kills DESC, deaths ASC, name ASC LIMIT 10'
+    )->fetchAll();
+} catch (PDOException $e) {
+    $players_ready = false;
+}
+?>
 <h2>⏱ Top Giocatori</h2>
-<div class="panel">
-  <p style="color:var(--text-dim)">Classifica per tempo di gioco/attività — in arrivo.</p>
-</div>
+<?php if (!$players_ready): ?>
+  <div class="panel">
+    <p style="color:var(--text-dim)">Le classifiche dei giocatori saranno disponibili appena il server si aggiorna. Torna a trovarci!</p>
+  </div>
+<?php else: ?>
+  <div class="panel">
+    <p style="color:var(--text-dim);margin-top:0">
+      Il <b>tempo di gioco</b> conta i secondi passati online; la <b>ricchezza media</b> è la giacenza
+      media sul solo tempo online (parcheggiare soldi da offline non la gonfia); le <b>uccisioni</b> sono
+      solo quelle PvP valide — il server scarta le «fake kill» tra amici, gli alt sullo stesso IP e le
+      vittime uccise troppo in fretta.
+    </p>
+
+    <h3>🕒 Tempo di gioco</h3>
+    <div class="rank-wrap">
+      <table class="rank">
+        <thead><tr><th>#</th><th>Giocatore</th><th>Tempo online</th></tr></thead>
+        <tbody>
+          <?php if (!$top_time): ?>
+            <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
+          <?php else: foreach ($top_time as $i => $p): ?>
+            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
+          <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>💰 Ricchezza media</h3>
+    <div class="rank-wrap">
+      <table class="rank">
+        <thead><tr><th>#</th><th>Giocatore</th><th>Giacenza media</th></tr></thead>
+        <tbody>
+          <?php if (!$top_money): ?>
+            <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
+          <?php else: foreach ($top_money as $i => $p): ?>
+            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
+          <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>⚔ Uccisioni e K/D</h3>
+    <div class="rank-wrap">
+      <table class="rank">
+        <thead><tr><th>#</th><th>Giocatore</th><th>Uccisioni</th><th>Morti</th><th>K/D</th></tr></thead>
+        <tbody>
+          <?php if (!$top_kills): ?>
+            <tr><td colspan="5" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
+          <?php else: foreach ($top_kills as $i => $p): ?>
+            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= (int) $p['kills'] ?></td><td><?= (int) $p['deaths'] ?></td><td><?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?></td></tr>
+          <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<?php endif; ?>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

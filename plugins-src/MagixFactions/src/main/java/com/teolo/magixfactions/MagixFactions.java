@@ -33,6 +33,7 @@ public final class MagixFactions extends JavaPlugin {
     private DbExecutor dbExecutor;
     private FactionManager factionManager;
     private PowerManager powerManager;
+    private com.teolo.magixfactions.manage.PlayerStatsManager playerStatsManager;
     private com.teolo.magixfactions.manage.ScoreManager scoreManager;
     private ChatService chatService;
     private com.teolo.magixfactions.resourcepack.ResourcePackService resourcePackService;
@@ -92,12 +93,23 @@ public final class MagixFactions extends JavaPlugin {
             getLogger().severe("Errore caricamento potenza/territori: " + e.getMessage());
         }
         factionManager.setClaimManager(claimManager);
+        // Statistiche giocatore (uccisioni/morti, tempo di gioco, giacenza media personale) per le
+        // classifiche del sito e le voci di punteggio combat/valore (vedi PlayerStatsManager).
+        playerStatsManager = new com.teolo.magixfactions.manage.PlayerStatsManager(this, database, dbExecutor);
+        try {
+            playerStatsManager.loadAll();
+        } catch (Exception e) {
+            getLogger().severe("Errore caricamento statistiche giocatore: " + e.getMessage());
+        }
         // Punteggio fazione + classifica (/f top): sintesi pesata di territori, membri, banca (giacenza
-        // media), longevita' e potenza (media). Un campionatore periodico aggiorna le medie nel tempo e le
-        // salva, cosi' un crash perde al massimo l'ultimo intervallo (vedi ScoreManager).
-        scoreManager = new com.teolo.magixfactions.manage.ScoreManager(this, factionManager, powerManager, claimManager);
+        // media), longevita', potenza (media), uccisioni e valore in minerali. Un campionatore periodico
+        // aggiorna le medie nel tempo (fazione + giocatori) e le salva, cosi' un crash perde al massimo
+        // l'ultimo intervallo (vedi ScoreManager / PlayerStatsManager).
+        scoreManager = new com.teolo.magixfactions.manage.ScoreManager(this, factionManager, powerManager, claimManager, playerStatsManager);
         long scoreInterval = 20L * scoreManager.sampleIntervalSeconds();
-        Bukkit.getScheduler().runTaskTimer(this, scoreManager::sampleAll, scoreInterval, scoreInterval);
+        final com.teolo.magixfactions.manage.PlayerStatsManager statsForTask = playerStatsManager;
+        Bukkit.getScheduler().runTaskTimer(this, () -> { statsForTask.sampleAll(); scoreManager.sampleAll(); },
+                scoreInterval, scoreInterval);
         getServer().getPluginManager().registerEvents(new PowerListener(powerManager), this);
         com.teolo.magixfactions.listener.TerritoryListener territory =
                 new com.teolo.magixfactions.listener.TerritoryListener(this, factionManager, claimManager);
@@ -132,6 +144,16 @@ public final class MagixFactions extends JavaPlugin {
         // e terreno neutrale restano liberi). Staff con magixfactions.bypass/admin costruiscono ovunque.
         getServer().getPluginManager().registerEvents(
                 new com.teolo.magixfactions.listener.ProtectionListener(this, factionManager, claimManager, messages), this);
+        // PvP di fazione: fuoco amico impedito fra compagni/alleati + conteggio uccisioni/morti valide (K/D)
+        // con anti fake-kill (cooldown stessa vittima, stesso IP/alt, vita minima). Vedi CombatListener.
+        getServer().getPluginManager().registerEvents(
+                new com.teolo.magixfactions.listener.CombatListener(this, factionManager, playerStatsManager, messages), this);
+        // Valore in minerali dentro le land: piazza/rompi i blocchi configurati in value-blocks. Vedi ValueListener.
+        getServer().getPluginManager().registerEvents(
+                new com.teolo.magixfactions.listener.ValueListener(this, claimManager), this);
+        // Apri la finestra del tempo giocato per chi e' gia' online (es. dopo /reload): senza, il conteggio
+        // partirebbe solo al loro prossimo ingresso.
+        Bukkit.getOnlinePlayers().forEach(p -> playerStatsManager.onJoin(p.getUniqueId()));
         ChatService chat = new ChatService(this, factionManager, messages);
         this.chatService = chat; // usato da broadcastWebChat (API per MagixWeb)
         getServer().getPluginManager().registerEvents(new ChatListener(chat, messages), this);
@@ -239,6 +261,8 @@ public final class MagixFactions extends JavaPlugin {
     public void onDisable() {
         if (resourcePackService != null) resourcePackService.stop();
         if (powerManager != null) powerManager.saveAllOnline(); // accoda il salvataggio Potenza dei giocatori online
+        // Ultimo campione del tempo giocato / giacenza media personale prima di chiudere.
+        if (playerStatsManager != null) playerStatsManager.sampleAll();
         // Ultimo campione delle medie prima di chiudere: le scritture vanno in coda al dbExecutor e
         // vengono flushate dallo shutdown ordinato piu' sotto, cosi' la giacenza/potenza media non perde
         // l'intervallo aperto dall'ultimo campionamento.
@@ -387,7 +411,13 @@ public final class MagixFactions extends JavaPlugin {
                                 + "lì il grief è parte del gioco e non è una violazione del regolamento.",
                         "È la distinzione da tenere a mente quando arriva una segnalazione: «mi hanno rubato» "
                                 + "dentro un claim è un problema di permessi di grado o di fiducia mal riposta; fuori "
-                                + "dal claim è semplicemente il gioco.")
+                                + "dal claim è semplicemente il gioco.",
+                        "Dentro le proprie land il leader può riservare un singolo chunk a una persona con "
+                                + "/f owner <giocatore>: da lì solo quel **PROPRIETARIO** e il leader possono "
+                                + "costruire/aprire contenitori in quel chunk, gli altri compagni no. /f owner clear "
+                                + "toglie il vincolo. Serve a far entrare qualcuno senza dargli accesso a TUTTO. Se il "
+                                + "chunk viene conquistato da un nemico, il proprietario decade da solo. Quando ti "
+                                + "arriva «non riesco a costruire nella MIA fazione», la causa è quasi sempre questa.")
 
                 .section("Relazioni fra fazioni",
                         "Esistono due sole relazioni, **NEMICO** e **ALLEATO**, e di partenza ogni fazione è nemica di "
@@ -407,7 +437,7 @@ public final class MagixFactions extends JavaPlugin {
                 .section("Punteggio e classifica",
                         "/f top ordina le fazioni per un **PUNTEGGIO** unico, non per un solo numero: una classifica "
                                 + "basata solo sui territori (o solo sui soldi) premierebbe chi eccelle in una cosa sola. "
-                                + "Il punteggio è la sintesi di cinque caratteristiche, con un metodo **RELATIVO**.",
+                                + "Il punteggio è la sintesi di sette caratteristiche, con un metodo **RELATIVO**.",
                         "In ogni caratteristica la fazione col valore più **ALTO** vale 1, le altre valgono in "
                                 + "proporzione a lei (proprio valore ÷ valore del migliore, quindi fra 0 e 1). Poi ogni "
                                 + "frazione si moltiplica per il **PESO** della voce (score.weights): col peso 1 vale al "
@@ -426,6 +456,13 @@ public final class MagixFactions extends JavaPlugin {
                                 + "potenza contano di default con la loro **MEDIA NEL TEMPO** (giacenza media, non il saldo "
                                 + "di un attimo: un deposito lampo non scala la classifica) — con score.bank-value / "
                                 + "score.power-value a `current` si usa invece il valore attuale.",
+                        "Alle cinque voci storiche se ne aggiungono due: **UCCISIONI** (la somma delle uccisioni PvP "
+                                + "valide dei membri — vedi il capitolo PvP) e **VALORE** (i blocchi di minerale piazzati "
+                                + "nelle land, vedi il capitolo Valore). La voce combat usa di default il numero di "
+                                + "uccisioni; con score.combat-metric: kd usa il rapporto K/D — sconsigliato, perché un "
+                                + "rapporto è instabile in un metodo relativo (una fazione con poche morti schiaccerebbe "
+                                + "le altre). Ogni voce ha il suo peso in score.weights (0 la esclude): se non vuoi che "
+                                + "combattimento o minerali contino nella classifica, metti a 0 kills e/o value.",
                         "Una differenza importante fra le due medie: la **GIACENZA MEDIA** della banca conta solo il "
                                 + "tempo in cui almeno un membro è **ONLINE** (il tempo scorre quando si gioca, si ferma a "
                                 + "server vuoto), così non si può gonfiare la media parcheggiando soldi da offline. La "
@@ -434,6 +471,41 @@ public final class MagixFactions extends JavaPlugin {
                                 + "si salva sul database; per le fazioni **già esistenti** parte dall'aggiornamento del "
                                 + "plugin (niente storico passato), quindi all'inizio riflette il presente e si assesta col "
                                 + "tempo. Il punteggio compare anche in /f info e sul sito, dagli stessi numeri.")
+
+                .section("PvP, uccisioni e classifiche dei giocatori",
+                        "Il **FUOCO AMICO È IMPEDITO**: il danno fra membri della stessa fazione, e fra alleati, "
+                                + "viene annullato — non «niente punti», proprio non ci si può colpire. Si regola in "
+                                + "config, sezione combat.friendly-fire (faction e allies, separati): mettendoli a false "
+                                + "torna il PvP libero anche fra compagni. È la risposta a «perché non riesco a colpire "
+                                + "il mio compagno».",
+                        "Ogni uccisione PvP valida conta come **UCCISIONE** per chi la fa e come **MORTE** per la "
+                                + "vittima: da questi due numeri esce il **K/D**, mostrato nella classifica giocatori del "
+                                + "sito. Le morti per ambiente (caduta, lava, mob) non toccano il K/D. Le uccisioni della "
+                                + "fazione (somma dei membri) sono anche una voce del punteggio.",
+                        "Contro le **FAKE KILL** fra amici ci sono tre difese, tutte in config.combat: una vittima "
+                                + "appena rinata non conta (min-victim-lifetime-seconds), ri-uccidere la STESSA vittima "
+                                + "a raffica non conta (kill-cooldown-minutes), e due account sulla **STESSA rete** non si "
+                                + "danno crediti a vicenda (same-ip-no-credit, contro i doppi account). Un'uccisione non "
+                                + "valida non conta né come kill né come morte: il K/D resta pulito. Se qualcuno si "
+                                + "lamenta che «le uccisioni non salgono», quasi sempre sta ricadendo in uno di questi tre.",
+                        "Le classifiche **GIOCATORE** sul sito sono tre: **TEMPO DI GIOCO** (secondi passati online), "
+                                + "**RICCHEZZA MEDIA** (giacenza media personale, misurata come quella della banca: solo "
+                                + "sul tempo online, così parcheggiare soldi da offline non la gonfia) e **UCCISIONI/K-D**. "
+                                + "Tutto parte dall'aggiornamento del plugin: non c'è storico passato da recuperare, i "
+                                + "conteggi cominciano da adesso e si assestano col tempo.")
+
+                .section("Valore in minerali",
+                        "Il **VALORE** di una fazione è la somma del valore dei blocchi di minerale piazzati DENTRO "
+                                + "le sue land. Piazzare un blocco configurato nel proprio territorio aggiunge il suo "
+                                + "valore, romperlo lo toglie; fuori dalle land non conta nulla. Quando un chunk viene "
+                                + "**CONQUISTATO**, il suo valore passa alla fazione conquistatrice: viaggia col territorio.",
+                        "Quali blocchi valgono e quanto lo decidi TU in config, sezione value-blocks: la chiave è il "
+                                + "nome del materiale Minecraft (maiuscolo, es. DIAMOND_BLOCK), il valore è quanto vale "
+                                + "ogni blocco. Aggiungi/togli liberamente; togliere una riga = quel blocco vale 0. "
+                                + "Due cose da sapere quando rispondi ai giocatori: contano solo i blocchi piazzati DA "
+                                + "QUANDO la funzione è attiva (niente scansione del mondo già costruito), e i blocchi "
+                                + "rotti da un raider tolgono valore alla fazione proprietaria del chunk. Il Valore è una "
+                                + "voce del punteggio (peso score.weights.value): 0 lo esclude dalla classifica.")
 
                 .section("Mappa e minimap",
                         // Come risponde /f map lo dice il config: la frase cambia da sola con map.mode, cosi'
@@ -469,7 +541,16 @@ public final class MagixFactions extends JavaPlugin {
                         "power.gain-interval-seconds", "Ogni quanti secondi online si guadagna Potenza.",
                         "claims.max-percent", "Percentuale del maxpower che diventa tetto dei territori.",
                         "score.weights", "Peso (= massimo) di ogni caratteristica nel punteggio: col peso 1 vale al "
-                                + "massimo 1, alzalo per farla contare di più, 0 la esclude.",
+                                + "massimo 1, alzalo per farla contare di più, 0 la esclude. Include kills (uccisioni) e "
+                                + "value (minerali).",
+                        "score.combat-metric", "Cosa entra nella voce combat del punteggio: kills (uccisioni, default) "
+                                + "oppure kd (rapporto, sconsigliato).",
+                        "combat.friendly-fire", "Se il danno fra compagni di fazione (faction) e fra alleati (allies) "
+                                + "è annullato.",
+                        "combat.kill-cooldown-minutes", "Anti fake-kill: entro quanti minuti ri-uccidere la stessa "
+                                + "vittima non dà crediti (0 = spento).",
+                        "value-blocks", "Quali blocchi di minerale valgono, e quanto, per il Valore della fazione "
+                                + "(chiave = materiale maiuscolo).",
                         "decay.grace-hours", "Ore di grazia prima che il sovraccarico cominci a togliere territori.",
                         "map.mode", "Come risponde /f map: chat (mappa testuale, default) oppure item (mappa "
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")

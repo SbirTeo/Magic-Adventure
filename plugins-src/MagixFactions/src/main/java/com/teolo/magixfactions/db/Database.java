@@ -104,6 +104,15 @@ public final class Database {
             // Ultimo accesso REALE del giocatore (join/quit), NON toccato dal decadimento di Potenza (che
             // invece fa avanzare last_seen): serve a capire da quanto una fazione e' inattiva (vedi ScoreManager).
             addIfMissing(c, st, "players", "last_login", "BIGINT DEFAULT 0");
+            // Statistiche giocatore per le classifiche del sito (vedi PlayerStatsManager). Sulle righe
+            // pre-feature partono a 0: il conteggio del tempo giocato e della giacenza media parte dall'upgrade.
+            addIfMissing(c, st, "players", "kills", "BIGINT DEFAULT 0");
+            addIfMissing(c, st, "players", "deaths", "BIGINT DEFAULT 0");
+            addIfMissing(c, st, "players", "play_seconds", "BIGINT DEFAULT 0");
+            addIfMissing(c, st, "players", "money_avg_accum", "DOUBLE DEFAULT 0");
+            // Proprietario per-chunk (/f owner) e valore in minerali del chunk (vedi ClaimManager).
+            addIfMissing(c, st, "claims", "owner_uuid", "VARCHAR(36)");
+            addIfMissing(c, st, "claims", "value", "DOUBLE DEFAULT 0");
         }
     }
 
@@ -153,7 +162,12 @@ public final class Database {
         l.add("CREATE TABLE IF NOT EXISTS players (" +
                 "uuid VARCHAR(36) PRIMARY KEY, name VARCHAR(16), " +
                 "power DOUBLE DEFAULT 0, max_power DOUBLE DEFAULT 10, last_seen BIGINT DEFAULT 0, " +
-                "map_rows INT DEFAULT 0, power_progress INT DEFAULT 0, last_login BIGINT DEFAULT 0)");
+                "map_rows INT DEFAULT 0, power_progress INT DEFAULT 0, last_login BIGINT DEFAULT 0, " +
+                // Statistiche giocatore per le classifiche del sito (vedi PlayerStatsManager): uccisioni e
+                // morti PvP valide (KD), secondi totali giocati, e integrale Σ(saldo × secondi online) per
+                // la giacenza media personale (denominatore = play_seconds).
+                "kills BIGINT DEFAULT 0, deaths BIGINT DEFAULT 0, play_seconds BIGINT DEFAULT 0, " +
+                "money_avg_accum DOUBLE DEFAULT 0)");
         // NB: sui database gia' esistenti resta la colonna 'minimap_on', non piu' usata da quando la
         // minimap HUD e' un PERMESSO (magixfactions.minimap) e non piu' un interruttore per-giocatore.
         // Non viene cancellata: una DROP COLUMN su dati altrui non ripaga il poco spazio che libera.
@@ -169,6 +183,10 @@ public final class Database {
                 "rank_since BIGINT DEFAULT 0, joined_at BIGINT DEFAULT 0)");
         l.add("CREATE TABLE IF NOT EXISTS claims (" +
                 "world VARCHAR(64), chunk_x INT, chunk_z INT, faction_id BIGINT, paid DOUBLE DEFAULT 0, " +
+                // owner_uuid: proprietario PER-CHUNK impostato con /f owner (null = nessuno; interagiscono
+                // tutti i membri). value: valore in minerali piazzati nel chunk (vedi ClaimManager/ValueListener),
+                // sommato per fazione nel punteggio; viaggia col chunk quando viene conquistato.
+                "owner_uuid VARCHAR(36), value DOUBLE DEFAULT 0, " +
                 "PRIMARY KEY(world, chunk_x, chunk_z))");
         l.add("CREATE TABLE IF NOT EXISTS relations (" +
                 "faction_id BIGINT, other_id BIGINT, type VARCHAR(16), " +

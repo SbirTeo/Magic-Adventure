@@ -148,6 +148,18 @@ unclaimall:
   confirm-chat: "&cStai per rilasciare TUTTI i &e{count}&c territori della fazione. &4Azione irreversibile.&c Riesegui &e/f unclaimall &centro 10 secondi per confermare."
   success: "&aRilasciati tutti i &e{count}&a territori della fazione."
 
+# Proprietario della land (/f owner). Solo il leader lo imposta; nel chunk con proprietario interagiscono
+# solo owner + leader (vedi protection.owner-denied).
+owner:
+  not-leader: "&cSolo il leader della fazione puo' impostare il proprietario di una land."
+  not-your-land: "&cQuesto chunk non e' della tua fazione: mettiti dentro una vostra land."
+  none-here: "&7Questa land non ha un proprietario: possono interagirci tutti i membri. &8Usa &f/f owner <giocatore>&8 per assegnarla."
+  current: "&7Proprietario di questa land: &e{owner}&7. &8Usa &f/f owner clear&8 per toglierlo."
+  not-member: "&cNon fa parte della tua fazione."
+  set: "&aOra questa land appartiene a &e{player}&a: solo lui e il leader possono interagirci."
+  received: "&aTi e' stata assegnata una land della fazione: solo tu e il leader potete interagirci."
+  cleared: "&aProprietario rimosso: ora tutti i membri possono interagire in questa land."
+
 # Banca di fazione: /f deposit|d <soldi> (tutti i membri), /f withdraw|w <soldi> (permesso di grado
 # 'withdraw', di default officer e leader). Richiede un'economia Vault attiva (es. CMI economy).
 bank:
@@ -264,6 +276,12 @@ power:
 # Protezione territori (config: protection).
 protection:
   denied: "&cQuesto territorio e' della fazione &e{name}&c: non puoi costruire o interagire qui."
+  # Mostrato a un COMPAGNO di fazione dentro una land che ha un proprietario (/f owner): solo owner + leader.
+  owner-denied: "&cQuesta land ha come proprietario &e{owner}&c: solo lui e il leader possono interagire qui."
+
+# PvP di fazione (config: combat).
+combat:
+  friendly-fire: "&cNon puoi colpire i tuoi compagni di fazione o gli alleati."
 
 map:
   # Modalita' ITEM: consegna un item mappa dinamico da tenere in mano.
@@ -359,6 +377,7 @@ help:
         - "/f claim :: conquista il territorio in cui ti trovi"
         - "/f unclaim :: rilascia il territorio in cui ti trovi"
         - "/f unclaimall :: rilascia TUTTI i territori (chiede conferma)"
+        - "/f owner [giocatore|clear] :: proprietario della land (solo leader)"
         - "/f map :: la mappa dei territori intorno a te"
         - "/f sethome :: imposta la home (nel tuo territorio)"
         - "/f unsethome :: rimuove la home della fazione"

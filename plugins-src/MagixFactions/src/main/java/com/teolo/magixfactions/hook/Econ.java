@@ -26,6 +26,12 @@ public final class Econ {
         return economy != null && economy.has(p, amount);
     }
 
+    /** Saldo attuale del giocatore (0 se non c'e' economia). Usato per la giacenza media personale. */
+    public static double balance(OfflinePlayer p) {
+        ensure();
+        return economy == null ? 0 : economy.getBalance(p);
+    }
+
     public static boolean withdraw(OfflinePlayer p, double amount) {
         ensure();
         if (economy == null) return false;

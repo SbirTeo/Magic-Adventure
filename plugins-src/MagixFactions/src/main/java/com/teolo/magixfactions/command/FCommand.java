@@ -129,6 +129,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 case "claim": return claim(p);
                 case "unclaim": return unclaim(p);
                 case "unclaimall": return unclaimAll(p);
+                case "owner": return owner(p, args);
                 case "map": return map(p);
                 case "sethome": return sethome(p);
                 case "unsethome": return unsethome(p);
@@ -631,6 +632,51 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     /**
+     * /f owner [giocatore|clear] - PROPRIETARIO della land (chunk) in cui ti trovi.
+     * <ul>
+     *   <li>senza argomento: mostra il proprietario attuale del chunk;</li>
+     *   <li>{@code <giocatore>}: lo imposta proprietario (dev'essere un membro della fazione). Da quel
+     *       momento, in quel chunk, interagiscono solo lui e il LEADER (i compagni no): niente casse,
+     *       niente posa/rottura blocchi (vedi {@link com.teolo.magixfactions.listener.ProtectionListener});</li>
+     *   <li>{@code clear|none|remove}: toglie il proprietario (torna libero per tutti i membri).</li>
+     * </ul>
+     * Solo il LEADER puo' usarlo (e gli admin col bypass, che agiscono ovunque comunque).
+     */
+    private boolean owner(Player p, String[] a) {
+        Faction f = fm.getFaction(p.getUniqueId());
+        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
+        if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("owner.not-leader")); return true; }
+
+        org.bukkit.Chunk ch = p.getLocation().getChunk();
+        String world = ch.getWorld().getName();
+        int cx = ch.getX(), cz = ch.getZ();
+        Long ownerId = claims.owner(world, cx, cz);
+        if (ownerId == null || ownerId != f.getId()) { msg(p, M.get("owner.not-your-land")); return true; }
+
+        if (a.length < 2) {   // nessun argomento: mostra il proprietario attuale
+            String co = claims.chunkOwnerUuid(world, cx, cz);
+            if (co == null) { msg(p, M.get("owner.none-here")); return true; }
+            String name = Bukkit.getOfflinePlayer(UUID.fromString(co)).getName();
+            msg(p, M.get("owner.current", "owner", name != null ? name : "?"));
+            return true;
+        }
+
+        String arg = a[1];
+        if (arg.equalsIgnoreCase("clear") || arg.equalsIgnoreCase("none") || arg.equalsIgnoreCase("remove")) {
+            claims.setChunkOwner(world, cx, cz, null);
+            msg(p, M.get("owner.cleared"));
+            return true;
+        }
+        OfflinePlayer target = resolveMember(f, arg);
+        if (target == null) { msg(p, M.get("owner.not-member")); return true; }
+        claims.setChunkOwner(world, cx, cz, target.getUniqueId().toString());
+        msg(p, M.get("owner.set", "player", target.getName()));
+        Player tp = target.getPlayer();
+        if (tp != null && !tp.getUniqueId().equals(p.getUniqueId())) msg(tp, M.get("owner.received"));
+        return true;
+    }
+
+    /**
      * /f map - mostra i territori attorno al giocatore. La modalita' (config {@code map.mode}) puo'
      * essere "item" (item filled_map dinamico, {@link com.teolo.magixfactions.map.FactionMapRenderer})
      * o "chat" (mappa testuale). Lo zoom e' quello per-giocatore in BLOCCHI PER PIXEL (default config
@@ -1112,6 +1158,14 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 // bersagli sensati = i MEMBRI della propria fazione (se stessi esclusi)
                 if (args.length == 2 && p != null) return filterPrefix(args[1], memberNames(p));
                 break;
+            case "owner":
+                // membri della fazione + "clear" per togliere il proprietario
+                if (args.length == 2 && p != null) {
+                    List<String> opts = new ArrayList<>(memberNames(p));
+                    opts.add("clear");
+                    return filterPrefix(args[1], opts);
+                }
+                break;
             case "join": case "ally": case "a": case "enemy": case "e": case "info":
                 if (args.length == 2) return filterPrefix(args[1], factionNames());
                 break;
@@ -1172,7 +1226,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     out.add("deposit"); // versare e' di tutti
                     if (fm.hasPerm(f, u, "withdraw")) out.add("withdraw");
                 }
-                if (u.equals(f.getLeader())) { out.add("transfer"); out.add("disband"); }
+                if (u.equals(f.getLeader())) { out.add("transfer"); out.add("disband"); out.add("owner"); }
             }
         }
         if (s.hasPermission("magixfactions.admin")) { out.add("admin"); out.add("db"); out.add("reload"); }

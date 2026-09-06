@@ -47,7 +47,7 @@ def present_plugins():
 
 PLUGINS = present_plugins()
 # Keys that read by themselves or do not belong to the plugin: not to be reported.
-IGNORE_UNREAD = re.compile(r"^(storage\.|mariadb\.|sqlite\.|ranks|leader|forbidden-words|messages)")
+IGNORE_UNREAD = re.compile(r"^(storage\.|mariadb\.|sqlite\.|ranks|leader|forbidden-words|value-blocks|messages)")
 
 
 def file_keys(path):

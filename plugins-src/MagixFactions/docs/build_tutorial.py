@@ -145,6 +145,7 @@ HTML = r"""<!DOCTYPE html>
     <li><a href="#s10">La casa (/f home)</a></li>
     <li><a href="#s11">Perdere territori (sovraccarico)</a></li>
     <li><a href="#s12">Guardare le info</a></li>
+    <li><a href="#sPvp">PvP: colpire i nemici</a></li>
     <li><a href="#sTop">La classifica del server</a></li>
     <li><a href="#s13">Tutti i comandi</a></li>
   </ol>
@@ -270,6 +271,19 @@ HTML = r"""<!DOCTYPE html>
   <p><span class="cmd">/f unclaimall</span> — rilascia TUTTI i territori della fazione in un colpo solo.</p>
   <div class="warn"><b>/f unclaimall è IRREVERSIBILE.</b> La prima volta mostra solo un avviso a schermo (con un
   suono di pericolo): devi rieseguire il comando entro {{secondi:claims.unclaim-all-confirm-seconds}} per confermare davvero.</div>
+  <h3>Assegnare una land a un membro — <span class="cmd" style="font-size:14px">/f owner</span></h3>
+  <p>Di norma tutti i membri della fazione possono costruire e aprire le casse in ogni vostro territorio. Se
+  però vuoi che un <b>singolo chunk</b> sia <b>riservato a una persona</b> — la sua casa, il suo magazzino — il
+  <b>leader</b> può assegnarne il proprietario:</p>
+  <ul>
+    <li>mettiti nel chunk e usa <span class="cmd">/f owner &lt;giocatore&gt;</span> — da quel momento, in quella
+      land, <b>solo lui e il leader</b> possono piazzare/rompere blocchi e aprire i contenitori; gli altri
+      compagni no;</li>
+    <li><span class="cmd">/f owner</span> da solo ti dice <b>chi</b> è il proprietario del chunk;</li>
+    <li><span class="cmd">/f owner clear</span> toglie il proprietario e la land torna aperta a tutti i membri.</li>
+  </ul>
+  <div class="tip">È il modo per fidarti a metà: fai entrare qualcuno nella fazione senza dargli le chiavi di
+  <b>tutto</b>. Il proprietario decade da solo se il chunk viene conquistato da un nemico.</div>
 </section>
 
 <section id="s8">
@@ -401,6 +415,21 @@ HTML = r"""<!DOCTYPE html>
   <p><span class="cmd">/f list</span> elenca invece <b>tutte</b> le fazioni del server.</p>
 </section>
 
+<section id="sPvp">
+  <h2><span class="n">⚔</span>PvP: colpire i nemici</h2>
+  <p>Fuori dai territori protetti si combatte. Ma tra <b>compagni di fazione</b> e tra <b>alleati</b> il PvP è
+  <b>disattivato</b>: se provi a colpirli, <b>il colpo non fa danno</b>. Niente incidenti né tradimenti dentro
+  la squadra.</p>
+  <p>Ogni nemico che abbatti conta come <b>uccisione</b>, e ogni volta che ti uccidono è una <b>morte</b>: da
+  questi due numeri esce il tuo <b>K/D</b> (uccisioni ÷ morti), che vedi nella <b>classifica giocatori</b> sul
+  sito. Le uccisioni valide contano anche per la voce <b>Uccisioni</b> del punteggio della tua fazione.</p>
+  <div class="warn"><b>Le «fake kill» non contano.</b> Per evitare che qualcuno gonfi il K/D facendosi uccidere
+  da un amico, un'uccisione conta solo se è "vera": <b>non</b> vale se la vittima era appena rinata (dev'essere
+  viva da qualche istante), se la <b>ri-uccidi</b> a raffica (c'è un tempo di attesa sulla stessa vittima), o se
+  tu e la vittima siete collegati <b>dalla stessa rete</b> (doppi account). In quei casi né tu prendi
+  l'uccisione né la vittima prende la morte.</div>
+</section>
+
 <section id="sTop">
   <h2><span class="n">C</span>La classifica del server — <span class="cmd" style="font-size:15px">/f top</span></h2>
   <p><span class="cmd">/f top</span> mostra la <b>classifica</b> delle fazioni. Non conta chi ha più territori
@@ -416,13 +445,15 @@ HTML = r"""<!DOCTYPE html>
   <p><b>Come funziona:</b> per ogni caratteristica, la fazione <b>migliore</b> vale il massimo e tu vali
   <b>in proporzione a lei</b> (metà dei suoi territori = metà del punteggio di quella voce). Sommando tutte
   le voci esce il tuo Punteggio.</p>
-  <p>Le caratteristiche che contano sono cinque:</p>
+  <p>Le caratteristiche che contano sono sette:</p>
   <ul>
     <li><b>Territori</b> — quanti chunk possiede la fazione.</li>
     <li><b>Membri</b> — quanti siete.</li>
     <li><b>Banca</b> — la <b>giacenza media</b>, cioè quanti soldi tenete <b>nel tempo</b>.</li>
     <li><b>Longevità</b> — da quanti giorni esiste la fazione.</li>
     <li><b>Potenza</b> — la potenza media della fazione.</li>
+    <li><b>Uccisioni</b> — quanti nemici ha abbattuto la fazione (solo uccisioni <b>valide</b>, vedi il capitolo sul PvP).</li>
+    <li><b>Valore</b> — i <b>blocchi di minerale</b> piazzati dentro le vostre land (più ne accumulate, più valete).</li>
   </ul>
   <p class="sub">Due cose importanti. La <b>banca</b> conta la <b>media nel tempo</b>: mettere un milione un
   attimo prima di guardare la classifica <b>non serve</b> — contano i soldi che tieni davvero. E il
@@ -432,7 +463,8 @@ HTML = r"""<!DOCTYPE html>
   da un po', la fazione viene nascosta (e torna da sola appena qualcuno si ricollega). La classifica mostra
   chi <b>gioca davvero</b>.</p>
   <p class="sub">Il tuo Punteggio e la tua posizione li vedi anche in <span class="cmd">/f info</span> e sul
-  <b>sito</b>.</p>
+  <b>sito</b>. Sul sito, oltre alla classifica delle fazioni, c'è anche quella dei <b>giocatori</b>: per
+  <b>tempo di gioco</b>, <b>ricchezza media</b> e <b>uccisioni/K-D</b>.</p>
 </section>
 
 <section id="s13">
@@ -452,6 +484,7 @@ HTML = r"""<!DOCTYPE html>
     <tr><td><span class="cmd">/f claim</span></td><td>Conquista il chunk dove sei</td></tr>
     <tr><td><span class="cmd">/f unclaim</span></td><td>Rilascia il chunk dove sei</td></tr>
     <tr><td><span class="cmd">/f unclaimall</span></td><td>Rilascia TUTTI i territori (irreversibile, chiede conferma)</td></tr>
+    <tr><td><span class="cmd">/f owner [gioc|clear]</span></td><td>Proprietario della land dove sei (solo leader)</td></tr>
     <tr><td><span class="cmd">/f map</span></td><td>{{se:map.mode=chat}}Stampa in chat la mappa dei territori attorno a te{{/se}}{{se:map.mode=item}}Ricevi la Mappa Fazioni (item dinamico){{/se}}</td></tr>
     <tr><td><span class="cmd">/f sethome / home</span></td><td>Imposta / vai alla casa della fazione</td></tr>
     <tr><td><span class="cmd">/f description &lt;testo&gt;</span></td><td>Imposta la descrizione</td></tr>

@@ -41,18 +41,21 @@ import java.util.UUID;
 public final class ScoreManager {
 
     /** Le caratteristiche, in ordine di visualizzazione. */
-    private static final String[] KEYS = {"land", "members", "bank", "longevity", "power"};
+    private static final String[] KEYS = {"land", "members", "bank", "longevity", "power", "kills", "value"};
 
     private final JavaPlugin plugin;
     private final FactionManager fm;
     private final PowerManager power;
     private final ClaimManager claims;
+    private final PlayerStatsManager stats;
 
-    public ScoreManager(JavaPlugin plugin, FactionManager fm, PowerManager power, ClaimManager claims) {
+    public ScoreManager(JavaPlugin plugin, FactionManager fm, PowerManager power, ClaimManager claims,
+                        PlayerStatsManager stats) {
         this.plugin = plugin;
         this.fm = fm;
         this.power = power;
         this.claims = claims;
+        this.stats = stats;
     }
 
     // ----------------------------- CONFIG -----------------------------
@@ -175,6 +178,13 @@ public final class ScoreManager {
 
     // --------------------------- VALORI DELLE VOCI ---------------------
 
+    /** Metrica combat che entra nel punteggio: "kills" (uccisioni valide, default) o "kd" (rapporto K/D).
+     *  Il K/D e' un rapporto instabile per un metodo RELATIVO al migliore (una fazione con poche morti
+     *  schiaccerebbe tutte le altre), quindi il default e' il volume di uccisioni. (score.combat-metric) */
+    private boolean combatIsKd() {
+        return "kd".equalsIgnoreCase(plugin.getConfig().getString("score.combat-metric", "kills"));
+    }
+
     /** Il valore grezzo di una caratteristica per una fazione (rispettando media/attuale del config). */
     private double valueOf(String key, Faction f) {
         return switch (key) {
@@ -183,6 +193,11 @@ public final class ScoreManager {
             case "bank" -> bankAverage() ? averageBank(f) : f.getBank();
             case "longevity" -> ageDays(f);
             case "power" -> powerAverage() ? averagePower(f) : power.factionPower(f);
+            case "kills" -> combatIsKd()
+                    ? (stats.factionDeaths(f) <= 0 ? stats.factionKills(f)
+                                                   : (double) stats.factionKills(f) / stats.factionDeaths(f))
+                    : stats.factionKills(f);
+            case "value" -> claims.value(f.getId());
             default -> 0;
         };
     }
@@ -195,6 +210,8 @@ public final class ScoreManager {
             case "bank" -> bankAverage() ? "Banca (media)" : "Banca";
             case "longevity" -> "Longevità";
             case "power" -> powerAverage() ? "Potenza (media)" : "Potenza";
+            case "kills" -> combatIsKd() ? "K/D" : "Uccisioni";
+            case "value" -> "Valore";
             default -> key;
         };
     }
@@ -202,8 +219,9 @@ public final class ScoreManager {
     /** Testo formattato del valore grezzo (interi, soldi con le migliaia, giorni con la "g"). */
     private String valueText(String key, double v) {
         return switch (key) {
-            case "bank" -> moneyText(v);
+            case "bank", "value" -> moneyText(v);
             case "longevity" -> daysText(v);
+            case "kills" -> combatIsKd() ? kdText(v) : intText(v);
             default -> intText(v);
         };
     }
@@ -211,6 +229,7 @@ public final class ScoreManager {
     private static String intText(double v) { return String.valueOf(Math.round(v)); }
     private static String moneyText(double v) { return String.format(Locale.ITALY, "%,.0f", v); }
     private static String daysText(double v) { return Math.round(v) + "g"; }
+    private static String kdText(double v) { return String.format(Locale.ITALY, "%.2f", v); }
 
     // ------------------------------ MASSIMI ----------------------------
 
