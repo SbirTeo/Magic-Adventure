@@ -61,6 +61,19 @@ if ($factions) {
     }
 }
 
+// Prossimo aggiornamento delle statistiche: il plugin ricalcola lo snapshot (fazioni + giocatori) ogni
+// score.sample-interval-seconds e aggiorna factions.score_sampled_at. Leggiamo l'ultimo campione per un
+// conto alla rovescia sobrio. NB: $stats_interval deve combaciare con score.sample-interval-seconds del
+// config del plugin (5 minuti).
+$stats_interval = 300;
+$last_sample_ms = 0;
+try {
+    $r = db()->query('SELECT MAX(score_sampled_at) AS last FROM factions_magixfactions.factions')->fetch();
+    $last_sample_ms = (int) ($r['last'] ?? 0);
+} catch (PDOException $e) {
+    $last_sample_ms = 0;
+}
+
 // Popup (card) che spiega COME si calcola il punteggio, dal JSON factions.score_detail scritto dal
 // plugin. Metodo RELATIVO: in ogni voce la fazione migliore vale il massimo (il suo peso), le altre ne
 // prendono la percentuale rispetto a lei; il punteggio è la somma. Il sito mostra e basta i numeri già
@@ -174,11 +187,19 @@ function format_playtime(int $seconds): string {
   .score-pop .sp-p .sp-max { color: var(--text-dimmer); font-size: 12px; }
   .score-pop tfoot td { padding-top: 9px; border-top: 1px solid var(--border-strong); font-family: var(--font-heading); color: var(--text); }
   .score-pop tfoot .sp-tot { color: var(--purple); font-size: 16px; }
-  /* Le MORTI restano una colonna solo INFORMATIVA (non si ordina per morti: un nuovo entrato con 0 morti
-     risulterebbe "il migliore"): resa in tono sommesso per distinguerla dalle voci di classifica. */
-  .kd-deaths { color: var(--text-dimmer); }
+  /* Uccisioni: morti e K/D non sono colonne, si leggono passando il mouse sul numero (tooltip nativo). */
+  .kills-cell { border-bottom: 1px dotted var(--border-strong); cursor: help; }
+  /* Nome fazione/giocatore e punteggio colorati per farli risaltare in classifica. */
+  .rank .fac-name { color: var(--green); font-weight: 600; }
+  .rank .score-value { color: var(--purple); font-weight: 700; }
+  /* Timer sobrio del prossimo aggiornamento delle statistiche. */
+  .stats-refresh { color: var(--text-dimmer); font-size: 12.5px; margin: -6px 0 14px; }
+  .stats-refresh b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
 </style>
 <h1 class="page-title">Classifiche<?php if (!$score_ready): ?> <span class="badge-soon">In arrivo</span><?php endif; ?></h1>
+<?php if ($last_sample_ms > 0): ?>
+  <p class="stats-refresh">↻ Statistiche aggiornate ogni <?= intdiv($stats_interval, 60) ?> min · prossimo aggiornamento tra <b id="stats-refresh-countdown">—</b></p>
+<?php endif; ?>
 
 <h2>🏆 Top Fazioni</h2>
 <div class="panel">
@@ -198,16 +219,16 @@ function format_playtime(int $seconds): string {
     <div class="rank-wrap">
       <table class="rank">
         <thead>
-          <tr><th>#</th><th>Fazione</th><th>Punteggio</th><th>Territori</th><th>Membri</th><th>Banca</th><th>Longevità</th><th>Potenza</th><th>Uccisioni</th><th>Morti</th><th>K/D</th><th>Valore</th></tr>
+          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>👥 Membri</th><th>🏦 Banca</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
         </thead>
         <tbody>
           <?php foreach ($factions as $i => $f): ?>
             <tr>
               <td><?= $i + 1 ?></td>
-              <td><?= h($f['name']) ?></td>
+              <td class="fac-name"><?= h($f['name']) ?></td>
               <?php $pop = score_popup($f['score_detail'] ?? null, (float) $f['score']); ?>
               <td<?= $pop ? ' class="score-cell" tabindex="0"' : '' ?>>
-                <span<?= $pop ? ' class="score-trigger"' : ' style="font-weight:700"' ?>><?= h(number_format((float) $f['score'], 2, ',', '.')) ?></span>
+                <span class="score-value<?= $pop ? ' score-trigger' : '' ?>"><?= h(number_format((float) $f['score'], 2, ',', '.')) ?></span>
                 <?= $pop ?>
               </td>
               <td><?= (int) $f['claims'] ?></td>
@@ -216,9 +237,7 @@ function format_playtime(int $seconds): string {
               <td><?= h(detail_value($f['score_detail'] ?? null, 'Longev')) ?></td>
               <td><?= (int) $f['power'] ?></td>
               <?php $fs = $fstats[$f['id']] ?? ['kills' => 0, 'deaths' => 0, 'value' => 0]; ?>
-              <td><?= (int) $fs['kills'] ?></td>
-              <td class="kd-deaths"><?= (int) $fs['deaths'] ?></td>
-              <td><?= h(kd_ratio((int) $fs['kills'], (int) $fs['deaths'])) ?></td>
+              <td><span class="kills-cell" title="Morti: <?= (int) $fs['deaths'] ?> · K/D: <?= h(kd_ratio((int) $fs['kills'], (int) $fs['deaths'])) ?>"><?= (int) $fs['kills'] ?></span></td>
               <td><?= h(number_format((float) $fs['value'], 0, ',', '.')) ?></td>
             </tr>
           <?php endforeach; ?>
@@ -275,12 +294,12 @@ try {
     <h3>🕒 Tempo di gioco</h3>
     <div class="rank-wrap">
       <table class="rank">
-        <thead><tr><th>#</th><th>Giocatore</th><th>Tempo online</th></tr></thead>
+        <thead><tr><th>#</th><th>👤 Giocatore</th><th>🕒 Tempo di gioco</th></tr></thead>
         <tbody>
           <?php if (!$top_time): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_time as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="fac-name"><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -289,31 +308,52 @@ try {
     <h3>💰 Ricchezza media</h3>
     <div class="rank-wrap">
       <table class="rank">
-        <thead><tr><th>#</th><th>Giocatore</th><th>Giacenza media</th></tr></thead>
+        <thead><tr><th>#</th><th>👤 Giocatore</th><th>💰 Giacenza media</th></tr></thead>
         <tbody>
           <?php if (!$top_money): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_money as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="fac-name"><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
     </div>
 
-    <h3>⚔ Uccisioni e K/D</h3>
+    <h3>⚔️ Uccisioni e K/D</h3>
     <div class="rank-wrap">
       <table class="rank">
-        <thead><tr><th>#</th><th>Giocatore</th><th>Uccisioni</th><th>Morti</th><th>K/D</th></tr></thead>
+        <thead><tr><th>#</th><th>👤 Giocatore</th><th>⚔️ Uccisioni</th></tr></thead>
         <tbody>
           <?php if (!$top_kills): ?>
-            <tr><td colspan="5" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
+            <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_kills as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td><?= h($p['name']) ?></td><td><?= (int) $p['kills'] ?></td><td class="kd-deaths"><?= (int) $p['deaths'] ?></td><td><?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="fac-name"><?= h($p['name']) ?></td><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
     </div>
   </div>
+<?php endif; ?>
+
+<?php if ($last_sample_ms > 0): ?>
+<script>
+(function () {
+  var last = <?= $last_sample_ms ?>, interval = <?= $stats_interval * 1000 ?>;
+  var el = document.getElementById('stats-refresh-countdown');
+  if (!el) return;
+  // Punta al prossimo campione FUTURO: se la pagina resta aperta oltre un ciclo, avanza da solo.
+  var target = last + interval, now = Date.now();
+  while (target <= now) target += interval;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function tick() {
+    var s = Math.round((target - Date.now()) / 1000);
+    if (s <= 0) { el.textContent = 'in corso…'; setTimeout(function () { location.reload(); }, 2000); return; }
+    el.textContent = Math.floor(s / 60) + ':' + pad(s % 60);
+    setTimeout(tick, 1000);
+  }
+  tick();
+})();
+</script>
 <?php endif; ?>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>
