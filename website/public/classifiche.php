@@ -16,13 +16,17 @@ $factions = [];
 $score_ready = true;
 try {
     $stmt = db()->query(
-        'SELECT f.id, f.name, ROUND(f.score, 2) AS score, f.score_detail,
+        'SELECT f.id, f.name, f.description, f.bank, ROUND(f.score, 2) AS score, f.score_detail,
                 (SELECT COUNT(*) FROM factions_magixfactions.claims c WHERE c.faction_id = f.id) AS claims,
                 (SELECT COUNT(*) FROM factions_magixfactions.faction_members m WHERE m.faction_id = f.id) AS members,
                 (SELECT COALESCE(SUM(pl.power), 0)
                    FROM factions_magixfactions.faction_members m2
                    JOIN factions_magixfactions.players pl ON pl.uuid = m2.uuid
-                  WHERE m2.faction_id = f.id) AS power
+                  WHERE m2.faction_id = f.id) AS power,
+                (SELECT COALESCE(SUM(pl.max_power), 0)
+                   FROM factions_magixfactions.faction_members m3
+                   JOIN factions_magixfactions.players pl ON pl.uuid = m3.uuid
+                  WHERE m3.faction_id = f.id) AS max_power
            FROM factions_magixfactions.factions f
           WHERE f.ranked = 1
           ORDER BY f.score DESC, f.name ASC
@@ -99,6 +103,128 @@ if ($viewer && !empty($viewer['mc_uuid'])) {
         $viewer_faction_id = 0;
         $allies = [];
     }
+}
+
+// Membri e alleati di OGNI fazione in classifica, per il popup "/f info" sul nome. Query separate e
+// tolleranti (se falliscono il popup mostra solo cio' che ha). I membri sono uniti a users (via mc_uuid)
+// per sapere chi ha un profilo sul sito (avatar cliccabile).
+$members_by_faction = [];
+$allies_by_faction = [];
+if ($factions) {
+    $ids = array_map(static fn($f) => (int) $f['id'], $factions);
+    $in = implode(',', array_fill(0, count($ids), '?'));
+    try {
+        $q = db()->prepare(
+            'SELECT m.faction_id, m.rank, p.name AS mc_name, m.uuid AS mc_uuid, p.power,
+                    u.mc_username AS site_name
+               FROM factions_magixfactions.faction_members m
+               JOIN factions_magixfactions.players p ON p.uuid = m.uuid
+               LEFT JOIN users u ON u.mc_uuid = m.uuid COLLATE utf8mb4_unicode_ci
+              WHERE m.faction_id IN (' . $in . ')');
+        $q->execute($ids);
+        foreach ($q->fetchAll() as $row) $members_by_faction[(int) $row['faction_id']][] = $row;
+    } catch (PDOException $e) {
+        $members_by_faction = [];
+    }
+    try {
+        $q = db()->prepare(
+            'SELECT r1.faction_id, fo.name AS other_name, r1.other_id
+               FROM factions_magixfactions.relations r1
+               JOIN factions_magixfactions.relations r2
+                 ON r2.faction_id = r1.other_id AND r2.other_id = r1.faction_id AND r2.type = "ALLY"
+               JOIN factions_magixfactions.factions fo ON fo.id = r1.other_id
+              WHERE r1.faction_id IN (' . $in . ') AND r1.type = "ALLY"');
+        $q->execute($ids);
+        foreach ($q->fetchAll() as $row) $allies_by_faction[(int) $row['faction_id']][] = $row;
+    } catch (PDOException $e) {
+        $allies_by_faction = [];
+    }
+}
+
+// Gradi di fazione (rispecchiano il config del plugin): id -> nome mostrato + ordine (alto = più in alto)
+// + colore del tag. Un id non previsto ripiega su se stesso, ordine 0.
+const FACTION_RANKS = [
+    'leader'  => ['name' => 'Leader',    'order' => 4, 'color' => '#f4c531'],
+    'officer' => ['name' => 'Ufficiale', 'order' => 3, 'color' => '#7ec8ff'],
+    'member'  => ['name' => 'Membro',    'order' => 2, 'color' => '#4bbd5a'],
+    'recruit' => ['name' => 'Recluta',   'order' => 1, 'color' => '#a9adbd'],
+];
+function rank_name(string $id): string { return FACTION_RANKS[$id]['name'] ?? ucfirst($id); }
+function rank_order(string $id): int { return FACTION_RANKS[$id]['order'] ?? 0; }
+function rank_color(string $id): string { return FACTION_RANKS[$id]['color'] ?? '#a9adbd'; }
+
+/**
+ * Popup "/f info" del nome fazione: descrizione, membri (per grado, con avatar cliccabili verso il profilo),
+ * stato (territori/potenza/potenza-max + sicura/raidabile), banca e alleati.
+ */
+function faction_info_popup(array $f, array $members, array $alliesList, int $viewerFactionId, array $viewerAllies): string {
+    $fid = (int) $f['id'];
+    $claims = (int) ($f['claims'] ?? 0);
+    $power = (int) ($f['power'] ?? 0);
+    $maxPower = (int) ($f['max_power'] ?? 0);
+    $membersCount = (int) ($f['members'] ?? count($members));
+
+    // Stato colorato come in gioco: senza territori bianco; potenza >= territori verde (sicura), altrimenti rossa.
+    if ($claims === 0) { $statusColor = 'var(--text-dim)'; $statusText = 'Non ha ancora un territorio.'; }
+    elseif ($power >= $claims) { $statusColor = 'var(--green)'; $statusText = 'La fazione è forte. Non puoi conquistarla.'; }
+    else { $statusColor = '#e05a5a'; $statusText = 'La fazione è raidabile: la potenza è sotto ai territori.'; }
+
+    // Membri raggruppati per grado (dal più alto). Ogni membro: avatar + tooltip; link al profilo se ha un account.
+    usort($members, static function ($a, $b) {
+        $d = rank_order((string) $b['rank']) <=> rank_order((string) $a['rank']);
+        return $d !== 0 ? $d : strcasecmp((string) $a['mc_name'], (string) $b['mc_name']);
+    });
+    $groups = [];
+    foreach ($members as $m) $groups[(string) $m['rank']][] = $m;
+
+    $membersHtml = '';
+    foreach ($groups as $rankId => $list) {
+        $avatars = '';
+        foreach ($list as $m) {
+            $mcName = (string) $m['mc_name'];
+            $siteName = $m['site_name'] ?? null;
+            $img = '<img src="' . h(mc_avatar_url((string) $m['mc_uuid'], 40)) . '" alt="' . h($mcName) . '" width="34" height="34" loading="lazy">';
+            $title = h($mcName) . ' · ' . h(rank_name((string) $rankId)) . ' · Potenza ' . (int) $m['power'];
+            if ($siteName) {
+                $avatars .= '<a class="fi-av" href="' . h('utente?nome=' . rawurlencode((string) $siteName)) . '" title="' . $title . '">' . $img . '</a>';
+            } else {
+                $avatars .= '<span class="fi-av fi-av-noacct" title="' . $title . ' (nessun profilo sul sito)">' . $img . '</span>';
+            }
+        }
+        $membersHtml .= '<div class="fi-rank">'
+            . '<span class="fi-rank-name" style="color:' . h(rank_color((string) $rankId)) . '">' . h(rank_name((string) $rankId)) . '</span>'
+            . '<div class="fi-avatars">' . $avatars . '</div></div>';
+    }
+
+    // Alleati colorati per la relazione col VISITATORE (verde tua, viola alleata, rosso nemica, bianco ospite).
+    $alliesHtml = '';
+    if ($alliesList) {
+        $parts = [];
+        foreach ($alliesList as $a) {
+            $cls = faction_rel_class((int) $a['other_id'], $viewerFactionId, $viewerAllies);
+            $parts[] = '<span class="' . $cls . '">' . h($a['other_name']) . '</span>';
+        }
+        $alliesHtml = implode(', ', $parts);
+    } else {
+        $alliesHtml = '<span class="fi-none">nessuno</span>';
+    }
+
+    $desc = trim((string) ($f['description'] ?? ''));
+
+    $html = '<div class="fac-pop" role="tooltip">';
+    $html .= '<div class="fi-head">' . h((string) $f['name']) . '</div>';
+    if ($desc !== '') $html .= '<div class="fi-desc">' . h($desc) . '</div>';
+    $html .= '<div class="fi-members-head">Membri <b>' . $membersCount . '</b></div>';
+    $html .= $membersHtml;
+    $html .= '<div class="fi-status" style="color:' . $statusColor . '">'
+           . '<b>' . $claims . '</b> territori · <b>' . $power . '</b>/<b>' . $maxPower . '</b> potenza</div>';
+    $html .= '<div class="fi-status-note" style="color:' . $statusColor . '">' . h($statusText) . '</div>';
+    if (isset($f['bank'])) {
+        $html .= '<div class="fi-row"><span class="fi-label">Banca</span> ' . h(number_format((float) $f['bank'], 2, ',', '.')) . '€</div>';
+    }
+    $html .= '<div class="fi-row"><span class="fi-label">Alleati</span> ' . $alliesHtml . '</div>';
+    $html .= '</div>';
+    return $html;
 }
 
 // Popup (card) che spiega COME si calcola il punteggio, dal JSON factions.score_detail scritto dal
@@ -235,6 +361,41 @@ function format_playtime(int $seconds): string {
   /* I nomi (fazione e giocatore) prendono il colore dalle classi fac-* qui sopra; qui solo il peso. */
   .rank .player-name { font-weight: 600; }
   .rank .score-value { color: var(--purple); font-weight: 700; }
+  /* Popup "/f info" sul nome fazione (stessa meccanica del popup punteggio). */
+  .fac-cell { position: relative; }
+  .fac-trigger { cursor: help; border-bottom: 1px dashed var(--border-strong); }
+  .fac-cell .fac-pop {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 70;
+    display: block; width: 340px; max-width: 92vw; box-sizing: border-box;
+    background: var(--bg-elevated); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); padding: 14px 16px; text-align: left; white-space: normal;
+    box-shadow: 0 18px 44px -14px rgba(0,0,0,.65);
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity .12s ease, transform .12s ease, visibility .12s;
+  }
+  .fac-cell:hover .fac-pop, .fac-cell:focus-within .fac-pop { opacity: 1; visibility: visible; transform: translateY(0); }
+  .fac-pop .fi-head { font-family: var(--font-heading); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .fac-pop .fi-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; margin-bottom: 10px; }
+  .fac-pop .fi-members-head { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dimmer); margin: 10px 0 4px; }
+  .fac-pop .fi-members-head b { color: var(--text); }
+  .fac-pop .fi-rank { display: flex; align-items: flex-start; gap: 10px; margin: 6px 0; }
+  .fac-pop .fi-rank-name { flex: none; width: 68px; font-size: 11.5px; font-weight: 600; padding-top: 8px; }
+  .fac-pop .fi-avatars { display: flex; flex-wrap: wrap; gap: 4px; }
+  .fac-pop .fi-av { display: inline-flex; }
+  .fac-pop .fi-av img { border-radius: 5px; border: 1px solid var(--border); display: block; }
+  .fac-pop .fi-av-noacct img { opacity: .7; }
+  .fac-pop a.fi-av:hover img { border-color: var(--purple); }
+  .fac-pop .fi-status { margin-top: 12px; font-size: 13px; }
+  .fac-pop .fi-status b { font-weight: 700; }
+  .fac-pop .fi-status-note { font-size: 12px; margin-top: 2px; }
+  .fac-pop .fi-row { margin-top: 8px; font-size: 13px; color: var(--text); }
+  .fac-pop .fi-label { color: var(--text-dimmer); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; }
+  .fac-pop .fi-none { color: var(--text-dimmer); }
+  /* Colori relazione anche dentro il popup (alleati). */
+  .fac-pop .fac-own { color: var(--green); }
+  .fac-pop .fac-ally { color: #d876e0; }
+  .fac-pop .fac-enemy { color: #e05a5a; }
+  .fac-pop .fac-guest { color: var(--text); }
   /* Timer sobrio del prossimo aggiornamento delle statistiche. */
   .stats-refresh { color: var(--text-dimmer); font-size: 12.5px; margin: -6px 0 14px; }
   .stats-refresh b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -268,7 +429,13 @@ function format_playtime(int $seconds): string {
           <?php foreach ($factions as $i => $f): ?>
             <tr>
               <td><?= $i + 1 ?></td>
-              <td class="fac-name <?= faction_rel_class((int) $f['id'], $viewer_faction_id, $allies) ?>"><?= h($f['name']) ?></td>
+              <?php $facPop = faction_info_popup(
+                  $f, $members_by_faction[(int) $f['id']] ?? [], $allies_by_faction[(int) $f['id']] ?? [],
+                  $viewer_faction_id, $allies); ?>
+              <td class="fac-cell" tabindex="0">
+                <span class="fac-name fac-trigger <?= faction_rel_class((int) $f['id'], $viewer_faction_id, $allies) ?>"><?= h($f['name']) ?></span>
+                <?= $facPop ?>
+              </td>
               <?php $pop = score_popup($f['score_detail'] ?? null, (float) $f['score']); ?>
               <td<?= $pop ? ' class="score-cell" tabindex="0"' : '' ?>>
                 <span class="score-value<?= $pop ? ' score-trigger' : '' ?>"><?= h(number_format((float) $f['score'], 2, ',', '.')) ?></span>
