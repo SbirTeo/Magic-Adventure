@@ -415,7 +415,7 @@ function format_playtime(int $seconds): string {
   .rank .score-value { color: var(--purple); font-weight: 700; }
   /* Popup "/f info" sul nome fazione (stessa meccanica del popup punteggio), stile schematico. */
   .fac-cell { position: relative; }
-  .fac-trigger { cursor: help; }
+  .fac-trigger { cursor: pointer; }
   .fac-cell .fac-pop {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 70;
     display: block; width: 300px; max-width: 92vw; box-sizing: border-box;
@@ -478,7 +478,7 @@ function format_playtime(int $seconds): string {
     <div class="rank-wrap">
       <table class="rank">
         <thead>
-          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>🏦 Banca</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
+          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>💰 Banca</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
         </thead>
         <tbody>
           <?php foreach ($factions as $i => $f): ?>

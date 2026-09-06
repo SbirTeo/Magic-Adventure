@@ -1090,6 +1090,20 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .online-virgola { color: var(--text-dimmer); }
 .online-ospiti { margin: 8px 0 0; color: var(--text-dim); font-size: 12.5px; }
 
+/* Mini-scheda avatar al passaggio del mouse sui nomi "Sul sito ora" (come la live chat). */
+.online-nome-wrap { position: relative; display: inline-block; }
+.online-card {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 80;
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .6); white-space: nowrap;
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity .12s ease, transform .12s ease, visibility .12s;
+}
+.online-nome-wrap:hover .online-card, .online-nome-wrap:focus-within .online-card { opacity: 1; visibility: visible; transform: translateY(0); }
+.online-card img { width: 44px; height: 44px; border-radius: 6px; border: 1px solid var(--border); display: block; }
+.online-card-name { font-weight: 700; font-size: 14px; }
+
 /* Finestrella con l'elenco completo */
 .online-finestra {
   width: min(420px, calc(100vw - 32px));

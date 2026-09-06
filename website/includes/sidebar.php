@@ -102,12 +102,19 @@ function sidebar_colonna(bool $conContenitore = true): void {
     $sulSitoAltri = array_slice($sulSito, $onlineVisibili);
     $ospiti = guests_on_site($onlineMinuti);
 
-    /** Un nome cliccabile, col colore del grado piu' importante. Porta alla sua scheda. */
+    /** Un nome cliccabile, col colore del grado piu' importante, con mini-scheda avatar al passaggio del
+     *  mouse (come la live chat). Porta alla sua scheda. L'avatar porta la corona del miglior sostenitore. */
     $nameOnline = function (array $p): string {
         $colore = player_name_color($p);
-        return '<a class="online-nome colore-grado" href="/utente?nome=' . h(rawurlencode($p['mc_username'])) . '"'
-            . ($colore !== null ? ' style="' . rank_color_style($colore) . '"' : '') . '>'
-            . h($p['mc_username']) . '</a>';
+        $style = $colore !== null ? ' style="' . rank_color_style($colore) . '"' : '';
+        $avatar = avatar_top(
+            '<img src="' . h(mc_avatar_url($p['mc_uuid'], 64)) . '" alt="' . h($p['mc_username']) . '" '
+            . 'width="48" height="48" loading="lazy">', $p['mc_uuid'], 48);
+        $card = '<span class="online-card">' . $avatar
+            . '<span class="online-card-name colore-grado"' . $style . '>' . h($p['mc_username']) . '</span></span>';
+        return '<span class="online-nome-wrap">'
+            . '<a class="online-nome colore-grado" href="/utente?nome=' . h(rawurlencode($p['mc_username'])) . '"' . $style . '>'
+            . h($p['mc_username']) . '</a>' . $card . '</span>';
     };
     ?>
     <?php if ($conContenitore): ?><div class="side-col"><?php endif; ?>
