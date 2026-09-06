@@ -232,7 +232,8 @@ function format_playtime(int $seconds): string {
   .rank .fac-ally  { color: #d876e0; }        /* alleata (magenta, come in gioco) */
   .rank .fac-enemy { color: #e05a5a; }        /* nemica (rossa) */
   .rank .fac-guest { color: var(--text); }    /* ospite non loggato / senza fazione: bianca */
-  .rank .player-name { color: var(--text); font-weight: 600; }
+  /* I nomi (fazione e giocatore) prendono il colore dalle classi fac-* qui sopra; qui solo il peso. */
+  .rank .player-name { font-weight: 600; }
   .rank .score-value { color: var(--purple); font-weight: 700; }
   /* Timer sobrio del prossimo aggiornamento delle statistiche. */
   .stats-refresh { color: var(--text-dimmer); font-size: 12.5px; margin: -6px 0 14px; }
@@ -300,21 +301,27 @@ function format_playtime(int $seconds): string {
 $top_time = $top_money = $top_kills = [];
 $players_ready = true;
 try {
+    // faction_id di ogni giocatore (sottoquery) per colorare il nome secondo la relazione col visitatore.
     $top_time = db()->query(
-        'SELECT name, play_seconds FROM factions_magixfactions.players
-          WHERE play_seconds > 0 AND name IS NOT NULL
-          ORDER BY play_seconds DESC, name ASC LIMIT 10'
+        'SELECT p.name, p.play_seconds,
+                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id
+           FROM factions_magixfactions.players p
+          WHERE p.play_seconds > 0 AND p.name IS NOT NULL
+          ORDER BY p.play_seconds DESC, p.name ASC LIMIT 10'
     )->fetchAll();
     $top_money = db()->query(
-        'SELECT name, (money_avg_accum / money_seconds) AS avg_money
-           FROM factions_magixfactions.players
-          WHERE money_seconds > 0 AND name IS NOT NULL
-          ORDER BY avg_money DESC, name ASC LIMIT 10'
+        'SELECT p.name, (p.money_avg_accum / p.money_seconds) AS avg_money,
+                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id
+           FROM factions_magixfactions.players p
+          WHERE p.money_seconds > 0 AND p.name IS NOT NULL
+          ORDER BY avg_money DESC, p.name ASC LIMIT 10'
     )->fetchAll();
     $top_kills = db()->query(
-        'SELECT name, kills, deaths FROM factions_magixfactions.players
-          WHERE kills > 0 AND name IS NOT NULL
-          ORDER BY kills DESC, deaths ASC, name ASC LIMIT 10'
+        'SELECT p.name, p.kills, p.deaths,
+                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id
+           FROM factions_magixfactions.players p
+          WHERE p.kills > 0 AND p.name IS NOT NULL
+          ORDER BY p.kills DESC, p.deaths ASC, p.name ASC LIMIT 10'
     )->fetchAll();
 } catch (PDOException $e) {
     $players_ready = false;
@@ -342,7 +349,7 @@ try {
           <?php if (!$top_time): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_time as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="player-name"><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="player-name <?= faction_rel_class((int) ($p['faction_id'] ?? 0), $viewer_faction_id, $allies) ?>"><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -356,7 +363,7 @@ try {
           <?php if (!$top_money): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_money as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="player-name"><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="player-name <?= faction_rel_class((int) ($p['faction_id'] ?? 0), $viewer_faction_id, $allies) ?>"><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -370,7 +377,7 @@ try {
           <?php if (!$top_kills): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_kills as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="player-name"><?= h($p['name']) ?></td><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
+            <tr><td><?= $i + 1 ?></td><td class="player-name <?= faction_rel_class((int) ($p['faction_id'] ?? 0), $viewer_faction_id, $allies) ?>"><?= h($p['name']) ?></td><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
