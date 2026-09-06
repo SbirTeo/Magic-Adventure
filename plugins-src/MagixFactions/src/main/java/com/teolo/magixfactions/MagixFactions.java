@@ -437,7 +437,7 @@ public final class MagixFactions extends JavaPlugin {
                 .section("Punteggio e classifica",
                         "/f top ordina le fazioni per un **PUNTEGGIO** unico, non per un solo numero: una classifica "
                                 + "basata solo sui territori (o solo sui soldi) premierebbe chi eccelle in una cosa sola. "
-                                + "Il punteggio è la sintesi di sette caratteristiche, con un metodo **RELATIVO**.",
+                                + "Il punteggio è la sintesi di più caratteristiche, con un metodo **RELATIVO**.",
                         "In ogni caratteristica la fazione col valore più **ALTO** vale 1, le altre valgono in "
                                 + "proporzione a lei (proprio valore ÷ valore del migliore, quindi fra 0 e 1). Poi ogni "
                                 + "frazione si moltiplica per il **PESO** della voce (score.weights): col peso 1 vale al "
@@ -456,13 +456,16 @@ public final class MagixFactions extends JavaPlugin {
                                 + "potenza contano di default con la loro **MEDIA NEL TEMPO** (giacenza media, non il saldo "
                                 + "di un attimo: un deposito lampo non scala la classifica) — con score.bank-value / "
                                 + "score.power-value a `current` si usa invece il valore attuale.",
-                        "Alle cinque voci storiche se ne aggiungono due: **UCCISIONI** (la somma delle uccisioni PvP "
-                                + "valide dei membri — vedi il capitolo PvP) e **VALORE** (i blocchi di minerale piazzati "
-                                + "nelle land, vedi il capitolo Valore). La voce combat usa di default il numero di "
-                                + "uccisioni; con score.combat-metric: kd usa il rapporto K/D — sconsigliato, perché un "
-                                + "rapporto è instabile in un metodo relativo (una fazione con poche morti schiaccerebbe "
-                                + "le altre). Ogni voce ha il suo peso in score.weights (0 la esclude): se non vuoi che "
-                                + "combattimento o minerali contino nella classifica, metti a 0 kills e/o value.",
+                        "Oltre alle voci storiche (territori, banca, longevità, potenza) ci sono due voci nuove: "
+                                + "**UCCISIONI** (la somma delle uccisioni PvP valide dei membri — vedi il capitolo PvP) e "
+                                + "**VALORE** (i blocchi di minerale piazzati nelle land, vedi il capitolo Valore). Di serie "
+                                + "i **MEMBRI** sono ESCLUSI dal punteggio (score.weights.members: 0), perché premiavano il "
+                                + "solo numero di teste; restano però come **COLONNA informativa** sul sito. La voce combat "
+                                + "usa di default il numero di uccisioni; con score.combat-metric: kd usa il rapporto K/D — "
+                                + "sconsigliato, perché un rapporto è instabile in un metodo relativo (una fazione con poche "
+                                + "morti schiaccerebbe le altre); le MORTI da sole non sono mai una voce, restano solo "
+                                + "informative. Ogni voce ha il suo peso in score.weights (0 la esclude): rimetti members a "
+                                + "1, o azzera kills/value, quando vuoi.",
                         "Una differenza importante fra le due medie: la **GIACENZA MEDIA** della banca conta solo il "
                                 + "tempo in cui almeno un membro è **ONLINE** (il tempo scorre quando si gioca, si ferma a "
                                 + "server vuoto), così non si può gonfiare la media parcheggiando soldi da offline. La "
