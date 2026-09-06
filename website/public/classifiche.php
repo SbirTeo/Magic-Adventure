@@ -478,7 +478,7 @@ function format_playtime(int $seconds): string {
     <div class="rank-wrap">
       <table class="rank">
         <thead>
-          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>💰 Banca</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
+          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>💰 Ricchezza media</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
         </thead>
         <tbody>
           <?php foreach ($factions as $i => $f): ?>
