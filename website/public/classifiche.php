@@ -353,7 +353,7 @@ function format_playtime(int $seconds): string {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
     display: block; width: 400px; max-width: 92vw; box-sizing: border-box;
     background: var(--bg-elevated); border: 1px solid var(--border-strong);
-    border-radius: var(--radius); padding: 14px 16px; text-align: left; white-space: normal;
+    border-radius: var(--radius-sm); padding: 14px 16px; text-align: left; white-space: normal;
     box-shadow: 0 18px 44px -14px rgba(0,0,0,.65);
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
@@ -420,7 +420,7 @@ function format_playtime(int $seconds): string {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 70;
     display: block; width: 300px; max-width: 92vw; box-sizing: border-box;
     background: var(--bg-elevated); border: 1px solid var(--border-strong);
-    border-radius: var(--radius); padding: 0; text-align: left; white-space: normal;
+    border-radius: var(--radius-sm); padding: 0; text-align: left; white-space: normal;
     box-shadow: 0 18px 44px -14px rgba(0,0,0,.65);
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
