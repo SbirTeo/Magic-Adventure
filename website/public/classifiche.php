@@ -183,7 +183,8 @@ function faction_info_popup(array $f, array $members, array $alliesList, int $vi
         foreach ($list as $m) {
             $mcName = (string) $m['mc_name'];
             $siteName = $m['site_name'] ?? null;
-            $img = '<img src="' . h(mc_avatar_url((string) $m['mc_uuid'], 40)) . '" alt="' . h($mcName) . '" width="34" height="34" loading="lazy">';
+            // avatar_top aggiunge la CORONA se questo uuid è il miglior sostenitore (convenzione del sito).
+            $img = avatar_top('<img src="' . h(mc_avatar_url((string) $m['mc_uuid'], 40)) . '" alt="' . h($mcName) . '" width="34" height="34" loading="lazy">', (string) $m['mc_uuid'], 34);
             $title = h($mcName) . ' · ' . h(rank_name((string) $rankId)) . ' · Potenza ' . (int) $m['power'];
             if ($siteName) {
                 $avatars .= '<a class="fi-av" href="' . h('utente?nome=' . rawurlencode((string) $siteName)) . '" title="' . $title . '">' . $img . '</a>';
@@ -214,15 +215,25 @@ function faction_info_popup(array $f, array $members, array $alliesList, int $vi
     $html = '<div class="fac-pop" role="tooltip">';
     $html .= '<div class="fi-head">' . h((string) $f['name']) . '</div>';
     if ($desc !== '') $html .= '<div class="fi-desc">' . h($desc) . '</div>';
-    $html .= '<div class="fi-members-head">Membri <b>' . $membersCount . '</b></div>';
+
+    // Sezione MEMBRI: una riga per grado (etichetta + avatar).
+    $html .= '<div class="fi-block">';
+    $html .= '<div class="fi-block-title">Membri · ' . $membersCount . '</div>';
     $html .= $membersHtml;
-    $html .= '<div class="fi-status" style="color:' . $statusColor . '">'
-           . '<b>' . $claims . '</b> territori · <b>' . $power . '</b>/<b>' . $maxPower . '</b> potenza</div>';
-    $html .= '<div class="fi-status-note" style="color:' . $statusColor . '">' . h($statusText) . '</div>';
+    $html .= '</div>';
+
+    // Sezione DATI: righe etichetta→valore allineate.
+    $html .= '<div class="fi-block fi-stats">';
+    $html .= '<div class="fi-stat"><span>Territori</span><b>' . $claims . '</b></div>';
+    $html .= '<div class="fi-stat"><span>Potenza</span><b>' . $power . ' / ' . $maxPower . '</b></div>';
     if (isset($f['bank'])) {
-        $html .= '<div class="fi-row"><span class="fi-label">Banca</span> ' . h(number_format((float) $f['bank'], 2, ',', '.')) . '€</div>';
+        $html .= '<div class="fi-stat"><span>Banca</span><b>' . h(number_format((float) $f['bank'], 2, ',', '.')) . '€</b></div>';
     }
-    $html .= '<div class="fi-row"><span class="fi-label">Alleati</span> ' . $alliesHtml . '</div>';
+    $html .= '<div class="fi-stat"><span>Alleati</span><b>' . $alliesHtml . '</b></div>';
+    $html .= '</div>';
+
+    // Riga STATO (colorata: bianca senza territori, verde sicura, rossa raidabile).
+    $html .= '<div class="fi-status" style="color:' . $statusColor . '">' . h($statusText) . '</div>';
     $html .= '</div>';
     return $html;
 }
@@ -296,6 +307,30 @@ function faction_rel_class(int $factionId, int $viewerFactionId, array $allies):
     return 'fac-enemy';
 }
 
+/**
+ * Cella del nome di un giocatore nelle classifiche personali: nome COLORATO per relazione, CLICCABILE
+ * verso il profilo (se ha un account sito) e con una mini-scheda avatar che compare al passaggio del mouse
+ * (come la "faccia" della live chat). L'avatar porta la corona se è il miglior sostenitore (avatar_top).
+ */
+function player_name_cell(array $p, int $viewerFactionId, array $allies): string {
+    $name = (string) $p['name'];
+    $site = $p['site_name'] ?? null;
+    $relCls = faction_rel_class((int) ($p['faction_id'] ?? 0), $viewerFactionId, $allies);
+    $facName = trim((string) ($p['faction_name'] ?? ''));
+
+    $avatar = avatar_top('<img src="' . h(mc_avatar_url((string) ($p['mc_uuid'] ?? ''), 64)) . '" alt="' . h($name) . '" width="48" height="48" loading="lazy">', (string) ($p['mc_uuid'] ?? ''), 48);
+    $card = '<span class="pl-card">' . $avatar . '<span class="pl-card-info">'
+          . '<span class="pl-card-name ' . $relCls . '">' . h($name) . '</span>'
+          . ($facName !== '' ? '<span class="pl-card-fac ' . $relCls . '">' . h($facName) . '</span>' : '')
+          . '</span></span>';
+
+    $inner = '<span class="pl-name ' . $relCls . '">' . h($name) . '</span>' . $card;
+    if ($site) {
+        $inner = '<a class="pl-link" href="' . h('utente?nome=' . rawurlencode((string) $site)) . '">' . $inner . '</a>';
+    }
+    return '<td class="player-cell">' . $inner . '</td>';
+}
+
 // Secondi di gioco in forma leggibile: "3g 4h", "5h 12m", "42m" (le due unita' piu' grandi che contano).
 function format_playtime(int $seconds): string {
     if ($seconds <= 0) return '—';
@@ -313,7 +348,7 @@ function format_playtime(int $seconds): string {
   .rank-wrap { overflow: visible; }
   @media (max-width: 760px) { .rank-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; } }
   .score-cell { position: relative; }
-  .score-trigger { cursor: pointer; font-weight: 700; border-bottom: 1px dashed var(--border-strong); }
+  .score-trigger { cursor: pointer; font-weight: 700; }
   .score-cell .score-pop {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
     display: block; width: 400px; max-width: 92vw; box-sizing: border-box;
@@ -358,39 +393,59 @@ function format_playtime(int $seconds): string {
   .rank .fac-ally  { color: #d876e0; }        /* alleata (magenta, come in gioco) */
   .rank .fac-enemy { color: #e05a5a; }        /* nemica (rossa) */
   .rank .fac-guest { color: var(--text); }    /* ospite non loggato / senza fazione: bianca */
-  /* I nomi (fazione e giocatore) prendono il colore dalle classi fac-* qui sopra; qui solo il peso. */
-  .rank .player-name { font-weight: 600; }
+  /* I nomi (fazione e giocatore) prendono il colore dalle classi fac-* qui sopra. Nome giocatore:
+     cliccabile verso il profilo, con mini-scheda avatar al passaggio del mouse (come la live chat). */
+  .rank .player-cell { position: relative; }
+  .rank .pl-link { text-decoration: none; color: inherit; }
+  .rank .pl-name { font-weight: 600; }
+  .rank .player-cell:hover .pl-name { text-decoration: underline; text-underline-offset: 2px; }
+  .rank .pl-card {
+    position: absolute; left: 0; top: calc(100% + 6px); z-index: 70;
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    box-shadow: 0 12px 30px -12px rgba(0,0,0,.6); white-space: nowrap;
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity .12s ease, transform .12s ease, visibility .12s;
+  }
+  .rank .player-cell:hover .pl-card, .rank .player-cell:focus-within .pl-card { opacity: 1; visibility: visible; transform: translateY(0); }
+  .rank .pl-card img { border-radius: 6px; border: 1px solid var(--border); display: block; }
+  .rank .pl-card-info { display: flex; flex-direction: column; gap: 2px; }
+  .rank .pl-card-name { font-weight: 700; font-size: 14px; }
+  .rank .pl-card-fac { font-size: 12px; }
   .rank .score-value { color: var(--purple); font-weight: 700; }
-  /* Popup "/f info" sul nome fazione (stessa meccanica del popup punteggio). */
+  /* Popup "/f info" sul nome fazione (stessa meccanica del popup punteggio), stile schematico. */
   .fac-cell { position: relative; }
-  .fac-trigger { cursor: help; border-bottom: 1px dashed var(--border-strong); }
+  .fac-trigger { cursor: help; }
   .fac-cell .fac-pop {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 70;
-    display: block; width: 340px; max-width: 92vw; box-sizing: border-box;
+    display: block; width: 300px; max-width: 92vw; box-sizing: border-box;
     background: var(--bg-elevated); border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm); padding: 14px 16px; text-align: left; white-space: normal;
+    border-radius: var(--radius-sm); padding: 0; text-align: left; white-space: normal;
     box-shadow: 0 18px 44px -14px rgba(0,0,0,.65);
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
   }
   .fac-cell:hover .fac-pop, .fac-cell:focus-within .fac-pop { opacity: 1; visibility: visible; transform: translateY(0); }
-  .fac-pop .fi-head { font-family: var(--font-heading); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-  .fac-pop .fi-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; margin-bottom: 10px; }
-  .fac-pop .fi-members-head { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dimmer); margin: 10px 0 4px; }
-  .fac-pop .fi-members-head b { color: var(--text); }
-  .fac-pop .fi-rank { display: flex; align-items: flex-start; gap: 10px; margin: 6px 0; }
-  .fac-pop .fi-rank-name { flex: none; width: 68px; font-size: 11.5px; font-weight: 600; padding-top: 8px; }
+  .fac-pop .fi-head { font-family: var(--font-heading); font-size: 15px; font-weight: 700; color: var(--text); padding: 13px 16px 0; }
+  .fac-pop .fi-desc { font-size: 12px; color: var(--text-dim); line-height: 1.45; padding: 3px 16px 0; }
+  /* Sezioni separate da un filo, così l'occhio le distingue subito. */
+  .fac-pop .fi-block { padding: 11px 16px; border-top: 1px solid var(--border); margin-top: 12px; }
+  .fac-pop .fi-block-title { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-dimmer); margin-bottom: 8px; }
+  /* Membri: etichetta grado a larghezza fissa + fila di avatar, allineati. */
+  .fac-pop .fi-rank { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+  .fac-pop .fi-rank-name { flex: none; width: 66px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
   .fac-pop .fi-avatars { display: flex; flex-wrap: wrap; gap: 4px; }
   .fac-pop .fi-av { display: inline-flex; }
-  .fac-pop .fi-av img { border-radius: 5px; border: 1px solid var(--border); display: block; }
+  .fac-pop .fi-av img { width: 28px; height: 28px; border-radius: 5px; border: 1px solid var(--border); display: block; }
   .fac-pop .fi-av-noacct img { opacity: .7; }
-  .fac-pop a.fi-av:hover img { border-color: var(--purple); }
-  .fac-pop .fi-status { margin-top: 12px; font-size: 13px; }
-  .fac-pop .fi-status b { font-weight: 700; }
-  .fac-pop .fi-status-note { font-size: 12px; margin-top: 2px; }
-  .fac-pop .fi-row { margin-top: 8px; font-size: 13px; color: var(--text); }
-  .fac-pop .fi-label { color: var(--text-dimmer); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; }
-  .fac-pop .fi-none { color: var(--text-dimmer); }
+  /* Dati: righe etichetta (sinistra) → valore (destra), come una scheda. */
+  .fac-pop .fi-stats { margin-top: 0; }
+  .fac-pop .fi-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; padding: 3px 0; }
+  .fac-pop .fi-stat > span { color: var(--text-dimmer); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .fac-pop .fi-stat > b { color: var(--text); font-weight: 600; text-align: right; }
+  /* Stato: riga finale colorata (verde sicura / rossa raidabile). */
+  .fac-pop .fi-status { padding: 9px 16px 13px; font-size: 12.5px; font-weight: 600; }
+  .fac-pop .fi-none { color: var(--text-dimmer); font-weight: 400; }
   /* Colori relazione anche dentro il popup (alleati). */
   .fac-pop .fac-own { color: var(--green); }
   .fac-pop .fac-ally { color: #d876e0; }
@@ -423,7 +478,7 @@ function format_playtime(int $seconds): string {
     <div class="rank-wrap">
       <table class="rank">
         <thead>
-          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>👥 Membri</th><th>🏦 Banca</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
+          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>🏦 Banca</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
         </thead>
         <tbody>
           <?php foreach ($factions as $i => $f): ?>
@@ -442,7 +497,6 @@ function format_playtime(int $seconds): string {
                 <?= $pop ?>
               </td>
               <td><?= (int) $f['claims'] ?></td>
-              <td><?= (int) $f['members'] ?></td>
               <td><?= h(detail_value($f['score_detail'] ?? null, 'Banca')) ?></td>
               <td><?= h(detail_value($f['score_detail'] ?? null, 'Longev')) ?></td>
               <td><?= (int) $f['power'] ?></td>
@@ -471,21 +525,36 @@ try {
     // faction_id di ogni giocatore (sottoquery) per colorare il nome secondo la relazione col visitatore.
     $top_time = db()->query(
         'SELECT p.name, p.play_seconds,
-                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id
+                p.uuid AS mc_uuid,
+                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id,
+                (SELECT fo.name FROM factions_magixfactions.factions fo
+                   JOIN factions_magixfactions.faction_members mm ON mm.faction_id = fo.id
+                  WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
+                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
           WHERE p.play_seconds > 0 AND p.name IS NOT NULL
           ORDER BY p.play_seconds DESC, p.name ASC LIMIT 10'
     )->fetchAll();
     $top_money = db()->query(
         'SELECT p.name, (p.money_avg_accum / p.money_seconds) AS avg_money,
-                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id
+                p.uuid AS mc_uuid,
+                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id,
+                (SELECT fo.name FROM factions_magixfactions.factions fo
+                   JOIN factions_magixfactions.faction_members mm ON mm.faction_id = fo.id
+                  WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
+                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
           WHERE p.money_seconds > 0 AND p.name IS NOT NULL
           ORDER BY avg_money DESC, p.name ASC LIMIT 10'
     )->fetchAll();
     $top_kills = db()->query(
         'SELECT p.name, p.kills, p.deaths,
-                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id
+                p.uuid AS mc_uuid,
+                (SELECT m.faction_id FROM factions_magixfactions.faction_members m WHERE m.uuid = p.uuid) AS faction_id,
+                (SELECT fo.name FROM factions_magixfactions.factions fo
+                   JOIN factions_magixfactions.faction_members mm ON mm.faction_id = fo.id
+                  WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
+                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
           WHERE p.kills > 0 AND p.name IS NOT NULL
           ORDER BY p.kills DESC, p.deaths ASC, p.name ASC LIMIT 10'
@@ -516,7 +585,7 @@ try {
           <?php if (!$top_time): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_time as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="player-name <?= faction_rel_class((int) ($p['faction_id'] ?? 0), $viewer_faction_id, $allies) ?>"><?= h($p['name']) ?></td><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -530,7 +599,7 @@ try {
           <?php if (!$top_money): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_money as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="player-name <?= faction_rel_class((int) ($p['faction_id'] ?? 0), $viewer_faction_id, $allies) ?>"><?= h($p['name']) ?></td><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
+            <tr><td><?= $i + 1 ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -544,7 +613,7 @@ try {
           <?php if (!$top_kills): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_kills as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><td class="player-name <?= faction_rel_class((int) ($p['faction_id'] ?? 0), $viewer_faction_id, $allies) ?>"><?= h($p['name']) ?></td><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
+            <tr><td><?= $i + 1 ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
