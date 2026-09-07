@@ -4800,14 +4800,23 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   --carica: 0;
   --blocco: clamp(30px, 5.6vw, 54px);
   --nether-scintilla: color-mix(in srgb, var(--cd) 35%, #ffffff);
+  /* Il margine interno della card: lo tiene anche la miccia, cosi' i suoi estremi si
+     allineano al testo e al portale invece di finire contro il bordo. */
+  --nether-pad: clamp(20px, 3vw, 30px);
   position: relative;
   display: flex;
   align-items: center;
   gap: clamp(20px, 4vw, 48px);
   margin: 0 0 44px;
-  padding-bottom: 34px;   /* il posto della miccia */
+  /* Racchiuso in una cornice come le altre card del sito: stesso fondo, bordo e raggio.
+     Il fondo in piu' in basso e' il posto della miccia, che corre sopra al bordo interno. */
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--nether-pad);
+  padding-bottom: 40px;
 }
-.nether-edit { top: 0; right: 0; }
+.nether-edit { top: 12px; right: 12px; }
 
 /* --- il portale: 4 blocchi di larghezza, 5 di altezza --- */
 .nether-portale {
@@ -4968,9 +4977,9 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 /* La miccia attraversa tutta la sezione, da bordo a bordo. */
 .nether-miccia {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 10px;
+  left: var(--nether-pad);
+  right: var(--nether-pad);
+  bottom: 12px;
   height: 16px;
 }
 .nether-corda, .nether-accesa {
@@ -5041,8 +5050,8 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   width: calc(8 * var(--u));
   height: calc(32 * var(--u));
   margin-left: calc(-4 * var(--u));
-  /* un filo inclinato in avanti: sta correndo, non passeggiando */
-  transform: rotate(5deg);
+  /* dritto in piedi: e' il movimento di braccia e gambe a dire che sta correndo,
+     senza bisogno di inclinarlo (di sbieco sembrava storto) */
   transform-origin: bottom center;
 }
 .corridore-corpo {
@@ -5234,7 +5243,8 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding-bottom: 0;
+    /* qui la miccia entra nel flusso in fondo: basta il fondo normale della card */
+    padding-bottom: clamp(20px, 3vw, 30px);
     text-align: center;
   }
   /* Il portale resta a destra anche qui: e' il capolinea della miccia. Centrato, il
