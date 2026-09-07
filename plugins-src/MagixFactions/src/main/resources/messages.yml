@@ -53,6 +53,14 @@ create:
   name-taken: "&cEsiste gia' una fazione con questo nome."
   success: "&aFazione &e{name}&a creata! Sei il &6leader&a."
 
+rename:
+  usage: "&cUso: /f rename <nuovonome>"
+  not-leader: "&cSolo il leader puo' rinominare la fazione."
+  same-name: "&cLa fazione si chiama gia' cosi'."
+  cooldown: "&cPuoi rinominare la fazione di nuovo tra &e{time}&c."
+  broadcast: "&eLa fazione &f{old}&e ora si chiama &f{name}&e."
+  success: "&aFazione rinominata in &e{name}&a."
+
 disband:
   not-leader: "&cSolo il leader puo' sciogliere la fazione."
   broadcast: "&cLa fazione e' stata sciolta dal leader."
@@ -360,6 +368,7 @@ help:
         - "/f list :: elenca tutte le fazioni del server"
         - "/f top :: la classifica delle fazioni per punteggio"
         - "/f description <testo> :: descrizione della fazione (o /f desc)"
+        - "/f rename <nome> :: cambia il nome della fazione (solo leader)"
         - "/f leave :: esci (da unico leader, scioglie la fazione)"
         - "/f disband :: sciogli la fazione (solo leader)"
     members:

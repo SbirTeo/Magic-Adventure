@@ -101,6 +101,8 @@ public final class Database {
             // Fazione "in classifica" o oscurata perche' INATTIVA (tutti i membri assenti): lo calcola il
             // campionatore (ScoreManager) e lo legge il sito per non mostrare le fazioni morte.
             addIfMissing(c, st, "factions", "ranked", "INT DEFAULT 1");
+            // Ultimo cambio nome (/f rename): serve al cooldown fra un cambio e il successivo.
+            addIfMissing(c, st, "factions", "renamed_at", "BIGINT DEFAULT 0");
             // Ultimo accesso REALE del giocatore (join/quit), NON toccato dal decadimento di Potenza (che
             // invece fa avanzare last_seen): serve a capire da quanto una fazione e' inattiva (vedi ScoreManager).
             addIfMissing(c, st, "players", "last_login", "BIGINT DEFAULT 0");
@@ -179,7 +181,8 @@ public final class Database {
                 "member_limit_bonus BIGINT DEFAULT 0, bank DOUBLE DEFAULT 0, " +
                 "bank_avg_accum DOUBLE DEFAULT 0, power_avg_accum DOUBLE DEFAULT 0, " +
                 "score_sampled_at BIGINT DEFAULT 0, score_since BIGINT DEFAULT 0, score DOUBLE DEFAULT 0, " +
-                "score_detail TEXT, ranked INT DEFAULT 1, bank_active_seconds DOUBLE DEFAULT 0)");
+                "score_detail TEXT, ranked INT DEFAULT 1, bank_active_seconds DOUBLE DEFAULT 0, " +
+                "renamed_at BIGINT DEFAULT 0)");
         l.add("CREATE TABLE IF NOT EXISTS faction_members (" +
                 "uuid VARCHAR(36) PRIMARY KEY, faction_id BIGINT, rank VARCHAR(32), " +
                 "rank_since BIGINT DEFAULT 0, joined_at BIGINT DEFAULT 0)");

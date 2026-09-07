@@ -232,6 +232,19 @@ sethome-cost:
   placeholders: []
   permission: ""
 
+# ----------------------- RINOMINA FAZIONE ------------------------
+# /f rename <nuovonome>: SOLO il leader cambia il nome della fazione. Valgono le stesse regole del nome
+# in creazione (lunghezza, caratteri, cifre, parole vietate, unicita'). Il nuovo nome compare da solo
+# anche sul sito (classifiche, profili, chat), che legge il nome dal database.
+rename:
+  cooldown-days: 30       # giorni minimi tra un cambio nome e il successivo (0 = nessun limite)
+  # Costo del cambio nome, a carico del leader. Stesso motore di create-cost. Default: gratis.
+  cost:
+    money: 0              # richiede Vault + plugin economia
+    items: []             # es: ["DIAMOND:10", "GOLD_INGOT:5"]
+    placeholders: []      # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI)
+    permission: ""        # es: "magixfactions.rename"
+
 # ---------------------- POTENZA (Power) ---------------------------
 # Ogni giocatore ha una Potenza intera, da -max a +max.
 # La Potenza di fazione = somma delle Potenze dei membri; il max di fazione = somma dei loro max.

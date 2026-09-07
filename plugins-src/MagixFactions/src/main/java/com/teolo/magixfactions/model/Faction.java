@@ -13,6 +13,8 @@ public final class Faction {
     private UUID leader;
     private final long createdAt;
     private long memberLimitBonus;
+    // Ultimo cambio nome (ms) per il cooldown di /f rename: 0 = mai rinominata (nessuna attesa).
+    private long renamedAt;
     private final Map<UUID, Member> members = new HashMap<>();
 
     public Faction(long id, String name, String tag, UUID leader, long createdAt, long memberLimitBonus) {
@@ -36,6 +38,8 @@ public final class Faction {
     public long getCreatedAt() { return createdAt; }
     public long getMemberLimitBonus() { return memberLimitBonus; }
     public void setMemberLimitBonus(long b) { this.memberLimitBonus = b; }
+    public long getRenamedAt() { return renamedAt; }
+    public void setRenamedAt(long v) { this.renamedAt = v; }
 
     // Banca di fazione: saldo comune alimentato da /f deposit, prelevabile con /f withdraw (permesso
     // di grado 'withdraw'). Persistito nella colonna factions.bank (vedi FactionManager.setBank).

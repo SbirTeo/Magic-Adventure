@@ -119,6 +119,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         try {
             switch (sub) {
                 case "create": return create(p, args);
+                case "rename": return rename(p, args);
                 case "disband": return disband(p);
                 case "leave": return leave(p);
                 case "transfer": return transfer(p, args);
@@ -156,19 +157,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (a.length < 2) { msg(p, M.get("create.usage")); return true; }
         if (fm.getFaction(p.getUniqueId()) != null) { msg(p, M.get("create.already-in")); return true; }
         String name = a[1];
-        int min = plugin.getConfig().getInt("faction-name.min-length", 3);
-        int max = plugin.getConfig().getInt("faction-name.max-length", 15);
-        int maxDigits = plugin.getConfig().getInt("faction-name.max-digits", 2);
-        if (name.length() < min || name.length() > max) {
-            msg(p, M.get("create.name-length", "min", String.valueOf(min), "max", String.valueOf(max))); return true;
-        }
-        if (!name.matches("[A-Za-z0-9]+")) { msg(p, M.get("create.name-chars")); return true; }
-        long digits = name.chars().filter(Character::isDigit).count();
-        if (digits > maxDigits) { msg(p, M.get("create.name-digits", "max", String.valueOf(maxDigits))); return true; }
-        if (WordFilter.isForbidden(plugin.getConfig().getStringList("forbidden-words"), name)) {
-            msg(p, M.get("filter.blocked")); return true;
-        }
-        if (fm.getByName(name) != null) { msg(p, M.get("create.name-taken")); return true; }
+        if (!nameOk(p, name, null)) return true;
 
         Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("create-cost"));
         String unmet = req.checkUnmet(p);
@@ -177,6 +166,72 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
         Faction f = fm.createFaction(name, name, p.getUniqueId());
         msg(p, M.get("create.success", "name", cname(p, f)));
+        return true;
+    }
+
+    /**
+     * Valida un nome fazione con le regole del config (lunghezza, caratteri, cifre, parole vietate,
+     * unicità). Condiviso da /f create e /f rename. Ritorna true se valido; altrimenti manda al
+     * giocatore il messaggio d'errore giusto e ritorna false.
+     *
+     * @param self la fazione che sta rinominando (per /f rename): un nome uguale al suo, se cambia solo
+     *             maiuscole/minuscole, non conta come "gia' preso". Per /f create passare null.
+     */
+    private boolean nameOk(Player p, String name, Faction self) {
+        int min = plugin.getConfig().getInt("faction-name.min-length", 3);
+        int max = plugin.getConfig().getInt("faction-name.max-length", 15);
+        int maxDigits = plugin.getConfig().getInt("faction-name.max-digits", 2);
+        if (name.length() < min || name.length() > max) {
+            msg(p, M.get("create.name-length", "min", String.valueOf(min), "max", String.valueOf(max))); return false;
+        }
+        if (!name.matches("[A-Za-z0-9]+")) { msg(p, M.get("create.name-chars")); return false; }
+        long digits = name.chars().filter(Character::isDigit).count();
+        if (digits > maxDigits) { msg(p, M.get("create.name-digits", "max", String.valueOf(maxDigits))); return false; }
+        if (WordFilter.isForbidden(plugin.getConfig().getStringList("forbidden-words"), name)) {
+            msg(p, M.get("filter.blocked")); return false;
+        }
+        Faction taken = fm.getByName(name);
+        if (taken != null && taken != self) { msg(p, M.get("create.name-taken")); return false; }
+        return true;
+    }
+
+    /**
+     * /f rename &lt;nuovonome&gt; — il LEADER cambia il nome della fazione. Stesse regole di /f create per il
+     * nome; il costo usa lo stesso motore di create-cost ({@code rename.cost}) e c'e' un'attesa configurabile
+     * fra un cambio e il successivo ({@code rename.cooldown-days}). Nome e tag restano uguali fra loro.
+     * Il sito legge la colonna factions.name/tag, quindi il nuovo nome compare da solo lì.
+     */
+    private boolean rename(Player p, String[] a) throws Exception {
+        Faction f = fm.getFaction(p.getUniqueId());
+        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
+        if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("rename.not-leader")); return true; }
+        if (a.length < 2) { msg(p, M.get("rename.usage")); return true; }
+        String name = a[1];
+        if (name.equals(f.getName())) { msg(p, M.get("rename.same-name")); return true; }
+        if (!nameOk(p, name, f)) return true;
+
+        // Attesa fra un cambio nome e il successivo (0 giorni = nessun limite).
+        long cooldownDays = plugin.getConfig().getLong("rename.cooldown-days", 30);
+        if (cooldownDays > 0 && f.getRenamedAt() > 0) {
+            long readyAt = f.getRenamedAt() + cooldownDays * 24L * 3600_000L;
+            long now = System.currentTimeMillis();
+            if (now < readyAt) {
+                msg(p, M.get("rename.cooldown", "time",
+                        com.teolo.magixfactions.util.DurationText.fromMillis(readyAt - now)));
+                return true;
+            }
+        }
+
+        // Costo: stesso motore di /f create (a carico del leader), sezione rename.cost del config.
+        Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("rename.cost"));
+        String unmet = req.checkUnmet(p);
+        if (unmet != null) { msg(p, org.bukkit.ChatColor.translateAlternateColorCodes('&', unmet)); return true; }
+        req.consume(p);
+
+        String old = f.getName();
+        fm.renameFaction(f, name);
+        broadcast(f, M.get("rename.broadcast", "old", old, "name", name));
+        msg(p, M.get("rename.success", "name", cname(p, f)));
         return true;
     }
 
@@ -1226,7 +1281,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     out.add("deposit"); // versare e' di tutti
                     if (fm.hasPerm(f, u, "withdraw")) out.add("withdraw");
                 }
-                if (u.equals(f.getLeader())) { out.add("transfer"); out.add("disband"); out.add("owner"); }
+                if (u.equals(f.getLeader())) { out.add("rename"); out.add("transfer"); out.add("disband"); out.add("owner"); }
             }
         }
         if (s.hasPermission("magixfactions.admin")) { out.add("admin"); out.add("db"); out.add("reload"); }

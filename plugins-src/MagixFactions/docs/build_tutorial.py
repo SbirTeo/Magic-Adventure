@@ -174,6 +174,9 @@ HTML = r"""<!DOCTYPE html>
   </ul>
   <div class="tip">Ogni nuova fazione parte con una descrizione predefinita. Puoi cambiarla con
   <span class="cmd">/f description &lt;testo&gt;</span> (max {{cfg:faction-description.max-length}} caratteri).</div>
+  <div class="tip">Il <b>Leader</b> può cambiare il nome della fazione con
+  <span class="cmd">/f rename &lt;nuovonome&gt;</span> (stesse regole del nome), al massimo una volta ogni
+  <b>{{cfg:rename.cooldown-days}} giorni</b>. Il nuovo nome compare da solo anche sul sito.</div>
 </section>
 
 <section id="s3">
@@ -487,6 +490,7 @@ HTML = r"""<!DOCTYPE html>
     <tr><td><span class="cmd">/f map</span></td><td>{{se:map.mode=chat}}Stampa in chat la mappa dei territori attorno a te{{/se}}{{se:map.mode=item}}Ricevi la Mappa Fazioni (item dinamico){{/se}}</td></tr>
     <tr><td><span class="cmd">/f sethome / home</span></td><td>Imposta / vai alla casa della fazione</td></tr>
     <tr><td><span class="cmd">/f description &lt;testo&gt;</span></td><td>Imposta la descrizione</td></tr>
+    <tr><td><span class="cmd">/f rename &lt;nome&gt;</span></td><td>Cambia il nome della fazione (leader, 1 ogni {{cfg:rename.cooldown-days}} giorni)</td></tr>
     <tr><td><span class="cmd">/f info [fazione]</span></td><td>Info sulla fazione</td></tr>
     <tr><td><span class="cmd">/f list</span></td><td>Elenca tutte le fazioni</td></tr>
     <tr><td><span class="cmd">/f top</span></td><td>La classifica delle fazioni per punteggio</td></tr>

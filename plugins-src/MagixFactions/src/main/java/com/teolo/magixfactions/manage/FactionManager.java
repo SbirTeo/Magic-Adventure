@@ -112,6 +112,7 @@ public final class FactionManager {
                     String detail = rs.getString("score_detail");
                     if (detail != null && !detail.isEmpty()) f.setScoreDetail(detail);
                     f.setRanked(rs.getInt("ranked") != 0);
+                    f.setRenamedAt(rs.getLong("renamed_at"));
                     byId.put(f.getId(), f);
                     byName.put(f.getName().toLowerCase(Locale.ROOT), f.getId());
                 }
@@ -369,6 +370,31 @@ public final class FactionManager {
         });
         Member m = f.getMember(u);
         if (m != null) m.setRank(rankId, now);
+    }
+
+    /**
+     * Rinomina la fazione (/f rename). Nome e tag restano uguali fra loro, come alla creazione: aggiorna
+     * l'indice byName (via vecchio nome) e segna l'istante del cambio per il cooldown. Il sito legge la
+     * colonna factions.name/tag per id, quindi il nuovo nome compare da solo in classifiche, profili e chat.
+     */
+    public void renameFaction(Faction f, String newName) {
+        long now = System.currentTimeMillis();
+        byName.remove(f.getName().toLowerCase(Locale.ROOT));
+        f.setName(newName);
+        f.setTag(newName);
+        f.setRenamedAt(now);
+        byName.put(newName.toLowerCase(Locale.ROOT), f.getId());
+        final long fid = f.getId();
+        write("renameFaction", c -> {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "UPDATE factions SET name=?, tag=?, renamed_at=? WHERE id=?")) {
+                ps.setString(1, newName);
+                ps.setString(2, newName);
+                ps.setLong(3, now);
+                ps.setLong(4, fid);
+                ps.executeUpdate();
+            }
+        });
     }
 
     public void setDescription(Faction f, String description) {

@@ -40,6 +40,22 @@ public final class DurationText {
         return fromSeconds(Math.max(1, secondi));
     }
 
+    /**
+     * Attesa lunga da MILLISECONDI, scritta come la leggerebbe un giocatore: "30 giorni",
+     * "12 giorni e 4 ore", "5 ore", "40 minuti". Usata dal cooldown di /f rename.
+     */
+    public static String fromMillis(long millis) {
+        long secondiTot = Math.max(1, millis / 1000);
+        if (secondiTot < 3600) return fromSeconds(secondiTot);
+        long oreTot = secondiTot / 3600;
+        if (oreTot < 24) return oreTot + (oreTot == 1 ? " ora" : " ore");
+        long giorni = oreTot / 24;
+        long ore = oreTot % 24;
+        String g = giorni + (giorni == 1 ? " giorno" : " giorni");
+        if (ore == 0) return g;
+        return g + " e " + ore + (ore == 1 ? " ora" : " ore");
+    }
+
     /** Durata da ORE (anche frazionarie): "30 minuti", "1 ora", "48 ore", "7 giorni". */
     public static String fromHours(double ore) {
         if (ore < 1) return fromSeconds(Math.round(ore * 3600));
