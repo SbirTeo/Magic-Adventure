@@ -3748,6 +3748,19 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   .chat-module { padding-top: 14px; padding-bottom: 14px; }
   .player-sidebar { padding-top: 20px; padding-bottom: 20px; }
 
+  /* Il conto alla rovescia diventa una fascia come tutti gli altri riquadri: arriva ai
+     bordi dello schermo, niente angoli né cornice laterale, solo il filo in cima. Il
+     margine interno passa a quello della fascia, così la miccia (che lo usa) resta
+     allineata al testo e al portale. */
+  .nether {
+    --nether-pad: var(--wrap-pad);
+    margin: 0 calc(var(--wrap-pad) * -1) 12px;
+    border-radius: 0;
+    border-width: 1px 0 0;
+    border-style: solid;
+    border-image: var(--filo-fascia) 1;
+  }
+
   /* Le tessere degli articoli: la copertina arriva ai bordi dello schermo, il testo resta
      sulla stessa linea di tutto il resto. Un filo piu' basse, perche' a tutta larghezza
      un'immagine da 240px occupava mezzo telefono. */
@@ -5466,6 +5479,10 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .guida-indice a { color: var(--text-dim); font-size: 13.5px; padding: 5px 0; }
 .guida-indice a:hover { color: var(--text); }
 .guida-capitoli { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* Il salto dall'indice e' l'ancora nativa del browser: senza questo stacco il capitolo
+   raggiunto finisce a filo viewport, cioe' mezzo coperto dalla barra di navigazione fissa.
+   Stessa altezza reale (misurata) e stesso margine usati dall'indice qui sopra. */
+.guida-capitoli > .panel { scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
 .guida-testa { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
 .guida-versione { color: var(--text-dimmer); font-size: 12px; }
 .guida-avviso {
