@@ -43,6 +43,14 @@ $corpo = str_replace('[[SANZIONI]]', $htmlSanzioni, $corpo);
 require __DIR__ . '/../includes/header.php';
 ?>
 <h1 class="page-title"><?= h($title) ?></h1>
+
+<?php /* Stesso interruttore di /tutorial: guida e regolamento condividono la voce di
+         menu, qui si torna alla guida. */ ?>
+<nav class="guida-switch" aria-label="Guida o regolamento">
+  <a href="/tutorial" class="guida-switch-voce">Guida</a>
+  <a href="/regolamento" class="guida-switch-voce active" aria-current="page">Regolamento</a>
+</nav>
+
 <div class="panel panel-modificabile">
   <?php /* Stessa matita delle tessere in home: porta dritto al testo di questa pagina. */ ?>
   <?php if (is_admin()): ?>

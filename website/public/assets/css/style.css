@@ -2437,6 +2437,40 @@ body.store-una-categoria .store-card-cat { display: none; }
 
 /* Guida del server (/tutorial): riquadro isolato che ospita la guida generata dal plugin.
    L'altezza la calcola il copione della pagina; questa e' solo quella di ripiego. */
+/* ---- Interruttore Guida / Regolamento -----------------------------------------------
+   Le due pagine (la guida del server e il regolamento) hanno una sola voce di menu:
+   qui in cima si passa dall'una all'altra. Segmenti squadrati come gli altri controlli
+   del sito (stesso raggio dei bottoni, niente pillola). La voce corrente e' quella
+   accesa; l'altra e' un link spento che porta all'altra pagina. */
+.guida-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 22px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-sm) + 4px);
+}
+.guida-switch-voce {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+}
+.guida-switch-voce:hover { color: var(--text); background: var(--bg-elevated); }
+.guida-switch-voce.active {
+  color: var(--btn-testo);
+  background: var(--btn-fondo);
+  box-shadow: var(--btn-alone);
+}
+.guida-switch-voce.active:hover { color: var(--btn-testo); }
+
 /* Nessun bordo ne' sfondo: la guida porta gia' i suoi riquadri per ogni capitolo, e
    incorniciarla di nuovo dava l'effetto "scatola dentro la scatola". */
 .guida-riquadro { margin-bottom: 24px; }

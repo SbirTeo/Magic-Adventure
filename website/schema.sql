@@ -302,9 +302,11 @@ CREATE TABLE IF NOT EXISTS nav_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Lo Store e' una voce come le altre: header.php la riconosce dall'URL e la disegna come pulsante oro.
+-- Regolamento NON e' una voce a se': divide la voce "Guida" (/tutorial), che porta
+-- l'interruttore Guida/Regolamento in cima alla pagina.
 INSERT IGNORE INTO nav_items (label, url, sort_order, enabled) VALUES
     ('Home', '/', 1, 1),
     ('Forum', '/forum/', 2, 1),
     ('Classifiche', '/classifiche.php', 3, 1),
-    ('Regolamento', '/regolamento.php', 4, 1),
-    ('Store', '/store.php', 5, 1);
+    ('Guida', '/tutorial', 5, 1),
+    ('Store', '/store.php', 6, 1);

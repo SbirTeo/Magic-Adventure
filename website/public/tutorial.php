@@ -34,6 +34,13 @@ require __DIR__ . '/../includes/header.php';
 ?>
 <h1 class="page-title">Guida del server</h1>
 
+<?php /* Guida e regolamento hanno una sola voce di menu: da qui si passa dall'una
+         all'altra (vedi anche regolamento.php, lo stesso interruttore al contrario). */ ?>
+<nav class="guida-switch" aria-label="Guida o regolamento">
+  <a href="/tutorial" class="guida-switch-voce active" aria-current="page">Guida</a>
+  <a href="/regolamento" class="guida-switch-voce">Regolamento</a>
+</nav>
+
 <div class="panel panel-modificabile">
   <?php /* Il testo si cambia dal gestionale; la guida sotto arriva invece dal server. */ ?>
   <?php if (is_admin()): ?>
