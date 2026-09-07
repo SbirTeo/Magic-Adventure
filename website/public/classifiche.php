@@ -594,7 +594,7 @@ try {
     <h3>💰 Ricchezza media</h3>
     <div class="rank-wrap">
       <table class="rank">
-        <thead><tr><th>#</th><th>👤 Giocatore</th><th>💰 Giacenza media</th></tr></thead>
+        <thead><tr><th>#</th><th>👤 Giocatore</th><th>💰 Ricchezza media</th></tr></thead>
         <tbody>
           <?php if (!$top_money): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
