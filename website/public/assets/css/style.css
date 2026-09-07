@@ -3748,19 +3748,6 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   .chat-module { padding-top: 14px; padding-bottom: 14px; }
   .player-sidebar { padding-top: 20px; padding-bottom: 20px; }
 
-  /* Il conto alla rovescia diventa una fascia come tutti gli altri riquadri: arriva ai
-     bordi dello schermo, niente angoli né cornice laterale, solo il filo in cima. Il
-     margine interno passa a quello della fascia, così la miccia (che lo usa) resta
-     allineata al testo e al portale. */
-  .nether {
-    --nether-pad: var(--wrap-pad);
-    margin: 0 calc(var(--wrap-pad) * -1) 12px;
-    border-radius: 0;
-    border-width: 1px 0 0;
-    border-style: solid;
-    border-image: var(--filo-fascia) 1;
-  }
-
   /* Le tessere degli articoli: la copertina arriva ai bordi dello schermo, il testo resta
      sulla stessa linea di tutto il resto. Un filo piu' basse, perche' a tutta larghezza
      un'immagine da 240px occupava mezzo telefono. */
@@ -5243,6 +5230,23 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   .corridore-corpo, .corridore-pezzo { animation: none; }
   /* il piglin smette di entrare e uscire e resta affacciato */
   .piglin, .piglin-nuvoletta { animation: none; opacity: 1; transform: none; }
+}
+
+/* Sotto i 900px il conto alla rovescia diventa una FASCIA a tutta larghezza come tutti gli
+   altri riquadri del sito (vedi "IL SITO A FASCE"): arriva ai bordi dello schermo, niente
+   angoli né cornice ai lati, solo il filo colorato in cima. Sta QUI, dopo la definizione
+   base di .nether, se no la cornice della card (piu' in basso nel foglio) vincerebbe e il
+   riquadro resterebbe. Il margine interno passa a quello della fascia, cosi' la miccia
+   (che lo usa) resta allineata al testo e al portale. */
+@media (max-width: 900px) {
+  .nether {
+    --nether-pad: var(--wrap-pad);
+    margin: 0 calc(var(--wrap-pad) * -1) 12px;
+    border-radius: 0;
+    border-width: 1px 0 0;
+    border-style: solid;
+    border-image: var(--filo-fascia) 1;
+  }
 }
 
 /* Su schermo stretto il portale va sopra e il testo sotto: affiancati diventerebbero due
