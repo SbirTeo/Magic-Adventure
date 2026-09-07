@@ -4529,6 +4529,37 @@ if ($section === 'dashboard') {
 <?php /* La ricerca dentro la guida per amministratori (stesso copione di /tutorial). */ ?>
 <?php if ($section === 'guida'): ?>
 <script src="/assets/js/guida-ia.js?v=<?= @filemtime(__DIR__ . '/assets/js/guida-ia.js') ?: time() ?>"></script>
+<script>
+// I link dell'indice puntano ai capitoli con un'ancora: il salto nativo del browser e' secco
+// e per giunta lascerebbe il titolo mezzo coperto dalla barra fissa. Lo intercetto per fare
+// uno scorrimento morbido fino al capitolo, con lo stesso stacco (altezza reale della barra,
+// misurata in --h-testata) usato dal resto del sito. Stesso motore di guida-ia.js.
+(function () {
+  var indice = document.querySelector('.guida-indice');
+  if (!indice) return;
+  function stacco() {
+    var h = document.querySelector('.site-header');
+    return (h ? h.getBoundingClientRect().height : 98) + 16;
+  }
+  indice.addEventListener('click', function (ev) {
+    var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
+    if (!a) return;
+    var meta = document.getElementById(a.getAttribute('href').slice(1));
+    if (!meta) return;   // ancora senza destinazione: lascio fare al browser
+    ev.preventDefault();
+    var y = Math.max(0, meta.getBoundingClientRect().top + window.pageYOffset - stacco());
+    var partenza = window.pageYOffset;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+    // Lo scorrimento morbido lo ignorano in silenzio certi browser e chi ha spento le
+    // animazioni: se dopo un attimo siamo ancora fermi, si salta e basta.
+    setTimeout(function () {
+      if (Math.abs(window.pageYOffset - partenza) < 2 && Math.abs(y - partenza) > 2) {
+        window.scrollTo(0, y);
+      }
+    }, 350);
+  });
+})();
+</script>
 <?php endif; ?>
 
 <?php /* Il pulsante "Scegli" dei campi immagine: sezioni con almeno un campo di quel tipo. */ ?>
