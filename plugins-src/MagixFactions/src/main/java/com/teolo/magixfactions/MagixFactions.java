@@ -108,6 +108,9 @@ public final class MagixFactions extends JavaPlugin {
         scoreManager = new com.teolo.magixfactions.manage.ScoreManager(this, factionManager, powerManager, claimManager, playerStatsManager);
         // La banca "chiude" il suo integrale a ogni cambio saldo (giacenza media esatta): vedi FactionManager.setBank.
         factionManager.setScoreManager(scoreManager);
+        // La potenza fa lo stesso a ogni cambio Potenza (morte/guadagno/decadimento/admin): vedi PowerManager.flushFaction.
+        powerManager.setFactionManager(factionManager);
+        powerManager.setScoreManager(scoreManager);
         long scoreInterval = 20L * scoreManager.sampleIntervalSeconds();
         final com.teolo.magixfactions.manage.PlayerStatsManager statsForTask = playerStatsManager;
         Bukkit.getScheduler().runTaskTimer(this, () -> { statsForTask.sampleAll(); scoreManager.sampleAll(); },

@@ -61,6 +61,8 @@ public final class PowerManager {
     private com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack; // idem, per rimandare il resource pack al join
     private com.teolo.magixfactions.lang.Messages messages; // impostato dopo la costruzione (avviso Potenza alla morte)
     private com.teolo.magixfactions.hook.LuckPermsHook luckPerms; // permessi dei giocatori OFFLINE (vedi tickOffline)
+    private FactionManager factionManager; // per "chiudere" l'integrale della potenza media prima di un cambio Potenza
+    private ScoreManager scoreManager;     // (media esatta: stesso concetto della banca)
 
     // Zoom mappa = BLOCCHI PER PIXEL, valore numerico libero (0.25, 0.5, 1, ...), niente piu' preset
     // (closest/close/...). Salvato sulla colonna storica map_rows come intero = round(bpp*100): 0 = usa
@@ -76,6 +78,17 @@ public final class PowerManager {
     public void setResourcePack(com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack) { this.resourcePack = resourcePack; }
     public void setMessages(com.teolo.magixfactions.lang.Messages messages) { this.messages = messages; }
     public void setLuckPerms(com.teolo.magixfactions.hook.LuckPermsHook luckPerms) { this.luckPerms = luckPerms; }
+    public void setFactionManager(FactionManager factionManager) { this.factionManager = factionManager; }
+    public void setScoreManager(ScoreManager scoreManager) { this.scoreManager = scoreManager; }
+
+    /** Chiude l'integrale della media (potenza sempre, banca se online) della fazione di {@code u} FINO A
+     *  ORA, PRIMA che la Potenza del giocatore cambi: cosi' il valore vecchio pesa per il tempo esatto in
+     *  cui e' stato tenuto (media esatta, stesso concetto della banca in {@link FactionManager#setBank}). */
+    private void flushFaction(UUID u) {
+        if (factionManager == null || scoreManager == null) return;
+        Faction f = factionManager.getFaction(u);
+        if (f != null) scoreManager.flush(f);
+    }
 
     /** Ogni quanti minuti gira {@link #tickOffline()}. Minimo 1. */
     public int offlineRefreshMinutes() {
@@ -258,6 +271,7 @@ public final class PowerManager {
 
     /** (admin) Imposta la Potenza attuale del giocatore (clampata al suo maxPower). */
     public void setPower(UUID u, int value) {
+        flushFaction(u);   // accredita la potenza vecchia fino a ora, poi cambia (media esatta)
         PP pp = ensure(u);
         pp.power = value;
         clamp(pp);
@@ -373,7 +387,7 @@ public final class PowerManager {
         Vantaggi vip = vantaggi(p);
         // Coda di decadimento: il giro offline (tickOffline) ha gia' consumato i periodi interi mentre era
         // via, qui si chiude quello eventualmente maturato dall'ultimo giro a questo istante.
-        applyDecay(pp, now, vip.loss);
+        applyDecay(u, pp, now, vip.loss);
         // Il tetto lo dettano i permessi: un VIP scaduto (o appena promosso) ha il valore giusto gia' al
         // primo tick di gioco, senza aspettare la riconciliazione periodica.
         pp.maxPower = vip.maxPower;
@@ -422,6 +436,7 @@ public final class PowerManager {
     /** Morte: -death-loss (minimo -maxPower). Avvisa il giocatore (solo lui) di quanta Potenza ha perso
      *  e quanta gliene resta, se {@code power.death-message} e' attivo. */
     public void onDeath(Player p) {
+        flushFaction(p.getUniqueId());   // accredita la potenza pre-morte fino a ora, poi cala (media esatta)
         PP pp = ensure(p.getUniqueId());
         int before = pp.power;
         pp.power -= deathLoss();
@@ -473,6 +488,7 @@ public final class PowerManager {
             if (pp.progress < threshold) continue;     // ancora in mezzo al giro: nessuna scrittura
             int points = pp.progress / threshold;
             pp.progress -= points * threshold;
+            flushFaction(u);   // accredita la potenza vecchia fino a ora, poi sale (media esatta)
             pp.power = Math.min(pp.maxPower, pp.power + gain * points);
             if (pp.power >= pp.maxPower) pp.progress = 0;
             save(u);
@@ -532,7 +548,7 @@ public final class PowerManager {
                 clamp(pp);
                 cambiato = true;
             }
-            if (applyDecay(pp, now, vip == null ? 100 : vip.loss) > 0) cambiato = true;
+            if (applyDecay(u, pp, now, vip == null ? 100 : vip.loss) > 0) cambiato = true;
             if (cambiato) save(u);
         }
     }
@@ -578,12 +594,13 @@ public final class PowerManager {
      *
      * @return quanta Potenza e' stata tolta (0 se niente).
      */
-    private int applyDecay(PP pp, long now, int lossPercent) {
+    private int applyDecay(UUID u, PP pp, long now, int lossPercent) {
         int amount = plugin.getConfig().getInt("power.offline-decay.amount", 0);
         if (amount <= 0 || lossPercent <= 0 || pp.lastSeen <= 0 || now <= pp.lastSeen) return 0;
         long periodoMs = Math.max(1L, unitaDecadimentoMs() * 100 / lossPercent);
         long periodi = (now - pp.lastSeen) / periodoMs;
         if (periodi <= 0) return 0;
+        flushFaction(u);   // accredita la potenza vecchia fino a ora, poi cala per il decadimento (media esatta)
         int prima = pp.power;
         pp.power -= (int) Math.min(periodi * amount, Integer.MAX_VALUE);
         clamp(pp);
