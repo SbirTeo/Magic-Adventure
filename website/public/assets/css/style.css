@@ -4484,6 +4484,25 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   border-color: var(--purple);
 }
 
+/* Foto larga dentro l'articolo (uno scatto dal gioco), con didascalia sotto. A differenza
+   della copertina in cima, questa sta nel corpo del testo: bordo appena accennato, angoli
+   arrotondati come le altre tessere, e la riga di descrizione centrata e smorzata. */
+.art-foto { margin: 28px 0; }
+.blog-body.corpo-html .art-foto img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.art-foto figcaption {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
 /* Righello decorativo fra due parti dell'articolo */
 .art-divisore {
   height: 1px;
