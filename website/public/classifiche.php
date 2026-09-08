@@ -30,7 +30,7 @@ try {
            FROM factions_magixfactions.factions f
           WHERE f.ranked = 1
           ORDER BY f.score DESC, f.name ASC
-          LIMIT 20'
+          LIMIT 50'
     );
     $factions = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -363,7 +363,7 @@ function format_playtime(int $seconds): string {
   .score-pop col.c-lvl { width: 30%; }
   .score-pop col.c-p { width: 22%; }
   .score-pop .sp-l { white-space: normal; }
-  .score-cell:hover .score-pop, .score-cell:focus-within .score-pop { opacity: 1; visibility: visible; transform: translateY(0); }
+  .score-cell:hover .score-pop, .score-cell:focus-within .score-pop, .score-cell.pop-open .score-pop { opacity: 1; visibility: visible; transform: translateY(0); }
   .score-pop .sp-head { font-family: var(--font-heading); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
   .score-pop .sp-intro { font-size: 12px; line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
   .score-pop .sp-intro b { color: var(--text); font-weight: 600; }
@@ -407,7 +407,7 @@ function format_playtime(int $seconds): string {
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
   }
-  .rank .player-cell:hover .pl-card, .rank .player-cell:focus-within .pl-card { opacity: 1; visibility: visible; transform: translateY(0); }
+  .rank .player-cell:hover .pl-card, .rank .player-cell:focus-within .pl-card, .rank .player-cell.pop-open .pl-card { opacity: 1; visibility: visible; transform: translateY(0); }
   .rank .pl-card img { border-radius: 6px; border: 1px solid var(--border); display: block; }
   .rank .pl-card-info { display: flex; flex-direction: column; gap: 2px; }
   .rank .pl-card-name { font-weight: 700; font-size: 14px; }
@@ -425,7 +425,7 @@ function format_playtime(int $seconds): string {
     opacity: 0; visibility: hidden; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
   }
-  .fac-cell:hover .fac-pop, .fac-cell:focus-within .fac-pop { opacity: 1; visibility: visible; transform: translateY(0); }
+  .fac-cell:hover .fac-pop, .fac-cell:focus-within .fac-pop, .fac-cell.pop-open .fac-pop { opacity: 1; visibility: visible; transform: translateY(0); }
   .fac-pop .fi-head { font-family: var(--font-heading); font-size: 15px; font-weight: 700; color: var(--text); padding: 13px 16px 0; }
   .fac-pop .fi-desc { font-size: 12px; color: var(--text-dim); line-height: 1.45; padding: 3px 16px 0; }
   /* Sezioni separate da un filo, così l'occhio le distingue subito. */
@@ -454,19 +454,83 @@ function format_playtime(int $seconds): string {
   /* Timer sobrio del prossimo aggiornamento delle statistiche. */
   .stats-refresh { color: var(--text-dimmer); font-size: 12.5px; margin: -6px 0 14px; }
   .stats-refresh b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Navbar a schede: sceglie tra Top Fazioni e Top Giocatori (le due viste sono separate, una alla volta). */
+  .rank-tabs { display: flex; gap: 8px; margin: 4px 0 20px; flex-wrap: wrap; }
+  .rank-tab-btn {
+    padding: 10px 18px; background: var(--bg-elevated); color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: var(--font-heading); font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: border-color .12s ease, color .12s ease, background .12s ease;
+  }
+  .rank-tab-btn:hover { color: var(--text); border-color: var(--border-strong); }
+  .rank-tab-btn.is-active { color: #1a1a1a; background: #fff; border-color: #fff; cursor: default; }
+  .rank-tab-panel[hidden] { display: none; }
+  /* Le tre sotto-classifiche giocatori: ognuna nella sua card, ben staccata dalle altre. */
+  .player-board { margin-top: 16px; }
+  .player-board h3 { margin-top: 0; }
+  /* Nota descrittiva breve sotto il titolo di ogni sezione (sostituisce il vecchio blocco unico). */
+  .board-note { color: var(--text-dim); font-size: 13.5px; line-height: 1.5; margin: 0 0 14px; }
+  .board-note b { color: var(--text); font-weight: 600; }
+
+  /* Anti-lampo: prima che il JS prenda il controllo (data-ready), mostra SOLO le prime 10 righe. Senza
+     questo, al caricamento/refresh comparivano per un attimo TUTTE le righe (fino a 50) in un elenco
+     lunghissimo, poi il JS le tagliava. Con data-ready presente la regola smette e comandano gli stili
+     inline messi dal JS. */
+  table.rank[data-paginate]:not([data-ready]) tbody tr:nth-child(n+11) { display: none; }
+
+  /* Paginazione delle classifiche: 10 righe per pagina, controlli sotto la tabella (li costruisce il JS
+     in fondo alla pagina). Sta FUORI dal wrapper scorrevole, così non scorre con la tabella. */
+  .rank-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 2px 2px; }
+  .rank-pager button {
+    min-width: 34px; height: 34px; padding: 0 9px; box-sizing: border-box;
+    background: var(--bg-elevated); color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: var(--font-heading); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: border-color .12s ease, color .12s ease, background .12s ease;
+  }
+  .rank-pager button:hover:not([disabled]) { color: var(--text); border-color: var(--border-strong); }
+  .rank-pager button[aria-current="true"] { color: #1a1a1a; background: #fff; border-color: #fff; cursor: default; }
+  .rank-pager button[disabled] { opacity: .4; cursor: default; }
+  .rank-pager .rank-pager-gap { color: var(--text-dimmer); padding: 0 2px; }
+
+  /* MOBILE: i popup (info fazione, dettaglio punteggio, scheda giocatore) NON devono restare tagliati
+     dentro il wrapper che scorre in orizzontale. Diventano quindi position:fixed, centrati e SOVRAPPOSTI
+     al resto della pagina, con un velo scuro dietro (l'ombra a 100vmax fa da sfondo senza elementi extra). */
+  @media (max-width: 760px) {
+    .fac-cell .fac-pop, .score-cell .score-pop, .rank .pl-card {
+      position: fixed; left: 50%; top: 50%; right: auto; bottom: auto;
+      width: min(92vw, 360px); max-width: 92vw; max-height: 80vh; overflow-y: auto;
+      transform: translate(-50%, -46%); z-index: 200;
+    }
+    .fac-cell:hover .fac-pop, .fac-cell:focus-within .fac-pop, .fac-cell.pop-open .fac-pop,
+    .score-cell:hover .score-pop, .score-cell:focus-within .score-pop, .score-cell.pop-open .score-pop,
+    .rank .player-cell:hover .pl-card, .rank .player-cell:focus-within .pl-card, .rank .player-cell.pop-open .pl-card {
+      /* !important + niente transizione sulla visibility: su questo motore la transizione della
+         visibility teneva il popup invisibile anche a regola "mostra" applicata (vedi il tap-to-open). */
+      transform: translate(-50%, -50%);
+      opacity: 1 !important; visibility: visible !important; transition: none;
+      box-shadow: 0 18px 44px -14px rgba(0,0,0,.65), 0 0 0 100vmax rgba(0,0,0,.55);
+    }
+  }
 </style>
 <h1 class="page-title">Classifiche<?php if (!$score_ready): ?> <span class="badge-soon">In arrivo</span><?php endif; ?></h1>
 <?php if ($last_sample_ms > 0): ?>
   <p class="stats-refresh">↻ Statistiche aggiornate ogni <?= $stats_interval >= 60 ? intdiv($stats_interval, 60) . ' min' : $stats_interval . ' sec' ?> · prossimo aggiornamento tra <b id="stats-refresh-countdown">—</b></p>
 <?php endif; ?>
 
-<h2>🏆 Top Fazioni</h2>
+<div class="rank-tabs" role="tablist" aria-label="Classifiche">
+  <button type="button" class="rank-tab-btn is-active" data-tab="fazioni" role="tab" aria-selected="true">🏆 Top Fazioni</button>
+  <button type="button" class="rank-tab-btn" data-tab="giocatori" role="tab" aria-selected="false">👤 Top Giocatori</button>
+</div>
+
+<section class="rank-tab-panel" id="tab-fazioni" role="tabpanel">
 <div class="panel">
-  <p style="color:var(--text-dim);margin-top:0">
-    Il <b>Punteggio</b> confronta le fazioni voce per voce: in ogni caratteristica (territori, membri,
-    <b>giacenza media</b> della banca, longevità, potenza media) la <b>migliore</b> vale il massimo e le
-    altre in proporzione a lei. La somma delle voci è il punteggio — passa il mouse su un valore per il
-    dettaglio.
+  <h3>🏆 Punteggio</h3>
+  <p class="board-note">
+    Confronta le fazioni voce per voce (territori, membri, <b>giacenza media</b> della banca, longevità,
+    potenza media): in ogni caratteristica la <b>migliore</b> vale il massimo e le altre in proporzione. La
+    somma è il punteggio — passa il mouse (o tocca) un valore per il dettaglio.
   </p>
   <?php if (!$score_ready): ?>
     <p style="color:var(--text-dim)">La classifica reale sara disponibile appena il server si aggiorna. Torna a trovarci!</p>
@@ -476,7 +540,7 @@ function format_playtime(int $seconds): string {
     <?php /* Wrapper dedicato (.rank-wrap): overflow visibile su desktop così il popup del dettaglio non
              viene tagliato; su mobile torna a scorrere in orizzontale. Vedi lo <style> in cima. */ ?>
     <div class="rank-wrap">
-      <table class="rank">
+      <table class="rank" data-paginate>
         <thead>
           <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>💰 Ricchezza media</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
         </thead>
@@ -510,6 +574,7 @@ function format_playtime(int $seconds): string {
     </div>
   <?php endif; ?>
 </div>
+</section>
 
 <?php
 // Classifiche dedicate al GIOCATORE, lette direttamente dalla tabella players del plugin (colonne
@@ -533,7 +598,7 @@ try {
                 (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
           WHERE p.play_seconds > 0 AND p.name IS NOT NULL
-          ORDER BY p.play_seconds DESC, p.name ASC LIMIT 10'
+          ORDER BY p.play_seconds DESC, p.name ASC LIMIT 50'
     )->fetchAll();
     $top_money = db()->query(
         'SELECT p.name, (p.money_avg_accum / p.money_seconds) AS avg_money,
@@ -545,7 +610,7 @@ try {
                 (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
           WHERE p.money_seconds > 0 AND p.name IS NOT NULL
-          ORDER BY avg_money DESC, p.name ASC LIMIT 10'
+          ORDER BY avg_money DESC, p.name ASC LIMIT 50'
     )->fetchAll();
     $top_kills = db()->query(
         'SELECT p.name, p.kills, p.deaths,
@@ -557,29 +622,23 @@ try {
                 (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
           WHERE p.kills > 0 AND p.name IS NOT NULL
-          ORDER BY p.kills DESC, p.deaths ASC, p.name ASC LIMIT 10'
+          ORDER BY p.kills DESC, p.deaths ASC, p.name ASC LIMIT 50'
     )->fetchAll();
 } catch (PDOException $e) {
     $players_ready = false;
 }
 ?>
-<h2>⏱ Top Giocatori</h2>
+<section class="rank-tab-panel" id="tab-giocatori" role="tabpanel" hidden>
 <?php if (!$players_ready): ?>
   <div class="panel">
     <p style="color:var(--text-dim)">Le classifiche dei giocatori saranno disponibili appena il server si aggiorna. Torna a trovarci!</p>
   </div>
 <?php else: ?>
-  <div class="panel">
-    <p style="color:var(--text-dim);margin-top:0">
-      Il <b>tempo di gioco</b> conta i secondi passati online; la <b>ricchezza media</b> è la giacenza
-      media sul solo tempo online (parcheggiare soldi da offline non la gonfia); le <b>uccisioni</b> sono
-      solo quelle PvP valide — il server scarta le «fake kill» tra amici, gli alt sullo stesso IP e le
-      vittime uccise troppo in fretta.
-    </p>
-
+  <div class="panel player-board">
     <h3>🕒 Tempo di gioco</h3>
+    <p class="board-note">I secondi totali passati online sul server.</p>
     <div class="rank-wrap">
-      <table class="rank">
+      <table class="rank" data-paginate>
         <thead><tr><th>#</th><th>👤 Giocatore</th><th>🕒 Tempo di gioco</th></tr></thead>
         <tbody>
           <?php if (!$top_time): ?>
@@ -591,9 +650,13 @@ try {
       </table>
     </div>
 
+  </div>
+
+  <div class="panel player-board">
     <h3>💰 Ricchezza media</h3>
+    <p class="board-note">La giacenza media sul solo tempo online: parcheggiare soldi da offline non la gonfia.</p>
     <div class="rank-wrap">
-      <table class="rank">
+      <table class="rank" data-paginate>
         <thead><tr><th>#</th><th>👤 Giocatore</th><th>💰 Ricchezza media</th></tr></thead>
         <tbody>
           <?php if (!$top_money): ?>
@@ -605,9 +668,13 @@ try {
       </table>
     </div>
 
+  </div>
+
+  <div class="panel player-board">
     <h3>⚔️ Uccisioni e K/D</h3>
+    <p class="board-note">Solo uccisioni PvP valide: il server scarta le «fake kill» tra amici, gli alt sullo stesso IP e le vittime uccise troppo in fretta. Passa il mouse (o tocca) il numero per morti e K/D.</p>
     <div class="rank-wrap">
-      <table class="rank">
+      <table class="rank" data-paginate>
         <thead><tr><th>#</th><th>👤 Giocatore</th><th>⚔️ Uccisioni</th></tr></thead>
         <tbody>
           <?php if (!$top_kills): ?>
@@ -620,6 +687,7 @@ try {
     </div>
   </div>
 <?php endif; ?>
+</section>
 
 <?php if ($last_sample_ms > 0): ?>
 <script>
@@ -641,5 +709,120 @@ try {
 })();
 </script>
 <?php endif; ?>
+
+<script>
+// Navbar a schede: mostra una vista alla volta (Top Fazioni / Top Giocatori). La scelta resta
+// nell'hash dell'URL così un link #giocatori apre direttamente quella scheda.
+(function () {
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.rank-tab-btn'));
+  var panels = { fazioni: document.getElementById('tab-fazioni'), giocatori: document.getElementById('tab-giocatori') };
+  if (!btns.length) return;
+  function show(tab) {
+    if (!panels[tab]) tab = 'fazioni';
+    Object.keys(panels).forEach(function (k) { if (panels[k]) panels[k].hidden = (k !== tab); });
+    btns.forEach(function (b) {
+      var on = b.dataset.tab === tab;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      show(b.dataset.tab);
+      if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.tab);
+      else location.hash = b.dataset.tab;
+    });
+  });
+  var start = (location.hash || '').replace('#', '');
+  show(panels[start] ? start : 'fazioni');
+})();
+
+// Popup al TAP (fazione e dettaglio punteggio): su mobile l'hover non esiste e :focus-within non è
+// affidabile, quindi il tocco apre/chiude il popup (che via CSS è sovrapposto e centrato). Un tap fuori,
+// o l'apertura di un altro, chiude quelli aperti. Le schede giocatore restano hover + link al profilo.
+(function () {
+  var triggers = Array.prototype.slice.call(document.querySelectorAll('.fac-cell, .score-cell'));
+  if (!triggers.length) return;
+  function closeAll(except) {
+    triggers.forEach(function (t) { if (t !== except) t.classList.remove('pop-open'); });
+  }
+  triggers.forEach(function (t) {
+    t.addEventListener('click', function (e) {
+      var wasOpen = t.classList.contains('pop-open');
+      closeAll(t);
+      t.classList.toggle('pop-open', !wasOpen);
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', function () { closeAll(null); });
+})();
+
+// Paginazione delle classifiche: ogni tabella .rank mostra al massimo 10 righe per pagina, con i
+// controlli sotto. Client-side: le righe sono già tutte nel DOM (max 50 dalla query), qui si nascondono
+// quelle fuori pagina. Il numero di posizione (#) è assoluto, quindi resta corretto cambiando pagina.
+(function () {
+  var PER = 10;
+  document.querySelectorAll('table.rank').forEach(function (table) {
+    var tbody = table.tBodies[0];
+    if (!tbody) return;
+    // Solo le righe di dati vere: si scarta l'eventuale riga "Ancora nessun dato" (una cella con colspan).
+    var rows = Array.prototype.filter.call(tbody.rows, function (r) {
+      return !r.querySelector('td[colspan]');
+    });
+    if (rows.length <= PER) { table.setAttribute('data-ready', ''); return; } // una pagina sola: niente controlli
+    var pages = Math.ceil(rows.length / PER);
+    var current = 1;
+
+    var anchor = table.closest('.rank-wrap') || table;
+    var pager = document.createElement('div');
+    pager.className = 'rank-pager';
+    anchor.parentNode.insertBefore(pager, anchor.nextSibling);
+
+    function go(p) {
+      current = Math.min(pages, Math.max(1, p));
+      rows.forEach(function (r, idx) {
+        r.style.display = (Math.floor(idx / PER) + 1 === current) ? '' : 'none';
+      });
+      render();
+    }
+
+    function btn(label, page, opts) {
+      opts = opts || {};
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      if (opts.disabled) b.disabled = true;
+      if (opts.current) b.setAttribute('aria-current', 'true');
+      if (!opts.disabled && !opts.current) b.addEventListener('click', function () { go(page); });
+      return b;
+    }
+
+    function render() {
+      pager.textContent = '';
+      pager.appendChild(btn('‹', current - 1, { disabled: current === 1 }));
+      // Finestra di numeri attorno alla pagina corrente (prima e ultima sempre visibili).
+      var shown = [];
+      for (var p = 1; p <= pages; p++) {
+        if (p === 1 || p === pages || Math.abs(p - current) <= 1) shown.push(p);
+      }
+      var prev = 0;
+      shown.forEach(function (p) {
+        if (prev && p - prev > 1) {
+          var gap = document.createElement('span');
+          gap.className = 'rank-pager-gap';
+          gap.textContent = '…';
+          pager.appendChild(gap);
+        }
+        pager.appendChild(btn(String(p), p, { current: p === current }));
+        prev = p;
+      });
+      pager.appendChild(btn('›', current + 1, { disabled: current === pages }));
+    }
+
+    go(1); // imposta gli stili inline (pagina 1 visibile, resto nascosto)
+    table.setAttribute('data-ready', ''); // ora comandano gli inline: disattiva la regola anti-lampo
+  });
+})();
+</script>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>
