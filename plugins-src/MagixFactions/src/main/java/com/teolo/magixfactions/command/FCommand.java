@@ -57,6 +57,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private final com.teolo.magixfactions.map.MapService maps;
     private final com.teolo.magixfactions.minimap.MinimapManager minimap;
     private final com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack;
+    private final com.teolo.magixfactions.manage.FakeDataManager fake;
 
     private final Map<UUID, Long> invites = new HashMap<>();
     private final Map<UUID, Long> unclaimAllConfirm = new HashMap<>(); // giocatore -> timestamp richiesta /f unclaimall
@@ -65,9 +66,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     Messages messages, PowerManager power, ClaimManager claims,
                     com.teolo.magixfactions.manage.ScoreManager score,
                     com.teolo.magixfactions.map.MapService maps, com.teolo.magixfactions.minimap.MinimapManager minimap,
-                    com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack) {
+                    com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack,
+                    com.teolo.magixfactions.manage.FakeDataManager fake) {
         this.plugin = plugin; this.fm = fm; this.ranks = ranks; this.chat = chat; this.db = db; this.M = messages;
         this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap; this.resourcePack = resourcePack;
+        this.fake = fake;
     }
 
     /**
@@ -1233,13 +1236,21 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "admin":
                 if (!s.hasPermission("magixfactions.admin")) break;
                 if (args.length == 2)
-                    return filterPrefix(args[1], List.of("setpower", "setmap"));
-                if (args.length == 3) return filterPrefix(args[2], onlineNames());
+                    return filterPrefix(args[1], List.of("setpower", "setmap", "fake"));
+                if (args.length == 3) {
+                    if (args[1].equalsIgnoreCase("fake"))
+                        return filterPrefix(args[2], List.of("create", "clear", "info"));
+                    return filterPrefix(args[2], onlineNames());
+                }
                 if (args.length == 4) {
                     switch (args[1].toLowerCase(Locale.ROOT)) {
                         case "setmap": return filterPrefix(args[3],
                                 List.of("0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "reset"));
                         case "setpower": return filterPrefix(args[3], List.of("reset"));
+                        case "fake":
+                            if (args[2].equalsIgnoreCase("create"))
+                                return filterPrefix(args[3], List.of("6", "10", "20"));
+                            break;
                     }
                 }
                 break;
@@ -1336,6 +1347,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             // (magixfactions.power.powermax.<n> e magixfactions.minimap), si danno dal gruppo VIP.
             case "setpower": return adminSetPower(s, a);
             case "setmap": return adminSetMap(s, a);
+            case "fake": return adminFake(s, a);
             case "minimapdump": minimap.dumpMapPacketStructure(s); return true;
             case "minimaprptest": return adminMinimapResourcePackTest(s);
             case "minimapmarker": return adminMinimapMarkerTest(s);
@@ -1432,6 +1444,54 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         msg(s, M.get(reset ? "admin.setpower-reset" : "admin.setpower-ok",
                 "player", a[2], "value", String.valueOf(power.getPower(target))));
         return true;
+    }
+
+    /**
+     * /mf admin fake &lt;create [n] [minMembri] [maxMembri] | clear | info&gt; — DATI DI TEST: fazioni e
+     * giocatori finti per popolare server e sito prima dell'apertura, rimovibili tutti insieme quando si
+     * apre al pubblico. Vedi {@link com.teolo.magixfactions.manage.FakeDataManager}.
+     */
+    private boolean adminFake(CommandSender s, String[] a) {
+        String op = a.length >= 3 ? a[2].toLowerCase(Locale.ROOT) : "";
+        switch (op) {
+            case "create": {
+                int count = a.length >= 4 ? parseIntOr(a[3], 6) : 6;
+                int minM = a.length >= 5 ? parseIntOr(a[4], 2) : 2;
+                int maxM = a.length >= 6 ? parseIntOr(a[5], 5) : 5;
+                count = Math.max(1, Math.min(100, count));
+                minM = Math.max(1, Math.min(30, minM));
+                maxM = Math.max(minM, Math.min(30, maxM));
+                try {
+                    com.teolo.magixfactions.manage.FakeDataManager.Result r = fake.generate(count, minM, maxM);
+                    msg(s, M.get("admin.fake.created",
+                            "factions", String.valueOf(r.factions), "players", String.valueOf(r.players)));
+                } catch (Exception e) {
+                    msg(s, M.get("errors.generic", "error", String.valueOf(e.getMessage())));
+                }
+                return true;
+            }
+            case "clear": {
+                if (!fake.hasAny()) { msg(s, M.get("admin.fake.none")); return true; }
+                com.teolo.magixfactions.manage.FakeDataManager.Result r = fake.clearAll();
+                msg(s, M.get("admin.fake.cleared",
+                        "factions", String.valueOf(r.factions), "players", String.valueOf(r.players)));
+                return true;
+            }
+            case "info": {
+                msg(s, M.get("admin.fake.info",
+                        "factions", String.valueOf(fake.factionCount()),
+                        "players", String.valueOf(fake.playerCount())));
+                return true;
+            }
+            default:
+                msg(s, M.get("admin.fake.usage"));
+                return true;
+        }
+    }
+
+    /** Un intero dal testo, o il default se non è un numero valido. */
+    private static int parseIntOr(String s, int def) {
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return def; }
     }
 
     private boolean dbCommand(CommandSender s, String[] a) {

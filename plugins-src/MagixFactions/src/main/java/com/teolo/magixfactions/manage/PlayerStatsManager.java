@@ -115,6 +115,25 @@ public final class PlayerStatsManager {
         return sum;
     }
 
+    /**
+     * (solo dati di test) Imposta le statistiche di un giocatore FINTO in un colpo solo (uccisioni, morti,
+     * tempo di gioco e giacenza media). La media si dà come coppia integrale/denominatore: {@code moneyAvg}
+     * è la giacenza media desiderata, {@code moneySeconds} il tempo su cui è stata "misurata" (mettine
+     * abbastanza — vedi {@link #averageMoney}). La riga {@code players} dev'essere già stata creata da
+     * {@link PowerManager#registerFake} (qui si fa solo UPDATE, come per i giocatori veri). Rimosso da
+     * {@link #forget}.
+     */
+    public void setFakeStats(UUID u, long kills, long deaths, long playSeconds, double moneyAvg, long moneySeconds) {
+        PS ps = ensure(u);
+        ps.kills = kills; ps.deaths = deaths; ps.playSeconds = playSeconds;
+        ps.moneySeconds = moneySeconds; ps.moneyAvgAccum = moneyAvg * moneySeconds;
+        save(u);
+    }
+
+    /** (solo dati di test) Toglie dalla cache le statistiche di un giocatore FINTO. La riga {@code players}
+     *  la cancella {@link PowerManager#forget}; qui si ripulisce solo la cache. */
+    public void forget(UUID u) { cache.remove(u); }
+
     // ------------------------------ EVENTI -------------------------------
     /** Registra un'uccisione PvP VALIDA (gia' filtrata dall'anti fake-kill). */
     public void recordKill(UUID killer) { ensure(killer).kills++; save(killer); }

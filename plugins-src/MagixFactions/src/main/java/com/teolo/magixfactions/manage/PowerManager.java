@@ -269,6 +269,48 @@ public final class PowerManager {
         return null;
     }
 
+    /**
+     * (solo dati di test) Registra un giocatore FINTO: crea la sua riga {@code players} col nome, la
+     * Potenza e il tetto indicati (senza passare per {@code ensure}, che lascerebbe il nome nullo), e la
+     * mette in cache come se fosse un giocatore visto di recente. Lo usa {@link FakeDataManager}; per un
+     * giocatore vero la riga la crea da sola {@link #onJoin}. Rimosso da {@link #forget}.
+     */
+    public void registerFake(UUID u, String name, int power, int maxPower) {
+        long now = System.currentTimeMillis();
+        PP pp = new PP(name, power, maxPower, now, 0, 0);
+        pp.lastLogin = now;
+        clamp(pp);
+        cache.put(u, pp);
+        final String us = u.toString(); final String nm = pp.name;
+        final int pw = pp.power, mx = pp.maxPower; final long ls = pp.lastSeen, ll = pp.lastLogin;
+        dbExec.submit(() -> {
+            try (Connection c = db.getConnection();
+                 PreparedStatement ps = c.prepareStatement(
+                         "INSERT INTO players (uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login) VALUES (?,?,?,?,?,?,?,?)")) {
+                ps.setString(1, us); ps.setString(2, nm);
+                ps.setDouble(3, pw); ps.setDouble(4, mx); ps.setLong(5, ls); ps.setInt(6, 0);
+                ps.setInt(7, 0); ps.setLong(8, ll);
+                ps.executeUpdate();
+            } catch (SQLException e) { plugin.getLogger().warning("[Power] insert giocatore finto: " + e.getMessage()); }
+        });
+    }
+
+    /**
+     * (solo dati di test) Cancella del tutto un giocatore FINTO: lo toglie dalla cache e ne rimuove la riga
+     * {@code players}. Da usare SOLO su UUID creati con {@link #registerFake}. Vedi {@link FakeDataManager#clearAll}.
+     */
+    public void forget(UUID u) {
+        cache.remove(u);
+        final String us = u.toString();
+        dbExec.submit(() -> {
+            try (Connection c = db.getConnection();
+                 PreparedStatement ps = c.prepareStatement("DELETE FROM players WHERE uuid=?")) {
+                ps.setString(1, us);
+                ps.executeUpdate();
+            } catch (SQLException e) { plugin.getLogger().warning("[Power] rimozione giocatore finto: " + e.getMessage()); }
+        });
+    }
+
     /** (admin) Imposta la Potenza attuale del giocatore (clampata al suo maxPower). */
     public void setPower(UUID u, int value) {
         flushFaction(u);   // accredita la potenza vecchia fino a ora, poi cambia (media esatta)

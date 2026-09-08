@@ -287,7 +287,16 @@ public final class FactionManager {
 
     // ----------------------------- CREATE --------------------------------
     public Faction createFaction(String name, String tag, UUID leader) throws SQLException {
-        long now = System.currentTimeMillis();
+        return createFactionAt(name, tag, leader, System.currentTimeMillis());
+    }
+
+    /**
+     * Come {@link #createFaction} ma con una data di creazione arbitraria (e quindi anche l'inizio della
+     * finestra delle medie del punteggio). Serve ai DATI DI TEST ({@link FakeDataManager}) per retrodatare
+     * una fazione finta e dare longevita' credibile alla classifica; il percorso normale passa dal metodo
+     * qui sopra con {@code now}.
+     */
+    public Faction createFactionAt(String name, String tag, UUID leader, long now) throws SQLException {
         String defDesc = plugin.getConfig().getString("faction-description.default", "");
         long id;
         try (Connection c = db.getConnection();

@@ -35,6 +35,7 @@ public final class MagixFactions extends JavaPlugin {
     private PowerManager powerManager;
     private com.teolo.magixfactions.manage.PlayerStatsManager playerStatsManager;
     private com.teolo.magixfactions.manage.ScoreManager scoreManager;
+    private com.teolo.magixfactions.manage.FakeDataManager fakeDataManager;
     private ChatService chatService;
     private com.teolo.magixfactions.resourcepack.ResourcePackService resourcePackService;
 
@@ -111,6 +112,16 @@ public final class MagixFactions extends JavaPlugin {
         // La potenza fa lo stesso a ogni cambio Potenza (morte/guadagno/decadimento/admin): vedi PowerManager.flushFaction.
         powerManager.setFactionManager(factionManager);
         powerManager.setScoreManager(scoreManager);
+        // Dati di TEST (fazioni/giocatori finti per popolare server e sito prima dell'apertura, con
+        // rimozione pulita via /mf admin fake clear). Registri persistenti su tabelle dedicate.
+        fakeDataManager = new com.teolo.magixfactions.manage.FakeDataManager(
+                this, database, dbExecutor, factionManager, powerManager, playerStatsManager, scoreManager);
+        try {
+            fakeDataManager.ensureSchema();
+            fakeDataManager.loadAll();
+        } catch (Exception e) {
+            getLogger().severe("Errore inizializzazione dati di test (fake): " + e.getMessage());
+        }
         long scoreInterval = 20L * scoreManager.sampleIntervalSeconds();
         final com.teolo.magixfactions.manage.PlayerStatsManager statsForTask = playerStatsManager;
         Bukkit.getScheduler().runTaskTimer(this, () -> { statsForTask.sampleAll(); scoreManager.sampleAll(); },
@@ -210,7 +221,7 @@ public final class MagixFactions extends JavaPlugin {
         Bukkit.getOnlinePlayers().forEach(powerManager::reattachMinimap); // dopo /reload
 
         // Comando
-        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, resourcePackService);
+        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, resourcePackService, fakeDataManager);
         getCommand("magixfactions").setExecutor(cmd);
         getCommand("magixfactions").setTabCompleter(cmd); // suggerimenti contestuali filtrati sui permessi
 
@@ -540,6 +551,18 @@ public final class MagixFactions extends JavaPlugin {
                                 + "magixfactions.resourcepack.bypass serve a chi deve entrare senza — prove, riprese, "
                                 + "ospiti di passaggio.")
 
+                .section("Dati di test (prima dell'apertura)",
+                        "Per non presentare un server e un sito **VUOTI** prima dell'apertura al pubblico si "
+                                + "possono generare fazioni e giocatori FINTI con /mf admin fake create [quante] "
+                                + "[minMembri] [maxMembri] (di serie 6 fazioni da 2-5 membri). Hanno nome, membri, "
+                                + "banca, Potenza e statistiche casuali, quindi compaiono in /f list, /f top e nelle "
+                                + "classifiche del sito; NON rivendicano territori, per non sporcare la mappa reale.",
+                        "Quando si apre davvero, /mf admin fake clear li rimuove **TUTTI** in un colpo solo — solo "
+                                + "quelli finti, mai i dati veri: ogni fazione/giocatore finto è annotato in un registro "
+                                + "dedicato sul database, e la rimozione tocca esclusivamente quello. Funziona anche a "
+                                + "distanza di settimane e dopo riavvii. /mf admin fake info dice quanti dati di test "
+                                + "ci sono in questo momento.")
+
                 .detailedCommands()
                 .commands()
                 .permissions()
@@ -583,6 +606,9 @@ public final class MagixFactions extends JavaPlugin {
                         + "territori fantasma e i conti della Potenza non tornano più.")
                 .never("Non promettere a un giocatore che gli si «rimette» un territorio decaduto: si può "
                         + "ri-rivendicare solo se le condizioni di Potenza lo consentono.")
+                .never("Non aprire il server al pubblico senza aver prima tolto i dati di test con "
+                        + "/mf admin fake clear: fazioni e giocatori finti resterebbero in classifica accanto a "
+                        + "quelli veri.")
                 .write();
     }
 

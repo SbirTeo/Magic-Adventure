@@ -337,7 +337,7 @@ db:
   usage: "&cUso: /mf db <info|migrate <sqlite|mariadb>>"
 
 admin:
-  usage: "&cUso: /mf admin <setpower|setmap> <giocatore> <valore>"
+  usage: "&cUso: /mf admin <setpower|setmap|fake> ..."
   not-found: "&cGiocatore &e{player}&c non trovato (dev'essere entrato almeno una volta)."
   bad-value: "&cValore non valido (usa un numero intero, oppure 'reset')."
   setpower-ok: "&aPotenza di &e{player}&a impostata a &e{value}&a."
@@ -346,6 +346,13 @@ admin:
   setmap-bad: "&cZoom non valido. Usa un numero tra 0.05 e 64 (blocchi per pixel), es. &e0.25&c, &e0.5&c, &e1&c, oppure &ereset&c."
   setmap-ok: "&aZoom mappa di &e{player}&a impostato a &e{zoom}&a."
   setmap-reset: "&aZoom mappa di &e{player}&a riportato al default (&e{zoom}&a)."
+  # Dati di TEST: fazioni e giocatori finti per popolare server e sito prima dell'apertura al pubblico.
+  fake:
+    usage: "&cUso: /mf admin fake <create [n] [minMembri] [maxMembri] | clear | info>"
+    created: "&aCreate &e{factions}&a fazioni finte con &e{players}&a giocatori finti. Usa &e/mf admin fake clear&a per rimuoverli tutti."
+    cleared: "&aRimosse &e{factions}&a fazioni finte e &e{players}&a giocatori finti. Ora puoi aprire al pubblico."
+    none: "&eNessun dato di test presente: non c'è niente da rimuovere."
+    info: "&eDati di test attuali: &6{factions}&e fazioni finte, &6{players}&e giocatori finti. Rimuovili con &6/mf admin fake clear&e."
 
 reload: "&aConfigurazione e messaggi ricaricati."
 
@@ -411,3 +418,5 @@ help:
         - "/mf db <info|migrate> :: stato e migrazione del database"
         - "/mf admin setpower <giocatore> <valore> :: imposta la Potenza attuale"
         - "/mf admin setmap <giocatore> <zoom> :: zoom mappa in blocchi/pixel (0.25-64 | reset)"
+        - "/mf admin fake create [n] :: crea fazioni/giocatori finti di test"
+        - "/mf admin fake clear :: rimuove tutti i dati di test"
