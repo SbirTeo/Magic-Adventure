@@ -306,8 +306,10 @@
   nell'inventario, ma non si aggiorna da sola — cammina e <b>rilancia</b> <span class="cmd">/f map</span> per
   vedere la situazione nuova. La <b>minimap</b> sempre a schermo — un riquadro
   {{se:map.minimap.shape=round}}<b>rotondo</b>{{/se}}{{se:map.minimap.shape=square}}<b>quadrato</b>{{/se}}
-  in un angolo, quello sì che si aggiorna da solo mentre cammini — è invece un extra riservato ai
-  <b>VIP</b>.</div>
+  in un angolo, quello sì che si aggiorna da solo mentre cammini — spetta a chi ha il permesso apposta.
+  Se ce l'hai puoi <b>accenderla o spegnerla</b> quando vuoi con <span class="cmd">/f minimap on</span> /
+  <span class="cmd">/f minimap off</span>: anche da spenta, la mappa in chat con <span class="cmd">/f map</span>
+  resta sempre a disposizione. La scelta resta salvata anche dopo il logout.</div>
 {{/se}}
 {{se:map.mode=item}}
   <p>Il comando <span class="cmd">/f map</span> ti consegna un <b>item mappa</b> (una mappa vera, come quella di
@@ -458,6 +460,7 @@
     <tr><td><span class="cmd">/f unclaimall</span></td><td>Rilascia TUTTI i territori (irreversibile, chiede conferma)</td></tr>
     <tr><td><span class="cmd">/f owner [gioc|clear]</span></td><td>Proprietario della land dove sei (solo leader)</td></tr>
     <tr><td><span class="cmd">/f map</span></td><td>{{se:map.mode=chat}}Stampa in chat la mappa dei territori attorno a te{{/se}}{{se:map.mode=item}}Ricevi la Mappa Fazioni (item dinamico){{/se}}</td></tr>
+    <tr><td><span class="cmd">/f minimap &lt;on|off&gt;</span></td><td>Accendi/spegni la minimap a schermo (se hai il permesso)</td></tr>
     <tr><td><span class="cmd">/f sethome / home</span></td><td>Imposta / vai alla casa della fazione</td></tr>
     <tr><td><span class="cmd">/f description &lt;testo&gt;</span></td><td>Imposta la descrizione</td></tr>
     <tr><td><span class="cmd">/f rename &lt;nome&gt;</span></td><td>Cambia il nome della fazione (leader, 1 ogni {{cfg:rename.cooldown-days}} giorni)</td></tr>

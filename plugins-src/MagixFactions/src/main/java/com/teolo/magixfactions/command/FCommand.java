@@ -135,6 +135,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 case "unclaimall": return unclaimAll(p);
                 case "owner": return owner(p, args);
                 case "map": return map(p);
+                case "minimap": return minimapCmd(p, args);
                 case "sethome": return sethome(p);
                 case "unsethome": return unsethome(p);
                 case "home": return home(p);
@@ -755,6 +756,29 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     /**
+     * /f minimap [on|off] — accende o spegne la minimap HUD nell'angolo dello schermo, preferenza PERSONALE
+     * di ogni giocatore. Spenta, resta comunque la mappa in chat ({@code /f map}); accesa, si vede sia la
+     * minimap sia la mappa in chat. Richiede il permesso {@code magixfactions.minimap}: senza, la minimap non
+     * e' disponibile. Senza argomento fa da interruttore (inverte lo stato attuale).
+     */
+    private boolean minimapCmd(Player p, String[] a) {
+        if (!power.hasMinimapPermission(p)) { msg(p, M.get("minimap.no-permission")); return true; }
+        boolean currentlyHidden = power.isMinimapHidden(p.getUniqueId());
+        boolean wantHidden;
+        if (a.length >= 2) {
+            String v = a[1].toLowerCase(Locale.ROOT);
+            if (v.equals("on") || v.equals("si") || v.equals("sì")) wantHidden = false;
+            else if (v.equals("off") || v.equals("no")) wantHidden = true;
+            else { msg(p, M.get("minimap.usage")); return true; }
+        } else {
+            wantHidden = !currentlyHidden; // nessun argomento: inverte
+        }
+        power.setMinimapHidden(p, wantHidden);
+        msg(p, M.get(wantHidden ? "minimap.off" : "minimap.on"));
+        return true;
+    }
+
+    /**
      * /f map in modalita' CHAT: mappa testuale quadrata NxN (config {@code map.chat.rows}) centrata sul
      * giocatore. Ogni cella aggrega {@code step} chunk (derivato dai blocchi-per-pixel). Le fazioni sono
      * lettere colorate per relazione.
@@ -1230,6 +1254,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "chat":
                 if (args.length == 2) return filterPrefix(args[1], List.of("public", "faction", "ally"));
                 break;
+            case "minimap":
+                if (args.length == 2) return filterPrefix(args[1], List.of("on", "off"));
+                break;
             case "deposit": case "d": case "withdraw": case "w":
                 if (args.length == 2) return filterPrefix(args[1], List.of("10", "100", "1000"));
                 break;
@@ -1272,6 +1299,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         out.add("help"); out.add("list"); out.add("top"); out.add("info");
         if (s instanceof Player p) {
             out.add("map"); out.add("power");
+            if (power.hasMinimapPermission(p)) out.add("minimap"); // interruttore HUD, solo a chi ha il permesso
+
             Faction f = fm.getFaction(p.getUniqueId());
             if (f == null) {
                 out.add("create"); out.add("join");

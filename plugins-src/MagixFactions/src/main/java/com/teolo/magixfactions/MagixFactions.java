@@ -537,9 +537,11 @@ public final class MagixFactions extends JavaPlugin {
                                 + "{{se:map.mode=item}}Ora risponde con l'**ITEM** mappa da tenere in mano, che si "
                                 + "ricentra mentre il giocatore cammina. La versione testuale in chat si "
                                 + "rimette con map.mode: chat.{{/se}} "
-                                + "La minimap a schermo è un extra **VIP** e spetta a chi ha il permesso "
-                                + "magixfactions.minimap. Anche qui niente comando: dato il permesso la minimap compare "
-                                + "da sola entro pochi secondi, tolto il permesso sparisce.",
+                                + "La minimap a schermo spetta a chi ha il permesso "
+                                + "magixfactions.minimap: dato il permesso compare da sola entro pochi secondi, tolto il "
+                                + "permesso sparisce. Ogni giocatore che ce l'ha può però **accenderla o spegnerla** per "
+                                + "sé con **/f minimap on|off** (chi la spegne continua a vedere i territori in chat con "
+                                + "/f map); la scelta resta salvata anche dopo il logout.",
                         "Mappa e minimap mostrano le **STESSE** cose, perché sono alimentate dallo stesso codice: se "
                                 + "una mostra qualcosa e l'altra no, è un difetto, non una scelta.",
                         "I giocatori in vanish e quelli con la pozione di invisibilità non compaiono su nessuna "

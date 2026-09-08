@@ -300,6 +300,12 @@ map:
   chat-legend: "&7Legenda: &f&l+ &7tu   &6&l⌂ &7casa   &8- &7libero"
   chat-legend-entry: "  {relcolor}{letter} &7= {relcolor}{name}"
 
+minimap:
+  usage: "&cUso: /f minimap <on|off>"
+  no-permission: "&cLa minimap non e' disponibile per te."
+  on: "&aMinimap &2accesa&a. La vedi nell'angolo dello schermo; la mappa in chat con &6/f map&a resta sempre disponibile."
+  off: "&aMinimap &cspenta&a. Puoi sempre vedere i territori in chat con &6/f map&a."
+
 list:
   empty: "&7Non esiste ancora nessuna fazione."
   header: "&8&m---&r &6Fazioni del server &7({count}) &8&m---"
@@ -395,6 +401,7 @@ help:
         - "/f unclaimall :: rilascia TUTTI i territori (chiede conferma)"
         - "/f owner [giocatore|clear] :: proprietario della land (solo leader)"
         - "/f map :: la mappa dei territori intorno a te"
+        - "/f minimap <on|off> :: accendi/spegni la minimap a schermo (se disponibile)"
         - "/f sethome :: imposta la home (nel tuo territorio)"
         - "/f unsethome :: rimuove la home della fazione"
         - "/f home :: teletrasportati alla home"

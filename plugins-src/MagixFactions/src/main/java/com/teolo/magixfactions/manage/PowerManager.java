@@ -44,6 +44,7 @@ public final class PowerManager {
         long lastLogin;    // ultimo accesso REALE (join/quit), NON toccato dal decadimento: vedi ScoreManager.isActive
         int mapRows;   // colonna storica 'map_rows' riusata come ZOOM mappa: 0=default config, 1..5=closest..farthest
         int progress;      // avanzamento verso il prossimo punto di Potenza, in "secondi x percentuale"
+        boolean minimapHidden; // il giocatore ha SPENTO la minimap HUD con /f minimap off (colonna minimap_hidden)
         PP(String name, int power, int maxPower, long lastSeen, int mapRows, int progress) {
             this.name = name; this.power = power; this.maxPower = maxPower; this.lastSeen = lastSeen;
             this.mapRows = mapRows; this.progress = progress;
@@ -202,7 +203,7 @@ public final class PowerManager {
     public void loadAll() throws SQLException {
         cache.clear();
         try (Connection c = db.getConnection(); Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login FROM players")) {
+             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden FROM players")) {
             while (rs.next()) {
                 UUID u = UUID.fromString(rs.getString("uuid"));
                 PP pp = new PP(rs.getString("name"),
@@ -215,6 +216,7 @@ public final class PowerManager {
                 // cosi' non risultano subito tutte inattive; da qui in avanti last_login e' pulito (join/quit).
                 long ll = rs.getLong("last_login");
                 pp.lastLogin = ll > 0 ? ll : pp.lastSeen;
+                pp.minimapHidden = rs.getInt("minimap_hidden") != 0;
                 cache.put(u, pp);
             }
         }
@@ -346,8 +348,32 @@ public final class PowerManager {
         save(u);
     }
 
-    /** La minimap HUD spetta a chi ha il permesso {@link #PERM_MINIMAP} (di serie: nessuno). */
-    public boolean canUseMinimap(Player p) { return p.hasPermission(PERM_MINIMAP); }
+    /** Il giocatore ha DIRITTO alla minimap HUD (permesso {@link #PERM_MINIMAP}), a prescindere dal fatto
+     *  che poi l'abbia spenta lui con /f minimap off. E' il gate "di sistema"; l'interruttore personale e'
+     *  {@link #isMinimapHidden}. */
+    public boolean hasMinimapPermission(Player p) { return p.hasPermission(PERM_MINIMAP); }
+
+    /** Il giocatore ha SPENTO la minimap con /f minimap off (preferenza personale, colonna minimap_hidden). */
+    public boolean isMinimapHidden(UUID u) { PP pp = cache.get(u); return pp != null && pp.minimapHidden; }
+
+    /** La minimap HUD va mostrata a questo giocatore ADESSO: ha il permesso E non l'ha spenta lui. Lo usano
+     *  join e riconciliazione periodica ({@link #tickOnline}) per montare/smontare l'HUD. */
+    public boolean canUseMinimap(Player p) { return hasMinimapPermission(p) && !isMinimapHidden(p.getUniqueId()); }
+
+    /**
+     * Accende/spegne la minimap HUD del giocatore (comando /f minimap). Salva la preferenza e monta o smonta
+     * subito l'HUD, senza aspettare la riconciliazione periodica. Non tocca il permesso: se il giocatore non
+     * ha {@link #PERM_MINIMAP} la minimap resta comunque non disponibile.
+     */
+    public void setMinimapHidden(Player p, boolean hidden) {
+        PP pp = ensure(p.getUniqueId());
+        if (pp.minimapHidden == hidden) return;
+        pp.minimapHidden = hidden;
+        save(p.getUniqueId());
+        if (minimapManager == null || !minimapManager.isAvailable()) return;
+        if (canUseMinimap(p)) reattachMinimap(p);
+        else if (minimapManager.isActive(p)) minimapManager.deactivate(p);
+    }
 
     /**
      * Attiva la minimap HUD di chi ne ha il permesso (all'ingresso, dopo un /reload, o quando il
@@ -392,7 +418,7 @@ public final class PowerManager {
             PP fresh = null;
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "SELECT name, power, max_power, last_seen, map_rows, power_progress, last_login FROM players WHERE uuid=?")) {
+                         "SELECT name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden FROM players WHERE uuid=?")) {
                 ps.setString(1, u.toString());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -404,6 +430,7 @@ public final class PowerManager {
                                 rs.getInt("power_progress"));
                         long ll = rs.getLong("last_login");
                         fresh.lastLogin = ll > 0 ? ll : fresh.lastSeen;
+                        fresh.minimapHidden = rs.getInt("minimap_hidden") != 0;
                     }
                 }
             } catch (SQLException e) {
@@ -662,12 +689,14 @@ public final class PowerManager {
         final String us = u.toString(), name = pp.name;
         final int power = pp.power, maxPower = pp.maxPower, mapRows = pp.mapRows, progress = pp.progress;
         final long lastSeen = pp.lastSeen, lastLogin = pp.lastLogin;
+        final int minimapHidden = pp.minimapHidden ? 1 : 0;
         dbExec.submit(() -> {
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=?, last_login=? WHERE uuid=?")) {
+                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=?, last_login=?, minimap_hidden=? WHERE uuid=?")) {
                 ps.setString(1, name); ps.setDouble(2, power); ps.setDouble(3, maxPower);
-                ps.setLong(4, lastSeen); ps.setInt(5, mapRows); ps.setInt(6, progress); ps.setLong(7, lastLogin); ps.setString(8, us);
+                ps.setLong(4, lastSeen); ps.setInt(5, mapRows); ps.setInt(6, progress); ps.setLong(7, lastLogin);
+                ps.setInt(8, minimapHidden); ps.setString(9, us);
                 ps.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().warning("[Power] salvataggio: " + e.getMessage()); }
         });

@@ -113,6 +113,8 @@ public final class Database {
             addIfMissing(c, st, "players", "play_seconds", "BIGINT DEFAULT 0");
             addIfMissing(c, st, "players", "money_avg_accum", "DOUBLE DEFAULT 0");
             addIfMissing(c, st, "players", "money_seconds", "BIGINT DEFAULT 0");
+            // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
+            addIfMissing(c, st, "players", "minimap_hidden", "INT DEFAULT 0");
             // Proprietario per-chunk (/f owner) e valore in minerali del chunk (vedi ClaimManager).
             addIfMissing(c, st, "claims", "owner_uuid", "VARCHAR(36)");
             addIfMissing(c, st, "claims", "value", "DOUBLE DEFAULT 0");
@@ -171,7 +173,9 @@ public final class Database {
                 // e integrale Σ(saldo × secondi online) con il suo denominatore money_seconds (secondi online
                 // DA QUANDO la funzione è attiva) per la giacenza media personale.
                 "kills BIGINT DEFAULT 0, deaths BIGINT DEFAULT 0, play_seconds BIGINT DEFAULT 0, " +
-                "money_avg_accum DOUBLE DEFAULT 0, money_seconds BIGINT DEFAULT 0)");
+                "money_avg_accum DOUBLE DEFAULT 0, money_seconds BIGINT DEFAULT 0, " +
+                // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
+                "minimap_hidden INT DEFAULT 0)");
         // NB: sui database gia' esistenti resta la colonna 'minimap_on', non piu' usata da quando la
         // minimap HUD e' un PERMESSO (magixfactions.minimap) e non piu' un interruttore per-giocatore.
         // Non viene cancellata: una DROP COLUMN su dati altrui non ripaga il poco spazio che libera.
