@@ -774,7 +774,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             wantHidden = !currentlyHidden; // nessun argomento: inverte
         }
         power.setMinimapHidden(p, wantHidden);
-        msg(p, M.get(wantHidden ? "minimap.off" : "minimap.on"));
+        msg(p, M.get(wantHidden ? "minimap.disabled" : "minimap.enabled"));
         return true;
     }
 

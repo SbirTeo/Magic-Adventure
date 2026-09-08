@@ -303,8 +303,10 @@ map:
 minimap:
   usage: "&cUso: /f minimap <on|off>"
   no-permission: "&cLa minimap non e' disponibile per te."
-  on: "&aMinimap &2accesa&a. La vedi nell'angolo dello schermo; la mappa in chat con &6/f map&a resta sempre disponibile."
-  off: "&aMinimap &cspenta&a. Puoi sempre vedere i territori in chat con &6/f map&a."
+  # NB: le chiavi NON possono chiamarsi 'on'/'off' — in YAML sono booleani riservati e verrebbero lette
+  # come true/false (a runtime il messaggio risulterebbe mancante). Usare enabled/disabled.
+  enabled: "&aMinimap &2accesa&a. La vedi nell'angolo dello schermo; la mappa in chat con &6/f map&a resta sempre disponibile."
+  disabled: "&aMinimap &cspenta&a. Puoi sempre vedere i territori in chat con &6/f map&a."
 
 list:
   empty: "&7Non esiste ancora nessuna fazione."
