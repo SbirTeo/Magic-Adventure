@@ -2437,39 +2437,23 @@ body.store-una-categoria .store-card-cat { display: none; }
 
 /* Guida del server (/tutorial): riquadro isolato che ospita la guida generata dal plugin.
    L'altezza la calcola il copione della pagina; questa e' solo quella di ripiego. */
-/* ---- Interruttore Guida / Regolamento -----------------------------------------------
-   Le due pagine (la guida del server e il regolamento) hanno una sola voce di menu:
-   qui in cima si passa dall'una all'altra. Segmenti squadrati come gli altri controlli
-   del sito (stesso raggio dei bottoni, niente pillola). La voce corrente e' quella
-   accesa; l'altra e' un link spento che porta all'altra pagina. */
-.guida-switch {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  margin: 0 0 22px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius-sm) + 4px);
+/* ---- Schede Guida / Regolamento -----------------------------------------------------
+   La guida del server e il regolamento stanno nella stessa pagina, sotto un'unica voce
+   di menu: si passa dall'una all'altra con queste schede, senza ricaricare (vedi
+   tutorial.php). Sono le STESSE schede delle classifiche (Top Fazioni / Top Giocatori):
+   qui le regole vivono nel foglio comune così le due pagine restano identiche; la pagina
+   delle classifiche ne tiene una copia inline per storia sua. Se si cambia l'aspetto, va
+   cambiato in tutte e due. */
+.rank-tabs { display: flex; gap: 8px; margin: 4px 0 20px; flex-wrap: wrap; }
+.rank-tab-btn {
+  padding: 10px 18px; background: var(--bg-elevated); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-family: var(--font-heading); font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
 }
-.guida-switch-voce {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 18px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 600;
-  font-family: var(--font-heading);
-  color: var(--text-dim);
-  text-decoration: none;
-  transition: background .15s ease, color .15s ease;
-}
-.guida-switch-voce:hover { color: var(--text); background: var(--bg-elevated); }
-.guida-switch-voce.active {
-  color: var(--btn-testo);
-  background: var(--btn-fondo);
-  box-shadow: var(--btn-alone);
-}
-.guida-switch-voce.active:hover { color: var(--btn-testo); }
+.rank-tab-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.rank-tab-btn.is-active { color: #1a1a1a; background: #fff; border-color: #fff; cursor: default; }
+.rank-tab-panel[hidden] { display: none; }
 
 /* Nessun bordo ne' sfondo: la guida porta gia' i suoi riquadri per ogni capitolo, e
    incorniciarla di nuovo dava l'effetto "scatola dentro la scatola". */

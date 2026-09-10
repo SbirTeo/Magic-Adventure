@@ -1,101 +1,181 @@
 <?php
 /**
- * Pagina della guida: /tutorial
+ * Pagina di guida e regolamento: /tutorial
  *
- * Il testo NON sta qui. La guida vera e' quella del server, generata da
- * plugins-src/MagixFactions/docs/build_tutorial.py in un unico file autonomo
- * (CSS e GIF incorporati). Qui viene solo mostrata dentro il sito.
+ * Guida e regolamento vivono qui, sotto un'unica voce di menu, e si scelgono con due
+ * schede in cima (come Top Fazioni / Top Giocatori nelle classifiche): il passaggio
+ * avviene lato client, SENZA ricaricare la pagina. La scheda scelta resta nell'hash
+ * dell'URL, così /tutorial#regolamento apre direttamente il regolamento; il vecchio
+ * indirizzo /regolamento reindirizza qui su quella scheda.
  *
- * Per aggiornarla dopo una modifica al plugin:
+ * La GUIDA non e' scritta qui: e' quella del server, generata da
+ * plugins-src/MagixFactions/docs/build_tutorial.py in un unico file autonomo (CSS e GIF
+ * incorporati) e mostrata dentro un riquadro. Per aggiornarla dopo una modifica al plugin:
  *   1. python plugins-src/MagixFactions/docs/build_tutorial.py
  *   2. copia docs/tutorial.html in website/public/assets/guida/magixfactions.html
  *   3. carica il file sul VPS
  * (lo fa in un colpo solo lo script website/aggiorna-tutorial.ps1)
+ * Sta in un riquadro isolato e non "inline" perche' porta con se' il proprio foglio di
+ * stile (body/h2/p/table): mescolarlo a quello del sito romperebbe testa e piede di pagina.
  *
- * La guida sta in un riquadro isolato e non "inline" perche' porta con se' il proprio
- * foglio di stile, con regole su body/h2/p/table: mescolarlo a quello del sito
- * romperebbe intestazione e piede di pagina.
+ * Il REGOLAMENTO e' testo del gestionale (site_pages) con la tabella delle sanzioni
+ * generata dal server al posto del segnaposto [[SANZIONI]] (vedi anche il vecchio
+ * regolamento.php, ora un semplice reindirizzamento).
  */
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../includes/auth.php';   // serve per is_admin(): matita di modifica
+require_once __DIR__ . '/../includes/auth.php';       // is_admin(): matita di modifica
+require_once __DIR__ . '/../includes/sanzioni.php';   // tabella sanzioni del regolamento
 
+// --- Guida (riquadro col file del server) --------------------------------------------
 $fileGuida = '/assets/guida/magixfactions.html';
 $percorso = __DIR__ . $fileGuida;
 $esiste = is_file($percorso);
 // La data di modifica serve anche come "cache buster": cambia il file, cambia l'indirizzo.
 $versione = $esiste ? filemtime($percorso) : 0;
 
+// --- Regolamento (testo dal gestionale + tabella sanzioni dal server) ----------------
+$stmtReg = db()->prepare('SELECT title, body FROM site_pages WHERE slug = ?');
+$stmtReg->execute(['regolamento']);
+$pageReg = $stmtReg->fetch();
+$titoloReg = $pageReg['title'] ?? 'Regolamento del server';
+$bodyReg = $pageReg['body'] ?? 'Regolamento non ancora disponibile.';
+
+// La sostituzione avviene DOPO corpo_articolo(): se il corpo e' testo semplice quella
+// funzione lo passa da htmlspecialchars, e un blocco HTML infilato prima verrebbe stampato
+// come codice. Il segnaposto non ha caratteri speciali, quindi arriva intatto.
+$corpoReg = corpo_articolo($bodyReg);
+$bloccoSanzioni = rulebook_sanctions_block();
+if ($bloccoSanzioni) {
+    $htmlSanzioni = '<div class="regolamento-sanzioni">' . $bloccoSanzioni['body_html']
+        . '<p class="regolamento-sanzioni-fonte">Questa tabella è generata dalla configurazione del server'
+        . ($bloccoSanzioni['updated_at'] ? ' e aggiornata ' . h(time_ago((string) $bloccoSanzioni['updated_at'])) : '')
+        . '. <a href="/sanzioni">Guarda i provvedimenti presi →</a></p></div>';
+} else {
+    // Il plugin non l'ha ancora scritta: meglio una riga onesta che un buco nella pagina.
+    $htmlSanzioni = '<div class="regolamento-sanzioni"><p>La tabella delle sanzioni non è ancora '
+        . 'disponibile. Nel frattempo puoi consultare <a href="/sanzioni">i provvedimenti presi</a>.</p></div>';
+}
+$corpoReg = str_replace('[[SANZIONI]]', $htmlSanzioni, $corpoReg);
+
 $page_title = 'Guida del server';
-$page_description = 'Guida per i nuovi giocatori di MAGICADVENTURE: fazioni, potenza, territori e tutti i comandi.';
+$page_description = 'Guida per i nuovi giocatori di MAGICADVENTURE: fazioni, potenza, territori e tutti i comandi, con il regolamento del server.';
 $active = 'tutorial';
 
 require __DIR__ . '/../includes/header.php';
 ?>
-<h1 class="page-title">Guida del server</h1>
+<h1 class="page-title" id="tutorialTitolo">Guida del server</h1>
 
-<?php /* Guida e regolamento hanno una sola voce di menu: da qui si passa dall'una
-         all'altra (vedi anche regolamento.php, lo stesso interruttore al contrario). */ ?>
-<nav class="guida-switch" aria-label="Guida o regolamento">
-  <a href="/tutorial" class="guida-switch-voce active" aria-current="page">Guida</a>
-  <a href="/regolamento" class="guida-switch-voce">Regolamento</a>
-</nav>
-
-<div class="panel panel-modificabile">
-  <?php /* Il testo si cambia dal gestionale; la guida sotto arriva invece dal server. */ ?>
-  <?php if (is_admin()): ?>
-    <a href="/manage?section=guida_edit" class="card-edit-btn" title="Modifica questo testo" aria-label="Modifica questo testo">✎</a>
-  <?php endif; ?>
-  <p class="guida-intro">
-    <?= nl2br(h(guide_intro())) ?>
-    <?php if ($esiste): ?>
-      <a href="<?= h($fileGuida) ?>?v=<?= $versione ?>" target="_blank" rel="noopener">Aprila a schermo intero →</a>
-    <?php endif; ?>
-  </p>
+<?php /* Le due schede: guida e regolamento nella stessa pagina, una alla volta. Stesse
+         schede delle classifiche (stile in style.css), cambiano solo le icone. */ ?>
+<div class="rank-tabs" role="tablist" aria-label="Guida e regolamento">
+  <button type="button" class="rank-tab-btn is-active" data-tab="guida" data-titolo="Guida del server"
+          role="tab" aria-selected="true" aria-controls="tab-guida">📖 Guida</button>
+  <button type="button" class="rank-tab-btn" data-tab="regolamento" data-titolo="<?= h($titoloReg) ?>"
+          role="tab" aria-selected="false" aria-controls="tab-regolamento">📜 Regolamento</button>
 </div>
 
-<?php if (!$esiste): ?>
-  <div class="alert alert-error">La guida non è al momento disponibile. Riprova più tardi.</div>
-<?php else: ?>
-  <?php /* La ricerca sta QUI e non dentro la guida: la guida e' un file del server (lo
-           riscrive il plugin a ogni avvio), e mettercela dentro vorrebbe dire riscriverla
-           a mano ogni volta. Vedi assets/js/guida-ia.js e includes/guida_ricerca.php. */ ?>
-  <div class="guida-ia" data-guida-ia data-ambito="pubblica" data-modo="chat">
-    <div class="guida-ia-testa">
-      <h2>Chiedi alla guida</h2>
-      <span class="guida-ia-sub">risponde con le parole della guida, e ti porta al capitolo</span>
+<section class="rank-tab-panel" id="tab-guida" role="tabpanel" aria-label="Guida">
+  <div class="panel panel-modificabile">
+    <?php /* Il testo si cambia dal gestionale; la guida sotto arriva invece dal server. */ ?>
+    <?php if (is_admin()): ?>
+      <a href="/manage?section=guida_edit" class="card-edit-btn" title="Modifica questo testo" aria-label="Modifica questo testo">✎</a>
+    <?php endif; ?>
+    <p class="guida-intro">
+      <?= nl2br(h(guide_intro())) ?>
+      <?php if ($esiste): ?>
+        <a href="<?= h($fileGuida) ?>?v=<?= $versione ?>" target="_blank" rel="noopener">Aprila a schermo intero →</a>
+      <?php endif; ?>
+    </p>
+  </div>
+
+  <?php if (!$esiste): ?>
+    <div class="alert alert-error">La guida non è al momento disponibile. Riprova più tardi.</div>
+  <?php else: ?>
+    <?php /* La ricerca sta QUI e non dentro la guida: la guida e' un file del server (lo
+             riscrive il plugin a ogni avvio), e mettercela dentro vorrebbe dire riscriverla
+             a mano ogni volta. Vedi assets/js/guida-ia.js e includes/guida_ricerca.php. */ ?>
+    <div class="guida-ia" data-guida-ia data-ambito="pubblica" data-modo="chat">
+      <div class="guida-ia-testa">
+        <h2>Chiedi alla guida</h2>
+        <span class="guida-ia-sub">risponde con le parole della guida, e ti porta al capitolo</span>
+      </div>
+
+      <div class="guida-ia-risposte" data-guida-ia-risposte aria-live="polite"></div>
+
+      <form class="guida-ia-form" autocomplete="off">
+        <input type="text" name="q" maxlength="200" placeholder="Scrivi la tua domanda, per esempio: come si conquista un territorio?"
+               aria-label="La tua domanda sulla guida">
+        <button type="submit" class="guida-ia-invia">Chiedi</button>
+      </form>
+
+      <p class="guida-ia-esempi">
+        <span>Prova con:</span>
+        <button type="button" data-guida-ia-esempio>Come si crea una fazione?</button>
+        <button type="button" data-guida-ia-esempio>Quanta Potenza perdo se muoio?</button>
+        <button type="button" data-guida-ia-esempio>Come torno alla casa della fazione?</button>
+      </p>
+
+      <p class="guida-ia-nota">
+        Non è un'intelligenza che si inventa le risposte: cerca dentro questa guida, ti riporta
+        quello che c'è scritto e ti manda al capitolo giusto. Se una cosa nella guida non c'è, te lo dice.
+      </p>
     </div>
 
-    <div class="guida-ia-risposte" data-guida-ia-risposte aria-live="polite"></div>
+    <div class="guida-riquadro">
+      <?php /* Niente loading="lazy": e' il contenuto della pagina, e caricandosi in ritardo
+               l'aggancio del copione poteva arrivare dopo l'evento di caricamento. */ ?>
+      <iframe id="guidaFrame" src="<?= h($fileGuida) ?>?v=<?= $versione ?>"
+              title="Guida per i nuovi giocatori"></iframe>
+    </div>
+  <?php endif; ?>
+</section>
 
-    <form class="guida-ia-form" autocomplete="off">
-      <input type="text" name="q" maxlength="200" placeholder="Scrivi la tua domanda, per esempio: come si conquista un territorio?"
-             aria-label="La tua domanda sulla guida">
-      <button type="submit" class="guida-ia-invia">Chiedi</button>
-    </form>
-
-    <p class="guida-ia-esempi">
-      <span>Prova con:</span>
-      <button type="button" data-guida-ia-esempio>Come si crea una fazione?</button>
-      <button type="button" data-guida-ia-esempio>Quanta Potenza perdo se muoio?</button>
-      <button type="button" data-guida-ia-esempio>Come torno alla casa della fazione?</button>
-    </p>
-
-    <p class="guida-ia-nota">
-      Non è un'intelligenza che si inventa le risposte: cerca dentro questa guida, ti riporta
-      quello che c'è scritto e ti manda al capitolo giusto. Se una cosa nella guida non c'è, te lo dice.
-    </p>
+<section class="rank-tab-panel" id="tab-regolamento" role="tabpanel" aria-label="Regolamento" hidden>
+  <div class="panel panel-modificabile">
+    <?php /* Stessa matita delle tessere in home: porta dritto al testo di questa pagina. */ ?>
+    <?php if (is_admin()): ?>
+      <a href="/manage?section=page_edit&slug=regolamento" class="card-edit-btn" title="Modifica il regolamento" aria-label="Modifica il regolamento">✎</a>
+    <?php endif; ?>
+    <div class="blog-body<?= corpo_e_html($bodyReg) ? ' corpo-html' : '' ?>"><?= $corpoReg ?></div>
   </div>
-<?php endif; ?>
+</section>
+
+<script>
+// Schede guida/regolamento: mostra una vista alla volta, senza ricaricare. La scelta resta
+// nell'hash dell'URL così un link #regolamento apre direttamente quella scheda; il titolo
+// in cima cambia insieme alla scheda.
+(function () {
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.rank-tab-btn'));
+  var panels = { guida: document.getElementById('tab-guida'), regolamento: document.getElementById('tab-regolamento') };
+  var titolo = document.getElementById('tutorialTitolo');
+  if (!btns.length) return;
+  function show(tab) {
+    if (!panels[tab]) tab = 'guida';
+    Object.keys(panels).forEach(function (k) { if (panels[k]) panels[k].hidden = (k !== tab); });
+    btns.forEach(function (b) {
+      var on = b.dataset.tab === tab;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on && titolo && b.dataset.titolo) titolo.textContent = b.dataset.titolo;
+    });
+    // Il riquadro della guida si misura da solo, ma se era nascosto (aperti sul regolamento)
+    // resta all'altezza di ripiego: quando torna visibile lo si fa rimisurare.
+    if (tab === 'guida') window.dispatchEvent(new Event('resize'));
+  }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      show(b.dataset.tab);
+      if (history.replaceState) history.replaceState(null, '', '#' + b.dataset.tab);
+      else location.hash = b.dataset.tab;
+    });
+  });
+  var start = (location.hash || '').replace('#', '');
+  show(panels[start] ? start : 'guida');
+})();
+</script>
 
 <?php if ($esiste): ?>
-  <div class="guida-riquadro">
-    <?php /* Niente loading="lazy": e' il contenuto della pagina, e caricandosi in ritardo
-             l'aggancio del copione poteva arrivare dopo l'evento di caricamento. */ ?>
-    <iframe id="guidaFrame" src="<?= h($fileGuida) ?>?v=<?= $versione ?>"
-            title="Guida per i nuovi giocatori"></iframe>
-  </div>
-
   <script>
   // Se il browser ripristina questa pagina dalla cache avanti/indietro (bfcache) — tipico
   // tornando alla guida dal menu o col tasto Indietro — il codice che gira e' quello di
@@ -204,6 +284,10 @@ require __DIR__ . '/../includes/header.php';
     }
 
     function vaiA(id) {
+      // Se il lettore era sulla scheda del regolamento, prima si torna sulla guida:
+      // i capitoli stanno nel riquadro, e da nascosto non ci si potrebbe muovere.
+      var btnGuida = document.querySelector('.rank-tab-btn[data-tab="guida"]');
+      if (btnGuida && !btnGuida.classList.contains('is-active')) btnGuida.click();
       var doc;
       try { doc = frame.contentDocument; } catch (e) { return; }
       if (!doc) return;

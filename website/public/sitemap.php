@@ -42,10 +42,12 @@ try {
     }
 } catch (PDOException) { /* menu assente: pazienza, le fisse ci sono gia' */ }
 
-// --- Pagine di testo (regolamento e le altre create dal gestionale) ------------------
+// --- Pagine di testo create dal gestionale -------------------------------------------
+// Il regolamento non ha un indirizzo suo: sta dentro /tutorial (gia' fra le voci fisse),
+// quindi qui si salta per non elencare un reindirizzamento.
 foreach (db()->query('SELECT slug, updated_at FROM site_pages')->fetchAll() as $p) {
-    $percorso = $p['slug'] === 'regolamento' ? '/regolamento' : '/pagina/' . $p['slug'];
-    $add($percorso, $p['updated_at'], '0.6');
+    if ($p['slug'] === 'regolamento') continue;
+    $add('/pagina/' . $p['slug'], $p['updated_at'], '0.6');
 }
 
 // --- Articoli del blog --------------------------------------------------------------

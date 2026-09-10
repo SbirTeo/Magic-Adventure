@@ -123,7 +123,7 @@ require __DIR__ . '/../includes/header.php';
     <p class="forum-sottotitolo">
       Ogni provvedimento preso sul server, con il motivo e l'esito del ricorso.
       È pubblico di proposito: le regole valgono se si vede che vengono applicate.
-      <a href="/regolamento">Leggi il regolamento →</a>
+      <a href="/tutorial#regolamento">Leggi il regolamento →</a>
     </p>
   </div>
   <?php if (sanctions_ready() && $conteggi['tutte'] > 0): ?>
