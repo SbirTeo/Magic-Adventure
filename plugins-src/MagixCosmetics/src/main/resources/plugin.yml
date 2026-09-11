@@ -1,0 +1,23 @@
+name: MagixCosmetics
+version: '${project.version}'
+main: com.teolo.magixcosmetics.MagixCosmetics
+api-version: '26.1'
+author: teolo
+description: Cosmetici a particelle per i giocatori (per ora: l'aureola gialla dei VIP).
+
+commands:
+  magixcosmetics:
+    aliases: [cosmetics, cosmetic, mcosmetics]
+    description: Stato dei propri cosmetici e accensione dell'aureola.
+    usage: /cosmetics help
+
+permissions:
+  magixcosmetics.use:
+    description: Usare /cosmetics per vedere e accendere i propri cosmetici.
+    default: true
+  magixcosmetics.halo:
+    description: Mostra l'aureola gialla sopra la testa. Da assegnare ai VIP.
+    default: false
+  magixcosmetics.admin:
+    description: Comandi amministrativi (reload).
+    default: op

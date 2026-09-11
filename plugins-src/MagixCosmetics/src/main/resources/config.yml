@@ -1,0 +1,41 @@
+# MagixCosmetics - cosmetici a particelle per i giocatori.
+# Per ora c'e' una cosa sola: l'aureola gialla che gira sopra la testa dei VIP.
+#
+# Chi vede l'aureola? Chi ha il permesso magixcosmetics.halo (di norma il grado VIP su
+# LuckPerms). Non serve nessun comando: appena il permesso c'e', l'aureola compare.
+# I testi e i colori dei messaggi stanno in messages.yml; qui ci sono solo i numeri della resa.
+
+halo:
+  # Interruttore generale dell'aureola. Spento, nessuno la vede e il task non gira.
+  enabled: true
+
+  # Colore dell'aureola, in esadecimale #RRGGBB. Il giallo dei VIP e' #FFDD33.
+  color: "#FFDD33"
+
+  # Raggio del cerchio, in blocchi. 0.4 sta appena piu' largo della testa.
+  radius: 0.4
+
+  # Altezza sopra i piedi del giocatore, in blocchi. 2.2 la mette poco sopra la testa.
+  height: 2.2
+
+  # Quanti punti di particella formano il cerchio: piu' alto = anello piu' pieno (e piu' particelle).
+  points: 16
+
+  # Dimensione della singola particella (DUST). 1.0 e' la taglia normale.
+  particle-size: 0.9
+
+  # Ogni quanti tick si ridisegna l'aureola. 4 tick = 5 volte al secondo.
+  # Piu' basso = piu' fluido ma piu' pesante.
+  update-interval-ticks: 4
+
+  # Se l'aureola gira su se stessa.
+  spin: true
+
+  # Quanto gira a ogni aggiornamento, in radianti. 0.15 e' una rotazione lenta e morbida.
+  spin-speed: 0.15
+
+  # Nascondi l'aureola a chi e' in vanish (staff invisibile): altrimenti lo tradirebbe.
+  hide-when-vanished: true
+
+  # Nascondi l'aureola a chi ha la pozione di invisibilita'.
+  hide-when-invisible: true

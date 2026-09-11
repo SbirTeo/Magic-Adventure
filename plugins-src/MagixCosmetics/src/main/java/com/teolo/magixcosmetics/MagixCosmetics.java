@@ -1,0 +1,120 @@
+package com.teolo.magixcosmetics;
+
+import com.teolo.magixcosmetics.command.MagixCosmeticsCommand;
+import com.teolo.magixcosmetics.cosmetic.HaloManager;
+import com.teolo.magixcosmetics.lang.Messages;
+import com.teolo.magixcosmetics.util.ConfigValues;
+import com.teolo.magixcosmetics.util.StaffGuide;
+import org.bukkit.Bukkit;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.java.JavaPlugin;
+
+/**
+ * MagixCosmetics — cosmetici a particelle per i giocatori.
+ *
+ * <p>Per ora c'e' una cosa sola: l'aureola gialla che gira sopra la testa dei VIP
+ * (vedi {@link HaloManager}). E' nato come plugin a se' apposta per poterci aggiungere
+ * gli altri cosmetici — scie, ali, cappelli — senza appesantire i plugin gia' esistenti.</p>
+ */
+public final class MagixCosmetics extends JavaPlugin {
+
+    private Messages messages;
+    private HaloManager halo;
+
+    @Override
+    public void onEnable() {
+        saveDefaultConfig();
+        getDataFolder().mkdirs();
+        // Il capitolo della guida per lo staff sul sito + il README nella cartella del plugin:
+        // stessa scrittura, letta dal config vivo. Puro I/O, fuori dal tick d'avvio.
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
+
+        messages = new Messages(this);
+
+        halo = new HaloManager(this);
+        halo.load();
+        halo.start();
+
+        PluginCommand cmd = getCommand("magixcosmetics");
+        if (cmd != null) {
+            MagixCosmeticsCommand executor = new MagixCosmeticsCommand(this, messages);
+            cmd.setExecutor(executor);
+            cmd.setTabCompleter(executor);
+        }
+
+        getLogger().info("Avviato: aureola " + (halo.enabled() ? "attiva" : "disattivata") + ".");
+    }
+
+    @Override
+    public void onDisable() {
+        if (halo != null) halo.stop();
+    }
+
+    /** Ricarica config.yml e messages.yml e fa ripartire l'aureola col nuovo intervallo. */
+    public void reloadEverything() {
+        reloadConfig();
+        messages.reload();
+        halo.load();
+        halo.start();
+        getLogger().info("Configurazione ricaricata: aureola " + (halo.enabled() ? "attiva" : "disattivata") + ".");
+    }
+
+    public Messages messages() { return messages; }
+    public HaloManager halo() { return halo; }
+
+    // ------------------------------------------------- GUIDA PER LO STAFF
+
+    /**
+     * Capitolo di MagixCosmetics nella guida del gestionale + README. Comandi, permessi e
+     * valori di configurazione non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
+     */
+    private void writeStaffGuide() {
+        StaffGuide.create(this, "MagixCosmetics — cosmetici a particelle", 80)
+                // I numeri (raggio, altezza, colore...) vengono dal config vero: cambiando una
+                // chiave, questo capitolo cambia da solo (vedi util/ConfigValues).
+                .values(new ConfigValues(this))
+                .intro("Aggiunge cosmetici a particelle sopra i giocatori. Per ora ce n'e' uno solo: "
+                        + "un'aureola gialla che gira sopra la testa dei VIP.")
+
+                .section("L'aureola",
+                        "E' un anello di {{cfg:halo.points}} particelle disegnato a {{cfg:halo.height}} blocchi da "
+                                + "terra, poco sopra la testa. Si ridisegna in continuazione e, se **spin** è acceso, "
+                                + "ruota lentamente su se stessa. Il colore di serie è il giallo **{{cfg:halo.color}}**.",
+                        "La vede chi ha il permesso **magixcosmetics.halo**: è così che si dà ai VIP, di norma con "
+                                + "LuckPerms sul grado VIP. Non serve nessun comando per accenderla — appena il permesso "
+                                + "c'è, l'aureola compare.",
+                        "Un VIP che non la vuole può spegnersela con **/cosmetics halo off** e riaccenderla con "
+                                + "**/cosmetics halo on**. Questa scelta vive in memoria: a un riavvio del server torna "
+                                + "accesa per tutti.")
+
+                .section("Perché è un plugin a parte",
+                        "I cosmetici non c'entrano con le fazioni, con l'ora o con le sanzioni: tenerli qui evita di "
+                                + "gonfiare gli altri plugin, e domani ci si aggiungono scie, ali o cappelli senza "
+                                + "toccare nient'altro.")
+
+                .section("Prestazioni",
+                        "Il disegno è un unico task che passa in rassegna i giocatori online: pesa solo su chi "
+                                + "l'aureola ce l'ha davvero. Se con tanti VIP collegati si sentisse, le leve sono "
+                                + "**points** (meno particelle) e **update-interval-ticks** (si ridisegna meno spesso).")
+
+                .commands()
+                .permissions()
+                .settings(
+                        "halo.enabled", "Interruttore generale: spento, nessuno vede l'aureola e il task non gira.",
+                        "halo.color", "Colore dell'aureola in #RRGGBB. Il giallo dei VIP è #FFDD33.",
+                        "halo.points", "Quante particelle formano l'anello: più alto = anello più pieno e più pesante.",
+                        "halo.update-interval-ticks", "Ogni quanti tick si ridisegna: più basso = più fluido e più pesante.")
+
+                .issue("Un VIP non vede la sua aureola",
+                        "Controlla che abbia davvero il permesso magixcosmetics.halo (LuckPerms), che non se la sia "
+                                + "spenta con /cosmetics halo off, e che non sia in spettatore, in vanish o invisibile.")
+                .issue("L'aureola si vede su uno staff in vanish",
+                        "Non dovrebbe: hide-when-vanished la nasconde a chi ha il metadata di vanish (CMI). "
+                                + "Se succede, verifica che il vanish in uso imposti quel metadata.")
+                .issue("L'aureola pesa con tanti giocatori",
+                        "Abbassa halo.points e alza halo.update-interval-ticks, poi /cosmetics reload.")
+
+                .never("Non dare magixcosmetics.halo a default true: diventerebbe di tutti, non più un segno dei VIP.")
+                .write();
+    }
+}

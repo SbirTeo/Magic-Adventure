@@ -1,0 +1,68 @@
+# MagixCosmetics - tutti i testi mostrati ai giocatori.
+# Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+#
+# PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
+#   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
+#   verde  &#A8DC2C  l'ADVENTURE del logo: comandi, conferme, cose cliccabili
+#   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
+#   errore &#FF6B6B  |  avviso &#FFD166
+
+prefix: "&#C046E8&lMagixCosmetics &8» &r"
+
+# ---------------------------------------------------------------- generici
+no-permission: "&cNon hai il permesso per questo comando."
+players-only: "&cQuesto comando va eseguito da un giocatore."
+unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/cosmetics help&c."
+reloaded: "&aConfigurazione ricaricata."
+
+# ---------------------------------------------------------------- /cosmetics info
+# {version} = versione del plugin. Sotto la cornice va una riga sullo stato dell'aureola,
+# scelta in base a chi guarda (vedi le voci halo-* qui sotto).
+info:
+  - "&8&m                                        "
+  - "  &#C046E8&lMagixCosmetics &7v{version}"
+  - "&8&m                                        "
+
+# Riga di stato per un GIOCATORE, secondo il suo caso.
+halo-on:
+  - "  &7Aureola gialla: &#A8DC2CACCESA &8· &7spegnila con &#A8DC2C/cosmetics halo off"
+halo-off:
+  - "  &7Aureola gialla: &#FF6B6BSPENTA &8· &7riaccendila con &#A8DC2C/cosmetics halo on"
+halo-vip-only:
+  - "  &7Aureola gialla: &8riservata ai &#C046E8VIP&8."
+halo-disabled-server:
+  - "  &7Aureola gialla: &8disattivata sul server."
+
+# Riga di stato quando /cosmetics info lo lancia la CONSOLE (nessun giocatore a cui riferirsi).
+halo-status-server-on:
+  - "  &7Aureola: &#A8DC2Cattiva &8(la vedono i giocatori con magixcosmetics.halo)."
+halo-status-server-off:
+  - "  &7Aureola: &#FF6B6Bdisattivata &8(halo.enabled: false)."
+
+# ---------------------------------------------------------------- /cosmetics halo
+halo-set-on: "&aLa tua aureola gialla e' stata riaccesa."
+halo-set-off: "&7La tua aureola gialla e' stata spenta."
+halo-already-on: "&eLa tua aureola era gia' accesa."
+halo-already-off: "&eLa tua aureola era gia' spenta."
+halo-no-vip: "&cL'aureola gialla e' riservata ai VIP."
+halo-disabled: "&cIn questo momento l'aureola e' disattivata sul server."
+halo-usage: "&eUso: &#A8DC2C/cosmetics halo <on|off>"
+
+# ---------------------------------------------------------------- /cosmetics help
+# L'aiuto lo impagina la classe Help (la stessa in tutti i plugin Magix): una sezione per
+# volta, frecce per sfogliare, ogni riga cliccabile per scriversi il comando in chat.
+# Formato di una riga:  "<comando> [argomenti] :: spiegazione"
+#   - staff: true su una sezione = la vede solo chi ha magixcosmetics.admin.
+help:
+  title: "MagixCosmetics"
+  sections:
+    cosmetici:
+      title: "Cosmetici"
+      entries:
+        - "/cosmetics info :: mostra i tuoi cosmetici e il loro stato"
+        - "/cosmetics halo <on|off> :: accendi o spegni la tua aureola (VIP)"
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/cosmetics reload :: ricarica config.yml e messages.yml"
