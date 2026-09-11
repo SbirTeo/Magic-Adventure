@@ -2079,6 +2079,15 @@
     return pezzi.join(',');
   }
 
+  // Un prezzo ha decimali? Stessa lettura del plugin (util/Text.number): la virgola è il
+  // separatore delle migliaia e si toglie, il punto è il decimale. Un placeholder (%...%) o un
+  // campo vuoto non sono un numero: non è un decimale.
+  function hasDecimals(value) {
+    if (!value || value.indexOf('%') >= 0) return false;
+    var n = parseFloat(String(value).replace(/,/g, '').trim());
+    return isFinite(n) && n !== Math.floor(n);
+  }
+
   // Le stesse regole del plugin (util/Slot.java): se qui si scrivesse una regola diversa,
   // l'editor mostrerebbe caselle che in gioco non esistono.
   function espandiSlot(testo, totale, larga) {
@@ -2137,6 +2146,18 @@
     }, 'Quanto costa, col clic sinistro. Vuoto = non è in vendita. Può essere un placeholder.', false, 'price'));
 
     if (it.prezzo || it.vendi) {
+      // L'economia del server (CMI) lavora con soli numeri interi: un prezzo con la virgola
+      // verrebbe arrotondato per difetto in gioco. Lo stesso controllo c'è nel plugin, ma qui
+      // si vede subito, mentre scrivi. Un placeholder (%...%) si risolve solo in gioco: si salta.
+      [['il prezzo', it.prezzo], ['il prezzo di rivendita', it.vendi]].forEach(function (pair) {
+        if (hasDecimals(pair[1])) {
+          var w = el('div', 'me-avviso-riga');
+          w.textContent = '⚠ ' + pair[0] + ' “' + pair[1].trim() + '” ha i decimali, ma l’economia '
+            + 'usa solo numeri interi: in gioco verrebbe arrotondato per difetto. Scrivi un numero intero.';
+          f.appendChild(w);
+        }
+      });
+
       f.appendChild(textField('Cosa riceve', it.dai || '', function (v) {
         it.dai = v.trim() === '' ? null : v.trim();
         segnaModificato();

@@ -4,6 +4,7 @@ import com.teolo.magixmenus.actions.Action;
 import com.teolo.magixmenus.requirements.Requirements;
 import com.teolo.magixmenus.requirements.Requirement;
 import com.teolo.magixmenus.util.Slot;
+import com.teolo.magixmenus.util.Text;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -310,6 +311,7 @@ public final class MenuLoader {
         String prezzo = text(s, "price", "prezzo", "costo");
         if (prezzo != null) {
             def.prezzo(prezzo);
+            soloInteri(key, "il prezzo", prezzo, errori);
         }
         String dai = text(s, "give", "dai", "merce", "articolo");
         if (dai != null) {
@@ -318,6 +320,7 @@ public final class MenuLoader {
         String vendi = text(s, "sell", "vendi", "prezzo_vendita");
         if (vendi != null) {
             def.vendi(vendi);
+            soloInteri(key, "il prezzo di rivendita", vendi, errori);
         }
         if (vendi != null && dai == null) {
             errori.add("l'item \"" + key + "\" si puo' vendere ma non dice cosa: aggiungi la chiave give.");
@@ -644,6 +647,24 @@ public final class MenuLoader {
     private static String text(Map<String, Object> m, String... keys) {
         Object o = primo(m, keys);
         return o == null ? null : String.valueOf(o);
+    }
+
+    /**
+     * L'economia del server lavora con soli numeri interi: un prezzo con la virgola verrebbe
+     * arrotondato per difetto senza dirlo (10.5 -> 10), e in piu' il numero che appare nella
+     * descrizione ("costa 10.5") non combacerebbe con quanto si paga davvero. Meglio segnalarlo
+     * qui. I placeholder ({@code %vault_eco%}...) si risolvono solo in gioco: quelli non si toccano.
+     */
+    private static void soloInteri(String key, String label, String value, List<String> errori) {
+        if (value == null || value.contains("%")) {
+            return;
+        }
+        Double n = Text.number(value);
+        if (n != null && n != Math.floor(n)) {
+            errori.add("item \"" + key + "\": " + label + " \"" + value.trim() + "\" ha i decimali, ma "
+                    + "l'economia del server usa solo numeri interi: verrebbe arrotondato a "
+                    + (long) Math.floor(n) + ". Scrivi un numero intero.");
+        }
     }
 
     /**

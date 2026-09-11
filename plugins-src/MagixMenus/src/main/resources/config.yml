@@ -40,6 +40,10 @@ min-update-ticks: 1
 #
 #  Controllare i soldi, controllare che ci sia posto in inventario, togliere le monete, dare
 #  l'oggetto e spiegare cosa manca lo fa il plugin. Serve Vault + un plugin di economia.
+#
+#  I prezzi (price e sell) vanno scritti come numeri INTERI: l'economia del server (CMI) lavora
+#  senza decimali, quindi un "10.5" verrebbe arrotondato per difetto in gioco. Se lo scrivi con
+#  la virgola te lo segnala /menus info (e l'editor, mentre scrivi).
 
 # Aggiunge da sole, in fondo alla descrizione di un articolo, le righe col prezzo e con il
 # prezzo di rivendita. Come sono fatte quelle righe si decide in messages.yml, sotto "shop".
