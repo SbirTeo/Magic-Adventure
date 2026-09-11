@@ -46,7 +46,7 @@ public final class ActionRunner {
                 if (line.regionMatches(true, 0, "console:", 0, 8)) {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), strip(line.substring(8)));
                 } else if (line.regionMatches(true, 0, "msg:", 0, 4)) {
-                    player.sendMessage(Colors.translate(line.substring(4).trim()));
+                    sendLines(player, line.substring(4).trim());
                 } else {
                     player.performCommand(strip(line));
                 }
@@ -55,6 +55,16 @@ public final class ActionRunner {
             }
         }
         return true;
+    }
+
+    /**
+     * Manda il messaggio al giocatore, una riga per volta. In chat non si puo' digitare un vero
+     * a-capo, quindi accettiamo i token {@code \n} e {@code %nl%} come separatori di riga.
+     */
+    private void sendLines(Player player, String text) {
+        for (String messageLine : text.split("\\\\n|%nl%", -1)) {
+            player.sendMessage(Colors.translate(messageLine));
+        }
     }
 
     /** Toglie spazi e la barra iniziale: dispatchCommand/performCommand vogliono il comando nudo. */

@@ -47,8 +47,9 @@ public final class NpcDef {
 
     /**
      * Comandi eseguiti quando un giocatore clicca l'entita', in ordine. Prefissi:
-     * {@code console:} esegue da console, {@code msg:} manda un messaggio al giocatore,
-     * nessun prefisso = comando eseguito dal giocatore. Placeholder {player} e {name}.
+     * {@code console:} esegue da console, {@code msg:} manda un messaggio al giocatore
+     * ({@code \n} o {@code %nl%} vanno a capo), nessun prefisso = comando eseguito dal
+     * giocatore. Placeholder {player} e {name}.
      */
     public final List<String> commands = new ArrayList<>();
 

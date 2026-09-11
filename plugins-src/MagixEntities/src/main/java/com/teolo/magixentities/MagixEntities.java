@@ -130,7 +130,13 @@ public final class MagixEntities extends JavaPlugin {
                 .section("Azioni al clic",
                         "A un'entità si può attaccare un'azione: eseguire un comando, aprire un menu, mandare un "
                                 + "messaggio. È il modo con cui una guida allo spawn può portare un nuovo giocatore "
-                                + "dove serve senza che debba sapere nessun comando.")
+                                + "dove serve senza che debba sapere nessun comando.",
+                        "Ogni azione è una riga aggiunta con /mentities cmd <nome> add. Il prefisso decide chi la "
+                                + "esegue: console: la lancia dalla console (per i comandi che il giocatore non "
+                                + "potrebbe usare), msg: manda un messaggio in chat solo a chi clicca (senza il "
+                                + "[nome] davanti che mette /say), nessun prefisso la fa eseguire dal giocatore. "
+                                + "Nel testo di msg: i token \\n e %nl% vanno a capo, così un solo messaggio può "
+                                + "occupare più righe.")
 
                 .detailedCommands()
                 .commands()

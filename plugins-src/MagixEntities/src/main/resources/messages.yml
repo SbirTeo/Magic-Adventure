@@ -38,7 +38,7 @@ usage-info: "&#FFD166▸ Uso: &f/mentities info <nome>"
 usage-respawn: "&#FFD166▸ Uso: &f/mentities respawn <nome>"
 usage-equip: "&#FFD166▸ Uso: &f/mentities equip <nome>"
 usage-cmd: "&#FFD166▸ Uso: &f/mentities cmd <nome> <add|list|remove|clear>"
-usage-cmd-add: "&#FFD166▸ Uso: &f/mentities cmd <nome> add <comando> &8· &7prefissi: &fconsole:&7 (da console), &fmsg:&7 (messaggio)"
+usage-cmd-add: "&#FFD166▸ Uso: &f/mentities cmd <nome> add <comando> &8· &7prefissi: &fconsole:&7 (da console), &fmsg:&7 (messaggio, &f\\n&7 va a capo)"
 
 # ------------------------------------------------------------------ esiti
 created: "&#A8DC2C✔ Creata &f{name} &8· &7{type} &8· &r{display}"
