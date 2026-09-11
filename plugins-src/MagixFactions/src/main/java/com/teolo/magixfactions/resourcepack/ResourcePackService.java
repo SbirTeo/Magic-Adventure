@@ -54,6 +54,17 @@ public final class ResourcePackService {
             "assets/minecraft/shaders/core/text.vsh",
             "assets/minecraft/shaders/core/text.fsh",
 
+            // --- Logo del server nel tablist (font default esteso) ---
+            //
+            // Il logo e' iniettato come glifo bitmap (carattere PUA ) DENTRO il font
+            // default di Minecraft: cosi' funziona anche nelle stringhe "legacy" con &-codes
+            // del tablist di CMI, che non possono specificare un font component. Il provider
+            // "reference" verso include/default lascia intatti tutti i glifi vanilla.
+            // ascent/height sono placeholder sostituiti da config (tablist.logo.*) per poter
+            // calibrare posizione e dimensione con un semplice riavvio, senza ricompilare.
+            "assets/minecraft/font/default.json",
+            "assets/magicadventure/textures/gui/logo.png",
+
             // --- MagixAuth: schermate di accesso e tasti del tastierino ---
             //
             // Stanno QUI e non in un pacchetto separato perche' il client ne applica uno
@@ -318,6 +329,17 @@ public final class ResourcePackService {
         String bgStr = String.format(java.util.Locale.ROOT, "%.4f", bc[1]);
         String bbStr = String.format(java.util.Locale.ROOT, "%.4f", bc[2]);
 
+        // Logo nel tablist: altezza del glifo (px renderizzati) e "ascent" (quanto la texture sale
+        // sopra la linea di base). Clampati in un intervallo sano cosi' un valore sbagliato nel config
+        // non genera un font.json rifiutato dal client. Vedi assets/minecraft/font/default.json.
+        int logoHeight = plugin.getConfig().getInt("tablist.logo.height", 40);
+        logoHeight = Math.max(8, Math.min(256, logoHeight));
+        int logoAscent = plugin.getConfig().getInt("tablist.logo.ascent", 22);
+        // Regola di Minecraft: ascent non puo' superare height, altrimenti il pacchetto e' invalido.
+        logoAscent = Math.max(-128, Math.min(logoHeight, logoAscent));
+        String logoHeightStr = String.valueOf(logoHeight);
+        String logoAscentStr = String.valueOf(logoAscent);
+
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(buffer)) {
             for (String path : BUNDLED_FILES) {
@@ -336,6 +358,11 @@ public final class ResourcePackService {
                                 .replace("__BORDER_R__", brStr)
                                 .replace("__BORDER_G__", bgStr)
                                 .replace("__BORDER_B__", bbStr)
+                                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    } else if (path.endsWith("font/default.json")) { // il font del logo ha i placeholder di dimensione/posizione
+                        data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
+                                .replace("__LOGO_ASCENT__", logoAscentStr)
+                                .replace("__LOGO_HEIGHT__", logoHeightStr)
                                 .getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
                     zip.putNextEntry(new ZipEntry(path));

@@ -590,6 +590,26 @@ map:
       home: "&6&l⌂"         # la tua home
       neutral: "&8-"        # terreno libero
 
+# ------------------------- TABLIST --------------------------------
+# Il logo del server mostrato nell'intestazione della lista giocatori (tasto Tab) e' una
+# TEXTURE inclusa nel resource pack (assets/magicadventure/textures/gui/logo.png), iniettata
+# come carattere speciale nel font del gioco. L'impaginazione del tablist (quali righe, quali
+# info) si regola invece in plugins/CMI/Settings/TabList.yml.
+#
+# Questi due numeri decidono SOLO dimensione e posizione verticale del logo. Cambiarli
+# richiede un riavvio del server (il resource pack viene ricostruito e rimandato ai client).
+tablist:
+  logo:
+    # Altezza del logo in pixel di gioco. Piu' alto = logo piu' grande (cresce anche in larghezza,
+    # in proporzione). Indicativamente: 32 = piccolo, 40 = medio (default), 56+ = grande.
+    # Se lo ingrandisci, aggiungi qualche riga vuota sotto il logo nell'header di TabList.yml,
+    # altrimenti il logo copre le righe di informazioni.
+    height: 40
+    # Quanto il logo sale sopra la riga di testo ("ascent"). Non puo' superare 'height'.
+    # Piu' alto = logo piu' su. Se il logo risulta TAGLIATO in cima allo schermo, ABBASSA questo
+    # valore; se scende troppo sulle informazioni, ALZALO (restando sotto 'height').
+    ascent: 22
+
 # ---------------- TITOLI TERRITORIO (centro schermo) --------------
 # Titolo mostrato quando si ENTRA in una zona (fade-in), distinto per relazione con la fazione
 # proprietaria: own = tua, ally = alleata, enemy = nemica, neutral = terreno di nessuno.
