@@ -397,7 +397,10 @@ public final class MagixFactions extends JavaPlugin {
                                 + "/mf admin setpowermax sta guardando una guida vecchia, ora è il permesso.")
 
                 .section("Territori: quando si può rivendicare",
-                        "/f claim prende il chunk in cui ti trovi. Su terreno **NEUTRALE** servono due condizioni "
+                        "/f claim prende il chunk in cui ti trovi, ma si può rivendicare terreno {{MONDI_CLAIM_FRASE}}: "
+                                + "negli altri mondi (Nether, End...) il comando viene rifiutato. È regolabile dal config "
+                                + "in claims.allowed-worlds — lista vuota per togliere il vincolo.",
+                        "Su terreno **NEUTRALE** servono due condizioni "
                                 + "insieme: la fazione deve tenere meno territori del suo tetto (una percentuale del "
                                 + "maxpower, adesso il {{percento:claims.max-percent}}) e la sua Potenza attuale deve "
                                 + "superare i territori già posseduti.",
@@ -667,6 +670,17 @@ public final class MagixFactions extends JavaPlugin {
             v.extra("PERDITA_OFFLINE_LI", "");
             v.extra("PERDITA_OFFLINE_NOTA", "");
             v.extra("PERDITA_OFFLINE_FRASE", "non cala stando via (la perdita da offline è spenta)");
+        }
+
+        // Mondi in cui si può claimare (config claims.allowed-worlds): frase in testo semplice, così vale
+        // sia nel capitolo markdown della guida staff sia nel tutorial HTML dei giocatori.
+        java.util.List<String> claimWorlds = c.getStringList("claims.allowed-worlds");
+        if (claimWorlds.isEmpty()) {
+            v.extra("MONDI_CLAIM_FRASE", "in qualunque mondo del server");
+        } else if (claimWorlds.size() == 1) {
+            v.extra("MONDI_CLAIM_FRASE", "solo nel mondo «" + claimWorlds.get(0) + "»");
+        } else {
+            v.extra("MONDI_CLAIM_FRASE", "solo in questi mondi: " + String.join(", ", claimWorlds));
         }
         return v;
     }

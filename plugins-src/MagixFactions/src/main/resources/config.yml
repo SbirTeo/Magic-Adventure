@@ -322,6 +322,12 @@ power:
 # /f claim conquista il chunk in cui ti trovi. Permesso interno di fazione "claim" (default: solo leader).
 claims:
   max-percent: 20         # tetto territori = questa % del maxpower della fazione
+  # Mondi in cui è consentito rivendicare territori con /f claim (e overclaim di guerra). Solo in questi
+  # mondi i giocatori possono claimare: altrove il comando viene rifiutato con un messaggio. Elenco dei
+  # NOMI dei mondi come li vede il server (es. "world"). Lista VUOTA = nessuna restrizione (si claima
+  # ovunque, comportamento precedente).
+  allowed-worlds:
+    - world
   # Costo del claim. MONEY = sistema INCREMENTALE pagato dalla BANCA DI FAZIONE (/f deposit), non dal
   # giocatore. Formato "base,incremento,blocco,moltiplicatore":
   #   - base           = costo del PRIMO territorio

@@ -130,6 +130,7 @@ claim:
   bank-insufficient: "&cQuesto territorio costa &e{cost}&c dalla banca della fazione (saldo: &e{bank}&c). Versa con &6/f deposit&c."
   paid: "&7Territorio pagato: &e{cost}&7 dalla banca (saldo: &6{bank}&7)."
   no-perm: "&cNon hai il permesso di conquistare territori (solo il leader di default)."
+  wrong-world: "&cIn questo mondo non si possono rivendicare territori. I claim sono consentiti solo nel mondo principale."
   already-own: "&eQuesto territorio e' gia' della tua fazione."
   cap-reached: "&cHai raggiunto il numero massimo di territori (&e{cap}&c). Aumenta il maxpower della fazione."
   not-enough-power: "&cPotenza insufficiente: serve piu' della quantita' di territori posseduti (&ePotenza {power}&c, territori &e{claims}&c)."

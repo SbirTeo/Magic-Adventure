@@ -258,6 +258,7 @@ HTML = r"""<!DOCTYPE html>
   <h2><span class="n">7</span>Conquistare territori</h2>
   <p>Un <b>territorio</b> è un <b>chunk</b> (16×16 blocchi). Mettiti dove vuoi e usa:</p>
   <p><span class="cmd">/f claim</span> — conquista il chunk in cui ti trovi.</p>
+  <div class="tip">Puoi rivendicare terreno <b>{{MONDI_CLAIM_FRASE}}</b>: nel Nether, nell'End e negli altri mondi il claim non è permesso.</div>
   <h3>Quando puoi claimare (territorio neutrale)</h3>
   <ul>
     <li>non devi aver superato il <b>tetto</b> di territori (il <b>{{percento:claims.max-percent}}</b> della Potenza massima di fazione);</li>

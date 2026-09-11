@@ -338,6 +338,10 @@ colonna è la **copia** dell'ultimo valore visto, aggiornata all'ingresso e a og
 `/f claim` conquista il **chunk** in cui ti trovi. Permesso interno di rank **`claim`** (default: **solo il leader**;
 nei prossimi moduli sarà assegnabile a rank/membri). Il costo è come `/f create` (config `claims.cost`, default **gratis**).
 
+**Mondi consentiti** — i territori si possono rivendicare solo nei mondi elencati in `claims.allowed-worlds`
+(default: **`world`**). Negli altri mondi (Nether, End…) `/f claim` viene rifiutato. Lista **vuota** = nessuna
+restrizione (si claima ovunque).
+
 **Territorio neutrale** — serve:
 1. territori posseduti **<** tetto = `floor(maxpowerFazione × claims.max-percent/100)` (default **20%**);
 2. **Potenza attuale della fazione > territori posseduti**.

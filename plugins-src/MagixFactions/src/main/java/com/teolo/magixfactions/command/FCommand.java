@@ -537,6 +537,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         String world = ch.getWorld().getName();
         int cx = ch.getX(), cz = ch.getZ();
 
+        // Territori consentiti solo in certi mondi (config claims.allowed-worlds). Lista vuota = ovunque.
+        java.util.List<String> allowedWorlds = plugin.getConfig().getStringList("claims.allowed-worlds");
+        if (!allowedWorlds.isEmpty() && !allowedWorlds.contains(world)) {
+            msg(p, M.get("claim.wrong-world")); return true;
+        }
+
         Long ownerId = claims.owner(world, cx, cz);
         if (ownerId != null && ownerId == f.getId()) { msg(p, M.get("claim.already-own")); return true; }
 
