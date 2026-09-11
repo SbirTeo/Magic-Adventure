@@ -2957,7 +2957,14 @@
     var nome = el('div', 'me-tooltip-nome');
     nome.innerHTML = coloraInHtml(it.titolo || '&7' + it.id.toLowerCase().replace(/_/g, ' '));
     targhetta.appendChild(nome);
-    (it.descrizione || []).forEach(function (r) {
+    // Le righe vuote in fondo alla descrizione non servono a niente (in gioco sarebbe spazio
+    // sprecato in coda alla targhetta) e, davanti alle righe del prezzo che mette il server —
+    // che hanno gia' il loro separatore — lascerebbero un buco. Si tolgono prima di disegnare.
+    var descr = (it.descrizione || []).slice();
+    while (descr.length && !(descr[descr.length - 1] || '').trim()) {
+      descr.pop();
+    }
+    descr.forEach(function (r) {
       var d = el('div', 'me-tooltip-riga');
       d.innerHTML = coloraInHtml(r) || '&nbsp;';
       targhetta.appendChild(d);
