@@ -17,9 +17,13 @@ import java.util.UUID;
 /**
  * L'aureola gialla che gira sopra la testa dei VIP.
  *
- * <p>Un solo task ripetuto passa in rassegna i giocatori online e, per quelli a cui l'aureola
- * spetta, disegna un anello di particelle {@code DUST} appena sopra la testa. Un task unico per
- * tutti e non uno per giocatore: con un centinaio di persone collegate la differenza si sente.</p>
+ * <p>E' un <b>solo puntino</b> di particella {@code DUST} che orbita in cerchio appena sopra la
+ * testa: a ogni giro del task l'angolo avanza di un passo e la particella si sposta lungo il
+ * cerchio. Non un anello intero ridisegnato ogni volta — quello, da fermo, sembra pulsare; qui
+ * si vede un punto che ruota, con la breve scia lasciata dalle particelle che sfumano.</p>
+ *
+ * <p>Un task unico passa in rassegna i giocatori online e disegna solo su quelli a cui l'aureola
+ * spetta: con un centinaio di persone collegate un task per ciascuno si sentirebbe.</p>
  *
  * <p>L'aureola spetta a chi ha il permesso {@code magixcosmetics.halo} (i VIP), non l'ha spenta
  * col suo comando, non e' in spettatore e — se il config lo chiede — non e' in vanish o invisibile:
@@ -37,10 +41,8 @@ public final class HaloManager {
     private Color color;
     private double radius;
     private double height;
-    private int points;
     private float size;
     private long interval;
-    private boolean spin;
     private double spinSpeed;
     private boolean hideWhenVanished;
     private boolean hideWhenInvisible;
@@ -49,7 +51,7 @@ public final class HaloManager {
     private final Set<UUID> disabled = new HashSet<>();
 
     private BukkitTask task;
-    /** Angolo di partenza dell'anello: avanza a ogni giro per farlo ruotare. */
+    /** Posizione del puntino lungo il cerchio: avanza di spinSpeed a ogni giro, cosi' orbita. */
     private double angle;
 
     public HaloManager(MagixCosmetics plugin) {
@@ -63,11 +65,9 @@ public final class HaloManager {
         color = parseColor(c.getString("halo.color", "#FFDD33"));
         radius = c.getDouble("halo.radius", 0.4);
         height = c.getDouble("halo.height", 2.2);
-        points = Math.max(3, c.getInt("halo.points", 16));
-        size = (float) c.getDouble("halo.particle-size", 0.9);
-        interval = Math.max(1L, c.getLong("halo.update-interval-ticks", 4));
-        spin = c.getBoolean("halo.spin", true);
-        spinSpeed = c.getDouble("halo.spin-speed", 0.15);
+        size = (float) c.getDouble("halo.particle-size", 0.8);
+        interval = Math.max(1L, c.getLong("halo.update-interval-ticks", 1));
+        spinSpeed = c.getDouble("halo.spin-speed", 0.25);
         hideWhenVanished = c.getBoolean("halo.hide-when-vanished", true);
         hideWhenInvisible = c.getBoolean("halo.hide-when-invisible", true);
     }
@@ -87,10 +87,8 @@ public final class HaloManager {
     }
 
     private void tick() {
-        if (spin) {
-            angle += spinSpeed;
-            if (angle > Math.PI * 2) angle -= Math.PI * 2;   // niente overflow su uptime lunghi
-        }
+        angle += spinSpeed;
+        if (angle > Math.PI * 2) angle -= Math.PI * 2;   // niente overflow su uptime lunghi
         Particle.DustOptions dust = new Particle.DustOptions(color, size);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (shows(p)) draw(p, dust);
@@ -109,16 +107,14 @@ public final class HaloManager {
     }
 
     private void draw(Player p, Particle.DustOptions dust) {
-        Location center = p.getLocation().add(0, height, 0);
-        for (int i = 0; i < points; i++) {
-            double a = angle + (2 * Math.PI * i / points);
-            double x = Math.cos(a) * radius;
-            double z = Math.sin(a) * radius;
-            Location at = center.clone().add(x, 0, z);
-            // Sul MONDO, non solo a lui: cosi' l'aureola la vedono tutti, il VIP compreso.
-            // Con DUST il "count" 1 e gli offset a zero mettono la particella esattamente li'.
-            p.getWorld().spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, dust);
-        }
+        // Un solo punto, alla posizione corrente lungo il cerchio: il prossimo tick sara' poco
+        // piu' avanti, e cosi' orbita. Le particelle vecchie sfumano da sole e lasciano una breve scia.
+        double x = Math.cos(angle) * radius;
+        double z = Math.sin(angle) * radius;
+        Location at = p.getLocation().add(x, height, z);
+        // Sul MONDO, non solo a lui: cosi' l'aureola la vedono tutti, il VIP compreso.
+        // Con DUST il "count" 1 e gli offset a zero mettono la particella esattamente li'.
+        p.getWorld().spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, dust);
     }
 
     // ------------------------------------------------------------- toggle personale

@@ -77,9 +77,10 @@ public final class MagixCosmetics extends JavaPlugin {
                         + "un'aureola gialla che gira sopra la testa dei VIP.")
 
                 .section("L'aureola",
-                        "E' un anello di {{cfg:halo.points}} particelle disegnato a {{cfg:halo.height}} blocchi da "
-                                + "terra, poco sopra la testa. Si ridisegna in continuazione e, se **spin** è acceso, "
-                                + "ruota lentamente su se stessa. Il colore di serie è il giallo **{{cfg:halo.color}}**.",
+                        "È un **solo puntino** giallo (**{{cfg:halo.color}}**) che orbita in cerchio a "
+                                + "{{cfg:halo.height}} blocchi da terra, poco sopra la testa: a ogni passo avanza lungo "
+                                + "il cerchio, così ruota, e le particelle che sfumano gli lasciano una breve scia. Non "
+                                + "un anello pieno ridisegnato ogni volta — quello, da fermo, sembrerebbe pulsare.",
                         "La vede chi ha il permesso **magixcosmetics.halo**: è così che si dà ai VIP, di norma con "
                                 + "LuckPerms sul grado VIP. Non serve nessun comando per accenderla — appena il permesso "
                                 + "c'è, l'aureola compare.",
@@ -93,17 +94,18 @@ public final class MagixCosmetics extends JavaPlugin {
                                 + "toccare nient'altro.")
 
                 .section("Prestazioni",
-                        "Il disegno è un unico task che passa in rassegna i giocatori online: pesa solo su chi "
-                                + "l'aureola ce l'ha davvero. Se con tanti VIP collegati si sentisse, le leve sono "
-                                + "**points** (meno particelle) e **update-interval-ticks** (si ridisegna meno spesso).")
+                        "Il disegno è un unico task che passa in rassegna i giocatori online e spawna **una sola** "
+                                + "particella per VIP a ogni passo: pesa solo su chi l'aureola ce l'ha davvero, ed è "
+                                + "leggerissimo. Se servisse alleggerire ancora, alza **update-interval-ticks** (il "
+                                + "puntino avanza meno spesso).")
 
                 .commands()
                 .permissions()
                 .settings(
                         "halo.enabled", "Interruttore generale: spento, nessuno vede l'aureola e il task non gira.",
-                        "halo.color", "Colore dell'aureola in #RRGGBB. Il giallo dei VIP è #FFDD33.",
-                        "halo.points", "Quante particelle formano l'anello: più alto = anello più pieno e più pesante.",
-                        "halo.update-interval-ticks", "Ogni quanti tick si ridisegna: più basso = più fluido e più pesante.")
+                        "halo.color", "Colore del puntino in #RRGGBB. Il giallo dei VIP è #FFDD33.",
+                        "halo.spin-speed", "Quanto avanza lungo il cerchio a ogni passo: più alto = orbita più veloce.",
+                        "halo.update-interval-ticks", "Ogni quanti tick il puntino avanza: 1 = più fluido; più alto = più leggero.")
 
                 .issue("Un VIP non vede la sua aureola",
                         "Controlla che abbia davvero il permesso magixcosmetics.halo (LuckPerms), che non se la sia "
@@ -111,8 +113,8 @@ public final class MagixCosmetics extends JavaPlugin {
                 .issue("L'aureola si vede su uno staff in vanish",
                         "Non dovrebbe: hide-when-vanished la nasconde a chi ha il metadata di vanish (CMI). "
                                 + "Se succede, verifica che il vanish in uso imposti quel metadata.")
-                .issue("L'aureola pesa con tanti giocatori",
-                        "Abbassa halo.points e alza halo.update-interval-ticks, poi /cosmetics reload.")
+                .issue("Il puntino va troppo veloce o troppo piano",
+                        "Regola halo.spin-speed (radianti per passo) e poi /cosmetics reload.")
 
                 .never("Non dare magixcosmetics.halo a default true: diventerebbe di tutti, non più un segno dei VIP.")
                 .write();

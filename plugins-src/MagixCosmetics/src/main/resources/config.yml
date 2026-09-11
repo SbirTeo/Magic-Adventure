@@ -5,34 +5,30 @@
 # LuckPerms). Non serve nessun comando: appena il permesso c'e', l'aureola compare.
 # I testi e i colori dei messaggi stanno in messages.yml; qui ci sono solo i numeri della resa.
 
+# L'aureola e' un SOLO puntino che orbita in cerchio sopra la testa (non un anello pieno).
 halo:
   # Interruttore generale dell'aureola. Spento, nessuno la vede e il task non gira.
   enabled: true
 
-  # Colore dell'aureola, in esadecimale #RRGGBB. Il giallo dei VIP e' #FFDD33.
+  # Colore del puntino, in esadecimale #RRGGBB. Il giallo dei VIP e' #FFDD33.
   color: "#FFDD33"
 
-  # Raggio del cerchio, in blocchi. 0.4 sta appena piu' largo della testa.
+  # Raggio dell'orbita, in blocchi. 0.4 sta appena piu' largo della testa.
   radius: 0.4
 
   # Altezza sopra i piedi del giocatore, in blocchi. 2.2 la mette poco sopra la testa.
   height: 2.2
 
-  # Quanti punti di particella formano il cerchio: piu' alto = anello piu' pieno (e piu' particelle).
-  points: 16
+  # Dimensione del puntino (particella DUST). 1.0 e' la taglia normale; 0.8 e' un puntino piccolo.
+  particle-size: 0.8
 
-  # Dimensione della singola particella (DUST). 1.0 e' la taglia normale.
-  particle-size: 0.9
+  # Ogni quanti tick il puntino avanza (e viene disegnato). 1 = ogni tick, il movimento piu' fluido.
+  # Piu' alto = piu' leggero ma il movimento e' piu' a scatti.
+  update-interval-ticks: 1
 
-  # Ogni quanti tick si ridisegna l'aureola. 4 tick = 5 volte al secondo.
-  # Piu' basso = piu' fluido ma piu' pesante.
-  update-interval-ticks: 4
-
-  # Se l'aureola gira su se stessa.
-  spin: true
-
-  # Quanto gira a ogni aggiornamento, in radianti. 0.15 e' una rotazione lenta e morbida.
-  spin-speed: 0.15
+  # Quanto avanza lungo il cerchio a ogni passo, in radianti. Piu' alto = orbita piu' veloce.
+  # 0.25 fa un giro completo in circa un secondo e mezzo.
+  spin-speed: 0.25
 
   # Nascondi l'aureola a chi e' in vanish (staff invisibile): altrimenti lo tradirebbe.
   hide-when-vanished: true
