@@ -3,7 +3,7 @@ version: '${project.version}'
 main: com.teolo.magixcosmetics.MagixCosmetics
 api-version: '26.1'
 author: teolo
-description: Cosmetici a particelle per i giocatori (per ora: l'aureola gialla dei VIP).
+description: "Cosmetici a particelle per i giocatori (per ora: l'aureola gialla dei VIP)."
 
 commands:
   magixcosmetics:
