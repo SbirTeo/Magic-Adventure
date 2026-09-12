@@ -1,0 +1,11 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "magicadventure:gui/logo.png",
+      "ascent": 22,
+      "height": 40,
+      "chars": [""]
+    }
+  ]
+}

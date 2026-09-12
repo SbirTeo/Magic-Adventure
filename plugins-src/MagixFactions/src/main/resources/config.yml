@@ -614,11 +614,11 @@ tablist:
     # in proporzione). Indicativamente: 32 = piccolo, 40 = medio (default), 56+ = grande.
     # Se lo ingrandisci, aggiungi qualche riga vuota sotto il logo nell'header di TabList.yml,
     # altrimenti il logo copre le righe di informazioni.
-    height: 40
+    height: 78
     # Quanto il logo sale sopra la riga di testo ("ascent"). Non puo' superare 'height'.
     # Piu' alto = logo piu' su. Se il logo risulta TAGLIATO in cima allo schermo, ABBASSA questo
     # valore; se scende troppo sulle informazioni, ALZALO (restando sotto 'height').
-    ascent: 22
+    ascent: -8
 
 # ---------------- TITOLI TERRITORIO (centro schermo) --------------
 # Titolo mostrato quando si ENTRA in una zona (fade-in), distinto per relazione con la fazione

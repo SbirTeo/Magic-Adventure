@@ -63,6 +63,7 @@ public final class ResourcePackService {
             // ascent/height sono placeholder sostituiti da config (tablist.logo.*) per poter
             // calibrare posizione e dimensione con un semplice riavvio, senza ricompilare.
             "assets/minecraft/font/default.json",
+            "assets/magicadventure/font/logo.json",
             "assets/magicadventure/textures/gui/logo.png",
 
             // --- MagixAuth: schermate di accesso e tasti del tastierino ---
