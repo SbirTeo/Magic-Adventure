@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"C:/Users/teolo/progettiCLAUDE/magicadventure/plugins-src/check_hook.py\"",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/plugins-src/check_hook.py\"",
             "timeout": 120,
             "statusMessage": "Controllo config/guide dei plugin..."
           }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"C:/Users/teolo/progettiCLAUDE/magicadventure/plugins-src/check_hook.py\"",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/plugins-src/check_hook.py\"",
             "timeout": 120,
             "statusMessage": "Controllo config/guide dei plugin..."
           }
