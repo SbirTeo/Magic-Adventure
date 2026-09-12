@@ -342,6 +342,12 @@ nei prossimi moduli sarà assegnabile a rank/membri). Il costo è come `/f creat
 (default: **`world`**). Negli altri mondi (Nether, End…) `/f claim` viene rifiutato. Lista **vuota** = nessuna
 restrizione (si claima ovunque).
 
+**Area protetta dello spawn** (`claims.protected-spawn`) — un quadrato centrale (default: mondo `world`,
+centro `0,0`, semilato `radius` **500** → da −500 a +500) in cui **non** si possono **fondare fazioni**
+(`/f create`) né **conquistare territori** (`/f claim`): i giocatori devono uscirne per stabilire la base.
+**I blocchi NON sono protetti**: dentro l'area si costruisce e si rompe liberamente come nel survival, è
+solo l'attività di fazione a essere bloccata. `enabled: false` disattiva del tutto la zona.
+
 **Territorio neutrale** — serve:
 1. territori posseduti **<** tetto = `floor(maxpowerFazione × claims.max-percent/100)` (default **20%**);
 2. **Potenza attuale della fazione > territori posseduti**.

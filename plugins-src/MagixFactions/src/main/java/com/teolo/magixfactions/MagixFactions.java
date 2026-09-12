@@ -399,7 +399,12 @@ public final class MagixFactions extends JavaPlugin {
                 .section("Territori: quando si può rivendicare",
                         "/f claim prende il chunk in cui ti trovi, ma si può rivendicare terreno {{MONDI_CLAIM_FRASE}}: "
                                 + "negli altri mondi (Nether, End...) il comando viene rifiutato. È regolabile dal config "
-                                + "in claims.allowed-worlds — lista vuota per togliere il vincolo.",
+                                + "in claims.allowed-worlds — lista vuota per togliere il vincolo. "
+                                + "{{se:claims.protected-spawn.enabled=true}}C'è inoltre un'**area protetta** attorno allo "
+                                + "spawn: un quadrato di {{cfg:claims.protected-spawn.radius}} blocchi dal centro su ogni "
+                                + "lato, dove non si fondano fazioni (/f create) né si conquistano territori — bisogna "
+                                + "uscirne. Attenzione: lì i blocchi **non** sono protetti, si costruisce come ovunque; "
+                                + "è solo l'attività di fazione a essere bloccata. Si regola in claims.protected-spawn.{{/se}}",
                         "Su terreno **NEUTRALE** servono due condizioni "
                                 + "insieme: la fazione deve tenere meno territori del suo tetto (una percentuale del "
                                 + "maxpower, adesso il {{percento:claims.max-percent}}) e la sua Potenza attuale deve "

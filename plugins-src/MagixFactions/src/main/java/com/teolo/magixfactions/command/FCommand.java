@@ -160,6 +160,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private boolean create(Player p, String[] a) throws Exception {
         if (a.length < 2) { msg(p, M.get("create.usage")); return true; }
         if (fm.getFaction(p.getUniqueId()) != null) { msg(p, M.get("create.already-in")); return true; }
+        if (inProtectedSpawn(p)) {
+            msg(p, M.get("protected-spawn.no-create", "radius",
+                    String.valueOf(plugin.getConfig().getInt("claims.protected-spawn.radius", 500))));
+            return true;
+        }
         String name = a[1];
         if (!nameOk(p, name, null)) return true;
 
@@ -197,6 +202,25 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         Faction taken = fm.getByName(name);
         if (taken != null && taken != self) { msg(p, M.get("create.name-taken")); return false; }
         return true;
+    }
+
+    /**
+     * True se il giocatore si trova nell'AREA PROTETTA dello spawn: un quadrato centrale (config
+     * {@code claims.protected-spawn}) in cui non si possono fondare fazioni ({@code /f create}) né
+     * conquistare territori ({@code /f claim}). NON è una protezione dei blocchi: lì si costruisce e si
+     * rompe liberamente come nel survival, semplicemente non si stabilisce/rivendica terreno.
+     * Il quadrato è centrato in (center-x, center-z) col semilato {@code radius} (radius 500 = da -500
+     * a +500). {@code enabled: false} o mondo diverso da quello configurato ⇒ nessuna restrizione.
+     */
+    private boolean inProtectedSpawn(Player p) {
+        var sec = plugin.getConfig().getConfigurationSection("claims.protected-spawn");
+        if (sec == null || !sec.getBoolean("enabled", false)) return false;
+        if (!p.getWorld().getName().equals(sec.getString("world", "world"))) return false;
+        int cx = sec.getInt("center-x", 0);
+        int cz = sec.getInt("center-z", 0);
+        int radius = sec.getInt("radius", 500);
+        int x = p.getLocation().getBlockX(), z = p.getLocation().getBlockZ();
+        return Math.abs(x - cx) <= radius && Math.abs(z - cz) <= radius;
     }
 
     /**
@@ -541,6 +565,13 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         java.util.List<String> allowedWorlds = plugin.getConfig().getStringList("claims.allowed-worlds");
         if (!allowedWorlds.isEmpty() && !allowedWorlds.contains(world)) {
             msg(p, M.get("claim.wrong-world")); return true;
+        }
+        // Area protetta dello spawn: nel quadrato centrale non si conquistano territori (i blocchi
+        // restano comunque NON protetti: si costruisce liberamente, semplicemente non si claima).
+        if (inProtectedSpawn(p)) {
+            msg(p, M.get("protected-spawn.no-claim", "radius",
+                    String.valueOf(plugin.getConfig().getInt("claims.protected-spawn.radius", 500))));
+            return true;
         }
 
         Long ownerId = claims.owner(world, cx, cz);

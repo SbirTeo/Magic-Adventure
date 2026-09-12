@@ -328,6 +328,16 @@ claims:
   # ovunque, comportamento precedente).
   allowed-worlds:
     - world
+  # Area protetta centrale (lo SPAWN): un quadrato in cui NON si possono fondare fazioni (/f create) né
+  # rivendicare territori (/f claim). Serve a tenere libera la zona di partenza: i giocatori devono
+  # uscire da questo quadrato per fondare la fazione e conquistare terreno. Il quadrato è centrato in
+  # (center-x, center-z) e ha semilato "radius" (radius 500 = quadrato da -500 a +500 su X e Z).
+  protected-spawn:
+    enabled: true
+    world: world            # mondo in cui vale la protezione
+    center-x: 0
+    center-z: 0
+    radius: 500             # semilato del quadrato in blocchi
   # Costo del claim. MONEY = sistema INCREMENTALE pagato dalla BANCA DI FAZIONE (/f deposit), non dal
   # giocatore. Formato "base,incremento,blocco,moltiplicatore":
   #   - base           = costo del PRIMO territorio
