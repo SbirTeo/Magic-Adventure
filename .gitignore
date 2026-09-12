@@ -36,3 +36,8 @@ server/session.lock
 # resto e' roba di CMI, LuckPerms & co. Il sorgente dei nostri plugin sta in plugins-src/, e
 # per regola del progetto e' lui la fonte di verita'.
 server/plugins/
+
+# --- config LOCALE di Claude Code ---
+# settings.local.json e' per-macchina (permessi, hook col percorso Windows, IP del VPS): non deve
+# viaggiare col repo, altrimenti l'hook rompe le sessioni cloud (percorso C:\ non valido su Linux).
+.claude/settings.local.json
