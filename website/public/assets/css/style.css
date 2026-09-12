@@ -5079,11 +5079,11 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
      fondo mette piede sulla SOGLIA del portale invece di finire oltre il bordo della
      pagina. */
   left: calc(var(--carica) * (100% - 3 * var(--blocco)));
-  /* I piedi partono sopra la corda e salgono man mano: a fine corsa sono alla quota
-     della soglia del portale, cosi' ci entra camminando sull'ossidiana invece di
-     infilarcisi da sotto. Quanto deve salire lo misura il browser (--salita in site.js):
-     dipende da dove cade il portale nella pagina, che il foglio di stile non puo' sapere. */
-  bottom: calc(13px + var(--carica) * var(--salita, 0px));
+  /* I piedi corrono appoggiati sulla miccia. Senza piu' il portale in fondo non c'e' una
+     soglia su cui salire, quindi resta alla stessa quota per tutta la corsa: abbassato un
+     po' cosi' sta proprio sopra la corda invece di fluttuarle sopra. (--salita resta come
+     margine se in futuro tornasse un capolinea rialzato.) */
+  bottom: calc(7px + var(--carica) * var(--salita, 0px));
   width: calc(8 * var(--u));
   height: calc(32 * var(--u));
   margin-left: calc(-4 * var(--u));
