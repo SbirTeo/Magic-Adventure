@@ -1,0 +1,53 @@
+# ============================================================
+#  MagixEssentials - Configurazione
+# ============================================================
+# Per ora questo plugin gestisce SOLO il tablist (la lista giocatori, tasto Tab).
+# In futuro raccogliera' le altre utilita' che oggi fa CMI.
+
+tablist:
+  # Se true, il tablist e' gestito da questo plugin. In tal caso DISATTIVA quello di CMI
+  # (plugins/CMI/Settings/Modules.yml -> tablist: false) per evitare che si sovrascrivano a vicenda.
+  enabled: true
+
+  # Ogni quanti tick (20 = 1 secondo) si riaggiornano intestazione, fondo e nomi.
+  update-interval-ticks: 20
+
+  # Segnaposto speciale {logo}: viene sostituito con il carattere del LOGO del server
+  # (la texture nel resource pack di MagixFactions). Dimensione/posizione del logo si regolano
+  # nel config di MagixFactions (tablist.logo.height/ascent).
+  #
+  # Supporta i codici colore & e &#RRGGBB, e i placeholder di PlaceholderAPI (%server_online%,
+  # %magixfactions_*%, %magixtime_*%, ...). Le righe " " (spazio) servono a dare aria sotto il logo.
+  header:
+    - '{logo}'
+    - ' '
+    - ' '
+    - ' '
+    - ' '
+    - ' '
+    - ' '
+    - ' '
+    - ' '
+    - '&8&m                                                  '
+    - '&7Giocatori online &8» &a%server_online%&7/&f%server_max_players%    &8•    &7Ping &8» &a%player_ping%&7ms'
+    - '&8&m                                                  '
+
+  footer:
+    - '&8&m                                                  '
+    - '&7Fazione &8» &d%magixfactions_faction%     &7Potenza &8» &a%magixfactions_power_player%&7/&f%magixfactions_maxpower_player%     &7Claim &8» &f%magixfactions_claims%'
+    - '&7Saldo &8» &6%vault_eco_balance_formatted%     &7Mondo &8» &f%player_world% &8(&7%player_x%&8, &7%player_y%&8, &7%player_z%&8)'
+    - '&5%magixtime_time%  &8•  &d%magixtime_date%     &8•     &7Stagione &8» &a%magixtime_season%     &8•     &7Meteo &8» &f%magixtime_weather%'
+    - '&8&m                                                  '
+    - '&8» &d&lmagicadventure.it &8«'
+
+  # Nome del giocatore nella lista. {name} = nome del giocatore. Supporta colori e placeholder
+  # (es. %magixweb_namecolor% = colore del grado, come sul sito).
+  player-name: '&7%magixweb_namecolor%{name}'
+
+  # --- 80 SLOT FISSE (in arrivo) ---
+  # Quando attivo, il tablist mostrera' SEMPRE 80 caselle (4 colonne x 20), riempiendo quelle
+  # senza giocatore con caselle decorative, cosi' la dimensione del tab non cambia mai e si potra'
+  # mettere una pergamena di sfondo. Non ancora implementato: lasciare false per ora.
+  fixed-slots:
+    enabled: false
+    total: 80
