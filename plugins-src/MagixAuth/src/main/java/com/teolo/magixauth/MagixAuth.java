@@ -70,7 +70,10 @@ public final class MagixAuth extends JavaPlugin {
                 () -> policy.refreshGroups(), 6000L, 6000L);
 
         Visibility visibility = new Visibility(this, config);
-        MojangLookup mojang = new MojangLookup(config.premiumTimeoutMillis, config.skinCacheMinutes, getLogger());
+        // Le skin buone si salvano qui e si ricaricano da qui all'avvio: cosi' chi rientra subito
+        // dopo un riavvio vede la sua skin senza dipendere da una risposta di Mojang a freddo.
+        java.nio.file.Path skinStore = new java.io.File(getDataFolder(), "skins.tsv").toPath();
+        MojangLookup mojang = new MojangLookup(config.premiumTimeoutMillis, config.skinCacheMinutes, getLogger(), skinStore);
         // Il primo collegamento HTTPS della JVM e' il piu' lento: lo si fa adesso, a vuoto,
         // cosi' non lo paga il primo giocatore che entra (e non resta senza skin).
         if (config.skinFromMojang) {

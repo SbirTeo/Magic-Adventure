@@ -56,6 +56,21 @@ public final class MojangLookup {
     private final Logger log;
 
     /**
+     * L'ultima skin BUONA vista per ogni nome, tenuta su disco e ricaricata all'avvio.
+     *
+     * La cache in memoria ({@link #skinViste}) sparisce a ogni riavvio: subito dopo il boot e'
+     * vuota, quindi il primo giocatore che entra dipende interamente da una risposta di Mojang
+     * entro il timeout — e a freddo (JVM che carica JSSE, TLS, DNS, sei core occupati dal boot)
+     * quella risposta spesso non arriva in tempo. Risultato: entrava con la faccia di uno
+     * sconosciuto. Salvando su disco l'ultima skin vera di ognuno, all'avvio la ricarichiamo in
+     * cache: chi rientra la vede subito, senza nemmeno chiamare Mojang. E se una chiamata vera
+     * fallisce piu' avanti, questa resta la rete di sicurezza al posto del profilo sbagliato.
+     */
+    private final java.nio.file.Path storeFile;
+    private final Map<String, String[]> lastGood = new ConcurrentHashMap<>();
+    private final Object storeLock = new Object();
+
+    /**
      * Le skin gia' chieste, per nome, con la loro scadenza.
      *
      * Senza cache, ogni ingresso costerebbe un viaggio fino ai server di Mojang mentre il
@@ -99,13 +114,19 @@ public final class MojangLookup {
     private record Reply(Outcome outcome, String body, String reason) {}
 
     public MojangLookup(int timeoutMillis, int minutiCache, Logger log) {
+        this(timeoutMillis, minutiCache, log, null);
+    }
+
+    public MojangLookup(int timeoutMillis, int minutiCache, Logger log, java.nio.file.Path storeFile) {
         this.timeoutMillis = timeoutMillis;
         this.cacheMillis = Math.max(1, minutiCache) * 60_000L;
         this.log = log;
+        this.storeFile = storeFile;
         this.client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(timeoutMillis))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
+        loadFromDisk();
     }
 
     /**
@@ -142,14 +163,14 @@ public final class MojangLookup {
                 return remember(key, texture(prof.body(), accountUuid));
             }
             if (prof.outcome() == Outcome.FALLITA) {
-                return Found.failed(prof.reason());
+                return fallbackOrFailed(key, prof.reason());
             }
             // ASSENTE: quell'UUID non esiste piu'. Si riprova per nome.
         }
 
         Reply cercato = invoke(ENDPOINT + name);
         if (cercato.outcome() == Outcome.FALLITA) {
-            return Found.failed(cercato.reason());
+            return fallbackOrFailed(key, cercato.reason());
         }
         if (cercato.outcome() == Outcome.ASSENTE) {
             // Nome libero: nessun account premium si chiama cosi'. E' una risposta vera, e
@@ -162,9 +183,25 @@ public final class MojangLookup {
         }
         Reply prof = invoke(PROFILO + withoutDashes(premium) + "?unsigned=false");
         if (prof.outcome() == Outcome.FALLITA) {
-            return Found.failed(prof.reason());
+            return fallbackOrFailed(key, prof.reason());
         }
         return remember(key, prof.outcome() == Outcome.OK ? texture(prof.body(), premium) : null);
+    }
+
+    /**
+     * Quando Mojang non risponde: se di questo nome abbiamo gia' salvato una skin buona (da un
+     * ingresso precedente, ricaricata dal disco all'avvio), la si rimette al posto della faccia
+     * di uno sconosciuto. Il fallimento resta nel log, ma il giocatore vede comunque SE STESSO.
+     * Se invece non l'abbiamo mai vista, non c'e' niente da mettere: fallimento vero.
+     */
+    private Found fallbackOrFailed(String key, String reason) {
+        String[] saved = lastGood.get(key);
+        if (saved != null) {
+            log.warning("MagixAuth: Mojang non ha risposto per " + key + " (" + reason
+                    + "). Uso l'ultima skin salvata di questo nome.");
+            return Found.riuscita(saved);
+        }
+        return Found.failed(reason);
     }
 
     /** L'UUID Mojang di un nome, se il nome e' un account premium. */
@@ -187,7 +224,80 @@ public final class MojangLookup {
 
     private Found remember(String key, String[] skin) {
         skinViste.put(key, new Entry(skin, System.currentTimeMillis() + cacheMillis));
+        // Solo le skin VERE si tengono da parte su disco: un "nome libero" (skin null) non va
+        // salvato, e soprattutto non deve mai sovrascrivere una skin buona vista in precedenza.
+        if (skin != null && skin.length >= 1 && skin[0] != null) {
+            String[] prima = lastGood.put(key, skin);
+            if (prima == null || !java.util.Arrays.equals(prima, skin)) {
+                saveToDisk();
+            }
+        }
         return Found.riuscita(skin);
+    }
+
+    /**
+     * Carica dal disco l'ultima skin buona di ogni nome e la rimette in cache come valida, cosi'
+     * chi rientra subito dopo un riavvio la vede senza dover aspettare (ne' rischiare) una
+     * risposta di Mojang a freddo. Un file assente o una riga malformata non sono un errore: si
+     * riparte semplicemente senza quella voce.
+     */
+    private void loadFromDisk() {
+        if (storeFile == null || !java.nio.file.Files.isReadable(storeFile)) {
+            return;
+        }
+        int loaded = 0;
+        long scadenza = System.currentTimeMillis() + cacheMillis;
+        try {
+            for (String line : java.nio.file.Files.readAllLines(storeFile, StandardCharsets.UTF_8)) {
+                if (line.isBlank()) continue;
+                // formato: nome<TAB>value<TAB>signature  (signature puo' mancare)
+                String[] parts = line.split("\t", -1);
+                if (parts.length < 2 || parts[0].isBlank() || parts[1].isBlank()) continue;
+                String key = parts[0].toLowerCase(Locale.ROOT);
+                String[] skin = new String[]{parts[1], parts.length >= 3 && !parts[2].isEmpty() ? parts[2] : null};
+                lastGood.put(key, skin);
+                skinViste.put(key, new Entry(skin, scadenza));
+                loaded++;
+            }
+            if (loaded > 0) {
+                log.info("MagixAuth: " + loaded + " skin ricaricate dal disco (pronte per il primo ingresso).");
+            }
+        } catch (Exception e) {
+            log.warning("MagixAuth: impossibile leggere le skin salvate (" + e + "). Si riparte senza.");
+        }
+    }
+
+    /** Riscrive su disco tutte le skin buone conosciute (poche righe, scritte di rado: solo quando
+     *  una skin nuova o cambiata viene vista davvero). Scrittura atomica: prima un file di lato,
+     *  poi la sostituzione, per non lasciare mai il file a meta' se il server viene fermato. */
+    private void saveToDisk() {
+        if (storeFile == null) {
+            return;
+        }
+        synchronized (storeLock) {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, String[]> e : lastGood.entrySet()) {
+                String[] skin = e.getValue();
+                if (skin == null || skin.length < 1 || skin[0] == null) continue;
+                sb.append(e.getKey()).append('\t').append(skin[0]).append('\t')
+                        .append(skin.length >= 2 && skin[1] != null ? skin[1] : "").append('\n');
+            }
+            try {
+                java.nio.file.Path dir = storeFile.getParent();
+                if (dir != null) java.nio.file.Files.createDirectories(dir);
+                java.nio.file.Path tmp = storeFile.resolveSibling(storeFile.getFileName() + ".tmp");
+                java.nio.file.Files.writeString(tmp, sb.toString(), StandardCharsets.UTF_8);
+                try {
+                    java.nio.file.Files.move(tmp, storeFile,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                } catch (java.nio.file.AtomicMoveNotSupportedException noAtomic) {
+                    java.nio.file.Files.move(tmp, storeFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (Exception e) {
+                log.warning("MagixAuth: impossibile salvare le skin su disco (" + e + ").");
+            }
+        }
     }
 
     /**

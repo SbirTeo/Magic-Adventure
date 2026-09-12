@@ -1,13 +1,13 @@
 {
   "providers": [
-    { "type": "reference", "id": "minecraft:include/space" },
-    { "type": "reference", "id": "minecraft:include/default" },
     {
       "type": "bitmap",
       "file": "magicadventure:gui/logo.png",
       "ascent": __LOGO_ASCENT__,
       "height": __LOGO_HEIGHT__,
       "chars": [""]
-    }
+    },
+    { "type": "reference", "id": "minecraft:include/space" },
+    { "type": "reference", "id": "minecraft:include/default" }
   ]
 }
