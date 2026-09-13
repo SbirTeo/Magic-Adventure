@@ -45,6 +45,7 @@ public final class PowerManager {
         int mapRows;   // colonna storica 'map_rows' riusata come ZOOM mappa: 0=default config, 1..5=closest..farthest
         int progress;      // avanzamento verso il prossimo punto di Potenza, in "secondi x percentuale"
         boolean minimapHidden; // il giocatore ha SPENTO la minimap HUD con /f minimap off (colonna minimap_hidden)
+        boolean bordersEnabled; // il giocatore ha ACCESO i confini a particelle con /f borders (colonna borders_enabled)
         PP(String name, int power, int maxPower, long lastSeen, int mapRows, int progress) {
             this.name = name; this.power = power; this.maxPower = maxPower; this.lastSeen = lastSeen;
             this.mapRows = mapRows; this.progress = progress;
@@ -203,7 +204,7 @@ public final class PowerManager {
     public void loadAll() throws SQLException {
         cache.clear();
         try (Connection c = db.getConnection(); Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden FROM players")) {
+             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden, borders_enabled FROM players")) {
             while (rs.next()) {
                 UUID u = UUID.fromString(rs.getString("uuid"));
                 PP pp = new PP(rs.getString("name"),
@@ -217,6 +218,7 @@ public final class PowerManager {
                 long ll = rs.getLong("last_login");
                 pp.lastLogin = ll > 0 ? ll : pp.lastSeen;
                 pp.minimapHidden = rs.getInt("minimap_hidden") != 0;
+                pp.bordersEnabled = rs.getInt("borders_enabled") != 0;
                 cache.put(u, pp);
             }
         }
@@ -356,6 +358,19 @@ public final class PowerManager {
     /** Il giocatore ha SPENTO la minimap con /f minimap off (preferenza personale, colonna minimap_hidden). */
     public boolean isMinimapHidden(UUID u) { PP pp = cache.get(u); return pp != null && pp.minimapHidden; }
 
+    /** Il giocatore ha ACCESO i confini a particelle con /f borders (preferenza personale, colonna
+     *  borders_enabled). Di serie spento: la feature esiste ma va abilitata da ogni giocatore. */
+    public boolean isBordersEnabled(UUID u) { PP pp = cache.get(u); return pp != null && pp.bordersEnabled; }
+
+    /** Accende/spegne i confini a particelle del giocatore (comando /f borders). Salva la preferenza; il
+     *  disegno vero e proprio lo fa il giro periodico di {@code BorderService}, che legge questo flag. */
+    public void setBordersEnabled(Player p, boolean enabled) {
+        PP pp = ensure(p.getUniqueId());
+        if (pp.bordersEnabled == enabled) return;
+        pp.bordersEnabled = enabled;
+        save(p.getUniqueId());
+    }
+
     /** La minimap HUD va mostrata a questo giocatore ADESSO: ha il permesso E non l'ha spenta lui. Lo usano
      *  join e riconciliazione periodica ({@link #tickOnline}) per montare/smontare l'HUD. */
     public boolean canUseMinimap(Player p) { return hasMinimapPermission(p) && !isMinimapHidden(p.getUniqueId()); }
@@ -418,7 +433,7 @@ public final class PowerManager {
             PP fresh = null;
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "SELECT name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden FROM players WHERE uuid=?")) {
+                         "SELECT name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden, borders_enabled FROM players WHERE uuid=?")) {
                 ps.setString(1, u.toString());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -431,6 +446,7 @@ public final class PowerManager {
                         long ll = rs.getLong("last_login");
                         fresh.lastLogin = ll > 0 ? ll : fresh.lastSeen;
                         fresh.minimapHidden = rs.getInt("minimap_hidden") != 0;
+                        fresh.bordersEnabled = rs.getInt("borders_enabled") != 0;
                     }
                 }
             } catch (SQLException e) {
@@ -690,13 +706,14 @@ public final class PowerManager {
         final int power = pp.power, maxPower = pp.maxPower, mapRows = pp.mapRows, progress = pp.progress;
         final long lastSeen = pp.lastSeen, lastLogin = pp.lastLogin;
         final int minimapHidden = pp.minimapHidden ? 1 : 0;
+        final int bordersEnabled = pp.bordersEnabled ? 1 : 0;
         dbExec.submit(() -> {
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=?, last_login=?, minimap_hidden=? WHERE uuid=?")) {
+                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=?, last_login=?, minimap_hidden=?, borders_enabled=? WHERE uuid=?")) {
                 ps.setString(1, name); ps.setDouble(2, power); ps.setDouble(3, maxPower);
                 ps.setLong(4, lastSeen); ps.setInt(5, mapRows); ps.setInt(6, progress); ps.setLong(7, lastLogin);
-                ps.setInt(8, minimapHidden); ps.setString(9, us);
+                ps.setInt(8, minimapHidden); ps.setInt(9, bordersEnabled); ps.setString(10, us);
                 ps.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().warning("[Power] salvataggio: " + e.getMessage()); }
         });

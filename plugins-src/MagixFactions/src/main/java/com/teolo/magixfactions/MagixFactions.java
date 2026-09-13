@@ -243,6 +243,13 @@ public final class MagixFactions extends JavaPlugin {
             getLogger().severe("Errore inizializzazione decadimento (decay): " + e.getMessage());
         }
 
+        // Confini a particelle (/f borders): interruttore PER-GIOCATORE, di serie spento. Un giro
+        // periodico disegna le particelle verdi lungo i bordi dei territori vicini a chi l'ha acceso.
+        com.teolo.magixfactions.border.BorderService borders =
+                new com.teolo.magixfactions.border.BorderService(this, powerManager, claimManager);
+        long bordersInterval = borders.intervalTicks();
+        Bukkit.getScheduler().runTaskTimer(this, borders::tick, bordersInterval, bordersInterval);
+
         getLogger().info("MagixFactions abilitato.");
     }
 
