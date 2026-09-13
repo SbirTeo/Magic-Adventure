@@ -200,17 +200,10 @@ function store_prezzo_html(array $item): string {
         . '</span>';
 }
 
-/** Ogni riga della descrizione breve diventa una voce dell'elenco "cosa ottieni". */
-function store_voci(?string $descrizione): array {
-    $righe = array_map('trim', explode("\n", (string) $descrizione));
-    return array_values(array_filter($righe, fn($r) => $r !== ''));
-}
-
 /** Print one package card. */
 function store_card(array $item): void {
     $stili = store_category_styles();
     $catId = (int) $item['category_id'];
-    $voci = store_voci($item['description']);
     $prezzo = store_prezzo($item);
     // Featured package: the one flagged in the manager (store_packages.featured = 1).
     $featured = !empty($item['featured']);
@@ -253,13 +246,8 @@ function store_card(array $item): void {
           <a class="store-card-link" href="/pacchetto/<?= h(rawurlencode($item['slug'])) ?>">Vedi <?= h($item['name']) ?></a>
           <span class="store-card-cat"><?= h($stili['nomi'][$catId] ?? 'Altro') ?></span>
           <h3><?= h($item['name']) ?></h3>
-          <?php if ($voci): ?>
-            <ul class="store-card-voci">
-              <?php foreach ($voci as $voce): ?>
-                <li><?= h($voce) ?></li>
-              <?php endforeach; ?>
-            </ul>
-          <?php endif; ?>
+          <?php /* The feature list ("cosa ottieni") lives on the package page: the card stays
+                   clean — cover, category and name — with the price standing out below it. */ ?>
         </div>
       </article>
       <?php /* Price stands below the card, bold, on the page background. */ ?>

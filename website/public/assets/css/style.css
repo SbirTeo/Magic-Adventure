@@ -2250,20 +2250,31 @@ body.store-una-categoria .store-card-cat { display: none; }
 .store-card-sconto {
   position: absolute;
   z-index: 3;
-  top: 18px;
-  right: -40px;
-  width: 150px;
+  top: 20px;
+  right: -42px;
+  width: 155px;
   transform: rotate(45deg);
-  padding: 5px 0;
+  padding: 6px 0;
   text-align: center;
-  background: var(--sconto-fondo, var(--green));
+  /* Raised 3D ribbon: a light-to-dark sheen layered over the configured colour (works with
+     any base colour, no color-mix needed) for a rounded look, a bevel from the inset
+     highlight/shadow pair, and a drop shadow that lifts the band off the cover. */
+  background:
+    linear-gradient(180deg,
+      rgba(255, 255, 255, 0.38) 0%,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(0, 0, 0, 0.30) 100%),
+    var(--sconto-fondo, var(--green));
   color: var(--sconto-testo, #14200a);
   font-family: var(--font-heading);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 13px;
-  letter-spacing: 0.02em;
-  text-shadow: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 4px 9px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.30);
 }
 
 /* Featured package: prominent gold border all around + a "recommended" badge. */
