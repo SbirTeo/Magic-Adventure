@@ -52,6 +52,8 @@ create:
   name-digits: "&cIl nome puo' contenere al massimo &e{max}&c cifre."
   name-taken: "&cEsiste gia' una fazione con questo nome."
   success: "&aFazione &e{name}&a creata! Sei il &6leader&a."
+  # Annuncio a TUTTO il server quando nasce una nuova fazione. {name} = nome, {player} = fondatore.
+  broadcast: "&#A8DC2C&lNUOVA FAZIONE &r&7» &f{player}&7 ha fondato la fazione &f{name}&7!"
 
 rename:
   usage: "&cUso: /f rename <nuovonome>"
@@ -63,7 +65,10 @@ rename:
 
 disband:
   not-leader: "&cSolo il leader puo' sciogliere la fazione."
-  broadcast: "&cLa fazione e' stata sciolta dal leader."
+  # Annuncio a TUTTO il server quando una fazione viene sciolta. {name} = nome, {player} = leader.
+  # Chiave nuova (announce) invece della vecchia broadcast: sui server con un messages.yml gia'
+  # esistente la vecchia chiave avrebbe la meglio sul default, mostrando il testo vecchio senza nome.
+  announce: "&c&lFAZIONE SCIOLTA &r&7» &f{name}&7 e' stata sciolta da &f{player}&7."
   success: "&aFazione sciolta. I territori sono tornati neutrali."
 
 leave:
