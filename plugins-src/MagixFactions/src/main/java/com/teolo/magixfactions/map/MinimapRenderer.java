@@ -54,7 +54,8 @@ public final class MinimapRenderer extends MapRenderer {
         int cX = player.getLocation().getBlockX(), cZ = player.getLocation().getBlockZ();
         view.setCenterX(cX); view.setCenterZ(cZ);
 
-        // Minimap: marcatori COTTI (bakePlayerMarkers=true) — nessun cursore nativo sul canvas HUD.
-        MapContentBuilder.paint(canvas, player, fm, claims, terrain, 1 << view.getScale().getValue(), plugin, cX, cZ, 1, avatars, true);
+        // Minimap: solo terreno/territori/cardinali/home nei pixel — le frecce-giocatore le disegna lo
+        // shader dall'header, nessun cursore nativo sul canvas HUD.
+        MapContentBuilder.paint(canvas, player, fm, claims, terrain, 1 << view.getScale().getValue(), plugin, cX, cZ, 1, avatars);
     }
 }
