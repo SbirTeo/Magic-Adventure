@@ -102,6 +102,7 @@ demote:
   cant-leader: "&cNon puoi degradare il leader."
   min: "&eIl giocatore e' gia' al grado piu' basso."
   success: "&a{player} degradato a &e{rank}&a."
+  received: "&cSei stato degradato a &e{rank}&c."
 
 invite:
   no-perm: "&cNon hai il permesso di invitare."
