@@ -113,10 +113,10 @@ public final class FactionMapRenderer extends MapRenderer {
                 // terreno leggermente meno liscio al login.
                 boolean first = !firstPaintDone;
                 if (first) ss = 1;
-                // Mappa-item: NON cuociamo i marcatori-giocatore nei pixel (bakePlayerMarkers=false) — li
-                // disegniamo come CURSORI NATIVI (frecce nitide a risoluzione schermo), fuori dal memo.
+                // Mappa-item: i marcatori-giocatore non sono cotti nei pixel — li disegniamo come CURSORI
+                // NATIVI (frecce nitide a risoluzione schermo), fuori dal memo.
                 boolean[] complete = {true};
-                MapContentBuilder.paint(canvas, player, fm, claims, terrain, blocksPerPixel, plugin, cX, cZ, ss, avatars, false, complete);
+                MapContentBuilder.paint(canvas, player, fm, claims, terrain, blocksPerPixel, plugin, cX, cZ, ss, avatars, complete);
                 if (first) { complete[0] = false; firstPaintDone = true; }
                 // FIRMA magica per lo shader del resource pack (pixel 0-2 riga 0, inverso della firma
                 // minimap): identifica questa come Mappa Fazioni -> resa FULLBRIGHT (leggibile di notte)

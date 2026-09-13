@@ -318,11 +318,11 @@ public final class MapService {
         int cZ = quantCenter(p.getLocation().getBlockZ(), blocksPerPixel);
         boolean dither = plugin.getConfig().getBoolean("map.dither", false) && MapColorUtil.isReady();
         if (dither) {
-            // Percorso dithering (opt-in): senza memo — la diffusione dell'errore attraversa anche i nomi,
-            // non vale la complessita' di separare i layer per una modalita' disattivata di default.
+            // Percorso dithering (opt-in): senza memo, non vale la complessita' di memoizzare per una
+            // modalita' disattivata di default.
             boolean[][] protect = new boolean[128][128];
             Color[][] colors = MapContentBuilder.computeColors(p, fm, claims, terrain, blocksPerPixel,
-                    plugin, cX, cZ, 1, avatars, protect, true, null);
+                    plugin, cX, cZ, 1, avatars, protect, null);
             return MapColorUtil.dither(colors, protect);
         }
 
@@ -336,7 +336,7 @@ public final class MapService {
         if (!valid) {
             boolean[] complete = {true};
             Color[][] base = MapContentBuilder.computeColors(p, fm, claims, terrain, blocksPerPixel,
-                    plugin, cX, cZ, 1, avatars, null, false, complete); // base SENZA nomi (cotti dopo, per-tick)
+                    plugin, cX, cZ, 1, avatars, null, complete);
             if (minimapMemo.size() > 100) minimapMemo.clear(); // igiene: mai piu' di ~1 voce per giocatore attivo
             m = new BaseMemo();
             m.cX = cX; m.cZ = cZ; m.bpp = blocksPerPixel; m.world = p.getWorld().getName();
@@ -344,14 +344,12 @@ public final class MapService {
             m.complete = complete[0]; m.base = base;
             minimapMemo.put(uuid, m);
         }
-        // Copia leggera del base (cloni di riga, i Color sono immutabili) + nomi freschi di questo tick.
-        Color[][] work = new Color[128][];
-        for (int i = 0; i < 128; i++) work[i] = m.base[i].clone();
-        MapContentBuilder.drawPlayerNames(work, p, fm, plugin, blocksPerPixel, cX, cZ);
+        // Il frame (terreno + territori + cardinali + home) resta identico finche' il memo e' valido: le
+        // frecce-giocatore le disegna lo shader dall'header, non sono cotte nei pixel.
         byte[] out = new byte[128 * 128];
         for (int x = 0; x < 128; x++) {
             for (int y = 0; y < 128; y++) {
-                out[y * 128 + x] = matchColorCached(work[x][y]);
+                out[y * 128 + x] = matchColorCached(m.base[x][y]);
             }
         }
         return out;
@@ -386,7 +384,7 @@ public final class MapService {
      * Le prime 2 righe (dove finiscono i record) sono nascoste dal fragment shader, non si vedono.
      */
     public byte[] renderPaletteWithHeader(Player p, double blocksPerPixel) {
-        byte[] out = renderPalette(p, blocksPerPixel); // include gia' i NOMI degli altri + cardinali (via computeColors)
+        byte[] out = renderPalette(p, blocksPerPixel); // terreno + territori + cardinali + home (via computeColors)
         out[0] = 18;
         out[1] = 4;
         out[2] = 49;

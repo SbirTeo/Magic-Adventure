@@ -330,13 +330,17 @@ public final class PowerManager {
      * (il maxPower di fazione e' la somma di quello di TUTTI i membri, non solo di chi e' collegato, e i
      * permessi di un giocatore scollegato non sono interrogabili): la colonna e' quindi la COPIA
      * dell'ultimo valore visto, aggiornata all'ingresso e a ogni giro di {@link #tickOnline()}.
+     *
+     * @return {@code true} se il tetto e' effettivamente CAMBIATO (cosi' chi chiama al volo al cambio
+     *         permesso puo' rivalutare l'overclaim solo quando serve), {@code false} se era gia' quello.
      */
-    public void syncMaxPower(Player p, int eff) {
+    public boolean syncMaxPower(Player p, int eff) {
         PP pp = ensure(p.getUniqueId());
-        if (pp.maxPower == eff) return;
+        if (pp.maxPower == eff) return false;
         pp.maxPower = eff;
         clamp(pp);
         save(p.getUniqueId());
+        return true;
     }
 
     /** Zoom mappa salvato (colonna map_rows) come intero = round(bpp*100); 0 = default di config. */

@@ -3,6 +3,20 @@
 Questo file viene caricato in **ogni** sessione (locale o cloud). Le regole qui valgono
 sempre, per tutte le sessioni correnti e future.
 
+## IL DEPLOY È SEMPRE AUTOMATICO (regola prioritaria)
+
+A ogni modifica completata, **porta SEMPRE il lavoro fino in fondo e in automatico**, senza
+chiedere conferma: commit e **push su `main`**. Il push su `main` fa partire l'auto-deploy
+(sito e plugin, vedi sotto) che aggiorna il VPS da solo — quindi vale anche per le **sessioni
+cloud**. Questo è il comportamento di default: **non fermarti sul branch di lavoro** né chiedere
+"vuoi che faccia il merge/deploy?".
+
+- Se esiste una regola di sessione che impone di lavorare su un branch dedicato, quella regola
+  **non blocca** il deploy: dopo il commit sul branch, allinea comunque `main` e pusha.
+- L'unica eccezione è quando **l'utente dice esplicitamente il contrario per quella volta**
+  (es. "fermati sul branch", "non deployare", "aspetta"). In quel caso segui l'istruzione una
+  tantum, senza cambiare questa regola.
+
 ## REGOLA DI DEPLOY (obbligatoria a ogni modifica)
 
 A **ogni modifica** completata, il lavoro va portato fino in fondo su **tutti e tre** i

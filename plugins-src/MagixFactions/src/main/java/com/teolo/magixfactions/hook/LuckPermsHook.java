@@ -51,6 +51,25 @@ public final class LuckPermsHook {
     public boolean available() { return api != null; }
 
     /**
+     * Registra un handler chiamato ogni volta che LuckPerms RICALCOLA i permessi di un utente (cioe'
+     * subito dopo che gli si da'/toglie un permesso o un gruppo). Serve a riallineare all'ISTANTE il
+     * tetto di Potenza e lo stato di overclaim di un giocatore ONLINE quando gli cambia il permesso
+     * {@code magixfactions.power.powermax.<n>}, senza aspettare il giro periodico di
+     * {@code PowerManager.tickOnline} / {@code DecayManager.tick}.
+     * <p>
+     * L'evento arriva su un thread di LuckPerms (NON il main): l'handler deve rimandare da solo al main
+     * thread quello che tocca lo stato del server. Nessun effetto (e nessun errore) se LuckPerms non c'e'.
+     *
+     * @param handler riceve l'UUID dell'utente i cui permessi sono appena stati ricalcolati.
+     */
+    public void onUserRecalculate(java.util.function.Consumer<UUID> handler) {
+        if (api == null) return;
+        api.getEventBus().subscribe(plugin,
+                net.luckperms.api.event.user.UserDataRecalculateEvent.class,
+                e -> handler.accept(e.getUser().getUniqueId()));
+    }
+
+    /**
      * Tutti i permessi <b>attivi</b> di un giocatore, quelli ereditati dai gruppi compresi, anche se e'
      * offline.
      * <p>

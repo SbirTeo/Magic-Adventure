@@ -115,7 +115,10 @@ forbidden-words:
 # nemico, bianco = senza fazione). NB: CMI non puo' farlo (il suo motore non supporta i placeholder
 # relazionali %rel_...% — verificato nel jar), per questo il formato pubblico e' gestito qui.
 #
-# Token NOSTRI:  {relcolor} {faction} {name} {message}
+# Token NOSTRI:  {rank} {relcolor} {faction} {name} {message}
+#   {rank} = tag del GRADO che il mittente ha nella sua fazione (config ranks[].tag / leader.tag,
+#            es. "**" per il Leader). Messo dentro le parentesi, subito prima del nome fazione,
+#            da' [**Fazione]. Vuoto se il mittente non e' in una fazione.
 # + QUALSIASI placeholder di PlaceholderAPI (es. %luckperms_prefix%, %vault_prefix%, %player_ping%),
 #   risolto nel contesto del MITTENTE — cosi' puoi tenere prefissi/gradi gestiti da CMI/LuckPerms e
 #   lasciare a noi solo la colorazione per relazione. Esempio con prefisso LuckPerms:
@@ -135,7 +138,7 @@ forbidden-words:
 # fazione — assegna un prefisso "Admin " al gruppo LuckPerms giusto per ottenere "Admin DorinoJ: msg").
 chat:
   relational-format: true
-  public-format: "&8[{relcolor}{faction}&8] &7%magixweb_namecolor%{name}&7: &f{message}"
+  public-format: "&8[{rank}{relcolor}{faction}&8] &7%magixweb_namecolor%{name}&7: &f{message}"
   public-format-no-faction: "%luckperms_prefix%&7%magixweb_namecolor%{name}&7: &f{message}"
   # Icona messa davanti ai messaggi che arrivano dalla chat del sito (plugin MagixWeb).
   # VUOTA di serie: da dove arriva il messaggio lo dice il suggerimento qui sotto (basta
@@ -256,6 +259,13 @@ rename:
 protection:
   enabled: true            # false = nessuna protezione (comportamento vecchio: tutti costruiscono ovunque)
   ally-can-build: false    # true = gli ALLEATI possono costruire/interagire nel tuo territorio
+  # Vettori di distruzione che NON passano dalla rottura "a mano" (e quindi la aggiravano): senza questi
+  # chiunque poteva far saltare/bruciare/svuotare col pistone la land altrui pur non potendo rompere.
+  # La land claimata e' protetta da QUALSIASI esplosione (dentro i confini non si distrugge, punto).
+  block-explosions: true   # true = TNT/creeper/end crystal non distruggono blocchi dentro un claim
+  block-fire: true         # true = il fuoco non brucia/propaga sui blocchi dentro un claim
+  block-pistons: true      # true = i pistoni non spingono/rubano blocchi oltre il confine di un claim altrui
+  block-liquid-flow: true  # true = acqua/lava non possono scorrere DENTRO un claim da fuori o da un'altra land
 
 # --------------------------- COMBAT (PvP) -------------------------
 # Regola il PvP di fazione: fuoco amico e conteggio uccisioni/morti valide per le classifiche (K/D).
@@ -451,25 +461,16 @@ map:
     # Nome dell'item mappa: {zoom} viene sostituito col valore di zoom (blocchi/pixel, es. 0.25).
     name-format: "&6&lMappa Fazioni &7({zoom}x)"
 
-  # --- Marcatori giocatore su mappa cartacea e minimap ---
-  marker:
-    # Il MARCATORE di ogni giocatore e' una FRECCIA che punta verso dove guarda, colorata per relazione:
-    # BIANCA = tu, VERDE = compagno di fazione, BLU = alleato, ROSSA = nemico (stile Cartographer). E'
-    # IDENTICA su entrambe le mappe, ma disegnata in due modi diversi per un limite tecnico di Minecraft:
-    #  - MAPPA-ITEM (in mano): CURSORI NATIVI, freccia disegnata dal client a risoluzione schermo (ruota
-    #    in 16 direzioni, resta NITIDA a qualsiasi angolo).
-    #  - MINIMAP HUD: i cursori nativi non si agganciano (i pixel sono spinti via pacchetto+shader), quindi
-    #    la freccia la ridisegna lo SHADER a risoluzione schermo (stessa resa: nitida, ruota fluida). La
-    #    minimap mostra fino a 6 frecce (i giocatori piu' vicini + sempre te stesso al centro).
-    # Le opzioni sotto controllano solo i NOMI (il marcatore-freccia c'e' sempre).
-    #  - *-nametag: true = mostra il nome sotto la freccia. Su ENTRAMBE (sull'item e' un caption nativo
-    #    nitido, sulla minimap e' cotto nei pixel e colorato per relazione).
-    personal-nametag: false  # mostra il TUO nome (default false: sei sempre al centro, non serve)
-    other-nametag: true      # mostra il nome degli ALTRI (compagni di fazione e alleati)
-    enemy-nametag: false     # mostra il nome dei NEMICI (default false: dei nemici resta solo la freccia rossa,
-                             # niente nickname). Ha effetto solo se other-nametag e' true; su ENTRAMBE le mappe.
-    name-size: 4             # [solo minimap HUD] dimensione del testo del nome cotto (px del font, 4-20). Sulla
-                             # mappa-item il caption nativo ha dimensione fissa decisa dal client.
+  # --- Marcatore giocatore su mappa cartacea e minimap ---
+  # Il MARCATORE di ogni giocatore e' una FRECCIA che punta verso dove guarda, colorata per relazione:
+  # BIANCA = tu, VERDE = compagno di fazione, BLU = alleato, ROSSA = nemico (stile Cartographer). E'
+  # IDENTICA su entrambe le mappe, ma disegnata in due modi diversi per un limite tecnico di Minecraft:
+  #  - MAPPA-ITEM (in mano): CURSORI NATIVI, freccia disegnata dal client a risoluzione schermo (ruota
+  #    in 16 direzioni, resta NITIDA a qualsiasi angolo).
+  #  - MINIMAP HUD: i cursori nativi non si agganciano (i pixel sono spinti via pacchetto+shader), quindi
+  #    la freccia la ridisegna lo SHADER a risoluzione schermo (stessa resa: nitida, ruota fluida). La
+  #    minimap mostra fino a 6 frecce (i giocatori piu' vicini + sempre te stesso al centro).
+  # Nessun nome viene mostrato: solo la freccia (nessuna opzione da configurare).
 
   # --- Simbolo HOME della propria fazione (item /f map e minimap) ---
   home-marker:

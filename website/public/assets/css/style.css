@@ -2070,27 +2070,20 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
 .store-barra-pista:hover .store-barra-pollice,
 .store-barra.is-trascino .store-barra-pollice { opacity: 1; }
 
+/* Wrapping grid: all packages of the active category, three per row, wrapping onto more rows
+   (no horizontal scroll — one category is shown at a time, chosen by the filter). */
 .store-fila {
   display: flex;
+  flex-wrap: wrap;
   gap: 18px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  /* barra nascosta come nella chat: qui si trascina, non si usa la barra */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
-.store-fila::-webkit-scrollbar { width: 0; height: 0; }
-/* Three cards per row, any width: the fourth peeks out and invites dragging. The flex item
-   is the cell (card + price stacked), so the row measures and snaps on the whole cell. */
+/* The flex item is the cell (card + name + price stacked). Three per row: basis leaves room
+   for the two 18px gaps between them. */
 .store-fila > .store-card-cella {
   flex: 0 0 calc((100% - 36px) / 3);
   display: flex;
   flex-direction: column;
-  scroll-snap-align: start;
 }
-/* il "si trascina" lo dice il cursore, solo dove c'e' davvero altro da vedere */
-.store-fila.ha-altri { cursor: grab; }
-.store-fila.is-trascino { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 @media (max-width: 700px) {
   .store-fila > .store-card-cella { flex-basis: 100%; }
 }
@@ -2234,19 +2227,30 @@ body.store-una-categoria .store-card-cat { display: none; }
   border-radius: 50%;
   background: currentColor;
 }
-/* Price row below the card: bold and standing on the page background (moved out of the
-   card so it reads at a glance instead of being buried over the cover image). */
-.store-card-prezzo-est {
+/* Name + price below the card, on the page background: moved out of the card so the cover
+   stays clean (no label, no title over the art) and both read at a glance. */
+.store-card-info {
   padding: 12px 6px 2px;
   text-align: center;
 }
+.store-card-nome {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+.store-card-nome:hover { text-decoration: underline; }
 .store-card-prezzo-est .store-prezzo { font-size: 25px; font-weight: 800; }
 .store-card-prezzo-est .store-prezzo small { font-size: 13px; font-weight: 700; }
 .store-card-prezzo-est .store-prezzo-pieno { font-size: 15px; margin-right: 8px; }
 
 /* Discount as an angled corner ribbon in the top-right of the card. Colours come from the
    category/package settings (same variables as .store-sconto); overflow:hidden on the card
-   clips the band ends into the classic ribbon shape. */
+   clips the band ends into the classic ribbon shape. It is "lit up": a bright sheen, a
+   coloured glow that pulses, and a shine that sweeps across it, so it can't be missed. */
 .store-card-sconto {
   position: absolute;
   z-index: 3;
@@ -2254,27 +2258,60 @@ body.store-una-categoria .store-card-cat { display: none; }
   right: -42px;
   width: 155px;
   transform: rotate(45deg);
-  padding: 6px 0;
+  padding: 7px 0;
+  overflow: hidden;   /* clip the sweeping shine to the band */
   text-align: center;
-  /* Raised 3D ribbon: a light-to-dark sheen layered over the configured colour (works with
-     any base colour, no color-mix needed) for a rounded look, a bevel from the inset
-     highlight/shadow pair, and a drop shadow that lifts the band off the cover. */
   background:
     linear-gradient(180deg,
-      rgba(255, 255, 255, 0.38) 0%,
-      rgba(255, 255, 255, 0) 42%,
-      rgba(0, 0, 0, 0.30) 100%),
+      rgba(255, 255, 255, 0.50) 0%,
+      rgba(255, 255, 255, 0.10) 45%,
+      rgba(0, 0, 0, 0.26) 100%),
     var(--sconto-fondo, var(--green));
   color: var(--sconto-testo, #14200a);
   font-family: var(--font-heading);
   font-weight: 800;
-  font-size: 13px;
+  font-size: 13.5px;
   letter-spacing: 0.03em;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
   box-shadow:
-    0 4px 9px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.30);
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.28),
+    0 0 10px 1px var(--sconto-fondo, var(--green));
+  animation: store-sconto-pulse 1.8s ease-in-out infinite;
+}
+/* The shine: a bright diagonal band that sweeps left-to-right, then pauses before repeating. */
+.store-card-sconto::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  transform: skewX(-15deg);
+  animation: store-sconto-shine 2.6s ease-in-out infinite;
+}
+@keyframes store-sconto-pulse {
+  0%, 100% { box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.28),
+    0 0 8px 0 var(--sconto-fondo, var(--green)); }
+  50% { box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.28),
+    0 0 20px 3px var(--sconto-fondo, var(--green)); }
+}
+@keyframes store-sconto-shine {
+  0% { left: -60%; }
+  55%, 100% { left: 130%; }
+}
+/* Respect users who ask for less motion: keep the ribbon, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .store-card-sconto { animation: none; }
+  .store-card-sconto::after { display: none; }
 }
 
 /* Featured package: prominent gold border all around + a "recommended" badge. */
