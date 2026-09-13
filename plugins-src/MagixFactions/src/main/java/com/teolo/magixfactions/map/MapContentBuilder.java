@@ -27,30 +27,27 @@ final class MapContentBuilder {
 
     private MapContentBuilder() {}
 
-    /** Disegna sul canvas i 128x128 pixel (terreno + territori + cardinali + home + eventuali nomi cotti).
-     *  <p>{@code bakePlayerMarkers}: se true, cuoce nei pixel solo i NOMI dei giocatori — usato dalla
-     *  MINIMAP HUD, che spinge byte-pixel grezzi via pacchetto e non ha cursori nativi (vedi
-     *  {@link MapService#renderPalette}); le FRECCE-marcatore le disegna lo shader dai dati dell'header
-     *  (vedi {@link MapService#renderPaletteWithHeader}). Se false, nulla di giocatore viene cotto: nomi e
-     *  frecce sono CURSORI NATIVI ({@link #applyPlayerCursors}), nitidi e rotanti a risoluzione schermo —
-     *  usato dalla mappa-ITEM in mano ({@link FactionMapRenderer}). Terreno/territori/cardinali/home
-     *  restano IDENTICI su entrambe. */
+    /** Disegna sul canvas i 128x128 pixel (terreno + territori + cardinali + home).
+     *  <p>Nessun dato di giocatore viene cotto nei pixel: il MARCATORE di ogni giocatore e' una FRECCIA,
+     *  resa come CURSORE NATIVO sulla mappa-ITEM ({@link #applyPlayerCursors}) o disegnata dallo shader
+     *  dai dati dell'header sulla minimap HUD (vedi {@link MapService#renderPaletteWithHeader}).
+     *  Terreno/territori/cardinali/home restano IDENTICI su entrambe. */
     static void paint(MapCanvas canvas, Player player, FactionManager fm, ClaimManager claims,
                        TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin, int centerX, int centerZ,
-                       int supersampling, AvatarCache avatars, boolean bakePlayerMarkers) {
-        paint(canvas, player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, bakePlayerMarkers, null);
+                       int supersampling, AvatarCache avatars) {
+        paint(canvas, player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, null);
     }
 
     /** Come {@link #paint(MapCanvas, Player, FactionManager, ClaimManager, TerrainCache, double, JavaPlugin,
-     *  int, int, int, AvatarCache, boolean)} ma riporta in {@code completeOut[0]} se il frame era COMPLETO
+     *  int, int, int, AvatarCache)} ma riporta in {@code completeOut[0]} se il frame era COMPLETO
      *  (nessun pixel senza dato terreno): un frame incompleto non va memoizzato a lungo (vedi
      *  {@link FactionMapRenderer}), va ritentato presto per riempire i buchi appena arrivano i dati. */
     static void paint(MapCanvas canvas, Player player, FactionManager fm, ClaimManager claims,
                        TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin, int centerX, int centerZ,
-                       int supersampling, AvatarCache avatars, boolean bakePlayerMarkers, boolean[] completeOut) {
+                       int supersampling, AvatarCache avatars, boolean[] completeOut) {
         boolean dither = plugin.getConfig().getBoolean("map.dither", false) && MapColorUtil.isReady();
         boolean[][] protect = dither ? new boolean[128][128] : null;
-        Color[][] pixels = computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, protect, bakePlayerMarkers, completeOut);
+        Color[][] pixels = computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, protect, completeOut);
         if (dither) {
             // Dithering: colori piu' ricchi SOLO sul terreno (marcatori/territori restano netti). setPixel
             // scrive direttamente il byte-palette gia' scelto.
@@ -77,7 +74,7 @@ final class MapContentBuilder {
     static Color[][] computeColors(Player player, FactionManager fm, ClaimManager claims,
                                     TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin,
                                     int centerX, int centerZ, int supersampling, AvatarCache avatars,
-                                    boolean[][] protectOut, boolean bakePlayerMarkers, boolean[] completeOut) {
+                                    boolean[][] protectOut, boolean[] completeOut) {
         World w = player.getWorld();
         String world = w.getName();
         Faction own = fm.getFaction(player.getUniqueId());
@@ -201,12 +198,10 @@ final class MapContentBuilder {
         }
         drawCompass(out);                                              // punti cardinali: su ENTRAMBE le mappe (item + minimap)
         drawHome(out, fm, own, world, blocksPerPixel, plugin, centerX, centerZ);
-        // NOMI dei giocatori COTTI: solo quando richiesto (minimap HUD). Il MARCATORE vero e proprio e'
-        // una FRECCIA disegnata dallo shader (vedi MapService.computePlayerArrows / renderPaletteWithHeader),
-        // qui cuociamo solo il nome sotto la freccia. Sulla mappa-item nome e freccia sono entrambi nativi
-        // (bakePlayerMarkers=false), vedi {@link #applyPlayerCursors}.
-        if (bakePlayerMarkers) drawPlayerNames(out, player, fm, plugin, blocksPerPixel, centerX, centerZ);
-        // Marca "protetti" tutti i pixel toccati dai marcatori (cardinali/home/nome): confronto
+        // Nessun dato di giocatore viene cotto qui: il marcatore-freccia lo disegna lo shader (minimap,
+        // vedi MapService.computePlayerArrows / renderPaletteWithHeader) o un cursore nativo (mappa-item,
+        // vedi {@link #applyPlayerCursors}).
+        // Marca "protetti" tutti i pixel toccati dai marcatori (cardinali/home): confronto
         // con lo snapshot -> restano netti (niente dithering che li renderebbe rumorosi/irriconoscibili).
         if (protectOut != null) {
             for (int x = 0; x < 128; x++)
@@ -313,14 +308,14 @@ final class MapContentBuilder {
                 if (glyph[row][col]) setColor(out, left + col, top + row, COMPASS_FILL);
     }
 
-    // ---- Frecce giocatore (marcatore) + nomi — condivisi da mappa cartacea E minimap -----------------
+    // ---- Frecce giocatore (marcatore) — condivise da mappa cartacea E minimap -------------------------
     // Il MARCATORE di ogni giocatore e' una FRECCIA che punta nella direzione di sguardo, colorata per
     // relazione (bianco = tu, verde = fazione, blu = alleato, rosso = nemico), come le minimap moderne
     // (stile Cartographer). Sulla mappa-ITEM sono cursori NATIVI ({@link #applyPlayerCursors}); sulla
     // MINIMAP HUD, dove i cursori nativi non si agganciano, sono ridisegnate dallo shader a risoluzione
     // schermo: i dati (posizione/angolo/tipo) vengono calcolati da {@link #computePlayerArrows} e
-    // impacchettati nell'header (vedi {@code MapService.renderPaletteWithHeader}). Qui, per la minimap,
-    // cuociamo nei pixel solo il NOME sotto la freccia (la freccia la mette lo shader).
+    // impacchettati nell'header (vedi {@code MapService.renderPaletteWithHeader}). Nessun nome viene
+    // mostrato: solo la freccia.
 
     /**
      * Calcola fino a {@code maxArrows} record-freccia per la minimap (uno per giocatore online nello
@@ -371,34 +366,6 @@ final class MapContentBuilder {
         return (int) Math.round(y / (360.0 / steps)) % steps;
     }
 
-    /**
-     * Cuoce nei pixel della minimap il NOME dei giocatori (sotto la freccia disegnata dallo shader),
-     * colorato per relazione, rispettando {@code map.marker.personal-nametag}/{@code other-nametag}. Non
-     * disegna alcun marcatore: quello e' la freccia (shader). Sulla mappa-item i nomi sono invece caption
-     * nativi (vedi {@link #applyPlayerCursors}).
-     */
-    static void drawPlayerNames(Color[][] out, Player viewer, FactionManager fm, JavaPlugin plugin,
-                                 double blocksPerPixel, int centerX, int centerZ) {
-        boolean personalName = plugin.getConfig().getBoolean("map.marker.personal-nametag", false);
-        boolean otherName    = plugin.getConfig().getBoolean("map.marker.other-nametag", true);
-        boolean enemyName    = plugin.getConfig().getBoolean("map.marker.enemy-nametag", false);
-        if (!personalName && !otherName) return;
-        Faction viewerFaction = fm.getFaction(viewer.getUniqueId());
-        int nameSize = Math.max(4, Math.min(20, plugin.getConfig().getInt("map.marker.name-size", 7)));
-        for (Player other : viewer.getWorld().getPlayers()) {
-            boolean self = other.getUniqueId().equals(viewer.getUniqueId());
-            if (!self && hiddenFromMap(other)) continue; // vanish/invisibilita': nessun nome sulla minimap altrui
-            boolean showName = self ? personalName : otherName;
-            if (!showName) continue;
-            int px = self ? 64 : 64 + (int) Math.floor((other.getLocation().getBlockX() - centerX) / blocksPerPixel);
-            int py = self ? 64 : 64 + (int) Math.floor((other.getLocation().getBlockZ() - centerZ) / blocksPerPixel);
-            if (px < 5 || px > 122 || py < 5 || py > 118) continue; // fuori mappa / troppo al bordo per il nome
-            String rel = self ? "own" : relKeyPlayer(fm, viewerFaction, fm.getFaction(other.getUniqueId()));
-            if (!self && "enemy".equals(rel) && !enemyName) continue; // nemici: solo la freccia, nessun nickname
-            drawName(out, other.getName(), px, py + 8, nameSize, playerNameColor(other)); // sotto la freccia, colore del GRADO
-        }
-    }
-
     // ---- Cursori NATIVI (solo mappa-item) ------------------------------------------------------------
     // A differenza dei marcatori "cotti" (drawPlayerMarkers), i cursori-mappa nativi sono disegnati dal
     // CLIENT come sprite a risoluzione schermo e ruotano in 16 direzioni: la freccia resta NITIDA a
@@ -412,22 +379,17 @@ final class MapContentBuilder {
      * stesso mondo che ricade nell'area visibile: se stessi = {@link MapCursor.Type#PLAYER} (freccia
      * bianca), compagni di fazione = {@link MapCursor.Type#FRAME} (verde), alleati = {@link
      * MapCursor.Type#BLUE_MARKER} (blu), nemici = {@link MapCursor.Type#RED_MARKER} (rosso). La freccia
-     * punta nella direzione di sguardo (yaw -> 16 direzioni). Il nome e' un caption nativo (nitido),
-     * mostrabile/nascondibile con le stesse chiavi config dei marcatori cotti ({@code
-     * map.marker.personal-nametag}/{@code other-nametag}). Sostituisce ogni cursore precedente (nessun
-     * accumulo tra un render e l'altro).
+     * punta nella direzione di sguardo (yaw -> 16 direzioni). Nessun nome viene mostrato: solo la freccia.
+     * Sostituisce ogni cursore precedente (nessun accumulo tra un render e l'altro).
      */
     static void applyPlayerCursors(MapCanvas canvas, Player viewer, FactionManager fm, JavaPlugin plugin,
                                     double blocksPerPixel, int centerX, int centerZ) {
         MapCursorCollection cursors = new MapCursorCollection();
         Faction viewerFaction = fm.getFaction(viewer.getUniqueId());
-        boolean personalName = plugin.getConfig().getBoolean("map.marker.personal-nametag", false);
-        boolean otherName    = plugin.getConfig().getBoolean("map.marker.other-nametag", true);
-        boolean enemyName    = plugin.getConfig().getBoolean("map.marker.enemy-nametag", false);
         for (Player other : viewer.getWorld().getPlayers()) {
             boolean self = other.getUniqueId().equals(viewer.getUniqueId());
             if (!self && hiddenFromMap(other)) continue; // vanish/invisibilita': nessun cursore sulla mappa-item altrui
-            // Posizione in pixel-mappa (stessa formula dei marcatori cotti); self e' sempre il centro.
+            // Posizione in pixel-mappa (stessa formula delle frecce minimap); self e' sempre il centro.
             int px = self ? 64 : 64 + (int) Math.floor((other.getLocation().getBlockX() - centerX) / blocksPerPixel);
             int py = self ? 64 : 64 + (int) Math.floor((other.getLocation().getBlockZ() - centerZ) / blocksPerPixel);
             if (px < 0 || px > 127 || py < 0 || py > 127) continue; // fuori dall'area visibile
@@ -441,10 +403,7 @@ final class MapContentBuilder {
                 case "ally" -> MapCursor.Type.BLUE_MARKER;  // blu: alleato
                 default     -> MapCursor.Type.RED_MARKER;   // rosso: nemico
             };
-            boolean showName = self ? personalName : otherName;
-            if (!self && "enemy".equals(rel) && !enemyName) showName = false; // nemici: solo il cursore, nessun nickname
-            String caption = showName ? other.getName() : null;
-            cursors.addCursor(new MapCursor(cx, cy, dir, type, true, caption));
+            cursors.addCursor(new MapCursor(cx, cy, dir, type, true));
         }
         canvas.setCursors(cursors);
     }
@@ -471,108 +430,6 @@ final class MapContentBuilder {
     private static byte yawToDirection(float yaw) {
         float y = ((yaw % 360f) + 360f) % 360f;
         return (byte) (Math.round(y / 22.5f) & 15);
-    }
-
-    /** Colore del nome giocatore sulle mappe = colore del suo GRADO (placeholder {@code %magixweb_namecolor%},
-     *  lo STESSO usato in chat): grado default -> grigio &7, gradi colorati (es. helper verde, admin rosso)
-     *  lo sovrascrivono. La RELAZIONE resta indicata dal colore della freccia/cursore, non dal nome (coerente
-     *  con la chat, dove solo il tag fazione e' colorato per relazione). La targhetta scura dietro garantisce
-     *  il contrasto su qualsiasi terreno.
-     *  <p>Risolve PAPI/LuckPerms SOLO sul main thread (la minimap gira su runTaskTimer sincrono); fuori dal
-     *  main thread, o se il placeholder non e' disponibile/vuoto, ripiega sul grigio. Formati accettati:
-     *  esadecimale {@code &#RRGGBB} (quello che ritorna %magixweb_namecolor%) o legacy {@code &X}. */
-    private static Color playerNameColor(Player p) {
-        Color def = new Color(170, 170, 170); // &7 grigio (grado default o placeholder non disponibile)
-        if (!org.bukkit.Bukkit.isPrimaryThread()) return def;
-        String raw = com.teolo.magixfactions.hook.Papi.resolve(p, "%magixweb_namecolor%");
-        if (raw == null) return def;
-        raw = raw.trim();
-        if (raw.isEmpty() || raw.indexOf('%') >= 0) return def; // vuoto o placeholder non risolto
-        int h = raw.indexOf('#');
-        if (h >= 0 && raw.length() >= h + 7) {
-            try { return new Color(Integer.parseInt(raw.substring(h + 1, h + 7), 16)); }
-            catch (NumberFormatException ignored) { return def; }
-        }
-        for (int i = raw.length() - 2; i >= 0; i--) {
-            if (raw.charAt(i) == '&' || raw.charAt(i) == '§') return codeToColor(raw.substring(i));
-        }
-        return def;
-    }
-
-    // Cache delle MASCHERE-nome (name|size -> codici pixel; 0=niente, 1=targhetta, 2=testo). Indipendente
-    // dal colore (applicato in drawName), cosi' un nome vale per tutte le relazioni. Solo main thread.
-    private static final java.util.HashMap<String, int[][]> nameCache = new java.util.HashMap<>();
-    private static final Color NAME_PLATE = Color.BLACK; // tinta verso cui scurire la targhetta
-    private static final int NAME_PLATE_ALPHA = 70;      // % di scurimento della targhetta (contrasto garantito su ogni terreno)
-
-    /** Maschera del nome (0 niente / 1 targhetta / 2 testo) a dimensione {@code size}, font NETTO (no AA:
-     *  su testo piccolo l'anti-aliasing lo rendeva illeggibile). Cache per name+size. */
-    private static int[][] renderName(String name, int size) {
-        String key = name + "|" + size;
-        int[][] cached = nameCache.get(key);
-        if (cached != null) return cached;
-        if (nameCache.size() > 500) nameCache.clear();
-        int[][] result;
-        try {
-            java.awt.Font font = new java.awt.Font(java.awt.Font.SANS_SERIF, java.awt.Font.BOLD, size);
-            java.awt.image.BufferedImage measure = new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-            java.awt.Graphics2D gm = measure.createGraphics();
-            gm.setFont(font);
-            java.awt.FontMetrics fmet = gm.getFontMetrics();
-            int tw = Math.max(1, fmet.stringWidth(name));
-            int asc = fmet.getAscent(), desc = fmet.getDescent();
-            gm.dispose();
-            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(tw + 2, asc + desc + 2, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-            java.awt.Graphics2D g = img.createGraphics();
-            g.setFont(font);
-            g.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-            g.setColor(java.awt.Color.WHITE);
-            g.drawString(name, 1, asc + 1);
-            g.dispose();
-            int W0 = img.getWidth(), H0 = img.getHeight();
-            int minX = W0, maxX = -1, minY = H0, maxY = -1;
-            boolean[][] on = new boolean[W0][H0];
-            for (int x = 0; x < W0; x++)
-                for (int y = 0; y < H0; y++)
-                    if ((img.getRGB(x, y) >>> 24) >= 128) {
-                        on[x][y] = true;
-                        if (x < minX) minX = x; if (x > maxX) maxX = x;
-                        if (y < minY) minY = y; if (y > maxY) maxY = y;
-                    }
-            if (maxX < 0) { result = new int[0][0]; nameCache.put(key, result); return result; }
-            int padX = 2, padY = 1; // margine targhetta attorno al testo
-            int W = (maxX - minX + 1) + padX * 2, H = (maxY - minY + 1) + padY * 2;
-            result = new int[W][H];
-            for (int x = 0; x < W; x++)
-                for (int y = 0; y < H; y++)
-                    result[x][y] = 1; // targhetta su tutto il riquadro
-            for (int x = minX; x <= maxX; x++)
-                for (int y = minY; y <= maxY; y++)
-                    if (on[x][y]) result[x - minX + padX][y - minY + padY] = 2; // testo
-        } catch (Throwable t) {
-            result = new int[0][0]; // font non disponibili (server minimale): niente nome, non blocca
-        }
-        nameCache.put(key, result);
-        return result;
-    }
-
-    /** Disegna il nome: targhetta scura semitrasparente (contrasto su ogni terreno) + testo NETTO del
-     *  {@code color} (vivo, per relazione), centrato su {@code cx}, cima a {@code topY}. */
-    private static void drawName(Color[][] out, String name, int cx, int topY, int size, Color color) {
-        int[][] g = renderName(name, size);
-        if (g.length == 0) return;
-        int W = g.length, H = g[0].length;
-        int left = cx - W / 2;
-        for (int x = 0; x < W; x++) {
-            for (int y = 0; y < H; y++) {
-                int code = g[x][y];
-                if (code == 0) continue;
-                int px = left + x, py = topY + y;
-                if (px < 0 || px > 127 || py < 0 || py > 127) continue;
-                if (code == 2) out[px][py] = color;                                    // testo vivo, netto
-                else out[px][py] = blend(out[px][py], NAME_PLATE, NAME_PLATE_ALPHA);   // targhetta scura
-            }
-        }
     }
 
     /** Coordinata pixel (double) del blocco world {@code w} data la posizione centrale della mappa e i
