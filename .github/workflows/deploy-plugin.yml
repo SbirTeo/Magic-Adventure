@@ -1,7 +1,7 @@
 name: Deploy plugin sul server Minecraft
 
 # Auto-deploy dei PLUGIN: a ogni push su main che tocca plugins-src/, i plugin cambiati
-# vengono compilati (Maven/JDK 21), il jar viene copiato sul VPS in
+# vengono compilati (Maven/JDK 25), il jar viene copiato sul VPS in
 # /home/ubuntu/magicadventure/plugins/ (togliendo la versione vecchia) e il server viene
 # riavviato PER CARICARLI, con un preavviso in chat ai giocatori online.
 #
@@ -51,12 +51,12 @@ jobs:
         with:
           fetch-depth: 2   # serve HEAD^ per capire quali plugin sono cambiati in un push
 
-      - name: Java 21 + Maven
+      - name: Java 25 + Maven
         if: steps.check.outputs.ok == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
 
       - name: Decidi quali plugin compilare

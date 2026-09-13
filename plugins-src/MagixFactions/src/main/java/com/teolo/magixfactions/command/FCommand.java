@@ -175,6 +175,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
         Faction f = fm.createFaction(name, name, p.getUniqueId());
         msg(p, M.get("create.success", "name", cname(p, f)));
+        broadcastAll(M.get("create.broadcast", "name", f.getName(), "player", p.getName()));
         return true;
     }
 
@@ -267,9 +268,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         Faction f = fm.getFaction(p.getUniqueId());
         if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
         if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("disband.not-leader")); return true; }
-        broadcast(f, M.get("disband.broadcast"));
+        String name = f.getName();
         fm.disband(f);
         msg(p, M.get("disband.success"));
+        broadcastAll(M.get("disband.announce", "name", name, "player", p.getName()));
         return true;
     }
 
@@ -1069,16 +1071,18 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         // Riga Stato territori/potenza/potenza-max + riga descrittiva:
         //  - senza territori: bianco, "non ha ancora un territorio";
         //  - verde se sicura (potenza >= territori), rossa se raidabile.
+        // Se il lettore sta guardando la PROPRIA fazione, la riga descrittiva usa la seconda persona.
+        boolean self = own != null && own.getId() == f.getId();
         String statusColor, statusDesc;
         if (owned == 0) {
             statusColor = M.get("info.status-none-color");
-            statusDesc = M.get("info.status-none");
+            statusDesc = M.get(self ? "info.status-none-self" : "info.status-none");
         } else if (fPow >= owned) {
             statusColor = M.get("info.status-safe-color");
-            statusDesc = M.get("info.status-strong");
+            statusDesc = M.get(self ? "info.status-strong-self" : "info.status-strong");
         } else {
             statusColor = M.get("info.status-raid-color");
-            statusDesc = M.get("info.status-weak");
+            statusDesc = M.get(self ? "info.status-weak-self" : "info.status-weak");
         }
         panel(p, M.get("info.status", "statuscolor", statusColor,
                 "claims", String.valueOf(owned), "power", String.valueOf(fPow), "maxpower", String.valueOf(fMax)));
@@ -1611,5 +1615,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             Player p = Bukkit.getPlayer(u);
             if (p != null) msg(p, message);
         }
+    }
+
+    /** Annuncio a TUTTO il server (col prefisso del plugin): fondazione e scioglimento fazioni. */
+    private void broadcastAll(String message) {
+        String line = M.prefix() + message;
+        for (Player pl : Bukkit.getOnlinePlayers()) pl.sendMessage(Papi.resolve(pl, line));
     }
 }
