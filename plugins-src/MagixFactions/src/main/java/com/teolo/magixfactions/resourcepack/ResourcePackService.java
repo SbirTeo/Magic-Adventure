@@ -139,6 +139,10 @@ public final class ResourcePackService {
     /** Costruisce lo zip in memoria e avvia il server HTTP. Non lancia mai: logga ed esce se qualcosa fallisce
      *  (la minimap resta semplicemente indisponibile, coerente con la degradazione morbida gia' usata altrove). */
     public void start() {
+        if (!serves()) {
+            plugin.getLogger().info("[ResourcePack] serve=false: il pacchetto lo serve MagixPack, non MagixFactions.");
+            return;
+        }
         port = plugin.getConfig().getInt("map.minimap.resourcepack.port", 8443);
         String host = plugin.getConfig().getString("map.minimap.resourcepack.public-host", "");
         if (host == null || host.isBlank()) {
@@ -287,6 +291,26 @@ public final class ResourcePackService {
         return plugin.getConfig().getBoolean("map.minimap.resourcepack.required", true);
     }
 
+    /** true = MagixFactions serve il pacchetto in proprio (comportamento storico). false = lo serve
+     *  MagixPack, e MagixFactions si limita a depositargli gli asset ({@link #contributeToMagixPack}). */
+    public boolean serves() {
+        return plugin.getConfig().getBoolean("map.minimap.resourcepack.serve", true);
+    }
+
+    /** Deposita gli asset (shader minimap, logo, schermate MagixAuth) sotto
+     *  {@code plugins/MagixPack/contrib/MagixFactions/} perche' li includa MagixPack nel pacchetto
+     *  unico. Innocuo se MagixPack non c'e' o e' spento: i file restano li' inutilizzati. */
+    public void contributeToMagixPack() {
+        try {
+            java.nio.file.Path contrib = plugin.getDataFolder().getParentFile().toPath()
+                    .resolve("MagixPack").resolve("contrib").resolve("MagixFactions");
+            writeContrib(contrib);
+            plugin.getLogger().info("[ResourcePack] Asset depositati per MagixPack in " + contrib + ".");
+        } catch (Exception e) {
+            plugin.getLogger().warning("[ResourcePack] Impossibile depositare gli asset per MagixPack: " + e.getMessage());
+        }
+    }
+
     /** URL pubblico da cui i client scaricano lo zip (null finche' il servizio non e' partito): serve
      *  al listener per scrivere in console un errore diagnostico utile quando i download falliscono. */
     public String publicUrl() {
@@ -308,6 +332,46 @@ public final class ResourcePackService {
     }
 
     private byte[] buildZip() throws IOException {
+        java.util.Map<String, byte[]> assets = buildAssets();
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(buffer)) {
+            for (var e : assets.entrySet()) {
+                zip.putNextEntry(new ZipEntry(e.getKey()));
+                zip.write(e.getValue());
+                zip.closeEntry();
+            }
+        }
+        return buffer.toByteArray();
+    }
+
+    /**
+     * Scrive gli asset (gia' sostituiti) sotto {@code targetDir}, per farli servire da MagixPack
+     * come "fornitore" (vedi la cartella {@code plugins/MagixPack/contrib/}). Ripulisce prima la
+     * cartella, cosi' non restano file di una build precedente.
+     */
+    public void writeContrib(java.nio.file.Path targetDir) throws IOException {
+        java.util.Map<String, byte[]> assets = buildAssets();
+        if (java.nio.file.Files.isDirectory(targetDir)) {
+            try (var walk = java.nio.file.Files.walk(targetDir)) {
+                walk.sorted(java.util.Comparator.reverseOrder())
+                    .filter(p -> !p.equals(targetDir))
+                    .forEach(p -> { try { java.nio.file.Files.deleteIfExists(p); } catch (IOException ignored) { } });
+            }
+        }
+        for (var e : assets.entrySet()) {
+            java.nio.file.Path f = targetDir.resolve(e.getKey());
+            java.nio.file.Files.createDirectories(f.getParent());
+            java.nio.file.Files.write(f, e.getValue());
+        }
+    }
+
+    /**
+     * Costruisce gli asset del pacchetto come mappa {@code path-nel-pack -> contenuto}, applicando le
+     * sostituzioni (dimensione/forma/cornice della minimap negli shader, altezza/ascent del logo nel
+     * font). E' il cuore condiviso: {@link #buildZip()} lo zippa per servirlo in proprio,
+     * {@link #writeContrib} lo scrive su disco per farlo servire a MagixPack.
+     */
+    public java.util.Map<String, byte[]> buildAssets() throws IOException {
         // Dimensione minimap a schermo (frazione, es. 0.22) da config: sostituita nel vertex shader al
         // posto del placeholder __MAP_SIZE__. Clampata in un intervallo ragionevole per non generare uno
         // shader assurdo (0 = invisibile, valori enormi = riempie lo schermo).
@@ -341,38 +405,34 @@ public final class ResourcePackService {
         String logoHeightStr = String.valueOf(logoHeight);
         String logoAscentStr = String.valueOf(logoAscent);
 
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        try (ZipOutputStream zip = new ZipOutputStream(buffer)) {
-            for (String path : BUNDLED_FILES) {
-                try (InputStream in = getClass().getClassLoader().getResourceAsStream("resourcepack/" + path)) {
-                    if (in == null) throw new IOException("Risorsa mancante nel jar: resourcepack/" + path);
-                    byte[] data = in.readAllBytes();
-                    if (path.endsWith(".vsh")) { // il vertex shader ha il placeholder della dimensione
-                        data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
-                                .replace("__MAP_SIZE__", sizeStr)
-                                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                    } else if (path.endsWith(".fsh")) { // il fragment shader ha i placeholder di forma e cornice
-                        data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
-                                .replace("__SQUARE__", squareStr)
-                                .replace("__SMOOTH__", smoothStr)
-                                .replace("__BORDER_WIDTH__", borderWidthStr)
-                                .replace("__BORDER_R__", brStr)
-                                .replace("__BORDER_G__", bgStr)
-                                .replace("__BORDER_B__", bbStr)
-                                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                    } else if (path.endsWith("font/default.json")) { // il font del logo ha i placeholder di dimensione/posizione
-                        data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
-                                .replace("__LOGO_ASCENT__", logoAscentStr)
-                                .replace("__LOGO_HEIGHT__", logoHeightStr)
-                                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                    }
-                    zip.putNextEntry(new ZipEntry(path));
-                    zip.write(data);
-                    zip.closeEntry();
+        java.util.LinkedHashMap<String, byte[]> out = new java.util.LinkedHashMap<>();
+        for (String path : BUNDLED_FILES) {
+            try (InputStream in = getClass().getClassLoader().getResourceAsStream("resourcepack/" + path)) {
+                if (in == null) throw new IOException("Risorsa mancante nel jar: resourcepack/" + path);
+                byte[] data = in.readAllBytes();
+                if (path.endsWith(".vsh")) { // il vertex shader ha il placeholder della dimensione
+                    data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
+                            .replace("__MAP_SIZE__", sizeStr)
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                } else if (path.endsWith(".fsh")) { // il fragment shader ha i placeholder di forma e cornice
+                    data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
+                            .replace("__SQUARE__", squareStr)
+                            .replace("__SMOOTH__", smoothStr)
+                            .replace("__BORDER_WIDTH__", borderWidthStr)
+                            .replace("__BORDER_R__", brStr)
+                            .replace("__BORDER_G__", bgStr)
+                            .replace("__BORDER_B__", bbStr)
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                } else if (path.endsWith("font/default.json")) { // il font del logo ha i placeholder di dimensione/posizione
+                    data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
+                            .replace("__LOGO_ASCENT__", logoAscentStr)
+                            .replace("__LOGO_HEIGHT__", logoHeightStr)
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 }
+                out.put(path, data);
             }
         }
-        return buffer.toByteArray();
+        return out;
     }
 
     /** Colore cornice minimap -> {r,g,b} normalizzati 0..1 per lo shader. Accetta "#RRGGBB"/"RRGGBB" oppure

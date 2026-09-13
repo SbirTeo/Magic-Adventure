@@ -208,9 +208,18 @@ public final class MagixFactions extends JavaPlugin {
         // Il listener lo rende OBBLIGATORIO (config map.minimap.resourcepack.required, default true):
         // lo invia a tutti al join ed espelle chi non lo carica, con messaggi configurabili.
         resourcePackService = new com.teolo.magixfactions.resourcepack.ResourcePackService(this);
-        resourcePackService.start();
-        getServer().getPluginManager().registerEvents(
-                new com.teolo.magixfactions.resourcepack.ResourcePackListener(this, resourcePackService), this);
+        // Deposita SEMPRE gli asset per MagixPack (il "fornitore" unico del pacchetto): innocuo se
+        // MagixPack e' spento (i file restano inutilizzati). Cosi' il passaggio a MagixPack e' solo
+        // un cambio di config, senza ricompilare.
+        resourcePackService.contributeToMagixPack();
+        // Serve/impone il pacchetto in proprio SOLO se map.minimap.resourcepack.serve = true (default).
+        // Con serve=false ci pensa MagixPack: qui non parte ne' l'HTTP ne' il listener (niente doppio
+        // pacchetto, che il client scarterebbe).
+        if (resourcePackService.serves()) {
+            resourcePackService.start();
+            getServer().getPluginManager().registerEvents(
+                    new com.teolo.magixfactions.resourcepack.ResourcePackListener(this, resourcePackService), this);
+        }
 
         // Collega la minimap a Potenza: chi ha il permesso magixfactions.minimap la riceve da solo al
         // login e dopo /reload (stesso principio gia' usato per l'item Mappa Fazioni sopra), e il giro

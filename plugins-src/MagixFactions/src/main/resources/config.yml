@@ -536,6 +536,12 @@ map:
     # un piccolo server HTTP integrato: nessun altro hosting richiesto, ma la porta va raggiungibile
     # dai client (aperta sul firewall del VPS).
     resourcepack:
+      # serve: true = MagixFactions serve il pacchetto in proprio (comportamento storico).
+      # false = lo serve MagixPack, il proprietario unico del resource pack; MagixFactions gli
+      # deposita solo gli asset (shader minimap, logo, schermate MagixAuth) in
+      # plugins/MagixPack/contrib/MagixFactions/. Metti false SOLO insieme a pack.enabled: true in
+      # MagixPack: un solo pacchetto per volta, altrimenti il client ne scarta uno.
+      serve: true
       port: 8443
       public-host: "141.94.123.249"  # IP pubblico del VPS: i client scaricano da qui
 
