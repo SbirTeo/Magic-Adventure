@@ -38,9 +38,17 @@ esplicitamente all'utente cosa manca — vedi sotto).
      lanciato da una sessione locale (o dallo stesso utente via SSH).
   Non dare mai per fatto il deploy sul VPS da una sessione cloud.
 
+## Auto-deploy del sito (attivo)
+
+Il sito web ha un auto-deploy: ogni push su `main` che tocca `website/` copia i file sul VPS
+via GitHub Action (`.github/workflows/deploy-sito.yml`). Quindi, per il **sito**, il passo 3
+(VPS) avviene **da solo** — anche dalle sessioni cloud — a patto che i secret VPS siano
+configurati su GitHub. Setup e dettagli: `website/vps/AUTO-DEPLOY.md`.
+
+Il deploy NON tocca `includes/config.php` (password DB vera sul VPS) e non cancella gli
+upload. Non copre ancora il **server Minecraft**: quel deploy resta manuale finché non viene
+aggiunto al workflow (serve sapere come si ricarica il server).
+
 ## Note
 
-- Il sito web sul VPS: confermare/documentare il meccanismo esatto di aggiornamento
-  (git pull su `/var/www/magicadventure` vs rsync/caricamento manuale) e aggiornare questa
-  sezione una volta verificato.
 - `.claude/settings.local.json` è per-macchina e non va versionato (vedi `.gitignore`).

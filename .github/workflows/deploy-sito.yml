@@ -1,0 +1,74 @@
+name: Deploy sito sul VPS
+
+# Auto-deploy del SITO WEB: a ogni push su main che tocca website/, i file vengono
+# copiati sul VPS OVH (/var/www/magicadventure/). Cosi' il passo "VPS" della regola di
+# deploy (vedi CLAUDE.md) avviene da solo, anche dalle sessioni cloud che non hanno SSH.
+#
+# NON tocca il server Minecraft (quello e' un altro pezzo, vedi website/vps/AUTO-DEPLOY.md).
+# NON sovrascrive includes/config.php (password DB vera sul VPS) ne' cancella gli upload.
+#
+# Prima del primo uso servono 3 secret nel repo (Settings -> Secrets -> Actions):
+#   VPS_HOST     es. 141.94.123.249
+#   VPS_USER     es. ubuntu
+#   VPS_SSH_KEY  la chiave PRIVATA che entra nel VPS (contenuto di ~/.ssh/ovh_vps)
+# Dettagli e setup lato VPS: website/vps/AUTO-DEPLOY.md
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/deploy-sito.yml'
+  workflow_dispatch: {}   # permette anche il deploy manuale dal tab "Actions"
+
+# Un deploy alla volta: se ne parte un altro mentre uno e' in corso, aspetta.
+concurrency:
+  group: deploy-sito
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Se i secret non sono ancora configurati, il deploy si SALTA con un avviso
+      # invece di fallire in rosso: cosi' aggiungere il workflow non "rompe" nulla.
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Secret VPS non configurati: deploy saltato. Vedi website/vps/AUTO-DEPLOY.md"
+          fi
+
+      - name: Scarica il codice
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - name: Prepara la chiave SSH
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia il sito nel web root
+        if: steps.check.outputs.ok == 'true'
+        # -a: preserva permessi/tempi · -z: comprime · senza --delete: aggiunge/aggiorna
+        # soltanto, non cancella mai nulla (protegge gli upload in public/assets/img/caricate).
+        # --exclude config.php: NON tocca la password DB vera sul VPS.
+        # --rsync-path="sudo rsync": scrive nel web root anche se e' di proprieta' di root/www-data
+        #   (richiede il sudoers NOPASSWD descritto in AUTO-DEPLOY.md).
+        run: |
+          rsync -az --human-readable \
+            --exclude 'includes/config.php' \
+            --rsync-path="sudo rsync" \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            website/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/magicadventure/"
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
