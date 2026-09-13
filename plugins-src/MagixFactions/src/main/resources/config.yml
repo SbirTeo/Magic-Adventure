@@ -256,6 +256,13 @@ rename:
 protection:
   enabled: true            # false = nessuna protezione (comportamento vecchio: tutti costruiscono ovunque)
   ally-can-build: false    # true = gli ALLEATI possono costruire/interagire nel tuo territorio
+  # Vettori di distruzione che NON passano dalla rottura "a mano" (e quindi la aggiravano): senza questi
+  # chiunque poteva far saltare/bruciare/svuotare col pistone la land altrui pur non potendo rompere.
+  # La land claimata e' protetta da QUALSIASI esplosione (dentro i confini non si distrugge, punto).
+  block-explosions: true   # true = TNT/creeper/end crystal non distruggono blocchi dentro un claim
+  block-fire: true         # true = il fuoco non brucia/propaga sui blocchi dentro un claim
+  block-pistons: true      # true = i pistoni non spingono/rubano blocchi oltre il confine di un claim altrui
+  block-liquid-flow: true  # true = acqua/lava non possono scorrere DENTRO un claim da fuori o da un'altra land
 
 # --------------------------- COMBAT (PvP) -------------------------
 # Regola il PvP di fazione: fuoco amico e conteggio uccisioni/morti valide per le classifiche (K/D).
