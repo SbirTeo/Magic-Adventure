@@ -241,17 +241,15 @@ function store_card(array $item): void {
              class="card-edit-btn store-card-modifica" title="Modifica questo pacchetto"
              aria-label="Modifica <?= h($item['name']) ?>">✎</a>
         <?php endif; ?>
-        <div class="store-card-corpo">
-          <?php /* The whole card links to the package page: here you look, you don't buy. */ ?>
-          <a class="store-card-link" href="/pacchetto/<?= h(rawurlencode($item['slug'])) ?>">Vedi <?= h($item['name']) ?></a>
-          <span class="store-card-cat"><?= h($stili['nomi'][$catId] ?? 'Altro') ?></span>
-          <h3><?= h($item['name']) ?></h3>
-          <?php /* The feature list ("cosa ottieni") lives on the package page: the card stays
-                   clean — cover, category and name — with the price standing out below it. */ ?>
-        </div>
+        <?php /* The whole cover links to the package page: here you look, you don't buy. */ ?>
+        <a class="store-card-link" href="/pacchetto/<?= h(rawurlencode($item['slug'])) ?>">Vedi <?= h($item['name']) ?></a>
       </article>
-      <?php /* Price stands below the card, bold, on the page background. */ ?>
-      <div class="store-card-prezzo-est"><?= store_prezzo_html($item) ?></div>
+      <?php /* Name and price sit BELOW the card, on the page background: the cover stays clean
+               (no category label, no title over the art) and the name/price read at a glance. */ ?>
+      <div class="store-card-info">
+        <a class="store-card-nome" href="/pacchetto/<?= h(rawurlencode($item['slug'])) ?>"><?= h($item['name']) ?></a>
+        <div class="store-card-prezzo-est"><?= store_prezzo_html($item) ?></div>
+      </div>
     </div>
     <?php
 }

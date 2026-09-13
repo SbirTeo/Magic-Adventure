@@ -6,7 +6,6 @@
 
   // ---- filtro per categoria -------------------------------------------------------
   if (barra) {
-    var card = [].slice.call(document.querySelectorAll('.store-card'));
     var blocchi = [].slice.call(document.querySelectorAll('.store-fila-blocco'));
 
     barra.addEventListener('click', function (e) {
@@ -19,15 +18,9 @@
 
       var scelta = pulsante.dataset.cat;
 
-      // Con una categoria selezionata la targhetta sulle card ripete un'informazione che
-      // e' gia' nel filtro acceso: si mostra solo su "Tutto", dove serve a distinguerle.
-      document.body.classList.toggle('store-una-categoria', scelta !== 'tutti');
-
+      // One category at a time: show the chosen block, hide the others. There is no "all".
       blocchi.forEach(function (b) {
-        b.classList.toggle('is-nascosta', scelta !== 'tutti' && b.dataset.cat !== scelta);
-      });
-      card.forEach(function (c) {
-        c.classList.toggle('is-nascosta', scelta !== 'tutti' && c.dataset.cat !== scelta);
+        b.classList.toggle('is-nascosta', b.dataset.cat !== scelta);
       });
 
     });

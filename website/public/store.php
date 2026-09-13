@@ -167,10 +167,22 @@ require __DIR__ . '/../includes/header.php';
   <div class="<?= $colonnaDestra ? 'content-with-sidebar' : '' ?>">
   <div class="<?= $colonnaDestra ? 'content-main' : '' ?>">
 
-  <?php if (count($cats) > 1): ?>
+  <?php
+  // Group packages by category ($pkgs is already ordered by category position, then by the
+  // package sort order, so the grouping follows the manager's order).
+  $perCategoria = [];
+  foreach ($pkgs as $item) {
+      $perCategoria[(int) $item['category_id']][] = $item;
+  }
+  // No "all" button: the store shows one category at a time. Filters and grid list only the
+  // categories that actually have packages, and the first one is the default on load.
+  $catConPacchetti = array_values(array_filter($cats, fn($c) => isset($perCategoria[(int) $c['id']])));
+  $defaultCat = $catConPacchetti ? (int) $catConPacchetti[0]['id'] : 0;
+  ?>
+
+  <?php if (count($catConPacchetti) > 1): ?>
     <div class="store-filtri" id="storeFiltri">
-      <button type="button" class="store-filtro is-active" data-cat="tutti">Tutto</button>
-      <?php foreach ($cats as $c): ?>
+      <?php foreach ($catConPacchetti as $c): ?>
         <?php
           // Colori propri del filtro: sovrascrivono le variabili globali solo su questo pulsante
           $stileFiltro = '';
@@ -185,49 +197,21 @@ require __DIR__ . '/../includes/header.php';
                   . ';--store-filtro-bordo:' . hex_to_rgba($testo, 0.18);
           }
         ?>
-        <button type="button" class="store-filtro" data-cat="<?= (int) $c['id'] ?>"
+        <button type="button" class="store-filtro<?= (int) $c['id'] === $defaultCat ? ' is-active' : '' ?>" data-cat="<?= (int) $c['id'] ?>"
                 <?= $stileFiltro !== '' ? 'style="' . ltrim($stileFiltro, ';') . '"' : '' ?>><?= h($c['name']) ?></button>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
 
-  <?php /* Niente card "pacchetto in evidenza" qui: la promozione e' il banner in cima,
-           uguale a quello della home. Il pacchetto resta comunque nella riga della sua
-           categoria, come tutti gli altri. */ ?>
-
-  <?php
-  // Una riga per categoria: si vedono tre pacchetti alla volta e gli altri si raggiungono
-  // trascinando la riga col mouse (o scorrendo, da telefono). $pkgs e' gia' ordinato per
-  // categoria, quindi il raggruppamento mantiene l'ordine del gestionale.
-  $perCategoria = [];
-  foreach ($pkgs as $item) {
-      $perCategoria[(int) $item['category_id']][] = $item;
-  }
-  ?>
   <div class="store-griglia" id="storeGriglia">
     <?php foreach ($perCategoria as $catId => $items): ?>
-      <?php $altri = count($items) > 3; ?>
-      <section class="store-fila-blocco<?= $altri ? ' ha-altri' : '' ?>" data-cat="<?= (int) $catId ?>">
-        <?php if ($altri): ?>
-          <?php /* Frecce e sfumatura esistono solo dove c'e' davvero altro da vedere: senza,
-                   il terzo pacchetto della riga non si sospetta nemmeno. */ ?>
-          <button type="button" class="store-freccia indietro" aria-label="Pacchetti precedenti">‹</button>
-          <button type="button" class="store-freccia avanti" aria-label="Altri pacchetti">›</button>
-        <?php endif; ?>
-        <div class="store-fila<?= $altri ? ' ha-altri' : '' ?>">
+      <?php /* One category at a time as a wrapping 3-per-row grid (no horizontal scroll, no
+               arrows). Non-default categories start hidden; the filter swaps which one shows. */ ?>
+      <section class="store-fila-blocco<?= (int) $catId === $defaultCat ? '' : ' is-nascosta' ?>" data-cat="<?= (int) $catId ?>">
+        <div class="store-fila">
           <?php foreach ($items as $item) {
               store_card($item);
           } ?>
-        </div>
-        <?php /* Barretta di scorrimento della riga: dice a che punto si e' e si puo' trascinare.
-                 Sta nell'HTML sempre; e' store.js a nasconderla quando la riga ci sta tutta
-                 nello schermo e non c'e' niente da scorrere. */ ?>
-        <div class="store-barra" hidden>
-          <div class="store-barra-pista" role="scrollbar" aria-orientation="horizontal"
-               aria-label="Scorri i pacchetti di questa categoria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
-               tabindex="0">
-            <span class="store-barra-pollice"></span>
-          </div>
         </div>
       </section>
     <?php endforeach; ?>
