@@ -239,6 +239,26 @@ public final class MagixFactions extends JavaPlugin {
             factionManager.setDecayManager(decay); // timer parte esattamente al cambio membri
             long ov = 20L * decay.warnIntervalSeconds();
             Bukkit.getScheduler().runTaskTimer(this, decay::tick, ov, ov);
+            // Reazione ISTANTANEA al cambio di permessi (via evento LuckPerms): quando a un giocatore
+            // ONLINE si toglie/abbassa magixfactions.power.powermax.<n>, riallinea subito il suo tetto e
+            // rivaluta l'overclaim della sua fazione avvisando all'istante, senza aspettare i giri
+            // periodici (tickOnline ~power.tick-seconds, decay.tick ~decay.warn-interval-seconds). Un
+            // debounce per-giocatore evita avvisi doppi quando LuckPerms ricalcola piu' volte di fila.
+            final java.util.Set<java.util.UUID> permPending = java.util.concurrent.ConcurrentHashMap.newKeySet();
+            luckPerms.onUserRecalculate(uuid -> {
+                if (!permPending.add(uuid)) return; // gia' in coda: un solo riallineo per raffica
+                Bukkit.getScheduler().runTask(this, () -> {
+                    permPending.remove(uuid);
+                    org.bukkit.entity.Player p = Bukkit.getPlayer(uuid);
+                    if (p == null) return; // offline: ci pensa il giro periodico tickOffline
+                    // Rivaluta l'overclaim (con avviso immediato) SOLO se il tetto e' davvero cambiato:
+                    // un ricalcolo permessi non legato al powermax non deve generare avvisi doppi.
+                    if (powerManager.syncMaxPower(p, powerManager.vantaggi(p).maxPower)) {
+                        com.teolo.magixfactions.model.Faction f = factionManager.getFaction(uuid);
+                        if (f != null) decay.checkAndWarn(f);
+                    }
+                });
+            });
         } catch (Exception e) {
             getLogger().severe("Errore inizializzazione decadimento (decay): " + e.getMessage());
         }
