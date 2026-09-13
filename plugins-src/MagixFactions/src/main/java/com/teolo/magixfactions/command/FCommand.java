@@ -136,6 +136,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 case "owner": return owner(p, args);
                 case "map": return map(p);
                 case "minimap": return minimapCmd(p, args);
+                case "borders": case "border": case "confini": return bordersCmd(p, args);
                 case "sethome": return sethome(p);
                 case "unsethome": return unsethome(p);
                 case "home": return home(p);
@@ -345,6 +346,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (targetIndex <= 0) { msg(p, M.get("demote.min")); return true; }
         fm.setRank(f, target.getUniqueId(), ranks.byIndex(targetIndex - 1).getId());
         msg(p, M.get("demote.success", "player", target.getName(), "rank", ranks.byIndex(targetIndex - 1).getName()));
+        Player tp = target.getPlayer();
+        if (tp != null) msg(tp, M.get("demote.received", "rank", ranks.byIndex(targetIndex - 1).getName()));
         return true;
     }
 
@@ -814,6 +817,28 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         }
         power.setMinimapHidden(p, wantHidden);
         msg(p, M.get(wantHidden ? "minimap.disabled" : "minimap.enabled"));
+        return true;
+    }
+
+    /**
+     * /f borders [on|off] — accende o spegne i confini a particelle verdi attorno ai territori, preferenza
+     * PERSONALE di ogni giocatore (colonna players.borders_enabled), indipendente dalla fazione. Di serie
+     * e' spenta. Aperto a tutti (come /f map): il disegno lo fa il giro periodico di BorderService, che
+     * legge questo interruttore. Senza argomento fa da toggle (inverte lo stato attuale).
+     */
+    private boolean bordersCmd(Player p, String[] a) {
+        boolean current = power.isBordersEnabled(p.getUniqueId());
+        boolean want;
+        if (a.length >= 2) {
+            String v = a[1].toLowerCase(Locale.ROOT);
+            if (v.equals("on") || v.equals("si") || v.equals("sì")) want = true;
+            else if (v.equals("off") || v.equals("no")) want = false;
+            else { msg(p, M.get("borders.usage")); return true; }
+        } else {
+            want = !current; // nessun argomento: inverte
+        }
+        power.setBordersEnabled(p, want);
+        msg(p, M.get(want ? "borders.enabled" : "borders.disabled"));
         return true;
     }
 
@@ -1298,6 +1323,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "minimap":
                 if (args.length == 2) return filterPrefix(args[1], List.of("on", "off"));
                 break;
+            case "borders": case "border": case "confini":
+                if (args.length == 2) return filterPrefix(args[1], List.of("on", "off"));
+                break;
             case "deposit": case "d": case "withdraw": case "w":
                 if (args.length == 2) return filterPrefix(args[1], List.of("10", "100", "1000"));
                 break;
@@ -1339,7 +1367,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         List<String> out = new ArrayList<>();
         out.add("help"); out.add("list"); out.add("top"); out.add("info");
         if (s instanceof Player p) {
-            out.add("map"); out.add("power");
+            out.add("map"); out.add("power"); out.add("borders"); // confini a particelle: aperto a tutti
             if (power.hasMinimapPermission(p)) out.add("minimap"); // interruttore HUD, solo a chi ha il permesso
 
             Faction f = fm.getFaction(p.getUniqueId());

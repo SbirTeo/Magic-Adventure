@@ -90,7 +90,19 @@ public final class DecayManager {
      * (uscita/kick/join), cosi' il timer del decadimento parte ESATTAMENTE al momento dell'evento
      * o si azzera subito se si rientra nel cap.
      */
-    public void checkNow(Faction f) {
+    public void checkNow(Faction f) { evaluate(f, false); }
+
+    /**
+     * Come {@link #checkNow(Faction)} ma, se la fazione e' sopra il cap, AVVISA anche subito i membri
+     * (titolo + suono). La usa il plugin quando il tetto di un membro cala all'ISTANTE — permesso
+     * {@code magixfactions.power.powermax.<n>} tolto o abbassato via LuckPerms — cosi' l'avviso di
+     * overclaim non deve aspettare il prossimo giro di {@link #tick()}.
+     */
+    public void checkAndWarn(Faction f) { evaluate(f, true); }
+
+    /** Nucleo comune di {@link #checkNow} e {@link #checkAndWarn}: avvia/azzera il timer secondo il cap
+     *  attuale e, solo se {@code warnIfOver}, manda subito l'avviso quando la fazione e' sopra il cap. */
+    private void evaluate(Faction f, boolean warnIfOver) {
         int owned = claims.count(f.getId());
         int cap = claims.maxClaims(power.factionMaxPower(f));
         if (owned > cap) {
@@ -99,6 +111,7 @@ public final class DecayManager {
                 timers.put(f.getId(), t);
                 save(f.getId(), t);
             }
+            if (warnIfOver) warn(f, owned, cap);
         } else if (timers.remove(f.getId()) != null) {
             delete(f.getId());
         }

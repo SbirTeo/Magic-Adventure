@@ -723,3 +723,17 @@ value-blocks:
   LAPIS_BLOCK: 10
   REDSTONE_BLOCK: 8
   COAL_BLOCK: 5
+
+# --------------------------- CONFINI A PARTICELLE ---------------------------
+# /f borders (aperto a tutti) accende, per il SINGOLO giocatore, delle particelle verdi leggere lungo i
+# BORDI dei territori vicini: si vede a colpo d'occhio dove finisce una land. E' una preferenza PERSONALE
+# (per-giocatore, non per-fazione) e di serie e' SPENTA: ognuno la accende per se' con /f borders on.
+# Le particelle le vede solo il giocatore che le ha accese; non pesano sugli altri. /mf reload a caldo.
+borders:
+  enabled: true            # interruttore GENERALE della feature (false = /f borders resta ma non disegna nulla)
+  radius: 2                # raggio in CHUNK attorno al giocatore entro cui disegnare i bordi (piu' alto = piu' particelle)
+  interval-ticks: 10       # ogni quanti tick ridisegnare (10 = mezzo secondo). Piu' basso = piu' fluido ma piu' carico
+  point-spacing: 2.0       # distanza in blocchi tra un punto e l'altro lungo il bordo (piu' alto = piu' rado/leggero)
+  wall-height: 1           # blocchi di altezza del "muretto" di particelle sopra i piedi (0 = solo una riga a terra)
+  size: 1.0                # dimensione delle particelle di polvere
+  color: "#33FF33"         # colore esadecimale #RRGGBB (verde di serie)
