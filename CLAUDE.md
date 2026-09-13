@@ -45,12 +45,18 @@ esplicitamente all'utente cosa manca — vedi sotto).
   chiave `~/.ssh/ovh_vps` e l'accesso SSH: possono fare il deploy sul VPS. Qui la regola
   di deploy va eseguita per intero.
 - Le sessioni **cloud / Claude Code sul web** girano in un container isolato **senza**
-  chiave SSH e **senza** rete verso il VPS (solo HTTPS). Da lì il passo 3 (VPS) **non è
-  eseguibile**. In una sessione cloud:
-  1. esegui i passi 1–2 (mirror se serve, e GitHub `main`);
-  2. **avvisa esplicitamente l'utente** che il deploy sul VPS è ancora da fare e va
-     lanciato da una sessione locale (o dallo stesso utente via SSH).
-  Non dare mai per fatto il deploy sul VPS da una sessione cloud.
+  chiave SSH e **senza** rete verso il VPS (solo HTTPS): non possono fare SSH dirette.
+  **Ma il passo 3 (VPS) è comunque eseguibile anche da cloud**, tramite le GitHub Action
+  (che sì hanno i secret VPS e l'accesso SSH):
+  - **Codice sito** → auto-deploy su push a `main` (`deploy-sito.yml`).
+  - **Jar dei plugin** → auto-deploy su push a `main` (`deploy-plugin.yml`).
+  - **File di config di un plugin già presenti sul VPS** (es. cambiare un valore in
+    `messages.yml`/`config.yml`) → **non** basta il push (l'auto-deploy plugin copia solo il
+    jar, e il plugin legge il file già sul VPS, non il default del jar): lancia il workflow
+    manuale `deploy-plugin-config.yml` (vedi sotto). Anche questo funziona da cloud.
+  Quindi, da una sessione cloud, dopo i passi 1–2 fai partire il deploy VPS con l'Action giusta
+  e **verifica che il run vada a buon fine**. Avvisa l'utente solo se un deploy fallisce o se i
+  secret VPS non sono configurati.
 
 ## Auto-deploy del sito (attivo)
 
@@ -69,6 +75,21 @@ plugin cambiati (Maven/JDK 21) via GitHub Action (`.github/workflows/deploy-plug
 copia il jar sul VPS in `/home/ubuntu/magicadventure/plugins/` e **riavvia il server** (screen
 `mc`, servizio `magicadventure.service`) con preavviso in chat ai giocatori. Stessi secret del
 sito + un sudoers per `systemctl restart magicadventure.service`. Setup: `website/vps/AUTO-DEPLOY.md`.
+
+## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
+
+L'auto-deploy dei plugin copia **solo il jar**: i file di config già presenti nella cartella
+dati del plugin sul VPS (`.../plugins/<Plugin>/messages.yml`, `config.yml`, ...) **non vengono
+toccati**, e il plugin legge quelli (il valore nel jar è solo il default per le chiavi
+*mancanti*). Perciò, cambiare un valore **già esistente** nel repo non si vede live finché non
+si aggiorna anche il file sul VPS.
+
+Per farlo — da qualsiasi sessione, cloud inclusa — c'è il workflow manuale
+`.github/workflows/deploy-plugin-config.yml`: modifica **solo la riga della chiave indicata**
+(lascia intatto il resto del file e i commenti, fa un backup timestampato) e poi ricarica il
+plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `file`, `key`
+(nome-foglia, es. `ally-prefix`), `value` (il nuovo valore, virgolette comprese) e
+`reload_cmd` (default `mf reload`). Usa gli stessi secret VPS del deploy sito/plugin.
 
 ## Note
 
