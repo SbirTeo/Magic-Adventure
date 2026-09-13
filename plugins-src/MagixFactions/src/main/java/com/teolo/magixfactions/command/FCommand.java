@@ -343,6 +343,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (targetIndex <= 0) { msg(p, M.get("demote.min")); return true; }
         fm.setRank(f, target.getUniqueId(), ranks.byIndex(targetIndex - 1).getId());
         msg(p, M.get("demote.success", "player", target.getName(), "rank", ranks.byIndex(targetIndex - 1).getName()));
+        Player tp = target.getPlayer();
+        if (tp != null) msg(tp, M.get("demote.received", "rank", ranks.byIndex(targetIndex - 1).getName()));
         return true;
     }
 
