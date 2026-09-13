@@ -35,7 +35,7 @@ errors:
 
 chat:
   faction-prefix: "&a[Fazione] "
-  ally-prefix: "&b[Alleati] &7{faction} &8» "
+  ally-prefix: "&d[Alleati] &7{faction} &8» "
   body: "&7{player}: &f{message}"
   set: "&7Canale chat impostato su: {channel}"
   channel-public: "&fPUBBLICA"
