@@ -1,0 +1,71 @@
+name: Compila i plugin (solo verifica)
+
+# Rete di sicurezza per lo sviluppo: compila i plugin ad ogni push su un branch di lavoro
+# (NON su main) e sulle pull request. Serve solo a verificare che il codice COMPILI —
+# non copia niente sul VPS e non riavvia nessun server. Il deploy vero (con riavvio) lo fa
+# deploy-plugin.yml, e solo su main.
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'plugins-src/**'
+      - '.github/workflows/build-plugins.yml'
+  pull_request:
+    paths:
+      - 'plugins-src/**'
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "Cartella del plugin da compilare, oppure 'all'"
+        required: false
+        default: 'all'
+
+concurrency:
+  group: build-plugins-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Java 25 + Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Decidi quali plugin compilare
+        id: plugins
+        run: |
+          set -euo pipefail
+          INPUT="${{ github.event.inputs.plugin }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "$INPUT" = "all" ] || [ -z "$INPUT" ]; then LIST="$(ls -1 plugins-src)"; else LIST="$INPUT"; fi
+          else
+            # cartelle di primo livello cambiate sotto plugins-src/
+            LIST="$(git diff --name-only HEAD^ HEAD -- plugins-src/ \
+                    | sed -n 's#^plugins-src/\([^/]*\)/.*#\1#p' | sort -u)"
+          fi
+          echo "Plugin da compilare:"; echo "${LIST:-(nessuno)}"
+          printf '%s\n' "$LIST" > "$RUNNER_TEMP/plugin_list"
+
+      - name: Compila
+        run: |
+          set -euo pipefail
+          n=0
+          while IFS= read -r P; do
+            [ -z "$P" ] && continue
+            [ -f "plugins-src/$P/pom.xml" ] || { echo "salto '$P' (nessun pom.xml)"; continue; }
+            echo "::group::Compilo $P"
+            mvn -q -B -f "plugins-src/$P/pom.xml" package -DskipTests
+            echo "::endgroup::"
+            n=$((n+1))
+          done < "$RUNNER_TEMP/plugin_list"
+          echo "Plugin compilati: $n"

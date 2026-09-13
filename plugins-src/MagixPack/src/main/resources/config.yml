@@ -1,0 +1,32 @@
+# ============================================================
+#  MagixPack - Configurazione
+# ============================================================
+# MagixPack e' (diventera') il proprietario UNICO del resource pack del server: un solo
+# pacchetto, servito via HTTP, in cui gli altri plugin mettono i loro asset (logo del
+# tablist, schermate di MagixAuth, shader della minimap, pergamena del tablist...).
+#
+# Perche' UN SOLO pacchetto: il client Minecraft ne applica uno solo. Mandarne due significa
+# che il secondo viene scaricato e scartato in silenzio, e le texture "spariscono".
+
+pack:
+  # Interruttore generale. Finche' la migrazione da MagixFactions non e' completa, resta
+  # FALSE: cosi' MagixPack non avvia il suo server HTTP e non entra in conflitto con il pack
+  # ancora servito da MagixFactions (due pacchetti insieme = uno viene scartato).
+  enabled: false
+
+  # Porta del mini server HTTP da cui i client scaricano il pacchetto (va aperta sul VPS).
+  port: 8443
+
+  # Host pubblico (IP o dominio) da cui i client raggiungono la porta qui sopra. Vuoto =
+  # pacchetto disabilitato. Es: 141.94.123.249  oppure  pack.magicadventure.it
+  public-host: ''
+
+  # Pacchetto OBBLIGATORIO: inviato a tutti al join, chi non lo carica viene espulso.
+  required: true
+
+  # Messaggio mostrato dal client quando chiede di scaricare il pacchetto.
+  prompt: "&eQuesto server richiede il pacchetto risorse di MAGICADVENTURE."
+
+  # Ogni quanti secondi il watchdog verifica che il pacchetto sia ancora scaricabile in
+  # locale e, se il server HTTP si e' bloccato, lo riavvia da solo. 0 = watchdog spento.
+  watchdog-seconds: 120

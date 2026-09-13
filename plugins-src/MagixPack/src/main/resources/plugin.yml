@@ -1,0 +1,17 @@
+name: MagixPack
+version: '${project.version}'
+main: com.teolo.magixpack.MagixPack
+api-version: '26.1'
+author: teolo
+description: "Proprietario unico del resource pack del server (costruisce, serve e impone un solo pacchetto)."
+# load: STARTUP + priorita' alta cosi' il pack e' pronto prima che gli altri plugin lo usino.
+load: STARTUP
+commands:
+  magixpack:
+    description: "Comandi di MagixPack (per ora, reload)."
+    aliases: [mpack, magixpk]
+    permission: magixpack.admin
+permissions:
+  magixpack.admin:
+    description: "Gestione di MagixPack (reload)."
+    default: op

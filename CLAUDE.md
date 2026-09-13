@@ -51,7 +51,7 @@ upload.
 ## Auto-deploy dei plugin Minecraft (attivo)
 
 Anche i plugin hanno un auto-deploy: ogni push su `main` che tocca `plugins-src/` compila i
-plugin cambiati (Maven/JDK 21) via GitHub Action (`.github/workflows/deploy-plugin.yml`),
+plugin cambiati (Maven/JDK 25) via GitHub Action (`.github/workflows/deploy-plugin.yml`),
 copia il jar sul VPS in `/home/ubuntu/magicadventure/plugins/` e **riavvia il server** (screen
 `mc`, servizio `magicadventure.service`) con preavviso in chat ai giocatori. Stessi secret del
 sito + un sudoers per `systemctl restart magicadventure.service`. Setup: `website/vps/AUTO-DEPLOY.md`.

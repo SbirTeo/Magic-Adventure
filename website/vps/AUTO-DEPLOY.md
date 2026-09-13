@@ -64,7 +64,7 @@ sudo o chiave non autorizzata).
 ## Deploy dei plugin Minecraft (attivo)
 
 Il workflow `.github/workflows/deploy-plugin.yml` fa lo stesso per i **plugin**: a ogni push
-su `main` che tocca `plugins-src/`, compila i plugin cambiati (Maven/JDK 21), copia il jar
+su `main` che tocca `plugins-src/`, compila i plugin cambiati (Maven/JDK 25), copia il jar
 sul VPS in `/home/ubuntu/magicadventure/plugins/` (togliendo la versione vecchia) e **riavvia
 il server** per caricarli, con un **preavviso in chat** ai giocatori online (say a -60s, -20s,
 -5s, poi `save-all` e riavvio).
