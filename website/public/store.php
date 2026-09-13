@@ -52,14 +52,23 @@ $mostraData = site_setting('store_sidebar_show_date', '1') === '1';
 $mostraNome = site_setting('store_sidebar_show_name', '1') === '1';
 $mostraRank = site_setting('store_sidebar_show_rank', '1') === '1';
 
-/** Nome del giocatore come va mostrato nella colonna: coi tag del grado, senza, o niente. */
+/**
+ * Nome del giocatore come va mostrato nella colonna: coi tag del grado, senza, o niente.
+ *
+ * The name is a link to the player's public page, and it uses the LIVE name (nome_vivo,
+ * from mc_ranks, kept current by the plugin at each join) instead of the one frozen in the
+ * order at purchase time: a player who renamed on minecraft.net keeps the same UUID, so the
+ * old order name would otherwise stay forever. Falls back to the order name when there is no
+ * rank row (e.g. someone who bought but never joined in game).
+ */
 $playerName = function (array $riga) use ($mostraNome, $mostraRank): string {
     if (!$mostraNome) {
         return '';
     }
-    return $mostraRank
-        ? player_name($riga, $riga['mc_username'])
-        : h((string) $riga['mc_username']);
+    $nomeVivo = (string) ($riga['nome_vivo'] ?? '');
+    $nome = $nomeVivo !== '' ? $nomeVivo : (string) $riga['mc_username'];
+    $inner = $mostraRank ? player_name($riga, $nome) : h($nome);
+    return '<a class="store-lato-nome-link" href="/utente?nome=' . h(rawurlencode($nome)) . '">' . $inner . '</a>';
 };
 $topAttivo = site_setting('store_sidebar_top_enabled', '1') === '1';
 $giorniTop = max(0, min(3650, (int) site_setting('store_sidebar_top_days', '0'))); // 0 = da sempre
@@ -75,7 +84,7 @@ if ($sidebarAttiva) {
 
     if ($quantiRecenti > 0) {
         $q = db()->prepare(
-            'SELECT o.mc_uuid, o.mc_username, o.package_name, o.price, o.currency, o.paid_at, us.last_seen, '
+            'SELECT o.mc_uuid, o.mc_username, r.mc_username AS nome_vivo, o.package_name, o.price, o.currency, o.paid_at, us.last_seen, '
             . RANK_SELECT_SQL
             . ' FROM store_orders o LEFT JOIN mc_ranks r ON r.mc_uuid = o.mc_uuid COLLATE utf8mb4_unicode_ci'
             . ' LEFT JOIN users us ON us.mc_uuid = o.mc_uuid COLLATE utf8mb4_unicode_ci'
@@ -94,7 +103,8 @@ if ($sidebarAttiva) {
         $q = db()->query(
             // I campi del grado sono uno solo per giocatore (mc_ranks ha l'uuid come chiave):
             // il MAX() serve solo a soddisfare il GROUP BY, non sceglie davvero fra piu' valori.
-            'SELECT o.mc_uuid, MAX(o.mc_username) AS mc_username, SUM(o.price) AS totale,
+            'SELECT o.mc_uuid, MAX(o.mc_username) AS mc_username, MAX(r.mc_username) AS nome_vivo,
+                    SUM(o.price) AS totale,
                     COUNT(*) AS acquisti, MAX(o.currency) AS currency,
                     MAX(r.group_name) AS group_name, MAX(r.group_display) AS group_display,
                     MAX(r.tag_text) AS tag_text, MAX(r.tag_color) AS tag_color,
@@ -186,7 +196,7 @@ require __DIR__ . '/../includes/header.php';
            categoria, come tutti gli altri. */ ?>
 
   <?php
-  // Una riga per categoria: si vedono due pacchetti alla volta e gli altri si raggiungono
+  // Una riga per categoria: si vedono tre pacchetti alla volta e gli altri si raggiungono
   // trascinando la riga col mouse (o scorrendo, da telefono). $pkgs e' gia' ordinato per
   // categoria, quindi il raggruppamento mantiene l'ordine del gestionale.
   $perCategoria = [];
@@ -196,7 +206,7 @@ require __DIR__ . '/../includes/header.php';
   ?>
   <div class="store-griglia" id="storeGriglia">
     <?php foreach ($perCategoria as $catId => $items): ?>
-      <?php $altri = count($items) > 2; ?>
+      <?php $altri = count($items) > 3; ?>
       <section class="store-fila-blocco<?= $altri ? ' ha-altri' : '' ?>" data-cat="<?= (int) $catId ?>">
         <?php if ($altri): ?>
           <?php /* Frecce e sfumatura esistono solo dove c'e' davvero altro da vedere: senza,

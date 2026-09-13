@@ -181,7 +181,11 @@ function store_sconto_globale(): ?array {
     return ['tipo' => $tipo, 'valore' => $valore];
 }
 
-/** Prezzo pronto da stampare: barrato + scontato quando c'e' uno sconto, altrimenti secco. */
+/**
+ * Price ready to print: struck-through full price + discounted price when a discount
+ * applies, otherwise the plain price. The discount label itself is NOT printed here: on
+ * the card it is shown by the angled corner ribbon (see store_card()).
+ */
 function store_prezzo_html(array $item): string {
     $p = store_prezzo($item);
     $valuta = h(site_setting('store_currency', 'EUR'));
@@ -193,8 +197,7 @@ function store_prezzo_html(array $item): string {
     return '<span class="store-prezzo is-scontato">'
         . '<s class="store-prezzo-pieno">' . $cifra($p['pieno']) . '</s> '
         . $cifra($p['finale']) . ' <small>' . $valuta . '</small>'
-        . '</span>'
-        . '<span class="store-sconto">' . h($p['etichetta']) . '</span>';
+        . '</span>';
 }
 
 /** Ogni riga della descrizione breve diventa una voce dell'elenco "cosa ottieni". */
@@ -203,11 +206,14 @@ function store_voci(?string $descrizione): array {
     return array_values(array_filter($righe, fn($r) => $r !== ''));
 }
 
-/** Stampa la card di un pacchetto. */
+/** Print one package card. */
 function store_card(array $item): void {
     $stili = store_category_styles();
     $catId = (int) $item['category_id'];
     $voci = store_voci($item['description']);
+    $prezzo = store_prezzo($item);
+    // Featured package: the one flagged in the manager (store_packages.featured = 1).
+    $featured = !empty($item['featured']);
 
     $stile = $stili['velo'][$catId] ?? '';
     foreach (['bordo', 'filtro', 'scelte'] as $parte) {
@@ -219,34 +225,45 @@ function store_card(array $item): void {
         $stile .= ";--copertina:url('" . h($item['image_url']) . "')";
     }
 
-    $classi = 'store-card' . (empty($item['image_url']) ? ' senza-immagine' : '');
+    $classi = 'store-card'
+        . (empty($item['image_url']) ? ' senza-immagine' : '')
+        . ($featured ? ' is-featured' : '');
+    // The cell wraps the card AND the price below it: it is the flex item of the row, so
+    // filtering hides card + price as one unit and the price stays out of the card.
     ?>
-    <article class="<?= $classi ?>"
-             id="<?= h($item['slug']) ?>"
-             data-cat="<?= $catId ?>"
-             <?= $stile !== '' ? ' style="' . ltrim($stile, ';') . '"' : '' ?>>
-      <div class="store-card-media" aria-hidden="true"></div>
-      <?php if (is_admin()): /* solo web-admin: lo store si gestisce solo da li' */ ?>
-        <a href="/manage?section=store_pkg_edit&id=<?= (int) $item['id'] ?>"
-           class="card-edit-btn store-card-modifica" title="Modifica questo pacchetto"
-           aria-label="Modifica <?= h($item['name']) ?>">✎</a>
-      <?php endif; ?>
-      <div class="store-card-corpo">
-        <?php /* Tutta la card porta alla pagina del pacchetto: qui non si acquista, si guarda. */ ?>
-        <a class="store-card-link" href="/pacchetto/<?= h(rawurlencode($item['slug'])) ?>">Vedi <?= h($item['name']) ?></a>
-        <span class="store-card-cat"><?= h($stili['nomi'][$catId] ?? 'Altro') ?></span>
-        <h3><?= h($item['name']) ?></h3>
-        <?php if ($voci): ?>
-          <ul class="store-card-voci">
-            <?php foreach ($voci as $voce): ?>
-              <li><?= h($voce) ?></li>
-            <?php endforeach; ?>
-          </ul>
+    <div class="store-card-cella<?= $featured ? ' is-featured' : '' ?>" data-cat="<?= $catId ?>">
+      <article class="<?= $classi ?>"
+               id="<?= h($item['slug']) ?>"
+               data-cat="<?= $catId ?>"
+               <?= $stile !== '' ? ' style="' . ltrim($stile, ';') . '"' : '' ?>>
+        <div class="store-card-media" aria-hidden="true"></div>
+        <?php if ($featured): /* Gold border comes from the CSS; here goes the badge. */ ?>
+          <span class="store-card-consigliato">Consigliato</span>
         <?php endif; ?>
-        <div class="store-card-piede">
-          <?= store_prezzo_html($item) ?>
+        <?php if ($prezzo['etichetta']): /* Discount as an angled corner ribbon, top-right. */ ?>
+          <span class="store-card-sconto"><?= h($prezzo['etichetta']) ?></span>
+        <?php endif; ?>
+        <?php if (is_admin()): /* web-admin only: the store is managed from there */ ?>
+          <a href="/manage?section=store_pkg_edit&id=<?= (int) $item['id'] ?>"
+             class="card-edit-btn store-card-modifica" title="Modifica questo pacchetto"
+             aria-label="Modifica <?= h($item['name']) ?>">✎</a>
+        <?php endif; ?>
+        <div class="store-card-corpo">
+          <?php /* The whole card links to the package page: here you look, you don't buy. */ ?>
+          <a class="store-card-link" href="/pacchetto/<?= h(rawurlencode($item['slug'])) ?>">Vedi <?= h($item['name']) ?></a>
+          <span class="store-card-cat"><?= h($stili['nomi'][$catId] ?? 'Altro') ?></span>
+          <h3><?= h($item['name']) ?></h3>
+          <?php if ($voci): ?>
+            <ul class="store-card-voci">
+              <?php foreach ($voci as $voce): ?>
+                <li><?= h($voce) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
         </div>
-      </div>
-    </article>
+      </article>
+      <?php /* Price stands below the card, bold, on the page background. */ ?>
+      <div class="store-card-prezzo-est"><?= store_prezzo_html($item) ?></div>
+    </div>
     <?php
 }

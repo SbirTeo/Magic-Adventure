@@ -2080,16 +2080,19 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   -ms-overflow-style: none;
 }
 .store-fila::-webkit-scrollbar { width: 0; height: 0; }
-/* due card per riga, qualunque sia la larghezza: la terza sporge e invita a trascinare */
-.store-fila > .store-card {
-  flex: 0 0 calc((100% - 18px) / 2);
+/* Three cards per row, any width: the fourth peeks out and invites dragging. The flex item
+   is the cell (card + price stacked), so the row measures and snaps on the whole cell. */
+.store-fila > .store-card-cella {
+  flex: 0 0 calc((100% - 36px) / 3);
+  display: flex;
+  flex-direction: column;
   scroll-snap-align: start;
 }
 /* il "si trascina" lo dice il cursore, solo dove c'e' davvero altro da vedere */
 .store-fila.ha-altri { cursor: grab; }
 .store-fila.is-trascino { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 @media (max-width: 700px) {
-  .store-fila > .store-card { flex-basis: 100%; }
+  .store-fila > .store-card-cella { flex-basis: 100%; }
 }
 /* Velo e barretta di una categoria: la card porta inline le tinte GREZZE delle due versioni
    (--cat-*, scritte da store_stili_categorie) e qui si sceglie quale usare in base al tema.
@@ -2231,14 +2234,69 @@ body.store-una-categoria .store-card-cat { display: none; }
   border-radius: 50%;
   background: currentColor;
 }
-.store-card-piede {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid var(--riga-chiara);
+/* Price row below the card: bold and standing on the page background (moved out of the
+   card so it reads at a glance instead of being buried over the cover image). */
+.store-card-prezzo-est {
+  padding: 12px 6px 2px;
+  text-align: center;
 }
+.store-card-prezzo-est .store-prezzo { font-size: 25px; font-weight: 800; }
+.store-card-prezzo-est .store-prezzo small { font-size: 13px; font-weight: 700; }
+.store-card-prezzo-est .store-prezzo-pieno { font-size: 15px; margin-right: 8px; }
+
+/* Discount as an angled corner ribbon in the top-right of the card. Colours come from the
+   category/package settings (same variables as .store-sconto); overflow:hidden on the card
+   clips the band ends into the classic ribbon shape. */
+.store-card-sconto {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: -40px;
+  width: 150px;
+  transform: rotate(45deg);
+  padding: 5px 0;
+  text-align: center;
+  background: var(--sconto-fondo, var(--green));
+  color: var(--sconto-testo, #14200a);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Featured package: prominent gold border all around + a "recommended" badge. */
+.store-card.is-featured {
+  border: 2px solid var(--gold);
+  border-left-width: 3px;
+  box-shadow: 0 0 0 1px var(--gold-glow), 0 18px 44px -24px var(--gold-glow);
+}
+.store-card.is-featured:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--gold-glow), 0 20px 46px -22px var(--gold-glow);
+}
+.store-card-consigliato {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  left: 14px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--gold);
+  color: #2a1c02;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+/* On store cards the edit pencil moves to the bottom-right corner, clear of the discount
+   ribbon and the "recommended" badge that now sit in the top corners. */
+.store-card .store-card-modifica { top: auto; bottom: 12px; right: 12px; }
+
 .store-prezzo { font-family: var(--font-heading); font-weight: 700; font-size: 22px; color: var(--gold-light); }
 .store-prezzo small { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-left: 2px; }
 /* Prezzo scontato: prima quello pieno barrato e spento, poi quello vero. */
@@ -2282,6 +2340,10 @@ body.store-una-categoria .store-card-cat { display: none; }
   letter-spacing: 0.02em;
 }
 .store-lato-nome { font-size: 13px; font-weight: 600; }
+/* Player name links to their public page: it must read as plain text (the rank colour lives
+   on the inner span) and only hint it is clickable on hover. */
+.store-lato-nome-link { color: inherit; text-decoration: none; }
+.store-lato-nome-link:hover { text-decoration: underline; }
 .store-lato-meta { font-size: 11.5px; color: var(--text-dim); }
 .store-lato-vuoto { font-size: 12.5px; color: var(--text-dimmer); font-style: italic; margin: 0; }
 /* le teste sono pixel art: senza questo il ridimensionamento le sfoca */
@@ -3888,7 +3950,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
     margin-right: calc(var(--wrap-pad) * -1);
   }
   .store-fila { gap: 8px; }
-  .store-fila > .store-card { flex: 0 0 100%; }
+  .store-fila > .store-card-cella { flex: 0 0 100%; }
   /* Le frecce rientrano di un filo: sbordando il blocco, i -8px del desktop le portavano
      mezze fuori dallo schermo. */
   .store-freccia.indietro { left: 6px; }
