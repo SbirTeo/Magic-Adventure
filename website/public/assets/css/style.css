@@ -4920,7 +4920,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 /* --- il testo, accanto al portale --- */
 /* Il testo prende lo spazio che avanza, il portale resta della sua misura in fondo:
    cosi' il portale e' sempre attaccato al bordo destro, dove finisce la miccia. */
-.nether-testo { flex: 1 1 auto; min-width: 0; text-align: left; }
+.nether-testo { flex: 1 1 auto; min-width: 0; text-align: center; }
 .nether-tag {
   display: inline-block;
   margin-bottom: 10px;
@@ -4943,6 +4943,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .nether-tempo {
   display: flex;
   align-items: baseline;
+  justify-content: center;   /* i numeri restano centrati come il resto del testo */
   flex-wrap: wrap;
   gap: 4px 18px;
   margin: 0;
@@ -4992,7 +4993,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   text-transform: uppercase;
   color: var(--text-dimmer);
 }
-.nether-nota { margin: 10px 0 0; max-width: 56ch; color: var(--text-dim); font-size: 14.5px; }
+.nether-nota { margin: 10px auto 0; max-width: 56ch; color: var(--text-dim); font-size: 14.5px; }
 .nether-annuncio {
   margin: 0;
   font-family: var(--font-heading);

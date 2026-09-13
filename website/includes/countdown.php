@@ -139,11 +139,6 @@ function countdown_sezione(): void {
     // momento in cui deve dire la cosa piu' importante.
     $titoloFine = trim(site_setting('countdown_done_title', '')) ?: 'Il server è APERTO';
     $testoFine = trim(site_setting('countdown_done_text', 'Entra adesso e prenditi il tuo territorio.'));
-    // La skin di chi sta guardando: chi ha collegato l'account si vede correre verso il
-    // portale. Per gli ospiti corre Steve.
-    $io = current_user();
-    $skin = mc_skin_url($io['mc_uuid'] ?? null);
-
     $bottoneTesto = trim(site_setting('countdown_button_text', ''));
     $bottoneUrl = trim(site_setting('countdown_button_url', ''));
 
@@ -203,42 +198,13 @@ function countdown_sezione(): void {
         <?php endif; ?>
       </div>
 
-      <?php /* La miccia va da sinistra a destra: dietro al corridore e' ACCESA (il tratto
-               gia' percorso), davanti a lui e' ancora spenta — cosi' si vede a colpo
-               d'occhio quanta strada e' stata fatta e quanta ne manca. Sopra ci corre il
-               giocatore, montato pezzo per pezzo ritagliando la sua texture della skin
-               (vedi .corridore nel foglio di stile): braccia e gambe si muovono davvero. */ ?>
+      <?php /* La miccia va da sinistra a destra e brucia verso destra: la parte ACCESA
+               (a sinistra della fiamma) e' il tratto gia' percorso, quella spenta e' quanto
+               manca — cosi' si vede a colpo d'occhio quanta strada e' stata fatta. */ ?>
       <div class="nether-miccia" aria-hidden="true">
         <span class="nether-corda"></span>
         <span class="nether-accesa"></span>
         <span class="nether-fiamma"></span>
-        <span class="corridore" style="--skin:url('<?= h($skin) ?>')">
-          <span class="corridore-corpo">
-            <i class="corridore-pezzo e-gamba e-dietro"></i>
-            <i class="corridore-pezzo e-braccio e-dietro"></i>
-            <i class="corridore-pezzo e-torso"></i>
-            <i class="corridore-pezzo e-gamba e-avanti"></i>
-            <i class="corridore-pezzo e-braccio e-avanti"></i>
-            <i class="corridore-pezzo e-testa"></i>
-          </span>
-          <?php /* Le zolle che schizzano da sotto i piedi: partono tutte dallo stesso
-                   punto ma con ritardo, direzione e misura diverse, se no si muovono in
-                   blocco e si vede che sono finte. */ ?>
-          <span class="corridore-polvere">
-            <?php
-            $zolle = [
-                ['0s',    '-16px', '-11px', '1'],
-                ['0.09s', '-11px', '-6px',  '0.75'],
-                ['0.17s', '-21px', '-7px',  '0.85'],
-                ['0.26s', '-8px',  '-13px', '0.7'],
-                ['0.34s', '-25px', '-4px',  '0.6'],
-                ['0.43s', '-14px', '-15px', '0.9'],
-            ];
-            foreach ($zolle as [$ritardo, $dx, $dy, $misura]): ?>
-              <i style="--d:<?= $ritardo ?>; --dx:<?= $dx ?>; --dy:<?= $dy ?>; --s:<?= $misura ?>;"></i>
-            <?php endforeach; ?>
-          </span>
-        </span>
       </div>
     </section>
     <?php
