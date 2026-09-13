@@ -115,7 +115,10 @@ forbidden-words:
 # nemico, bianco = senza fazione). NB: CMI non puo' farlo (il suo motore non supporta i placeholder
 # relazionali %rel_...% — verificato nel jar), per questo il formato pubblico e' gestito qui.
 #
-# Token NOSTRI:  {relcolor} {faction} {name} {message}
+# Token NOSTRI:  {rank} {relcolor} {faction} {name} {message}
+#   {rank} = tag del GRADO che il mittente ha nella sua fazione (config ranks[].tag / leader.tag,
+#            es. "**" per il Leader). Messo dentro le parentesi, subito prima del nome fazione,
+#            da' [**Fazione]. Vuoto se il mittente non e' in una fazione.
 # + QUALSIASI placeholder di PlaceholderAPI (es. %luckperms_prefix%, %vault_prefix%, %player_ping%),
 #   risolto nel contesto del MITTENTE — cosi' puoi tenere prefissi/gradi gestiti da CMI/LuckPerms e
 #   lasciare a noi solo la colorazione per relazione. Esempio con prefisso LuckPerms:
@@ -135,7 +138,7 @@ forbidden-words:
 # fazione — assegna un prefisso "Admin " al gruppo LuckPerms giusto per ottenere "Admin DorinoJ: msg").
 chat:
   relational-format: true
-  public-format: "&8[{relcolor}{faction}&8] &7%magixweb_namecolor%{name}&7: &f{message}"
+  public-format: "&8[{rank}{relcolor}{faction}&8] &7%magixweb_namecolor%{name}&7: &f{message}"
   public-format-no-faction: "%luckperms_prefix%&7%magixweb_namecolor%{name}&7: &f{message}"
   # Icona messa davanti ai messaggi che arrivano dalla chat del sito (plugin MagixWeb).
   # VUOTA di serie: da dove arriva il messaggio lo dice il suggerimento qui sotto (basta
