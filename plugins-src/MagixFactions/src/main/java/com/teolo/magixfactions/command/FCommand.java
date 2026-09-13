@@ -175,6 +175,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
         Faction f = fm.createFaction(name, name, p.getUniqueId());
         msg(p, M.get("create.success", "name", cname(p, f)));
+        broadcastAll(M.get("create.broadcast", "name", f.getName(), "player", p.getName()));
         return true;
     }
 
@@ -267,9 +268,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         Faction f = fm.getFaction(p.getUniqueId());
         if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
         if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("disband.not-leader")); return true; }
-        broadcast(f, M.get("disband.broadcast"));
+        String name = f.getName();
         fm.disband(f);
         msg(p, M.get("disband.success"));
+        broadcastAll(M.get("disband.announce", "name", name, "player", p.getName()));
         return true;
     }
 
@@ -1613,5 +1615,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             Player p = Bukkit.getPlayer(u);
             if (p != null) msg(p, message);
         }
+    }
+
+    /** Annuncio a TUTTO il server (col prefisso del plugin): fondazione e scioglimento fazioni. */
+    private void broadcastAll(String message) {
+        String line = M.prefix() + message;
+        for (Player pl : Bukkit.getOnlinePlayers()) pl.sendMessage(Papi.resolve(pl, line));
     }
 }
