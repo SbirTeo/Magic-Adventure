@@ -223,6 +223,10 @@ info:
   status-weak: "&cLa fazione e' debole, puoi conquistarla."
   status-strong: "&aLa fazione e' forte. Non puoi conquistarla."
   status-none: "&fQuesta fazione non ha ancora un territorio."
+  # Varianti mostrate in /f info quando si guarda la PROPRIA fazione (seconda persona).
+  status-weak-self: "&cLa tua fazione e' debole, puo' essere conquistata."
+  status-strong-self: "&aLa tua fazione e' forte. Non puo' essere conquistata."
+  status-none-self: "&fLa tua fazione non ha ancora un territorio."
   # Riga "Alleati:" con elenco fazioni; le richieste in sospeso hanno "(in attesa)" + tooltip (hover).
   allies-label: "&6Alleati: "
   allies-none: "&7nessuno"
