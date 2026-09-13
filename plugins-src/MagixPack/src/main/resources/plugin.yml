@@ -13,5 +13,8 @@ commands:
     permission: magixpack.admin
 permissions:
   magixpack.admin:
-    description: "Gestione di MagixPack (reload)."
+    description: "Gestione di MagixPack (reload/rebuild)."
+    default: op
+  magixpack.resourcepack.bypass:
+    description: "Non viene mai espulso se il pacchetto obbligatorio non si carica (rete di sicurezza anti-lockout)."
     default: op

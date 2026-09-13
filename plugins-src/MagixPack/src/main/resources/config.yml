@@ -30,3 +30,21 @@ pack:
   # Ogni quanti secondi il watchdog verifica che il pacchetto sia ancora scaricabile in
   # locale e, se il server HTTP si e' bloccato, lo riavvia da solo. 0 = watchdog spento.
   watchdog-seconds: 120
+
+  # Quanti tick dopo l'avvio si costruisce/serve il pacchetto. Serve a dare tempo ai plugin
+  # "fornitori" di depositare i loro asset (lo fanno nel proprio onEnable). 20 tick = 1 s.
+  rebuild-delay-ticks: 40
+
+  # Ritardo (tick) prima di inviare il pacchetto a chi entra: al primo tick il client sta
+  # ancora ricevendo chunk/inventario e alcune build rispondono piu' pigramente.
+  send-delay-ticks: 20
+
+  # Secondi di attesa dell'esito del client prima di espellere chi non risponde. 0 = disattivo.
+  timeout-seconds: 30
+
+  # Messaggi di espulsione (supportano &codici e \n). declined = rifiutato dal giocatore;
+  # failed = errore tecnico (download/hash); timeout = nessuna risposta.
+  kick-messages:
+    declined: "&cIl pacchetto risorse e' OBBLIGATORIO su questo server.\n&7Riprova e accetta il download."
+    failed: "&cNon sei riuscito a scaricare il pacchetto risorse.\n&7Controlla la connessione e riprova."
+    timeout: "&cIl pacchetto risorse non e' stato caricato in tempo.\n&7Riprova a entrare."
