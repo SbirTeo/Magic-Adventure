@@ -451,25 +451,16 @@ map:
     # Nome dell'item mappa: {zoom} viene sostituito col valore di zoom (blocchi/pixel, es. 0.25).
     name-format: "&6&lMappa Fazioni &7({zoom}x)"
 
-  # --- Marcatori giocatore su mappa cartacea e minimap ---
-  marker:
-    # Il MARCATORE di ogni giocatore e' una FRECCIA che punta verso dove guarda, colorata per relazione:
-    # BIANCA = tu, VERDE = compagno di fazione, BLU = alleato, ROSSA = nemico (stile Cartographer). E'
-    # IDENTICA su entrambe le mappe, ma disegnata in due modi diversi per un limite tecnico di Minecraft:
-    #  - MAPPA-ITEM (in mano): CURSORI NATIVI, freccia disegnata dal client a risoluzione schermo (ruota
-    #    in 16 direzioni, resta NITIDA a qualsiasi angolo).
-    #  - MINIMAP HUD: i cursori nativi non si agganciano (i pixel sono spinti via pacchetto+shader), quindi
-    #    la freccia la ridisegna lo SHADER a risoluzione schermo (stessa resa: nitida, ruota fluida). La
-    #    minimap mostra fino a 6 frecce (i giocatori piu' vicini + sempre te stesso al centro).
-    # Le opzioni sotto controllano solo i NOMI (il marcatore-freccia c'e' sempre).
-    #  - *-nametag: true = mostra il nome sotto la freccia. Su ENTRAMBE (sull'item e' un caption nativo
-    #    nitido, sulla minimap e' cotto nei pixel e colorato per relazione).
-    personal-nametag: false  # mostra il TUO nome (default false: sei sempre al centro, non serve)
-    other-nametag: true      # mostra il nome degli ALTRI (compagni di fazione e alleati)
-    enemy-nametag: false     # mostra il nome dei NEMICI (default false: dei nemici resta solo la freccia rossa,
-                             # niente nickname). Ha effetto solo se other-nametag e' true; su ENTRAMBE le mappe.
-    name-size: 4             # [solo minimap HUD] dimensione del testo del nome cotto (px del font, 4-20). Sulla
-                             # mappa-item il caption nativo ha dimensione fissa decisa dal client.
+  # --- Marcatore giocatore su mappa cartacea e minimap ---
+  # Il MARCATORE di ogni giocatore e' una FRECCIA che punta verso dove guarda, colorata per relazione:
+  # BIANCA = tu, VERDE = compagno di fazione, BLU = alleato, ROSSA = nemico (stile Cartographer). E'
+  # IDENTICA su entrambe le mappe, ma disegnata in due modi diversi per un limite tecnico di Minecraft:
+  #  - MAPPA-ITEM (in mano): CURSORI NATIVI, freccia disegnata dal client a risoluzione schermo (ruota
+  #    in 16 direzioni, resta NITIDA a qualsiasi angolo).
+  #  - MINIMAP HUD: i cursori nativi non si agganciano (i pixel sono spinti via pacchetto+shader), quindi
+  #    la freccia la ridisegna lo SHADER a risoluzione schermo (stessa resa: nitida, ruota fluida). La
+  #    minimap mostra fino a 6 frecce (i giocatori piu' vicini + sempre te stesso al centro).
+  # Nessun nome viene mostrato: solo la freccia (nessuna opzione da configurare).
 
   # --- Simbolo HOME della propria fazione (item /f map e minimap) ---
   home-marker:
