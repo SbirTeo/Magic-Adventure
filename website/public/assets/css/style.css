@@ -1966,6 +1966,7 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
+  text-decoration: none;   /* the buttons are anchors that scroll to a category section */
   transition: border-color .15s, color .15s, background-color .15s;
 }
 .store-filtro:hover { filter: brightness(1.25); }
@@ -1976,12 +1977,24 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   filter: none;
 }
 
-/* Griglia: la prima card occupa due colonne e fa da vetrina */
-/* Non piu' una griglia libera: una RIGA per categoria, con due pacchetti visibili alla
-   volta e gli altri raggiungibili trascinando (vedi .store-fila). */
-.store-griglia { display: flex; flex-direction: column; gap: 22px; margin-bottom: 26px; }
-.store-fila-blocco { position: relative; }
+/* One section per category, stacked one under the other; each is a wrapping 3-per-row grid
+   (see .store-fila). The top buttons scroll to a section. */
+.store-griglia { display: flex; flex-direction: column; gap: 34px; margin-bottom: 26px; }
+.store-fila-blocco {
+  position: relative;
+  /* the header is sticky: leave room so scrolling to a section doesn't tuck its heading
+     under the top bar */
+  scroll-margin-top: calc(var(--h-testata, 98px) + 14px);
+}
 .store-fila-blocco.is-nascosta { display: none; }
+/* Category heading above each section's grid. */
+.store-cat-titolo {
+  margin: 0 0 16px;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
 /* Sfumature sui bordi: dicono "la riga continua". Quella a destra sparisce arrivati in
    fondo, quella a sinistra compare solo quando c'e' qualcosa da cui si e' scorsi via. */
 .store-fila-blocco.ha-altri::after,

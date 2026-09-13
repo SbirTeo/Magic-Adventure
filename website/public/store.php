@@ -174,8 +174,14 @@ require __DIR__ . '/../includes/header.php';
   foreach ($pkgs as $item) {
       $perCategoria[(int) $item['category_id']][] = $item;
   }
-  // No "all" button: the store shows one category at a time. Filters and grid list only the
-  // categories that actually have packages, and the first one is the default on load.
+  // Category names for the section headings (0 = uncategorised).
+  $nomiCat = [0 => 'Altro'];
+  foreach ($cats as $c) {
+      $nomiCat[(int) $c['id']] = $c['name'];
+  }
+  // No "all" button: every category is shown as its own section, one under the other. The
+  // top buttons (only for categories that have packages) are shortcuts that scroll to the
+  // matching section. The first one starts highlighted.
   $catConPacchetti = array_values(array_filter($cats, fn($c) => isset($perCategoria[(int) $c['id']])));
   $defaultCat = $catConPacchetti ? (int) $catConPacchetti[0]['id'] : 0;
   ?>
@@ -197,17 +203,18 @@ require __DIR__ . '/../includes/header.php';
                   . ';--store-filtro-bordo:' . hex_to_rgba($testo, 0.18);
           }
         ?>
-        <button type="button" class="store-filtro<?= (int) $c['id'] === $defaultCat ? ' is-active' : '' ?>" data-cat="<?= (int) $c['id'] ?>"
-                <?= $stileFiltro !== '' ? 'style="' . ltrim($stileFiltro, ';') . '"' : '' ?>><?= h($c['name']) ?></button>
+        <a class="store-filtro<?= (int) $c['id'] === $defaultCat ? ' is-active' : '' ?>" href="#store-cat-<?= (int) $c['id'] ?>" data-cat="<?= (int) $c['id'] ?>"
+           <?= $stileFiltro !== '' ? 'style="' . ltrim($stileFiltro, ';') . '"' : '' ?>><?= h($c['name']) ?></a>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
 
   <div class="store-griglia" id="storeGriglia">
     <?php foreach ($perCategoria as $catId => $items): ?>
-      <?php /* One category at a time as a wrapping 3-per-row grid (no horizontal scroll, no
-               arrows). Non-default categories start hidden; the filter swaps which one shows. */ ?>
-      <section class="store-fila-blocco<?= (int) $catId === $defaultCat ? '' : ' is-nascosta' ?>" data-cat="<?= (int) $catId ?>">
+      <?php /* Each category is its own section (heading + a wrapping 3-per-row grid), one under
+               the other. All are shown; the top buttons just scroll to the one you pick. */ ?>
+      <section class="store-fila-blocco" id="store-cat-<?= (int) $catId ?>" data-cat="<?= (int) $catId ?>">
+        <h2 class="store-cat-titolo"><?= h($nomiCat[$catId] ?? 'Altro') ?></h2>
         <div class="store-fila">
           <?php foreach ($items as $item) {
               store_card($item);
