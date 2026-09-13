@@ -343,6 +343,29 @@ public final class PowerManager {
         return true;
     }
 
+    /**
+     * Come {@link #syncMaxPower} ma per un giocatore <b>OFFLINE</b> (solo UUID, nessun {@link Player}):
+     * la usa la reazione istantanea al cambio permesso di chi non e' collegato. Aggiorna SOLO chi ha gia'
+     * una riga in cache (un account mai entrato non contribuisce a nessuna fazione); il tetto resta scritto
+     * nel DB perche' entra nella somma del maxpower di fazione anche da offline.
+     *
+     * @return {@code true} se il tetto e' effettivamente CAMBIATO, {@code false} altrimenti.
+     */
+    public boolean syncMaxPowerOffline(UUID u, int eff) {
+        PP pp = cache.get(u);
+        if (pp == null || pp.maxPower == eff) return false;
+        pp.maxPower = eff;
+        clamp(pp);
+        save(u);
+        return true;
+    }
+
+    /** Il tetto (maxPower) imposto da una mappa di permessi letta via LuckPerms per un giocatore OFFLINE.
+     *  Incapsula la stessa risoluzione usata dal giro periodico {@link #tickOffline()}. */
+    public int maxPowerFrom(Map<String, Boolean> permissions) {
+        return vantaggi(permissions).maxPower;
+    }
+
     /** Zoom mappa salvato (colonna map_rows) come intero = round(bpp*100); 0 = default di config. */
     public int getMapZoom(UUID u) { PP pp = cache.get(u); return pp == null ? 0 : pp.mapRows; }
 

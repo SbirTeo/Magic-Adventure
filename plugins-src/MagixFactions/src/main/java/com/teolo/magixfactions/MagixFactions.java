@@ -239,24 +239,43 @@ public final class MagixFactions extends JavaPlugin {
             factionManager.setDecayManager(decay); // timer parte esattamente al cambio membri
             long ov = 20L * decay.warnIntervalSeconds();
             Bukkit.getScheduler().runTaskTimer(this, decay::tick, ov, ov);
-            // Reazione ISTANTANEA al cambio di permessi (via evento LuckPerms): quando a un giocatore
-            // ONLINE si toglie/abbassa magixfactions.power.powermax.<n>, riallinea subito il suo tetto e
-            // rivaluta l'overclaim della sua fazione avvisando all'istante, senza aspettare i giri
-            // periodici (tickOnline ~power.tick-seconds, decay.tick ~decay.warn-interval-seconds). Un
-            // debounce per-giocatore evita avvisi doppi quando LuckPerms ricalcola piu' volte di fila.
+            // Reazione ISTANTANEA al cambio di permessi (via evento LuckPerms): quando a un giocatore si
+            // toglie/abbassa magixfactions.power.powermax.<n>, riallinea subito il suo tetto e rivaluta
+            // l'overclaim della sua fazione avvisando all'istante, senza aspettare i giri periodici
+            // (tickOnline ~power.tick-seconds, tickOffline ~power.offline-refresh-minutes, decay.tick
+            // ~decay.warn-interval-seconds). Vale sia per gli ONLINE (permessi dal Player) sia per gli
+            // OFFLINE (permessi letti via LuckPerms in async: entrano comunque nella somma di fazione). Un
+            // debounce per-giocatore evita riallineamenti/avvisi doppi quando LuckPerms ricalcola piu'
+            // volte di fila, e l'avviso scatta SOLO se il tetto e' davvero cambiato (niente avvisi spuri
+            // da ricalcoli non legati al powermax).
             final java.util.Set<java.util.UUID> permPending = java.util.concurrent.ConcurrentHashMap.newKeySet();
             luckPerms.onUserRecalculate(uuid -> {
                 if (!permPending.add(uuid)) return; // gia' in coda: un solo riallineo per raffica
                 Bukkit.getScheduler().runTask(this, () -> {
-                    permPending.remove(uuid);
                     org.bukkit.entity.Player p = Bukkit.getPlayer(uuid);
-                    if (p == null) return; // offline: ci pensa il giro periodico tickOffline
-                    // Rivaluta l'overclaim (con avviso immediato) SOLO se il tetto e' davvero cambiato:
-                    // un ricalcolo permessi non legato al powermax non deve generare avvisi doppi.
-                    if (powerManager.syncMaxPower(p, powerManager.vantaggi(p).maxPower)) {
-                        com.teolo.magixfactions.model.Faction f = factionManager.getFaction(uuid);
-                        if (f != null) decay.checkAndWarn(f);
+                    if (p != null) {
+                        // ONLINE: permessi leggibili dal Player, tutto sul main thread.
+                        permPending.remove(uuid);
+                        if (powerManager.syncMaxPower(p, powerManager.vantaggi(p).maxPower)) {
+                            com.teolo.magixfactions.model.Faction f = factionManager.getFaction(uuid);
+                            if (f != null) decay.checkAndWarn(f);
+                        }
+                        return;
                     }
+                    // OFFLINE: i permessi li sa solo LuckPerms e leggerli tocca il suo storage -> ASYNC,
+                    // poi torna sul main per applicare tetto e (se cambiato) rivalutare l'overclaim.
+                    Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                        java.util.Map<String, Boolean> perms = luckPerms.permissions(uuid);
+                        Bukkit.getScheduler().runTask(this, () -> {
+                            permPending.remove(uuid);
+                            if (perms == null) return;                     // lettura fallita: ci pensa tickOffline
+                            if (Bukkit.getPlayer(uuid) != null) return;    // rientrato nel frattempo: ci pensa applyJoin
+                            if (powerManager.syncMaxPowerOffline(uuid, powerManager.maxPowerFrom(perms))) {
+                                com.teolo.magixfactions.model.Faction f = factionManager.getFaction(uuid);
+                                if (f != null) decay.checkAndWarn(f);
+                            }
+                        });
+                    });
                 });
             });
         } catch (Exception e) {
