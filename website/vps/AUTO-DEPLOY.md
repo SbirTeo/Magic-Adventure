@@ -61,7 +61,30 @@ La chiave pubblica corrispondente a `VPS_SSH_KEY` deve stare in
 Se qualcosa non va, il log del job dice a che passo si e' fermato (di solito: permessi
 sudo o chiave non autorizzata).
 
-## Da fare in futuro (non incluso qui)
-- **Deploy del server Minecraft**: build Maven dei plugin + copia del jar in
-  `/home/ubuntu/magicadventure/plugins/` + ricarica del server. Va aggiunto quando e'
-  chiaro come si ricarica il server (riavvio? comando in-game? script?).
+## Deploy dei plugin Minecraft (attivo)
+
+Il workflow `.github/workflows/deploy-plugin.yml` fa lo stesso per i **plugin**: a ogni push
+su `main` che tocca `plugins-src/`, compila i plugin cambiati (Maven/JDK 21), copia il jar
+sul VPS in `/home/ubuntu/magicadventure/plugins/` (togliendo la versione vecchia) e **riavvia
+il server** per caricarli, con un **preavviso in chat** ai giocatori online (say a -60s, -20s,
+-5s, poi `save-all` e riavvio).
+
+Usa gli **stessi tre secret** del deploy sito. In piu' serve un permesso sudo lato VPS,
+perche' il riavvio usa systemd (come il pulsante "Riavvia" del gestionale):
+
+```bash
+echo 'ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart magicadventure.service' \
+  | sudo tee /etc/sudoers.d/deploy-mc
+sudo chmod 440 /etc/sudoers.d/deploy-mc
+```
+
+Dettagli d'ambiente (da `istanze.conf`): sessione screen `mc`, utente `ubuntu`, servizio
+`magicadventure.service`, cartella `/home/ubuntu/magicadventure`.
+
+- **Manuale:** Actions -> "Deploy plugin sul server Minecraft" -> Run workflow (campo
+  `plugin`: nome cartella o `all`).
+- **Automatico:** un push che tocca `plugins-src/<Plugin>/`.
+
+> Convenzione: il nome della cartella in `plugins-src/` deve coincidere col prefisso del jar
+> (es. `MagixFactions` -> `MagixFactions-<versione>.jar`), cosi' la rimozione della vecchia
+> versione (`MagixFactions-*.jar`) e' precisa.

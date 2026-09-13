@@ -46,8 +46,15 @@ via GitHub Action (`.github/workflows/deploy-sito.yml`). Quindi, per il **sito**
 configurati su GitHub. Setup e dettagli: `website/vps/AUTO-DEPLOY.md`.
 
 Il deploy NON tocca `includes/config.php` (password DB vera sul VPS) e non cancella gli
-upload. Non copre ancora il **server Minecraft**: quel deploy resta manuale finché non viene
-aggiunto al workflow (serve sapere come si ricarica il server).
+upload.
+
+## Auto-deploy dei plugin Minecraft (attivo)
+
+Anche i plugin hanno un auto-deploy: ogni push su `main` che tocca `plugins-src/` compila i
+plugin cambiati (Maven/JDK 21) via GitHub Action (`.github/workflows/deploy-plugin.yml`),
+copia il jar sul VPS in `/home/ubuntu/magicadventure/plugins/` e **riavvia il server** (screen
+`mc`, servizio `magicadventure.service`) con preavviso in chat ai giocatori. Stessi secret del
+sito + un sudoers per `systemctl restart magicadventure.service`. Setup: `website/vps/AUTO-DEPLOY.md`.
 
 ## Note
 

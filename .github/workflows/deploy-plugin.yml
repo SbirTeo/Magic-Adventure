@@ -1,0 +1,154 @@
+name: Deploy plugin sul server Minecraft
+
+# Auto-deploy dei PLUGIN: a ogni push su main che tocca plugins-src/, i plugin cambiati
+# vengono compilati (Maven/JDK 21), il jar viene copiato sul VPS in
+# /home/ubuntu/magicadventure/plugins/ (togliendo la versione vecchia) e il server viene
+# riavviato PER CARICARLI, con un preavviso in chat ai giocatori online.
+#
+# Usa gli stessi secret del deploy sito: VPS_HOST, VPS_USER, VPS_SSH_KEY.
+# Serve inoltre, lato VPS, che l'utente possa riavviare il servizio senza password:
+#   ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart magicadventure.service
+# (in /etc/sudoers.d/deploy-mc). Dettagli in website/vps/AUTO-DEPLOY.md.
+#
+# Convenzione: il nome della cartella in plugins-src/ coincide con il prefisso del jar
+# (es. MagixFactions -> MagixFactions-<versione>.jar), cosi' la vecchia versione si rimuove
+# con MagixFactions-*.jar.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins-src/**'
+      - '.github/workflows/deploy-plugin.yml'
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "Cartella del plugin da compilare (es. MagixFactions), oppure 'all'"
+        required: false
+        default: 'all'
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Secret VPS non configurati: deploy saltato. Vedi website/vps/AUTO-DEPLOY.md"
+          fi
+
+      - name: Scarica il codice
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # serve HEAD^ per capire quali plugin sono cambiati in un push
+
+      - name: Java 21 + Maven
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Decidi quali plugin compilare
+        if: steps.check.outputs.ok == 'true'
+        id: plugins
+        run: |
+          set -euo pipefail
+          INPUT="${{ github.event.inputs.plugin }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "$INPUT" = "all" ] || [ -z "$INPUT" ]; then
+              LIST="$(ls -1 plugins-src)"
+            else
+              LIST="$INPUT"
+            fi
+          else
+            # push: solo le cartelle di primo livello cambiate sotto plugins-src/
+            LIST="$(git diff --name-only HEAD^ HEAD -- plugins-src/ \
+                    | sed -n 's#^plugins-src/\([^/]*\)/.*#\1#p' | sort -u)"
+          fi
+          echo "Plugin da compilare:"; echo "${LIST:-(nessuno)}"
+          printf '%s\n' "$LIST" > "$RUNNER_TEMP/plugin_list"
+          if [ -n "$LIST" ]; then echo "any=true" >> "$GITHUB_OUTPUT"; else echo "any=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Compila i plugin
+        if: steps.check.outputs.ok == 'true' && steps.plugins.outputs.any == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/jars"
+          : > "$RUNNER_TEMP/manifest"   # righe "cartella<TAB>nomejar"
+          while IFS= read -r P; do
+            [ -z "$P" ] && continue
+            if [ ! -f "plugins-src/$P/pom.xml" ]; then
+              echo "salto '$P' (nessun pom.xml)"; continue
+            fi
+            echo "::group::Compilo $P"
+            mvn -q -B -f "plugins-src/$P/pom.xml" package -DskipTests
+            # il jar finale: esclude original-*.jar (artefatto dello shade) e *-sources.jar
+            JAR="$(ls -1 "plugins-src/$P/target/"*.jar 2>/dev/null | grep -vE '/(original-|.*-sources|.*-javadoc)' | head -n1)"
+            if [ -z "$JAR" ]; then echo "::error::Nessun jar prodotto per $P"; exit 1; fi
+            cp "$JAR" "$RUNNER_TEMP/jars/"
+            printf '%s\t%s\n' "$P" "$(basename "$JAR")" >> "$RUNNER_TEMP/manifest"
+            echo "$P -> $(basename "$JAR")"
+            echo "::endgroup::"
+          done < "$RUNNER_TEMP/plugin_list"
+          echo "Jar pronti:"; ls -la "$RUNNER_TEMP/jars"
+
+      - name: Prepara la chiave SSH
+        if: steps.check.outputs.ok == 'true' && steps.plugins.outputs.any == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia i jar e riavvia con preavviso
+        if: steps.check.outputs.ok == 'true' && steps.plugins.outputs.any == 'true'
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          KEY=~/.ssh/deploy_key
+          SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
+          PLUGDIR=/home/ubuntu/magicadventure/plugins
+
+          # 1) Copia ogni jar; per ciascuno rimuove prima le vecchie versioni dello stesso
+          #    plugin, poi mette al suo posto quello nuovo (copiato con nome temporaneo).
+          while IFS=$'\t' read -r P JARNAME; do
+            [ -z "$P" ] && continue
+            echo "Aggiorno $P -> $JARNAME"
+            scp -i "$KEY" -o StrictHostKeyChecking=yes "$RUNNER_TEMP/jars/$JARNAME" \
+                "$DEST:$PLUGDIR/.__new_$JARNAME"
+            $SSH "cd '$PLUGDIR' && rm -f '$P'-*.jar '$P'.jar && mv '.__new_$JARNAME' '$JARNAME'"
+          done < "$RUNNER_TEMP/manifest"
+
+          # 2) Preavviso ai giocatori (se il server e' su) e riavvio pulito via systemd.
+          $SSH 'bash -s' <<'REMOTE'
+          set -e
+          dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            dì "[Aggiornamento] Il server si riavvia tra 60 secondi per aggiornare i plugin..."
+            sleep 40
+            dì "[Aggiornamento] Riavvio tra 20 secondi..."
+            sleep 15
+            dì "[Aggiornamento] Riavvio tra 5 secondi!"
+            sleep 5
+            dì "save-all"
+            sleep 3
+          fi
+          sudo systemctl restart magicadventure.service
+          echo "Riavvio richiesto."
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
