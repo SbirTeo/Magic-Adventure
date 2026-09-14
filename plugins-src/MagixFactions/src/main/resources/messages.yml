@@ -76,6 +76,10 @@ leave:
   succession: "&aHai lasciato la fazione. Il comando e' passato al successore."
   new-leader: "&6Sei il nuovo leader della fazione &e{name}&6!"
   left: "&aHai lasciato la fazione."
+  # Annuncio ai membri rimasti quando qualcuno lascia la fazione. {player} = chi e' uscito.
+  broadcast: "&e{player}&7 ha lasciato la fazione."
+  # Annuncio ai membri rimasti quando esce il leader e il comando passa al successore. {leader} = nuovo leader.
+  succession-broadcast: "&6{leader}&7 e' il nuovo leader della fazione."
 
 transfer:
   not-leader: "&cSolo il leader puo' trasferire il comando."
@@ -348,16 +352,24 @@ top:
   entry: "  &7#{pos} &r{relcolor}{name} &8- &b{score}"
   entry-own: "  &e#{pos} &r{relcolor}{name} &8- &b{score} &7(tu)"
   separator: "  &8..."
+  # Riga finale con il link alla classifica completa sul sito (cliccabile in gioco).
+  site: "  &8&m---&r &7Classifica completa: &bmagicadventure.it/classifiche"
 
 # Tooltip (hover) che spiega COME si arriva al punteggio: passando il mouse sul valore (in /f info e
-# /f top) compare l'intestazione + una riga per caratteristica. {label}=nome voce, {value}=valore usato,
-# {level}=livello 0-100 di quella voce, {weight}=quota di peso, {points}=punti che aggiunge al totale.
+# /f top) compare l'intestazione + introduzione, una riga per caratteristica e il totale in fondo.
+# Stesso contenuto e stile della card del sito (classifiche.php), senza grassetto. {label}=nome voce,
+# {value}=valore usato, {pct}=% rispetto al migliore, {points}=punti che aggiunge, {max}=punti massimi.
 score-tooltip:
-  header: "&b&lPunteggio &f{score}&7/{max}\n&8In ogni voce il migliore vale il massimo; tu ne prendi la percentuale rispetto a lui:"
+  header: "&bCome si calcola il punteggio"
+  intro: "&7In ogni voce la fazione migliore vale il massimo; tu ne prendi la percentuale rispetto a lei. Il punteggio e' la somma delle voci."
   # {best} = fazione migliore in quella voce, {bestval} = il suo valore (il 100%).
-  line: "&7{label} &8(&f{value}&8) &7{pct} &8· &7migliore: &f{best} &8(&7{bestval}&8) &8· &b{points}&7/{max}"
-  # Testo usato al posto del nome quando il migliore in una voce sei TU.
-  best-self: "&atu"
+  line: "&7{label} &8(&f{value}&8) &7{best} &8· &7{pct} del migliore &8· &f{points}&7/{max}"
+  # Riferimento al migliore della voce (quando non sei tu).
+  best: "&7migliore: &f{best} &8(&7{bestval}&8)"
+  # Testo usato al posto del riferimento quando il migliore in una voce sei TU.
+  best-self: "&a★ sei tu il migliore"
+  # Riga finale col totale (somma delle voci) sul massimo possibile.
+  total: "&7Totale: &f{score}&7/{max}"
 
 db:
   no-perm: "&cNon hai il permesso."
