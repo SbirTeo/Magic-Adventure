@@ -85,14 +85,6 @@ try {
     $stats = null;
 }
 
-// Nomi dei gradi di fazione come in gioco (config.yml di MagixFactions, sezione `ranks`).
-const GRADI_FAZIONE = [
-    'recruit' => 'Recluta',
-    'member'  => 'Membro',
-    'officer' => 'Ufficiale',
-    'leader'  => 'Leader',
-];
-
 // Attivita' sul sito
 $topics = db()->prepare('SELECT COUNT(*) FROM forum_topics WHERE user_id = ?');
 $topics->execute([$me['id']]);
@@ -223,9 +215,11 @@ require __DIR__ . '/../includes/header.php';
   <div class="profilo-dato">
     <span>Grado nella fazione</span>
     <strong><?php
+      // Nome del grado dallo specchio del config (faction_ranks_map); se manca, l'id capitalizzato.
       $r = $stats['faction_rank'] ?? null;
+      $nomeGrado = $r ? (faction_ranks_map()[strtolower((string) $r)]['name'] ?? '') : '';
       echo $stats && $stats['faction_name'] && $r
-          ? h(GRADI_FAZIONE[strtolower((string) $r)] ?? ucfirst((string) $r))
+          ? h($nomeGrado !== '' ? $nomeGrado : ucfirst((string) $r))
           : '—';
     ?></strong>
   </div>

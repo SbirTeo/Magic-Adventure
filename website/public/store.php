@@ -174,8 +174,14 @@ require __DIR__ . '/../includes/header.php';
   foreach ($pkgs as $item) {
       $perCategoria[(int) $item['category_id']][] = $item;
   }
-  // No "all" button: the store shows one category at a time. Filters and grid list only the
-  // categories that actually have packages, and the first one is the default on load.
+  // Category names for the section headings (0 = uncategorised).
+  $nomiCat = [0 => 'Altro'];
+  foreach ($cats as $c) {
+      $nomiCat[(int) $c['id']] = $c['name'];
+  }
+  // No "all" button: the top buttons act as tabs — clicking one shows that category's
+  // section and hides the others (they list only categories that have packages). The first
+  // one is the default shown on load.
   $catConPacchetti = array_values(array_filter($cats, fn($c) => isset($perCategoria[(int) $c['id']])));
   $defaultCat = $catConPacchetti ? (int) $catConPacchetti[0]['id'] : 0;
   ?>
@@ -205,9 +211,11 @@ require __DIR__ . '/../includes/header.php';
 
   <div class="store-griglia" id="storeGriglia">
     <?php foreach ($perCategoria as $catId => $items): ?>
-      <?php /* One category at a time as a wrapping 3-per-row grid (no horizontal scroll, no
-               arrows). Non-default categories start hidden; the filter swaps which one shows. */ ?>
-      <section class="store-fila-blocco<?= (int) $catId === $defaultCat ? '' : ' is-nascosta' ?>" data-cat="<?= (int) $catId ?>">
+      <?php /* Each category is its own section (heading + a wrapping 3-per-row grid). Only one
+               is shown at a time: clicking a button swaps which category is visible (the others
+               get .is-nascosta). The first category shows on load. */ ?>
+      <section class="store-fila-blocco<?= (int) $catId === $defaultCat ? '' : ' is-nascosta' ?>" id="store-cat-<?= (int) $catId ?>" data-cat="<?= (int) $catId ?>">
+        <h2 class="store-cat-titolo"><?= h($nomiCat[$catId] ?? 'Altro') ?></h2>
         <div class="store-fila">
           <?php foreach ($items as $item) {
               store_card($item);

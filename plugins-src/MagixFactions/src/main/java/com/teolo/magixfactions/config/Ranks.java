@@ -21,15 +21,19 @@ public final class Ranks {
         ladder.clear();
         List<?> list = cfg.getList("ranks");
         if (list != null) {
+            // I permessi si EREDITANO dal basso verso l'alto: ogni grado include automaticamente
+            // quelli di tutti i gradi sotto di lui (la scala e' ordinata dal piu' basso al piu' alto).
+            // Cosi' nel config basta scrivere i permessi NUOVI di ogni grado, senza ripetere quelli
+            // dei gradi inferiori.
+            java.util.Set<String> inherited = new java.util.HashSet<>();
             for (Object o : list) {
                 if (o instanceof java.util.Map<?, ?> m) {
                     String id = String.valueOf(m.get("id"));
                     String name = m.get("name") != null ? String.valueOf(m.get("name")) : id;
                     String tag = m.get("tag") != null ? String.valueOf(m.get("tag")) : "";
-                    java.util.Set<String> perms = new java.util.HashSet<>();
                     Object p = m.get("permissions");
-                    if (p instanceof List<?> pl) for (Object x : pl) perms.add(String.valueOf(x));
-                    ladder.add(new Rank(id, name, tag, perms, false));
+                    if (p instanceof List<?> pl) for (Object x : pl) inherited.add(String.valueOf(x));
+                    ladder.add(new Rank(id, name, tag, new java.util.HashSet<>(inherited), false));
                 }
             }
         }

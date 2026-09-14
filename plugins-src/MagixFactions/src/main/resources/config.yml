@@ -678,6 +678,9 @@ relations:
 #   withdraw = puo' prelevare dalla banca di fazione (/f withdraw); il versamento (/f deposit) e' aperto a tutti
 #   relation = puo' gestire alleanze/nemici (/f ally|enemy)
 #   sethome = governa anche /f unsethome (nessun permesso separato)
+# EREDITARIETA': i permessi si accumulano dal basso verso l'alto. Ogni grado include
+# AUTOMATICAMENTE i permessi di tutti i gradi sotto di lui, quindi qui elenca solo i permessi
+# NUOVI di ciascun grado (non serve ripetere quelli dei gradi inferiori).
 ranks:
   - id: recruit
     name: "Recluta"
@@ -686,11 +689,11 @@ ranks:
   - id: member
     name: "Membro"
     tag: "&a[M]"
-    permissions: ["invite"]
+    permissions: ["invite"]                              # + eredita: (niente dalla Recluta)
   - id: officer
     name: "Ufficiale"
     tag: "&b[U]"
-    permissions: ["invite", "kick", "promote", "demote", "relation", "withdraw"]
+    permissions: ["kick", "promote", "demote", "relation", "withdraw"]   # + eredita: invite (dal Membro)
 
 # Il grado del capo, che sta sopra a tutti quelli elencati qui sopra e ha sempre TUTTI i permessi.
 # Non si mette in "ranks": e' uno solo per fazione e non si puo' togliere.

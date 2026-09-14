@@ -1966,6 +1966,7 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
+  text-decoration: none;   /* the buttons are anchors that scroll to a category section */
   transition: border-color .15s, color .15s, background-color .15s;
 }
 .store-filtro:hover { filter: brightness(1.25); }
@@ -1976,12 +1977,24 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   filter: none;
 }
 
-/* Griglia: la prima card occupa due colonne e fa da vetrina */
-/* Non piu' una griglia libera: una RIGA per categoria, con due pacchetti visibili alla
-   volta e gli altri raggiungibili trascinando (vedi .store-fila). */
-.store-griglia { display: flex; flex-direction: column; gap: 22px; margin-bottom: 26px; }
-.store-fila-blocco { position: relative; }
+/* One section per category, stacked one under the other; each is a wrapping 3-per-row grid
+   (see .store-fila). The top buttons scroll to a section. */
+.store-griglia { display: flex; flex-direction: column; gap: 34px; margin-bottom: 26px; }
+.store-fila-blocco {
+  position: relative;
+  /* the header is sticky: leave room so scrolling to a section doesn't tuck its heading
+     under the top bar */
+  scroll-margin-top: calc(var(--h-testata, 98px) + 14px);
+}
 .store-fila-blocco.is-nascosta { display: none; }
+/* Category heading above each section's grid. */
+.store-cat-titolo {
+  margin: 0 0 16px;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
 /* Sfumature sui bordi: dicono "la riga continua". Quella a destra sparisce arrivati in
    fondo, quella a sinistra compare solo quando c'e' qualcosa da cui si e' scorsi via. */
 .store-fila-blocco.ha-altri::after,
@@ -2084,9 +2097,8 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   display: flex;
   flex-direction: column;
 }
-@media (max-width: 700px) {
-  .store-fila > .store-card-cella { flex-basis: 100%; }
-}
+/* Three per row at every width (see the phone tweaks under max-width:560px, where the cards
+   get shorter and the text/ribbon smaller so three still fit tidily). */
 /* Velo e barretta di una categoria: la card porta inline le tinte GREZZE delle due versioni
    (--cat-*, scritte da store_stili_categorie) e qui si sceglie quale usare in base al tema.
    Se la categoria non ha un aspetto proprio restano i valori generali dello store. */
@@ -2149,9 +2161,14 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   inset: 0;
   background-image: var(--copertina);
   background-size: cover;
-  background-position: center;
+  /* Framing point chosen in the manager (like the article covers): the desktop value here,
+     the phone one under 620px. Both default to centre when nothing is set. */
+  background-position: var(--fuoco-pc, 50% 50%);
   transform: scale(1.02);
   transition: transform .5s ease;
+}
+@media (max-width: 620px) {
+  .store-card-media { background-position: var(--fuoco-telefono, 50% 50%); }
 }
 .store-card:hover .store-card-media { transform: scale(1.07); }
 .store-card-media::after {
@@ -2344,6 +2361,23 @@ body.store-una-categoria .store-card-cat { display: none; }
 /* On store cards the edit pencil moves to the bottom-right corner, clear of the discount
    ribbon and the "recommended" badge that now sit in the top corners. */
 .store-card .store-card-modifica { top: auto; bottom: 12px; right: 12px; }
+
+/* Phones: keep three cards per row but make them small and tidy — shorter covers, tighter
+   gap, and smaller name/price/ribbon/badge so nothing overflows the narrow cards. */
+@media (max-width: 560px) {
+  .store-fila { gap: 8px; }
+  .store-card { min-height: 122px; border-left-width: 2px; }
+  .store-card-info { padding: 8px 2px 2px; }
+  .store-card-nome { font-size: 12px; margin-bottom: 2px; }
+  .store-card-prezzo-est .store-prezzo { font-size: 15px; }
+  .store-card-prezzo-est .store-prezzo small { font-size: 9.5px; }
+  .store-card-prezzo-est .store-prezzo-pieno { font-size: 10.5px; margin-right: 4px; }
+  .store-card-sconto { width: 92px; right: -30px; top: 11px; padding: 3px 0; font-size: 9.5px; }
+  .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0.02em; }
+  .store-card .store-card-modifica { bottom: 6px; right: 6px; }
+  .store-cat-titolo { font-size: 17px; }
+  .store-filtro { padding: 7px 12px; font-size: 12px; }
+}
 
 .store-prezzo { font-family: var(--font-heading); font-weight: 700; font-size: 22px; color: var(--gold-light); }
 .store-prezzo small { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-left: 2px; }
@@ -3989,28 +4023,10 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   }
   .forum-riga:hover { transform: none; }   /* niente scorrimento laterale: qui non c'e' il mouse */
 
-  /* Lo store non e' fatto di riquadri impilati ma di caroselli che si trascinano: qui a
-     sbordare e' la RIGA, e ogni pacchetto diventa una schermata intera che si aggancia al
-     bordo. Sulla card i margini negativi non funzionerebbero: dentro un contenitore
-     flessibile le toglierebbero larghezza invece di dargliene. */
-  .store-fila-blocco {
-    margin-left: calc(var(--wrap-pad) * -1);
-    margin-right: calc(var(--wrap-pad) * -1);
-  }
-  .store-fila { gap: 8px; }
-  .store-fila > .store-card-cella { flex: 0 0 100%; }
-  /* Le frecce rientrano di un filo: sbordando il blocco, i -8px del desktop le portavano
-     mezze fuori dallo schermo. */
-  .store-freccia.indietro { left: 6px; }
-  .store-freccia.avanti { right: 6px; }
-  .store-fila-blocco.ha-altri::after,
-  .store-fila-blocco.ha-altri::before { width: 12px; }
-  .store-card {
-    border-radius: 0;
-    border-right-width: 0;
-    border-left-width: 3px;   /* il colore della categoria resta, a filo dello schermo */
-    border-top-color: var(--border);
-  }
+  /* Store su schermi piccoli: sempre tre card per riga, solo piu' compatte (niente piu' una
+     card a schermo intero). Il ritocco fine per i telefoni e' sotto (max-width: 560px). */
+  .store-fila { gap: 12px; }
+  .store-card { min-height: 210px; }
 
   /* --- ritmo verticale della pagina --- */
   .hero-v2 { padding: 44px 0 30px; }
