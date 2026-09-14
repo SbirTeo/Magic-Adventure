@@ -76,7 +76,12 @@ public final class ChatService {
         String fmt = showFaction
                 ? plugin.getConfig().getString("chat.public-format", "&8[{rank}{relcolor}{faction}&8] {relcolor}{name}&7: &f{message}")
                 : plugin.getConfig().getString("chat.public-format-no-faction", "&7{name}&7: &f{message}");
-        fmt = fmt.replace("{rank}", showFaction ? rankTag(fs, sender.getUniqueId()) : "")
+        // Il tag del grado prende SEMPRE il colore della RELAZIONE (come [fazione] e nome): togliamo
+        // il colore proprio del tag e gli mettiamo davanti relColor. Cosi' ** e' verde/rosso/magenta,
+        // non il giallo del config.
+        String rankRaw = showFaction ? rankTag(fs, sender.getUniqueId()) : "";
+        String rankPart = rankRaw.isEmpty() ? "" : relColor + com.teolo.magixfactions.util.Colors.stripCodes(rankRaw);
+        fmt = fmt.replace("{rank}", rankPart)
                 .replace("{relcolor}", relColor)
                 .replace("{faction}", showFaction ? fs.getName() : "")
                 .replace("{name}", sender.getDisplayName());
@@ -129,7 +134,10 @@ public final class ChatService {
         // per evitare che erediti il celeste dell'icona web — vecchio workaround, ora obsoleto.
         // Il tag del grado fazione ({rank}) si legge dalla cache di FactionManager, che c'e' anche per un
         // mittente OFFLINE (chi scrive dal sito): %magixfactions_rank% via PAPI invece qui non risolverebbe.
-        fmt = fmt.replace("{rank}", showFaction ? rankTag(fs, senderUuid) : "")
+        // Come nella chat pubblica, il tag prende il colore della RELAZIONE (togliamo il suo colore proprio).
+        String rankRaw = showFaction ? rankTag(fs, senderUuid) : "";
+        String rankPart = rankRaw.isEmpty() ? "" : relColor + com.teolo.magixfactions.util.Colors.stripCodes(rankRaw);
+        fmt = fmt.replace("{rank}", rankPart)
                 .replace("{relcolor}", relColor)
                 .replace("{faction}", showFaction ? fs.getName() : "")
                 .replace("{name}", senderName);

@@ -2090,10 +2090,11 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   flex-wrap: wrap;
   gap: 18px;
 }
-/* The flex item is the cell (card + name + price stacked). Three per row: basis leaves room
-   for the two 18px gaps between them. */
+/* The flex item is the cell (card + name + price stacked). Cards per row is configurable
+   (--store-cols, set on the grid from the manager, default 3): the basis leaves room for the
+   (cols - 1) gaps of 18px between them. */
 .store-fila > .store-card-cella {
-  flex: 0 0 calc((100% - 36px) / 3);
+  flex: 0 0 calc((100% - (var(--store-cols, 3) - 1) * 18px) / var(--store-cols, 3));
   display: flex;
   flex-direction: column;
 }
@@ -2366,6 +2367,8 @@ body.store-una-categoria .store-card-cat { display: none; }
    gap, and smaller name/price/ribbon/badge so nothing overflows the narrow cards. */
 @media (max-width: 560px) {
   .store-fila { gap: 8px; }
+  /* Phones always show three tidy cards, whatever the per-row setting is for desktop. */
+  .store-fila > .store-card-cella { flex-basis: calc((100% - 16px) / 3); }
   .store-card { min-height: 122px; border-left-width: 2px; }
   .store-card-info { padding: 8px 2px 2px; }
   .store-card-nome { font-size: 12px; margin-bottom: 2px; }
@@ -3156,7 +3159,10 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, var(--bg-panel) 92%);
+  /* Fusione dell'immagine nel pannello: il quarto in alto resta nitido, poi sfuma fino a
+     pannello pieno prima del fondo, cosi' non c'e' un taglio netto e sotto resta una fascia
+     piena dove il testo si legge. */
+  background: linear-gradient(180deg, transparent 0%, transparent 22%, var(--bg-panel) 85%);
 }
 /* Senza copertina non c'e' niente da far respirare: la sfumatura dorata resta come
    sfondo del titolo (piu' bassa) e il testo torna in cima, senza la fascia vuota. */
@@ -3256,6 +3262,11 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
       chiaro e' quasi nero: sopra una foto velata diventava illeggibile. Sopra l'immagine
       il testo resta chiaro; se la copertina manca, il tema comanda (regola piu' sotto). */
 .pkg-scheda:not(.senza-immagine) .pkg-corpo h1 { color: var(--su-media); }
+/* Ombra sul titolo quando sta sopra la copertina: lo stacca dall'immagine anche col velo
+   delle card spento (che su questa pagina non arriva) e su copertine chiare. */
+.pkg-scheda:not(.senza-immagine) .pkg-corpo h1 {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), 0 2px 14px rgba(0, 0, 0, 0.55);
+}
 
 /* Tutto quello che sta SOPRA il velo della card prende il colore deciso dal velo stesso
    (--store-card-testo: nero o bianco secondo quanto e' chiaro). Prima il prezzo usava l'oro
@@ -4938,10 +4949,12 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    pacchetto segue lo store, che e' la sezione a cui appartiene. */
 body.senza-veli-blog .bento-feature::before,
 body.senza-veli-blog .post-tile::before,
-body.senza-veli-store .store-card-media::after,
-body.senza-veli-store .pkg-copertina::after {
+body.senza-veli-store .store-card-media::after {
   display: none;
 }
+/* NB: la sfumatura della copertina del pacchetto (.pkg-copertina::after) NON si spegne col
+   velo: li' non serve a scurire per il testo, ma a fondere l'immagine nel pannello. Senza,
+   la copertina staccava con un taglio netto. */
 body.senza-veli-blog :is(.bento-feature, .post-tile):not(.no-image) :is(h2, h3, p, .meta, .card-cta, .bento-tag),
 body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-prezzo, .store-card-voci, li) {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75), 0 2px 10px rgba(0, 0, 0, 0.6);

@@ -1,0 +1,80 @@
+name: Applica una migrazione SQL sul VPS
+
+# Applica UNA migrazione del database (un file .sql dentro website/migrazioni/) al DB del
+# sito sul VPS. Serve perche' l'auto-deploy del sito copia i file ma NON tocca il database:
+# le ALTER/CREATE vanno lanciate a parte. Con questo workflow il passo e' eseguibile da
+# QUALSIASI sessione, cloud inclusa (la sessione non ha SSH, la Action si': stessi secret
+# VPS_HOST / VPS_USER / VPS_SSH_KEY del deploy sito/plugin).
+#
+# COME funziona: il file .sql e' gia' sul VPS (viene copiato con l'auto-deploy del sito,
+# in /var/www/magicadventure/migrazioni/). Qui lo si esegue con le CREDENZIALI DELL'APP
+# (includes/db.php -> config.php col DB reale), senza bisogno di sudo sul database.
+#
+# Idempotenza: scrivi le migrazioni con IF NOT EXISTS dove puoi, cosi' rilanciarle non
+# rompe nulla.
+#
+# Solo manuale (workflow_dispatch): non parte da sola su push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Nome del file .sql dentro migrazioni/ (nome semplice, senza percorsi)"
+        required: true
+        default: "2026-09-14-store-inquadratura.sql"
+
+concurrency:
+  group: deploy-migrazione
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Applica la migrazione (credenziali dell'app, niente sudo)
+        if: steps.check.outputs.ok == 'true'
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          IN_FILE: ${{ inputs.file }}
+        run: |
+          set -euo pipefail
+          # Nome file semplice: niente percorsi o risalite di cartella.
+          case "$IN_FILE" in
+            */*|*..*|"") echo "::error::nome file non valido: '$IN_FILE'"; exit 1;;
+          esac
+          FILE_B64="$(printf '%s' "$IN_FILE" | base64 -w0)"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" "FILE_B64='$FILE_B64' bash -s" <<'REMOTE'
+          set -euo pipefail
+          BASE=/var/www/magicadventure
+          FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
+          SQLPATH="$BASE/migrazioni/$FILE"
+          if [ ! -f "$SQLPATH" ]; then
+            echo "ERRORE: migrazione non trovata sul VPS: $SQLPATH (deploy del sito gia' fatto?)"; exit 2
+          fi
+          echo "Applico $SQLPATH ..."
+          # Esegue l'SQL con la connessione dell'app (db()): usa il DB e le credenziali reali
+          # da includes/config.php, senza toccare sudo/mariadb-root.
+          php -r '$f=$argv[1]; require "/var/www/magicadventure/includes/db.php"; db()->exec(file_get_contents($f)); echo "OK: migrazione applicata\n";' "$SQLPATH"
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
