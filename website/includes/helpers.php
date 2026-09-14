@@ -517,18 +517,32 @@ const FACTION_REL_COLORS = [
 ];
 
 /**
- * Tag del GRADO di fazione come in gioco (config.yml di MagixFactions: `ranks[].tag` e
- * `leader.tag`), col codice colore `&`. Il grado del membro sta in
- * `factions_magixfactions.faction_members.rank`; il leader ha `rank = 'leader'`.
- * In chat va DENTRO le parentesi, davanti al nome fazione: `[**Fazione]` (token {rank}
- * di public-format in gioco). Se cambi un tag nel config del plugin, aggiornalo anche qui.
+ * Specchio dei gradi di fazione (tabella `factions_magixfactions.faction_ranks`, riscritta dal
+ * plugin da config.yml — vedi FactionManager.syncRanksToDb): `rank_id` minuscolo =>
+ * ['tag' => '&6**', 'name' => 'Leader']. E' l'UNICA fonte lato sito (niente doppia config).
+ * Letta una volta per richiesta. Se la tabella non esiste ancora (plugin non aggiornato) torna
+ * [] e chi chiama fa da fallback: la chat non si rompe durante un deploy.
  */
-const FACTION_RANK_TAGS = [
-    'recruit' => '&7[R]',
-    'member'  => '&a[M]',
-    'officer' => '&b[U]',
-    'leader'  => '&6**',
-];
+function faction_ranks_map(): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $cache = [];
+    try {
+        $rows = db()->query('SELECT rank_id, tag, rank_name FROM factions_magixfactions.faction_ranks')
+            ->fetchAll();
+        foreach ($rows as $r) {
+            $cache[strtolower((string) $r['rank_id'])] = [
+                'tag'  => (string) ($r['tag'] ?? ''),
+                'name' => (string) ($r['rank_name'] ?? ''),
+            ];
+        }
+    } catch (PDOException $e) {
+        $cache = []; // tabella non ancora creata dal plugin: si usa il fallback
+    }
+    return $cache;
+}
 
 /** Codici colore legacy di Minecraft (&0..&f) -> hex veri del client. */
 const MC_LEGACY_COLORS = [
@@ -635,9 +649,12 @@ function chat_sender_html(array $riga, string $relazione): string {
         return player_tag($riga) . $nome;
     }
     // Tag del GRADO di fazione (es. ** per il Leader): come in gioco va DENTRO le parentesi,
-    // davanti al nome fazione -> [**Fazione]. Il leader ha faction_members.rank = 'leader'.
-    $rankId = trim((string) ($riga['faction_rank'] ?? ''));
-    $tagGrado = $rankId !== '' && isset(FACTION_RANK_TAGS[$rankId]) ? mc_tag_html(FACTION_RANK_TAGS[$rankId]) : '';
+    // davanti al nome fazione -> [**Fazione]. Il tag arriva da faction_ranks_map() (specchio del
+    // config nel DB): un posto solo. Il leader ha faction_members.rank = 'leader'.
+    $rankId = strtolower(trim((string) ($riga['faction_rank'] ?? '')));
+    $mappaGradi = faction_ranks_map();
+    $tagRaw = $rankId !== '' && isset($mappaGradi[$rankId]) ? $mappaGradi[$rankId]['tag'] : '';
+    $tagGrado = $tagRaw !== '' ? mc_tag_html($tagRaw) : '';
     // Ordine come in gioco: [{rank}Fazione] (fazione col colore relazione) -> tag del grado
     // server (LuckPerms) -> nome (colore del grado).
     return '<span class="chat-fac">[' . $tagGrado . '<span class="colore-grado" style="' . rank_color_style($coloreRel) . '">'

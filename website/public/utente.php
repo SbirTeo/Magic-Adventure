@@ -65,13 +65,6 @@ try {
     $stats = null;
 }
 
-const GRADI_FAZIONE_PUBBLICI = [
-    'recruit' => 'Recluta',
-    'member'  => 'Membro',
-    'officer' => 'Ufficiale',
-    'leader'  => 'Leader',
-];
-
 $conta = function (string $sql, int $id): int {
     try {
         $q = db()->prepare($sql);
@@ -158,9 +151,11 @@ require __DIR__ . '/../includes/header.php';
   <div class="profilo-dato">
     <span>Grado nella fazione</span>
     <strong><?php
+      // Nome del grado dallo specchio del config (faction_ranks_map); se manca, l'id capitalizzato.
       $r = $stats['faction_rank'] ?? null;
+      $nomeGrado = $r ? (faction_ranks_map()[strtolower((string) $r)]['name'] ?? '') : '';
       echo $stats && $stats['faction_name'] && $r
-          ? h(GRADI_FAZIONE_PUBBLICI[strtolower((string) $r)] ?? ucfirst((string) $r))
+          ? h($nomeGrado !== '' ? $nomeGrado : ucfirst((string) $r))
           : '—';
     ?></strong>
   </div>

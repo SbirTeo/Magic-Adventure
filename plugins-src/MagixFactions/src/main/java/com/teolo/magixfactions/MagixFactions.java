@@ -83,6 +83,8 @@ public final class MagixFactions extends JavaPlugin {
         } catch (Exception e) {
             getLogger().severe("Errore caricamento fazioni: " + e.getMessage());
         }
+        // Specchia i gradi (config) nella tabella faction_ranks per il sito (tag in chat).
+        factionManager.syncRanksToDb();
 
         // Modulo 3: Potenza + Territori
         powerManager = new PowerManager(this, database, dbExecutor);
