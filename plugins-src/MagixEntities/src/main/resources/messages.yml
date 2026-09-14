@@ -43,6 +43,9 @@ usage-cmd-add: "&#FFD166▸ Uso: &f/mentities cmd <nome> add <comando> &8· &7pr
 # ------------------------------------------------------------------ esiti
 created: "&#A8DC2C✔ Creata &f{name} &8· &7{type} &8· &r{display}"
 created-player-hint: "&8  ↳ &7skin da &f{skin}&7, cambiala con &f/mentities skin {name} <nick>"
+# Un altro plugin (tipicamente WorldGuard) ha annullato la nascita: la definizione e' salvata,
+# ma nel mondo non e' entrato niente. Il perche' esteso e' scritto in console.
+spawn-refused: "&#FFD166▲ &f{name} &7e' salvata ma un altro plugin ne blocca la nascita nel mondo &f{world}&7. Con WorldGuard: &fmob-spawning: deny &7+ &fmobs.block-plugin-spawning: true&7 — metti quest'ultimo a &ffalse&7 (poi &f/wg reload&7). Dettagli in console."
 removed: "&#A8DC2C✔ Entita' &f{name} &7rimossa."
 renamed: "&#A8DC2C✔ &f{old} &7ora si chiama &f{new}&7."
 renamed-skin-hint: "&8  ↳ &7la skin segue il nome: ora e' &f{skin}"
@@ -99,7 +102,9 @@ list-nav-disabled: "&8"
 status-ok: "&#A8DC2C●"
 status-unloaded: "&8●"
 status-missing: "&#FF6B6B●"
-status-legend: " &8└ &#A8DC2C● &7attiva &8· &8● &7chunk scarico &8· &#FF6B6B● &7assente"
+# Entita' che NON riesce a nascere: un altro plugin annulla la nascita (vedi spawn-refused).
+status-refused: "&#FFD166●"
+status-legend: " &8└ &#A8DC2C● &7attiva &8· &8● &7chunk scarico &8· &#FF6B6B● &7assente &8· &#FFD166● &7nascita bloccata"
 
 # -------------------------------------------------------------------- info
 info-header: "&#C046E8&l {name} &8· &7{type}"

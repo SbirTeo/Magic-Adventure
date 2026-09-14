@@ -140,6 +140,7 @@ public final class MeCommand implements TabExecutor {
         NpcDef d = npcs.create(name, type, display, p.getLocation());
         M.send(sender, "created", "name", d.name, "type", typeLabel(d), "display", Colors.translate(d.displayText()));
         if (d.isPlayerType()) M.send(sender, "created-player-hint", "skin", d.skinNick(), "name", d.name);
+        warnIfRefused(sender, d);
     }
 
     private void remove(CommandSender sender, String[] args) {
@@ -226,6 +227,7 @@ public final class MeCommand implements TabExecutor {
                     "name", d.name));
         }
         line(sender, "uuid", "&8" + (d.uuid == null ? "-" : d.uuid.toString()));
+        warnIfRefused(sender, d);
         sender.sendMessage(infoActions(d));
     }
 
@@ -275,6 +277,7 @@ public final class MeCommand implements TabExecutor {
         npcs.ensure(d);
         npcs.save();
         M.send(sender, "moved", "name", d.name);
+        warnIfRefused(sender, d);
     }
 
     /** Rinomina l'entita' in se'. Per il tipo player la skin segue il nome (salvo skin esplicita). */
@@ -375,6 +378,7 @@ public final class MeCommand implements TabExecutor {
             // Skin e posa non si vedono su un mob, ma restano scritte: tornando a player si rivedono.
             M.send(sender, "type-kept-hint");
         }
+        warnIfRefused(sender, d);
     }
 
     private void skin(CommandSender sender, String[] args) {
@@ -547,6 +551,7 @@ public final class MeCommand implements TabExecutor {
         npcs.spawn(d);
         npcs.save();
         M.send(sender, "respawned", "name", d.name);
+        warnIfRefused(sender, d);
     }
 
     private void reload(CommandSender sender) {
@@ -587,11 +592,24 @@ public final class MeCommand implements TabExecutor {
             M.send(sender, "not-loaded", "name", d.name);
         } else {
             npcs.ensure(d);
+            warnIfRefused(sender, d);
         }
+    }
+
+    /**
+     * Avvisa in chat quando la nascita dell'entita' e' stata annullata da un altro plugin: la
+     * definizione c'e' (ed e' salvata), ma nel mondo non e' entrato niente e senza questo
+     * messaggio sembrerebbe tutto a posto.
+     */
+    private void warnIfRefused(CommandSender sender, NpcDef d) {
+        if (npcs.refused(d)) M.send(sender, "spawn-refused", "name", d.name, "world", d.world);
     }
 
     private String status(NpcDef d) {
         if (npcs.entityOf(d) != null) return M.get("status-ok");
+        // Nascita rifiutata da un altro plugin: non e' un'entita' "sparita", e' una che non
+        // riesce a nascere — il pallino diverso evita di mandare lo staff a cercare il perche'.
+        if (npcs.refused(d)) return M.get("status-refused");
         return d.chunkLoaded() ? M.get("status-missing") : M.get("status-unloaded");
     }
 

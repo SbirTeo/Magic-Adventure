@@ -147,6 +147,19 @@ public final class MagixEntities extends JavaPlugin {
                                 + "esplicita /magixentities:me.")
                 .issue("Un'entità è sparita",
                         "/ment respawn <nome> la ricrea. Se ne mancano molte, /ment reload rilegge tutto il file.")
+                .issue("Creo un'entità, il plugin dice «Creata» ma non si vede",
+                        "La nascita di un'entità è un evento che gli altri plugin possono annullare: se qualcuno "
+                                + "dice di no, la definizione resta salvata ma nel mondo non entra niente. Il "
+                                + "plugin se ne accorge e lo dice (console, chat, pallino giallo in /ment list e "
+                                + "/ment info). Il caso quasi sempre è WorldGuard: con il flag «mob-spawning: "
+                                + "deny» su una regione (spesso __global__ del mondo dello spawn) e "
+                                + "«mobs.block-plugin-spawning: true» nel suo config.yml vengono bloccate anche le "
+                                + "entità create dai plugin. Metti block-plugin-spawning a false e fai /wg reload: "
+                                + "i mob naturali restano bloccati dal flag, le nostre entità passano. Le entità "
+                                + "già esistenti non se ne accorgono perché vivono nel salvataggio del mondo e non "
+                                + "vengono ricreate — per questo il problema si vede solo creandone di nuove. "
+                                + "Sistemata la protezione non serve rifare niente: il controllo periodico ricrea "
+                                + "da sé le entità rimaste in sospeso (o subito con /ment respawn <nome>).")
                 .issue("Ne sono comparse due uguali",
                         "È un doppione rimasto nel mondo: /ment purge toglie le copie che il plugin non riconosce.")
                 .issue("In console torna «Texture skin non trovate per ...»",

@@ -54,6 +54,8 @@ public final class NpcManager {
     private final Map<String, Long> skinRetry = new ConcurrentHashMap<>();
     /** Nick con una richiesta a Mojang gia' in corso. */
     private final Set<String> skinPending = ConcurrentHashMap.newKeySet();
+    /** Entita' a cui il mondo ha detto di no: serve a non ripetere l'avviso ad ogni controllo. */
+    private final Set<String> refused = ConcurrentHashMap.newKeySet();
 
     public NpcManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -182,6 +184,7 @@ public final class NpcManager {
         if (mirror != null) mirror.clear(d);
         despawn(d);
         npcs.remove(d.id);
+        refused.remove(d.id);
         save();
     }
 
@@ -206,12 +209,41 @@ public final class NpcManager {
         Entity e;
         try {
             e = loc.getWorld().spawn(loc, cls, pre, CreatureSpawnEvent.SpawnReason.CUSTOM);
-        } catch (IllegalArgumentException ex) {
+        } catch (RuntimeException ex) {
             plugin.getLogger().warning("Impossibile creare '" + d.name + "' (" + d.type + "): " + ex.getMessage());
             return null;
         }
+        // La nascita di un'entita' e' un evento ANNULLABILE: un plugin di protezione puo' dire di
+        // no. In quel caso spawn() restituisce lo stesso l'oggetto, ma nel mondo non ci e' mai
+        // entrato: senza questo controllo l'entita' risulterebbe creata e non la vedrebbe nessuno.
+        if (!e.isInWorld() || !e.isValid()) {
+            e.remove();
+            d.uuid = null;
+            if (refused.add(d.id)) plugin.getLogger().warning(spawnRefusedText(d));
+            return null;
+        }
+        refused.remove(d.id);
         d.uuid = e.getUniqueId();
         return e;
+    }
+
+    /**
+     * true se l'ultimo tentativo di creare questa entita' e' stato rifiutato dal mondo.
+     * Resta vero finche' l'entita' non riesce a nascere: il controllo periodico riprova da solo,
+     * quindi appena la protezione viene sistemata l'entita' compare senza toccare niente.
+     */
+    public boolean refused(NpcDef d) {
+        return refused.contains(d.id);
+    }
+
+    /** Spiegazione (console) di una nascita annullata: il caso tipico e' WorldGuard. */
+    private static String spawnRefusedText(NpcDef d) {
+        return "Nascita di '" + d.name + "' annullata da un altro plugin nel mondo '" + d.world
+                + "': l'entita' e' salvata in entities.yml ma non e' nel mondo. Caso tipico:"
+                + " WorldGuard con il flag 'mob-spawning: deny' e 'mobs.block-plugin-spawning: true'"
+                + " nel suo config.yml — mettendo quest'ultimo a false le entita' del plugin passano"
+                + " e i mob naturali restano bloccati. Sistemato quello, l'entita' compare da sola"
+                + " al controllo successivo (o subito con /mentities respawn " + d.name + ").";
     }
 
     /** Rimuove dal mondo l'entita' associata, se presente e caricata. */
