@@ -1,0 +1,137 @@
+name: Diagnostica di un plugin sul VPS
+
+# Fotografia in SOLA LETTURA di come sta un plugin sul server live: versione del jar
+# caricato, config vera nella cartella dati, file di dati e righe di log che lo riguardano.
+#
+# Serve alle sessioni CLOUD, che non hanno SSH verso il VPS: la Action si' (stessi secret
+# VPS_HOST / VPS_USER / VPS_SSH_KEY del deploy). Il risultato finisce nel log del run, che
+# la sessione puo' rileggere. Non modifica NULLA sul server.
+#
+# Attenzione: quello che viene stampato qui e' visibile nei log del run, quindi il workflow
+# stampa solo file innocui (config e dati dei plugin) e mai credenziali.
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "Cartella del plugin (es. MagixEntities)"
+        required: true
+        default: "MagixEntities"
+      file:
+        description: "File della cartella dati da stampare (vuoto = nessuno, es. entities.yml)"
+        required: false
+        default: ""
+      grep:
+        description: "Testo da cercare nel log del server (vuoto = il nome del plugin)"
+        required: false
+        default: ""
+      righe:
+        description: "Quante righe di log mostrare"
+        required: false
+        default: "120"
+      storico:
+        description: "si = cerca anche nei log vecchi (logs/*.log.gz), no = solo latest.log"
+        required: false
+        default: "si"
+
+concurrency:
+  group: diagnostica-vps
+  cancel-in-progress: false
+
+jobs:
+  diagnostica:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Raccogli le informazioni dal VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          IN_PLUGIN: ${{ inputs.plugin }}
+          IN_FILE: ${{ inputs.file }}
+          IN_GREP: ${{ inputs.grep }}
+          IN_RIGHE: ${{ inputs.righe }}
+          IN_STORICO: ${{ inputs.storico }}
+        run: |
+          set -euo pipefail
+          KEY=~/.ssh/deploy_key
+          PLUGIN_B64="$(printf '%s' "$IN_PLUGIN" | base64 -w0)"
+          FILE_B64="$(printf '%s' "${IN_FILE:-}" | base64 -w0)"
+          GREP_B64="$(printf '%s' "${IN_GREP:-}" | base64 -w0)"
+          ssh -i "$KEY" -o StrictHostKeyChecking=yes "$DEST" \
+            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          PLUGIN="$(printf '%s' "$PLUGIN_B64" | base64 -d)"
+          FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
+          CERCA="$(printf '%s' "$GREP_B64" | base64 -d)"
+          [ -n "$CERCA" ] || CERCA="$PLUGIN"
+          BASE=/home/ubuntu/magicadventure
+          LOG="$BASE/logs/latest.log"
+
+          echo "=== SERVER ==="
+          ( cd "$BASE" && ls -la *.jar 2>/dev/null )
+          grep -m1 -E "This server is running|Starting minecraft server version" "$LOG" 2>/dev/null
+          java -version 2>&1 | head -n1
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then echo "screen mc: attivo"; else echo "screen mc: NON attivo"; fi
+
+          echo
+          echo "=== PLUGIN INSTALLATI ==="
+          ls -la "$BASE/plugins"/*.jar 2>/dev/null
+
+          echo
+          echo "=== CARTELLA DATI $PLUGIN ==="
+          ls -la "$BASE/plugins/$PLUGIN" 2>/dev/null || echo "(cartella assente)"
+
+          echo
+          echo "=== config.yml ATTIVO ($PLUGIN) ==="
+          sed -e 's/[[:space:]]*$//' "$BASE/plugins/$PLUGIN/config.yml" 2>/dev/null | grep -v '^[[:space:]]*#' | grep -v '^[[:space:]]*$' || echo "(nessun config.yml)"
+
+          if [ -n "$FILE" ]; then
+            echo
+            echo "=== $FILE ($PLUGIN) ==="
+            tail -n 400 "$BASE/plugins/$PLUGIN/$FILE" 2>/dev/null || echo "(file assente)"
+          fi
+
+          # I log ruotano a ogni riavvio: latest.log copre solo l'ultima accensione, quindi
+          # di default si guarda anche nei .log.gz di prima (la sessione cerca spesso qualcosa
+          # successo PRIMA dell'ultimo riavvio).
+          VECCHI=""
+          if [ "${STORICO:-si}" = "si" ]; then
+            VECCHI="$(ls -t "$BASE/logs"/*.log.gz 2>/dev/null | head -n 8 | tr '\n' ' ')"
+          fi
+          echo "Log esaminati: latest.log $VECCHI"
+
+          cerca_tutto() {  # $1 = regex estesa, case-insensitive
+            grep -a -i -H -E -- "$1" "$LOG" 2>/dev/null
+            [ -n "$VECCHI" ] && zgrep -a -i -H -E -- "$1" $VECCHI 2>/dev/null
+            return 0
+          }
+
+          echo
+          echo "=== LOG: righe che parlano di '$CERCA' (ultime $RIGHE) ==="
+          cerca_tutto "$CERCA" | tail -n "$RIGHE"
+
+          echo
+          echo "=== LOG: errori ed eccezioni dei plugin Magix (ultime $RIGHE) ==="
+          cerca_tutto "ERROR|Exception|Caused by|at com\.teolo|Could not pass event|Unhandled exception" \
+            | grep -av "Unknown minor version" | tail -n "$RIGHE"
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

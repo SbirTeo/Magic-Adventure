@@ -24,7 +24,7 @@ public final class Database {
     /** Tabelle gestite (usate anche dalla migrazione generica). */
     public static final List<String> TABLES =
             List.of("players", "factions", "faction_members", "claims", "relations", "member_permissions",
-                    "overclaim_timers", "faction_homes");
+                    "overclaim_timers", "faction_homes", "faction_ranks");
 
     static {
         try { Class.forName("org.sqlite.JDBC"); } catch (Throwable ignored) {}
@@ -115,6 +115,9 @@ public final class Database {
             addIfMissing(c, st, "players", "money_seconds", "BIGINT DEFAULT 0");
             // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
             addIfMissing(c, st, "players", "minimap_hidden", "INT DEFAULT 0");
+            // Interruttore personale dei confini a particelle (/f borders): 1 = acceso dal giocatore.
+            // Di serie 0 (spento): e' una preferenza per-giocatore, indipendente dalla fazione.
+            addIfMissing(c, st, "players", "borders_enabled", "INT DEFAULT 0");
             // Proprietario per-chunk (/f owner) e valore in minerali del chunk (vedi ClaimManager).
             addIfMissing(c, st, "claims", "owner_uuid", "VARCHAR(36)");
             addIfMissing(c, st, "claims", "value", "DOUBLE DEFAULT 0");
@@ -175,7 +178,8 @@ public final class Database {
                 "kills BIGINT DEFAULT 0, deaths BIGINT DEFAULT 0, play_seconds BIGINT DEFAULT 0, " +
                 "money_avg_accum DOUBLE DEFAULT 0, money_seconds BIGINT DEFAULT 0, " +
                 // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
-                "minimap_hidden INT DEFAULT 0)");
+                // Interruttore personale dei confini a particelle (/f borders): 1 = acceso; di serie spento.
+                "minimap_hidden INT DEFAULT 0, borders_enabled INT DEFAULT 0)");
         // NB: sui database gia' esistenti resta la colonna 'minimap_on', non piu' usata da quando la
         // minimap HUD e' un PERMESSO (magixfactions.minimap) e non piu' un interruttore per-giocatore.
         // Non viene cancellata: una DROP COLUMN su dati altrui non ripaga il poco spazio che libera.
@@ -208,6 +212,12 @@ public final class Database {
         l.add("CREATE TABLE IF NOT EXISTS faction_homes (" +
                 "faction_id BIGINT PRIMARY KEY, world VARCHAR(64), x DOUBLE, y DOUBLE, z DOUBLE, " +
                 "yaw REAL, pitch REAL)");
+        // Specchio dei gradi di fazione dal config (ranks[] + leader): id, tag col codice colore &,
+        // nome e ordine (0 = piu' basso, leader = piu' alto). Riscritta a ogni load/reload da
+        // FactionManager.syncRanksToDb(). Serve al SITO per mostrare il tag del grado in chat
+        // (es. [**Fazione]) senza duplicare i valori del config lato web.
+        l.add("CREATE TABLE IF NOT EXISTS faction_ranks (" +
+                "rank_id VARCHAR(32) PRIMARY KEY, tag VARCHAR(64), rank_name VARCHAR(64), ord INT DEFAULT 0)");
         return l;
     }
 

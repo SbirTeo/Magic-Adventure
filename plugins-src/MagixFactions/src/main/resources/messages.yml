@@ -35,7 +35,7 @@ errors:
 
 chat:
   faction-prefix: "&a[Fazione] "
-  ally-prefix: "&b[Alleati] &7{faction} &8» "
+  ally-prefix: "&d[Alleati] &7{faction} &8» "
   body: "&7{player}: &f{message}"
   set: "&7Canale chat impostato su: {channel}"
   channel-public: "&fPUBBLICA"
@@ -52,6 +52,8 @@ create:
   name-digits: "&cIl nome puo' contenere al massimo &e{max}&c cifre."
   name-taken: "&cEsiste gia' una fazione con questo nome."
   success: "&aFazione &e{name}&a creata! Sei il &6leader&a."
+  # Annuncio a TUTTO il server quando nasce una nuova fazione. {name} = nome, {player} = fondatore.
+  broadcast: "&#A8DC2C&lNUOVA FAZIONE &r&7» &f{player}&7 ha fondato la fazione &f{name}&7!"
 
 rename:
   usage: "&cUso: /f rename <nuovonome>"
@@ -63,7 +65,10 @@ rename:
 
 disband:
   not-leader: "&cSolo il leader puo' sciogliere la fazione."
-  broadcast: "&cLa fazione e' stata sciolta dal leader."
+  # Annuncio a TUTTO il server quando una fazione viene sciolta. {name} = nome, {player} = leader.
+  # Chiave nuova (announce) invece della vecchia broadcast: sui server con un messages.yml gia'
+  # esistente la vecchia chiave avrebbe la meglio sul default, mostrando il testo vecchio senza nome.
+  announce: "&c&lFAZIONE SCIOLTA &r&7» &f{name}&7 e' stata sciolta da &f{player}&7."
   success: "&aFazione sciolta. I territori sono tornati neutrali."
 
 leave:
@@ -71,6 +76,10 @@ leave:
   succession: "&aHai lasciato la fazione. Il comando e' passato al successore."
   new-leader: "&6Sei il nuovo leader della fazione &e{name}&6!"
   left: "&aHai lasciato la fazione."
+  # Annuncio ai membri rimasti quando qualcuno lascia la fazione. {player} = chi e' uscito.
+  broadcast: "&e{player}&7 ha lasciato la fazione."
+  # Annuncio ai membri rimasti quando esce il leader e il comando passa al successore. {leader} = nuovo leader.
+  succession-broadcast: "&6{leader}&7 e' il nuovo leader della fazione."
 
 transfer:
   not-leader: "&cSolo il leader puo' trasferire il comando."
@@ -97,6 +106,7 @@ demote:
   cant-leader: "&cNon puoi degradare il leader."
   min: "&eIl giocatore e' gia' al grado piu' basso."
   success: "&a{player} degradato a &e{rank}&a."
+  received: "&cSei stato degradato a &e{rank}&c."
 
 invite:
   no-perm: "&cNon hai il permesso di invitare."
@@ -140,12 +150,12 @@ claim:
   success: "&aTerritorio conquistato! Chunk &e{x}, {z} &7(territori: &f{count}&7/&f{cap}&7)."
   overclaim-success: "&aHai strappato un territorio a &e{name}&a! Chunk &e{x}, {z}&a."
   overclaimed-victim: "&cLa fazione &e{name}&c vi ha conquistato il territorio al chunk &e{x}, {z}&c!"
-  # Mostrato ai membri della fazione che ha appena perso il chunk dove stava la home: la home viene
-  # azzerata, se no /f home continuerebbe a scaricarli dentro il territorio del nemico.
-  home-lost: "&c&lAvete perso la CASA! &r&cIl chunk della home e' stato conquistato da &e{name}&c: &e/f home&c non porta piu' da nessuna parte. Rimettetela con &e/f sethome&c in un vostro territorio."
   # Allerta mostrata a TUTTO il server (titolo a schermo + suono) a un overclaim di guerra.
   overclaim-alert-title: "&4&l⚔ TERRITORIO CONQUISTATO ⚔"
   overclaim-alert-subtitle: "&e{attacker} &7ha strappato un territorio a &c{victim} &7(&f{x}, {z}&7)"
+  # Mostrati quando il territorio conquistato conteneva la HOME della fazione nemica (che quindi la perde).
+  overclaim-home-taken: "&aHai conquistato anche la &eHOME&a di &e{name}&a: non potranno piu' teletrasportarsi qui."
+  overclaim-home-lost: "&4&lLa vostra HOME era in quel territorio ed e' andata persa!&c Impostatene una nuova con &e/f sethome&c."
 
 # Area protetta dello spawn (config claims.protected-spawn): quadrato centrale dove non si fondano
 # fazioni ne' si conquistano territori. I blocchi NON sono protetti (si costruisce liberamente).
@@ -161,9 +171,10 @@ unclaim:
 
 unclaimall:
   none: "&cLa tua fazione non possiede territori."
-  confirm-title: "&c&l⚠ ATTENZIONE ⚠"
-  confirm-subtitle: "&cRilasci TUTTI i &e{count}&c territori? E' IRREVERSIBILE"
   confirm-chat: "&cStai per rilasciare TUTTI i &e{count}&c territori della fazione. &4Azione irreversibile.&c Riesegui &e/f unclaimall &centro 10 secondi per confermare."
+  # Titolo a schermo + suono mostrati ALLA CONFERMA (secondo comando), quando l'azione avviene davvero.
+  done-title: "&c&l⚠ TERRITORI RILASCIATI ⚠"
+  done-subtitle: "&7Hai rilasciato tutti i &e{count}&7 territori della fazione"
   success: "&aRilasciati tutti i &e{count}&a territori della fazione."
 
 # Proprietario della land (/f owner). Solo il leader lo imposta; nel chunk con proprietario interagiscono
@@ -226,6 +237,10 @@ info:
   status-weak: "&cLa fazione e' debole, puoi conquistarla."
   status-strong: "&aLa fazione e' forte. Non puoi conquistarla."
   status-none: "&fQuesta fazione non ha ancora un territorio."
+  # Varianti mostrate in /f info quando si guarda la PROPRIA fazione (seconda persona).
+  status-weak-self: "&cLa tua fazione e' debole, puo' essere conquistata."
+  status-strong-self: "&aLa tua fazione e' forte. Non puo' essere conquistata."
+  status-none-self: "&fLa tua fazione non ha ancora un territorio."
   # Riga "Alleati:" con elenco fazioni; le richieste in sospeso hanno "(in attesa)" + tooltip (hover).
   allies-label: "&6Alleati: "
   allies-none: "&7nessuno"
@@ -318,6 +333,15 @@ minimap:
   enabled: "&aMinimap &2accesa&a. La vedi nell'angolo dello schermo; la mappa in chat con &6/f map&a resta sempre disponibile."
   disabled: "&aMinimap &cspenta&a. Puoi sempre vedere i territori in chat con &6/f map&a."
 
+# ---------------------------------------------------------------- /f borders (confini a particelle)
+# Interruttore PERSONALE (per-giocatore, non per-fazione): particelle verdi lungo i confini dei territori
+# vicini. Di serie spento. NB: come per la minimap, le chiavi non possono chiamarsi 'on'/'off' (booleani
+# YAML riservati) — si usano enabled/disabled.
+borders:
+  usage: "&cUso: /f borders <on|off>"
+  enabled: "&aConfini &2accesi&a. Particelle lungo i bordi dei territori vicini: &2verde&a la tua, &dmagenta&a gli alleati, &crosso&a i nemici."
+  disabled: "&aConfini &cspenti&a. Le particelle dei bordi non ti verranno piu' mostrate."
+
 list:
   empty: "&7Non esiste ancora nessuna fazione."
   header: "&8&m---&r &6Fazioni del server &7({count}) &8&m---"
@@ -332,16 +356,24 @@ top:
   entry: "  &7#{pos} &r{relcolor}{name} &8- &b{score}"
   entry-own: "  &e#{pos} &r{relcolor}{name} &8- &b{score} &7(tu)"
   separator: "  &8..."
+  # Riga finale con il link alla classifica completa sul sito (cliccabile in gioco).
+  site: "  &8&m---&r &7Classifica completa: &bmagicadventure.it/classifiche"
 
 # Tooltip (hover) che spiega COME si arriva al punteggio: passando il mouse sul valore (in /f info e
-# /f top) compare l'intestazione + una riga per caratteristica. {label}=nome voce, {value}=valore usato,
-# {level}=livello 0-100 di quella voce, {weight}=quota di peso, {points}=punti che aggiunge al totale.
+# /f top) compare l'intestazione + introduzione, una riga per caratteristica e il totale in fondo.
+# Stesso contenuto e stile della card del sito (classifiche.php), senza grassetto. {label}=nome voce,
+# {value}=valore usato, {pct}=% rispetto al migliore, {points}=punti che aggiunge, {max}=punti massimi.
 score-tooltip:
-  header: "&b&lPunteggio &f{score}&7/{max}\n&8In ogni voce il migliore vale il massimo; tu ne prendi la percentuale rispetto a lui:"
+  header: "&bCome si calcola il punteggio"
+  intro: "&7In ogni voce la fazione migliore vale il massimo; tu ne prendi la percentuale rispetto a lei. Il punteggio e' la somma delle voci."
   # {best} = fazione migliore in quella voce, {bestval} = il suo valore (il 100%).
-  line: "&7{label} &8(&f{value}&8) &7{pct} &8· &7migliore: &f{best} &8(&7{bestval}&8) &8· &b{points}&7/{max}"
-  # Testo usato al posto del nome quando il migliore in una voce sei TU.
-  best-self: "&atu"
+  line: "&7{label} &8(&f{value}&8) &7{best} &8· &7{pct} del migliore &8· &f{points}&7/{max}"
+  # Riferimento al migliore della voce (quando non sei tu).
+  best: "&7migliore: &f{best} &8(&7{bestval}&8)"
+  # Testo usato al posto del riferimento quando il migliore in una voce sei TU.
+  best-self: "&a★ sei tu il migliore"
+  # Riga finale col totale (somma delle voci) sul massimo possibile.
+  total: "&7Totale: &f{score}&7/{max}"
 
 db:
   no-perm: "&cNon hai il permesso."
@@ -413,6 +445,7 @@ help:
         - "/f unclaimall :: rilascia TUTTI i territori (chiede conferma)"
         - "/f owner [giocatore|clear] :: proprietario della land (solo leader)"
         - "/f map :: la mappa dei territori intorno a te"
+        - "/f borders <on|off> :: accendi/spegni i confini a particelle attorno ai territori"
         - "/f minimap <on|off> :: accendi/spegni la minimap a schermo (se disponibile)"
         - "/f sethome :: imposta la home (nel tuo territorio)"
         - "/f unsethome :: rimuove la home della fazione"

@@ -4,6 +4,7 @@ import com.teolo.magixfactions.hook.Papi;
 import com.teolo.magixfactions.lang.Messages;
 import com.teolo.magixfactions.manage.FactionManager;
 import com.teolo.magixfactions.model.Faction;
+import com.teolo.magixfactions.model.Member;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -23,6 +24,20 @@ public final class ChatService {
 
     public ChatService(org.bukkit.plugin.java.JavaPlugin plugin, FactionManager fm, Messages messages) {
         this.plugin = plugin; this.fm = fm; this.M = messages;
+    }
+
+    /**
+     * Tag del GRADO che {@code uuid} ha dentro la fazione {@code f} (es. {@code **} per il Leader,
+     * o il tag configurato in {@code ranks[].tag} / {@code leader.tag}), coi codici colore ancora in
+     * forma {@code &} — la traduzione avviene dopo, sull'intero formato. Stringa vuota se il giocatore
+     * non risulta membro. Serve al token {@code {rank}} della chat pubblica/web.
+     */
+    private String rankTag(Faction f, UUID uuid) {
+        if (f == null) return "";
+        Member m = f.getMember(uuid);
+        if (m == null) return "";
+        String tag = fm.ranks().resolve(m.getRankId()).getTag();
+        return tag != null ? tag : "";
     }
 
     // ---- Chat PUBBLICA relazionale ---------------------------------------------------------------
@@ -59,9 +74,15 @@ public final class ChatService {
         boolean showFaction = fs != null && !sender.hasPermission(PERM_HIDE_FACTION);
         String relColor = fm.relationColor(fm.getFaction(viewer.getUniqueId()), fs);
         String fmt = showFaction
-                ? plugin.getConfig().getString("chat.public-format", "&8[{relcolor}{faction}&8] {relcolor}{name}&7: &f{message}")
+                ? plugin.getConfig().getString("chat.public-format", "&8[{rank}{relcolor}{faction}&8] {relcolor}{name}&7: &f{message}")
                 : plugin.getConfig().getString("chat.public-format-no-faction", "&7{name}&7: &f{message}");
-        fmt = fmt.replace("{relcolor}", relColor)
+        // Il tag del grado prende SEMPRE il colore della RELAZIONE (come [fazione] e nome): togliamo
+        // il colore proprio del tag e gli mettiamo davanti relColor. Cosi' ** e' verde/rosso/magenta,
+        // non il giallo del config.
+        String rankRaw = showFaction ? rankTag(fs, sender.getUniqueId()) : "";
+        String rankPart = rankRaw.isEmpty() ? "" : relColor + com.teolo.magixfactions.util.Colors.stripCodes(rankRaw);
+        fmt = fmt.replace("{rank}", rankPart)
+                .replace("{relcolor}", relColor)
                 .replace("{faction}", showFaction ? fs.getName() : "")
                 .replace("{name}", sender.getDisplayName());
         fmt = Papi.resolve(sender, fmt); // qualsiasi %placeholder% di PAPI, nel contesto del mittente
@@ -105,13 +126,19 @@ public final class ChatService {
         // un giocatore senza fazione, cioe' relationColor(null, ...) -> "enemy".
         String relColor = fm.relationColor(viewer == null ? null : fm.getFaction(viewer.getUniqueId()), fs);
         String fmt = showFaction
-                ? plugin.getConfig().getString("chat.public-format", "&8[{relcolor}{faction}&8] {relcolor}{name}&7: &f{message}")
+                ? plugin.getConfig().getString("chat.public-format", "&8[{rank}{relcolor}{faction}&8] {relcolor}{name}&7: &f{message}")
                 : plugin.getConfig().getString("chat.public-format-no-faction", "&7{name}&7: &f{message}");
         fmt = plugin.getConfig().getString("chat.web-prefix", "&b☁ ") + fmt;
         // Il nome ha SEMPRE un colore esplicito nel formato (&7 grigio: solo il TAG fazione e' colorato
         // per relazione, il nome del giocatore no), quindi non serve piu' iniettare {relcolor} sul nome
         // per evitare che erediti il celeste dell'icona web — vecchio workaround, ora obsoleto.
-        fmt = fmt.replace("{relcolor}", relColor)
+        // Il tag del grado fazione ({rank}) si legge dalla cache di FactionManager, che c'e' anche per un
+        // mittente OFFLINE (chi scrive dal sito): %magixfactions_rank% via PAPI invece qui non risolverebbe.
+        // Come nella chat pubblica, il tag prende il colore della RELAZIONE (togliamo il suo colore proprio).
+        String rankRaw = showFaction ? rankTag(fs, senderUuid) : "";
+        String rankPart = rankRaw.isEmpty() ? "" : relColor + com.teolo.magixfactions.util.Colors.stripCodes(rankRaw);
+        fmt = fmt.replace("{rank}", rankPart)
+                .replace("{relcolor}", relColor)
                 .replace("{faction}", showFaction ? fs.getName() : "")
                 .replace("{name}", senderName);
         // Grado di chi scrive: per un giocatore OFFLINE PlaceholderAPI non risolve

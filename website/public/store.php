@@ -52,14 +52,23 @@ $mostraData = site_setting('store_sidebar_show_date', '1') === '1';
 $mostraNome = site_setting('store_sidebar_show_name', '1') === '1';
 $mostraRank = site_setting('store_sidebar_show_rank', '1') === '1';
 
-/** Nome del giocatore come va mostrato nella colonna: coi tag del grado, senza, o niente. */
+/**
+ * Nome del giocatore come va mostrato nella colonna: coi tag del grado, senza, o niente.
+ *
+ * The name is a link to the player's public page, and it uses the LIVE name (nome_vivo,
+ * from mc_ranks, kept current by the plugin at each join) instead of the one frozen in the
+ * order at purchase time: a player who renamed on minecraft.net keeps the same UUID, so the
+ * old order name would otherwise stay forever. Falls back to the order name when there is no
+ * rank row (e.g. someone who bought but never joined in game).
+ */
 $playerName = function (array $riga) use ($mostraNome, $mostraRank): string {
     if (!$mostraNome) {
         return '';
     }
-    return $mostraRank
-        ? player_name($riga, $riga['mc_username'])
-        : h((string) $riga['mc_username']);
+    $nomeVivo = (string) ($riga['nome_vivo'] ?? '');
+    $nome = $nomeVivo !== '' ? $nomeVivo : (string) $riga['mc_username'];
+    $inner = $mostraRank ? player_name($riga, $nome) : h($nome);
+    return '<a class="store-lato-nome-link" href="/utente?nome=' . h(rawurlencode($nome)) . '">' . $inner . '</a>';
 };
 $topAttivo = site_setting('store_sidebar_top_enabled', '1') === '1';
 $giorniTop = max(0, min(3650, (int) site_setting('store_sidebar_top_days', '0'))); // 0 = da sempre
@@ -75,7 +84,7 @@ if ($sidebarAttiva) {
 
     if ($quantiRecenti > 0) {
         $q = db()->prepare(
-            'SELECT o.mc_uuid, o.mc_username, o.package_name, o.price, o.currency, o.paid_at, us.last_seen, '
+            'SELECT o.mc_uuid, o.mc_username, r.mc_username AS nome_vivo, o.package_name, o.price, o.currency, o.paid_at, us.last_seen, '
             . RANK_SELECT_SQL
             . ' FROM store_orders o LEFT JOIN mc_ranks r ON r.mc_uuid = o.mc_uuid COLLATE utf8mb4_unicode_ci'
             . ' LEFT JOIN users us ON us.mc_uuid = o.mc_uuid COLLATE utf8mb4_unicode_ci'
@@ -94,7 +103,8 @@ if ($sidebarAttiva) {
         $q = db()->query(
             // I campi del grado sono uno solo per giocatore (mc_ranks ha l'uuid come chiave):
             // il MAX() serve solo a soddisfare il GROUP BY, non sceglie davvero fra piu' valori.
-            'SELECT o.mc_uuid, MAX(o.mc_username) AS mc_username, SUM(o.price) AS totale,
+            'SELECT o.mc_uuid, MAX(o.mc_username) AS mc_username, MAX(r.mc_username) AS nome_vivo,
+                    SUM(o.price) AS totale,
                     COUNT(*) AS acquisti, MAX(o.currency) AS currency,
                     MAX(r.group_name) AS group_name, MAX(r.group_display) AS group_display,
                     MAX(r.tag_text) AS tag_text, MAX(r.tag_color) AS tag_color,
@@ -157,10 +167,28 @@ require __DIR__ . '/../includes/header.php';
   <div class="<?= $colonnaDestra ? 'content-with-sidebar' : '' ?>">
   <div class="<?= $colonnaDestra ? 'content-main' : '' ?>">
 
-  <?php if (count($cats) > 1): ?>
+  <?php
+  // Group packages by category ($pkgs is already ordered by category position, then by the
+  // package sort order, so the grouping follows the manager's order).
+  $perCategoria = [];
+  foreach ($pkgs as $item) {
+      $perCategoria[(int) $item['category_id']][] = $item;
+  }
+  // Category names for the section headings (0 = uncategorised).
+  $nomiCat = [0 => 'Altro'];
+  foreach ($cats as $c) {
+      $nomiCat[(int) $c['id']] = $c['name'];
+  }
+  // No "all" button: the top buttons act as tabs — clicking one shows that category's
+  // section and hides the others (they list only categories that have packages). The first
+  // one is the default shown on load.
+  $catConPacchetti = array_values(array_filter($cats, fn($c) => isset($perCategoria[(int) $c['id']])));
+  $defaultCat = $catConPacchetti ? (int) $catConPacchetti[0]['id'] : 0;
+  ?>
+
+  <?php if (count($catConPacchetti) > 1): ?>
     <div class="store-filtri" id="storeFiltri">
-      <button type="button" class="store-filtro is-active" data-cat="tutti">Tutto</button>
-      <?php foreach ($cats as $c): ?>
+      <?php foreach ($catConPacchetti as $c): ?>
         <?php
           // Colori propri del filtro: sovrascrivono le variabili globali solo su questo pulsante
           $stileFiltro = '';
@@ -175,49 +203,24 @@ require __DIR__ . '/../includes/header.php';
                   . ';--store-filtro-bordo:' . hex_to_rgba($testo, 0.18);
           }
         ?>
-        <button type="button" class="store-filtro" data-cat="<?= (int) $c['id'] ?>"
+        <button type="button" class="store-filtro<?= (int) $c['id'] === $defaultCat ? ' is-active' : '' ?>" data-cat="<?= (int) $c['id'] ?>"
                 <?= $stileFiltro !== '' ? 'style="' . ltrim($stileFiltro, ';') . '"' : '' ?>><?= h($c['name']) ?></button>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
 
-  <?php /* Niente card "pacchetto in evidenza" qui: la promozione e' il banner in cima,
-           uguale a quello della home. Il pacchetto resta comunque nella riga della sua
-           categoria, come tutti gli altri. */ ?>
-
-  <?php
-  // Una riga per categoria: si vedono due pacchetti alla volta e gli altri si raggiungono
-  // trascinando la riga col mouse (o scorrendo, da telefono). $pkgs e' gia' ordinato per
-  // categoria, quindi il raggruppamento mantiene l'ordine del gestionale.
-  $perCategoria = [];
-  foreach ($pkgs as $item) {
-      $perCategoria[(int) $item['category_id']][] = $item;
-  }
-  ?>
-  <div class="store-griglia" id="storeGriglia">
+  <?php $storeCols = max(2, min(6, (int) site_setting('store_cols', '3'))); ?>
+  <div class="store-griglia" id="storeGriglia" style="--store-cols:<?= $storeCols ?>">
     <?php foreach ($perCategoria as $catId => $items): ?>
-      <?php $altri = count($items) > 2; ?>
-      <section class="store-fila-blocco<?= $altri ? ' ha-altri' : '' ?>" data-cat="<?= (int) $catId ?>">
-        <?php if ($altri): ?>
-          <?php /* Frecce e sfumatura esistono solo dove c'e' davvero altro da vedere: senza,
-                   il terzo pacchetto della riga non si sospetta nemmeno. */ ?>
-          <button type="button" class="store-freccia indietro" aria-label="Pacchetti precedenti">‹</button>
-          <button type="button" class="store-freccia avanti" aria-label="Altri pacchetti">›</button>
-        <?php endif; ?>
-        <div class="store-fila<?= $altri ? ' ha-altri' : '' ?>">
+      <?php /* Each category is its own section (heading + a wrapping 3-per-row grid). Only one
+               is shown at a time: clicking a button swaps which category is visible (the others
+               get .is-nascosta). The first category shows on load. */ ?>
+      <section class="store-fila-blocco<?= (int) $catId === $defaultCat ? '' : ' is-nascosta' ?>" id="store-cat-<?= (int) $catId ?>" data-cat="<?= (int) $catId ?>">
+        <h2 class="store-cat-titolo"><?= h($nomiCat[$catId] ?? 'Altro') ?></h2>
+        <div class="store-fila">
           <?php foreach ($items as $item) {
               store_card($item);
           } ?>
-        </div>
-        <?php /* Barretta di scorrimento della riga: dice a che punto si e' e si puo' trascinare.
-                 Sta nell'HTML sempre; e' store.js a nasconderla quando la riga ci sta tutta
-                 nello schermo e non c'e' niente da scorrere. */ ?>
-        <div class="store-barra" hidden>
-          <div class="store-barra-pista" role="scrollbar" aria-orientation="horizontal"
-               aria-label="Scorri i pacchetti di questa categoria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
-               tabindex="0">
-            <span class="store-barra-pollice"></span>
-          </div>
         </div>
       </section>
     <?php endforeach; ?>

@@ -9,8 +9,18 @@ import java.util.regex.Pattern;
 public final class Colors {
 
     private static final Pattern HEX = Pattern.compile("&#([0-9a-fA-F]{6})");
+    /** Codici colore/formato &: esadecimali &#RRGGBB e singoli &0-&f/&k-&o/&r. */
+    private static final Pattern CODES = Pattern.compile("&#[0-9a-fA-F]{6}|&[0-9a-fk-orA-FK-OR]");
 
     private Colors() {}
+
+    /**
+     * Toglie tutti i codici colore/formato {@code &} (e {@code &#RRGGBB}) lasciando solo il testo.
+     * Usato per i tag dei gradi quando il colore lo deve dare la RELAZIONE, non il tag stesso.
+     */
+    public static String stripCodes(String s) {
+        return s == null ? "" : CODES.matcher(s).replaceAll("");
+    }
 
     public static String translate(String s) {
         if (s == null) return "";

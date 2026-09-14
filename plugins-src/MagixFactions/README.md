@@ -399,7 +399,7 @@ tutorial si aggiornano **da soli** al riavvio successivo: non possono più racco
 - **La tabella «Impostazioni» della guida per lo staff elenca TUTTE le chiavi del config**, non piu' un
   gruppetto scelto a mano: chiave, valore in uso adesso e spiegazione presa dal **commento della chiave
   nel config**. Una chiave nuova e' documentata dal momento in cui esiste, senza toccare il codice.
-- Il controllo `python plugins-src/controlla-config.py` ha una regola in piu' (**[6]**): rilegge il
+- Il controllo `python plugins-src/check_config.py` ha una regola in piu' (**[6]**): rilegge il
   tutorial dei giocatori e segnala ogni **numero scritto a mano** che coincide con un valore del config
   — cosi' non si torna indietro. Ignora i numeri delle schermate di esempio e dei comandi di esempio,
   che numeri di config non sono.
@@ -443,7 +443,7 @@ Configurazione in `config.yml` → `map`:
 - `map.colors.own / ally / enemy` — colori `border`/`fill` per relazione.
 - `map.home-marker.enabled` / `.color` — simbolo di casa al **centro del chunk home** della propria fazione (se impostata e nello stesso mondo). Mostrato sia qui che nella minimap HUD (stesso motore di disegno condiviso). Default: attivo, colore oro (`&6`).
 
-**Marcatore giocatore (freccia nitida su ENTRAMBE le mappe).** Ogni giocatore è una **freccia** che punta verso dove guarda, colorata per relazione con chi tiene la mappa: **bianca = tu**, **verde = compagno di fazione**, **blu = alleato**, **rossa = nemico** (stile Cartographer). La freccia **resta nitida a qualsiasi angolo** (a 30/45° non si sgrana) perché è disegnata a risoluzione schermo. Per un limite tecnico di Minecraft è resa in due modi diversi ma con lo stesso aspetto: sulla **mappa-item** in mano sono i **cursori nativi** del client; sulla **minimap HUD** (pixel spinti via pacchetto+shader, dove i cursori nativi non si agganciano) le stesse frecce le ridisegna lo **shader** (fino a 6: i giocatori più vicini + sempre te stesso al centro). Il **nome** sotto la freccia si attiva con `map.marker.personal-nametag` / `map.marker.other-nametag` (sull'item è un caption nativo, sulla minimap è cotto nei pixel a `map.marker.name-size`).
+**Marcatore giocatore (freccia nitida su ENTRAMBE le mappe).** Ogni giocatore è una **freccia** che punta verso dove guarda, colorata per relazione con chi tiene la mappa: **bianca = tu**, **verde = compagno di fazione**, **blu = alleato**, **rossa = nemico** (stile Cartographer). La freccia **resta nitida a qualsiasi angolo** (a 30/45° non si sgrana) perché è disegnata a risoluzione schermo. Per un limite tecnico di Minecraft è resa in due modi diversi ma con lo stesso aspetto: sulla **mappa-item** in mano sono i **cursori nativi** del client; sulla **minimap HUD** (pixel spinti via pacchetto+shader, dove i cursori nativi non si agganciano) le stesse frecce le ridisegna lo **shader** (fino a 6: i giocatori più vicini + sempre te stesso al centro). **Nessun nome** viene mostrato: sulle mappe compare solo la freccia indicatrice.
 
 > **La mappa è personale e unica:** `/f map` **sostituisce sempre** qualunque Mappa Fazioni tu abbia già in
 > inventario (non se ne può avere più di una) e viene taggata con il **tuo UUID**: se la regali o la fai tenere a

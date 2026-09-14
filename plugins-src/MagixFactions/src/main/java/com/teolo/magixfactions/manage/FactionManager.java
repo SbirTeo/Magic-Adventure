@@ -76,6 +76,39 @@ public final class FactionManager {
 
     public Ranks ranks() { return ranks; }
 
+    /**
+     * Riscrive la tabella {@code faction_ranks} col contenuto attuale dei gradi (config): id, tag
+     * (col codice colore &amp;), nome e ordine (0 = piu' basso, leader = sopra tutti). Serve al SITO
+     * per mostrare il tag del grado in chat senza duplicare i valori del config lato web. Da chiamare
+     * dopo ogni {@code ranks.load(...)} (avvio e {@code /f reload}). Scrittura async come le altre.
+     */
+    public void syncRanksToDb() {
+        write("syncRanks", c -> {
+            try (Statement st = c.createStatement()) {
+                st.executeUpdate("DELETE FROM faction_ranks");
+            }
+            try (PreparedStatement ps = c.prepareStatement(
+                    "INSERT INTO faction_ranks (rank_id, tag, rank_name, ord) VALUES (?, ?, ?, ?)")) {
+                int n = ranks.size();
+                for (int i = 0; i < n; i++) {
+                    Rank r = ranks.byIndex(i);
+                    bindRank(ps, r, i);
+                    ps.addBatch();
+                }
+                bindRank(ps, ranks.leader(), n); // il leader sta sopra tutti
+                ps.addBatch();
+                ps.executeBatch();
+            }
+        });
+    }
+
+    private static void bindRank(PreparedStatement ps, Rank r, int ord) throws SQLException {
+        ps.setString(1, r.getId());
+        ps.setString(2, r.getTag() == null ? "" : r.getTag());
+        ps.setString(3, r.getName() == null ? "" : r.getName());
+        ps.setInt(4, ord);
+    }
+
     public void setClaimManager(ClaimManager cm) { this.claimManager = cm; }
 
     public void setDecayManager(DecayManager dm) { this.decayManager = dm; }

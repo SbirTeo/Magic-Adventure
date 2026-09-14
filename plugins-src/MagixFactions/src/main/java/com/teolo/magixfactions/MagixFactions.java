@@ -83,6 +83,8 @@ public final class MagixFactions extends JavaPlugin {
         } catch (Exception e) {
             getLogger().severe("Errore caricamento fazioni: " + e.getMessage());
         }
+        // Specchia i gradi (config) nella tabella faction_ranks per il sito (tag in chat).
+        factionManager.syncRanksToDb();
 
         // Modulo 3: Potenza + Territori
         powerManager = new PowerManager(this, database, dbExecutor);
@@ -239,9 +241,55 @@ public final class MagixFactions extends JavaPlugin {
             factionManager.setDecayManager(decay); // timer parte esattamente al cambio membri
             long ov = 20L * decay.warnIntervalSeconds();
             Bukkit.getScheduler().runTaskTimer(this, decay::tick, ov, ov);
+            // Reazione ISTANTANEA al cambio di permessi (via evento LuckPerms): quando a un giocatore si
+            // toglie/abbassa magixfactions.power.powermax.<n>, riallinea subito il suo tetto e rivaluta
+            // l'overclaim della sua fazione avvisando all'istante, senza aspettare i giri periodici
+            // (tickOnline ~power.tick-seconds, tickOffline ~power.offline-refresh-minutes, decay.tick
+            // ~decay.warn-interval-seconds). Vale sia per gli ONLINE (permessi dal Player) sia per gli
+            // OFFLINE (permessi letti via LuckPerms in async: entrano comunque nella somma di fazione). Un
+            // debounce per-giocatore evita riallineamenti/avvisi doppi quando LuckPerms ricalcola piu'
+            // volte di fila, e l'avviso scatta SOLO se il tetto e' davvero cambiato (niente avvisi spuri
+            // da ricalcoli non legati al powermax).
+            final java.util.Set<java.util.UUID> permPending = java.util.concurrent.ConcurrentHashMap.newKeySet();
+            luckPerms.onUserRecalculate(uuid -> {
+                if (!permPending.add(uuid)) return; // gia' in coda: un solo riallineo per raffica
+                Bukkit.getScheduler().runTask(this, () -> {
+                    org.bukkit.entity.Player p = Bukkit.getPlayer(uuid);
+                    if (p != null) {
+                        // ONLINE: permessi leggibili dal Player, tutto sul main thread.
+                        permPending.remove(uuid);
+                        if (powerManager.syncMaxPower(p, powerManager.vantaggi(p).maxPower)) {
+                            com.teolo.magixfactions.model.Faction f = factionManager.getFaction(uuid);
+                            if (f != null) decay.checkAndWarn(f);
+                        }
+                        return;
+                    }
+                    // OFFLINE: i permessi li sa solo LuckPerms e leggerli tocca il suo storage -> ASYNC,
+                    // poi torna sul main per applicare tetto e (se cambiato) rivalutare l'overclaim.
+                    Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                        java.util.Map<String, Boolean> perms = luckPerms.permissions(uuid);
+                        Bukkit.getScheduler().runTask(this, () -> {
+                            permPending.remove(uuid);
+                            if (perms == null) return;                     // lettura fallita: ci pensa tickOffline
+                            if (Bukkit.getPlayer(uuid) != null) return;    // rientrato nel frattempo: ci pensa applyJoin
+                            if (powerManager.syncMaxPowerOffline(uuid, powerManager.maxPowerFrom(perms))) {
+                                com.teolo.magixfactions.model.Faction f = factionManager.getFaction(uuid);
+                                if (f != null) decay.checkAndWarn(f);
+                            }
+                        });
+                    });
+                });
+            });
         } catch (Exception e) {
             getLogger().severe("Errore inizializzazione decadimento (decay): " + e.getMessage());
         }
+
+        // Confini a particelle (/f borders): interruttore PER-GIOCATORE, di serie spento. Un giro
+        // periodico disegna le particelle verdi lungo i bordi dei territori vicini a chi l'ha acceso.
+        com.teolo.magixfactions.border.BorderService borders =
+                new com.teolo.magixfactions.border.BorderService(this, powerManager, claimManager, factionManager);
+        long bordersInterval = borders.intervalTicks();
+        Bukkit.getScheduler().runTaskTimer(this, borders::tick, bordersInterval, bordersInterval);
 
         getLogger().info("MagixFactions abilitato.");
     }
@@ -428,7 +476,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "decadimento** — il che non lo rende intoccabile: vedi qui sotto.",
                         "**La home si può conquistare, e in quel caso si perde.** Il chunk della home è protetto "
                                 + "solo dal decadimento: per l'overclaim vale come qualunque altro chunk di bordo. "
-                                + "Quando un nemico se lo prende, dalla v0.54.0 la home viene **azzerata** e la fazione "
+                                + "Quando un nemico se lo prende, dalla v0.56.0 la home viene **azzerata** e la fazione "
                                 + "riceve l'avviso: /f home risponde che non c'è nessuna casa, finché non la rimettono "
                                 + "con /f sethome. Prima restava impostata e /f home continuava a teletrasportare i "
                                 + "difensori dentro la base appena presa — uno alla volta, in un punto che il nemico "

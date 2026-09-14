@@ -517,6 +517,34 @@ const FACTION_REL_COLORS = [
 ];
 
 /**
+ * Specchio dei gradi di fazione (tabella `factions_magixfactions.faction_ranks`, riscritta dal
+ * plugin da config.yml — vedi FactionManager.syncRanksToDb): `rank_id` minuscolo =>
+ * ['tag' => '&6**', 'name' => 'Leader']. E' l'UNICA fonte lato sito (niente doppia config).
+ * Letta una volta per richiesta. Se la tabella non esiste ancora (plugin non aggiornato) torna
+ * [] e chi chiama fa da fallback: la chat non si rompe durante un deploy.
+ */
+function faction_ranks_map(): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $cache = [];
+    try {
+        $rows = db()->query('SELECT rank_id, tag, rank_name FROM factions_magixfactions.faction_ranks')
+            ->fetchAll();
+        foreach ($rows as $r) {
+            $cache[strtolower((string) $r['rank_id'])] = [
+                'tag'  => (string) ($r['tag'] ?? ''),
+                'name' => (string) ($r['rank_name'] ?? ''),
+            ];
+        }
+    } catch (PDOException $e) {
+        $cache = []; // tabella non ancora creata dal plugin: si usa il fallback
+    }
+    return $cache;
+}
+
+/**
  * Relazione di chi LEGGE verso il mittente, stessa logica di FactionManager.relationColor:
  * mittente senza fazione = none, lettore senza fazione = enemy, stessa fazione = member,
  * altrimenti alleato solo se l'alleanza e' reciproca.
@@ -590,8 +618,21 @@ function chat_sender_html(array $riga, string $relazione): string {
         // Senza fazione: solo i tag del grado + nome (come public-format-no-faction in gioco).
         return player_tag($riga) . $nome;
     }
-    // Ordine come in gioco: [Fazione] (colore relazione) -> tag del grado -> nome (colore del grado).
-    return '<span class="chat-fac">[<span class="colore-grado" style="' . rank_color_style($coloreRel) . '">'
+    // Tag del GRADO di fazione (es. ** per il Leader): come in gioco va DENTRO le parentesi,
+    // davanti al nome fazione -> [**Fazione]. Il tag arriva da faction_ranks_map() (specchio del
+    // config nel DB): un posto solo. Il leader ha faction_members.rank = 'leader'.
+    // COLORE: come in gioco, il tag prende il colore della RELAZIONE (verde/magenta/rosso), non il
+    // suo colore proprio del config: togliamo i codici & dal tag e usiamo $coloreRel.
+    $rankId = strtolower(trim((string) ($riga['faction_rank'] ?? '')));
+    $mappaGradi = faction_ranks_map();
+    $tagRaw = $rankId !== '' && isset($mappaGradi[$rankId]) ? $mappaGradi[$rankId]['tag'] : '';
+    $tagText = $tagRaw !== '' ? preg_replace('/&#[0-9a-f]{6}|&[0-9a-fk-or]/i', '', $tagRaw) : '';
+    $tagGrado = $tagText !== '' && $tagText !== null
+        ? '<span class="colore-grado" style="' . rank_color_style($coloreRel) . '">' . h($tagText) . '</span>'
+        : '';
+    // Ordine come in gioco: [{rank}Fazione] (fazione col colore relazione) -> tag del grado
+    // server (LuckPerms) -> nome (colore del grado).
+    return '<span class="chat-fac">[' . $tagGrado . '<span class="colore-grado" style="' . rank_color_style($coloreRel) . '">'
             . h($fazione) . '</span>]</span> '
         . player_tag($riga)
         . $nome;
@@ -857,6 +898,25 @@ function align_mc_names(): void {
     } catch (PDOException $e) {
         // tabella o colonna mancante: i nomi restano come sono
     }
+}
+
+/**
+ * Se il database ha le colonne dell'inquadratura dei pacchetti (image_position). Serve a non
+ * rompere il salvataggio dello store finche' la migrazione 2026-09-14-store-inquadratura.sql
+ * non e' stata lanciata: il rendering usa gia' i valori di default, e il gestionale scrive/
+ * mostra l'inquadratura solo quando le colonne ci sono davvero.
+ */
+function store_ha_inquadratura(): bool {
+    static $ok = null;
+    if ($ok !== null) {
+        return $ok;
+    }
+    try {
+        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'image_position'")->fetch();
+    } catch (Throwable $e) {
+        $ok = false;
+    }
+    return $ok;
 }
 
 /**

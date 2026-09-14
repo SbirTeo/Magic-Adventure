@@ -246,6 +246,26 @@ conviene tenere `mirror.radius` basso.
 - Se un'entita' viene uccisa (`/kill`, creativa, comandi di altri plugin) viene ricreata al tick successivo,
   senza drop ne' esperienza.
 
+### Quando un altro plugin blocca la nascita
+
+La nascita di un'entita' e' un evento **annullabile**: un plugin di protezione puo' dire di no. In quel
+caso `World#spawn` restituisce comunque l'oggetto, ma nel mondo non ci e' mai entrato. Il plugin lo
+verifica (`isInWorld()`), butta l'entita' fantasma e lo dice:
+
+- in console, una volta per entita', con la causa tipica e come sistemarla;
+- in chat a chi ha lanciato il comando (`spawn-refused`);
+- in `/mentities list` e `/mentities info` con il pallino **giallo**.
+
+La definizione resta salvata in `entities.yml`: tolta la protezione, il controllo periodico ricrea
+l'entita' da sola (o subito con `/mentities respawn <nome>`).
+
+**Caso tipico — WorldGuard.** Con il flag `mob-spawning: deny` su una regione (spesso `__global__`
+del mondo dello spawn) e `mobs.block-plugin-spawning: true` nel suo `config.yml`, WorldGuard annulla
+anche le nascite chieste dai plugin. Si mette `block-plugin-spawning: false` e si fa `/wg reload`: i
+mob naturali restano bloccati dal flag, le entita' di MagixEntities passano. Le entita' gia' esistenti
+non se ne accorgono perche' vivono nel salvataggio del mondo e non vengono ricreate — per questo il
+problema si vede solo creandone di nuove.
+
 ## Protezioni (`config.yml`, sezione `protezioni`)
 
 `no-target` (i mob ostili le ignorano), `no-combust` (non bruciano al sole), `no-transform`

@@ -1,0 +1,202 @@
+name: Aggiorna una chiave di config plugin sul VPS
+
+# Deploy MIRATO di UNA singola chiave di un file di config di un plugin (es.
+# messages.yml / config.yml) sul VPS, SENZA sovrascrivere il resto del file.
+# Serve perche' l'auto-deploy dei plugin (deploy-plugin.yml) copia SOLO il jar:
+# i file di config gia' presenti nella cartella dati del plugin sul VPS NON
+# vengono toccati (e Messages.reload()/getConfig usano quelli, il jar e' solo
+# il default per le chiavi mancanti). Quindi cambiare un valore gia' esistente
+# nel repo non basta a vederlo live: va cambiato anche il file sul VPS.
+#
+# Grazie a questo workflow il passo VPS e' eseguibile da QUALSIASI sessione,
+# cloud inclusa (la sessione non ha SSH, ma la Action si': usa gli stessi
+# secret VPS_HOST / VPS_USER / VPS_SSH_KEY del deploy sito/plugin).
+#
+# La modifica e' MIRATA: cambia SOLO la riga della chiave indicata, lascia
+# intatto tutto il resto — commenti compresi — e fa un backup timestampato del
+# file sul VPS. Poi (opzionale) ricarica il plugin senza riavviare (screen `mc`).
+#
+# CHIAVI ANNIDATE: `key` puo' essere un percorso con punti (es. `leader.tag`):
+# la foglia viene cercata SOLO dentro il blocco del genitore indicato, cosi' si
+# puo' colpire `leader.tag` senza toccare i vari `tag:` dei ranks che vengono
+# prima. Senza punti si comporta come prima (prima occorrenza della foglia).
+#
+# MODALITA' (`mode`):
+#   - set (default): sostituisce tutto il valore dopo `key:` con `value`.
+#   - insert-after:  lascia il valore com'e' e ci INSERISCE `value` subito dopo
+#                    la prima occorrenza di `marker`. Idempotente: se `value` e'
+#                    gia' presente nel valore, non fa nulla. Utile per aggiungere
+#                    un token (es. {rank}) dentro un formato senza riscriverlo.
+#
+# Solo manuale (workflow_dispatch): non parte da solo su push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "Cartella del plugin (es. MagixFactions)"
+        required: true
+      file:
+        description: "File di config nella cartella dati del plugin"
+        required: true
+        default: "messages.yml"
+      key:
+        description: "Chiave da cambiare; foglia (es. ally-prefix) o percorso annidato (es. leader.tag)"
+        required: true
+      value:
+        description: "mode=set: nuovo valore (tutto cio' che segue i due punti, virgolette comprese). mode=insert-after: il testo da inserire (es. {rank})"
+        required: true
+      mode:
+        description: "set (sostituisci il valore) | insert-after (inserisci value dopo marker)"
+        required: false
+        default: "set"
+      marker:
+        description: "Solo per mode=insert-after: dopo quale testo inserire value (es. [ )"
+        required: false
+        default: ""
+      reload_cmd:
+        description: "Comando di reload da mandare in console (vuoto = nessun reload, la config parte al prossimo riavvio)"
+        required: false
+        default: "mf reload"
+
+concurrency:
+  group: deploy-plugin-config
+  cancel-in-progress: false
+
+jobs:
+  patch-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Aggiorna la chiave e ricarica
+        if: steps.check.outputs.ok == 'true'
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          IN_PLUGIN: ${{ inputs.plugin }}
+          IN_FILE: ${{ inputs.file }}
+          IN_KEY: ${{ inputs.key }}
+          IN_VALUE: ${{ inputs.value }}
+          IN_MODE: ${{ inputs.mode }}
+          IN_MARKER: ${{ inputs.marker }}
+          IN_RELOAD: ${{ inputs.reload_cmd }}
+        run: |
+          set -euo pipefail
+          KEY=~/.ssh/deploy_key
+          SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
+
+          REMOTE_PATH="/home/ubuntu/magicadventure/plugins/$IN_PLUGIN/$IN_FILE"
+          # base64 per passare chiave/valore/marker senza problemi di quoting (spazi, &, », ...).
+          KEY_B64="$(printf '%s' "$IN_KEY" | base64 -w0)"
+          VAL_B64="$(printf '%s' "$IN_VALUE" | base64 -w0)"
+          MARKER_B64="$(printf '%s' "${IN_MARKER:-}" | base64 -w0)"
+          MODE="${IN_MODE:-set}"
+
+          # Script Python che modifica IN-PLACE solo la riga della chiave, preservando
+          # commenti e resto del file. Lavora sul testo grezzo (niente reparse YAML, che
+          # cancellerebbe i commenti). Lo copiamo sul VPS ed eseguiamo li'.
+          cat > /tmp/patch_key.py <<'PY'
+          import os, re, base64, shutil, time, sys
+          path   = os.environ['REMOTE_PATH']
+          keyraw = base64.b64decode(os.environ['KEY_B64']).decode('utf-8')
+          val    = base64.b64decode(os.environ['VAL_B64']).decode('utf-8')
+          marker = base64.b64decode(os.environ.get('MARKER_B64', '') or '').decode('utf-8')
+          mode   = os.environ.get('MODE', 'set')
+
+          if not os.path.exists(path):
+              print('ERRORE: file inesistente sul VPS:', path); sys.exit(2)
+          with open(path, encoding='utf-8') as f:
+              lines = f.readlines()
+
+          def indent_of(s):
+              return len(s) - len(s.lstrip(' \t'))
+
+          segments = keyraw.split('.')
+          leaf = segments[-1]
+          parents = segments[:-1]
+
+          # Restringi la ricerca al blocco dei parent (se il percorso e' annidato).
+          start, end, parent_indent = 0, len(lines), -1
+          for p in parents:
+              pat = re.compile(r'^[ \t]*' + re.escape(p) + r':([ \t].*)?$')
+              found = None
+              for i in range(start, end):
+                  if lines[i].strip() and pat.match(lines[i]) and indent_of(lines[i]) > parent_indent:
+                      found = i; break
+              if found is None:
+                  print('ERRORE: parent non trovato:', p); sys.exit(3)
+              parent_indent = indent_of(lines[found])
+              start = found + 1
+              ne = end
+              for j in range(found + 1, end):
+                  if lines[j].strip() and indent_of(lines[j]) <= parent_indent:
+                      ne = j; break
+              end = ne
+
+          leaf_pat = re.compile(r'^([ \t]*' + re.escape(leaf) + r':[ \t]*)(.*)$')
+          target = None
+          for i in range(start, end):
+              m = leaf_pat.match(lines[i])
+              if m and (not parents or indent_of(lines[i]) > parent_indent):
+                  target, head, cur = i, m.group(1), m.group(2); break
+          if target is None:
+              print('ERRORE: chiave non trovata:', keyraw); sys.exit(4)
+
+          if mode == 'insert-after':
+              if val in cur:
+                  print('NO-OP: "%s" gia\' presente in %s -> %s' % (val, keyraw, cur.strip())); sys.exit(0)
+              if not marker or marker not in cur:
+                  print('ERRORE: marker non trovato nel valore:', marker); sys.exit(5)
+              idx = cur.index(marker) + len(marker)
+              newline = head + cur[:idx] + val + cur[idx:]
+          else:
+              newline = head + val
+
+          bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+          shutil.copy2(path, bak)
+          lines[target] = newline.rstrip('\n') + '\n'
+          with open(path, 'w', encoding='utf-8') as f:
+              f.writelines(lines)
+          print('OK ->', lines[target].strip())
+          print('Backup:', bak)
+          PY
+
+          scp -i "$KEY" -o StrictHostKeyChecking=yes /tmp/patch_key.py "$DEST:/tmp/patch_key.py"
+          $SSH "REMOTE_PATH='$REMOTE_PATH' KEY_B64='$KEY_B64' VAL_B64='$VAL_B64' MARKER_B64='$MARKER_B64' MODE='$MODE' python3 /tmp/patch_key.py; rm -f /tmp/patch_key.py"
+
+          # Reload opzionale, senza riavviare, se il server e' su (screen `mc`).
+          # Il comando di reload viaggia in base64 fino al VPS per evitare problemi di quoting.
+          if [ -n "${IN_RELOAD:-}" ]; then
+            RELOAD_B64="$(printf '%s' "$IN_RELOAD" | base64 -w0)"
+            $SSH "RELOAD_B64='$RELOAD_B64' bash -s" <<'REMOTE'
+          set -e
+          CMD="$(printf '%s' "$RELOAD_B64" | base64 -d)"
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            screen -S mc -p 0 -X stuff "$(printf '%s\r' "$CMD")"
+            echo "Reload inviato: $CMD"
+          else
+            echo "Server non in esecuzione: la config verra caricata al prossimo avvio."
+          fi
+          REMOTE
+          fi
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

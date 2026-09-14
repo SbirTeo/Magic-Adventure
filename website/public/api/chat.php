@@ -91,7 +91,7 @@ if ($metodo === 'GET') {
     // La JOIN con users serve solo alla presenza sul sito (pallino accanto al nome): chi
     // scrive dal gioco puo' non avere un account sul sito, e allora last_seen resta NULL.
     $sql = 'SELECT c.id, c.source, c.mc_uuid, c.mc_username, c.message, c.created_at, '
-        . RANK_SELECT_SQL . ', f.id AS faction_id, f.name AS faction_name, us.last_seen'
+        . RANK_SELECT_SQL . ', f.id AS faction_id, f.name AS faction_name, fm.rank AS faction_rank, us.last_seen'
         . ' FROM web_chat c'
         . ' LEFT JOIN users us ON us.mc_uuid = c.mc_uuid COLLATE utf8mb4_unicode_ci'
         . ' LEFT JOIN mc_ranks r ON r.mc_uuid = c.mc_uuid COLLATE utf8mb4_unicode_ci'

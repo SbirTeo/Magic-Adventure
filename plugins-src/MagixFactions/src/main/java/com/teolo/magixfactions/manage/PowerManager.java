@@ -45,6 +45,7 @@ public final class PowerManager {
         int mapRows;   // colonna storica 'map_rows' riusata come ZOOM mappa: 0=default config, 1..5=closest..farthest
         int progress;      // avanzamento verso il prossimo punto di Potenza, in "secondi x percentuale"
         boolean minimapHidden; // il giocatore ha SPENTO la minimap HUD con /f minimap off (colonna minimap_hidden)
+        boolean bordersEnabled; // il giocatore ha ACCESO i confini a particelle con /f borders (colonna borders_enabled)
         PP(String name, int power, int maxPower, long lastSeen, int mapRows, int progress) {
             this.name = name; this.power = power; this.maxPower = maxPower; this.lastSeen = lastSeen;
             this.mapRows = mapRows; this.progress = progress;
@@ -203,7 +204,7 @@ public final class PowerManager {
     public void loadAll() throws SQLException {
         cache.clear();
         try (Connection c = db.getConnection(); Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden FROM players")) {
+             ResultSet rs = st.executeQuery("SELECT uuid, name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden, borders_enabled FROM players")) {
             while (rs.next()) {
                 UUID u = UUID.fromString(rs.getString("uuid"));
                 PP pp = new PP(rs.getString("name"),
@@ -217,6 +218,7 @@ public final class PowerManager {
                 long ll = rs.getLong("last_login");
                 pp.lastLogin = ll > 0 ? ll : pp.lastSeen;
                 pp.minimapHidden = rs.getInt("minimap_hidden") != 0;
+                pp.bordersEnabled = rs.getInt("borders_enabled") != 0;
                 cache.put(u, pp);
             }
         }
@@ -328,13 +330,40 @@ public final class PowerManager {
      * (il maxPower di fazione e' la somma di quello di TUTTI i membri, non solo di chi e' collegato, e i
      * permessi di un giocatore scollegato non sono interrogabili): la colonna e' quindi la COPIA
      * dell'ultimo valore visto, aggiornata all'ingresso e a ogni giro di {@link #tickOnline()}.
+     *
+     * @return {@code true} se il tetto e' effettivamente CAMBIATO (cosi' chi chiama al volo al cambio
+     *         permesso puo' rivalutare l'overclaim solo quando serve), {@code false} se era gia' quello.
      */
-    public void syncMaxPower(Player p, int eff) {
+    public boolean syncMaxPower(Player p, int eff) {
         PP pp = ensure(p.getUniqueId());
-        if (pp.maxPower == eff) return;
+        if (pp.maxPower == eff) return false;
         pp.maxPower = eff;
         clamp(pp);
         save(p.getUniqueId());
+        return true;
+    }
+
+    /**
+     * Come {@link #syncMaxPower} ma per un giocatore <b>OFFLINE</b> (solo UUID, nessun {@link Player}):
+     * la usa la reazione istantanea al cambio permesso di chi non e' collegato. Aggiorna SOLO chi ha gia'
+     * una riga in cache (un account mai entrato non contribuisce a nessuna fazione); il tetto resta scritto
+     * nel DB perche' entra nella somma del maxpower di fazione anche da offline.
+     *
+     * @return {@code true} se il tetto e' effettivamente CAMBIATO, {@code false} altrimenti.
+     */
+    public boolean syncMaxPowerOffline(UUID u, int eff) {
+        PP pp = cache.get(u);
+        if (pp == null || pp.maxPower == eff) return false;
+        pp.maxPower = eff;
+        clamp(pp);
+        save(u);
+        return true;
+    }
+
+    /** Il tetto (maxPower) imposto da una mappa di permessi letta via LuckPerms per un giocatore OFFLINE.
+     *  Incapsula la stessa risoluzione usata dal giro periodico {@link #tickOffline()}. */
+    public int maxPowerFrom(Map<String, Boolean> permissions) {
+        return vantaggi(permissions).maxPower;
     }
 
     /** Zoom mappa salvato (colonna map_rows) come intero = round(bpp*100); 0 = default di config. */
@@ -356,6 +385,19 @@ public final class PowerManager {
     /** Il giocatore ha SPENTO la minimap con /f minimap off (preferenza personale, colonna minimap_hidden). */
     public boolean isMinimapHidden(UUID u) { PP pp = cache.get(u); return pp != null && pp.minimapHidden; }
 
+    /** Il giocatore ha ACCESO i confini a particelle con /f borders (preferenza personale, colonna
+     *  borders_enabled). Di serie spento: la feature esiste ma va abilitata da ogni giocatore. */
+    public boolean isBordersEnabled(UUID u) { PP pp = cache.get(u); return pp != null && pp.bordersEnabled; }
+
+    /** Accende/spegne i confini a particelle del giocatore (comando /f borders). Salva la preferenza; il
+     *  disegno vero e proprio lo fa il giro periodico di {@code BorderService}, che legge questo flag. */
+    public void setBordersEnabled(Player p, boolean enabled) {
+        PP pp = ensure(p.getUniqueId());
+        if (pp.bordersEnabled == enabled) return;
+        pp.bordersEnabled = enabled;
+        save(p.getUniqueId());
+    }
+
     /** La minimap HUD va mostrata a questo giocatore ADESSO: ha il permesso E non l'ha spenta lui. Lo usano
      *  join e riconciliazione periodica ({@link #tickOnline}) per montare/smontare l'HUD. */
     public boolean canUseMinimap(Player p) { return hasMinimapPermission(p) && !isMinimapHidden(p.getUniqueId()); }
@@ -371,7 +413,10 @@ public final class PowerManager {
         pp.minimapHidden = hidden;
         save(p.getUniqueId());
         if (minimapManager == null || !minimapManager.isAvailable()) return;
-        if (canUseMinimap(p)) reattachMinimap(p);
+        // Accensione da COMANDO (/f minimap on): attiva SUBITO, senza i ~3s di ritardo del login — a
+        // partita in corso i chunk sono gia' caricati, il ritardo servirebbe solo a far sembrare il
+        // comando "lento". Lo spegnimento e' immediato per definizione.
+        if (canUseMinimap(p)) reattachMinimap(p, 0L);
         else if (minimapManager.isActive(p)) minimapManager.deactivate(p);
     }
 
@@ -382,25 +427,35 @@ public final class PowerManager {
      * (stesso principio del remount dopo teleport in {@code MinimapListener}). Non fa nulla se il
      * giocatore non ha il permesso o se ProtocolLib non e' disponibile.
      */
-    public void reattachMinimap(Player p) {
+    public void reattachMinimap(Player p) { reattachMinimap(p, 60L); }
+
+    /**
+     * Come {@link #reattachMinimap(Player)} ma con ritardo scegliibile. {@code delayTicks} &gt; 0 rimanda
+     * l'attivazione (usato al login/reload: vedi sotto); {@code delayTicks <= 0} attiva al tick successivo
+     * (usato dal comando {@code /f minimap on}, dove il ritardo del login e' solo fastidioso).
+     */
+    public void reattachMinimap(Player p, long delayTicks) {
         if (minimapManager == null || !minimapManager.isAvailable()) return;
         if (!canUseMinimap(p)) return;
         // Un'attivazione alla volta: la riconciliazione periodica di tickOnline() ripassa ogni pochi
         // secondi e senza questo segnaposto rischierebbe di accodare piu' attivazioni per lo stesso
         // giocatore mentre la prima e' ancora nei 60 tick di attesa.
         if (!minimapPending.add(p.getUniqueId())) return;
-        // 60 tick (~3s) di ritardo: al PRIMO login dopo un riavvio il server sta gia' caricando i chunk
-        // attorno al giocatore (spike di TPS inerente). Attivare la minimap subito ci sommava sopra il
-        // costo del primo render (campionamento chunk + pixel). Ritardando, il caricamento chunk si
-        // assesta prima e i due costi non si accavallano nel momento peggiore (l'HUD compare ~3s dopo).
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        // 60 tick (~3s) di ritardo AL LOGIN/RELOAD: al PRIMO login dopo un riavvio il server sta gia'
+        // caricando i chunk attorno al giocatore (spike di TPS inerente). Attivare la minimap subito ci
+        // sommava sopra il costo del primo render (campionamento chunk + pixel). Ritardando, il caricamento
+        // chunk si assesta prima e i due costi non si accavallano nel momento peggiore. Da COMANDO invece
+        // (delayTicks<=0) non c'e' spike: si attiva subito, cosi' /f minimap on non sembra "lento".
+        Runnable run = () -> {
             minimapPending.remove(p.getUniqueId());
             if (!p.isOnline() || !canUseMinimap(p)) return;
             // Col pack OBBLIGATORIO l'ha gia' ricevuto al join (ResourcePackListener): rimandarlo qui
             // sarebbe un doppione che fa ripartire inutilmente il ciclo richiesta/esito sul client.
             if (resourcePack != null && resourcePack.isAvailable() && !resourcePack.isRequired()) resourcePack.sendTo(p);
             minimapManager.activate(p);
-        }, 60L);
+        };
+        if (delayTicks <= 0) Bukkit.getScheduler().runTask(plugin, run);
+        else Bukkit.getScheduler().runTaskLater(plugin, run, delayTicks);
     }
 
     // ------------------------------ EVENTI -------------------------------
@@ -418,7 +473,7 @@ public final class PowerManager {
             PP fresh = null;
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "SELECT name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden FROM players WHERE uuid=?")) {
+                         "SELECT name, power, max_power, last_seen, map_rows, power_progress, last_login, minimap_hidden, borders_enabled FROM players WHERE uuid=?")) {
                 ps.setString(1, u.toString());
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -431,6 +486,7 @@ public final class PowerManager {
                         long ll = rs.getLong("last_login");
                         fresh.lastLogin = ll > 0 ? ll : fresh.lastSeen;
                         fresh.minimapHidden = rs.getInt("minimap_hidden") != 0;
+                        fresh.bordersEnabled = rs.getInt("borders_enabled") != 0;
                     }
                 }
             } catch (SQLException e) {
@@ -690,13 +746,14 @@ public final class PowerManager {
         final int power = pp.power, maxPower = pp.maxPower, mapRows = pp.mapRows, progress = pp.progress;
         final long lastSeen = pp.lastSeen, lastLogin = pp.lastLogin;
         final int minimapHidden = pp.minimapHidden ? 1 : 0;
+        final int bordersEnabled = pp.bordersEnabled ? 1 : 0;
         dbExec.submit(() -> {
             try (Connection c = db.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=?, last_login=?, minimap_hidden=? WHERE uuid=?")) {
+                         "UPDATE players SET name=?, power=?, max_power=?, last_seen=?, map_rows=?, power_progress=?, last_login=?, minimap_hidden=?, borders_enabled=? WHERE uuid=?")) {
                 ps.setString(1, name); ps.setDouble(2, power); ps.setDouble(3, maxPower);
                 ps.setLong(4, lastSeen); ps.setInt(5, mapRows); ps.setInt(6, progress); ps.setLong(7, lastLogin);
-                ps.setInt(8, minimapHidden); ps.setString(9, us);
+                ps.setInt(8, minimapHidden); ps.setInt(9, bordersEnabled); ps.setString(10, us);
                 ps.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().warning("[Power] salvataggio: " + e.getMessage()); }
         });

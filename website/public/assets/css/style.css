@@ -1966,6 +1966,7 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
+  text-decoration: none;   /* the buttons are anchors that scroll to a category section */
   transition: border-color .15s, color .15s, background-color .15s;
 }
 .store-filtro:hover { filter: brightness(1.25); }
@@ -1976,12 +1977,24 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   filter: none;
 }
 
-/* Griglia: la prima card occupa due colonne e fa da vetrina */
-/* Non piu' una griglia libera: una RIGA per categoria, con due pacchetti visibili alla
-   volta e gli altri raggiungibili trascinando (vedi .store-fila). */
-.store-griglia { display: flex; flex-direction: column; gap: 22px; margin-bottom: 26px; }
-.store-fila-blocco { position: relative; }
+/* One section per category, stacked one under the other; each is a wrapping 3-per-row grid
+   (see .store-fila). The top buttons scroll to a section. */
+.store-griglia { display: flex; flex-direction: column; gap: 34px; margin-bottom: 26px; }
+.store-fila-blocco {
+  position: relative;
+  /* the header is sticky: leave room so scrolling to a section doesn't tuck its heading
+     under the top bar */
+  scroll-margin-top: calc(var(--h-testata, 98px) + 14px);
+}
 .store-fila-blocco.is-nascosta { display: none; }
+/* Category heading above each section's grid. */
+.store-cat-titolo {
+  margin: 0 0 16px;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
 /* Sfumature sui bordi: dicono "la riga continua". Quella a destra sparisce arrivati in
    fondo, quella a sinistra compare solo quando c'e' qualcosa da cui si e' scorsi via. */
 .store-fila-blocco.ha-altri::after,
@@ -2070,27 +2083,23 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
 .store-barra-pista:hover .store-barra-pollice,
 .store-barra.is-trascino .store-barra-pollice { opacity: 1; }
 
+/* Wrapping grid: all packages of the active category, three per row, wrapping onto more rows
+   (no horizontal scroll — one category is shown at a time, chosen by the filter). */
 .store-fila {
   display: flex;
+  flex-wrap: wrap;
   gap: 18px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  /* barra nascosta come nella chat: qui si trascina, non si usa la barra */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
-.store-fila::-webkit-scrollbar { width: 0; height: 0; }
-/* due card per riga, qualunque sia la larghezza: la terza sporge e invita a trascinare */
-.store-fila > .store-card {
-  flex: 0 0 calc((100% - 18px) / 2);
-  scroll-snap-align: start;
+/* The flex item is the cell (card + name + price stacked). Cards per row is configurable
+   (--store-cols, set on the grid from the manager, default 3): the basis leaves room for the
+   (cols - 1) gaps of 18px between them. */
+.store-fila > .store-card-cella {
+  flex: 0 0 calc((100% - (var(--store-cols, 3) - 1) * 18px) / var(--store-cols, 3));
+  display: flex;
+  flex-direction: column;
 }
-/* il "si trascina" lo dice il cursore, solo dove c'e' davvero altro da vedere */
-.store-fila.ha-altri { cursor: grab; }
-.store-fila.is-trascino { cursor: grabbing; scroll-snap-type: none; user-select: none; }
-@media (max-width: 700px) {
-  .store-fila > .store-card { flex-basis: 100%; }
-}
+/* Three per row at every width (see the phone tweaks under max-width:560px, where the cards
+   get shorter and the text/ribbon smaller so three still fit tidily). */
 /* Velo e barretta di una categoria: la card porta inline le tinte GREZZE delle due versioni
    (--cat-*, scritte da store_stili_categorie) e qui si sceglie quale usare in base al tema.
    Se la categoria non ha un aspetto proprio restano i valori generali dello store. */
@@ -2153,9 +2162,14 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   inset: 0;
   background-image: var(--copertina);
   background-size: cover;
-  background-position: center;
+  /* Framing point chosen in the manager (like the article covers): the desktop value here,
+     the phone one under 620px. Both default to centre when nothing is set. */
+  background-position: var(--fuoco-pc, 50% 50%);
   transform: scale(1.02);
   transition: transform .5s ease;
+}
+@media (max-width: 620px) {
+  .store-card-media { background-position: var(--fuoco-telefono, 50% 50%); }
 }
 .store-card:hover .store-card-media { transform: scale(1.07); }
 .store-card-media::after {
@@ -2231,14 +2245,143 @@ body.store-una-categoria .store-card-cat { display: none; }
   border-radius: 50%;
   background: currentColor;
 }
-.store-card-piede {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid var(--riga-chiara);
+/* Name + price below the card, on the page background: moved out of the card so the cover
+   stays clean (no label, no title over the art) and both read at a glance. */
+.store-card-info {
+  padding: 12px 6px 2px;
+  text-align: center;
 }
+.store-card-nome {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+.store-card-nome:hover { text-decoration: underline; }
+.store-card-prezzo-est .store-prezzo { font-size: 25px; font-weight: 800; }
+.store-card-prezzo-est .store-prezzo small { font-size: 13px; font-weight: 700; }
+.store-card-prezzo-est .store-prezzo-pieno { font-size: 15px; margin-right: 8px; }
+
+/* Discount as an angled corner ribbon in the top-right of the card. Colours come from the
+   category/package settings (same variables as .store-sconto); overflow:hidden on the card
+   clips the band ends into the classic ribbon shape. It is "lit up": a bright sheen, a
+   coloured glow that pulses, and a shine that sweeps across it, so it can't be missed. */
+.store-card-sconto {
+  position: absolute;
+  z-index: 3;
+  top: 20px;
+  right: -42px;
+  width: 155px;
+  transform: rotate(45deg);
+  padding: 7px 0;
+  overflow: hidden;   /* clip the sweeping shine to the band */
+  text-align: center;
+  background:
+    linear-gradient(180deg,
+      rgba(255, 255, 255, 0.50) 0%,
+      rgba(255, 255, 255, 0.10) 45%,
+      rgba(0, 0, 0, 0.26) 100%),
+    var(--sconto-fondo, var(--green));
+  color: var(--sconto-testo, #14200a);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.28),
+    0 0 10px 1px var(--sconto-fondo, var(--green));
+  animation: store-sconto-pulse 1.8s ease-in-out infinite;
+}
+/* The shine: a bright diagonal band that sweeps left-to-right, then pauses before repeating. */
+.store-card-sconto::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  transform: skewX(-15deg);
+  animation: store-sconto-shine 2.6s ease-in-out infinite;
+}
+@keyframes store-sconto-pulse {
+  0%, 100% { box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.28),
+    0 0 8px 0 var(--sconto-fondo, var(--green)); }
+  50% { box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.28),
+    0 0 20px 3px var(--sconto-fondo, var(--green)); }
+}
+@keyframes store-sconto-shine {
+  0% { left: -60%; }
+  55%, 100% { left: 130%; }
+}
+/* Respect users who ask for less motion: keep the ribbon, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .store-card-sconto { animation: none; }
+  .store-card-sconto::after { display: none; }
+}
+
+/* Featured package: prominent gold border all around + a "recommended" badge. */
+.store-card.is-featured {
+  border: 2px solid var(--gold);
+  border-left-width: 3px;
+  box-shadow: 0 0 0 1px var(--gold-glow), 0 18px 44px -24px var(--gold-glow);
+}
+.store-card.is-featured:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--gold-glow), 0 20px 46px -22px var(--gold-glow);
+}
+.store-card-consigliato {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  left: 14px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--gold);
+  color: #2a1c02;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+/* On store cards the edit pencil moves to the bottom-right corner, clear of the discount
+   ribbon and the "recommended" badge that now sit in the top corners. */
+.store-card .store-card-modifica { top: auto; bottom: 12px; right: 12px; }
+
+/* Phones: keep three cards per row but make them small and tidy — shorter covers, tighter
+   gap, and smaller name/price/ribbon/badge so nothing overflows the narrow cards. */
+@media (max-width: 560px) {
+  .store-fila { gap: 8px; }
+  /* Phones always show three tidy cards, whatever the per-row setting is for desktop. */
+  .store-fila > .store-card-cella { flex-basis: calc((100% - 16px) / 3); }
+  .store-card { min-height: 122px; border-left-width: 2px; }
+  .store-card-info { padding: 8px 2px 2px; }
+  .store-card-nome { font-size: 12px; margin-bottom: 2px; }
+  .store-card-prezzo-est .store-prezzo { font-size: 15px; }
+  .store-card-prezzo-est .store-prezzo small { font-size: 9.5px; }
+  .store-card-prezzo-est .store-prezzo-pieno { font-size: 10.5px; margin-right: 4px; }
+  .store-card-sconto { width: 92px; right: -30px; top: 11px; padding: 3px 0; font-size: 9.5px; }
+  .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0.02em; }
+  .store-card .store-card-modifica { bottom: 6px; right: 6px; }
+  .store-cat-titolo { font-size: 17px; }
+  .store-filtro { padding: 7px 12px; font-size: 12px; }
+}
+
 .store-prezzo { font-family: var(--font-heading); font-weight: 700; font-size: 22px; color: var(--gold-light); }
 .store-prezzo small { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-left: 2px; }
 /* Prezzo scontato: prima quello pieno barrato e spento, poi quello vero. */
@@ -2282,6 +2425,10 @@ body.store-una-categoria .store-card-cat { display: none; }
   letter-spacing: 0.02em;
 }
 .store-lato-nome { font-size: 13px; font-weight: 600; }
+/* Player name links to their public page: it must read as plain text (the rank colour lives
+   on the inner span) and only hint it is clickable on hover. */
+.store-lato-nome-link { color: inherit; text-decoration: none; }
+.store-lato-nome-link:hover { text-decoration: underline; }
 .store-lato-meta { font-size: 11.5px; color: var(--text-dim); }
 .store-lato-vuoto { font-size: 12.5px; color: var(--text-dimmer); font-style: italic; margin: 0; }
 /* le teste sono pixel art: senza questo il ridimensionamento le sfoca */
@@ -3012,7 +3159,10 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, var(--bg-panel) 92%);
+  /* Fusione dell'immagine nel pannello: il quarto in alto resta nitido, poi sfuma fino a
+     pannello pieno prima del fondo, cosi' non c'e' un taglio netto e sotto resta una fascia
+     piena dove il testo si legge. */
+  background: linear-gradient(180deg, transparent 0%, transparent 22%, var(--bg-panel) 85%);
 }
 /* Senza copertina non c'e' niente da far respirare: la sfumatura dorata resta come
    sfondo del titolo (piu' bassa) e il testo torna in cima, senza la fascia vuota. */
@@ -3112,6 +3262,11 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
       chiaro e' quasi nero: sopra una foto velata diventava illeggibile. Sopra l'immagine
       il testo resta chiaro; se la copertina manca, il tema comanda (regola piu' sotto). */
 .pkg-scheda:not(.senza-immagine) .pkg-corpo h1 { color: var(--su-media); }
+/* Ombra sul titolo quando sta sopra la copertina: lo stacca dall'immagine anche col velo
+   delle card spento (che su questa pagina non arriva) e su copertine chiare. */
+.pkg-scheda:not(.senza-immagine) .pkg-corpo h1 {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), 0 2px 14px rgba(0, 0, 0, 0.55);
+}
 
 /* Tutto quello che sta SOPRA il velo della card prende il colore deciso dal velo stesso
    (--store-card-testo: nero o bianco secondo quanto e' chiaro). Prima il prezzo usava l'oro
@@ -3879,28 +4034,10 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   }
   .forum-riga:hover { transform: none; }   /* niente scorrimento laterale: qui non c'e' il mouse */
 
-  /* Lo store non e' fatto di riquadri impilati ma di caroselli che si trascinano: qui a
-     sbordare e' la RIGA, e ogni pacchetto diventa una schermata intera che si aggancia al
-     bordo. Sulla card i margini negativi non funzionerebbero: dentro un contenitore
-     flessibile le toglierebbero larghezza invece di dargliene. */
-  .store-fila-blocco {
-    margin-left: calc(var(--wrap-pad) * -1);
-    margin-right: calc(var(--wrap-pad) * -1);
-  }
-  .store-fila { gap: 8px; }
-  .store-fila > .store-card { flex: 0 0 100%; }
-  /* Le frecce rientrano di un filo: sbordando il blocco, i -8px del desktop le portavano
-     mezze fuori dallo schermo. */
-  .store-freccia.indietro { left: 6px; }
-  .store-freccia.avanti { right: 6px; }
-  .store-fila-blocco.ha-altri::after,
-  .store-fila-blocco.ha-altri::before { width: 12px; }
-  .store-card {
-    border-radius: 0;
-    border-right-width: 0;
-    border-left-width: 3px;   /* il colore della categoria resta, a filo dello schermo */
-    border-top-color: var(--border);
-  }
+  /* Store su schermi piccoli: sempre tre card per riga, solo piu' compatte (niente piu' una
+     card a schermo intero). Il ritocco fine per i telefoni e' sotto (max-width: 560px). */
+  .store-fila { gap: 12px; }
+  .store-card { min-height: 210px; }
 
   /* --- ritmo verticale della pagina --- */
   .hero-v2 { padding: 44px 0 30px; }
@@ -4812,10 +4949,12 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    pacchetto segue lo store, che e' la sezione a cui appartiene. */
 body.senza-veli-blog .bento-feature::before,
 body.senza-veli-blog .post-tile::before,
-body.senza-veli-store .store-card-media::after,
-body.senza-veli-store .pkg-copertina::after {
+body.senza-veli-store .store-card-media::after {
   display: none;
 }
+/* NB: la sfumatura della copertina del pacchetto (.pkg-copertina::after) NON si spegne col
+   velo: li' non serve a scurire per il testo, ma a fondere l'immagine nel pannello. Senza,
+   la copertina staccava con un taglio netto. */
 body.senza-veli-blog :is(.bento-feature, .post-tile):not(.no-image) :is(h2, h3, p, .meta, .card-cta, .bento-tag),
 body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-prezzo, .store-card-voci, li) {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75), 0 2px 10px rgba(0, 0, 0, 0.6);
@@ -4920,7 +5059,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 /* --- il testo, accanto al portale --- */
 /* Il testo prende lo spazio che avanza, il portale resta della sua misura in fondo:
    cosi' il portale e' sempre attaccato al bordo destro, dove finisce la miccia. */
-.nether-testo { flex: 1 1 auto; min-width: 0; text-align: left; }
+.nether-testo { flex: 1 1 auto; min-width: 0; text-align: center; }
 .nether-tag {
   display: inline-block;
   margin-bottom: 10px;
@@ -4943,6 +5082,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .nether-tempo {
   display: flex;
   align-items: baseline;
+  justify-content: center;   /* i numeri restano centrati come il resto del testo */
   flex-wrap: wrap;
   gap: 4px 18px;
   margin: 0;
@@ -4992,7 +5132,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   text-transform: uppercase;
   color: var(--text-dimmer);
 }
-.nether-nota { margin: 10px 0 0; max-width: 56ch; color: var(--text-dim); font-size: 14.5px; }
+.nether-nota { margin: 10px auto 0; max-width: 56ch; color: var(--text-dim); font-size: 14.5px; }
 .nether-annuncio {
   margin: 0;
   font-family: var(--font-heading);
@@ -5079,11 +5219,11 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
      fondo mette piede sulla SOGLIA del portale invece di finire oltre il bordo della
      pagina. */
   left: calc(var(--carica) * (100% - 3 * var(--blocco)));
-  /* I piedi partono sopra la corda e salgono man mano: a fine corsa sono alla quota
-     della soglia del portale, cosi' ci entra camminando sull'ossidiana invece di
-     infilarcisi da sotto. Quanto deve salire lo misura il browser (--salita in site.js):
-     dipende da dove cade il portale nella pagina, che il foglio di stile non puo' sapere. */
-  bottom: calc(13px + var(--carica) * var(--salita, 0px));
+  /* I piedi corrono appoggiati sulla miccia. Senza piu' il portale in fondo non c'e' una
+     soglia su cui salire, quindi resta alla stessa quota per tutta la corsa: abbassato un
+     po' cosi' sta proprio sopra la corda invece di fluttuarle sopra. (--salita resta come
+     margine se in futuro tornasse un capolinea rialzato.) */
+  bottom: calc(7px + var(--carica) * var(--salita, 0px));
   width: calc(8 * var(--u));
   height: calc(32 * var(--u));
   margin-left: calc(-4 * var(--u));

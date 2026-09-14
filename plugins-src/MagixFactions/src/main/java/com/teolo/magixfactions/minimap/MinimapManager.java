@@ -404,10 +404,10 @@ public final class MinimapManager {
                 int[] tick = {0};
                 long iv = interval;
                 task = plugin.getServer().getScheduler().runTaskTimer(plugin,
-                        () -> refreshDetached(viewer, ids, view, blocksPerPixel, tick, iv), 1L, 1L);
+                        () -> refreshDetached(viewer, ids, view, tick, iv), 1L, 1L);
             } else {
                 task = plugin.getServer().getScheduler().runTaskTimer(plugin,
-                        () -> refreshContent(viewer, ids, view, blocksPerPixel), interval, interval);
+                        () -> refreshContent(viewer, ids, view), interval, interval);
             }
             tasks.put(viewer.getUniqueId(), task);
 
@@ -526,7 +526,7 @@ public final class MinimapManager {
 
     /** Ricalcola solo il CONTENUTO (pixel) e lo reinvia. Si auto-cancella se il giocatore e' offline o se
      *  questo task e' ormai "orfano" (rimpiazzato da un test piu' recente, o rimosso). */
-    private void refreshContent(Player viewer, int[] ids, MapView view, double blocksPerPixel) {
+    private void refreshContent(Player viewer, int[] ids, MapView view) {
         UUID uuid = viewer.getUniqueId();
         if (!viewer.isOnline() || frameIds.get(uuid) != ids) {
             BukkitTask stale = tasks.remove(uuid);
@@ -544,14 +544,17 @@ public final class MinimapManager {
             sendMount(viewer, ids);
             lastRemountPos.put(uuid, cur.clone());
         }
-        pushMapContent(viewer, view, blocksPerPixel);
+        // Zoom LIVE (blocchi/pixel) letto a ogni refresh: la minimap segue SEMPRE lo zoom `/f map` del
+        // giocatore (default config o override `/mf admin setmap`), come la mappa-item e la mappa in chat,
+        // senza dover ricreare i quadri quando lo zoom cambia.
+        pushMapContent(viewer, view, power.getResolvedZoomFactor(uuid));
     }
 
     /** Come {@link #refreshContent} ma per la modalita' DETACH: gira ogni tick, riposiziona la corona di
      *  ancore SOLO se il giocatore si e' spostato (la rotazione non sposta nulla: le ancore sono fisse
      *  attorno a lui — e' questo che elimina il flash nei flick di visuale) e rinfresca il CONTENUTO ogni
      *  {@code interval} tick. */
-    private void refreshDetached(Player viewer, int[] ids, MapView view, double blocksPerPixel, int[] tick, long interval) {
+    private void refreshDetached(Player viewer, int[] ids, MapView view, int[] tick, long interval) {
         UUID uuid = viewer.getUniqueId();
         if (!viewer.isOnline() || frameIds.get(uuid) != ids) {
             BukkitTask stale = tasks.remove(uuid);
@@ -572,7 +575,9 @@ public final class MinimapManager {
         long iv = viewer.getVelocity().lengthSquared() > 1.0 ? interval * 4 : interval;
         if (++tick[0] >= iv) {
             tick[0] = 0;
-            pushMapContent(viewer, view, blocksPerPixel);
+            // Zoom LIVE letto a ogni refresh: la minimap segue sempre lo zoom `/f map` del giocatore
+            // (default o `/mf admin setmap`), in pari passo con la mappa-item e la mappa in chat.
+            pushMapContent(viewer, view, power.getResolvedZoomFactor(uuid));
         }
     }
 
