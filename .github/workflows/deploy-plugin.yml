@@ -123,13 +123,28 @@ jobs:
 
           # 1) Copia ogni jar; per ciascuno rimuove prima le vecchie versioni dello stesso
           #    plugin, poi mette al suo posto quello nuovo (copiato con nome temporaneo).
+          # ATTENZIONE allo stdin: ssh legge lo standard input, che qui e' il manifest del
+          # ciclo. Senza </dev/null si mangia le righe rimanenti e il ciclo finisce dopo il
+          # PRIMO plugin -- gli altri venivano compilati e mai copiati, in silenzio, e il
+          # server ripartiva coi jar vecchi (successo verde, deploy a meta').
           while IFS=$'\t' read -r P JARNAME; do
             [ -z "$P" ] && continue
             echo "Aggiorno $P -> $JARNAME"
             scp -i "$KEY" -o StrictHostKeyChecking=yes "$RUNNER_TEMP/jars/$JARNAME" \
-                "$DEST:$PLUGDIR/.__new_$JARNAME"
-            $SSH "cd '$PLUGDIR' && rm -f '$P'-*.jar '$P'.jar && mv '.__new_$JARNAME' '$JARNAME'"
+                "$DEST:$PLUGDIR/.__new_$JARNAME" </dev/null
+            $SSH "cd '$PLUGDIR' && rm -f '$P'-*.jar '$P'.jar && mv '.__new_$JARNAME' '$JARNAME'" </dev/null
+            echo "  ok: $JARNAME in posizione"
           done < "$RUNNER_TEMP/manifest"
+
+          # Controllo esplicito: quanti ne dovevano andare, quanti ne sono andati.
+          ATTESI=$(grep -c . "$RUNNER_TEMP/manifest")
+          echo "Plugin da aggiornare: $ATTESI"
+          while IFS=$'\t' read -r P JARNAME; do
+            [ -z "$P" ] && continue
+            $SSH "test -f '$PLUGDIR/$JARNAME'" </dev/null \
+              || { echo "::error::$JARNAME NON e' sul VPS: deploy incompleto"; exit 1; }
+          done < "$RUNNER_TEMP/manifest"
+          echo "Tutti i $ATTESI jar sono sul VPS."
 
           # 2) Preavviso ai giocatori (se il server e' su) e riavvio pulito via systemd.
           $SSH 'bash -s' <<'REMOTE'
