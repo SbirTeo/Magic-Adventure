@@ -93,10 +93,14 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
 - `key` può essere un **nome-foglia** (es. `ally-prefix`) o un **percorso annidato** (es.
   `leader.tag`): nel secondo caso la foglia viene cercata solo dentro il blocco del genitore,
   così si colpisce `leader.tag` senza toccare i vari `tag:` dei ranks che vengono prima.
-- `mode`: `set` (default, sostituisce il valore) oppure `insert-after` — inserisce `value`
+- `mode`: `set` (default, sostituisce il valore), `insert-after` — inserisce `value`
   subito dopo `marker` nel valore esistente, senza riscriverlo (idempotente). Es. per aggiungere
   `{rank}` dentro `public-format` senza perdere il resto del formato: `key=public-format`,
-  `value={rank}`, `mode=insert-after`, `marker=[`.
+  `value={rank}`, `mode=insert-after`, `marker=[` — oppure `rename`, che cambia il **nome** della
+  chiave (`value` = nome nuovo) lasciando il valore dov'e'.
+- **Quando si rinomina una chiave nel codice**, il file gia' sul VPS resta col nome vecchio: il
+  plugin non lo legge piu' e riparte dal default del jar, senza dire niente. Va sistemato con
+  `mode=rename` nella stessa sessione della rinomina.
 
 ## CODICE IN INGLESE (regola di struttura)
 

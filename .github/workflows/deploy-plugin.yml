@@ -149,13 +149,18 @@ jobs:
           # 2) Preavviso ai giocatori (se il server e' su) e riavvio pulito via systemd.
           $SSH 'bash -s' <<'REMOTE'
           set -e
+          # dì manda un COMANDO in console; annuncia manda un MESSAGGIO ai giocatori.
+          # Senza "say" davanti, il preavviso finiva in console come comando inesistente
+          # ("Unknown or incomplete command") e in chat non arrivava niente: il server si
+          # riavviava sotto i piedi di chi stava giocando, senza un avviso.
           dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          annuncia() { dì "say $1"; }
           if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
-            dì "[Aggiornamento] Il server si riavvia tra 60 secondi per aggiornare i plugin..."
+            annuncia "[Aggiornamento] Il server si riavvia tra 60 secondi per aggiornare i plugin..."
             sleep 40
-            dì "[Aggiornamento] Riavvio tra 20 secondi..."
+            annuncia "[Aggiornamento] Riavvio tra 20 secondi..."
             sleep 15
-            dì "[Aggiornamento] Riavvio tra 5 secondi!"
+            annuncia "[Aggiornamento] Riavvio tra 5 secondi!"
             sleep 5
             dì "save-all"
             sleep 3

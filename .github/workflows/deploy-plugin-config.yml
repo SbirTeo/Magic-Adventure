@@ -27,6 +27,11 @@ name: Aggiorna una chiave di config plugin sul VPS
 #                    la prima occorrenza di `marker`. Idempotente: se `value` e'
 #                    gia' presente nel valore, non fa nulla. Utile per aggiungere
 #                    un token (es. {rank}) dentro un formato senza riscriverlo.
+#   - rename:        cambia il NOME della chiave (`value` e' il nome nuovo) e lascia
+#                    il valore dov'e'. Serve quando una chiave viene rinominata nel
+#                    codice: il file gia' sul VPS resterebbe con il nome vecchio, che
+#                    il plugin non legge piu' (e il vecchio valore verrebbe ignorato
+#                    in silenzio). Idempotente: se c'e' gia' il nome nuovo, non fa nulla.
 #
 # Solo manuale (workflow_dispatch): non parte da solo su push.
 
@@ -44,10 +49,10 @@ on:
         description: "Chiave da cambiare; foglia (es. ally-prefix) o percorso annidato (es. leader.tag)"
         required: true
       value:
-        description: "mode=set: nuovo valore (tutto cio' che segue i due punti, virgolette comprese). mode=insert-after: il testo da inserire (es. {rank})"
+        description: "mode=set: nuovo valore (tutto cio' che segue i due punti, virgolette comprese). mode=insert-after: il testo da inserire (es. {rank}). mode=rename: il nome nuovo della chiave"
         required: true
       mode:
-        description: "set (sostituisci il valore) | insert-after (inserisci value dopo marker)"
+        description: "set (sostituisci il valore) | insert-after (inserisci value dopo marker) | rename (rinomina la chiave, value = nome nuovo)"
         required: false
         default: "set"
       marker:
@@ -157,6 +162,13 @@ jobs:
               if m and (not parents or indent_of(lines[i]) > parent_indent):
                   target, head, cur = i, m.group(1), m.group(2); break
           if target is None:
+              # Con rename il lavoro potrebbe essere gia' stato fatto: se al posto del nome
+              # vecchio c'e' gia' quello nuovo non e' un errore, e' un no-op.
+              if mode == 'rename':
+                  nuovo_pat = re.compile(r'^[ \t]*' + re.escape(val) + r':([ \t].*)?$')
+                  for i in range(start, end):
+                      if nuovo_pat.match(lines[i]):
+                          print('NO-OP: la chiave si chiama gia\'', val); sys.exit(0)
               print('ERRORE: chiave non trovata:', keyraw); sys.exit(4)
 
           if mode == 'insert-after':
@@ -166,6 +178,9 @@ jobs:
                   print('ERRORE: marker non trovato nel valore:', marker); sys.exit(5)
               idx = cur.index(marker) + len(marker)
               newline = head + cur[:idx] + val + cur[idx:]
+          elif mode == 'rename':
+              # Solo il nome: indentazione, spazi dopo i due punti e valore restano quelli.
+              newline = head.replace(leaf + ':', val + ':', 1) + cur
           else:
               newline = head + val
 
