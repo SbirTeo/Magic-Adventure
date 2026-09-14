@@ -216,6 +216,12 @@ function store_card(array $item): void {
     }
     if (!empty($item['image_url'])) {
         $stile .= ";--copertina:url('" . h($item['image_url']) . "')";
+        // Framing point chosen in the manager, one for phone and one for desktop (like the
+        // article covers). Validated to two percentages so it is safe inline; falls back to
+        // centre — also when the DB has no image_position column yet (migration not applied).
+        $puntoOk = static fn($v): string => preg_match('/^\d{1,3}% \d{1,3}%$/', (string) $v) ? (string) $v : '50% 50%';
+        $stile .= ';--fuoco-telefono:' . $puntoOk($item['image_position'] ?? '')
+            . ';--fuoco-pc:' . $puntoOk($item['image_position_pc'] ?? '');
     }
 
     $classi = 'store-card'

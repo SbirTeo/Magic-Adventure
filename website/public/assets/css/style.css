@@ -2161,9 +2161,14 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   inset: 0;
   background-image: var(--copertina);
   background-size: cover;
-  background-position: center;
+  /* Framing point chosen in the manager (like the article covers): the desktop value here,
+     the phone one under 620px. Both default to centre when nothing is set. */
+  background-position: var(--fuoco-pc, 50% 50%);
   transform: scale(1.02);
   transition: transform .5s ease;
+}
+@media (max-width: 620px) {
+  .store-card-media { background-position: var(--fuoco-telefono, 50% 50%); }
 }
 .store-card:hover .store-card-media { transform: scale(1.07); }
 .store-card-media::after {

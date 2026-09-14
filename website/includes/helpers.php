@@ -909,6 +909,25 @@ function align_mc_names(): void {
 }
 
 /**
+ * Se il database ha le colonne dell'inquadratura dei pacchetti (image_position). Serve a non
+ * rompere il salvataggio dello store finche' la migrazione 2026-09-14-store-inquadratura.sql
+ * non e' stata lanciata: il rendering usa gia' i valori di default, e il gestionale scrive/
+ * mostra l'inquadratura solo quando le colonne ci sono davvero.
+ */
+function store_ha_inquadratura(): bool {
+    static $ok = null;
+    if ($ok !== null) {
+        return $ok;
+    }
+    try {
+        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'image_position'")->fetch();
+    } catch (Throwable $e) {
+        $ok = false;
+    }
+    return $ok;
+}
+
+/**
  * UUID del miglior sostenitore dello store (chi ha speso di piu'), o null.
  *
  * Stessa regola della colonna dello store — le consegne manuali contano solo se lo dice

@@ -21,7 +21,9 @@
   function campoDi(tela) {
     return pannello.querySelector('input[name="' + tela.getAttribute('data-campo') + '"]');
   }
-  var campoImmagine = document.querySelector('#cover_image');
+  // Campo con l'indirizzo dell'immagine da seguire: l'articolo usa #cover_image, lo store
+  // #pkg_image. Il pannello lo dichiara in data-src-campo; senza, si resta su #cover_image.
+  var campoImmagine = document.querySelector(pannello.getAttribute('data-src-campo') || '#cover_image');
   var tele = [].slice.call(pannello.querySelectorAll('[data-tela]'));
   var bottoneCentra = pannello.querySelector('[data-centra]');
 

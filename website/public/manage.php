@@ -954,6 +954,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sortOrder = (int) ($_POST['sort_order'] ?? 0);
             $enabled = isset($_POST['enabled']) ? 1 : 0;
             $featured = isset($_POST['featured']) ? 1 : 0;
+            // Inquadratura della copertina: due percentuali e nient'altro (finisce inline in
+            // uno style), una per il telefono e una per il computer. Come per gli articoli.
+            $puntoValido = static fn($v) => preg_match('/^\d{1,3}% \d{1,3}%$/', (string) $v) ? $v : '50% 50%';
+            $imagePosition = $puntoValido($_POST['image_position'] ?? '');
+            $imagePositionPc = $puntoValido($_POST['image_position_pc'] ?? '');
 
             if ($name === '' || $price < 0) {
                 redirect('/manage?section=store_pkg_edit&id=' . $id . '&err=empty');
@@ -973,6 +978,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare('INSERT INTO store_packages (category_id, name, slug, image_url, description, long_description, price, discount_type, discount_value, commands, sort_order, enabled, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
                     ->execute([$categoryId, $name, $slug, $imageUrl, $description, $longDescription, $price, $scontoTipo, $scontoValore, $commands, $sortOrder, $enabled, $featured]);
                 $id = (int) db()->lastInsertId();
+            }
+            // Inquadratura scritta a parte e solo se le colonne esistono: cosi' il resto del
+            // salvataggio funziona anche prima di lanciare la migrazione (vedi store_ha_inquadratura).
+            if (store_ha_inquadratura()) {
+                db()->prepare('UPDATE store_packages SET image_position = ?, image_position_pc = ? WHERE id = ?')
+                    ->execute([$imagePosition, $imagePositionPc, $id]);
             }
             if ($featured) {
                 db()->prepare('UPDATE store_packages SET featured = 0 WHERE id <> ?')->execute([$id]);
@@ -3648,7 +3659,8 @@ if ($section === 'dashboard') {
 // ---------------------------------------------------------------------
 } elseif ($section === 'store_pkg_edit') {
     $id = (int) ($_GET['id'] ?? 0);
-    $pkg = ['category_id' => null, 'name' => '', 'image_url' => '', 'description' => '', 'long_description' => '',
+    $pkg = ['category_id' => null, 'name' => '', 'image_url' => '', 'image_position' => '50% 50%', 'image_position_pc' => '50% 50%',
+            'description' => '', 'long_description' => '',
             'price' => '0.00', 'commands' => '', 'sort_order' => 0, 'enabled' => 1, 'featured' => 0];
     if ($id > 0) {
         $q = db()->prepare('SELECT * FROM store_packages WHERE id = ?');
@@ -3694,6 +3706,34 @@ if ($section === 'dashboard') {
         <?php campo_immagine('pkg_image', 'image_url', (string) $pkg['image_url'],
             'Copertina del pacchetto',
             'Fa da sfondo alla card nello store e alla pagina del pacchetto. Incolla un indirizzo oppure carica un file con <strong>Scegli</strong>.'); ?>
+        <?php if (store_ha_inquadratura()): ?>
+          <?php /* Inquadratura della copertina (telefono e computer), come per gli articoli:
+                   si trascina l'immagine per scegliere quale parte resta in vista sulla card. */ ?>
+          <div class="inquadratura" data-inquadratura data-src-campo="#pkg_image"
+               data-src="<?= h((string) $pkg['image_url']) ?>"
+               <?= empty($pkg['image_url']) ? 'hidden' : '' ?>>
+            <label>Inquadratura della copertina</label>
+            <p class="sub" style="margin:-2px 0 10px;">Sulla card l&rsquo;immagine viene ritagliata, e telefono e computer tagliano in modo diverso: <strong>trascinale una per una</strong> per scegliere cosa tenere in vista. Sono indipendenti.</p>
+            <div class="inquadratura-riquadri">
+              <figure class="inquadratura-box e-telefono">
+                <div class="inquadratura-tela" data-tela="telefono" data-campo="image_position"></div>
+                <figcaption>Telefono</figcaption>
+              </figure>
+              <figure class="inquadratura-box e-computer">
+                <div class="inquadratura-tela" data-tela="computer" data-campo="image_position_pc"></div>
+                <figcaption>Computer</figcaption>
+              </figure>
+              <button type="button" class="btn btn-ghost btn-small" data-centra>Rimetti al centro</button>
+            </div>
+            <input type="hidden" name="image_position" value="<?= h($pkg['image_position'] ?? '50% 50%') ?>">
+            <input type="hidden" name="image_position_pc" value="<?= h($pkg['image_position_pc'] ?? '50% 50%') ?>">
+          </div>
+        <?php else: ?>
+          <p class="sub" style="margin:-6px 0 4px; color:var(--text-dim); font-size:12px;">
+            Per scegliere l&rsquo;inquadratura della copertina (telefono e computer) lancia la migrazione
+            <code>2026-09-14-store-inquadratura.sql</code> e ricarica.
+          </p>
+        <?php endif; ?>
         <div>
           <label for="pkg_desc">Cosa ottieni (una voce per riga)</label>
           <textarea id="pkg_desc" name="description" rows="4"><?= h((string) $pkg['description']) ?></textarea>
@@ -4501,7 +4541,7 @@ if ($section === 'dashboard') {
 <script src="/assets/js/editor.js"></script>
 <?php endif; ?>
 
-<?php if ($section === 'blog_edit'): ?>
+<?php if (in_array($section, ['blog_edit', 'store_pkg_edit'], true)): ?>
 <script src="/assets/js/inquadratura.js?v=<?= @filemtime(__DIR__ . '/assets/js/inquadratura.js') ?: time() ?>"></script>
 <?php endif; ?>
 
