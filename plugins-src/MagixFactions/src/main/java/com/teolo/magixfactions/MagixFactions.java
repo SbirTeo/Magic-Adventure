@@ -426,12 +426,14 @@ public final class MagixFactions extends JavaPlugin {
                                 + "{{ore:decay.loss-interval-hours}} finché non rientra nel tetto. Si perdono sempre i chunk più **LONTANI** dalla home, "
                                 + "restringendo verso il centro; il chunk della home non si perde mai **per "
                                 + "decadimento** — il che non lo rende intoccabile: vedi qui sotto.",
-                        "**La home si può conquistare, e non si sposta da sola.** Il chunk della home è protetto "
+                        "**La home si può conquistare, e in quel caso si perde.** Il chunk della home è protetto "
                                 + "solo dal decadimento: per l'overclaim vale come qualunque altro chunk di bordo. "
-                                + "Quando un nemico se lo prende, la posizione della home resta quella, quindi /f home "
-                                + "continua a teletrasportare i membri in quello che ora è territorio nemico. Non è un "
-                                + "difetto da segnalare: è come funziona oggi. Al giocatore che se ne lamenta si "
-                                + "risponde /f sethome in un territorio suo.",
+                                + "Quando un nemico se lo prende, dalla v0.54.0 la home viene **azzerata** e la fazione "
+                                + "riceve l'avviso: /f home risponde che non c'è nessuna casa, finché non la rimettono "
+                                + "con /f sethome. Prima restava impostata e /f home continuava a teletrasportare i "
+                                + "difensori dentro la base appena presa — uno alla volta, in un punto che il nemico "
+                                + "conosceva. Se qualcuno chiede «perché abbiamo perso la casa», la risposta è questa: "
+                                + "è il prezzo del raid, non un guasto.",
                         "Il rimedio per il giocatore è alzare la Potenza della fazione: far entrare qualcuno, o "
                                 + "smettere di morire. Il conto alla rovescia sopravvive ai riavvii: non si azzera "
                                 + "spegnendo il server.")

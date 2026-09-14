@@ -140,6 +140,9 @@ claim:
   success: "&aTerritorio conquistato! Chunk &e{x}, {z} &7(territori: &f{count}&7/&f{cap}&7)."
   overclaim-success: "&aHai strappato un territorio a &e{name}&a! Chunk &e{x}, {z}&a."
   overclaimed-victim: "&cLa fazione &e{name}&c vi ha conquistato il territorio al chunk &e{x}, {z}&c!"
+  # Mostrato ai membri della fazione che ha appena perso il chunk dove stava la home: la home viene
+  # azzerata, se no /f home continuerebbe a scaricarli dentro il territorio del nemico.
+  home-lost: "&c&lAvete perso la CASA! &r&cIl chunk della home e' stato conquistato da &e{name}&c: &e/f home&c non porta piu' da nessuna parte. Rimettetela con &e/f sethome&c in un vostro territorio."
   # Allerta mostrata a TUTTO il server (titolo a schermo + suono) a un overclaim di guerra.
   overclaim-alert-title: "&4&l⚔ TERRITORIO CONQUISTATO ⚔"
   overclaim-alert-subtitle: "&e{attacker} &7ha strappato un territorio a &c{victim} &7(&f{x}, {z}&7)"

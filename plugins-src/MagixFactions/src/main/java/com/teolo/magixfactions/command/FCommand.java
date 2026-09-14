@@ -638,6 +638,15 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     "x", String.valueOf(cx), "z", String.valueOf(cz)));
             broadcast(enemy, M.get("claim.overclaimed-victim", "name", cname(enemy, f),
                     "x", String.valueOf(cx), "z", String.valueOf(cz)));
+            // Se il chunk conquistato era quello della HOME nemica, la home si azzera. Lasciarla dov'era
+            // trasformerebbe /f home in una trappola: i difensori si teletrasporterebbero uno alla volta
+            // dentro la base appena presa dal nemico, in territorio dove non possono nemmeno costruire.
+            // Perdere la casa e' il prezzo del raid; essere consegnati al nemico dal proprio comando no.
+            String enemyHome = fm.homeChunkKey(enemy.getId());
+            if (enemyHome != null && enemyHome.equals(world + ":" + cx + ":" + cz)) {
+                fm.unsetHome(enemy);
+                broadcast(enemy, M.get("claim.home-lost", "name", cname(enemy, f)));
+            }
             announceOverclaim(f, enemy, cx, cz); // allerta a schermo + suono a TUTTO il server
         } else {
             msg(p, M.get("claim.success", "x", String.valueOf(cx), "z", String.valueOf(cz),
