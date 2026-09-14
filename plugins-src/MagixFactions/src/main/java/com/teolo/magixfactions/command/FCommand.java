@@ -284,10 +284,18 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case DISBANDED -> msg(p, M.get("leave.disbanded"));
             case SUCCESSION -> {
                 msg(p, M.get("leave.succession"));
+                // Chi esce e' gia' stato rimosso da f: il broadcast raggiunge solo i membri rimasti.
+                broadcast(f, M.get("leave.broadcast", "player", p.getName()));
                 Player nl = f.getLeader() != null ? Bukkit.getPlayer(f.getLeader()) : null;
                 if (nl != null) msg(nl, M.get("leave.new-leader", "name", cname(nl, f)));
+                String leaderName = f.getLeader() != null ? Bukkit.getOfflinePlayer(f.getLeader()).getName() : "?";
+                broadcast(f, M.get("leave.succession-broadcast", "leader", leaderName));
             }
-            case LEFT -> msg(p, M.get("leave.left"));
+            case LEFT -> {
+                msg(p, M.get("leave.left"));
+                // Chi esce e' gia' stato rimosso da f: il broadcast raggiunge solo i membri rimasti.
+                broadcast(f, M.get("leave.broadcast", "player", p.getName()));
+            }
         }
         return true;
     }
@@ -972,7 +980,20 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 }
             }
         }
+        // In fondo alla classifica: il link alla top completa sul sito (cliccabile in gioco).
+        sendLink(s, M.get("top.site"), "https://magicadventure.it/classifiche");
         return true;
+    }
+
+    /** Riga con un link cliccabile (apre l'URL in gioco; alla console mostra l'URL in chiaro). */
+    private void sendLink(CommandSender s, String legacyLine, String url) {
+        if (!(s instanceof Player p)) { panel(s, legacyLine + " " + url); return; }
+        String line = Papi.resolve(p, legacyLine);
+        BaseComponent[] comps = TextComponent.fromLegacyText(line);
+        ClickEvent ce = new ClickEvent(ClickEvent.Action.OPEN_URL, url);
+        HoverEvent he = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(url)));
+        for (BaseComponent c : comps) { c.setClickEvent(ce); c.setHoverEvent(he); }
+        p.spigot().sendMessage(comps);
     }
 
     /**
@@ -989,17 +1010,24 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         p.spigot().sendMessage(comps);
     }
 
-    /** Testo del tooltip del punteggio: intestazione + una riga per caratteristica (dal breakdown live). */
+    /**
+     * Testo del tooltip del punteggio, con lo stesso contenuto della card del sito (classifiche.php):
+     * intestazione + introduzione, una riga per caratteristica (voce, valore, migliore, % del migliore,
+     * punti/max) e il totale in fondo. Nessun grassetto, per rispecchiare lo stile del sito.
+     */
     private String scoreTooltip(Faction f) {
-        StringBuilder sb = new StringBuilder(M.get("score-tooltip.header",
-                "score", score.formatScore(score.score(f)), "max", score.maxScoreStr()));
+        StringBuilder sb = new StringBuilder(M.get("score-tooltip.header"));
+        sb.append("\n").append(M.get("score-tooltip.intro"));
         for (com.teolo.magixfactions.manage.ScoreManager.Component c : score.breakdown(f)) {
-            String best = c.bestSelf ? M.get("score-tooltip.best-self") : c.bestName;
+            String best = c.bestSelf
+                    ? M.get("score-tooltip.best-self")
+                    : M.get("score-tooltip.best", "best", c.bestName, "bestval", c.bestValueText);
             sb.append("\n").append(M.get("score-tooltip.line",
-                    "label", c.label, "value", c.valueText, "pct", c.pctStr(),
-                    "points", c.pointsStr(), "max", c.maxStr(),
-                    "best", best, "bestval", c.bestValueText));
+                    "label", c.label, "value", c.valueText, "best", best,
+                    "pct", c.pctStr(), "points", c.pointsStr(), "max", c.maxStr()));
         }
+        sb.append("\n").append(M.get("score-tooltip.total",
+                "score", score.formatScore(score.score(f)), "max", score.maxScoreStr()));
         return sb.toString();
     }
 
