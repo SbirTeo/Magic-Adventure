@@ -227,7 +227,7 @@ public final class StaffGuide {
      * ricordato di citare, e le altre cento non esistevano per chi leggeva la guida. Ora l'elenco e'
      * COMPLETO e si mantiene da solo — una chiave nuova nel config compare qui senza che nessuno tocchi
      * il codice, e la sua spiegazione e' il commento che quella chiave deve avere comunque (regola gia'
-     * imposta da {@code controlla-config.py}).</p>
+     * imposta da {@code check_config.py}).</p>
      *
      * @param chiaveESpiegazione coppie FACOLTATIVE: chiave del config, poi cosa cambia. Servono solo a
      *                           dare una spiegazione migliore di quella del commento alle chiavi che lo

@@ -399,7 +399,7 @@ tutorial si aggiornano **da soli** al riavvio successivo: non possono più racco
 - **La tabella «Impostazioni» della guida per lo staff elenca TUTTE le chiavi del config**, non piu' un
   gruppetto scelto a mano: chiave, valore in uso adesso e spiegazione presa dal **commento della chiave
   nel config**. Una chiave nuova e' documentata dal momento in cui esiste, senza toccare il codice.
-- Il controllo `python plugins-src/controlla-config.py` ha una regola in piu' (**[6]**): rilegge il
+- Il controllo `python plugins-src/check_config.py` ha una regola in piu' (**[6]**): rilegge il
   tutorial dei giocatori e segnala ogni **numero scritto a mano** che coincide con un valore del config
   — cosi' non si torna indietro. Ignora i numeri delle schermate di esempio e dei comandi di esempio,
   che numeri di config non sono.
