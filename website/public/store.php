@@ -179,9 +179,9 @@ require __DIR__ . '/../includes/header.php';
   foreach ($cats as $c) {
       $nomiCat[(int) $c['id']] = $c['name'];
   }
-  // No "all" button: every category is shown as its own section, one under the other. The
-  // top buttons (only for categories that have packages) are shortcuts that scroll to the
-  // matching section. The first one starts highlighted.
+  // No "all" button: the top buttons act as tabs — clicking one shows that category's
+  // section and hides the others (they list only categories that have packages). The first
+  // one is the default shown on load.
   $catConPacchetti = array_values(array_filter($cats, fn($c) => isset($perCategoria[(int) $c['id']])));
   $defaultCat = $catConPacchetti ? (int) $catConPacchetti[0]['id'] : 0;
   ?>
@@ -203,17 +203,18 @@ require __DIR__ . '/../includes/header.php';
                   . ';--store-filtro-bordo:' . hex_to_rgba($testo, 0.18);
           }
         ?>
-        <a class="store-filtro<?= (int) $c['id'] === $defaultCat ? ' is-active' : '' ?>" href="#store-cat-<?= (int) $c['id'] ?>" data-cat="<?= (int) $c['id'] ?>"
-           <?= $stileFiltro !== '' ? 'style="' . ltrim($stileFiltro, ';') . '"' : '' ?>><?= h($c['name']) ?></a>
+        <button type="button" class="store-filtro<?= (int) $c['id'] === $defaultCat ? ' is-active' : '' ?>" data-cat="<?= (int) $c['id'] ?>"
+                <?= $stileFiltro !== '' ? 'style="' . ltrim($stileFiltro, ';') . '"' : '' ?>><?= h($c['name']) ?></button>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
 
   <div class="store-griglia" id="storeGriglia">
     <?php foreach ($perCategoria as $catId => $items): ?>
-      <?php /* Each category is its own section (heading + a wrapping 3-per-row grid), one under
-               the other. All are shown; the top buttons just scroll to the one you pick. */ ?>
-      <section class="store-fila-blocco" id="store-cat-<?= (int) $catId ?>" data-cat="<?= (int) $catId ?>">
+      <?php /* Each category is its own section (heading + a wrapping 3-per-row grid). Only one
+               is shown at a time: clicking a button swaps which category is visible (the others
+               get .is-nascosta). The first category shows on load. */ ?>
+      <section class="store-fila-blocco<?= (int) $catId === $defaultCat ? '' : ' is-nascosta' ?>" id="store-cat-<?= (int) $catId ?>" data-cat="<?= (int) $catId ?>">
         <h2 class="store-cat-titolo"><?= h($nomiCat[$catId] ?? 'Altro') ?></h2>
         <div class="store-fila">
           <?php foreach ($items as $item) {
