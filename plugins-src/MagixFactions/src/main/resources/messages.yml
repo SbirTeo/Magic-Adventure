@@ -339,7 +339,7 @@ minimap:
 # YAML riservati) — si usano enabled/disabled.
 borders:
   usage: "&cUso: /f borders <on|off>"
-  enabled: "&aConfini &2accesi&a. Vedi delle particelle verdi lungo i bordi dei territori vicini a te."
+  enabled: "&aConfini &2accesi&a. Particelle lungo i bordi dei territori vicini: &2verde&a la tua, &dmagenta&a gli alleati, &crosso&a i nemici."
   disabled: "&aConfini &cspenti&a. Le particelle dei bordi non ti verranno piu' mostrate."
 
 list:
