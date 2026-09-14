@@ -273,6 +273,7 @@ HTML = r"""<!DOCTYPE html>
   <ul>
     <li>oltre alle condizioni sopra, la fazione nemica dev'essere <b>raidabile</b> (Potenza inferiore ai suoi territori);</li>
     <li>puoi prendere solo il chunk <b>più esterno</b> del nemico, non dall'interno.</li>
+    <li>nessun chunk è intoccabile: se è sul bordo, anche quello della <b>home</b> nemica si può conquistare.</li>
   </ul>
   <div class="warn">Non puoi conquistare i territori di una fazione <b>alleata</b>.</div>
   <h3>Rilasciare territori</h3>
@@ -379,9 +380,16 @@ HTML = r"""<!DOCTYPE html>
   <ol class="steps">
     <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.</li>
     <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione.</li>
+    <li><span class="cmd">/f unsethome</span> toglie la casa: la fazione resta senza, e <span class="cmd">/f home</span>
+      non porta più da nessuna parte finché non ne imposti un'altra.</li>
   </ol>
-  <div class="tip">Il chunk della home è speciale: è il <b>cuore</b> della fazione e <b>non viene mai perso</b>
-  (vedi sotto).</div>
+  <div class="tip">Il chunk della home è il <b>cuore</b> della fazione: per <b>sovraccarico</b> non lo perdi
+  mai, perché il decadimento mangia sempre i territori più lontani e si ferma prima di toccarlo (vedi sotto).</div>
+  <div class="warn"><b>Ma conquistare si può.</b> Un nemico che ti trova <b>raidabile</b> può prendersi anche il
+  chunk della home, come qualsiasi altro. Se succede, la casa <b>resta impostata dov'era</b>: nessuno te la
+  sposta, quindi <span class="cmd">/f home</span> continua a teletrasportarti lì — cioè <b>in mezzo al
+  territorio nemico</b>. Quando riprendi fiato, rimettila al sicuro con <span class="cmd">/f sethome</span> in un
+  territorio tuo.</div>
 </section>
 
 <section id="s11">
@@ -498,6 +506,7 @@ HTML = r"""<!DOCTYPE html>
     <tr><td><span class="cmd">/f map</span></td><td>{{se:map.mode=chat}}Stampa in chat la mappa dei territori attorno a te{{/se}}{{se:map.mode=item}}Ricevi la Mappa Fazioni (item dinamico){{/se}}</td></tr>
     <tr><td><span class="cmd">/f minimap &lt;on|off&gt;</span></td><td>Accendi/spegni la minimap a schermo (se hai il permesso)</td></tr>
     <tr><td><span class="cmd">/f sethome / home</span></td><td>Imposta / vai alla casa della fazione</td></tr>
+    <tr><td><span class="cmd">/f unsethome</span></td><td>Toglie la casa della fazione</td></tr>
     <tr><td><span class="cmd">/f description &lt;testo&gt;</span></td><td>Imposta la descrizione</td></tr>
     <tr><td><span class="cmd">/f rename &lt;nome&gt;</span></td><td>Cambia il nome della fazione (leader, 1 ogni {{cfg:rename.cooldown-days}} giorni)</td></tr>
     <tr><td><span class="cmd">/f info [fazione]</span></td><td>Info sulla fazione</td></tr>

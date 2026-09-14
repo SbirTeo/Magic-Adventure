@@ -424,7 +424,14 @@ public final class MagixFactions extends JavaPlugin {
                         "In sovraccarico i membri online ricevono un titolo con suono di pericolo, ripetuto. Passato "
                                 + "il periodo di grazia (adesso {{ore:decay.grace-hours}}) la fazione perde un territorio ogni "
                                 + "{{ore:decay.loss-interval-hours}} finché non rientra nel tetto. Si perdono sempre i chunk più **LONTANI** dalla home, "
-                                + "restringendo verso il centro; il chunk della home non si perde mai.",
+                                + "restringendo verso il centro; il chunk della home non si perde mai **per "
+                                + "decadimento** — il che non lo rende intoccabile: vedi qui sotto.",
+                        "**La home si può conquistare, e non si sposta da sola.** Il chunk della home è protetto "
+                                + "solo dal decadimento: per l'overclaim vale come qualunque altro chunk di bordo. "
+                                + "Quando un nemico se lo prende, la posizione della home resta quella, quindi /f home "
+                                + "continua a teletrasportare i membri in quello che ora è territorio nemico. Non è un "
+                                + "difetto da segnalare: è come funziona oggi. Al giocatore che se ne lamenta si "
+                                + "risponde /f sethome in un territorio suo.",
                         "Il rimedio per il giocatore è alzare la Potenza della fazione: far entrare qualcuno, o "
                                 + "smettere di morire. Il conto alla rovescia sopravvive ai riavvii: non si azzera "
                                 + "spegnendo il server.")
