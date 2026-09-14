@@ -116,20 +116,24 @@ jobs:
           fi
           echo "Log esaminati: latest.log $VECCHI"
 
+          # Il taglio a $RIGHE va fatto tenendo le righe PIU' RECENTI, e le due sorgenti sono
+          # ordinate al contrario: latest.log e' cronologico (recenti in fondo -> tail), i
+          # .log.gz arrivano dal piu' nuovo al piu' vecchio (recenti in cima -> head). Con un
+          # solo tail finale si finiva per stampare i riavvii di stamattina e perdere l'ultimo.
           cerca_tutto() {  # $1 = regex estesa, case-insensitive
-            grep -a -i -H -E -- "$1" "$LOG" 2>/dev/null
-            [ -n "$VECCHI" ] && zgrep -a -i -H -E -- "$1" $VECCHI 2>/dev/null
+            grep -a -i -H -E -- "$1" "$LOG" 2>/dev/null | tail -n "$RIGHE"
+            [ -n "$VECCHI" ] && zgrep -a -i -H -E -- "$1" $VECCHI 2>/dev/null | head -n "$RIGHE"
             return 0
           }
 
           echo
-          echo "=== LOG: righe che parlano di '$CERCA' (ultime $RIGHE) ==="
-          cerca_tutto "$CERCA" | tail -n "$RIGHE"
+          echo "=== LOG: righe che parlano di '$CERCA' (le piu' recenti, max $RIGHE per sorgente) ==="
+          cerca_tutto "$CERCA"
 
           echo
-          echo "=== LOG: errori ed eccezioni dei plugin Magix (ultime $RIGHE) ==="
+          echo "=== LOG: errori ed eccezioni dei plugin Magix (le piu' recenti) ==="
           cerca_tutto "ERROR|Exception|Caused by|at com\.teolo|Could not pass event|Unhandled exception" \
-            | grep -av "Unknown minor version" | tail -n "$RIGHE"
+            | grep -av "Unknown minor version"
           # Nessuna riga trovata non e' un errore: senza questo il passo risulterebbe fallito
           # solo perche' l'ultimo grep non ha trovato niente (che di solito e' una buona notizia).
           exit 0
