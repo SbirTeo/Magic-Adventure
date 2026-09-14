@@ -98,6 +98,38 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
   `{rank}` dentro `public-format` senza perdere il resto del formato: `key=public-format`,
   `value={rank}`, `mode=insert-after`, `marker=[`.
 
+## CODICE IN INGLESE (regola di struttura)
+
+«Codice in inglese, italiano solo per quello che una persona legge a schermo.»
+
+**In inglese** (la *struttura*, cioè le maniglie):
+- nomi dei **file** `.java`, segmenti di **package** dopo `com.teolo.<plugin>`, e **tipi
+  top-level** (class/interface/enum/record dichiarati a colonna 0);
+- **comandi, alias, sotto-comandi e nodi di permesso** (`/menus open`, non `/menus apri`;
+  `magixguard.punish`, non `.sanziona`);
+- **chiavi di config e nomi dei file di config** (`punishments.yml` con `duration:`, non
+  `sanzioni.yml` con `durata:`);
+- sul **sito**, i nomi delle **funzioni** JS/PHP e i nomi di class/interface/trait/enum PHP;
+- commenti e Javadoc.
+
+**In italiano** restano solo i **testi che una persona legge**: messaggi in chat, UI, *valori*
+del config — e, per convenzione deliberata, **nomi di metodo, variabili locali, costanti enum e
+tipi annidati** (es. `.crea(...)`, `valoriGuide()`, l'enum annidato `Esito`). Quando uno di
+questi viene promosso a tipo top-level o a file suo, la regola scatta.
+
+**Chi la fa rispettare** — `python plugins-src/check_all.py`:
+- `check_english.py` — struttura Java. Spezza il CamelCase e confronta **parola intera** con una
+  lista di parole italiane: per una parola nuova basta allungare quella lista, non serve altro.
+- `check_commands.py` — comandi, alias, sotto-comandi (`case "..."`, `equalsIgnoreCase("...")`)
+  e nodi di permesso in `plugin.yml`.
+- `check_config_english.py` — chiavi e nomi dei file YAML sotto `resources/` (esclusi `plugin.yml`
+  e `menus/`).
+- `check_english_web.py` — sito: gira **solo sulle righe aggiunte** rispetto a `HEAD`, così il
+  codice legacy italiano non annega il segnale.
+
+Gira come **git pre-commit** (`.githooks/pre-commit`): un nome italiano nella struttura **blocca
+il commit**. Non aggirarlo: si rinomina.
+
 ## GUIDA E TUTORIAL SEMPRE AGGIORNATI (obbligatorio a ogni modifica)
 
 Ogni modifica che cambia **comportamento, comandi, permessi, regole o chiavi di config** va
@@ -115,8 +147,8 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    - **Mai** copiare `docs/tutorial.html` sul VPS: è un modello pieno di segnaposto che solo il
      plugin sa risolvere. L'unico modo giusto di allineare il sito è far ripartire il server.
 2. **Guida per lo staff** (gestionale, `/manage.php?section=guida`). La scrive **il plugin stesso**
-   a ogni avvio/`reload` (classe comune `GuidaStaff`, un capitolo per plugin) → MagixWeb
-   (`GuidaSync`) → tabella `guide_staff`. Non si scrive a mano: si aggiorna il codice che la
+   a ogni avvio/`reload` (classe comune `StaffGuide`, un capitolo per plugin) → MagixWeb
+   (`GuideSync`) → tabella `guide_staff`. Non si scrive a mano: si aggiorna il codice che la
    compone. Vedi `plugins-src/GUIDA-STAFF.md`.
 3. **Niente numeri e testi scritti a mano** quando dipendono dal config: si usano i segnaposto
    `{{cfg:...}}`, `{{secondi:...}}`, `{{ore:...}}`, `{{percento:...}}`, `{{simbolo:...}}` e i
