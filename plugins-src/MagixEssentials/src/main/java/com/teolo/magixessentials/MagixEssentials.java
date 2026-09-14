@@ -70,9 +70,20 @@ public final class MagixEssentials extends JavaPlugin {
                         + "A lungo andare dovrebbe assorbire cio' che oggi fa CMI.")
 
                 .section("Chi comanda il tablist",
-                        "Il tablist ha **un solo padrone per volta**. Se **tablist.enabled** e' acceso qui, va "
-                                + "SPENTO quello di CMI (plugins/CMI/Settings/Modules.yml → **tablist: false**), "
-                                + "altrimenti i due si riscrivono a vicenda e la lista lampeggia.",
+                        "Il tablist non ha un proprietario: **ce l'ha chi ha scritto per ultimo**. Se anche CMI lo "
+                                + "gestisce, i due si sovrascrivono a vicenda e il risultato dipende dall'ordine, "
+                                + "cioe' dal caso. La via pulita resta spegnere il suo modulo "
+                                + "(plugins/CMI/Settings/Modules.yml → **tablist: false**).",
+                        "Finche' resta acceso, **tablist.priority** ci fa scrivere dopo di lui: ogni aggiornamento "
+                                + "viene riscritto una seconda volta **{{cfg:tablist.priority.reassert-delay-ticks}}** "
+                                + "tick piu' tardi, e l'aggancio al join e' a priorita' MONITOR, cioe' dopo gli altri "
+                                + "plugin. Se vedi ancora comparire per un istante il tablist di CMI, alza quel ritardo.",
+                        "**Il limite, ed e' importante saperlo:** valgono intestazione, fondo e nomi. Le caselle "
+                                + "**FINTE** che CMI inietta — le 80 slot con la testa e le tacchette di connessione — "
+                                + "sono voci sue, mandate al client via pacchetto: da qui **non si tolgono**, nessuna "
+                                + "priorita' le raggiunge. O si spegne il suo modulo, o si tocca la sua configurazione. "
+                                + "All'avvio il plugin controlla da solo il Modules.yml di CMI e mette un avviso nel "
+                                + "log se il conflitto c'e'.",
                         "Intestazione (**header**) e fondo (**footer**) sono liste di righe nel config: una voce "
                                 + "della lista, una riga a schermo. Il nome del giocatore nella lista si compone a "
                                 + "parte con **tablist.player-name**, dove {name} e' il suo nome.")
@@ -109,8 +120,17 @@ public final class MagixEssentials extends JavaPlugin {
                         "tablist.enabled", "Interruttore generale: spento, il tablist resta quello di CMI (o del gioco).",
                         "tablist.update-interval-ticks", "Ogni quanti tick si riscrivono intestazione, fondo e nomi.",
                         "tablist.player-name", "Come appare il nome nella lista: {name} e' il nome, valgono colori e placeholder.",
+                        "tablist.priority.enabled", "Riscrive una seconda volta per arrivare dopo CMI. Spegnila se il tablist e' solo nostro.",
+                        "tablist.priority.reassert-delay-ticks", "Quanti tick dopo arriva la seconda scrittura: alzalo se CMI si vede ancora per un istante.",
                         "tablist.fixed-slots.enabled", "Predisposizione per le 80 caselle fisse: NON ancora implementata, lasciare false.")
 
+                .issue("Le caselle vuote hanno una testa e le tacchette di connessione",
+                        "Non sono nostre: sono le voci FINTE con cui CMI riempie il tablist a 80 slot, e non si "
+                                + "possono togliere da qui — nessun valore di tablist.priority le raggiunge. Si "
+                                + "spegne il suo modulo tablist (Modules.yml → tablist: false), oppure si toglie il "
+                                + "riempimento nel suo TabList.yml. Quando le 80 slot le fara' questo plugin, le "
+                                + "caselle vuote saranno senza testa (profilo senza texture) e senza tacchette "
+                                + "(latenza -1): oggi non lo sono perche' non sono nostre.")
                 .issue("Il tablist lampeggia o torna com'era",
                         "Lo sta riscrivendo anche CMI: spegni il suo modulo tablist "
                                 + "(plugins/CMI/Settings/Modules.yml → tablist: false) e riavvia.")

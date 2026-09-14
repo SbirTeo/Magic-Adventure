@@ -12,6 +12,22 @@ tablist:
   # Ogni quanti tick (20 = 1 secondo) si riaggiornano intestazione, fondo e nomi.
   update-interval-ticks: 20
 
+  # --- CHI VINCE SUL TABLIST ---
+  # Il tablist non ha un proprietario: ce l'ha chi ha scritto per ultimo. Se anche CMI gestisce il
+  # tablist, i due si sovrascrivono a vicenda e il risultato dipende dall'ordine, cioe' dal caso.
+  # Questa sezione ci fa scrivere DOPO di lui.
+  # ATTENZIONE, il limite: valgono intestazione, fondo e nomi. Le caselle FINTE che CMI inietta
+  # (le 80 slot, con testa e tacchette di connessione) sono voci sue mandate via pacchetto: da qui
+  # non si tolgono. Per farle sparire si spegne il suo modulo:
+  # plugins/CMI/Settings/Modules.yml -> tablist: false
+  priority:
+    # Se true, ogni aggiornamento viene riscritto una seconda volta poco dopo, per arrivare dopo
+    # chi ha scritto nello stesso tick. Spegnila se il tablist e' gestito solo da noi: dimezza il lavoro.
+    enabled: true
+    # Quanti tick dopo arriva la seconda scrittura. 2 basta contro un plugin che scrive nello stesso
+    # tick; alzalo (5-10) solo se vedi ancora il tablist di CMI comparire per un istante.
+    reassert-delay-ticks: 2
+
   # Segnaposto speciale {logo}: viene sostituito con il carattere del LOGO del server
   # (la texture nel resource pack di MagixFactions). Dimensione/posizione del logo si regolano
   # nel config di MagixFactions (tablist.logo.height/ascent).
