@@ -16,9 +16,11 @@ magicadventure/
 ```powershell
 cd plugins-src\MagixFactions
 mvn package
-# output: target\MagixFactions-0.3.1.jar
+# output: target\MagixFactions-<versione del pom>.jar
 ```
-Toolchain: **JDK 21** (`JAVA_HOME`) + **Maven 3.9.9** (vedi memoria `java-maven-env`).
+Toolchain: **JDK 25** (`JAVA_HOME`) + **Maven 3.9.9** (vedi memoria `java-maven-env`).
+I `pom.xml` chiedono `<java.version>25</java.version>` dal 3 settembre 2026: con la 21 la build
+muore subito con *"release version 25 not supported"*, e non e' un problema di Maven.
 
 ## Deploy sul VPS
 Il jar va in `server/plugins/` (rimuovendo la versione vecchia) e poi caricato sul VPS in

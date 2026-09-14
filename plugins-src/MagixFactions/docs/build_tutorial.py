@@ -252,6 +252,10 @@ HTML = r"""<!DOCTYPE html>
   <div class="tip">I <b>VIP</b> hanno un tetto di Potenza più alto, la <b>recuperano più in fretta</b> (chi ha
   il doppio della velocità guadagna un punto in metà tempo) e la <b>perdono più lentamente</b> stando via.
   Scrivi <span class="cmd">/f power</span>: se le tue velocità sono diverse dal normale te lo dice lì.</div>
+  <div class="tip">Si vede anche da fuori: i VIP hanno un'<b>aureola</b> gialla che gira sopra la testa.
+  Compare da sola, senza nessun comando; chi preferisce non averla la spegne con
+  <span class="cmd">/cosmetics halo off</span> e la rimette con <span class="cmd">/cosmetics halo on</span>
+  (dopo un riavvio del server torna accesa).</div>
 </section>
 
 <section id="s7">
@@ -269,6 +273,7 @@ HTML = r"""<!DOCTYPE html>
   <ul>
     <li>oltre alle condizioni sopra, la fazione nemica dev'essere <b>raidabile</b> (Potenza inferiore ai suoi territori);</li>
     <li>puoi prendere solo il chunk <b>più esterno</b> del nemico, non dall'interno.</li>
+    <li>nessun chunk è intoccabile: se è sul bordo, anche quello della <b>home</b> nemica si può conquistare.</li>
   </ul>
   <div class="warn">Non puoi conquistare i territori di una fazione <b>alleata</b>.</div>
   <h3>Rilasciare territori</h3>
@@ -375,9 +380,16 @@ HTML = r"""<!DOCTYPE html>
   <ol class="steps">
     <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.</li>
     <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione.</li>
+    <li><span class="cmd">/f unsethome</span> toglie la casa: la fazione resta senza, e <span class="cmd">/f home</span>
+      non porta più da nessuna parte finché non ne imposti un'altra.</li>
   </ol>
-  <div class="tip">Il chunk della home è speciale: è il <b>cuore</b> della fazione e <b>non viene mai perso</b>
-  (vedi sotto).</div>
+  <div class="tip">Il chunk della home è il <b>cuore</b> della fazione: per <b>sovraccarico</b> non lo perdi
+  mai, perché il decadimento mangia sempre i territori più lontani e si ferma prima di toccarlo (vedi sotto).</div>
+  <div class="warn"><b>Ma conquistare si può.</b> Un nemico che ti trova <b>raidabile</b> può prendersi anche il
+  chunk della home, come qualsiasi altro. Se succede <b>perdi la casa</b>: tutta la fazione riceve l'avviso, la
+  home viene <b>cancellata</b> e <span class="cmd">/f home</span> non porta più da nessuna parte finché non ne
+  imposti un'altra con <span class="cmd">/f sethome</span> in un territorio tuo. È voluto: se restasse dov'era,
+  <span class="cmd">/f home</span> vi teletrasporterebbe uno alla volta <b>dentro la base del nemico</b>.</div>
 </section>
 
 <section id="s11">
@@ -455,7 +467,8 @@ HTML = r"""<!DOCTYPE html>
   <p>Le caratteristiche che contano sono sei:</p>
   <ul>
     <li><b>Territori</b> — quanti chunk possiede la fazione.</li>
-    <li><b>Banca</b> — la <b>giacenza media</b>, cioè quanti soldi tenete <b>nel tempo</b>.</li>
+    <li><b>Banca (media)</b> — la <b>giacenza media</b>, cioè quanti soldi tenete <b>nel tempo</b>.
+      Sul sito la stessa voce si chiama <b>Ricchezza media</b>: è lo stesso numero, cambia solo il nome.</li>
     <li><b>Longevità</b> — da quanti giorni esiste la fazione.</li>
     <li><b>Potenza</b> — la potenza media della fazione.</li>
     <li><b>Uccisioni</b> — quanti nemici ha abbattuto la fazione (solo uccisioni <b>valide</b>, vedi il capitolo sul PvP).</li>
@@ -471,6 +484,9 @@ HTML = r"""<!DOCTYPE html>
   <p class="sub">Il tuo Punteggio e la tua posizione li vedi anche in <span class="cmd">/f info</span> e sul
   <b>sito</b>. Sul sito, oltre alla classifica delle fazioni, c'è anche quella dei <b>giocatori</b>: per
   <b>tempo di gioco</b>, <b>ricchezza media</b> e <b>uccisioni/K-D</b>.</p>
+  <p class="sub">Il <b>tempo di gioco</b> è quello <b>vero</b>: te lo conta Minecraft da sempre, quindi ci sono
+  dentro anche le ore che hai giocato qui prima che arrivassero le classifiche. <b>Uccisioni</b> e
+  <b>ricchezza media</b> no: quelle partono da quando è arrivato il sistema di punteggio, e crescono da lì.</p>
 </section>
 
 <section id="s13">
@@ -494,6 +510,7 @@ HTML = r"""<!DOCTYPE html>
     <tr><td><span class="cmd">/f map</span></td><td>{{se:map.mode=chat}}Stampa in chat la mappa dei territori attorno a te{{/se}}{{se:map.mode=item}}Ricevi la Mappa Fazioni (item dinamico){{/se}}</td></tr>
     <tr><td><span class="cmd">/f minimap &lt;on|off&gt;</span></td><td>Accendi/spegni la minimap a schermo (se hai il permesso)</td></tr>
     <tr><td><span class="cmd">/f sethome / home</span></td><td>Imposta / vai alla casa della fazione</td></tr>
+    <tr><td><span class="cmd">/f unsethome</span></td><td>Toglie la casa della fazione</td></tr>
     <tr><td><span class="cmd">/f description &lt;testo&gt;</span></td><td>Imposta la descrizione</td></tr>
     <tr><td><span class="cmd">/f rename &lt;nome&gt;</span></td><td>Cambia il nome della fazione (leader, 1 ogni {{cfg:rename.cooldown-days}} giorni)</td></tr>
     <tr><td><span class="cmd">/f info [fazione]</span></td><td>Info sulla fazione</td></tr>

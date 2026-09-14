@@ -613,7 +613,8 @@ tablist:
   logo:
     # Altezza del logo in pixel di gioco. Piu' alto = logo piu' grande (cresce anche in larghezza,
     # in proporzione). Indicativamente: 32 = piccolo, 40 = medio (default), 56+ = grande.
-    # Se lo ingrandisci, aggiungi qualche riga vuota sotto il logo nell'header di TabList.yml,
+    # Se lo ingrandisci, aggiungi qualche riga vuota sotto il logo nell'header del tablist
+    # (config di MagixEssentials, tablist.header; TabList.yml se il tablist e' ancora di CMI),
     # altrimenti il logo copre le righe di informazioni.
     height: 78
     # Quanto il logo sale sopra la riga di testo ("ascent"). Non puo' superare 'height'.

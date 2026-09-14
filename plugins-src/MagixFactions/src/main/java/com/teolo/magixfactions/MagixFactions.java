@@ -472,7 +472,16 @@ public final class MagixFactions extends JavaPlugin {
                         "In sovraccarico i membri online ricevono un titolo con suono di pericolo, ripetuto. Passato "
                                 + "il periodo di grazia (adesso {{ore:decay.grace-hours}}) la fazione perde un territorio ogni "
                                 + "{{ore:decay.loss-interval-hours}} finché non rientra nel tetto. Si perdono sempre i chunk più **LONTANI** dalla home, "
-                                + "restringendo verso il centro; il chunk della home non si perde mai.",
+                                + "restringendo verso il centro; il chunk della home non si perde mai **per "
+                                + "decadimento** — il che non lo rende intoccabile: vedi qui sotto.",
+                        "**La home si può conquistare, e in quel caso si perde.** Il chunk della home è protetto "
+                                + "solo dal decadimento: per l'overclaim vale come qualunque altro chunk di bordo. "
+                                + "Quando un nemico se lo prende, dalla v0.56.0 la home viene **azzerata** e la fazione "
+                                + "riceve l'avviso: /f home risponde che non c'è nessuna casa, finché non la rimettono "
+                                + "con /f sethome. Prima restava impostata e /f home continuava a teletrasportare i "
+                                + "difensori dentro la base appena presa — uno alla volta, in un punto che il nemico "
+                                + "conosceva. Se qualcuno chiede «perché abbiamo perso la casa», la risposta è questa: "
+                                + "è il prezzo del raid, non un guasto.",
                         "Il rimedio per il giocatore è alzare la Potenza della fazione: far entrare qualcuno, o "
                                 + "smettere di morire. Il conto alla rovescia sopravvive ai riavvii: non si azzera "
                                 + "spegnendo il server.")
@@ -563,11 +572,16 @@ public final class MagixFactions extends JavaPlugin {
                                 + "danno crediti a vicenda (same-ip-no-credit, contro i doppi account). Un'uccisione non "
                                 + "valida non conta né come kill né come morte: il K/D resta pulito. Se qualcuno si "
                                 + "lamenta che «le uccisioni non salgono», quasi sempre sta ricadendo in uno di questi tre.",
-                        "Le classifiche **GIOCATORE** sul sito sono tre: **TEMPO DI GIOCO** (secondi passati online), "
-                                + "**RICCHEZZA MEDIA** (giacenza media personale, misurata come quella della banca: solo "
-                                + "sul tempo online, così parcheggiare soldi da offline non la gonfia) e **UCCISIONI/K-D**. "
-                                + "Tutto parte dall'aggiornamento del plugin: non c'è storico passato da recuperare, i "
-                                + "conteggi cominciano da adesso e si assestano col tempo.")
+                        "Le classifiche **GIOCATORE** sul sito sono tre: **TEMPO DI GIOCO**, **RICCHEZZA MEDIA** "
+                                + "(giacenza media personale, misurata come quella della banca: solo sul tempo online, "
+                                + "così parcheggiare soldi da offline non la gonfia) e **UCCISIONI/K-D**.",
+                        "**Le tre non partono dallo stesso punto**, ed è la domanda che arriva. Dalla v0.47.2 il "
+                                + "TEMPO DI GIOCO è il **totale vero** del giocatore, letto dalla statistica vanilla di "
+                                + "Minecraft: comprende anche le ore giocate PRIMA che il plugin esistesse. Uccisioni, "
+                                + "morti e ricchezza media invece partono dall'aggiornamento del plugin — lì storico da "
+                                + "recuperare non ce n'è, i conteggi cominciano da quel momento e si assestano col tempo. "
+                                + "Quindi un giocatore di vecchia data può stare in cima al tempo di gioco e avere zero "
+                                + "uccisioni: è giusto così, non è un dato perso.")
 
                 .section("Valore in minerali",
                         "Il **VALORE** di una fazione è la somma del valore dei blocchi di minerale piazzati DENTRO "
@@ -608,6 +622,24 @@ public final class MagixFactions extends JavaPlugin {
                                 + "viene espulso con un messaggio che glielo spiega. Il permesso "
                                 + "magixfactions.resourcepack.bypass serve a chi deve entrare senza — prove, riprese, "
                                 + "ospiti di passaggio.")
+
+                .section("Il logo del server nel tablist",
+                        "Il logo che si vede in cima alla lista giocatori (tasto Tab) è un **carattere**, non "
+                                + "un'immagine: il pacchetto risorse aggiunge un glifo bitmap al font di gioco, e chi "
+                                + "scrive quel carattere si ritrova il logo. Il pacchetto lo costruisce questo plugin, "
+                                + "quindi il logo vive qui anche se il tablist è di un altro.",
+                        "**Chi lo mette dove**: la riga del tablist è di **MagixEssentials** (segnaposto {logo} nel "
+                                + "suo header) o, se il tablist è ancora quello di CMI, del suo TabList.yml. "
+                                + "Dimensione e posizione invece stanno **solo qui**, in "
+                                + "**tablist.logo.height** (grandezza in pixel: {{cfg:tablist.logo.height}} ora) e "
+                                + "**tablist.logo.ascent** (quanto sale sopra la riga: {{cfg:tablist.logo.ascent}}). "
+                                + "Regola di Minecraft: ascent non può superare height, se no il pacchetto è invalido "
+                                + "e il gioco lo rifiuta in blocco — il plugin li corregge da solo entro i limiti.",
+                        "**Cambiarli richiede un riavvio**: il pacchetto viene ricostruito e rimandato ai client, "
+                                + "non basta un reload.",
+                        "**La texture deve stare sotto i 256 pixel** di lato. Più grande, il gioco non la disegna "
+                                + "affatto e al posto del logo resta un quadratino: è stato il guasto di v0.53.0, "
+                                + "risolto in v0.53.1 rimpicciolendo il file, non cambiando il config.")
 
                 .section("Dati di test (prima dell'apertura)",
                         "Per non presentare un server e un sito **VUOTI** prima dell'apertura al pubblico si "
