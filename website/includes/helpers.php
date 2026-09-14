@@ -544,36 +544,6 @@ function faction_ranks_map(): array {
     return $cache;
 }
 
-/** Codici colore legacy di Minecraft (&0..&f) -> hex veri del client. */
-const MC_LEGACY_COLORS = [
-    '0' => '#000000', '1' => '#0000AA', '2' => '#00AA00', '3' => '#00AAAA',
-    '4' => '#AA0000', '5' => '#AA00AA', '6' => '#FFAA00', '7' => '#AAAAAA',
-    '8' => '#555555', '9' => '#5555FF', 'a' => '#55FF55', 'b' => '#55FFFF',
-    'c' => '#FF5555', 'd' => '#FF55FF', 'e' => '#FFFF55', 'f' => '#FFFFFF',
-];
-
-/**
- * Rende un tag legacy (es. `&6**`, `&b[U]`) come span colorato per il sito: prende l'ULTIMO
- * codice colore come tinta, toglie tutti i codici dal testo, e usa `.colore-grado` (doppia
- * tinta gioco/chiaro come gli altri gradi). Stringa vuota se non resta testo.
- */
-function mc_tag_html(string $raw): string {
-    $color = '#AAAAAA';
-    if (preg_match_all('/&([0-9a-fk-or])/i', $raw, $mm)) {
-        foreach ($mm[1] as $code) {
-            $c = strtolower($code);
-            if (isset(MC_LEGACY_COLORS[$c])) {
-                $color = MC_LEGACY_COLORS[$c];
-            }
-        }
-    }
-    $text = preg_replace('/&[0-9a-fk-or]/i', '', $raw);
-    if ($text === null || $text === '') {
-        return '';
-    }
-    return '<span class="colore-grado" style="' . rank_color_style($color) . '">' . h($text) . '</span>';
-}
-
 /**
  * Relazione di chi LEGGE verso il mittente, stessa logica di FactionManager.relationColor:
  * mittente senza fazione = none, lettore senza fazione = enemy, stessa fazione = member,
@@ -651,10 +621,15 @@ function chat_sender_html(array $riga, string $relazione): string {
     // Tag del GRADO di fazione (es. ** per il Leader): come in gioco va DENTRO le parentesi,
     // davanti al nome fazione -> [**Fazione]. Il tag arriva da faction_ranks_map() (specchio del
     // config nel DB): un posto solo. Il leader ha faction_members.rank = 'leader'.
+    // COLORE: come in gioco, il tag prende il colore della RELAZIONE (verde/magenta/rosso), non il
+    // suo colore proprio del config: togliamo i codici & dal tag e usiamo $coloreRel.
     $rankId = strtolower(trim((string) ($riga['faction_rank'] ?? '')));
     $mappaGradi = faction_ranks_map();
     $tagRaw = $rankId !== '' && isset($mappaGradi[$rankId]) ? $mappaGradi[$rankId]['tag'] : '';
-    $tagGrado = $tagRaw !== '' ? mc_tag_html($tagRaw) : '';
+    $tagText = $tagRaw !== '' ? preg_replace('/&#[0-9a-f]{6}|&[0-9a-fk-or]/i', '', $tagRaw) : '';
+    $tagGrado = $tagText !== '' && $tagText !== null
+        ? '<span class="colore-grado" style="' . rank_color_style($coloreRel) . '">' . h($tagText) . '</span>'
+        : '';
     // Ordine come in gioco: [{rank}Fazione] (fazione col colore relazione) -> tag del grado
     // server (LuckPerms) -> nome (colore del grado).
     return '<span class="chat-fac">[' . $tagGrado . '<span class="colore-grado" style="' . rank_color_style($coloreRel) . '">'
