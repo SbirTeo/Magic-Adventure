@@ -32,17 +32,17 @@ che resti cosi'.
 MagixFactions ─┐
 MagixAuth      │   ognuno scrive
 MagixEntities  ├─→ plugins/<Nome>/guida-staff.html ─→ MagixWeb ─→ magicadventure_web.guide_staff
-MagixTime      │                                     (GuidaSync)              │
+MagixTime      │                                     (GuideSync)              │
 MagixWeb       │                                                              v
 MagixGuard    ─┘                                   /manage.php?section=guida  (gestionale)
 ```
 
-- `GuidaStaff` e' la classe comune, **stesso file in ogni plugin** con il solo `package` diverso:
-  `src/main/java/com/teolo/<plugin>/util/GuidaStaff.java`. Stessa regola di `Aiuto` (vedi
+- `StaffGuide` e' la classe comune, **stesso file in ogni plugin** con il solo `package` diverso:
+  `src/main/java/com/teolo/<plugin>/util/StaffGuide.java`. Stessa regola di `Help` (vedi
   [STILE-MAGIX.md](STILE-MAGIX.md)): la si modifica in uno, si riporta in tutti.
 - Ogni plugin, in fondo a `onEnable()`, compone il capitolo e lo scrive nella **propria cartella**
   come `guida-staff.html`, con un'intestazione fra commenti (`titolo`, `versione`, `ordine`).
-- `GuidaSync` di MagixWeb passa in rassegna le cartelle dei plugin, legge i capitoli e li riversa
+- `GuideSync` di MagixWeb passa in rassegna le cartelle dei plugin, legge i capitoli e li riversa
   nella tabella: una sola penna sul database del sito, come per le sanzioni.
 
 **Perche' un file e non un servizio Bukkit.** Un servizio avrebbe richiesto che i plugin si
@@ -51,7 +51,7 @@ di MagixWeb non troverebbe nessuno a cui consegnare. Col file non conta l'ordine
 MagixWeb e' spento, e se un capitolo non arriva sul sito resta li' sul disco da guardare — che e'
 esattamente cio' che serve quando qualcosa non torna.
 
-**README e guida sono la stessa cosa.** `GuidaStaff.scrivi()` emette **due formati dello stesso
+**README e guida sono la stessa cosa.** `StaffGuide.write()` emette **due formati dello stesso
 testo**: `guida-staff.html` per il sito e `README.md` per chi guarda i file del server. La vecchia
 copia del README dal jar e' stata tolta da tutti i plugin — era proprio quella a permettere che i
 due divergessero. Non vanno riallineati a mano perche' non possono disallinearsi.
@@ -66,7 +66,7 @@ Sono due pubblici diversi e due testi diversi (vedi la sezione 7).
 Ogni capitolo ha la stessa ossatura, cosi' lo staff sa sempre dove guardare:
 
 1. **A cosa serve** - due righe oneste, in italiano, senza gergo.
-2. **Comandi** - tabella generata da `plugin.yml` e dalle voci di `Aiuto`: comando, cosa fa,
+2. **Comandi** - tabella generata da `plugin.yml` e dalle voci di `Help`: comando, cosa fa,
    permesso, esempio. Non puo' divergere dal codice perche' e' il codice a fornirla.
 3. **Chi puo' fare cosa** - i permessi raggruppati per grado LuckPerms, con i tetti dove esistono
    (in MagixGuard: fino a che durata puo' sanzionare ogni grado).
@@ -78,19 +78,19 @@ Ogni capitolo ha la stessa ossatura, cosi' lo staff sa sempre dove guardare:
    deploy viene resettato dal sorgente".
 
 I punti 1, 5 e 6 sono prosa scritta a mano, ma vive **nel sorgente del plugin**, nella chiamata a
-`GuidaStaff` in fondo a `onEnable()`: si aggiorna nella stessa commit della funzione che descrive.
+`StaffGuide` in fondo a `onEnable()`: si aggiorna nella stessa commit della funzione che descrive.
 I punti 2, 3 e 4 sono generati e non si scrivono affatto.
 
 ```java
-GuidaStaff.crea(this, "MagixTime — ora, stagioni e meteo reali", 60)
+StaffGuide.create(this, "MagixTime — ora, stagioni e meteo reali", 60)
         .intro("A cosa serve, in due righe oneste.")
-        .sezione("Come funziona", "…")
-        .comandi()          // tabella da plugin.yml
-        .permessi()         // tabella da plugin.yml
-        .impostazioni("time.timezone", "cosa cambia")   // TUTTE le chiavi, col valore ORA in uso
-        .guasto("Il problema tipico", "Cosa fare")
-        .mai("La trappola da non fare")
-        .scrivi();
+        .section("Come funziona", "…")
+        .commands()        // tabella da plugin.yml
+        .permissions()     // tabella da plugin.yml
+        .settings("time.timezone", "cosa cambia")   // TUTTE le chiavi, col valore ORA in uso
+        .issue("Il problema tipico", "Cosa fare")
+        .never("La trappola da non fare")
+        .write();
 ```
 
 ---
@@ -216,7 +216,7 @@ di trovare queste cose:
    plugin di destinazione (e' gia' successo di sovrascrivere una classe omonima).
 4. **I numeri nelle guide non si scrivono a mano**: si usano i segnaposto `{{cfg:chiave}}`,
    `{{secondi:chiave}}`, `{{ore:chiave}}`, `{{percento:chiave}}`, `{{simbolo:chiave}}`, e si aggancia
-   la guida al config con `GuidaStaff.crea(...).valori(new ValoriConfig(this))`. Un segnaposto senza
+   la guida al config con `StaffGuide.create(...).values(new ConfigValues(this))`. Un segnaposto senza
    valore resta visibile come `{{...}}` e finisce nel log all'avvio. **Nemmeno le FRASI che descrivono
    una modalita'**: quelle stanno dentro un blocco `{{se:map.mode=chat}} …testo… {{/se}}`, che sparisce
    quando il config dice altro (con `!=` per «in tutti gli altri casi»); i blocchi si annidano. Due
@@ -226,10 +226,10 @@ di trovare queste cose:
    dichiara scrivendo `[solo staff]` nel commento della chiave.
 5. **Il comando di reload, se c'e', riscrive le guide** (vedi `MagixFactions.riscriviGuide()`):
    altrimenti si cambia un valore e la documentazione resta indietro fino al riavvio.
-6. **Tabella delle impostazioni nella guida staff**: `.impostazioni(...)` elenca **TUTTE** le chiavi
+6. **Tabella delle impostazioni nella guida staff**: `.settings(...)` elenca **TUTTE** le chiavi
    del `config.yml` — nessuna esclusa — con il valore vivo (*"Ora vale"*) e la spiegazione presa dal
    **commento della chiave nel config**. Non e' piu' un elenco scelto a mano: le coppie che si passano
    servono solo a dare una spiegazione migliore alle chiavi che lo staff tocca ogni giorno, tutte le
    altre compaiono comunque. Quindi **una chiave nuova nel config e' documentata dal momento in cui
    esiste**, e il commento che deve avere (regola 1) e' anche la sua voce di guida. Per un secondo file
-   di config c'e' `.impostazioniDa(conf, "titolo")` (le sanzioni di MagixGuard).
+   di config c'e' `.settingsFrom(conf, "titolo")` (le sanzioni di MagixGuard).

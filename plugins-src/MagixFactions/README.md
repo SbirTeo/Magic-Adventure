@@ -382,7 +382,7 @@ Quindi la si ferma alzando il cap (**invitando un membro**) o abbassando i terri
 (`docs/build_tutorial.py` → `tutorial.html`) e il capitolo della **guida per lo staff** sul sito contengono
 segnaposto — `{{cfg:power.max}}`, `{{secondi:power.gain-interval-seconds}}`, `{{ore:decay.grace-hours}}`,
 `{{percento:claims.max-percent}}` — che il plugin sostituisce **all'avvio** leggendo il `config.yml` vero
-(`util/ValoriConfig` + `MagixFactions.valoriGuide()`). Quindi cambiando una chiave del config, guida e
+(`util/ConfigValues` + `MagixFactions.guideValues()`). Quindi cambiando una chiave del config, guida e
 tutorial si aggiornano **da soli** al riavvio successivo: non possono più raccontare valori vecchi.
 - Per una chiave nuova **non serve toccare il codice Java**: basta scrivere il segnaposto nel testo.
 - Anche i **pezzi di testo** che valgono solo in certe configurazioni seguono il config, con i blocchi
@@ -394,7 +394,7 @@ tutorial si aggiornano **da soli** al riavvio successivo: non possono più racco
 - `{{simbolo:map.chat.symbols.you}}` mette il valore **senza i codici colore** (`&f&l+` → `+`): serve per i
   simboli del config quando finiscono in un testo scritto.
 - I testi *derivati* (frasi che cambiano forma — non un semplice «c'è / non c'è») si passano da
-  `valoriGuide()` con `ValoriConfig.extra(...)`, es. la perdita da offline con `amount: 0`.
+  `guideValues()` con `ConfigValues.extra(...)`, es. la perdita da offline con `amount: 0`.
 - Un segnaposto senza valore resta visibile come `{{...}}` **e viene segnalato nel log** all'avvio.
 - **La tabella «Impostazioni» della guida per lo staff elenca TUTTE le chiavi del config**, non piu' un
   gruppetto scelto a mano: chiave, valore in uso adesso e spiegazione presa dal **commento della chiave
