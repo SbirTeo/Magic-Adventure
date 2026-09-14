@@ -29,6 +29,10 @@ on:
         description: "Quante righe di log mostrare"
         required: false
         default: "120"
+      storico:
+        description: "si = cerca anche nei log vecchi (logs/*.log.gz), no = solo latest.log"
+        required: false
+        default: "si"
 
 concurrency:
   group: diagnostica-vps
@@ -62,6 +66,7 @@ jobs:
           IN_FILE: ${{ inputs.file }}
           IN_GREP: ${{ inputs.grep }}
           IN_RIGHE: ${{ inputs.righe }}
+          IN_STORICO: ${{ inputs.storico }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
@@ -69,7 +74,7 @@ jobs:
           FILE_B64="$(printf '%s' "${IN_FILE:-}" | base64 -w0)"
           GREP_B64="$(printf '%s' "${IN_GREP:-}" | base64 -w0)"
           ssh -i "$KEY" -o StrictHostKeyChecking=yes "$DEST" \
-            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' bash -s" <<'REMOTE'
+            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' bash -s" <<'REMOTE'
           set -uo pipefail
           PLUGIN="$(printf '%s' "$PLUGIN_B64" | base64 -d)"
           FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
@@ -102,13 +107,29 @@ jobs:
             tail -n 400 "$BASE/plugins/$PLUGIN/$FILE" 2>/dev/null || echo "(file assente)"
           fi
 
-          echo
-          echo "=== LOG: righe che parlano di '$CERCA' (ultime $RIGHE) ==="
-          grep -a -i -- "$CERCA" "$LOG" 2>/dev/null | tail -n "$RIGHE" || echo "(nessuna riga)"
+          # I log ruotano a ogni riavvio: latest.log copre solo l'ultima accensione, quindi
+          # di default si guarda anche nei .log.gz di prima (la sessione cerca spesso qualcosa
+          # successo PRIMA dell'ultimo riavvio).
+          VECCHI=""
+          if [ "${STORICO:-si}" = "si" ]; then
+            VECCHI="$(ls -t "$BASE/logs"/*.log.gz 2>/dev/null | head -n 8 | tr '\n' ' ')"
+          fi
+          echo "Log esaminati: latest.log $VECCHI"
+
+          cerca_tutto() {  # $1 = regex estesa, case-insensitive
+            grep -a -i -H -E -- "$1" "$LOG" 2>/dev/null
+            [ -n "$VECCHI" ] && zgrep -a -i -H -E -- "$1" $VECCHI 2>/dev/null
+            return 0
+          }
 
           echo
-          echo "=== LOG: errori ed eccezioni (ultime $RIGHE) ==="
-          grep -a -n -E "ERROR|WARN|Exception|Error:|at com\.teolo" "$LOG" 2>/dev/null | tail -n "$RIGHE" || echo "(nessuna riga)"
+          echo "=== LOG: righe che parlano di '$CERCA' (ultime $RIGHE) ==="
+          cerca_tutto "$CERCA" | tail -n "$RIGHE"
+
+          echo
+          echo "=== LOG: errori ed eccezioni dei plugin Magix (ultime $RIGHE) ==="
+          cerca_tutto "ERROR|Exception|Caused by|at com\.teolo|Could not pass event|Unhandled exception" \
+            | grep -av "Unknown minor version" | tail -n "$RIGHE"
           REMOTE
 
       - name: Rimuovi la chiave dal runner
