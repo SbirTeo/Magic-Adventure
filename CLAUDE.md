@@ -98,6 +98,45 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
   `{rank}` dentro `public-format` senza perdere il resto del formato: `key=public-format`,
   `value={rank}`, `mode=insert-after`, `marker=[`.
 
+## GUIDA E TUTORIAL SEMPRE AGGIORNATI (obbligatorio a ogni modifica)
+
+Ogni modifica che cambia **comportamento, comandi, permessi, regole o chiavi di config** va
+riflessa nelle guide **nella stessa sessione**: una guida vecchia è peggio di nessuna guida.
+Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigenera da sola.
+
+1. **Tutorial dei giocatori** (`/tutorial` sul sito). Fonte **unica**:
+   `plugins-src/MagixFactions/docs/build_tutorial.py` → `docs/tutorial.html` → dentro il jar
+   (vedi `pom.xml`, resource `docs/tutorial.html`) → il plugin lo riscrive **risolto** in
+   `plugins/MagixFactions/` a ogni avvio → un guardiano systemd sul VPS (`sync-guida.path`) lo
+   copia nel sito. Quindi: si modifica **solo** `build_tutorial.py`, poi si rigenera con
+   `python plugins-src/MagixFactions/docs/build_tutorial.py` e si **committa anche il
+   `tutorial.html` generato** (è quello che finisce nel jar).
+   - **Mai** modificare `tutorial.html` a mano: alla prima rigenerazione le modifiche spariscono.
+   - **Mai** copiare `docs/tutorial.html` sul VPS: è un modello pieno di segnaposto che solo il
+     plugin sa risolvere. L'unico modo giusto di allineare il sito è far ripartire il server.
+2. **Guida per lo staff** (gestionale, `/manage.php?section=guida`). La scrive **il plugin stesso**
+   a ogni avvio/`reload` (classe comune `GuidaStaff`, un capitolo per plugin) → MagixWeb
+   (`GuidaSync`) → tabella `guide_staff`. Non si scrive a mano: si aggiorna il codice che la
+   compone. Vedi `plugins-src/GUIDA-STAFF.md`.
+3. **Niente numeri e testi scritti a mano** quando dipendono dal config: si usano i segnaposto
+   `{{cfg:...}}`, `{{secondi:...}}`, `{{ore:...}}`, `{{percento:...}}`, `{{simbolo:...}}` e i
+   blocchi condizionali `{{se:chiave=valore}} ... {{/se}}` (annidabili, `!=` per «in tutti gli
+   altri casi»). Per una chiave nuova **non serve toccare il Java**: basta il segnaposto nel testo.
+   Si mette mano al testo solo quando cambia la **regola**, non il valore.
+4. **Verifica**: dopo la rigenerazione, controlla che nel tutorial non restino **numeri scritti a
+   mano** che coincidono con valori del `config.yml` e che non sia rimasto nessun `{{...}}` non
+   risolto (il plugin li segnala anche nel log all'avvio). Il controllo automatico
+   `controlla-config.py` (regola **[6]**, citato nel README di MagixFactions) **non è versionato**:
+   se non c'è nel repo, la verifica va fatta a mano.
+5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
+   plugin e i `docs/` relativi, nello stesso commit della modifica.
+6. **Come si porta live**:
+   - Sessioni **locali**: `powershell -File website\aggiorna-tutorial.ps1` fa tutta la catena
+     (rigenera, compila, copia il jar, riavvia, verifica).
+   - Sessioni **cloud**: rigenera il tutorial, committa `build_tutorial.py` + `tutorial.html` e
+     pusha su `main`: l'auto-deploy dei plugin ricompila il jar, lo copia sul VPS e **riavvia il
+     server**, quindi la guida risolta e il sito si aggiornano da soli.
+
 ## Note
 
 - `.claude/settings.local.json` è per-macchina e non va versionato (vedi `.gitignore`).
