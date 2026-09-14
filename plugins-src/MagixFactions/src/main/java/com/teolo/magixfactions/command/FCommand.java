@@ -1513,9 +1513,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (targetPlayer != null) {
             double rz = power.getResolvedZoomFactor(target);
             maps.updateScale(targetPlayer, rz, com.teolo.magixfactions.map.MapService.itemName(plugin, rz));
-            // La minimap deve SEMPRE mostrare la stessa area della mappa cartacea: se e' gia' attiva,
-            // riattivarla la ricrea con lo zoom appena cambiato.
-            if (minimap.isActive(targetPlayer)) minimap.activate(targetPlayer);
+            // La minimap HUD NON va ricreata: legge lo zoom risolto LIVE a ogni refresh (vedi
+            // MinimapManager.refreshContent/refreshDetached), quindi si allinea da sola al nuovo zoom
+            // entro un tick di refresh, in pari passo con la mappa-item e la mappa in chat.
         }
         String label = com.teolo.magixfactions.map.MapService.formatZoom(power.getResolvedZoomFactor(target));
         msg(s, M.get(reset ? "admin.setmap-reset" : "admin.setmap-ok", "player", a[2], "zoom", label));

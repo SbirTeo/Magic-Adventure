@@ -413,7 +413,10 @@ public final class PowerManager {
         pp.minimapHidden = hidden;
         save(p.getUniqueId());
         if (minimapManager == null || !minimapManager.isAvailable()) return;
-        if (canUseMinimap(p)) reattachMinimap(p);
+        // Accensione da COMANDO (/f minimap on): attiva SUBITO, senza i ~3s di ritardo del login — a
+        // partita in corso i chunk sono gia' caricati, il ritardo servirebbe solo a far sembrare il
+        // comando "lento". Lo spegnimento e' immediato per definizione.
+        if (canUseMinimap(p)) reattachMinimap(p, 0L);
         else if (minimapManager.isActive(p)) minimapManager.deactivate(p);
     }
 
@@ -424,25 +427,35 @@ public final class PowerManager {
      * (stesso principio del remount dopo teleport in {@code MinimapListener}). Non fa nulla se il
      * giocatore non ha il permesso o se ProtocolLib non e' disponibile.
      */
-    public void reattachMinimap(Player p) {
+    public void reattachMinimap(Player p) { reattachMinimap(p, 60L); }
+
+    /**
+     * Come {@link #reattachMinimap(Player)} ma con ritardo scegliibile. {@code delayTicks} &gt; 0 rimanda
+     * l'attivazione (usato al login/reload: vedi sotto); {@code delayTicks <= 0} attiva al tick successivo
+     * (usato dal comando {@code /f minimap on}, dove il ritardo del login e' solo fastidioso).
+     */
+    public void reattachMinimap(Player p, long delayTicks) {
         if (minimapManager == null || !minimapManager.isAvailable()) return;
         if (!canUseMinimap(p)) return;
         // Un'attivazione alla volta: la riconciliazione periodica di tickOnline() ripassa ogni pochi
         // secondi e senza questo segnaposto rischierebbe di accodare piu' attivazioni per lo stesso
         // giocatore mentre la prima e' ancora nei 60 tick di attesa.
         if (!minimapPending.add(p.getUniqueId())) return;
-        // 60 tick (~3s) di ritardo: al PRIMO login dopo un riavvio il server sta gia' caricando i chunk
-        // attorno al giocatore (spike di TPS inerente). Attivare la minimap subito ci sommava sopra il
-        // costo del primo render (campionamento chunk + pixel). Ritardando, il caricamento chunk si
-        // assesta prima e i due costi non si accavallano nel momento peggiore (l'HUD compare ~3s dopo).
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        // 60 tick (~3s) di ritardo AL LOGIN/RELOAD: al PRIMO login dopo un riavvio il server sta gia'
+        // caricando i chunk attorno al giocatore (spike di TPS inerente). Attivare la minimap subito ci
+        // sommava sopra il costo del primo render (campionamento chunk + pixel). Ritardando, il caricamento
+        // chunk si assesta prima e i due costi non si accavallano nel momento peggiore. Da COMANDO invece
+        // (delayTicks<=0) non c'e' spike: si attiva subito, cosi' /f minimap on non sembra "lento".
+        Runnable run = () -> {
             minimapPending.remove(p.getUniqueId());
             if (!p.isOnline() || !canUseMinimap(p)) return;
             // Col pack OBBLIGATORIO l'ha gia' ricevuto al join (ResourcePackListener): rimandarlo qui
             // sarebbe un doppione che fa ripartire inutilmente il ciclo richiesta/esito sul client.
             if (resourcePack != null && resourcePack.isAvailable() && !resourcePack.isRequired()) resourcePack.sendTo(p);
             minimapManager.activate(p);
-        }, 60L);
+        };
+        if (delayTicks <= 0) Bukkit.getScheduler().runTask(plugin, run);
+        else Bukkit.getScheduler().runTaskLater(plugin, run, delayTicks);
     }
 
     // ------------------------------ EVENTI -------------------------------
