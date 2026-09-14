@@ -87,9 +87,16 @@ si aggiorna anche il file sul VPS.
 Per farlo — da qualsiasi sessione, cloud inclusa — c'è il workflow manuale
 `.github/workflows/deploy-plugin-config.yml`: modifica **solo la riga della chiave indicata**
 (lascia intatto il resto del file e i commenti, fa un backup timestampato) e poi ricarica il
-plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `file`, `key`
-(nome-foglia, es. `ally-prefix`), `value` (il nuovo valore, virgolette comprese) e
-`reload_cmd` (default `mf reload`). Usa gli stessi secret VPS del deploy sito/plugin.
+plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `file`, `key`,
+`value` e `reload_cmd` (default `mf reload`). Usa gli stessi secret VPS del deploy sito/plugin.
+
+- `key` può essere un **nome-foglia** (es. `ally-prefix`) o un **percorso annidato** (es.
+  `leader.tag`): nel secondo caso la foglia viene cercata solo dentro il blocco del genitore,
+  così si colpisce `leader.tag` senza toccare i vari `tag:` dei ranks che vengono prima.
+- `mode`: `set` (default, sostituisce il valore) oppure `insert-after` — inserisce `value`
+  subito dopo `marker` nel valore esistente, senza riscriverlo (idempotente). Es. per aggiungere
+  `{rank}` dentro `public-format` senza perdere il resto del formato: `key=public-format`,
+  `value={rank}`, `mode=insert-after`, `marker=[`.
 
 ## Note
 
