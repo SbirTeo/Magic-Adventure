@@ -149,6 +149,9 @@ claim:
   # Allerta mostrata a TUTTO il server (titolo a schermo + suono) a un overclaim di guerra.
   overclaim-alert-title: "&4&l⚔ TERRITORIO CONQUISTATO ⚔"
   overclaim-alert-subtitle: "&e{attacker} &7ha strappato un territorio a &c{victim} &7(&f{x}, {z}&7)"
+  # Mostrati quando il territorio conquistato conteneva la HOME della fazione nemica (che quindi la perde).
+  overclaim-home-taken: "&aHai conquistato anche la &eHOME&a di &e{name}&a: non potranno piu' teletrasportarsi qui."
+  overclaim-home-lost: "&4&lLa vostra HOME era in quel territorio ed e' andata persa!&c Impostatene una nuova con &e/f sethome&c."
 
 # Area protetta dello spawn (config claims.protected-spawn): quadrato centrale dove non si fondano
 # fazioni ne' si conquistano territori. I blocchi NON sono protetti (si costruisce liberamente).
@@ -164,9 +167,10 @@ unclaim:
 
 unclaimall:
   none: "&cLa tua fazione non possiede territori."
-  confirm-title: "&c&l⚠ ATTENZIONE ⚠"
-  confirm-subtitle: "&cRilasci TUTTI i &e{count}&c territori? E' IRREVERSIBILE"
   confirm-chat: "&cStai per rilasciare TUTTI i &e{count}&c territori della fazione. &4Azione irreversibile.&c Riesegui &e/f unclaimall &centro 10 secondi per confermare."
+  # Titolo a schermo + suono mostrati ALLA CONFERMA (secondo comando), quando l'azione avviene davvero.
+  done-title: "&c&l⚠ TERRITORI RILASCIATI ⚠"
+  done-subtitle: "&7Hai rilasciato tutti i &e{count}&7 territori della fazione"
   success: "&aRilasciati tutti i &e{count}&a territori della fazione."
 
 # Proprietario della land (/f owner). Solo il leader lo imposta; nel chunk con proprietario interagiscono

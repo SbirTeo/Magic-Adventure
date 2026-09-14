@@ -643,6 +643,15 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     "x", String.valueOf(cx), "z", String.valueOf(cz)));
             broadcast(enemy, M.get("claim.overclaimed-victim", "name", cname(enemy, f),
                     "x", String.valueOf(cx), "z", String.valueOf(cz)));
+            // Se il territorio strappato conteneva la HOME della fazione nemica, gliela togliamo: senza,
+            // i suoi membri continuerebbero a fare /f home teletrasportandosi dentro un territorio ormai
+            // NOSTRO (segnalato dall'utente). La home va reimpostata con /f sethome in un loro territorio.
+            String claimedKey = world + ":" + cx + ":" + cz;
+            if (claimedKey.equals(fm.homeChunkKey(enemy.getId()))) {
+                fm.unsetHome(enemy);
+                msg(p, M.get("claim.overclaim-home-taken", "name", cname(p, enemy)));
+                broadcast(enemy, M.get("claim.overclaim-home-lost"));
+            }
             announceOverclaim(f, enemy, cx, cz); // allerta a schermo + suono a TUTTO il server
         } else {
             msg(p, M.get("claim.success", "x", String.valueOf(cx), "z", String.valueOf(cz),
@@ -709,6 +718,13 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             // territori (letta PRIMA della rimozione). Va alla banca della fazione.
             double refund = unclaimRefund(claims.paidTotal(f.getId()));
             int removed = claims.removeAll(f.getId());
+            // Avviso a centro schermo + suono ALLA CONFERMA (secondo comando): e' qui che l'azione
+            // irreversibile avviene davvero, non al primo /f unclaimall (che chiede solo conferma).
+            String title = org.bukkit.ChatColor.translateAlternateColorCodes('&', M.get("unclaimall.done-title"));
+            String sub = org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                    M.get("unclaimall.done-subtitle", "count", String.valueOf(removed)));
+            p.sendTitle(title, sub, 10, 70, 20);
+            playUnclaimAllSound(p);
             msg(p, M.get("unclaimall.success", "count", String.valueOf(removed)));
             if (refund > 0) {
                 fm.setBank(f, f.getBank() + refund);
@@ -717,19 +733,20 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             return true;
         }
 
+        // Primo comando: SOLO la richiesta di conferma in chat. Niente titolo a schermo ne' suono: quelli
+        // arrivano alla conferma (secondo comando), quando i territori vengono davvero rilasciati.
         unclaimAllConfirm.put(p.getUniqueId(), now);
-        String title = org.bukkit.ChatColor.translateAlternateColorCodes('&', M.get("unclaimall.confirm-title"));
-        String sub = org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                M.get("unclaimall.confirm-subtitle", "count", String.valueOf(owned)));
-        p.sendTitle(title, sub, 10, 70, 20);
         msg(p, M.get("unclaimall.confirm-chat", "count", String.valueOf(owned)));
-        String sound = plugin.getConfig().getString("claims.unclaim-all-confirm-sound", "entity.wither.spawn");
-        if (sound != null && !sound.isEmpty()) {
-            float vol = (float) plugin.getConfig().getDouble("claims.unclaim-all-confirm-sound-volume", 1.0);
-            float pitch = (float) plugin.getConfig().getDouble("claims.unclaim-all-confirm-sound-pitch", 1.0);
-            try { p.playSound(p.getLocation(), sound, vol, pitch); } catch (Exception ignored) {}
-        }
         return true;
+    }
+
+    /** Suono dell'unclaimall CONFERMATO (config claims.unclaim-all-confirm-sound / -volume / -pitch). */
+    private void playUnclaimAllSound(Player p) {
+        String sound = plugin.getConfig().getString("claims.unclaim-all-confirm-sound", "entity.wither.spawn");
+        if (sound == null || sound.isEmpty()) return;
+        float vol = (float) plugin.getConfig().getDouble("claims.unclaim-all-confirm-sound-volume", 1.0);
+        float pitch = (float) plugin.getConfig().getDouble("claims.unclaim-all-confirm-sound-pitch", 1.0);
+        try { p.playSound(p.getLocation(), sound, vol, pitch); } catch (Exception ignored) {}
     }
 
     /**
