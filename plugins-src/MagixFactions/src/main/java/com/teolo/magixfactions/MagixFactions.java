@@ -522,11 +522,16 @@ public final class MagixFactions extends JavaPlugin {
                                 + "danno crediti a vicenda (same-ip-no-credit, contro i doppi account). Un'uccisione non "
                                 + "valida non conta né come kill né come morte: il K/D resta pulito. Se qualcuno si "
                                 + "lamenta che «le uccisioni non salgono», quasi sempre sta ricadendo in uno di questi tre.",
-                        "Le classifiche **GIOCATORE** sul sito sono tre: **TEMPO DI GIOCO** (secondi passati online), "
-                                + "**RICCHEZZA MEDIA** (giacenza media personale, misurata come quella della banca: solo "
-                                + "sul tempo online, così parcheggiare soldi da offline non la gonfia) e **UCCISIONI/K-D**. "
-                                + "Tutto parte dall'aggiornamento del plugin: non c'è storico passato da recuperare, i "
-                                + "conteggi cominciano da adesso e si assestano col tempo.")
+                        "Le classifiche **GIOCATORE** sul sito sono tre: **TEMPO DI GIOCO**, **RICCHEZZA MEDIA** "
+                                + "(giacenza media personale, misurata come quella della banca: solo sul tempo online, "
+                                + "così parcheggiare soldi da offline non la gonfia) e **UCCISIONI/K-D**.",
+                        "**Le tre non partono dallo stesso punto**, ed è la domanda che arriva. Dalla v0.47.2 il "
+                                + "TEMPO DI GIOCO è il **totale vero** del giocatore, letto dalla statistica vanilla di "
+                                + "Minecraft: comprende anche le ore giocate PRIMA che il plugin esistesse. Uccisioni, "
+                                + "morti e ricchezza media invece partono dall'aggiornamento del plugin — lì storico da "
+                                + "recuperare non ce n'è, i conteggi cominciano da quel momento e si assestano col tempo. "
+                                + "Quindi un giocatore di vecchia data può stare in cima al tempo di gioco e avere zero "
+                                + "uccisioni: è giusto così, non è un dato perso.")
 
                 .section("Valore in minerali",
                         "Il **VALORE** di una fazione è la somma del valore dei blocchi di minerale piazzati DENTRO "
