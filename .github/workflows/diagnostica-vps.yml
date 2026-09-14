@@ -130,6 +130,9 @@ jobs:
           echo "=== LOG: errori ed eccezioni dei plugin Magix (ultime $RIGHE) ==="
           cerca_tutto "ERROR|Exception|Caused by|at com\.teolo|Could not pass event|Unhandled exception" \
             | grep -av "Unknown minor version" | tail -n "$RIGHE"
+          # Nessuna riga trovata non e' un errore: senza questo il passo risulterebbe fallito
+          # solo perche' l'ultimo grep non ha trovato niente (che di solito e' una buona notizia).
+          exit 0
           REMOTE
 
       - name: Rimuovi la chiave dal runner
