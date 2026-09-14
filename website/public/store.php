@@ -209,7 +209,8 @@ require __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <div class="store-griglia" id="storeGriglia">
+  <?php $storeCols = max(2, min(6, (int) site_setting('store_cols', '3'))); ?>
+  <div class="store-griglia" id="storeGriglia" style="--store-cols:<?= $storeCols ?>">
     <?php foreach ($perCategoria as $catId => $items): ?>
       <?php /* Each category is its own section (heading + a wrapping 3-per-row grid). Only one
                is shown at a time: clicking a button swaps which category is visible (the others

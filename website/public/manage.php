@@ -95,7 +95,7 @@ $adminOnlyActions = ['blog_purge', 'blog_settings_save', 'page_save', 'page_dele
                      'store_cat_save', 'store_cat_delete', 'store_pkg_save', 'store_pkg_delete',
                      'store_pkg_toggle', 'store_pkg_clone', 'store_pkg_deliver', 'store_reorder',
                      'store_settings_save', 'store_sidebar_save', 'store_sconto_save', 'goal_save',
-                     'store_filters_save', 'payments_save',
+                     'store_filters_save', 'store_layout_save', 'payments_save',
                      'otp_staff_save', 'otp_azzera', 'otp_revoca_gioco'];
 
 /**
@@ -1137,6 +1137,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $upd->execute([$chiave, ($_POST[$chiave] ?? '') === 'orizzontale' ? 'orizzontale' : 'verticale']);
             }
             redirect('/manage?section=store&ok=1#velo');
+        }
+
+        case 'store_layout_save': {
+            // Quante card per riga nella vetrina (desktop/tablet); i telefoni restano compatti.
+            $colonne = max(2, min(6, (int) ($_POST['store_cols'] ?? 3)));
+            db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)')
+                ->execute(['store_cols', (string) $colonne]);
+            redirect('/manage?section=store&ok=1#layout');
         }
 
         case 'store_filters_save': {
@@ -3051,6 +3059,24 @@ if ($section === 'dashboard') {
           </p>
         </div>
         <button type="submit" class="btn btn-accent">Salva obiettivo</button>
+      </form>
+    </div>
+
+    <div class="panel" id="layout" style="margin-bottom:18px; scroll-margin-top:96px;">
+      <h3 style="margin-top:0;">Layout della vetrina</h3>
+      <form method="post" class="stack">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="store_layout_save">
+        <div>
+          <label for="store_cols">Pacchetti per riga</label>
+          <input type="number" id="store_cols" name="store_cols" min="2" max="6" style="max-width:120px;"
+                 value="<?= h($imp['store_cols'] ?? '3') ?>">
+          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+            Quante card affiancare su computer e tablet (da 2 a 6). Sui telefoni le card restano
+            piccole e ordinate a prescindere.
+          </p>
+        </div>
+        <button type="submit" class="btn btn-green btn-small">Salva</button>
       </form>
     </div>
 
