@@ -56,8 +56,8 @@ Nel codice questo si traduce in due metodi distinti: `msg(...)` mette il prefiss
 
 ## 3. L'elenco dei comandi
 
-La classe `Aiuto` e' lo **stesso file** in ogni plugin (cambia solo il `package`):
-`src/main/java/com/teolo/<plugin>/util/Aiuto.java`. Modificandola in uno, va riportata
+La classe `Help` e' lo **stesso file** in ogni plugin (cambia solo il `package`):
+`src/main/java/com/teolo/<plugin>/util/Help.java`. Modificandola in uno, va riportata
 negli altri.
 
 Cosa fa:
@@ -117,7 +117,7 @@ Sempre gli stessi, cosi' si riconoscono a colpo d'occhio:
 
 ## 5. Come si prova senza avviare il server
 
-`Aiuto` non ha bisogno di un server: legge un `messages.yml` con `YamlConfiguration` e
+`Help` non ha bisogno di un server: legge un `messages.yml` con `YamlConfiguration` e
 scrive su un `CommandSender`. Per vedere l'impaginazione basta un `CommandSender` finto
 (un `Proxy` che stampa i componenti come testo) e il `target/classes` del plugin — utile
 per controllare dove cadono i tagli di pagina prima di caricare il jar.

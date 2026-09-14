@@ -741,7 +741,7 @@ public final class MagixFactions extends JavaPlugin {
     /**
      * Riscrive (sovrascrive) tutorial.html nella cartella del plugin a ogni avvio: la guida illustrata
      * per i giocatori, sempre allineata alla versione del jar (come il README, ma per i giocatori) E ai
-     * valori veri del config, sostituiti da {@link ConfigValues} (vedi {@link #valoriGuide()}).
+     * valori veri del config, sostituiti da {@link ConfigValues} (vedi {@link #guideValues()}).
      */
     private void writeTutorial() {
         try (java.io.InputStream in = getResource("tutorial.html")) {
