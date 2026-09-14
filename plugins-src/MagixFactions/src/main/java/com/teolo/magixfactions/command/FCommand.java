@@ -109,6 +109,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             if (!sender.hasPermission("magixfactions.admin")) { msg(sender, M.get("errors.no-permission")); return true; }
             plugin.reloadConfig();
             ranks.load(plugin.getConfig());
+            fm.syncRanksToDb(); // rispecchia i gradi aggiornati nella tabella per il sito
             M.reload();
             // Guide e tutorial riportano i valori del config: se cambia il config devono cambiare
             // anche loro, subito, senza aspettare il prossimo riavvio.
