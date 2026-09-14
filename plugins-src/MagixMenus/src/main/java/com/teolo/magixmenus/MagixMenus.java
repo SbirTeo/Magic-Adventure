@@ -124,7 +124,7 @@ public final class MagixMenus extends JavaPlugin {
      * non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
      */
     private void writeStaffGuide() {
-        StaffGuide.create(this, "MagixMenus — i menu del server", 70)
+        StaffGuide.create(this, "MagixMenus — i menu del server", 75)
                 .values(new ConfigValues(this))
                 .intro("Ogni menu del server e' un file in plugins/MagixMenus/menus/. Dentro c'e' che "
                         + "finestra si apre, quali item ci stanno, chi li vede e cosa succede quando si "
@@ -183,6 +183,13 @@ public final class MagixMenus extends JavaPlugin {
                         "Il prezzo compare da solo in fondo alla descrizione: NON va scritto anche a mano, "
                                 + "se no un domani lo cambi in un posto e non nell'altro. Le righe si "
                                 + "compongono in messages.yml sotto \"negozio\" e si spengono dal config.",
+                        "I prezzi si scrivono **interi**: l'economia del server non tiene i centesimi. Un "
+                                + "price o un sell con la virgola verrebbe arrotondato per difetto (10.5 pagato "
+                                + "10) e la descrizione direbbe un numero diverso da quello che si paga, quindi "
+                                + "dalla v0.1.4 il caricamento del menu lo SEGNALA nel log dicendo a quanto "
+                                + "verrebbe arrotondato. Il menu si apre lo stesso: e' un avviso, non un errore. "
+                                + "I valori con un %placeholder% dentro non vengono controllati, perche' il loro "
+                                + "numero si conosce solo in gioco.",
                         "L'ordine dei controlli e' voluto: prima il posto in inventario, poi i soldi. Al "
                                 + "contrario, chi ha l'inventario pieno pagherebbe senza ricevere niente.",
                         "Se all'articolo servono anche delle azioni (dare un permesso, annunciare in chat), "

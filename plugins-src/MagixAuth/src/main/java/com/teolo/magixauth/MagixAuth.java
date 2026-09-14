@@ -170,6 +170,18 @@ public final class MagixAuth extends JavaPlugin {
                                 + "che qualcuno si prenda il nome di un giocatore premium che potrebbe arrivare "
                                 + "dopo.")
 
+                .section("Le skin non si perdono al riavvio",
+                        "Le skin buone prese da Mojang vengono scritte su disco, in **skins.tsv** nella cartella "
+                                + "del plugin, e rilette all'avvio. Prima (fino alla v0.7.13) stavano solo in "
+                                + "memoria: dopo ogni riavvio la memoria era vuota, e chi rientrava per primo — "
+                                + "quando Mojang e' lento o non risponde — si ritrovava addosso la skin di uno "
+                                + "sconosciuto. Adesso, finche' il file c'e', la skin giusta e' gia' li'.",
+                        "Sempre all'avvio, se premium.skin_from_mojang e' acceso, si apre **a vuoto** un "
+                                + "collegamento verso Mojang: il primo collegamento sicuro della JVM e' il piu' "
+                                + "lento, e cosi' non lo paga il primo giocatore che entra. Il file si riscrive da "
+                                + "solo: **non va modificato a mano**, e cancellarlo non rompe niente — si "
+                                + "ricostruisce, ma torna il rischio del primo ingresso a freddo.")
+
                 .subcommands("I comandi di amministrazione (/mauth)",
                         "/mauth info <nome>", "Stato di quell'account: se è registrato, quando è entrato l'ultima volta, se ha la verifica attiva.",
                         "/mauth setspawn", "Fissa il cancello di login dove sei: chi deve autenticarsi comparirà lì (utile se lo spawn è quello di CMI, diverso da /setworldspawn).",
@@ -198,7 +210,10 @@ public final class MagixAuth extends JavaPlugin {
                                 + "nessuno. Se la richiesta a Mojang non riesce, chi entra da un launcher non "
                                 + "ufficiale si ritrova la skin che quel launcher tiene registrata per quel "
                                 + "nickname: quella di uno sconosciuto. Nel log c'è la riga «skin di ... non "
-                                + "recuperata»; si riprova da sola al prossimo ingresso.")
+                                + "recuperata»; si riprova da sola al prossimo ingresso. "
+                                + "Dalla v0.7.14 succede molto più di rado, perché l'ultima skin buona è salvata "
+                                + "in skins.tsv e viene riusata quando Mojang non risponde: se il guasto capita "
+                                + "ancora, guarda se quel file c'è ed è scrivibile.")
                 .issue("«Ho cambiato skin su minecraft.net ma in gioco è ancora la vecchia»",
                         "La skin viene tenuta da parte per premium.skin_cache_minutes minuti. Basta aspettare "
                                 + "quel tempo e rientrare: non serve riavviare il server.")

@@ -561,6 +561,24 @@ public final class MagixFactions extends JavaPlugin {
                                 + "magixfactions.resourcepack.bypass serve a chi deve entrare senza — prove, riprese, "
                                 + "ospiti di passaggio.")
 
+                .section("Il logo del server nel tablist",
+                        "Il logo che si vede in cima alla lista giocatori (tasto Tab) è un **carattere**, non "
+                                + "un'immagine: il pacchetto risorse aggiunge un glifo bitmap al font di gioco, e chi "
+                                + "scrive quel carattere si ritrova il logo. Il pacchetto lo costruisce questo plugin, "
+                                + "quindi il logo vive qui anche se il tablist è di un altro.",
+                        "**Chi lo mette dove**: la riga del tablist è di **MagixEssentials** (segnaposto {logo} nel "
+                                + "suo header) o, se il tablist è ancora quello di CMI, del suo TabList.yml. "
+                                + "Dimensione e posizione invece stanno **solo qui**, in "
+                                + "**tablist.logo.height** (grandezza in pixel: {{cfg:tablist.logo.height}} ora) e "
+                                + "**tablist.logo.ascent** (quanto sale sopra la riga: {{cfg:tablist.logo.ascent}}). "
+                                + "Regola di Minecraft: ascent non può superare height, se no il pacchetto è invalido "
+                                + "e il gioco lo rifiuta in blocco — il plugin li corregge da solo entro i limiti.",
+                        "**Cambiarli richiede un riavvio**: il pacchetto viene ricostruito e rimandato ai client, "
+                                + "non basta un reload.",
+                        "**La texture deve stare sotto i 256 pixel** di lato. Più grande, il gioco non la disegna "
+                                + "affatto e al posto del logo resta un quadratino: è stato il guasto di v0.53.0, "
+                                + "risolto in v0.53.1 rimpicciolendo il file, non cambiando il config.")
+
                 .section("Dati di test (prima dell'apertura)",
                         "Per non presentare un server e un sito **VUOTI** prima dell'apertura al pubblico si "
                                 + "possono generare fazioni e giocatori FINTI con /mf admin fake create [quante] "

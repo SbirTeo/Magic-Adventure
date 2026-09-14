@@ -134,13 +134,21 @@ Una riga per plugin, sovrascritta a ogni avvio: non serve storico, la verita' e'
 
 | Plugin | Ordine | Stato |
 |---|---|---|
-| MagixGuard | 10 | **in linea** (v0.3.1) |
-| MagixAuth | 20 | **in linea** (v0.7.1) |
-| MagixFactions | 30 | **in linea** (v0.43.0) |
-| MagixWeb | 40 | **in linea** (v0.12.0) |
-| MagixTime | 60 | **in linea** (v0.4.0) |
-| MagixEntities | 70 | **in linea** (v0.9.0) |
-| AutoBackup / CustomMOTD | 80-90 | da fare: non sono "Magix" ma sono nostri, stesso trattamento |
+| MagixGuard | 10 | **in linea** |
+| MagixAuth | 20 | **in linea** |
+| MagixFactions | 30 | **in linea** |
+| MagixWeb | 40 | **in linea** |
+| MagixTime | 60 | **in linea** |
+| MagixEntities | 70 | **in linea** |
+| MagixMenus | 75 | **in linea** |
+| MagixCosmetics | 80 | **in linea** |
+| MagixEssentials | 90 | **in linea** (dal 2026-09-14) |
+| AutoBackup / CustomMOTD | 100-110 | da fare: non sono "Magix" ma sono nostri, stesso trattamento |
+
+La colonna delle versioni non c'e' piu' apposta: era gia' vecchia di dieci rilasci mentre la
+tabella diceva "in linea". La versione vera di ogni capitolo si legge **nel gestionale**, in testa
+al capitolo, ed e' quella che il plugin sta girando davvero — che e' tutto il punto di questa guida.
+Qui resta solo chi c'e' e in che ordine.
 
 L'ordine 50 e' lasciato libero apposta: e' il posto del capitolo sulle **sanzioni**, che nascera'
 con MagixGuard 0.2.0 accanto a quello sui multi-account.
