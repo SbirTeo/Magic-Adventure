@@ -1,0 +1,151 @@
+# Deploy di un plugin sul VPS, dalla pagina Actions di GitHub.
+#
+# Perche' esiste: le sessioni di Claude nel cloud non hanno la chiave SSH e non possono
+# raggiungere la porta 22 del VPS (vedi CLAUDE.md). I runner di GitHub invece si', e la chiave
+# ce l'hanno dai secret del progetto. Quindi il deploy passa di qui.
+#
+# NON parte da solo: solo "Run workflow" a mano (workflow_dispatch). Un deploy in produzione
+# non deve mai essere un effetto collaterale di un push.
+#
+# Fa gli stessi passi di website/aggiorna-tutorial.ps1, che resta la via dal PC:
+#   build con JDK 25 -> toglie il jar vecchio dal VPS -> carica il nuovo -> ferma il server
+#   (il loop di start.sh lo fa risalire) -> verifica che la guida sul sito sia quella nuova.
+#
+# SECRET DA IMPOSTARE (Settings -> Secrets and variables -> Actions):
+#   VPS_SSH_KEY       la chiave PRIVATA, il contenuto di ~/.ssh/ovh_vps, per intero
+#                     (dalla riga -----BEGIN... all'ultima -----END..., a capo finale compreso)
+#   VPS_KNOWN_HOSTS   (facoltativo) output di: ssh-keyscan -H 141.94.123.249
+#                     Senza, la prima connessione accetta la chiave dell'host cosi' com'e'.
+# Host e utente non sono segreti: stanno gia' in chiaro nel README e in aggiorna-tutorial.ps1.
+
+name: Deploy plugin sul VPS
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "Quale plugin costruire e caricare"
+        required: true
+        default: MagixFactions
+        type: choice
+        options:
+          - MagixFactions
+          - MagixAuth
+          - MagixMenus
+          - MagixEssentials
+          - MagixCosmetics
+          - MagixEntities
+          - MagixGuard
+          - MagixTime
+          - MagixWeb
+      riavvia:
+        description: "Riavviare il server dopo il caricamento (serve perche' il plugin riscriva le guide)"
+        required: true
+        default: true
+        type: boolean
+
+env:
+  VPS_HOST: 141.94.123.249
+  VPS_USER: ubuntu
+  VPS_PLUGINS: /home/ubuntu/magicadventure/plugins
+  GUIDA_SUL_SITO: /var/www/magicadventure/public/assets/guida/magixfactions.html
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # L'ambiente "produzione" permette di chiedere un'approvazione manuale prima che il job parta:
+    # si configura in Settings -> Environments. Se non esiste, il job parte e basta.
+    environment: produzione
+
+    steps:
+      - name: Prendo il codice
+        uses: actions/checkout@v4
+
+      - name: JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Le guide sono allineate?
+        # Stesso controllo del pre-commit. Se e' rosso non si deploia: una guida che mente
+        # e' peggio di un deploy rimandato.
+        run: python3 plugins-src/check_all.py
+
+      - name: Rigenero il tutorial dei giocatori
+        if: inputs.plugin == 'MagixFactions'
+        # Il jar se lo porta dentro; se il .html generato fosse indietro rispetto al .py,
+        # il server pubblicherebbe una guida vecchia.
+        run: |
+          cd plugins-src/MagixFactions/docs
+          python3 build_tutorial.py
+          if ! git diff --quiet -- tutorial.html; then
+            echo "::error::tutorial.html non era rigenerato: lancia build_tutorial.py e committa."
+            exit 1
+          fi
+
+      - name: Costruisco il jar
+        id: build
+        run: |
+          cd "plugins-src/${{ inputs.plugin }}"
+          mvn -B -DskipTests package
+          VERSIONE=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          JAR="${{ inputs.plugin }}-${VERSIONE}.jar"
+          test -f "target/${JAR}" || { echo "::error::non trovo target/${JAR}"; exit 1; }
+          echo "jar=${JAR}" >> "$GITHUB_OUTPUT"
+          echo "versione=${VERSIONE}" >> "$GITHUB_OUTPUT"
+          echo "Costruito ${JAR}"
+
+      - name: Chiave SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/ovh_vps
+          chmod 600 ~/.ssh/ovh_vps
+          if [ -n "${{ secrets.VPS_KNOWN_HOSTS }}" ]; then
+            printf '%s\n' "${{ secrets.VPS_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Tolgo la versione vecchia e carico la nuova
+        # Due jar dello stesso plugin nella cartella verrebbero caricati TUTTI E DUE: e' la regola
+        # del README ("rimuovendo la versione vecchia"), qui applicata prima di copiare.
+        run: |
+          SSH="ssh -i ~/.ssh/ovh_vps ${VPS_USER}@${VPS_HOST}"
+          echo "Jar presenti ora:"
+          $SSH "ls -1 ${VPS_PLUGINS}/${{ inputs.plugin }}-*.jar 2>/dev/null || echo '  (nessuno)'"
+          $SSH "rm -f ${VPS_PLUGINS}/${{ inputs.plugin }}-*.jar"
+          scp -i ~/.ssh/ovh_vps \
+            "plugins-src/${{ inputs.plugin }}/target/${{ steps.build.outputs.jar }}" \
+            "${VPS_USER}@${VPS_HOST}:${VPS_PLUGINS}/${{ steps.build.outputs.jar }}"
+          $SSH "ls -l ${VPS_PLUGINS}/${{ steps.build.outputs.jar }}"
+
+      - name: Riavvio il server
+        if: inputs.riavvia
+        # Mai 'screen -X quit' con java vivo: si manda 'stop' nella console, il loop di start.sh
+        # fa risalire tutto da solo. Il plugin, ripartendo, riscrive le guide risolte.
+        run: |
+          ssh -i ~/.ssh/ovh_vps "${VPS_USER}@${VPS_HOST}" "screen -S mc -X stuff 'stop^M'"
+          echo "Aspetto che risalga..."
+          sleep 90
+
+      - name: Verifico che sito e server abbiano la stessa guida
+        if: inputs.riavvia && inputs.plugin == 'MagixFactions'
+        run: |
+          SSH="ssh -i ~/.ssh/ovh_vps ${VPS_USER}@${VPS_HOST}"
+          SUL_SERVER="${VPS_PLUGINS}/MagixFactions/tutorial.html"
+          A=$($SSH "md5sum ${SUL_SERVER} | cut -d' ' -f1")
+          B=$($SSH "md5sum ${GUIDA_SUL_SITO} | cut -d' ' -f1")
+          RIMASTI=$($SSH "grep -c '{{' ${SUL_SERVER} || true")
+          echo "server: $A"
+          echo "sito:   $B"
+          echo "segnaposto non risolti: $RIMASTI"
+          [ "$A" = "$B" ] || { echo "::error::sito e server hanno guide diverse: il guardiano sync-guida non ha ancora copiato, oppure e' fermo."; exit 1; }
+          [ "$RIMASTI" = "0" ] || { echo "::error::sono rimasti $RIMASTI segnaposto {{...}} nella guida."; exit 1; }
+          echo "OK: https://magicadventure.it/tutorial"
+
+      - name: Pulizia
+        if: always()
+        run: rm -f ~/.ssh/ovh_vps

@@ -39,8 +39,22 @@ Quindi, in cloud, il lavoro **finisce con il push sul branch**: build verde + co
 `mvn package` e `aggiorna-tutorial.ps1` si lanciano dal PC. Dirlo una volta nel riepilogo, senza
 ripeterlo a ogni messaggio.
 
-Per abilitare davvero il deploy in cloud servirebbero tre cose, tutte lato ambiente e non lato
-Claude: la chiave privata come variabile d'ambiente dell'environment (Claude Code on the web →
+**La via che funziona da GitHub: `.github/workflows/deploy-vps.yml`.** I secret del progetto non
+sono leggibili da nessuno (nemmeno dal proprietario): l'unica cosa che può usarli è un workflow di
+Actions, e i runner di GitHub la porta 22 ce l'hanno. Quindi il deploy in cloud si fa da
+**Actions → Deploy plugin sul VPS → Run workflow**, scegliendo il plugin.
+
+- Parte **solo a mano** (`workflow_dispatch`): un deploy in produzione non dev'essere l'effetto
+  collaterale di un push.
+- `workflow_dispatch` compare nella UI solo se il file è sul **branch di default**: finché sta su un
+  branch di lavoro, il pulsante non c'è.
+- Servono i secret `VPS_SSH_KEY` (la chiave privata per intero) e, facoltativo,
+  `VPS_KNOWN_HOSTS` (`ssh-keyscan -H 141.94.123.249`).
+- Claude può **lanciarlo** (`actions_run_trigger`) e leggerne i log, ma non può leggere i secret né
+  scavalcare un'eventuale approvazione dell'environment `produzione`.
+
+In alternativa, per abilitare il deploy direttamente dal container servirebbero tre cose lato
+ambiente: la chiave privata come variabile d'ambiente dell'environment (Claude Code on the web →
 impostazioni dell'ambiente), `openssh-client` installato dallo script di setup, e la policy di rete
 che permetta la 22 verso quell'IP.
 
