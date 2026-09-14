@@ -123,11 +123,15 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    blocchi condizionali `{{se:chiave=valore}} ... {{/se}}` (annidabili, `!=` per «in tutti gli
    altri casi»). Per una chiave nuova **non serve toccare il Java**: basta il segnaposto nel testo.
    Si mette mano al testo solo quando cambia la **regola**, non il valore.
-4. **Verifica**: dopo la rigenerazione, controlla che nel tutorial non restino **numeri scritti a
-   mano** che coincidono con valori del `config.yml` e che non sia rimasto nessun `{{...}}` non
-   risolto (il plugin li segnala anche nel log all'avvio). Il controllo automatico
-   `controlla-config.py` (regola **[6]**, citato nel README di MagixFactions) **non è versionato**:
-   se non c'è nel repo, la verifica va fatta a mano.
+4. **Verifica**: `python plugins-src/check_all.py` (unico ingresso; lancia `check_english.py`,
+   `check_english_web.py`, `check_commands.py`, `check_config_english.py`, `check_config.py`).
+   Sul fronte guide contano soprattutto due regole di `check_config.py`: **[6]** segnala i numeri
+   scritti a mano nel tutorial che coincidono con un valore del config, **[7]** segnala una
+   *modalità* (chiave che vale una parola fra più possibili) che il tutorial non racconta con un
+   blocco `{{se:...}}`. Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
+   `git config core.hooksPath .githooks`) e va lanciato prima di un rilascio.
+   NB: nei README e in qualche Javadoc lo script è ancora citato col vecchio nome italiano
+   `controlla-config.py` — il file vero è `plugins-src/check_config.py`.
 5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
    plugin e i `docs/` relativi, nello stesso commit della modifica.
 6. **Come si porta live**:
