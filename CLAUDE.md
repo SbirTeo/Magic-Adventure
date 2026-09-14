@@ -166,8 +166,6 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    *modalità* (chiave che vale una parola fra più possibili) che il tutorial non racconta con un
    blocco `{{se:...}}`. Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
    `git config core.hooksPath .githooks`) e va lanciato prima di un rilascio.
-   NB: nei README e in qualche Javadoc lo script è ancora citato col vecchio nome italiano
-   `controlla-config.py` — il file vero è `plugins-src/check_config.py`.
 5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
    plugin e i `docs/` relativi, nello stesso commit della modifica.
 6. **Come si porta live**:
