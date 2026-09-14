@@ -266,7 +266,7 @@ public final class MagixFactions extends JavaPlugin {
         // Confini a particelle (/f borders): interruttore PER-GIOCATORE, di serie spento. Un giro
         // periodico disegna le particelle verdi lungo i bordi dei territori vicini a chi l'ha acceso.
         com.teolo.magixfactions.border.BorderService borders =
-                new com.teolo.magixfactions.border.BorderService(this, powerManager, claimManager);
+                new com.teolo.magixfactions.border.BorderService(this, powerManager, claimManager, factionManager);
         long bordersInterval = borders.intervalTicks();
         Bukkit.getScheduler().runTaskTimer(this, borders::tick, bordersInterval, bordersInterval);
 
