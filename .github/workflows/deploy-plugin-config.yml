@@ -27,6 +27,10 @@ name: Aggiorna una chiave di config plugin sul VPS
 #                    la prima occorrenza di `marker`. Idempotente: se `value` e'
 #                    gia' presente nel valore, non fa nulla. Utile per aggiungere
 #                    un token (es. {rank}) dentro un formato senza riscriverlo.
+#   - dedup:         EMERGENZA. Toglie i blocchi di primo livello DUPLICATI tenendo il PRIMO
+#                    (in YAML vince l'ultimo, quindi un doppione accodato sovrascrive i valori
+#                    veri). Non stampa nessun valore: solo i nomi delle chiavi tolte. `key` e
+#                    `value` non si usano.
 #   - rename:        cambia il NOME della chiave (`value` e' il nome nuovo) e lascia
 #                    il valore dov'e'. Serve quando una chiave viene rinominata nel
 #                    codice: il file gia' sul VPS resterebbe con il nome vecchio, che
@@ -46,13 +50,15 @@ on:
         required: true
         default: "messages.yml"
       key:
-        description: "Chiave da cambiare; foglia (es. ally-prefix) o percorso annidato (es. leader.tag)"
-        required: true
+        description: "Chiave da cambiare; foglia (es. ally-prefix) o percorso annidato (es. leader.tag). Con mode=dedup non serve"
+        required: false
+        default: ""
       value:
-        description: "mode=set: nuovo valore (tutto cio' che segue i due punti, virgolette comprese). mode=insert-after: il testo da inserire (es. {rank}). mode=rename: il nome nuovo della chiave"
-        required: true
+        description: "mode=set: nuovo valore (tutto cio' che segue i due punti, virgolette comprese). mode=insert-after: il testo da inserire (es. {rank}). mode=rename: il nome nuovo della chiave. mode=dedup: non serve"
+        required: false
+        default: ""
       mode:
-        description: "set (sostituisci il valore) | insert-after (inserisci value dopo marker) | rename (rinomina la chiave, value = nome nuovo)"
+        description: "set | insert-after | rename | dedup (toglie i blocchi duplicati tenendo il primo)"
         required: false
         default: "set"
       marker:
@@ -132,6 +138,43 @@ jobs:
 
           def indent_of(s):
               return len(s) - len(s.lstrip(' \t'))
+
+          if mode == 'dedup':
+              # Tiene il PRIMO blocco di ogni chiave di primo livello e butta i successivi, coi
+              # commenti che li precedono. Serve a rimediare a un file in cui e' stato accodato
+              # un doppione: in YAML vince l'ultimo, quindi i valori veri restano coperti.
+              key_pat = re.compile(r'^([A-Za-z0-9_.+-]+):([ \t].*)?$')
+              viste, tenute, tolte = set(), [], []
+              i, n = 0, len(lines)
+              while i < n:
+                  m = key_pat.match(lines[i].rstrip('\n').rstrip('\r'))
+                  if not m:
+                      tenute.append(lines[i]); i += 1; continue
+                  nome = m.group(1)
+                  fine = i + 1
+                  while fine < n:
+                      r = lines[fine].rstrip('\n').rstrip('\r')
+                      if r.strip() and indent_of(r) == 0 and key_pat.match(r): break
+                      fine += 1
+                  if nome in viste:
+                      tolte.append(nome)
+                      # via anche i commenti/righe vuote appena sopra, che erano del doppione
+                      while tenute and (not tenute[-1].strip() or tenute[-1].lstrip().startswith('#')):
+                          tenute.pop()
+                  else:
+                      viste.add(nome)
+                      tenute.extend(lines[i:fine])
+                  i = fine
+              if not tolte:
+                  print('NO-OP: nessun blocco duplicato in', path); sys.exit(0)
+              bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+              shutil.copy2(path, bak)
+              with open(path, 'w', encoding='utf-8') as f:
+                  f.writelines(tenute)
+              print('OK -> tolti', len(tolte), 'blocchi duplicati:', ', '.join(sorted(set(tolte))))
+              print('Righe:', len(lines), '->', len(tenute))
+              print('Backup:', bak)
+              sys.exit(0)
 
           segments = keyraw.split('.')
           leaf = segments[-1]
