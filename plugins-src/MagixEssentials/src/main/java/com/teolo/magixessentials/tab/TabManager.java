@@ -3,6 +3,7 @@ package com.teolo.magixessentials.tab;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -19,8 +20,9 @@ import java.util.List;
  * (ping, fazione, coordinate...), quindi vengono ricalcolati per ciascuno.
  *
  * <p>Acceso e spento NON si decidono qui: il modulo {@code tablist} sta nel {@code modules.yml}
- * e lo legge la classe principale, che chiama {@link #start()} solo se e' attivo. Qui restano
- * soltanto le sue impostazioni, prese dal {@code config.yml}.
+ * e lo legge la classe principale, che costruisce questa classe solo se e' attivo. Le impostazioni
+ * — intervallo, righe, nomi, caselle fisse — stanno nel file della funzione, {@code tablist.yml},
+ * che arriva gia' letto nel costruttore.
  *
  * <p>Le 80 slot fisse e la pergamena di sfondo NON sono qui: richiedono l'invio di caselle "finte"
  * al client (via ProtocolLib) e arriveranno in un secondo momento. Vedi config {@code fixed-slots}.
@@ -39,6 +41,8 @@ public final class TabManager implements Listener {
             .build();
 
     private final JavaPlugin plugin;
+    /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
+    private final ConfigurationSection cfg;
     private final boolean papi;
     private BukkitTask task;
     /** Riscrivere una seconda volta poco dopo, per arrivare DOPO chi scrive nello stesso tick. */
@@ -46,10 +50,11 @@ public final class TabManager implements Listener {
     private long ritardoRiassersione = 2L;
     private final FixedSlots slotFisse;
 
-    public TabManager(JavaPlugin plugin) {
+    public TabManager(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
+        this.cfg = cfg;
         this.papi = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-        this.slotFisse = new FixedSlots(plugin);
+        this.slotFisse = new FixedSlots(plugin, cfg);
     }
 
     public void start() {
@@ -57,12 +62,12 @@ public final class TabManager implements Listener {
         // sola; se non e' disponibile (ProtocolLib assente, o spenta) resta il tablist dinamico.
         slotFisse.load();
 
-        riasserisci = plugin.getConfig().getBoolean("tablist.priority.enabled", true);
-        ritardoRiassersione = Math.max(1, plugin.getConfig().getLong("tablist.priority.reassert-delay-ticks", 2));
+        riasserisci = cfg.getBoolean("priority.enabled", true);
+        ritardoRiassersione = Math.max(1, cfg.getLong("priority.reassert-delay-ticks", 2));
         avvisaSeCmiScriveAncheLui();
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
-        long interval = Math.max(1, plugin.getConfig().getLong("tablist.update-interval-ticks", 20));
+        long interval = Math.max(1, cfg.getLong("update-interval-ticks", 20));
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::updateAll, 20L, interval);
         updateAll();
     }
@@ -103,7 +108,7 @@ public final class TabManager implements Listener {
         }
         plugin.getLogger().warning("[Tab] CMI e' installato e il suo modulo tablist risulta " + stato
                 + ": due plugin sullo stesso tablist se lo strappano di mano. Intestazione, fondo e nomi"
-                + " li riscriviamo dopo di lui (tablist.priority), ma le sue caselle FINTE (le 80 slot,"
+                + " li riscriviamo dopo di lui (tablist.yml -> priority), ma le sue caselle FINTE (le 80 slot,"
                 + " con testa e tacchette di connessione) non possiamo toglierle: sono voci sue, inviate"
                 + " via pacchetto. Per farle sparire si spegne il suo modulo in"
                 + " plugins/CMI/Settings/Modules.yml -> tablist: false.");
@@ -132,11 +137,11 @@ public final class TabManager implements Listener {
         // Prima le caselle finte, poi intestazione e fondo: cosi' la misura del tab e' gia' quella
         // definitiva quando il client disegna il resto, e non si vede la finestra allargarsi.
         slotFisse.inviaA(p);
-        Component header = buildLines(p, plugin.getConfig().getStringList("tablist.header"));
-        Component footer = buildLines(p, plugin.getConfig().getStringList("tablist.footer"));
+        Component header = buildLines(p, cfg.getStringList("header"));
+        Component footer = buildLines(p, cfg.getStringList("footer"));
         p.sendPlayerListHeaderAndFooter(header, footer);
 
-        String nameFmt = plugin.getConfig().getString("tablist.player-name", "&7{name}");
+        String nameFmt = cfg.getString("player-name", "&7{name}");
         p.playerListName(render(p, nameFmt.replace("{name}", p.getName())));
     }
 

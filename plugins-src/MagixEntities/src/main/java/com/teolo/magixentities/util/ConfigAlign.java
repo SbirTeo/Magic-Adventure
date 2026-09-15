@@ -43,9 +43,9 @@ import java.util.regex.Pattern;
  *       in {@code renames.yml} (un file per sezione, {@code vecchio.percorso: nuovo.percorso}) nello
  *       stesso commit in cui si rinomina nel codice.</li>
  *   <li><b>Cancella</b> le righe morte, cioe' le chiavi che nel sorgente non esistono piu', dai file
- *       a schema fisso ({@code config.yml}, {@code messages.yml} e {@code modules.yml}): una riga
- *       che nessuno legge e' solo una trappola per chi configura. Prima di cancellare fa una copia
- *       del file col timestamp, e scrive nel log che cosa ha tolto.</li>
+ *       a schema fisso — tutti tranne i cataloghi dello staff: una riga che nessuno legge e' solo
+ *       una trappola per chi configura. Prima di cancellare fa una copia del file col timestamp, e
+ *       scrive nel log che cosa ha tolto.</li>
  *   <li><b>Non cancella</b> negli altri file ({@code menus/*.yml}, {@code sanctions.yml}): li' le
  *       voci in piu' non sono residui, sono lavoro dello staff. Su quelli aggiunge e rinomina soltanto.</li>
  * </ul>
@@ -116,15 +116,18 @@ public final class ConfigAlign {
     /**
      * Su quali file si possono TOGLIERE le chiavi che il sorgente non ha piu'.
      *
-     * <p>{@code config.yml}, {@code messages.yml} e {@code modules.yml} hanno uno schema fisso: ogni
-     * chiave la legge il codice (nel modules.yml, una chiave e' una funzione che il plugin ha), quindi
-     * una che non c'e' nel sorgente e' una riga morta, e una riga morta e' solo una
-     * trappola per chi configura. Gli altri file no: {@code menus/*.yml} e {@code sanctions.yml}
-     * sono cataloghi che lo staff allunga, e li' le voci in piu' sono lavoro suo, non residui.</p>
+     * <p>Quasi tutti: {@code config.yml}, {@code messages.yml}, {@code modules.yml} e i file delle
+     * singole funzioni ({@code tablist.yml}...) hanno uno schema fisso — ogni chiave la legge il
+     * codice — quindi una che nel sorgente non c'e' piu' e' una riga morta, e una riga morta e' solo
+     * una trappola per chi configura.</p>
+     *
+     * <p>Le eccezioni sono i CATALOGHI, e si elencano qui: {@code menus/*.yml} e
+     * {@code sanctions.yml} li allunga lo staff, e li' le voci in piu' sono lavoro suo, non residui.
+     * La lista e' fatta cosi', per esclusione, perche' i file a schema fisso crescono — un plugin
+     * aggiunge il file di una funzione nuova — mentre i cataloghi sono questi e si sanno.</p>
      */
     private static boolean cleanable(String fileName) {
-        return fileName.equals("config.yml") || fileName.equals("messages.yml")
-                || fileName.equals("modules.yml");
+        return !fileName.startsWith("menus/") && !fileName.equals("sanctions.yml");
     }
 
     /**

@@ -49,6 +49,12 @@ PLUGINS = present_plugins()
 # Keys that read by themselves or do not belong to the plugin: not to be reported.
 IGNORE_UNREAD = re.compile(r"^(storage\.|mariadb\.|sqlite\.|ranks|leader|forbidden-words|value-blocks|messages)")
 
+# Files with a FIXED SCHEMA — config.yml, modules.yml and the per-feature files (tablist.yml...) —
+# are the ones where every key is read by the code, so [3] and [4] apply to them. The exceptions are
+# the STAFF CATALOGS, listed here: menus/*.yml is a subfolder (never listed) and sanctions.yml holds
+# entries the staff adds. renames.yml is not a config at all: it maps old key paths to new ones.
+CATALOGS = {"sanctions.yml", "renames.yml"}
+
 
 def file_keys(path):
     """Keys of the .yml with: line, dotted path, raw value, and whether they have a comment above."""
@@ -277,7 +283,7 @@ def check(name):
                     problems.append((f, c["line"], "[2] other accepted values not explained: " + ", ".join(missing[:4]),
                                      c["key"]))
 
-        if f == "config.yml":
+        if f not in CATALOGS:
             for k in sorted(read):
                 if k.endswith("."):
                     continue   # prefix built in the code ("map.colors." + name), not a key

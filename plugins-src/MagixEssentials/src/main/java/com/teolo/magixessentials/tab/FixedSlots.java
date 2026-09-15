@@ -9,6 +9,7 @@ import com.comphenix.protocol.wrappers.PlayerInfoData;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -55,13 +56,16 @@ public final class FixedSlots {
     private static final int NO_PING = -1;
 
     private final JavaPlugin plugin;
+    /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
+    private final ConfigurationSection cfg;
     /** I profili finti, creati una volta sola: ricrearli a ogni giro farebbe lampeggiare il tab. */
     private final List<PlayerInfoData> riempitivi = new ArrayList<>();
     private boolean disponibile;
     private int totale;
 
-    public FixedSlots(JavaPlugin plugin) {
+    public FixedSlots(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
+        this.cfg = cfg;
     }
 
     /** true se le slot fisse sono accese, ProtocolLib c'e' e i profili si sono costruiti. */
@@ -77,7 +81,7 @@ public final class FixedSlots {
         disponibile = false;
         riempitivi.clear();
 
-        if (!plugin.getConfig().getBoolean("tablist.fixed-slots.enabled", false)) {
+        if (!cfg.getBoolean("fixed-slots.enabled", false)) {
             return;
         }
         if (Bukkit.getPluginManager().getPlugin("ProtocolLib") == null) {
@@ -87,8 +91,8 @@ public final class FixedSlots {
         }
 
         // Il gioco disegna al massimo 4 colonne da 20: oltre 80 le voci in piu' non si vedrebbero.
-        totale = Math.max(1, Math.min(80, plugin.getConfig().getInt("tablist.fixed-slots.total", 80)));
-        String testo = plugin.getConfig().getString("tablist.fixed-slots.empty-text", " ");
+        totale = Math.max(1, Math.min(80, cfg.getInt("fixed-slots.total", 80)));
+        String testo = cfg.getString("fixed-slots.empty-text", " ");
 
         try {
             for (int i = 0; i < totale; i++) {

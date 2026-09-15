@@ -123,9 +123,12 @@ Cosa fa, in ordine, a ogni avvio e a ogni reload:
    nome: se e' cambiato anche il **significato** (il messaggio esce in un altro momento, il testo
    ha segnaposto nuovi) non si dichiara, e la chiave vecchia viene tolta come riga morta.
 2. **Aggiunge** le chiavi nuove, al loro posto e col loro commento.
-3. **Toglie le righe morte** — le chiavi che nel sorgente non esistono piu' — da `config.yml`,
-   `messages.yml` e `modules.yml`, che hanno schema fisso. **Non** lo fa su `menus/*.yml` e `sanctions.yml`: li'
-   le voci in piu' sono lavoro dello staff, non residui.
+3. **Toglie le righe morte** — le chiavi che nel sorgente non esistono piu' — dai file a **schema
+   fisso**: `config.yml`, `messages.yml`, `modules.yml` e i file delle singole funzioni
+   (`tablist.yml`...), dove ogni chiave la legge il codice. **Non** lo fa sui **cataloghi**,
+   `menus/*.yml` e `sanctions.yml`: li' le voci in piu' sono lavoro dello staff, non residui. La
+   lista è per **esclusione** (cataloghi elencati, il resto si pulisce), perché i file a schema
+   fisso crescono a ogni funzione nuova mentre i cataloghi sono quei due.
 4. Scrive nel log che cosa ha rinominato, aggiunto e tolto.
 
 Regole che ne discendono:

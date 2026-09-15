@@ -9,8 +9,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -22,13 +24,20 @@ import java.util.Set;
  * persone diverse. Tenendoli insieme, l'interruttore finisce sepolto in mezzo alle sue venti chiavi
  * di regolazione e non si sa piu' cosa il plugin stia facendo davvero senza leggere tutto il config.
  * Qui invece la risposta e' un file solo, lungo quanto le funzioni che ci sono: si apre
- * {@code modules.yml} e si vede l'elenco completo, acceso o spento. La configurazione di base
- * (righe, intervalli, formati) resta nel {@code config.yml}, che nessuno deve piu' aprire per
- * sapere se una funzione gira.
+ * {@code modules.yml} e si vede l'elenco completo, acceso o spento. Le regolazioni (righe,
+ * intervalli, formati) stanno altrove, e non c'e' piu' un file da leggere tutto per sapere se una
+ * funzione gira.
+ *
+ * <h2>Un file di impostazioni per funzione</h2>
+ * Le impostazioni di una funzione stanno nel file che porta il suo nome — il modulo {@code tablist}
+ * si regola in {@code tablist.yml} — e il {@code config.yml} resta per cio' che vale per il plugin
+ * intero. Cosi' per sapere che cosa sta facendo il plugin si apre {@code modules.yml}, e per
+ * cambiare come lo fa si apre il file di quella funzione: nessun file cresce all'infinito.
  *
  * <h2>Cosa vuol dire "spento"</h2>
- * Non parte affatto: niente task, niente aggancio agli eventi. Le sue chiavi nel {@code config.yml}
- * restano dove sono — spegnere una funzione non e' buttarne via la configurazione.
+ * Non parte affatto: niente task, niente aggancio agli eventi. Il suo file di impostazioni resta
+ * dov'e', intatto — spegnere una funzione non e' buttarne via la configurazione — e torna in uso
+ * appena la si riaccende.
  *
  * <h2>Chi lo tiene aggiornato</h2>
  * Il file nella cartella del plugin viene creato al primo avvio e poi allineato a ogni avvio e a
@@ -45,7 +54,14 @@ public final class Modules {
     public static final String TABLIST = "tablist";
 
     private final JavaPlugin plugin;
-    private YamlConfiguration file;
+    /** {@code modules.yml}: l'elenco delle funzioni, accese o spente. */
+    private volatile YamlConfiguration file;
+    /**
+     * I file di impostazioni delle funzioni, riletti tutti insieme a ogni {@link #ricarica()}.
+     * La mappa si sostituisce intera invece di modificarla: la guida per lo staff la legge da un
+     * altro thread, e cosi' quel che legge e' sempre una fotografia coerente.
+     */
+    private volatile Map<String, YamlConfiguration> configs = Map.of();
 
     public Modules(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -53,26 +69,42 @@ public final class Modules {
     }
 
     /**
-     * Rilegge {@code modules.yml} dal disco, creandolo se non c'e'. Da chiamare all'avvio e a ogni
-     * reload: e' il file SUL SERVER a comandare, non quello dentro al jar.
+     * Rilegge dal disco {@code modules.yml} e i file di impostazioni delle funzioni, creandoli se
+     * non ci sono. Da chiamare all'avvio e a ogni reload: e' il file SUL SERVER a comandare, non
+     * quello dentro al jar.
      */
     public void ricarica() {
-        File f = new File(plugin.getDataFolder(), FILE);
-        if (!f.isFile()) plugin.saveResource(FILE, false);
+        this.file = carica(FILE);
+        // I file delle funzioni si leggono tutti, anche quelli dei moduli spenti: il file di una
+        // funzione spenta resta valido e va tenuto allineato lo stesso (ConfigAlign tocca solo i
+        // file che nella cartella dati ESISTONO gia', e un file che non c'e' non si aggiorna).
+        Map<String, YamlConfiguration> letti = new LinkedHashMap<>();
+        for (String modulo : elenco()) {
+            if (plugin.getResource(modulo + ".yml") == null) continue;   // funzione senza impostazioni
+            letti.put(modulo, carica(modulo + ".yml"));
+        }
+        this.configs = Map.copyOf(letti);
+    }
+
+    /**
+     * Legge un file della cartella dati, creandolo dal jar se manca, col file del jar come ripiego
+     * per le chiavi che li' non ci sono ancora (ConfigAlign gliele mette, ma cosi' non c'e' un
+     * avvio in cui una chiave nuova non si sa quanto vale).
+     */
+    private YamlConfiguration carica(String nomeFile) {
+        File f = new File(plugin.getDataFolder(), nomeFile);
+        if (!f.isFile() && plugin.getResource(nomeFile) != null) plugin.saveResource(nomeFile, false);
         YamlConfiguration letto = YamlConfiguration.loadConfiguration(f);
-        // Il file del jar fa da ripiego: un modulo aggiunto oggi vale il suo default anche nel
-        // momento in cui il file del server non ha ancora la riga (ConfigAlign gliela mette, ma
-        // cosi' non c'e' un avvio in cui una funzione nuova non si sa se e' accesa).
-        try (InputStream in = plugin.getResource(FILE)) {
+        try (InputStream in = plugin.getResource(nomeFile)) {
             if (in != null) {
                 letto.setDefaults(YamlConfiguration.loadConfiguration(
                         new InputStreamReader(in, StandardCharsets.UTF_8)));
             }
         } catch (IOException e) {
-            plugin.getLogger().warning("[Moduli] non sono riuscito a leggere il " + FILE
+            plugin.getLogger().warning("[Moduli] non sono riuscito a leggere il " + nomeFile
                     + " del jar: valgono solo i valori del file sul server (" + e.getMessage() + ").");
         }
-        this.file = letto;
+        return letto;
     }
 
     /**
@@ -92,9 +124,19 @@ public final class Modules {
         return new ArrayList<>(nomi);
     }
 
-    /** Il file caricato, per chi deve leggerlo tutto (la guida per lo staff). */
+    /** Il {@code modules.yml} caricato, per chi deve leggerlo tutto (la guida per lo staff). */
     public YamlConfiguration configurazione() {
         return file;
+    }
+
+    /**
+     * Le impostazioni di una funzione: il file {@code <modulo>.yml} della cartella dati, com'era
+     * all'ultimo {@link #ricarica()}. Di una funzione senza impostazioni torna un file vuoto, non
+     * null: chi legge trova i suoi default.
+     */
+    public YamlConfiguration configurazioneDi(String modulo) {
+        YamlConfiguration letto = configs.get(modulo);
+        return letto != null ? letto : carica(modulo + ".yml");
     }
 
     /** Una riga per il log d'avvio: {@code "tablist: attivo"}. */

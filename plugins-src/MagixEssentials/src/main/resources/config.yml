@@ -1,83 +1,13 @@
 # ============================================================
-#  MagixEssentials - Configurazione
+#  MagixEssentials - Configurazione di base
 # ============================================================
-# Per ora questo plugin gestisce SOLO il tablist (la lista giocatori, tasto Tab).
-# In futuro raccogliera' le altre utilita' che oggi fa CMI.
+# Qui stanno le impostazioni che valgono per il PLUGIN INTERO, non per una funzione sola.
+# Per ora non ce n'e' nessuna: il plugin fa una cosa sola, e quella cosa ha il suo file.
 #
-# Qui c'e' la configurazione di base: COME funziona ogni cosa. Per accendere o SPEGNERE una
-# funzione intera c'e' un file a parte, modules.yml, sul modello del Modules.yml di CMI.
-# Il tablist, per esempio, si spegne con modules.yml -> tablist: false, non da qui.
-
-tablist:
-  # NB: il tablist e' gestito da questo plugin se il modulo e' acceso (modules.yml -> tablist).
-  # In tal caso DISATTIVA quello di CMI (plugins/CMI/Settings/Modules.yml -> tablist: false) per
-  # evitare che si sovrascrivano a vicenda.
-
-  # Ogni quanti tick (20 = 1 secondo) si riaggiornano intestazione, fondo e nomi.
-  update-interval-ticks: 20
-
-  # --- CHI VINCE SUL TABLIST ---
-  # Il tablist non ha un proprietario: ce l'ha chi ha scritto per ultimo. Se anche CMI gestisce il
-  # tablist, i due si sovrascrivono a vicenda e il risultato dipende dall'ordine, cioe' dal caso.
-  # Questa sezione ci fa scrivere DOPO di lui.
-  # ATTENZIONE, il limite: valgono intestazione, fondo e nomi. Le caselle FINTE che CMI inietta
-  # (le 80 slot, con testa e tacchette di connessione) sono voci sue mandate via pacchetto: da qui
-  # non si tolgono. Per farle sparire si spegne il suo modulo:
-  # plugins/CMI/Settings/Modules.yml -> tablist: false
-  priority:
-    # Se true, ogni aggiornamento viene riscritto una seconda volta poco dopo, per arrivare dopo
-    # chi ha scritto nello stesso tick. Spegnila se il tablist e' gestito solo da noi: dimezza il lavoro.
-    enabled: true
-    # Quanti tick dopo arriva la seconda scrittura. 2 basta contro un plugin che scrive nello stesso
-    # tick; alzalo (5-10) solo se vedi ancora il tablist di CMI comparire per un istante.
-    reassert-delay-ticks: 2
-
-  # Segnaposto speciale {logo}: viene sostituito con il carattere del LOGO del server
-  # (la texture nel resource pack di MagixFactions). Dimensione/posizione del logo si regolano
-  # nel config di MagixFactions (tablist.logo.height/ascent).
-  #
-  # Supporta i codici colore & e &#RRGGBB, e i placeholder di PlaceholderAPI (%server_online%,
-  # %magixfactions_*%, %magixtime_*%, ...). Le righe " " (spazio) servono a dare aria sotto il logo.
-  header:
-    - '{logo}'
-    - ' '
-    - ' '
-    - ' '
-    - ' '
-    - ' '
-    - ' '
-    - ' '
-    - ' '
-    - '&8&m                                                  '
-    - '&7Giocatori online &8» &a%server_online%&7/&f%server_max_players%    &8•    &7Ping &8» &a%player_ping%&7ms'
-    - '&8&m                                                  '
-
-  footer:
-    - '&8&m                                                  '
-    - '&7Fazione &8» &d%magixfactions_faction%     &7Potenza &8» &a%magixfactions_power_player%&7/&f%magixfactions_maxpower_player%     &7Claim &8» &f%magixfactions_claims%'
-    - '&7Saldo &8» &6%vault_eco_balance_formatted%     &7Mondo &8» &f%player_world% &8(&7%player_x%&8, &7%player_y%&8, &7%player_z%&8)'
-    - '&5%magixtime_time%  &8•  &d%magixtime_date%     &8•     &7Stagione &8» &a%magixtime_season%     &8•     &7Meteo &8» &f%magixtime_weather%'
-    - '&8&m                                                  '
-    - '&8» &d&lmagicadventure.it &8«'
-
-  # Nome del giocatore nella lista. {name} = nome del giocatore. Supporta colori e placeholder
-  # (es. %magixweb_namecolor% = colore del grado, come sul sito).
-  player-name: '&7%magixweb_namecolor%{name}'
-
-  # --- 80 SLOT FISSE ---
-  # Il gioco decide da solo quante colonne disegnare in base a quante voci ci sono: con pochi
-  # giocatori il tab e' una colonna sottile, con tanti si allarga. Se sotto ci deve stare una
-  # pergamena, quella misura non puo' ballare. Con questo acceso il tablist mostra SEMPRE 'total'
-  # caselle: quelle senza giocatore sono decorative, SENZA testa (skin trasparente) e SENZA
-  # tacchette di connessione (latenza -1).
-  # Richiede ProtocolLib: se manca, il plugin lo dice nel log e resta il tablist dinamico.
-  # NB: perche' si vedano, il tablist dev'essere NOSTRO. Se lo gestisce ancora CMI, spegni il suo
-  # modulo (plugins/CMI/Settings/Modules.yml -> tablist: false).
-  fixed-slots:
-    # Interruttore delle caselle fisse.
-    enabled: true
-    # Quante caselle in tutto. Il gioco ne disegna al massimo 80 (4 colonne x 20): oltre, le voci
-    # in piu' non si vedrebbero, e il plugin taglia a 80.
-    total: 80
-    # Cosa c'e' scritto in una casella vuota. Uno spazio = casella muta. Valgono i codici colore &.
-    empty-text: ' '
+# Come sono divisi i file, sul modello di CMI:
+#   modules.yml   - l'elenco delle funzioni, una riga ciascuna: acceso o spento.
+#   <funzione>.yml - le impostazioni di quella funzione (oggi: tablist.yml).
+#   config.yml    - questo file: la configurazione di base del plugin.
+#
+# Cosi' per sapere che cosa sta facendo il plugin si apre modules.yml, e per cambiare come lo fa
+# si apre il file di quella funzione: non c'e' un file unico che cresce all'infinito.
