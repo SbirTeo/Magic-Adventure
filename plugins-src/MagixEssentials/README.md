@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.2**
+Versione: **0.8.3**
 
 ---
 
@@ -170,8 +170,16 @@ styles:
     lines: ['%magixweb_namecolor%{name}']
 ```
 
+`requires` e' una **E**, non una O: lo stile vale solo dove ci sono **tutti** i plugin elencati —
+`[MagixFactions, BedWars]` significa «solo dove ci sono tutti e due insieme», e «fazioni *oppure*
+bedwars» sono **due voci**, una per modalita'. E fra i requisiti vanno solo i plugin **senza cui lo
+stile non ha senso**, non tutti quelli che compaiono nei suoi segnaposto: `MagixWeb`
+(`%magixweb_namecolor%`) non ci va — se manca, il nome si vede comunque, solo senza colore, mentre
+metterlo li' butterebbe via tutto lo stile, fazione compresa, per una questione di colore.
+
 Con `style: auto` la **rilevazione della modalita'** non e' un indovinello sul nome del server: e'
-quali plugin sono installati e accesi. L'ordine conta (vince il primo che va bene) e lo stile scelto
+quali plugin sono **caricati** (non «gia' accesi»: l'ordine di accensione non e' garantito, e uno
+stile scartato perche' il suo plugin parte un istante dopo di noi sarebbe un guasto senza errore). L'ordine conta (vince il primo che va bene) e lo stile scelto
 finisce nel **log all'avvio**, insieme a quante righe sono e a chi le disegna — se sopra la testa non
 si vede quello che si aspettava, la risposta e' li'.
 

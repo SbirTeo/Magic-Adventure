@@ -254,10 +254,25 @@ public final class NametagManager implements Listener {
         return List.of(NAME_TOKEN);
     }
 
-    /** Se i plugin che uno stile pretende ci sono tutti e sono accesi. Nessuna pretesa = va sempre bene. */
+    /**
+     * Se i plugin che uno stile pretende ci sono <b>tutti</b>. E' una E, non una O: i requisiti sono
+     * la domanda "questo stile ha senso su questo server?", e una risposta a meta' non e' una
+     * risposta. Chi vuole due modalita' scrive due stili, non un requisito piu' largo. Nessuna
+     * pretesa (elenco vuoto) va sempre bene, ed e' cosi' che l'ultimo stile fa da ultima spiaggia.
+     *
+     * <p><b>Si guarda se il plugin e' CARICATO, non se e' gia' acceso.</b> L'ordine in cui il server
+     * accende i plugin non e' una promessa: se MagixEssentials parte prima di quello che fornisce la
+     * modalita', un controllo "e' accesso?" risponderebbe no e lo stile giusto verrebbe scartato per
+     * una questione di secondi — con la targhetta sbagliata fino al reload successivo, e nessun
+     * errore da nessuna parte. Caricati invece lo sono tutti prima che il primo venga acceso, e il
+     * caricamento e' la domanda vera: quel plugin fa parte di questo server o no. Se poi non si
+     * accende (un suo guasto), lo stile resta scelto e i suoi segnaposto restano vuoti — vedi
+     * {@link #blank(String)} — che e' meglio di cambiare la faccia del server perche' un plugin ha
+     * avuto un problema.</p>
+     */
     private boolean hasPlugins(Object requires) {
         for (String name : rows(requires)) {
-            if (!name.isBlank() && !Bukkit.getPluginManager().isPluginEnabled(name.trim())) {
+            if (!name.isBlank() && Bukkit.getPluginManager().getPlugin(name.trim()) == null) {
                 return false;
             }
         }

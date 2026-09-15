@@ -255,6 +255,17 @@ public final class MagixEssentials extends JavaPlugin {
                         "**Quello che scrivi in lines vince su tutto.** E' il modo giusto di fare a modo proprio "
                                 + "su UN server: gli stili servono a far partire bene un server nuovo, non a "
                                 + "tenere insieme le decisioni di tutti.",
+                        "**requires e' una E, non una O.** Lo stile si usa solo se ci sono TUTTI i plugin "
+                                + "elencati: [MagixFactions, BedWars] vuol dire «solo dove ci sono tutti e due "
+                                + "insieme», e non serve a dire «fazioni oppure bedwars» — quelle sono due "
+                                + "modalita', cioe' due voci. E fra i requisiti vanno solo i plugin senza cui lo "
+                                + "stile non ha senso, non tutti quelli che compaiono nei suoi segnaposto: MagixWeb "
+                                + "(%magixweb_namecolor%) non ci va, perche' se manca il nome si vede comunque, "
+                                + "solo senza colore, mentre metterlo li' butterebbe via tutto lo stile — fazione "
+                                + "compresa — per una questione di colore. I plugin si cercano fra quelli CARICATI "
+                                + "e non fra quelli gia' accesi: l'ordine di accensione non e' garantito, e uno "
+                                + "stile scartato perche' il suo plugin parte un istante dopo di noi sarebbe un "
+                                + "guasto senza errore.",
                         "**Per una modalita' nuova** (bedwars, per dirne una) si aggiunge una voce all'elenco "
                                 + "styles, sopra quella senza requisiti: nome, i plugin che le servono, le sue "
                                 + "righe. Gli stili sono un ELENCO e non delle chiavi, e la differenza conta: "

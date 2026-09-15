@@ -59,6 +59,20 @@ style: auto
 # spiaggia. Di ogni voce: 'name' il nome (quello che si scrive in style), 'requires' i plugin che
 # devono esserci, 'lines' le sue righe.
 #
+# 'requires' e' una E, non una O: lo stile si usa solo se ci sono TUTTI i plugin elencati. Quindi
+# [MagixFactions, BedWars] vuol dire "solo dove ci sono tutti e due insieme", e non serve a niente per
+# dire "fazioni oppure bedwars": quelle sono DUE modalita', cioe' due voci, una per ciascuna.
+#
+# E metti fra i requisiti solo i plugin senza cui quello stile non ha senso, non tutti quelli che
+# compaiono nei suoi segnaposto. Esempio: MagixWeb (%magixweb_namecolor%) non ci va — se manca, il
+# nome si vede comunque, solo senza colore, mentre metterlo li' butterebbe via tutto lo stile per una
+# questione di colore. MagixFactions in uno stile che scrive la fazione, invece, si': senza di lui
+# quella riga non ha niente da dire.
+#
+# I plugin si cercano fra quelli CARICATI, non fra quelli gia' accesi: l'ordine di accensione non e'
+# garantito, e uno stile scartato perche' il suo plugin si accende un istante dopo di noi sarebbe un
+# guasto senza errore.
+#
 # Per una modalita' NUOVA si aggiunge una voce qui, in cima a quella senza pretese: e' un elenco, e
 # l'allineamento dei config non tocca le voci in piu' (a differenza delle chiavi: una chiave che il
 # jar non conosce viene tolta). I segnaposto di un plugin che su questo server non c'e' restano
