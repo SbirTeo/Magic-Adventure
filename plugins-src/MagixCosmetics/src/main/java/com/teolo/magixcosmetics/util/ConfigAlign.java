@@ -80,6 +80,8 @@ public final class ConfigAlign {
         public String text = "";
         /** true se il file sul disco non si e' riusciti a leggerlo: non e' stato toccato. */
         public boolean unreadable = false;
+        /** Rinomine dichiarate ma non applicabili da sole (la chiave ha cambiato anche genitore). */
+        public final List<String> skipped = new ArrayList<>();
         /** Chiavi che sarebbero finite doppie: l'allineamento e' stato annullato. */
         public final List<String> duplicated = new ArrayList<>();
 
@@ -100,9 +102,57 @@ public final class ConfigAlign {
      * plugin (saveDefaultConfig, saveResource), cosi' un menu cancellato apposta resta cancellato.</p>
      */
     public static void alignAll(JavaPlugin plugin) {
+        Map<String, Map<String, String>> renames = renamesFromJar(plugin);
         for (String name : ymlInJar(plugin)) {
-            if (new File(plugin.getDataFolder(), name).isFile()) align(plugin, name);
+            if (name.equals(RENAMES_FILE)) continue;
+            if (!new File(plugin.getDataFolder(), name).isFile()) continue;
+            align(plugin, name, renames.getOrDefault(name, Map.of()), cleanable(name));
         }
+    }
+
+    /** Il file con le rinomine dichiarate dal plugin. */
+    private static final String RENAMES_FILE = "renames.yml";
+
+    /**
+     * Su quali file si possono TOGLIERE le chiavi che il sorgente non ha piu'.
+     *
+     * <p>{@code config.yml} e {@code messages.yml} hanno uno schema fisso: ogni chiave la legge il
+     * codice, quindi una che non c'e' nel sorgente e' una riga morta, e una riga morta e' solo una
+     * trappola per chi configura. Gli altri file no: {@code menus/*.yml} e {@code sanctions.yml}
+     * sono cataloghi che lo staff allunga, e li' le voci in piu' sono lavoro suo, non residui.</p>
+     */
+    private static boolean cleanable(String fileName) {
+        return fileName.equals("config.yml") || fileName.equals("messages.yml");
+    }
+
+    /**
+     * Le rinomine dichiarate in {@code renames.yml} dentro il jar: una sezione per file, e dentro
+     * {@code vecchio.percorso: nuovo.percorso}. Non si indovinano guardando i valori — si scrivono
+     * nello stesso commit in cui si rinomina nel codice.
+     */
+    private static Map<String, Map<String, String>> renamesFromJar(JavaPlugin plugin) {
+        Map<String, Map<String, String>> out = new LinkedHashMap<>();
+        String text = resource(plugin, RENAMES_FILE);
+        if (text == null) return out;
+        try (java.io.InputStream in = plugin.getResource(RENAMES_FILE)) {
+            org.bukkit.configuration.file.YamlConfiguration cfg =
+                    org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(
+                            new java.io.InputStreamReader(in, StandardCharsets.UTF_8));
+            for (String file : cfg.getKeys(false)) {
+                org.bukkit.configuration.ConfigurationSection sec = cfg.getConfigurationSection(file);
+                if (sec == null) continue;
+                Map<String, String> coppie = new LinkedHashMap<>();
+                for (String vecchio : sec.getKeys(true)) {
+                    String nuovo = sec.getString(vecchio);
+                    if (nuovo != null && !nuovo.isBlank()) coppie.put(vecchio, nuovo);
+                }
+                out.put(file, coppie);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("renames.yml illeggibile (" + e.getClass().getSimpleName()
+                    + "): le rinomine non verranno applicate.");
+        }
+        return out;
     }
 
     /** I file yml dentro il jar del plugin, tolto il suo descrittore. */
@@ -132,6 +182,11 @@ public final class ConfigAlign {
      * @return l'esito, o null se non c'era niente da fare (file non nel jar, o appena creato)
      */
     public static Result align(JavaPlugin plugin, String fileName) {
+        return align(plugin, fileName, Map.of(), cleanable(fileName));
+    }
+
+    public static Result align(JavaPlugin plugin, String fileName,
+                               Map<String, String> renames, boolean cleanable) {
         String source = resource(plugin, fileName);
         if (source == null) return null;
 
@@ -140,7 +195,8 @@ public final class ConfigAlign {
         // allineato per definizione: qui non si inventano file.
         if (!onDisk.isFile()) return null;
         try {
-            Result result = merge(source, Files.readString(onDisk.toPath(), StandardCharsets.UTF_8));
+            Result result = merge(source, Files.readString(onDisk.toPath(), StandardCharsets.UTF_8),
+                    renames, cleanable);
             if (result.unreadable) {
                 plugin.getLogger().warning(fileName + ": non ci ho capito niente (nessuna chiave"
                         + " riconosciuta) e NON l'ho toccato. Va guardato a mano: e' il file che il"
@@ -154,9 +210,21 @@ public final class ConfigAlign {
                 return result;
             }
             if (result.changed()) {
+                // PRIMA la copia, poi si scrive: qualsiasi cosa cambi (aggiunta, rinomina,
+                // cancellazione), la versione di prima resta li' accanto, con la data nel nome.
+                backup(plugin, onDisk);
                 Files.writeString(onDisk.toPath(), result.text, StandardCharsets.UTF_8);
                 plugin.getLogger().info(fileName + ": aggiunte le chiavi nuove di questa versione ("
                         + String.join(", ", result.added) + ").");
+            }
+            if (!result.renamed.isEmpty()) {
+                plugin.getLogger().info(fileName + ": chiavi rinominate come nel codice, col valore"
+                        + " che avevi scelto (" + String.join(", ", result.renamed) + ").");
+            }
+            if (!result.removed.isEmpty()) {
+                plugin.getLogger().info(fileName + ": tolte le righe morte, che il codice non legge"
+                        + " piu' (" + String.join(", ", result.removed) + "). La copia di prima e'"
+                        + " nella cartella del plugin, col nome che finisce in .bak-<data>.");
             }
             if (!result.unknown.isEmpty()) {
                 plugin.getLogger().info(fileName + ": sul server ci sono chiavi che il codice non legge"
@@ -170,6 +238,36 @@ public final class ConfigAlign {
                     + " mancanti il plugin usa i valori del jar.");
             return null;
         }
+    }
+
+    /** Quante copie tenere per file: le piu' vecchie si cancellano, se no la cartella si riempie. */
+    private static final int COPIES_KEPT = 10;
+
+    /**
+     * Copia il file accanto a se stesso, col timestamp nel nome ({@code config.yml.bak-20260915-0412}).
+     * Si fa prima di ogni scrittura: se l'allineamento sbaglia qualcosa — ed e' gia' successo — la
+     * versione buona e' li' a un rename di distanza, senza dover cercare backup del server.
+     */
+    private static void backup(JavaPlugin plugin, File file) {
+        try {
+            String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+            File copy = new File(file.getParentFile(), file.getName() + ".bak-" + stamp);
+            Files.copy(file.toPath(), copy.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            dropOldCopies(file);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Non sono riuscito a fare la copia di " + file.getName()
+                    + " (" + e.getClass().getSimpleName() + "): il file NON viene toccato.");
+            throw new IllegalStateException("backup fallito", e); // meglio non allineare che non poter tornare indietro
+        }
+    }
+
+    /** Tiene solo le ultime {@link #COPIES_KEPT} copie di quel file. */
+    private static void dropOldCopies(File file) {
+        File[] copies = file.getParentFile().listFiles(
+                (dir, found) -> found.startsWith(file.getName() + ".bak-"));
+        if (copies == null || copies.length <= COPIES_KEPT) return;
+        java.util.Arrays.sort(copies, java.util.Comparator.comparing(File::getName));
+        for (int i = 0; i < copies.length - COPIES_KEPT; i++) copies[i].delete();
     }
 
     /** Il file dentro il jar, o null se non c'e'. */
@@ -188,6 +286,11 @@ public final class ConfigAlign {
      * di quelle che ci sono gia'.
      */
     public static Result merge(String source, String disk) {
+        return merge(source, disk, Map.of(), false);
+    }
+
+    public static Result merge(String source, String disk,
+                               Map<String, String> renames, boolean cleanable) {
         Result result = new Result();
         Node onDisk = parse(disk);
 
@@ -201,8 +304,12 @@ public final class ConfigAlign {
             return result;
         }
 
+        // 1) le rinomine dichiarate: il valore scelto sul server si porta dietro il nome nuovo.
+        applyRenames(onDisk, renames, result);
+        // 2) aggiunte (e, dove si puo', via le righe morte).
         List<String> out = new ArrayList<>();
-        mergeNode(onDisk, parse(source), "", result, out);
+        mergeNode(onDisk, parse(source), "", result, out, cleanable);
+        if (!result.removed.isEmpty()) squeezeBlanks(out);
         result.text = String.join(disk.contains("\r\n") ? "\r\n" : "\n", out);
 
         // Seconda rete: se il risultato avesse comunque una chiave doppia, il file non si scrive.
@@ -235,7 +342,8 @@ public final class ConfigAlign {
      * Riscrive il blocco del nodo che sta sul disco infilando, al posto giusto, le chiavi che
      * esistono solo nel sorgente. Ricorsiva: vale per il documento intero e per ogni sezione.
      */
-    private static void mergeNode(Node disk, Node source, String path, Result result, List<String> out) {
+    private static void mergeNode(Node disk, Node source, String path, Result result,
+                                  List<String> out, boolean cleanable) {
         out.addAll(disk.heading);
         out.addAll(disk.own);
 
@@ -265,16 +373,75 @@ public final class ConfigAlign {
             String sotto = path.isEmpty() ? d.key : path + "." + d.key;
             Node s = source.children.get(d.key);
             if (s == null) {
-                d.collectLeaves(sotto, result.unknown);
-                out.addAll(d.allLines());
+                if (cleanable) {
+                    // Riga morta: il codice non la legge piu'. Si toglie, e la copia di prima
+                    // resta nella cartella del plugin (vedi backup()).
+                    d.collectLeaves(sotto, result.removed);
+                } else {
+                    d.collectLeaves(sotto, result.unknown);
+                    out.addAll(d.allLines());
+                }
             } else {
-                mergeNode(d, s, sotto, result, out);
+                mergeNode(d, s, sotto, result, out, cleanable);
             }
             writeNew(toInsert.remove(d.key), childIndent, path, result, out);
         }
         // Sezione vuota sul disco (o tutte chiavi nuove): entrano in coda.
         writeNew(toInsert.remove(""), childIndent, path, result, out);
         for (List<Node> rest : toInsert.values()) writeNew(rest, childIndent, path, result, out);
+    }
+
+    /**
+     * Applica le rinomine dichiarate: la chiave cambia nome e si tiene il valore che aveva sul
+     * server. Se il nome nuovo c'e' gia' non si tocca niente (ci pensera' la pulizia a togliere
+     * quello vecchio); se la chiave cambia anche genitore non si indovina, e lo si dice.
+     */
+    private static void applyRenames(Node disk, Map<String, String> renames, Result result) {
+        for (Map.Entry<String, String> e : renames.entrySet()) {
+            String oldPath = e.getKey(), newPath = e.getValue();
+            String oldParent = parentOf(oldPath), newParent = parentOf(newPath);
+            if (!oldParent.equals(newParent)) {
+                result.skipped.add(oldPath + " -> " + newPath);
+                continue;
+            }
+            Node parent = nodeAt(disk, oldParent);
+            if (parent == null) continue;
+            String oldLeaf = leafOf(oldPath), newLeaf = leafOf(newPath);
+            Node node = parent.children.get(oldLeaf);
+            if (node == null || parent.children.containsKey(newLeaf)) continue;
+            node.renameTo(newLeaf);
+            parent.rekey(oldLeaf, newLeaf);
+            result.renamed.add(oldPath + " -> " + newPath);
+        }
+    }
+
+    private static String parentOf(String path) {
+        int i = path.lastIndexOf('.');
+        return i < 0 ? "" : path.substring(0, i);
+    }
+
+    private static String leafOf(String path) {
+        int i = path.lastIndexOf('.');
+        return i < 0 ? path : path.substring(i + 1);
+    }
+
+    /** Il nodo a quel percorso ("" = la radice), o null. */
+    private static Node nodeAt(Node root, String path) {
+        Node node = root;
+        if (path.isEmpty()) return node;
+        for (String step : path.split("\\.")) {
+            node = node.children.get(step);
+            if (node == null) return null;
+        }
+        return node;
+    }
+
+    /** Dopo una cancellazione restano righe vuote in fila: se ne tiene una. */
+    private static void squeezeBlanks(List<String> lines) {
+        for (int i = lines.size() - 1; i > 0; i--) {
+            if (lines.get(i).isBlank() && lines.get(i - 1).isBlank()) lines.remove(i);
+        }
+        while (!lines.isEmpty() && lines.get(0).isBlank()) lines.remove(0);
     }
 
     /** Scrive i blocchi nuovi (commento compreso), reindentati come vuole il file di destinazione. */
@@ -309,7 +476,7 @@ public final class ConfigAlign {
      * viene dopo (righe sciolte e chiavi figlie). La radice e' il documento intero.
      */
     private static final class Node {
-        final String key;
+        String key;
         final int indent;
         /** Commento attaccato sopra la chiave: se la chiave viene copiata, il commento la segue. */
         final List<String> heading = new ArrayList<>();
@@ -334,6 +501,24 @@ public final class ConfigAlign {
         void add(Node child) {
             content.add(child);
             children.put(child.key, child);
+        }
+
+        /** Riscrive il nome sulla riga della chiave, lasciando indentazione, valore e commento. */
+        void renameTo(String newLeaf) {
+            own.set(0, own.get(0).replaceFirst("^([ \\t]*)" + Pattern.quote(key) + ":",
+                    "$1" + Matcher.quoteReplacement(newLeaf) + ":"));
+            key = newLeaf;
+        }
+
+        /** Cambia la chiave nella mappa dei figli tenendo l'ordine. */
+        void rekey(String oldLeaf, String newLeaf) {
+            Map<String, Node> nuovi = new LinkedHashMap<>();
+            for (Map.Entry<String, Node> e : children.entrySet()) {
+                if (e.getKey().equals(oldLeaf)) nuovi.put(newLeaf, e.getValue());
+                else nuovi.put(e.getKey(), e.getValue());
+            }
+            children.clear();
+            children.putAll(nuovi);
         }
 
         List<String> allLines() {

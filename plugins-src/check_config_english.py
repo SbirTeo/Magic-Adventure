@@ -8,7 +8,8 @@ KEYS — the handles the code reads with getString("...") — and the file NAMES
 
 Scope, per plugin: every YAML file under resources/ EXCEPT
   - plugin.yml           (commands/permissions -> check_commands.py),
-  - anything under menus/ (those are user data, not config).
+  - anything under menus/ (those are user data, not config),
+  - renames.yml          (it lists the OLD key names, Italian by definition: that is its job).
 For each it flags Italian file names and Italian keys (the text left of the first colon).
 
 It reuses the Italian word list in check_english.py — grow it there.
@@ -52,7 +53,7 @@ def check(name):
         if rel_dir.startswith("menus"):
             continue
         for f in files:
-            if not f.endswith(".yml") or f == "plugin.yml":
+            if not f.endswith(".yml") or f in ("plugin.yml", "renames.yml"):
                 continue
             path = os.path.join(root, f)
             rel = os.path.relpath(path, os.path.join(HERE, name)).replace("\\", "/")

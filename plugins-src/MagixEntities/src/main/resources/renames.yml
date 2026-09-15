@@ -1,0 +1,27 @@
+# ==========================================================================================
+#  renames.yml — le chiavi che hanno cambiato NOME
+#
+#  ConfigAlign, all'avvio, applica queste rinomine ai file nella cartella del plugin SUL
+#  SERVER: la chiave prende il nome nuovo e si porta dietro il valore che era stato scelto li'.
+#  Senza questo elenco una rinomina nel codice lascerebbe sul server la chiave vecchia, che
+#  nessuno legge piu', e il valore scelto andrebbe perso in silenzio.
+#
+#  REGOLA: si dichiara qui la rinomina NELLO STESSO COMMIT in cui si rinomina nel codice.
+#
+#  Si dichiara solo quando la chiave e' la stessa cosa con un altro nome. Se insieme al nome e'
+#  cambiato anche il SIGNIFICATO (il messaggio esce in un altro momento, il testo ha segnaposto
+#  nuovi, il numero conta un'altra cosa) NON si dichiara: li' e' giusto che valga il valore nuovo
+#  del jar, e la chiave vecchia viene tolta come riga morta (con la copia di sicurezza a fianco).
+#
+#  Formato:  <file>:
+#              vecchio.percorso: nuovo.percorso
+#  Il genitore dev'essere lo stesso: si cambia il nome, non il posto.
+# ==========================================================================================
+
+config.yml:
+  # Rinominata passando alle chiavi in inglese. E' un interruttore: il valore scelto vale ancora.
+  pulisci-orfani: clean-orphans
+
+messages.yml:
+  # Stessa sezione dell'aiuto, stesso contenuto: solo il nome in inglese.
+  help.sections.posizione: help.sections.position

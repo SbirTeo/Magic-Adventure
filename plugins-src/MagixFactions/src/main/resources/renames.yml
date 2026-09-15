@@ -1,0 +1,25 @@
+# ==========================================================================================
+#  renames.yml — le chiavi che hanno cambiato NOME
+#
+#  ConfigAlign, all'avvio, applica queste rinomine ai file nella cartella del plugin SUL
+#  SERVER: la chiave prende il nome nuovo e si porta dietro il valore che era stato scelto li'.
+#  Senza questo elenco una rinomina nel codice lascerebbe sul server la chiave vecchia, che
+#  nessuno legge piu', e il valore scelto andrebbe perso in silenzio.
+#
+#  REGOLA: si dichiara qui la rinomina NELLO STESSO COMMIT in cui si rinomina nel codice.
+#
+#  Si dichiara solo quando la chiave e' la stessa cosa con un altro nome. Se insieme al nome e'
+#  cambiato anche il SIGNIFICATO NON si dichiara: li' e' giusto che valga il valore nuovo del
+#  jar, e la chiave vecchia viene tolta come riga morta (con la copia di sicurezza a fianco).
+#  Per questo qui NON ci sono disband.broadcast -> announce (il testo nuovo ha {name}, quello
+#  vecchio no) ne' unclaimall.confirm-* -> done-* (quel titolo ora esce a cose fatte, non alla
+#  richiesta di conferma): in entrambi i casi portarsi dietro il vecchio testo farebbe danno.
+#
+#  Formato:  <file>:
+#              vecchio.percorso: nuovo.percorso
+#  Il genitore dev'essere lo stesso: si cambia il nome, non il posto.
+# ==========================================================================================
+
+config.yml:
+  # Il blocco del logo nel tablist: stesse misure (height/ascent), solo il nome della sezione.
+  tablist.background: tablist.logo

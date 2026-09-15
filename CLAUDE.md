@@ -114,17 +114,36 @@ plugin chiama **all'avvio e a ogni reload**: confronta il file del server con qu
 e ci aggiunge le chiavi mancanti, **al loro posto e col loro commento**, senza toccare i valori
 gia' scelti; scrive nel log quali ha aggiunto e quali, sul server, non corrispondono piu' a niente.
 
+Cosa fa, in ordine, a ogni avvio e a ogni reload:
+
+1. **Rinomina** le chiavi che nel codice hanno cambiato nome, portandosi dietro il valore scelto
+   sul server. Le rinomine non si indovinano: si dichiarano in **`renames.yml`** dentro le
+   risorse del plugin (`<file>: {vecchio.percorso: nuovo.percorso}`), **nello stesso commit** in
+   cui si rinomina nel codice. Si dichiarano solo quando la chiave e' la stessa cosa con un altro
+   nome: se e' cambiato anche il **significato** (il messaggio esce in un altro momento, il testo
+   ha segnaposto nuovi) non si dichiara, e la chiave vecchia viene tolta come riga morta.
+2. **Aggiunge** le chiavi nuove, al loro posto e col loro commento.
+3. **Toglie le righe morte** — le chiavi che nel sorgente non esistono piu' — da `config.yml` e
+   `messages.yml`, che hanno schema fisso. **Non** lo fa su `menus/*.yml` e `sanctions.yml`: li'
+   le voci in piu' sono lavoro dello staff, non residui.
+4. Scrive nel log che cosa ha rinominato, aggiunto e tolto.
+
 Regole che ne discendono:
 
-- **Ogni plugin nuovo** chiama `ConfigAlign.allineaTutti(this)` subito dopo `saveDefaultConfig()`
-  e nel suo comando di reload. Non serve elencare i file: li trova da se' dentro il jar.
+- **Prima di ogni scrittura** il file viene copiato accanto a se' con la data nel nome
+  (`config.yml.bak-20260915-041200`). Se la copia non riesce, il file **non** si tocca. Si
+  tengono le ultime 10 copie per file.
+- **Ogni plugin nuovo** chiama `ConfigAlign.alignAll(this)` subito dopo `saveDefaultConfig()` e
+  nel suo comando di reload. Non serve elencare i file: li trova da se' dentro il jar.
 - `ConfigAlign` e' una **classe comune**: le copie nei vari plugin devono restare identiche
   (`check_config.py` lo verifica, regola [5]).
-- L'allineamento **non sa** delle rinomine: aggiunge il nome nuovo e lascia il vecchio, senza
-  portarsi dietro il valore. Quando si rinomina una chiave si usa **nella stessa sessione**
-  `deploy-plugin-config.yml` con `mode=rename`.
-- Non cancella mai niente da un file del server: le chiavi che il codice non legge piu' le
-  **segnala nel log** e basta.
+- Due reti di sicurezza, nate da un guasto vero: se in un file che ha righe simili a chiavi non se
+  ne riconosce **nessuna** (successe coi fine riga di Windows), il file non si tocca; e se il
+  risultato conterrebbe una chiave **doppia**, l'allineamento si annulla. In YAML vince l'ultima
+  chiave: un doppione accodato copre i valori veri, comprese le credenziali del database.
+- `deploy-plugin-config.yml` resta per gli interventi a mano: `mode=set` per cambiare un valore
+  gia' presente sul server, `mode=rename` per una rinomina una tantum, `mode=dedup` per rimediare
+  a un file con blocchi duplicati.
 
 ## CODICE IN INGLESE (regola di struttura)
 
