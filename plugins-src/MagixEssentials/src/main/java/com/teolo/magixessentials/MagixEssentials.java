@@ -1,7 +1,8 @@
 package com.teolo.magixessentials;
 
-import com.teolo.magixessentials.util.ConfigAlign;
+import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.tab.TabManager;
+import com.teolo.magixessentials.util.ConfigAlign;
 import com.teolo.magixessentials.util.ConfigValues;
 import com.teolo.magixessentials.util.StaffGuide;
 import org.bukkit.Bukkit;
@@ -14,30 +15,37 @@ import org.jetbrains.annotations.NotNull;
  * MagixEssentials: raccoglie le utilita' "di base" del server. Per ora gestisce SOLO il tablist
  * (la lista giocatori, tasto Tab); l'idea a lungo termine e' che assorba cio' che oggi fa CMI.
  *
+ * <p>Ogni funzione si accende e si spegne dal {@code modules.yml}, come nel Modules.yml di CMI
+ * (vedi {@link Modules}); il {@code config.yml} tiene solo la configurazione di base.
+ *
  * <p>Il tablist e' volutamente separato in {@link TabManager}: la classe principale si limita ad
  * accenderlo/spegnerlo e a offrire {@code /magixessentials reload}.
  */
 public final class MagixEssentials extends JavaPlugin {
 
+    private Modules modules;
     private TabManager tabManager;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // Gli interruttori delle funzioni PRIMA dell'allineamento: ConfigAlign tocca solo i file
+        // che nella cartella dati esistono gia', e chi lo crea e' questa riga (vedi module/Modules).
+        modules = new Modules(this);
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
         // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
         // resterebbe indietro in silenzio (vedi util/ConfigAlign).
         ConfigAlign.alignAll(this);
         reloadConfig();
+        modules.ricarica();   // dopo l'allineamento: cosi' legge anche i moduli appena aggiunti
         // Il capitolo della guida per lo staff sul sito + il README nella cartella del plugin:
         // stessa scrittura, letta dal config vivo. Puro I/O, fuori dal tick d'avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         tabManager = new TabManager(this);
-        tabManager.start();
-        getLogger().info("MagixEssentials abilitato (tablist "
-                + (getConfig().getBoolean("tablist.enabled", true) ? "attivo" : "disattivato") + ").");
+        if (modules.attivo(Modules.TABLIST)) tabManager.start();
+        getLogger().info("MagixEssentials abilitato (moduli: " + modules.riepilogo() + ").");
     }
 
     @Override
@@ -53,11 +61,18 @@ public final class MagixEssentials extends JavaPlugin {
             // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
             ConfigAlign.alignAll(this);
             reloadConfig();
-            if (tabManager != null) { tabManager.stop(); tabManager.start(); }
+            modules.ricarica();
+            // Sempre stop() e poi, solo se il modulo e' acceso, start(): cosi' un tablist spento
+            // adesso sparisce davvero, invece di restare appeso com'era prima del reload.
+            if (tabManager != null) {
+                tabManager.stop();
+                if (modules.attivo(Modules.TABLIST)) tabManager.start();
+            }
             // La guida riporta i valori VIVI del config: se non la riscrivessimo qui, dopo un
             // reload resterebbe indietro fino al prossimo riavvio.
             Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
-            sender.sendMessage("§dMagixEssentials §8» §7Configurazione ricaricata.");
+            sender.sendMessage("§dMagixEssentials §8» §7Configurazione ricaricata §8(§7moduli: §f"
+                    + modules.riepilogo() + "§8)§7.");
             return true;
         }
         sender.sendMessage("§dMagixEssentials §8» §7Uso: §f/" + label + " reload");
@@ -78,6 +93,24 @@ public final class MagixEssentials extends JavaPlugin {
                 .intro("Raccoglie le utilita' di base del server. Per ora fa una cosa sola: il "
                         + "**tablist**, cioe' la lista giocatori che si apre col tasto Tab. "
                         + "A lungo andare dovrebbe assorbire cio' che oggi fa CMI.")
+
+                .section("I moduli: cosa e' acceso e cosa no",
+                        "Come in CMI, ogni funzione ha il suo interruttore in un file a parte: "
+                                + "**plugins/MagixEssentials/modules.yml**. Li' si accende o si spegne una "
+                                + "funzione INTERA (oggi c'e' solo **tablist**, domani ce ne saranno altre); il "
+                                + "**config.yml** resta il file di come quella funzione e' fatta — righe, "
+                                + "intervalli, formati.",
+                        "La divisione serve a una domanda sola: «che cosa sta facendo il plugin adesso?». La "
+                                + "risposta e' un file lungo quanto le funzioni che esistono, non venti pagine di "
+                                + "impostazioni da leggere per trovare un true.",
+                        "Spegnere una funzione non e' buttarne via la configurazione: le sue chiavi nel "
+                                + "config.yml restano dove sono e tornano in uso appena la si riaccende. Dopo una "
+                                + "modifica serve **/magixessentials reload** (o un riavvio): il reload risponde in "
+                                + "chat con l'elenco dei moduli e com'e' andata, e lo stesso elenco finisce nel log "
+                                + "a ogni avvio.",
+                        "Una funzione nuova, aggiunta da un aggiornamento, compare qui da sola col suo valore di "
+                                + "partenza: al file sul server ci pensa il plugin a ogni avvio, come per il "
+                                + "config.yml.")
 
                 .section("Chi comanda il tablist",
                         "Il tablist non ha un proprietario: **ce l'ha chi ha scritto per ultimo**. Se anche CMI lo "
@@ -143,7 +176,6 @@ public final class MagixEssentials extends JavaPlugin {
                 .commands()
                 .permissions()
                 .settings(
-                        "tablist.enabled", "Interruttore generale: spento, il tablist resta quello di CMI (o del gioco).",
                         "tablist.update-interval-ticks", "Ogni quanti tick si riscrivono intestazione, fondo e nomi.",
                         "tablist.player-name", "Come appare il nome nella lista: {name} e' il nome, valgono colori e placeholder.",
                         "tablist.priority.enabled", "Riscrive una seconda volta per arrivare dopo CMI. Spegnila se il tablist e' solo nostro.",
@@ -152,12 +184,23 @@ public final class MagixEssentials extends JavaPlugin {
                         "tablist.fixed-slots.total", "Quante caselle in tutto: il gioco ne disegna al massimo 80 (4 colonne x 20).",
                         "tablist.fixed-slots.empty-text", "Cosa c'e' scritto in una casella vuota: uno spazio la lascia muta.")
 
+                // Gli interruttori stanno in un file loro (modules.yml): qui si vedono col valore
+                // che hanno adesso sul server, accanto alle impostazioni che li riguardano.
+                .settingsFrom(modules.configurazione(), "Moduli (modules.yml)",
+                        "tablist", "Il tablist del tasto Tab. Spento, il tablist resta quello di CMI (o del gioco).")
+
                 .issue("Le caselle vuote hanno una testa e le tacchette di connessione",
                         "Allora non sono le nostre, sono quelle di CMI: le nostre nascono senza testa e senza "
                                 + "tacchette. Vuol dire che il suo modulo tablist e' ancora acceso e sta riempiendo "
                                 + "lui. Spegnilo (Modules.yml → tablist: false) e riavvia: il tab torna nostro.")
+                .issue("Ho spento tablist nel modules.yml ma il tab si vede ancora",
+                        "Quello che vedi non e' piu' il nostro: col modulo spento questo plugin non scrive "
+                                + "niente nel tablist, quindi resta quello di CMI (o, se anche il suo modulo e' "
+                                + "spento, la lista base del gioco). Controlla di aver fatto "
+                                + "/magixessentials reload dopo la modifica: la risposta in chat elenca i moduli "
+                                + "e dice se il tablist risulta spento.")
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie da config.yml e messages.yml le righe morte che il codice non legge piu' (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie da config.yml, messages.yml e modules.yml le righe morte che il codice non legge piu' (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Le slot fisse non compaiono",
                         "Guarda il log all'avvio: il plugin scrive «slot fisse attive: N caselle» quando ci "
                                 + "riesce, e il motivo quando no (ProtocolLib assente, o struttura del pacchetto "

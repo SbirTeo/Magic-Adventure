@@ -1,0 +1,18 @@
+# ============================================================
+#  MagixEssentials - Moduli
+# ============================================================
+# Un interruttore per funzione, come il Modules.yml di CMI: qui si ACCENDE o si SPEGNE una
+# funzione intera, non la si regola. Le impostazioni di ciascuna (righe, intervalli, formati)
+# restano nel config.yml, che e' e resta il file della configurazione di base.
+#
+# Una funzione spenta qui non parte affatto: niente aggiornamenti a intervalli, niente aggancio
+# agli eventi. Le sue chiavi nel config.yml non si toccano: restano li', pronte per quando la si
+# riaccende.
+#
+# Ogni funzione nuova che verra' aggiunta al plugin avra' la sua riga qui. Le modifiche si
+# applicano con /magixessentials reload (o al riavvio del server).
+
+# Tablist: la lista giocatori che si apre col tasto Tab — intestazione, fondo, nome dei giocatori
+# e le caselle fisse. Spento, il tablist torna quello di CMI (o, se anche il suo modulo e' spento,
+# quello del gioco). Si regola nella sezione 'tablist' del config.yml.
+tablist: true

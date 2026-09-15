@@ -3,11 +3,15 @@
 # ============================================================
 # Per ora questo plugin gestisce SOLO il tablist (la lista giocatori, tasto Tab).
 # In futuro raccogliera' le altre utilita' che oggi fa CMI.
+#
+# Qui c'e' la configurazione di base: COME funziona ogni cosa. Per accendere o SPEGNERE una
+# funzione intera c'e' un file a parte, modules.yml, sul modello del Modules.yml di CMI.
+# Il tablist, per esempio, si spegne con modules.yml -> tablist: false, non da qui.
 
 tablist:
-  # Se true, il tablist e' gestito da questo plugin. In tal caso DISATTIVA quello di CMI
-  # (plugins/CMI/Settings/Modules.yml -> tablist: false) per evitare che si sovrascrivano a vicenda.
-  enabled: true
+  # NB: il tablist e' gestito da questo plugin se il modulo e' acceso (modules.yml -> tablist).
+  # In tal caso DISATTIVA quello di CMI (plugins/CMI/Settings/Modules.yml -> tablist: false) per
+  # evitare che si sovrascrivano a vicenda.
 
   # Ogni quanti tick (20 = 1 secondo) si riaggiornano intestazione, fondo e nomi.
   update-interval-ticks: 20

@@ -18,6 +18,10 @@ import java.util.List;
  * intervalli regolari (e a ogni ingresso). Header/fondo possono contenere placeholder PER-GIOCATORE
  * (ping, fazione, coordinate...), quindi vengono ricalcolati per ciascuno.
  *
+ * <p>Acceso e spento NON si decidono qui: il modulo {@code tablist} sta nel {@code modules.yml}
+ * e lo legge la classe principale, che chiama {@link #start()} solo se e' attivo. Qui restano
+ * soltanto le sue impostazioni, prese dal {@code config.yml}.
+ *
  * <p>Le 80 slot fisse e la pergamena di sfondo NON sono qui: richiedono l'invio di caselle "finte"
  * al client (via ProtocolLib) e arriveranno in un secondo momento. Vedi config {@code fixed-slots}.
  */
@@ -49,8 +53,6 @@ public final class TabManager implements Listener {
     }
 
     public void start() {
-        if (!plugin.getConfig().getBoolean("tablist.enabled", true)) return;
-
         // Caselle finte che tengono il tab sempre della stessa misura. Si prepara qui una volta
         // sola; se non e' disponibile (ProtocolLib assente, o spenta) resta il tablist dinamico.
         slotFisse.load();
