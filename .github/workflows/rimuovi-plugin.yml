@@ -6,8 +6,13 @@ name: Togli un plugin dal server Minecraft
 #
 # NON cancella: sposta il jar in plugins/.rimossi/ col timestamp nel nome. Un plugin tolto per
 # sbaglio si rimette indietro con un mv, e il .rimossi non viene letto da Bukkit (guarda solo i
-# .jar dentro plugins/). La cartella dati del plugin (config, dati) resta dov'e': si toglie a
-# mano, quando si e' sicuri.
+# .jar dentro plugins/). Con dati=si finisce li' anche la cartella dati del plugin, sempre
+# spostata e non cancellata: svuotare .rimossi e' una riga, ricostruire un config no.
+#
+# Con jar=no e dati=si non si toglie niente: si porta via solo la cartella dati di un plugin che
+# resta installato. E' il modo di far riscrivere i suoi file dal jar al riavvio — utile quando lo
+# schema di un file cambia e quello sul server e' ancora ai valori di fabbrica, che ConfigAlign
+# aggiorna le chiavi ma i commenti gia' scritti non li riscrive mai.
 #
 # Serve alle sessioni CLOUD, che non hanno SSH verso il VPS. Stessi secret del deploy
 # (VPS_HOST / VPS_USER / VPS_SSH_KEY) e stesso riavvio con preavviso in chat.
@@ -18,6 +23,14 @@ on:
       plugin:
         description: "Prefisso del jar da togliere (es. CustomMOTD -> CustomMOTD-*.jar)"
         required: true
+      jar:
+        description: "si = porta via il jar, no = lascia il jar e tocca solo la cartella dati"
+        required: false
+        default: "si"
+      dati:
+        description: "si = porta via anche la cartella dati (config e dati del plugin), no = la lascia"
+        required: false
+        default: "no"
       riavvia:
         description: "si = riavvia il server (serve perche' il plugin sparisca davvero), no = solo sposta"
         required: false
@@ -61,32 +74,48 @@ jobs:
         env:
           DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
           IN_PLUGIN: ${{ inputs.plugin }}
+          IN_JAR: ${{ inputs.jar }}
+          IN_DATI: ${{ inputs.dati }}
           IN_RIAVVIA: ${{ inputs.riavvia }}
         run: |
           set -euo pipefail
           SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes $DEST"
-          $SSH "PLUGIN='$IN_PLUGIN' RIAVVIA='${IN_RIAVVIA:-si}' bash -s" <<'REMOTE'
+          $SSH "PLUGIN='$IN_PLUGIN' JAR='${IN_JAR:-si}' DATI='${IN_DATI:-no}' RIAVVIA='${IN_RIAVVIA:-si}' bash -s" <<'REMOTE'
           set -e
           PLUGDIR=/home/ubuntu/magicadventure/plugins
           STAMP="$(date +%Y%m%d-%H%M%S)"
           cd "$PLUGDIR"
 
-          TROVATI="$(ls -1 "$PLUGIN"-*.jar "$PLUGIN".jar 2>/dev/null || true)"
-          if [ -z "$TROVATI" ]; then
-            echo "Nessun jar che cominci per '$PLUGIN': non c'e' niente da togliere."
-            echo "Nella cartella ci sono:"; ls -1 *.jar
-            exit 0
+          mkdir -p .rimossi
+
+          # La cartella dati: si porta via per prima, cosi' se il jar non c'e' piu' (tolto in un
+          # giro precedente) questo passaggio funziona lo stesso.
+          if [ "$DATI" = "si" ] && [ -d "$PLUGIN" ]; then
+            mv "$PLUGIN" ".rimossi/$PLUGIN.dati.$STAMP"
+            echo "Cartella dati: $PLUGIN -> .rimossi/$PLUGIN.dati.$STAMP"
           fi
 
-          mkdir -p .rimossi
-          echo "Tolgo:"; printf '%s\n' "$TROVATI"
-          printf '%s\n' "$TROVATI" | while IFS= read -r J; do
-            [ -z "$J" ] && continue
-            mv "$J" ".rimossi/$J.$STAMP"
-            echo "  $J -> .rimossi/$J.$STAMP"
-          done
-
-          echo "Rimasti nella cartella plugins:"; ls -1 *.jar
+          if [ "$JAR" != "si" ]; then
+            # Il caso "resetta la configurazione": il plugin resta installato, se n'e' andata solo
+            # la sua cartella dati, e al riavvio il jar riscrive i file da capo.
+            echo "Il jar resta dov'e' (jar=no)."
+          else
+            # ATTENZIONE allo 'set -e': un ls che non trova niente esce 1 e porterebbe via con se'
+            # tutto lo script, cartella dati gia' spostata compresa. Il fallimento va detto a mano.
+            TROVATI="$(ls -1 "$PLUGIN"-*.jar "$PLUGIN".jar 2>/dev/null || true)"
+            if [ -z "$TROVATI" ]; then
+              echo "Nessun jar che cominci per '$PLUGIN': non c'e' (piu') niente da togliere."
+              echo "Nella cartella ci sono:"; ls -1 *.jar
+              exit 0
+            fi
+            echo "Tolgo:"
+            printf '%s\n' "$TROVATI" | while IFS= read -r J; do
+              [ -z "$J" ] && continue
+              mv "$J" ".rimossi/$J.$STAMP"
+              echo "  $J -> .rimossi/$J.$STAMP"
+            done
+            echo "Rimasti nella cartella plugins:"; ls -1 *.jar
+          fi
 
           if [ "$RIAVVIA" != "si" ]; then
             echo "Riavvio saltato: il plugin resta caricato fino al prossimo riavvio."
