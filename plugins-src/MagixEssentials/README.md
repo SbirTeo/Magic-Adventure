@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.1**
+Versione: **0.8.2**
 
 ---
 
@@ -227,6 +227,12 @@ quante erano.
 limitiamo ad avvisare: con `cmi.disable-module` acceso spegniamo noi il suo modulo dei nametag nel suo
 `Settings/Modules.yml`, cambiando quella riga sola e lasciando una copia di scorta del file accanto.
 CMI quel file lo legge all'avvio, quindi **serve un riavvio** perche' smetta di scrivere anche lui.
+
+Da lui quella riga si chiama **`namePlates`** — «name plates», non «nametag»: il plugin ne cerca
+qualche grafia (`namePlates`, `nameplate`, `nametag`, `nametags`, `playerNameTag`, senza badare a
+maiuscole e trattini) perche' fra una versione e l'altra gli cambia sotto le mani. Se nel log il suo
+modulo risulta **non leggibile**, nessuno dei nomi conosciuti e' nel suo file: va guardato a mano e
+aggiunto alla lista in `nametag/NametagManager`.
 
 | Classe | Cosa fa |
 |---|---|

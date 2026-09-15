@@ -72,6 +72,16 @@ public final class NametagManager implements Listener {
     /** I placeholder RELAZIONALI di PlaceholderAPI: dipendono da chi guarda, non solo da chi e' guardato. */
     private static final String RELATIONAL = "%rel_";
 
+    /**
+     * Come si chiama, nel {@code Modules.yml} di CMI, l'interruttore delle targhette. Sul server e'
+     * <b>namePlates</b> — non "nametag", che era la prima ipotesi e non esiste: CMI le chiama "name
+     * plates". Gli altri nomi restano perche' fra una versione e l'altra la grafia gli cambia sotto
+     * le mani, e {@code CmiModules} confronta senza badare a maiuscole e trattini; cercarne qualcuno
+     * in piu' non costa niente, mentre non trovare la riga vuol dire non accorgersi del conflitto.
+     */
+    private static final String[] CMI_NAMETAG_KEYS =
+            {"nameplates", "nameplate", "nametag", "nametags", "playernametag"};
+
     private final JavaPlugin plugin;
     /** Le impostazioni dei nametag: il {@code nametag.yml} della cartella dati. */
     private final ConfigurationSection cfg;
@@ -284,13 +294,13 @@ public final class NametagManager implements Listener {
         if (!CmiModules.installed()) {
             return;
         }
-        Boolean on = CmiModules.enabled(plugin, "nametag", "nametags", "playernametag");
+        Boolean on = CmiModules.enabled(plugin, CMI_NAMETAG_KEYS);
         if (Boolean.FALSE.equals(on)) {
             return;         // CMI c'e' ma le targhette non le tocca: nessun conflitto
         }
         String state = on == null ? "non leggibile" : "acceso";
         if (Boolean.TRUE.equals(on) && cfg.getBoolean("cmi.disable-module", true)
-                && CmiModules.disable(plugin, "nametag", "nametags", "playernametag")) {
+                && CmiModules.disable(plugin, CMI_NAMETAG_KEYS)) {
             plugin.getLogger().info("[Nametag] il modulo dei nametag di CMI era acceso: l'ho spento nel suo"
                     + " Settings/Modules.yml (copia di scorta accanto). CMI quel file lo legge all'avvio,"
                     + " quindi serve un RIAVVIO del server perche' smetta di scrivere anche lui.");
@@ -298,8 +308,9 @@ public final class NametagManager implements Listener {
         }
         plugin.getLogger().warning("[Nametag] CMI e' installato e il suo modulo dei nametag risulta " + state
                 + ": due plugin sulla stessa targhetta se la strappano di mano, e vince chi scrive per"
-                + " ultimo. Spegnilo in plugins/CMI/Settings/Modules.yml (la riga dei nametag -> false)"
-                + " e riavvia, oppure lascia fare a noi con nametag.yml -> cmi.disable-module: true.");
+                + " ultimo. Spegnilo in plugins/CMI/Settings/Modules.yml (oggi quella riga si chiama"
+                + " namePlates: mettila a false) e riavvia, oppure lascia fare a noi con"
+                + " nametag.yml -> cmi.disable-module: true.");
     }
 
     // ------------------------------------------------- IL GIRO

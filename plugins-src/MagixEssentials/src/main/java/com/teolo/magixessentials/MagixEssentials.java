@@ -335,7 +335,11 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "la gestisce i due si sovrascrivono a vicenda e vince il caso. Qui pero' non ci "
                                 + "limitiamo ad avvisare: con **cmi.disable-module** acceso, all'avvio spegniamo noi "
                                 + "il suo modulo dei nametag nel suo **Settings/Modules.yml** — cambiando quella riga "
-                                + "sola, con una copia di scorta del file accanto — e lo scriviamo nel log.",
+                                + "sola, con una copia di scorta del file accanto — e lo scriviamo nel log. Da lui "
+                                + "quella riga si chiama **namePlates** (\"name plates\", non \"nametag\"), e il "
+                                + "plugin ne cerca qualche grafia perche' fra una versione e l'altra gli cambia: se "
+                                + "nel log leggi che il suo modulo risulta **non leggibile**, vuol dire che nessuno "
+                                + "dei nomi conosciuti e' nel suo file, e va guardato a mano.",
                         "**Serve un riavvio** perche' abbia effetto: quel file CMI lo legge all'avvio, quindi "
                                 + "finche' non riparte continua a scrivere anche lui. Se preferisci farlo a mano, "
                                 + "spegni cmi.disable-module: in quel caso ci limitiamo all'avviso nel log, con la "
