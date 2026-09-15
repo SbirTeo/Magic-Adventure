@@ -57,6 +57,12 @@ esplicitamente all'utente cosa manca — vedi sotto).
   Quindi, da una sessione cloud, dopo i passi 1–2 fai partire il deploy VPS con l'Action giusta
   e **verifica che il run vada a buon fine**. Avvisa l'utente solo se un deploy fallisce o se i
   secret VPS non sono configurati.
+- Le sessioni cloud **compilano i plugin**: `mvn package` funziona. Il container e' un Ubuntu
+  24.04 col JDK 21 di serie, che per paper-api (Java 25) non basta, quindi l'hook di avvio
+  `.claude/hooks/session-start.sh` — registrato in `.claude/settings.json` — installa
+  `openjdk-25-jdk-headless` e mette `JAVA_HOME`/`PATH` nell'ambiente della sessione (una decina
+  di secondi il primo avvio, poi il container resta in cache). Quindi **prima di pushare si
+  compila**: aspettare la GitHub Action per sapere se il codice sta in piedi non serve piu'.
 
 ## Auto-deploy del sito (attivo)
 
