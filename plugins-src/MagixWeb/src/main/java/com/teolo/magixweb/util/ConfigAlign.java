@@ -38,17 +38,30 @@ import java.util.regex.Pattern;
  *   <li><b>Aggiunge</b> le chiavi del sorgente che sul disco non ci sono, col commento che le
  *       accompagna, nella posizione che hanno nel sorgente (dopo l'ultima sorella gia' presente).</li>
  *   <li><b>Non tocca</b> i valori scelti sul server, ne' i commenti, ne' l'ordine di cio' che c'e'.</li>
- *   <li><b>Non cancella</b> le chiavi che il codice non usa piu': le segnala e basta. Cancellare
- *       roba da un file che non e' nostro non e' un'operazione da fare di nascosto.</li>
- *   <li><b>Non sa</b> che una chiave e' stata rinominata: aggiunge quella nuova e lascia la vecchia,
- *       senza portarsi dietro il valore. Per quelle c'e' il workflow deploy-plugin-config.yml con
- *       {@code mode=rename}, da lanciare nella stessa sessione della rinomina.</li>
+ *   <li><b>Rinomina</b> le chiavi che nel codice hanno cambiato nome, portandosi dietro il valore
+ *       scelto sul server e togliendo quella vecchia. Le rinomine non si indovinano: si dichiarano
+ *       in {@code renames.yml} (un file per sezione, {@code vecchio.percorso: nuovo.percorso}) nello
+ *       stesso commit in cui si rinomina nel codice.</li>
+ *   <li><b>Cancella</b> le righe morte, cioe' le chiavi che nel sorgente non esistono piu', dai file
+ *       a schema fisso ({@code config.yml} e {@code messages.yml}): una riga che nessuno legge e'
+ *       solo una trappola per chi configura. Prima di cancellare fa una copia del file col
+ *       timestamp, e scrive nel log che cosa ha tolto.</li>
+ *   <li><b>Non cancella</b> negli altri file ({@code menus/*.yml}, {@code sanctions.yml}): li' le
+ *       voci in piu' non sono residui, sono lavoro dello staff. Su quelli aggiunge e rinomina soltanto.</li>
  * </ul>
  */
 public final class ConfigAlign {
 
     private ConfigAlign() {
     }
+
+    /**
+     * Righe che SEMBRANO chiavi, guardate con la lente larga: se ce n'e' almeno una e il parser non
+     * ne ha riconosciuta nessuna, il file e' scritto in un modo che non capiamo e non si tocca. Un
+     * file di soli commenti, invece, e' legittimo: li' le chiavi ci vanno scritte.
+     */
+    private static final Pattern LOOKS_LIKE_KEY =
+            Pattern.compile("(?m)^[ \\t]*[A-Za-z0-9_.+-]+[ \\t]*:");
 
     /** Riga che apre una chiave: indentazione, nome, due punti. */
     private static final Pattern KEY_LINE = Pattern.compile("^([ \t]*)([A-Za-z0-9_.+-]+):([ \t].*)?$");
@@ -57,13 +70,21 @@ public final class ConfigAlign {
     public static final class Result {
         /** Chiavi aggiunte, col percorso completo (es. "tablist.priority.enabled"). */
         public final List<String> added = new ArrayList<>();
-        /** Chiavi che stanno sul disco ma non nel sorgente: rinomine o funzioni tolte. */
+        /** Rinomine applicate, come "vecchio -> nuovo": il valore scelto sul server e' stato portato. */
+        public final List<String> renamed = new ArrayList<>();
+        /** Righe morte tolte: chiavi che nel sorgente non esistono piu'. */
+        public final List<String> removed = new ArrayList<>();
+        /** Chiavi sconosciute LASCIATE dov'erano (nei file che non si ripuliscono, es. i menu). */
         public final List<String> unknown = new ArrayList<>();
         /** Il testo del file dopo l'allineamento. */
         public String text = "";
+        /** true se il file sul disco non si e' riusciti a leggerlo: non e' stato toccato. */
+        public boolean unreadable = false;
+        /** Chiavi che sarebbero finite doppie: l'allineamento e' stato annullato. */
+        public final List<String> duplicated = new ArrayList<>();
 
         public boolean changed() {
-            return !added.isEmpty();
+            return !added.isEmpty() || !renamed.isEmpty() || !removed.isEmpty();
         }
     }
 
@@ -120,6 +141,18 @@ public final class ConfigAlign {
         if (!onDisk.isFile()) return null;
         try {
             Result result = merge(source, Files.readString(onDisk.toPath(), StandardCharsets.UTF_8));
+            if (result.unreadable) {
+                plugin.getLogger().warning(fileName + ": non ci ho capito niente (nessuna chiave"
+                        + " riconosciuta) e NON l'ho toccato. Va guardato a mano: e' il file che il"
+                        + " plugin legge davvero.");
+                return result;
+            }
+            if (!result.duplicated.isEmpty()) {
+                plugin.getLogger().warning(fileName + ": allineamento ANNULLATO, sarebbero uscite"
+                        + " chiavi doppie (" + String.join(", ", result.duplicated) + ") e in YAML"
+                        + " vince l'ultima. Il file e' rimasto com'era.");
+                return result;
+            }
             if (result.changed()) {
                 Files.writeString(onDisk.toPath(), result.text, StandardCharsets.UTF_8);
                 plugin.getLogger().info(fileName + ": aggiunte le chiavi nuove di questa versione ("
@@ -156,10 +189,46 @@ public final class ConfigAlign {
      */
     public static Result merge(String source, String disk) {
         Result result = new Result();
+        Node onDisk = parse(disk);
+
+        // Rete di sicurezza. Un file non vuoto in cui non si riconosce NESSUNA chiave vuol dire che
+        // non lo si e' capito, non che e' vuoto: accodarci il sorgente intero creerebbe doppioni, e
+        // in YAML vince l'ultimo — cioe' si coprirebbero i valori veri (le credenziali del
+        // database, per dirne una). In quel caso non si tocca niente.
+        if (onDisk.children.isEmpty() && LOOKS_LIKE_KEY.matcher(disk).find()) {
+            result.text = disk;
+            result.unreadable = true;
+            return result;
+        }
+
         List<String> out = new ArrayList<>();
-        mergeNode(parse(disk), parse(source), "", result, out);
-        result.text = String.join("\n", out);
+        mergeNode(onDisk, parse(source), "", result, out);
+        result.text = String.join(disk.contains("\r\n") ? "\r\n" : "\n", out);
+
+        // Seconda rete: se il risultato avesse comunque una chiave doppia, il file non si scrive.
+        // Meglio un config che non si aggiorna di un config che si contraddice.
+        List<String> twice = duplicates(parse(result.text));
+        if (!twice.isEmpty()) {
+            result.text = disk;
+            result.duplicated.addAll(twice);
+            result.added.clear();
+        }
         return result;
+    }
+
+    /** Percorsi che compaiono piu' di una volta: in YAML vincerebbe l'ultimo. */
+    private static List<String> duplicates(Node node) {
+        List<String> out = new ArrayList<>();
+        Map<String, Integer> count = new LinkedHashMap<>();
+        for (Object piece : node.content) {
+            if (!(piece instanceof Node child)) continue;
+            count.merge(child.key, 1, Integer::sum);
+            for (String deeper : duplicates(child)) out.add(child.key + "." + deeper);
+        }
+        for (Map.Entry<String, Integer> e : count.entrySet()) {
+            if (e.getValue() > 1) out.add(e.getKey());
+        }
+        return out;
     }
 
     /**
@@ -249,6 +318,13 @@ public final class ConfigAlign {
         /** Cio' che segue, in ordine: String (riga sciolta) oppure Node (chiave figlia). */
         final List<Object> content = new ArrayList<>();
         final Map<String, Node> children = new LinkedHashMap<>();
+        /**
+         * true se il valore di questa chiave e' un elenco ({@code - ...}). Dentro un elenco le righe
+         * tipo {@code type: mute} NON sono chiavi figlie: sono il contenuto di una voce. Trattarle
+         * come chiavi faceva vedere doppioni dove non ce n'erano (sanctions.yml ha piu' voci con
+         * gli stessi campi) e avrebbe potuto far infilare roba dentro un elenco.
+         */
+        boolean list = false;
 
         Node(String key, int indent) {
             this.key = key;
@@ -299,7 +375,11 @@ public final class ConfigAlign {
         stack.add(root);
         List<String> pending = new ArrayList<>(); // commenti e righe vuote in attesa della loro chiave
 
-        for (String line : text.split("\n", -1)) {
+        // I file scritti da Windows finiscono le righe con \r\n: senza toglierlo la riga di
+        // una chiave non combacia col regex, il file sembra non averne NESSUNA e si finisce
+        // per accodarci tutto il sorgente. Le righe si tengono senza \r; il file poi si
+        // riscrive con i fine riga che aveva.
+        for (String line : text.split("\r?\n", -1)) {
             if (line.isBlank() || line.stripLeading().startsWith("#")) {
                 pending.add(line);
                 continue;
@@ -310,6 +390,7 @@ public final class ConfigAlign {
                 // Valore su piu' righe (elenco, stringa spezzata): e' dell'ultima chiave aperta.
                 top.content.addAll(pending);
                 pending.clear();
+                if (line.stripLeading().startsWith("-")) top.list = true;
                 if (top.content.isEmpty()) top.own.add(line);
                 else top.content.add(line);
                 continue;
@@ -319,6 +400,14 @@ public final class ConfigAlign {
                 stack.remove(stack.size() - 1);
             }
             Node parent = stack.get(stack.size() - 1);
+            if (parent.list && parent.indent < indent) {
+                // Siamo dentro una voce di elenco (es. "- points: 10" e sotto "type: mute"):
+                // e' contenuto della chiave che regge l'elenco, non una chiave sua figlia.
+                parent.content.addAll(pending);
+                pending.clear();
+                parent.content.add(line);
+                continue;
+            }
             Node node = new Node(m.group(2), indent);
             // Il commento ATTACCATO alla chiave (senza righe vuote in mezzo) e' suo e la segue se
             // viene copiata; quello staccato resta dov'e', che spesso e' l'intestazione del file
