@@ -301,7 +301,8 @@ def check(name):
 
 # Classes the plugins SHARE: they are copies, not a library, so they must stay identical (apart from
 # the package line). If they diverge, a fix made in one plugin never reaches the others.
-COMMON_CLASSES = ["ConfigValues.java", "DurationText.java", "StaffGuide.java", "Help.java"]
+COMMON_CLASSES = ["ConfigAlign.java", "ConfigValues.java", "DurationText.java",
+                  "StaffGuide.java", "Help.java"]
 
 
 def util_path(name):

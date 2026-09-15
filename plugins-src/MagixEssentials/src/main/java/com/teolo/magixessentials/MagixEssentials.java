@@ -1,5 +1,6 @@
 package com.teolo.magixessentials;
 
+import com.teolo.magixessentials.util.ConfigAlign;
 import com.teolo.magixessentials.tab.TabManager;
 import com.teolo.magixessentials.util.ConfigValues;
 import com.teolo.magixessentials.util.StaffGuide;
@@ -23,7 +24,12 @@ public final class MagixEssentials extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        aggiungiChiaviNuoveAlConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         // Il capitolo della guida per lo staff sul sito + il README nella cartella del plugin:
         // stessa scrittura, letta dal config vivo. Puro I/O, fuori dal tick d'avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
@@ -43,6 +49,9 @@ public final class MagixEssentials extends JavaPlugin {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
+            // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
+            // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+            ConfigAlign.alignAll(this);
             reloadConfig();
             if (tabManager != null) { tabManager.stop(); tabManager.start(); }
             // La guida riporta i valori VIVI del config: se non la riscrivessimo qui, dopo un
@@ -53,45 +62,6 @@ public final class MagixEssentials extends JavaPlugin {
         }
         sender.sendMessage("§dMagixEssentials §8» §7Uso: §f/" + label + " reload");
         return true;
-    }
-
-    /**
-     * Porta nel config SUL DISCO le chiavi che esistono solo nel default del jar.
-     *
-     * <p>Il problema, ed e' generale: {@code saveDefaultConfig()} scrive il file solo se non c'e'.
-     * Quando si aggiunge una chiave nuova, il deploy porta il jar ma il config gia' sul server
-     * resta com'era: la chiave nuova non compare, chi configura non la vede, e i segnaposto
-     * {@code {{cfg:...}}} della guida restano vuoti (succede con tablist.priority, aggiunto in
-     * v0.2.0 e mai arrivato sul VPS).</p>
-     *
-     * <p>{@code copyDefaults} copia le mancanti <b>portandosi dietro i commenti</b> del default e
-     * lasciando intatti i valori gia' scelti: chi aveva personalizzato header e footer se li
-     * ritrova uguali. Si salva solo se manca davvero qualcosa, per non riscrivere il file a ogni
-     * avvio senza motivo.</p>
-     */
-    private void aggiungiChiaviNuoveAlConfig() {
-        try {
-            org.bukkit.configuration.file.FileConfiguration conf = getConfig();
-            org.bukkit.configuration.Configuration def = conf.getDefaults();
-            if (def == null) return;
-
-            java.util.List<String> mancanti = new java.util.ArrayList<>();
-            for (String chiave : def.getKeys(true)) {
-                if (!def.isConfigurationSection(chiave) && !conf.contains(chiave, true)) {
-                    mancanti.add(chiave);
-                }
-            }
-            if (mancanti.isEmpty()) return;
-
-            conf.options().copyDefaults(true);
-            saveConfig();
-            getLogger().info("Config aggiornato con le chiavi nuove di questa versione: "
-                    + String.join(", ", mancanti));
-        } catch (Throwable t) {
-            // Un config che non si riesce ad aggiornare non deve impedire l'avvio: valgono i default.
-            getLogger().warning("Non sono riuscito ad aggiungere le chiavi nuove al config ("
-                    + t.getClass().getSimpleName() + "): valgono i valori di serie.");
-        }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -186,13 +156,8 @@ public final class MagixEssentials extends JavaPlugin {
                         "Allora non sono le nostre, sono quelle di CMI: le nostre nascono senza testa e senza "
                                 + "tacchette. Vuol dire che il suo modulo tablist e' ancora acceso e sta riempiendo "
                                 + "lui. Spegnilo (Modules.yml → tablist: false) e riavvia: il tab torna nostro.")
-                .issue("Ho aggiunto una chiave al config ma sul server non c'e'",
-                        "Il deploy porta il jar, non il config: un file che esiste gia' nella cartella del plugin "
-                                + "non viene toccato, e la chiave nuova resterebbe invisibile (valgono i default del "
-                                + "codice, ma chi configura non la vede e i segnaposto della guida restano vuoti). "
-                                + "Dalla v0.3.1 il plugin ci pensa da solo all'avvio: copia le chiavi mancanti col "
-                                + "loro commento, senza toccare i valori gia' scelti, e scrive nel log quali ha "
-                                + "aggiunto. Se il log tace, non mancava niente.")
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("Le slot fisse non compaiono",
                         "Guarda il log all'avvio: il plugin scrive «slot fisse attive: N caselle» quando ci "
                                 + "riesce, e il motivo quando no (ProtocolLib assente, o struttura del pacchetto "

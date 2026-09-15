@@ -1,5 +1,6 @@
 package com.teolo.magixtime;
 
+import com.teolo.magixtime.util.ConfigAlign;
 import com.teolo.magixtime.command.MagixTimeCommand;
 import com.teolo.magixtime.hook.MagixTimePlaceholders;
 import com.teolo.magixtime.lang.Messages;
@@ -55,6 +56,12 @@ public final class MagixTime extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         getDataFolder().mkdirs();
         // Puro I/O su file: non deve bloccare il tick di avvio.
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
@@ -118,6 +125,9 @@ public final class MagixTime extends JavaPlugin {
 
     /** Ricarica config.yml e messages.yml e fa ripartire tutti i moduli (/mtime reload). */
     public void reloadEverything() {
+        // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
+        // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+        ConfigAlign.alignAll(this);
         reloadConfig();
         messages.reload();
         readWorldSettings();
@@ -267,6 +277,8 @@ public final class MagixTime extends JavaPlugin {
                         "seasons.hemisphere", "Emisfero: cambia quali mesi sono estate e quali inverno.",
                         "weather.enabled", "Spegnendolo, pioggia e neve tornano quelle di Minecraft.")
 
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("L'ora in gioco non segue quella vera",
                         "Controlla che il mondo non sia fra quelli esclusi e che il modulo ora sia acceso. "
                                 + "/mtime worlds mostra lo stato reale di ogni mondo gestito.")

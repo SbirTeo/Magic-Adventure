@@ -1,5 +1,6 @@
 package com.teolo.magixweb;
 
+import com.teolo.magixweb.util.ConfigAlign;
 import com.teolo.magixweb.chat.ChatBridge;
 import com.teolo.magixweb.db.Database;
 import com.teolo.magixweb.guide.GuideSync;
@@ -17,6 +18,12 @@ public class MagixWeb extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         database = new Database(this);
 
         // Neither /link nor two-factor lives here any more: MagixAuth owns both, and it is the
@@ -100,6 +107,8 @@ public class MagixWeb extends JavaPlugin {
                         "store.check-interval-seconds", "Ogni quanto il server guarda se ci sono acquisti da consegnare.",
                         "guide.check-interval-minutes", "Ogni quanto si rileggono i capitoli della guida.")
 
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("Sul sito i gradi sono vecchi",
                         "Il giro periodico li rimette in pari da solo. Se non succede, il database del sito non è "
                                 + "raggiungibile: il log lo dice all'avvio.")

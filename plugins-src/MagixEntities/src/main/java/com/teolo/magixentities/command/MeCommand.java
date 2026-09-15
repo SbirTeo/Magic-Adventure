@@ -1,5 +1,6 @@
 package com.teolo.magixentities.command;
 
+import com.teolo.magixentities.util.ConfigAlign;
 import com.teolo.magixentities.lang.Messages;
 import com.teolo.magixentities.manage.EquipMenu;
 import com.teolo.magixentities.manage.MirrorManager;
@@ -559,6 +560,9 @@ public final class MeCommand implements TabExecutor {
             M.send(sender, "no-permission");
             return;
         }
+        // Prima si allineano i file del server a quelli del jar (le chiavi nuove di un
+        // deploy compaiono anche senza riavvio), poi si rilegge.
+        ConfigAlign.alignAll(plugin);
         plugin.reloadConfig();
         M.reload();
         mirror.clearAll();

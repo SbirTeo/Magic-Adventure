@@ -1,5 +1,6 @@
 package com.teolo.magixcosmetics;
 
+import com.teolo.magixcosmetics.util.ConfigAlign;
 import com.teolo.magixcosmetics.command.MagixCosmeticsCommand;
 import com.teolo.magixcosmetics.cosmetic.HaloManager;
 import com.teolo.magixcosmetics.lang.Messages;
@@ -24,6 +25,12 @@ public final class MagixCosmetics extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         getDataFolder().mkdirs();
         // Il capitolo della guida per lo staff sul sito + il README nella cartella del plugin:
         // stessa scrittura, letta dal config vivo. Puro I/O, fuori dal tick d'avvio.
@@ -52,6 +59,9 @@ public final class MagixCosmetics extends JavaPlugin {
 
     /** Ricarica config.yml e messages.yml e fa ripartire l'aureola col nuovo intervallo. */
     public void reloadEverything() {
+        // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
+        // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+        ConfigAlign.alignAll(this);
         reloadConfig();
         messages.reload();
         halo.load();
@@ -107,6 +117,8 @@ public final class MagixCosmetics extends JavaPlugin {
                         "halo.spin-speed", "Quanto avanza lungo il cerchio a ogni passo: più alto = orbita più veloce.",
                         "halo.update-interval-ticks", "Ogni quanti tick il puntino avanza: 1 = più fluido; più alto = più leggero.")
 
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("Un VIP non vede la sua aureola",
                         "Controlla che abbia davvero il permesso magixcosmetics.halo (LuckPerms), che non se la sia "
                                 + "spenta con /cosmetics halo off, e che non sia in spettatore, in vanish o invisibile.")

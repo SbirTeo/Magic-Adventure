@@ -1,5 +1,6 @@
 package com.teolo.magixmenus;
 
+import com.teolo.magixmenus.util.ConfigAlign;
 import com.teolo.magixmenus.command.MagixMenusCommand;
 import com.teolo.magixmenus.dialog.DialogManager;
 import com.teolo.magixmenus.hook.EconomyHook;
@@ -43,6 +44,12 @@ public final class MagixMenus extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         getDataFolder().mkdirs();
 
         messages = new Messages(this);
@@ -83,6 +90,9 @@ public final class MagixMenus extends JavaPlugin {
 
     /** Ricarica config, messaggi e tutti i menu (/menus reload). */
     public void reloadAll() {
+        // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
+        // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+        ConfigAlign.alignAll(this);
         reloadConfig();
         messages.reload();
         Text.rilevaPlaceholderApi();
@@ -215,6 +225,8 @@ public final class MagixMenus extends JavaPlugin {
                         "price-in-lore", "Il prezzo di un articolo si scrive da solo nella sua "
                                 + "descrizione. Spegnendolo, le righe le scrivi a mano.")
 
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("Un menu non si apre",
                         "Controlla il permesso del menu e le sue condizioni di apertura con /menus info <menu>. "
                                 + "Se il file ha errori, sono elencati li'.")

@@ -1,5 +1,6 @@
 package com.teolo.magixfactions;
 
+import com.teolo.magixfactions.util.ConfigAlign;
 import com.teolo.magixfactions.chat.ChatListener;
 import com.teolo.magixfactions.chat.ChatService;
 import com.teolo.magixfactions.command.FCommand;
@@ -42,6 +43,12 @@ public final class MagixFactions extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         getDataFolder().mkdirs();
         // Puro I/O su file, nessuna API Bukkit coinvolta: non deve bloccare il tick di avvio.
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
@@ -676,6 +683,8 @@ public final class MagixFactions extends JavaPlugin {
                         "map.mode", "Come risponde /f map: chat (mappa testuale, default) oppure item (mappa "
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")
 
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("«Non riesco a fare claim»",
                         "Quasi sempre è Potenza insufficiente o tetto raggiunto, non un guasto. /f info sulla sua "
                                 + "fazione mostra territori, Potenza e stato: se la riga è rossa la fazione è "

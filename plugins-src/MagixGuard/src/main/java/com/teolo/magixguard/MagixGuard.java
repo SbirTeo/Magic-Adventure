@@ -1,5 +1,6 @@
 package com.teolo.magixguard;
 
+import com.teolo.magixguard.util.ConfigAlign;
 import com.teolo.magixguard.alert.AlertService;
 import com.teolo.magixguard.analyze.CorrelationEngine;
 import com.teolo.magixguard.analyze.LinkScorer;
@@ -60,6 +61,12 @@ public final class MagixGuard extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         getDataFolder().mkdirs();
         // Solo I/O su file: fuori dal tick di avvio (stessa convenzione degli altri plugin Magix).
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
@@ -228,6 +235,9 @@ public final class MagixGuard extends JavaPlugin {
 
     /** Ricarica config.yml e ricostruisce i componenti senza riavviare il server. */
     public void reloadGuard() {
+        // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
+        // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+        ConfigAlign.alignAll(this);
         reloadConfig();
         if (collector != null) {
             collector.closeAllOpenSessions();
@@ -613,6 +623,8 @@ public final class MagixGuard extends JavaPlugin {
                         "analysis.alert-threshold", "Punteggio oltre il quale parte la segnalazione allo staff.",
                         "privacy.session-retention-days", "Per quanti giorni si tengono gli indirizzi in chiaro.")
 
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("«Ho bannato ma il giocatore è ancora dentro»",
                         "Il ban vale all'ingresso: se era già collegato viene espulso subito, ma solo se "
                                 + "l'ambito comprende il gioco. Un provvedimento con ambito «sito» in "

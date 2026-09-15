@@ -1,5 +1,6 @@
 package com.teolo.magixfactions.command;
 
+import com.teolo.magixfactions.util.ConfigAlign;
 import com.teolo.magixfactions.chat.ChatChannel;
 import com.teolo.magixfactions.chat.ChatService;
 import com.teolo.magixfactions.config.Ranks;
@@ -107,7 +108,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (sub.equals("top") || sub.equals("classifica")) return top(sender);
         if (sub.equals("reload")) {
             if (!sender.hasPermission("magixfactions.admin")) { msg(sender, M.get("errors.no-permission")); return true; }
-            plugin.reloadConfig();
+            // Prima si allineano i file del server a quelli del jar (le chiavi nuove di un
+        // deploy compaiono anche senza riavvio), poi si rilegge.
+        ConfigAlign.alignAll(plugin);
+        plugin.reloadConfig();
             ranks.load(plugin.getConfig());
             fm.syncRanksToDb(); // rispecchia i gradi aggiornati nella tabella per il sito
             M.reload();

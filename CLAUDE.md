@@ -102,6 +102,30 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
   plugin non lo legge piu' e riparte dal default del jar, senza dire niente. Va sistemato con
   `mode=rename` nella stessa sessione della rinomina.
 
+## I CONFIG SUL VPS SONO SEMPRE ALLINEATI AL SORGENTE (obbligatorio)
+
+Il file che il plugin legge e' quello **sul VPS**, e deve contenere **tutte** le chiavi del
+sorgente: aprendo `plugins/<Plugin>/config.yml` (o `messages.yml`, o un menu) si deve vedere
+tutto quello che si puo' regolare, non un pezzo.
+
+Questo **non** succede da solo: `saveDefaultConfig()` scrive il file solo se non esiste, e il
+deploy copia solo il jar. Perche' succeda c'e' la classe comune **`util/ConfigAlign`**, che ogni
+plugin chiama **all'avvio e a ogni reload**: confronta il file del server con quello dentro il jar
+e ci aggiunge le chiavi mancanti, **al loro posto e col loro commento**, senza toccare i valori
+gia' scelti; scrive nel log quali ha aggiunto e quali, sul server, non corrispondono piu' a niente.
+
+Regole che ne discendono:
+
+- **Ogni plugin nuovo** chiama `ConfigAlign.allineaTutti(this)` subito dopo `saveDefaultConfig()`
+  e nel suo comando di reload. Non serve elencare i file: li trova da se' dentro il jar.
+- `ConfigAlign` e' una **classe comune**: le copie nei vari plugin devono restare identiche
+  (`check_config.py` lo verifica, regola [5]).
+- L'allineamento **non sa** delle rinomine: aggiunge il nome nuovo e lascia il vecchio, senza
+  portarsi dietro il valore. Quando si rinomina una chiave si usa **nella stessa sessione**
+  `deploy-plugin-config.yml` con `mode=rename`.
+- Non cancella mai niente da un file del server: le chiavi che il codice non legge piu' le
+  **segnala nel log** e basta.
+
 ## CODICE IN INGLESE (regola di struttura)
 
 «Codice in inglese, italiano solo per quello che una persona legge a schermo.»

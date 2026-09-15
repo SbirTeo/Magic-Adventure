@@ -1,5 +1,6 @@
 package com.teolo.magixauth;
 
+import com.teolo.magixauth.util.ConfigAlign;
 import com.teolo.magixauth.command.ChangePasswordCommand;
 import com.teolo.magixauth.command.LoginCommand;
 import com.teolo.magixauth.command.LogoutCommand;
@@ -41,6 +42,12 @@ public final class MagixAuth extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
+        // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
+        // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
+        // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        ConfigAlign.alignAll(this);
+        reloadConfig();
         config = new AuthConfig(getConfig());
 
         database = new Database(config);
@@ -205,6 +212,8 @@ public final class MagixAuth extends JavaPlugin {
                         "premium.skin_from_mojang", "Se la skin degli account premium veri viene presa da Mojang.",
                         "premium.skin_cache_minutes", "Ogni quanti minuti la skin gia' presa viene richiesta di nuovo a Mojang.")
 
+                .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Le chiavi NUOVE invece arrivano da sole: a ogni avvio e a ogni reload il plugin confronta il file del server con quello del jar e ci aggiunge quelle che mancano, al loro posto e col loro commento, senza toccare i valori gia' scelti; nel log scrive quali ha aggiunto, e quali sul server non corrispondono piu' a niente (di solito una chiave rinominata, che va sistemata con mode=rename).")
                 .issue("«In gioco ho addosso la skin di un'altra persona»",
                         "La skin la mette il server, perché in offline mode il gioco non la chiede più a "
                                 + "nessuno. Se la richiesta a Mojang non riesce, chi entra da un launcher non "
@@ -257,6 +266,9 @@ public final class MagixAuth extends JavaPlugin {
 
     /** Rilegge la configurazione. Non tocca chi e' gia' fermo al cancello. */
     public void reload() {
+        // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
+        // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+        ConfigAlign.alignAll(this);
         reloadConfig();
         config = new AuthConfig(getConfig());
         policy.refreshGroups();
