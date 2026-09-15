@@ -40,22 +40,20 @@ public final class TabManager implements Listener {
     /** Riscrivere una seconda volta poco dopo, per arrivare DOPO chi scrive nello stesso tick. */
     private boolean riasserisci = true;
     private long ritardoRiassersione = 2L;
+    private final FixedSlots slotFisse;
 
     public TabManager(JavaPlugin plugin) {
         this.plugin = plugin;
         this.papi = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+        this.slotFisse = new FixedSlots(plugin);
     }
 
     public void start() {
         if (!plugin.getConfig().getBoolean("tablist.enabled", true)) return;
 
-        // Predisposizione 80 slot fisse (non ancora implementate): letta qui cosi' la config e' completa.
-        boolean fixedSlots = plugin.getConfig().getBoolean("tablist.fixed-slots.enabled", false);
-        int fixedTotal = plugin.getConfig().getInt("tablist.fixed-slots.total", 80);
-        if (fixedSlots) {
-            plugin.getLogger().info("[Tab] fixed-slots richiesto (" + fixedTotal
-                    + ") ma non ancora implementato: uso il tablist dinamico.");
-        }
+        // Caselle finte che tengono il tab sempre della stessa misura. Si prepara qui una volta
+        // sola; se non e' disponibile (ProtocolLib assente, o spenta) resta il tablist dinamico.
+        slotFisse.load();
 
         riasserisci = plugin.getConfig().getBoolean("tablist.priority.enabled", true);
         ritardoRiassersione = Math.max(1, plugin.getConfig().getLong("tablist.priority.reassert-delay-ticks", 2));
@@ -69,6 +67,9 @@ public final class TabManager implements Listener {
 
     public void stop() {
         if (task != null) { task.cancel(); task = null; }
+        // Le caselle finte vivono nel client: se non le togliamo qui, dopo un reload restano
+        // appese insieme a quelle nuove e il tab si riempie di doppioni.
+        for (Player p : Bukkit.getOnlinePlayers()) slotFisse.rimuoviDa(p);
         PlayerJoinEvent.getHandlerList().unregister(this);
     }
 
@@ -126,6 +127,9 @@ public final class TabManager implements Listener {
 
     private void scrivi(Player p) {
         if (!p.isOnline()) return;
+        // Prima le caselle finte, poi intestazione e fondo: cosi' la misura del tab e' gia' quella
+        // definitiva quando il client disegna il resto, e non si vede la finestra allargarsi.
+        slotFisse.inviaA(p);
         Component header = buildLines(p, plugin.getConfig().getStringList("tablist.header"));
         Component footer = buildLines(p, plugin.getConfig().getStringList("tablist.footer"));
         p.sendPlayerListHeaderAndFooter(header, footer);

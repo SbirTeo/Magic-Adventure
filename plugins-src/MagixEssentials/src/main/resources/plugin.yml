@@ -5,7 +5,7 @@ api-version: '26.1'
 author: teolo
 description: "Utilita' del server (tablist e, in futuro, cio' che oggi fa CMI)."
 # PlaceholderAPI: opzionale. Se presente, i placeholder %...% nel tablist vengono risolti.
-softdepend: [PlaceholderAPI]
+softdepend: [PlaceholderAPI, ProtocolLib]
 commands:
   magixessentials:
     description: "Comandi di MagixEssentials (per ora, reload)."

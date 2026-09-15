@@ -78,12 +78,14 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "viene riscritto una seconda volta **{{cfg:tablist.priority.reassert-delay-ticks}}** "
                                 + "tick piu' tardi, e l'aggancio al join e' a priorita' MONITOR, cioe' dopo gli altri "
                                 + "plugin. Se vedi ancora comparire per un istante il tablist di CMI, alza quel ritardo.",
-                        "**Il limite, ed e' importante saperlo:** valgono intestazione, fondo e nomi. Le caselle "
-                                + "**FINTE** che CMI inietta — le 80 slot con la testa e le tacchette di connessione — "
-                                + "sono voci sue, mandate al client via pacchetto: da qui **non si tolgono**, nessuna "
-                                + "priorita' le raggiunge. O si spegne il suo modulo, o si tocca la sua configurazione. "
-                                + "All'avvio il plugin controlla da solo il Modules.yml di CMI e mette un avviso nel "
-                                + "log se il conflitto c'e'.",
+                        "**Fin dove arriva la priorita':** intestazione, fondo e nomi. Le voci **FINTE** che un "
+                                + "altro plugin inietta via pacchetto — le 80 slot di CMI, con la testa e le "
+                                + "tacchette — quelle no: sono sue, e nessuna priorita' le raggiunge. Per quelle "
+                                + "l'unica via e' spegnere il suo modulo. Le nostre slot fisse (sotto) fanno la "
+                                + "stessa cosa ma **senza testa e senza tacchette**: se vedi ancora caselle con la "
+                                + "faccia di Steve, stai guardando le sue, non le nostre.",
+                        "All'avvio il plugin legge da solo il Modules.yml di CMI e mette un avviso nel log se il "
+                                + "conflitto c'e', invece di lasciarti a indovinare perche' il tab «torna come prima».",
                         "Intestazione (**header**) e fondo (**footer**) sono liste di righe nel config: una voce "
                                 + "della lista, una riga a schermo. Il nome del giocatore nella lista si compone a "
                                 + "parte con **tablist.player-name**, dove {name} e' il suo nome.")
@@ -108,11 +110,25 @@ public final class MagixEssentials extends JavaPlugin {
                         "Abbassare l'intervallo rende il ping piu' reattivo ma fa lavorare il server piu' spesso, "
                                 + "una volta per giocatore online: sotto i 10 tick non serve a niente che si veda.")
 
-                .section("Le 80 slot fisse: non ci sono ancora",
-                        "**tablist.fixed-slots** e' solo predisposto. Mostrare sempre 80 caselle (4 colonne da 20) "
-                                + "per poterci mettere una pergamena di sfondo richiede l'invio di caselle finte al "
-                                + "client (ProtocolLib), e non e' ancora scritto. Se lo si accende, nel log compare "
-                                + "un avviso e il plugin tira dritto col tablist normale.")
+                .section("Le 80 slot fisse",
+                        "Il gioco decide da solo quante colonne disegnare in base a quante voci ci sono: con pochi "
+                                + "giocatori il tab e' una colonna sottile, con tanti si allarga. Se sotto ci deve "
+                                + "stare una pergamena, quella misura non puo' ballare. Con **tablist.fixed-slots** "
+                                + "acceso il tab mostra sempre **{{cfg:tablist.fixed-slots.total}}** caselle, "
+                                + "riempiendo con voci decorative quelle senza giocatore.",
+                        "Le caselle vuote sono **senza testa** (portano una skin trasparente: un profilo senza "
+                                + "texture non e' invisibile, il gioco ci metterebbe ottanta teste di Steve) e "
+                                + "**senza tacchette di connessione** (latenza -1, il valore che il client disegna "
+                                + "come barra vuota). Cosa c'e' scritto dentro lo decide **empty-text**.",
+                        "**Serve ProtocolLib**, perche' una voce del tablist senza un giocatore vero dietro non "
+                                + "esiste nell'API di Bukkit: va mandata al client come pacchetto. E' l'unico punto "
+                                + "di questo plugin che parla di pacchetti. Se ProtocolLib manca, o se la struttura "
+                                + "del pacchetto non e' quella attesa, la funzione **si spegne da sola** e resta il "
+                                + "tablist dinamico: lo dice nel log. Un tab di misura variabile e' un difetto "
+                                + "estetico, un tab che sparisce e' un guasto.",
+                        "Oltre 80 non si va: il gioco disegna al massimo 4 colonne da 20, e il plugin taglia li'. "
+                                + "E se i giocatori veri sono piu' del totale non si riempie niente — il tab e' gia' "
+                                + "pieno di gente vera, che e' meglio.")
 
                 .commands()
                 .permissions()
@@ -122,15 +138,19 @@ public final class MagixEssentials extends JavaPlugin {
                         "tablist.player-name", "Come appare il nome nella lista: {name} e' il nome, valgono colori e placeholder.",
                         "tablist.priority.enabled", "Riscrive una seconda volta per arrivare dopo CMI. Spegnila se il tablist e' solo nostro.",
                         "tablist.priority.reassert-delay-ticks", "Quanti tick dopo arriva la seconda scrittura: alzalo se CMI si vede ancora per un istante.",
-                        "tablist.fixed-slots.enabled", "Predisposizione per le 80 caselle fisse: NON ancora implementata, lasciare false.")
+                        "tablist.fixed-slots.enabled", "Caselle fisse: il tab resta sempre della stessa misura. Serve ProtocolLib.",
+                        "tablist.fixed-slots.total", "Quante caselle in tutto: il gioco ne disegna al massimo 80 (4 colonne x 20).",
+                        "tablist.fixed-slots.empty-text", "Cosa c'e' scritto in una casella vuota: uno spazio la lascia muta.")
 
                 .issue("Le caselle vuote hanno una testa e le tacchette di connessione",
-                        "Non sono nostre: sono le voci FINTE con cui CMI riempie il tablist a 80 slot, e non si "
-                                + "possono togliere da qui — nessun valore di tablist.priority le raggiunge. Si "
-                                + "spegne il suo modulo tablist (Modules.yml → tablist: false), oppure si toglie il "
-                                + "riempimento nel suo TabList.yml. Quando le 80 slot le fara' questo plugin, le "
-                                + "caselle vuote saranno senza testa (profilo senza texture) e senza tacchette "
-                                + "(latenza -1): oggi non lo sono perche' non sono nostre.")
+                        "Allora non sono le nostre, sono quelle di CMI: le nostre nascono senza testa e senza "
+                                + "tacchette. Vuol dire che il suo modulo tablist e' ancora acceso e sta riempiendo "
+                                + "lui. Spegnilo (Modules.yml → tablist: false) e riavvia: il tab torna nostro.")
+                .issue("Le slot fisse non compaiono",
+                        "Guarda il log all'avvio: il plugin scrive «slot fisse attive: N caselle» quando ci "
+                                + "riesce, e il motivo quando no (ProtocolLib assente, o struttura del pacchetto "
+                                + "diversa). Se il messaggio dice che sono attive ma a schermo non si vedono, il "
+                                + "tablist lo sta ancora riscrivendo CMI.")
                 .issue("Il tablist lampeggia o torna com'era",
                         "Lo sta riscrivendo anche CMI: spegni il suo modulo tablist "
                                 + "(plugins/CMI/Settings/Modules.yml → tablist: false) e riavvia.")

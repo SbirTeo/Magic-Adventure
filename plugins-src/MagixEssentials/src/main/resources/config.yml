@@ -60,10 +60,20 @@ tablist:
   # (es. %magixweb_namecolor% = colore del grado, come sul sito).
   player-name: '&7%magixweb_namecolor%{name}'
 
-  # --- 80 SLOT FISSE (in arrivo) ---
-  # Quando attivo, il tablist mostrera' SEMPRE 80 caselle (4 colonne x 20), riempiendo quelle
-  # senza giocatore con caselle decorative, cosi' la dimensione del tab non cambia mai e si potra'
-  # mettere una pergamena di sfondo. Non ancora implementato: lasciare false per ora.
+  # --- 80 SLOT FISSE ---
+  # Il gioco decide da solo quante colonne disegnare in base a quante voci ci sono: con pochi
+  # giocatori il tab e' una colonna sottile, con tanti si allarga. Se sotto ci deve stare una
+  # pergamena, quella misura non puo' ballare. Con questo acceso il tablist mostra SEMPRE 'total'
+  # caselle: quelle senza giocatore sono decorative, SENZA testa (skin trasparente) e SENZA
+  # tacchette di connessione (latenza -1).
+  # Richiede ProtocolLib: se manca, il plugin lo dice nel log e resta il tablist dinamico.
+  # NB: perche' si vedano, il tablist dev'essere NOSTRO. Se lo gestisce ancora CMI, spegni il suo
+  # modulo (plugins/CMI/Settings/Modules.yml -> tablist: false).
   fixed-slots:
-    enabled: false
+    # Interruttore delle caselle fisse.
+    enabled: true
+    # Quante caselle in tutto. Il gioco ne disegna al massimo 80 (4 colonne x 20): oltre, le voci
+    # in piu' non si vedrebbero, e il plugin taglia a 80.
     total: 80
+    # Cosa c'e' scritto in una casella vuota. Uno spazio = casella muta. Valgono i codici colore &.
+    empty-text: ' '
