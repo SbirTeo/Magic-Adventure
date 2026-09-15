@@ -1,41 +1,77 @@
 # ============================================================
 #  MagixEssentials - MOTD
 # ============================================================
-# La MOTD e' quello che si legge nella lista server, prima di entrare: due righe di testo, il
-# numero dei giocatori e la tendina che esce passandoci sopra col mouse.
+# La MOTD e' quello che si legge nella lista server, prima di entrare: due righe di testo,
+# l'icona, il numero dei giocatori e la tendina che esce passandoci sopra col mouse.
 #
 # Questo file dice COM'E' FATTA la MOTD, non se c'e': l'interruttore sta nel modules.yml
 # (motd: true/false). A modulo spento vale la riga 'motd' di server.properties.
 #
-# Colori: & + lettera/numero (&a, &7, &l grassetto, &r reset) e &#RRGGBB per l'esadecimale.
-# Segnaposto: {online} = quanti ci sono adesso, {max} = il massimo mostrato. Al ping il server
-# non sa CHI sta guardando, quindi di segnaposto per-giocatore non ce ne sono.
+# --- COME SI SCRIVE UNA RIGA ---
+# Due modi, e in una stessa riga si usa l'uno O l'altro, non tutti e due insieme:
+#
+#   1) CODICI CLASSICI    &a &7 &l &r, e &#RRGGBB per un colore esadecimale preciso.
+#   2) TAG (MiniMessage)  <bold>, <italic>, <color:#C046E8>, <rainbow>, e soprattutto
+#                         <gradient:#C046E8:#A8DC2C>TESTO</gradient> per le SFUMATURE.
+#                         Si riconoscono dai <triangoli>: se in una riga c'e' un tag, tutta
+#                         quella riga viene letta come tag e le & restano scritte.
+#
+# --- COME SI VA A CAPO ---
+# Il client disegna DUE righe: la terza non si vedrebbe. Per andare a capo, due modi uguali:
+#   - \n dentro le virgolette doppie:  "prima riga\nseconda riga"
+#   - un blocco con la barra verticale, che e' piu' leggibile quando le righe sono lunghe:
+#       - |
+#         prima riga
+#         seconda riga
+#
+# --- SEGNAPOSTO ---
+#   {online}  quanti ci sono adesso        {max}  il massimo mostrato
+#   {version} la versione del server
+# Al ping il server non sa CHI sta guardando: di segnaposto per-giocatore non ce ne sono, e
+# PlaceholderAPI qui non c'entra.
 #
 # NB: il client si tiene in memoria l'ultima MOTD vista. Dopo una modifica, per rivederla,
 # togli il server dall'elenco e rimettilo, oppure aspetta che ripinghi.
 
-# --- LE DUE RIGHE ---
-# Il client ne disegna due: la terza non si vedrebbe. Corte, che nella lista lo spazio e' poco.
-first-line: '&#C046E8&lMAGIC&#A8DC2C&lADVENTURE   &8»   &#9A8CA8Fazioni, mercato e stagioni'
-second-line: '&#9A8CA8Online adesso &8» &#A8DC2C{online}&8/&#9A8CA8{max}   &8•   &#A8DC2Cmagicadventure.it'
+# --- QUALE MOTD, E QUANDO CAMBIA ---
+# Come si sceglie la MOTD fra quelle scritte in 'messages':
+#   random   una a caso a ogni cambio
+#   ordered  una dopo l'altra, dalla prima all'ultima e poi daccapo
+#   fixed    sempre la prima della lista (le altre restano li', pronte)
+selection: random
+# Ogni quanti secondi cambia. 0 = a ogni ping, cioe' ogni volta che qualcuno apre la lista:
+# vivace, ma chi tiene la lista aperta la vede ballare. Con 60, per un minuto e' la stessa
+# per tutti.
+change-every-seconds: 30
+# Con 'random': non ripetere due volte di fila la stessa. Con una lista di due o tre voci e'
+# quello che fa la differenza fra "cambia" e "sembra rotto". Ignorato dagli altri modi.
+avoid-repeat: true
 
-# --- VARIANTI A CASO ---
-# Serve a non far leggere sempre la stessa cosa a chi apre la lista dieci volte al giorno.
-random:
-  # Se true, a ogni ping si sceglie una voce a caso qui sotto e le due righe sopra si ignorano.
-  # Se e' true ma la lista e' vuota, tornano le due righe sopra: meglio che una MOTD vuota.
-  enabled: false
-  # Una voce = una MOTD intera, con le due righe separate da \n. Le virgolette DOPPIE sono
-  # volute: fra apici singoli lo YAML non traduce \n (il plugin lo accetta lo stesso, ma tanto
-  # vale scriverlo giusto).
-  messages:
-    - "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE   &8»   &#9A8CA8La stagione e' aperta\n&#9A8CA8Online adesso &8» &#A8DC2C{online}&8/&#9A8CA8{max}"
-    - "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE   &8»   &#9A8CA8Fazioni, mercato e stagioni\n&#9A8CA8Entra da &#A8DC2Cmagicadventure.it"
+# --- LE MOTD ---
+# Una voce = una MOTD intera, due righe. Lista vuota = il plugin non tocca niente e vale la
+# riga 'motd' di server.properties.
+messages:
+  - |
+    <gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>Fazioni, territori e mercato
+    <color:#9A8CA8>Online adesso <dark_gray>» <color:#A8DC2C>{online}<dark_gray>/<color:#9A8CA8>{max}  <dark_gray>•  <color:#A8DC2C>magicadventure.it
+  - |
+    <gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>Le stagioni cambiano il mondo
+    <color:#9A8CA8>Primavera, estate, autunno e inverno <dark_gray>• <color:#9A8CA8>uno alla volta, davvero
+  - |
+    <gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>Alza la tua fazione
+    <color:#9A8CA8>Territori, alleanze e guerre <dark_gray>• <color:#A8DC2C>entra e prenditi la tua terra
+  - |
+    <gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>C'e' posto per te
+    <color:#A8DC2C>{online}<color:#9A8CA8> dentro adesso <dark_gray>• <color:#9A8CA8>il mondo e' aperto, la mappa e' grande
 
 # --- LA TENDINA ---
 # Le righe che escono passando col mouse sul numero dei giocatori. Di serie il gioco ci mette
 # l'elenco di chi e' online: queste righe prendono il suo posto. Lista vuota = resta l'elenco vero.
+# Valgono gli stessi colori e tag delle MOTD, sfumature comprese — ma qui il gioco colora una
+# lettera alla volta, quindi una riga sfumata diventa lunghissima: tienila per una riga sola.
 hover:
+  - '&#C046E8&lMAGICADVENTURE'
+  - ' '
   - '&#9A8CA8Fazioni, territori e mercato'
   - '&#9A8CA8Stagioni che cambiano il mondo'
   - ' '
@@ -46,7 +82,33 @@ player-count:
   # Il massimo da mostrare accanto agli online. -1 = quello vero del server (server.properties).
   # Alzarlo non fa entrare nessuno in piu': cambia solo il numero che si legge.
   max: -1
+  # Il vecchio trucco del "c'e' sempre un posto libero": il massimo mostrato diventa
+  # online + questo numero, cosi' il server non sembra mai pieno. 0 = spento. Se acceso, vince
+  # su 'max'. Non fa entrare nessuno in piu' nemmeno lui: il limite vero resta quello del server.
+  extra: 0
   # Se true, al posto di "3/80" il client disegna le due frecce rosse dei server irraggiungibili,
   # e la tendina qui sopra non si vede. Da tenere false, salvo che si voglia proprio nascondere
   # quanti ci sono dentro.
   hide: false
+
+# --- LA VERSIONE ---
+version:
+  # Il testo al posto del nome della versione (es. "MagicAdventure 26.x"). Vuoto = quello vero.
+  # Si vede SOLO quando il client non e' compatibile col server, che e' quando il gioco smette
+  # di disegnare il conto dei giocatori e scrive li' la versione.
+  text: ''
+  # Se true quel testo si vede SEMPRE, anche dai client compatibili — al prezzo di far apparire
+  # il server come "non compatibile" nella lista (il conto dei giocatori sparisce e la barra
+  # diventa rossa). Entrare si entra lo stesso, ma e' un effetto che spaventa: tienilo false a
+  # meno che tu non sappia esattamente perche' lo stai accendendo.
+  always-show: false
+
+# --- L'ICONA ---
+# L'immagine quadrata a sinistra nella lista. Di serie il gioco usa server-icon.png del server;
+# qui se ne possono mettere piu' d'una, e cambiano con la stessa regola delle MOTD (selection).
+icons:
+  # Spento, resta l'icona di sempre.
+  enabled: false
+  # I nomi dei file PNG 64x64 dentro la cartella plugins/MagixEssentials/. Uno che non c'e' o
+  # che non e' 64x64 viene saltato, e il log dice quale: le altre continuano a funzionare.
+  files: []

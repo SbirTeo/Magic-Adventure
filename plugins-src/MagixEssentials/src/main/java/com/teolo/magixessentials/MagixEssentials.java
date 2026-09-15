@@ -204,21 +204,50 @@ public final class MagixEssentials extends JavaPlugin {
 
                 .section("La MOTD della lista server",
                         "E' quello che si legge nella lista server prima di entrare: **due righe** di testo "
-                                + "(la terza il client non la disegna), il numero dei giocatori e la **tendina** "
-                                + "che esce passandoci sopra col mouse. Si scrive tutto in **motd.yml**.",
-                        "Le due righe fisse sono **first-line** e **second-line**. Se si accende "
-                                + "**random.enabled**, a ogni ping ne esce una a caso fra le voci di "
-                                + "**random.messages** e le due righe fisse si ignorano: serve a non far leggere "
-                                + "sempre la stessa cosa a chi apre la lista dieci volte al giorno. Acceso con la "
-                                + "lista vuota, tornano le righe fisse — meglio che una MOTD vuota.",
-                        "Nelle righe valgono i colori **&** e **&#RRGGBB**, e due segnaposto: **{online}** e "
-                                + "**{max}**. Di segnaposto per-giocatore non ce ne sono e non possono essercene: "
-                                + "al ping il server non sa CHI sta guardando, sa solo che qualcuno ha aperto la "
-                                + "lista. Per lo stesso motivo qui PlaceholderAPI non c'entra.",
-                        "**player-count.max** cambia il numero scritto accanto agli online senza far entrare "
-                                + "nessuno in piu' (-1 = quello vero del server). **player-count.hide** nasconde "
-                                + "il conto: al suo posto il client disegna le due frecce rosse dei server "
+                                + "(la terza il client non la disegna), l'icona, il numero dei giocatori e la "
+                                + "**tendina** che esce passandoci sopra col mouse. Si scrive tutto in **motd.yml**.",
+                        "Le MOTD stanno tutte in **messages**, una voce ciascuna. Quale si vede lo decide "
+                                + "**selection**: *random* una a caso, *ordered* una dopo l'altra dalla prima "
+                                + "all'ultima e poi daccapo, *fixed* sempre la prima (le altre restano li', "
+                                + "pronte). Adesso vale **{{cfg:selection}}**.",
+                        "**Ogni quanto cambia:** con **change-every-seconds** a 0 cambia a ogni ping, cioe' ogni "
+                                + "volta che qualcuno apre la lista — vivace, ma chi tiene la lista aperta la vede "
+                                + "ballare. Adesso e' **{{cfg:change-every-seconds}}**: dentro quella finestra e' "
+                                + "la stessa per tutti. Con *random*, **avoid-repeat** impedisce che esca due volte "
+                                + "di fila la stessa: su tre o quattro voci e' la differenza fra «cambia» e «sembra "
+                                + "rotto».",
+                        "**Come si scrive una riga.** Due modi, uno O l'altro nella stessa riga: i **codici "
+                                + "classici** (&a, &7, &l, e &#RRGGBB per l'esadecimale) oppure i **tag** "
+                                + "(<bold>, <color:#C046E8>, <rainbow>, e soprattutto "
+                                + "<gradient:#C046E8:#A8DC2C>TESTO</gradient> per le **sfumature**). Si riconoscono "
+                                + "dai triangoli: se in una riga c'e' un tag, quella riga viene letta come tag e le "
+                                + "& restano scritte a schermo.",
+                        "**Come si va a capo.** Con \\n dentro le virgolette doppie, oppure con un blocco "
+                                + "«- |» e le righe sotto, che per le righe lunghe si legge molto meglio. Valgono "
+                                + "tutti e due, e il risultato e' lo stesso.",
+                        "**Segnaposto:** {online}, {max} e {version}. Di segnaposto per-giocatore non ce ne sono e "
+                                + "non possono essercene: al ping il server non sa CHI sta guardando, sa solo che "
+                                + "qualcuno ha aperto la lista. Per lo stesso motivo qui PlaceholderAPI non c'entra.",
+                        "**La tendina** (hover) prende il posto dell'elenco dei giocatori online. Lista vuota = "
+                                + "resta l'elenco vero. Li' il gioco non accetta componenti ma nomi, quindi le righe "
+                                + "vengono riscritte nei codici che il client capisce: funziona tutto, sfumature "
+                                + "comprese, ma una sfumatura colora **una lettera alla volta** e fa righe "
+                                + "lunghissime — tienila per una riga sola.",
+                        "**Il numero dei giocatori.** **player-count.max** cambia il numero mostrato senza far "
+                                + "entrare nessuno in piu' (-1 = quello vero). **player-count.extra** e' il vecchio "
+                                + "trucco del posto sempre libero: il massimo diventa online + quel numero, e il "
+                                + "server non sembra mai pieno; se acceso vince su max. **player-count.hide** "
+                                + "nasconde il conto: al suo posto il client disegna le due frecce rosse dei server "
                                 + "irraggiungibili, e la tendina sparisce con lui.",
+                        "**L'icona.** Di serie e' server-icon.png del server. Con **icons** se ne possono mettere "
+                                + "piu' d'una (PNG **64x64** nella cartella del plugin), e cambiano con la stessa "
+                                + "regola delle MOTD. Un file che manca o che non e' 64x64 viene saltato e il log "
+                                + "dice quale: le altre continuano a funzionare.",
+                        "**La versione.** **version.text** e' il testo al posto del nome della versione, e si vede "
+                                + "SOLO dai client non compatibili. **version.always-show** lo fa vedere a tutti, "
+                                + "ma al prezzo di far apparire il server come non compatibile: il conto dei "
+                                + "giocatori sparisce e la barra diventa rossa. Si entra lo stesso, ma spaventa — "
+                                + "accendilo solo sapendo bene perche'.",
                         "Questo modulo prende il posto del vecchio plugin **CustomMOTD**, che e' stato tolto dal "
                                 + "server: due plugin sulla stessa MOTD si sovrascrivono a vicenda, e vince chi "
                                 + "scrive per ultimo.")
@@ -252,13 +281,18 @@ public final class MagixEssentials extends JavaPlugin {
                         "fixed-slots.empty-text", "Cosa c'e' scritto in una casella vuota: uno spazio la lascia muta.")
 
                 .settingsFrom(modules.configurazioneDi(Modules.MOTD), "Impostazioni della MOTD (motd.yml)",
-                        "first-line", "La prima riga della lista server. Colori & e &#RRGGBB, segnaposto {online} e {max}.",
-                        "second-line", "La seconda riga. Una terza non si vedrebbe: il client ne disegna due.",
-                        "random.enabled", "Acceso, a ogni ping esce una voce a caso di random.messages e le due righe fisse si ignorano.",
-                        "random.messages", "Le varianti: una voce = una MOTD intera, le due righe separate da \\n.",
+                        "selection", "Quale MOTD si vede: random (a caso), ordered (una dopo l'altra), fixed (sempre la prima).",
+                        "change-every-seconds", "Ogni quanti secondi cambia. 0 = a ogni ping, cioe' a ogni apertura della lista.",
+                        "avoid-repeat", "Con random: non esce due volte di fila la stessa. Ignorato dagli altri modi.",
+                        "messages", "Le MOTD, una voce ciascuna. Due righe, \\n o blocco «- |». Vuota = vale server.properties.",
                         "hover", "Le righe della tendina sul numero giocatori. Vuota = resta l'elenco vero di chi e' online.",
                         "player-count.max", "Il massimo mostrato accanto agli online. -1 = quello vero; alzarlo non fa entrare nessuno in piu'.",
-                        "player-count.hide", "Nasconde il conto: il client disegna le frecce dei server irraggiungibili, e niente tendina.")
+                        "player-count.extra", "Massimo = online + questo: il server non sembra mai pieno. 0 = spento, e vince su max.",
+                        "player-count.hide", "Nasconde il conto: il client disegna le frecce dei server irraggiungibili, e niente tendina.",
+                        "version.text", "Il testo al posto del nome della versione. Vuoto = quello vero.",
+                        "version.always-show", "Lo mostra a tutti, ma il server appare NON compatibile (barra rossa, niente conto).",
+                        "icons.enabled", "Icone nostre al posto di server-icon.png, a rotazione come le MOTD.",
+                        "icons.files", "I PNG 64x64 nella cartella del plugin. Uno sbagliato viene saltato e detto nel log.")
 
                 .issue("Le caselle vuote hanno una testa e le tacchette di connessione",
                         "Allora non sono le nostre, sono quelle di CMI: le nostre nascono senza testa e senza "
@@ -282,6 +316,17 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "quella. Togli il server dall'elenco e rimettilo, oppure aspetta. Se dopo un "
                                 + "ping nuovo non e' cambiata, allora e' il file: hai fatto "
                                 + "/magixessentials reload, e il modulo motd risulta acceso?")
+                .issue("Nella MOTD si leggono i <triangoli> o le & invece dei colori",
+                        "In una riga vale un formato solo. Se c'e' anche un solo tag, tutta la riga viene letta "
+                                + "come tag e le & restano scritte; al contrario, i tag in una riga senza triangoli "
+                                + "non vengono cercati. Scegli: o &#RRGGBB o <color:#...>. E se un tag e' scritto "
+                                + "male — un colore che non esiste, una chiusura che manca — resta scritto cosi' "
+                                + "com'e': la MOTD non sparisce, ma quella riga te lo dice.")
+                .issue("Le icone non cambiano (o non si vedono)",
+                        "Devono essere PNG di **64x64** esatti, nella cartella plugins/MagixEssentials/, con "
+                                + "icons.enabled acceso e il nome scritto in icons.files. Il log all'avvio dice "
+                                + "quante ne ha caricate e quali ha saltato, col motivo. Si leggono una volta sola "
+                                + "all'avvio: dopo aver aggiunto un file serve /magixessentials reload.")
                 .issue("La MOTD non e' quella di motd.yml ma una che non ho scritto io",
                         "Qualcun altro sta scrivendo sullo stesso ping. Il vecchio plugin CustomMOTD e' stato "
                                 + "tolto proprio per questo: se e' tornato nella cartella dei plugin, toglilo di "

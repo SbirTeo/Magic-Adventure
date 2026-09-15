@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa due — il
 **tablist** e la **MOTD** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.6.0**
+Versione: **0.7.0**
 
 ---
 
@@ -17,7 +17,7 @@ file diversi:
 |---|---|
 | `modules.yml` | L'elenco delle funzioni, una riga ciascuna: **acceso o spento**. Si apre questo per sapere che cosa sta facendo il plugin. |
 | `tablist.yml` | Come e' fatto il tablist: intervallo, intestazione, fondo, nomi, caselle fisse. |
-| `motd.yml` | Come e' fatta la MOTD: le due righe, le varianti, la tendina, il numero dei giocatori. |
+| `motd.yml` | Come e' fatta la MOTD: le varianti e come ruotano, la tendina, il conto dei giocatori, le icone. |
 | `config.yml` | Solo cio' che vale per il **plugin intero**. Per ora niente, e lo dice. |
 
 Una funzione spenta non parte affatto: niente task, niente aggancio agli eventi. Il suo file resta
@@ -57,18 +57,55 @@ qui. La via pulita resta spegnere il suo modulo (`plugins/CMI/Settings/Modules.y
 
 ## MOTD
 
-Le due righe che si leggono nella lista server prima di entrare, il numero dei giocatori e la
-tendina che esce passandoci sopra col mouse. Sostituisce il vecchio plugin **CustomMOTD**, che e'
+Le due righe che si leggono nella lista server prima di entrare, l'icona, il numero dei giocatori e
+la tendina che esce passandoci sopra col mouse. Sostituisce il vecchio plugin **CustomMOTD**, che e'
 stato tolto dal server: due plugin sulla stessa MOTD se la strappano di mano.
 
-- **Due righe fisse** (`first-line`, `second-line`) oppure **varianti a caso** (`random.enabled` +
-  `random.messages`): a ogni ping ne esce una, e chi apre la lista dieci volte al giorno non legge
-  sempre la stessa cosa.
-- **Colori** `&` e `&#RRGGBB`. **Segnaposto**: `{online}` e `{max}`, e basta — al ping il server non
-  sa CHI sta guardando, quindi niente placeholder per-giocatore e niente PlaceholderAPI.
-- **Tendina** (`hover`): le righe che prendono il posto dell'elenco dei giocatori online.
-- **Numero giocatori**: `player-count.max` cambia il numero mostrato senza far entrare nessuno in
-  piu'; `player-count.hide` lo nasconde (e con lui la tendina).
+**Le MOTD** stanno tutte in `messages`, una voce ciascuna. Quale si vede lo decide `selection`:
+
+| `selection` | Cosa fa |
+|---|---|
+| `random` | una a caso; con `avoid-repeat` non esce due volte di fila la stessa |
+| `ordered` | una dopo l'altra, dalla prima all'ultima e poi daccapo |
+| `fixed` | sempre la prima; le altre restano nel file, pronte |
+
+`change-every-seconds` dice ogni quanto cambia: a 0 cambia **a ogni ping** (ogni volta che qualcuno
+apre la lista), altrimenti resta la stessa per tutti dentro quella finestra. Il ping arriva spesso e
+in modo irregolare: cambiare a ogni ping fa ballare la MOTD sotto gli occhi di chi tiene la lista
+aperta.
+
+**Come si scrive una riga** — due modi, uno *o* l'altro nella stessa riga:
+
+- **codici classici**: `&a`, `&7`, `&l`, e `&#RRGGBB` per l'esadecimale;
+- **tag** (MiniMessage): `<bold>`, `<color:#C046E8>`, `<rainbow>`, e soprattutto
+  `<gradient:#C046E8:#A8DC2C>TESTO</gradient>` per le **sfumature**.
+
+Si riconoscono dai triangoli: se in una riga c'e' un tag, quella riga viene letta come tag e le `&`
+restano scritte. Un tag scritto male non fa sparire la MOTD — resta scritto com'e', e si vede subito.
+
+**Come si va a capo** — `\n` dentro le virgolette doppie, oppure un blocco `- |` con le righe sotto
+(piu' leggibile quando sono lunghe). Il client ne disegna **due**: la terza viene tagliata.
+
+**Segnaposto**: `{online}`, `{max}`, `{version}`. Non ce ne sono per-giocatore e non possono
+essercene: al ping il server non sa CHI sta guardando. Per lo stesso motivo PlaceholderAPI qui non
+c'entra.
+
+**La tendina** (`hover`) prende il posto dell'elenco dei giocatori online. Li' il protocollo non
+vuole componenti ma nomi, quindi le righe vengono riscritte nei codici `§` che il client capisce:
+funziona tutto, sfumature comprese — ma una sfumatura colora *una lettera alla volta*, e una riga di
+trenta lettere diventa una stringa di centinaia di caratteri. Tienila per una riga sola.
+
+**Il numero dei giocatori**: `player-count.max` cambia il numero mostrato; `player-count.extra` e' il
+vecchio trucco del posto sempre libero (massimo = online + N, e il server non sembra mai pieno);
+`player-count.hide` lo nasconde del tutto. Nessuno dei tre fa entrare un giocatore in piu': il limite
+vero resta quello del server.
+
+**L'icona**: con `icons` si mettono piu' PNG **64x64** nella cartella del plugin, e ruotano con la
+stessa regola delle MOTD. Uno che manca o che non e' 64x64 viene saltato, col motivo nel log.
+
+**La versione**: `version.text` si vede solo dai client non compatibili; `version.always-show` lo
+mostra a tutti, ma fa apparire il server come non compatibile (barra rossa, niente conto dei
+giocatori). Si entra lo stesso, ma spaventa.
 
 ### Quando davanti ci sara' Velocity
 
@@ -81,12 +118,13 @@ Il codice e' gia' diviso in vista di quel giorno:
 
 | Classe | Cosa fa | Dipende da |
 |---|---|---|
-| `motd/MotdText` | **Come si compone** la MOTD: scelta della variante, segnaposto, colori, le due righe, la tendina | solo Adventure — niente Bukkit |
-| `motd/MotdListener` | **Chi ascolta il ping** e ci mette dentro il risultato | Paper (`PaperServerListPingEvent`) |
+| `motd/MotdText` | **Come si compone** la MOTD: segnaposto, colori, tag e sfumature, le due righe, la tendina | solo Adventure (MiniMessage compreso) — niente Bukkit |
+| `motd/MotdRotation` | **Quale voce adesso**: random / ordered / fixed, ogni quanto cambia, niente ripetizioni | niente — solo Java |
+| `motd/MotdListener` | **Chi ascolta il ping** e ci mette dentro il risultato, piu' icona e conto | Paper (`PaperServerListPingEvent`) |
 
 Adventure (`net.kyori.adventure`) ce l'hanno **sia Paper sia Velocity**, e i `Component` sono gli
 stessi. Quindi, quando arrivera' il proxy, la strada e': un plugin Velocity che legge un `motd.yml`
-con lo **stesso formato**, chiama lo **stesso** `MotdText` e mette il risultato nel `ProxyPingEvent`
+con lo **stesso formato**, chiama gli **stessi** `MotdText` e `MotdRotation` e mette il risultato nel `ProxyPingEvent`
 invece che nel `PaperServerListPingEvent`. Di nuovo c'e' solo il listener, una trentina di righe.
 
 Due cose da decidere quel giorno, non prima:
