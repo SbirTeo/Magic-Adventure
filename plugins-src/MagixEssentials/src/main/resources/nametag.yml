@@ -35,9 +35,47 @@ mode: auto
 # subito sopra la testa: e' li' che va {name}. Le altre sono decorazioni sopra di essa e si vedono
 # solo in modalita' display (in vanilla il gioco ne disegna una sola, e le altre vengono ignorate).
 # Una riga vuota ('') lascia uno spazio.
-lines:
-  - '&8[&d%magixfactions_faction%&8]'
-  - '%magixweb_namecolor%{name}'
+#
+# LASCIALA VUOTA (lines: []) per far decidere allo STILE (sotto): e' cosi' di fabbrica, perche' lo
+# stesso jar gira su server di modalita' diverse e un default che parla di fazioni sarebbe sbagliato
+# quasi sempre. Quello che scrivi qui, invece, vince su tutto: e' il modo giusto di fare a modo
+# proprio su QUESTO server.
+lines: []
+
+# Quale stile si usa quando 'lines' e' vuota:
+#   auto          - (di fabbrica) il primo dell'elenco qui sotto i cui plugin ci sono TUTTI. E' la
+#                   rilevazione della modalita': su un server di fazioni esce lo stile factions, su
+#                   un server che non ne ha nessuna esce quello che non chiede niente.
+#   <nome stile>  - quello e basta, che i suoi plugin ci siano o no (per provarne uno, o per imporlo).
+# Quale ha scelto lo scrive nel log all'avvio, insieme a quante righe sono: se sopra la testa non
+# vedi quello che ti aspetti, la risposta e' li'.
+style: auto
+
+# Gli stili: COSA c'e' scritto sulla targhetta, una voce per modalita' di gioco. Come si DISEGNA non
+# sta qui ma nel resto del file (mode, display...): quello vale per il server, non per la modalita'.
+#
+# Si leggono dall'alto in basso e vince il primo che va bene, quindi l'ordine conta: gli stili con
+# piu' pretese stanno in cima, e quello che non chiede niente (requires vuoto) in fondo, come ultima
+# spiaggia. Di ogni voce: 'name' il nome (quello che si scrive in style), 'requires' i plugin che
+# devono esserci, 'lines' le sue righe.
+#
+# Per una modalita' NUOVA si aggiunge una voce qui, in cima a quella senza pretese: e' un elenco, e
+# l'allineamento dei config non tocca le voci in piu' (a differenza delle chiavi: una chiave che il
+# jar non conosce viene tolta). I segnaposto di un plugin che su questo server non c'e' restano
+# VUOTI, non scritti a schermo — quindi una voce sbagliata non riempie di %...% la testa di nessuno.
+styles:
+  # Fazioni: il nome della fazione sopra il nome, col colore del grado che si vede anche sul sito.
+  - name: factions
+    requires: [MagixFactions]
+    lines:
+      - '&8[&d%magixfactions_faction%&8]'
+      - '%magixweb_namecolor%{name}'
+  # Nessuna modalita' riconosciuta: il nome e basta, col colore del grado. Non chiede niente, quindi
+  # va sempre bene: per questo sta in fondo.
+  - name: plain
+    requires: []
+    lines:
+      - '%magixweb_namecolor%{name}'
 
 # Una riga i cui segnaposto risolvono TUTTI a vuoto non viene disegnata: cosi' la riga della fazione
 # sparisce da sola sopra la testa di chi una fazione non ce l'ha, invece di lasciare un '[]' appeso.

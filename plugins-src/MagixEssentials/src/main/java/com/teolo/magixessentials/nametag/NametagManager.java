@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,8 +60,14 @@ public final class NametagManager implements Listener {
     /** Dove va il nome del giocatore in una riga. */
     private static final String NAME_TOKEN = "{name}";
 
-    /** Un placeholder qualunque: serve per sapere se una riga, risolta, resta senza niente da leggere. */
-    private static final Pattern PLACEHOLDER = Pattern.compile("%[^%\\s]+%");
+    /**
+     * Un placeholder di PlaceholderAPI: {@code %identificatore_qualcosa%}. Il trattino basso e'
+     * richiesto di proposito — tutti i placeholder di PAPI hanno la forma
+     * {@code %espansione_cosa%} — cosi' un "50% di sconto" scritto in una riga non viene preso per
+     * un segnaposto. Serve a due cose: sapere se una riga, risolta, resta senza niente da leggere, e
+     * cancellare quelli che sul server nessuno risolve (vedi {@link #blank(String)}).
+     */
+    private static final Pattern PLACEHOLDER = Pattern.compile("%[A-Za-z][A-Za-z0-9]*_[^%\\s]*%");
 
     /** I placeholder RELAZIONALI di PlaceholderAPI: dipendono da chi guarda, non solo da chi e' guardato. */
     private static final String RELATIONAL = "%rel_";
@@ -85,6 +92,13 @@ public final class NametagManager implements Listener {
     private boolean hideSpectator = true;
     /** Una riga senza {name} e' un errore di configurazione: si dice una volta, non a ogni giro. */
     private boolean warnedNameless;
+    /** I segnaposto che nessuno risolve, gia' segnalati: uno stesso errore si dice una volta sola. */
+    private final Set<String> warnedTokens = new HashSet<>();
+    /**
+     * Da dove vengono le righe in uso: il nome dello stile, oppure "lines" se sono scritte a mano.
+     * Lo legge anche la guida per lo staff, da un altro thread: da qui il volatile.
+     */
+    private volatile String style = "";
 
     public NametagManager(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
@@ -119,13 +133,15 @@ public final class NametagManager implements Listener {
 
     /** Le impostazioni di questo giro di accensione, lette una volta sola. */
     private void readConfig() {
-        List<String> read = cfg.getStringList("lines");
-        if (read.isEmpty()) {
-            plugin.getLogger().warning("[Nametag] nametag.yml -> lines e' vuoto: resta il nome nudo del"
-                    + " gioco. Scrivi almeno una riga, quella del nome, con {name} dentro.");
-            read = List.of(NAME_TOKEN);
+        // Le righe scritte a mano vincono su tutto: sono la scelta di CHI CONFIGURA QUESTO server.
+        // Vuote, le decide lo stile della modalita' (vedi pickStyle).
+        List<String> written = cfg.getStringList("lines");
+        if (written.isEmpty()) {
+            lines = pickStyle();
+        } else {
+            lines = List.copyOf(written);
+            style = "lines";
         }
-        lines = List.copyOf(read);
 
         String mode = String.valueOf(cfg.getString("mode", "auto")).trim();
         boolean vanilla = mode.equalsIgnoreCase("vanilla");
@@ -163,6 +179,98 @@ public final class NametagManager implements Listener {
         hideSneaking = cfg.getBoolean("display.hide-when-sneaking", true);
         hideInvisible = cfg.getBoolean("display.hide-when-invisible", true);
         hideSpectator = cfg.getBoolean("display.hide-in-spectator", true);
+        // Una riga nel log che risponde da sola alla domanda "perche' sopra la testa vedo questo?".
+        plugin.getLogger().info("[Nametag] " + describe() + ".");
+        if (!papi) {
+            plugin.getLogger().warning("[Nametag] PlaceholderAPI non c'e': i segnaposto nelle righe"
+                    + " restano vuoti (non scritti a schermo), quindi le targhette si riducono al nome."
+                    + " Le righe fisse funzionano lo stesso.");
+        }
+    }
+
+    /**
+     * Da dove vengono le righe e chi le disegna, in una riga di italiano: va nel log all'avvio e
+     * nella guida per lo staff, che cosi' non deve indovinare cosa sta usando QUESTO server.
+     */
+    public String describe() {
+        String from = "lines".equals(style)
+                ? "righe scritte a mano in lines"
+                : "stile " + (style.isEmpty() ? "nessuno" : style);
+        return from + ", " + lines.size() + (lines.size() == 1 ? " riga" : " righe")
+                + ", disegnate " + (ourLines ? "da noi (entita' di testo)" : "dal gioco (squadre)");
+    }
+
+    /**
+     * Le righe dello stile giusto per <b>questo</b> server.
+     *
+     * <h2>Perche' non c'e' un default unico</h2>
+     * Lo stesso jar gira su server di modalita' diverse: un default che parla di fazioni sarebbe
+     * sbagliato su tutti gli altri, e scriverebbe %magixfactions_faction% sopra la testa della gente.
+     * Percio' il file porta un elenco di stili, uno per modalita', ciascuno con i plugin che gli
+     * servono; con {@code style: auto} si usa il primo i cui plugin ci sono tutti — ed e' questa la
+     * "rilevazione della modalita'": non un indovinello sul nome del server, ma cosa c'e' installato.
+     * L'ultimo dell'elenco non chiede niente, cosi' una risposta c'e' sempre.
+     *
+     * <p>Con un nome invece di {@code auto} si impone quello stile, requisiti o no: serve per
+     * provarlo, o quando la rilevazione sceglierebbe un altro.</p>
+     *
+     * <p>Gli stili sono un <b>elenco</b>, non una sezione di chiavi, e non e' un dettaglio: lo
+     * allineamento dei config toglie le chiavi che il jar non conosce, mentre le voci di un elenco le
+     * lascia stare. Cosi' una modalita' nuova la puo' aggiungere lo staff, sul suo server, senza
+     * aspettare una versione del plugin.</p>
+     */
+    private List<String> pickStyle() {
+        String wanted = String.valueOf(cfg.getString("style", "auto")).trim();
+        boolean auto = wanted.isEmpty() || wanted.equalsIgnoreCase("auto");
+        for (Map<?, ?> entry : cfg.getMapList("styles")) {
+            String name = text(entry.get("name"));
+            if (auto ? !hasPlugins(entry.get("requires")) : !wanted.equalsIgnoreCase(name)) {
+                continue;
+            }
+            List<String> rows = rows(entry.get("lines"));
+            if (rows.isEmpty()) {
+                continue;   // uno stile senza righe non e' una risposta: si guarda il prossimo
+            }
+            style = name.isEmpty() ? "senza nome" : name;
+            return List.copyOf(rows);
+        }
+        style = auto ? "nessuno" : wanted + " (che non esiste)";
+        plugin.getLogger().warning("[Nametag] " + (auto
+                ? "nessuno stile va bene per questo server (e nemmeno l'ultimo, quello senza requisiti:"
+                        + " manca dall'elenco?)"
+                : "lo stile «" + wanted + "» non e' nell'elenco degli stili")
+                + ": resta il nome e basta. Scrivi le righe che vuoi in nametag.yml -> lines, oppure"
+                + " aggiungi la voce che manca in styles.");
+        return List.of(NAME_TOKEN);
+    }
+
+    /** Se i plugin che uno stile pretende ci sono tutti e sono accesi. Nessuna pretesa = va sempre bene. */
+    private boolean hasPlugins(Object requires) {
+        for (String name : rows(requires)) {
+            if (!name.isBlank() && !Bukkit.getPluginManager().isPluginEnabled(name.trim())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Un valore del file che puo' essere una riga sola o un elenco, letto sempre come elenco. */
+    private List<String> rows(Object value) {
+        if (value == null) {
+            return List.of();
+        }
+        if (value instanceof Collection<?> many) {
+            List<String> out = new ArrayList<>(many.size());
+            for (Object one : many) {
+                out.add(text(one));
+            }
+            return out;
+        }
+        return List.of(text(value));
+    }
+
+    private String text(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     /**
@@ -294,16 +402,57 @@ public final class NametagManager implements Listener {
      * scritti come sono.</p>
      */
     private String resolve(Player viewer, Player target, String text) {
-        if (text.isEmpty() || !papi) {
+        if (text.isEmpty()) {
             return text;
         }
         String out = text;
-        // I relazionali si chiedono a parte (vogliono due giocatori) e prima: quello che tornano sono
-        // di solito colori, che poi devono valere per il testo che segue.
-        if (out.contains(RELATIONAL)) {
-            out = me.clip.placeholderapi.PlaceholderAPI.setRelationalPlaceholders(viewer, target, out);
+        if (papi) {
+            // I relazionali si chiedono a parte (vogliono due giocatori) e prima: quello che tornano
+            // sono di solito colori, che poi devono valere per il testo che segue.
+            if (out.contains(RELATIONAL)) {
+                out = me.clip.placeholderapi.PlaceholderAPI.setRelationalPlaceholders(viewer, target, out);
+            }
+            out = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(target, out);
         }
-        return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(target, out);
+        return blank(out);
+    }
+
+    /**
+     * I segnaposto che <b>nessuno ha risolto</b> restano vuoti invece di finire scritti a schermo.
+     *
+     * <p>PlaceholderAPI, di un %...% che non conosce, non sa che fare e lo lascia com'e': in una
+     * pagina web si nota e si corregge, sopra la testa di un giocatore e' spazzatura. E' il caso che
+     * capita da se' in un network: lo stesso stile su un server di un'altra modalita', dove il plugin
+     * che forniva quel segnaposto non c'e'. Lasciandolo vuoto, la riga resta senza niente da leggere
+     * e con {@code skip-empty-lines} non viene nemmeno disegnata — cioe' la decorazione di una
+     * modalita' sparisce da sola dove quella modalita' non esiste.</p>
+     *
+     * <p>Nel log si dice una volta per segnaposto: sparire in silenzio sarebbe comodo oggi e un
+     * mistero domani.</p>
+     */
+    private String blank(String text) {
+        if (text.indexOf('%') < 0) {
+            return text;
+        }
+        Matcher m = PLACEHOLDER.matcher(text);
+        StringBuilder out = null;
+        while (m.find()) {
+            if (out == null) {
+                out = new StringBuilder();
+            }
+            if (warnedTokens.add(m.group())) {
+                plugin.getLogger().warning("[Nametag] " + m.group() + " non lo risolve nessuno"
+                        + (papi ? " (manca l'espansione, o il plugin che la fornisce non e' ancora"
+                                + " partito)" : " perche' PlaceholderAPI non c'e'")
+                        + ": lo lascio vuoto invece di scriverlo sopra la testa dei giocatori.");
+            }
+            m.appendReplacement(out, "");
+        }
+        if (out == null) {
+            return text;
+        }
+        m.appendTail(out);
+        return out.toString();
     }
 
     /**

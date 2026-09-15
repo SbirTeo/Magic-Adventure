@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.0**
+Versione: **0.8.1**
 
 ---
 
@@ -150,6 +150,45 @@ Le righe stanno in `lines`, dall'alto verso il basso, e **l'ultima e' quella del
 va `{name}`. Valgono i codici `&` e `&#RRGGBB`, i tag MiniMessage (`<gradient:...>`) e **tutti** i
 placeholder di PlaceholderAPI: quindi anche tutti quelli dei plugin Magix, che di PAPI sono
 espansioni, e i **relazionali** `%rel_...%`.
+
+### Una modalita', uno stile
+
+Lo stesso jar gira su server di **modalita' diverse**, e una targhetta che parla di fazioni sarebbe
+sbagliata su tutti gli altri. Percio' di fabbrica `lines` e' **vuota** e le righe le decide uno
+**stile**: `styles` e' un elenco, uno per modalita', e ogni voce dichiara in `requires` i plugin che
+le servono.
+
+```yaml
+lines: []          # scritta a mano vince su tutto; vuota = decide lo stile
+style: auto        # il primo stile i cui plugin ci sono TUTTI (o il nome di uno, per imporlo)
+styles:
+  - name: factions
+    requires: [MagixFactions]
+    lines: ['&8[&d%magixfactions_faction%&8]', '%magixweb_namecolor%{name}']
+  - name: plain
+    requires: []                       # non chiede niente: ultima spiaggia, percio' sta in fondo
+    lines: ['%magixweb_namecolor%{name}']
+```
+
+Con `style: auto` la **rilevazione della modalita'** non e' un indovinello sul nome del server: e'
+quali plugin sono installati e accesi. L'ordine conta (vince il primo che va bene) e lo stile scelto
+finisce nel **log all'avvio**, insieme a quante righe sono e a chi le disegna — se sopra la testa non
+si vede quello che si aspettava, la risposta e' li'.
+
+**E su un server di un'altra modalita'?** Oggi, senza uno stile per quella modalita', vale `plain`:
+il nome e basta. Per darle la sua targhetta ci sono due strade, e la prima e' quasi sempre quella
+giusta: scrivere le righe in `lines` **su quel server** (ogni server ha il suo file), oppure
+aggiungere una voce a `styles` sopra quella senza requisiti. Gli stili sono un **elenco** e non delle
+chiavi, e la differenza conta: `ConfigAlign` toglie le chiavi che il jar non conosce, mentre le voci
+di un elenco le lascia stare — quindi una modalita' nuova non aspetta una versione del plugin. Il
+rovescio della stessa medaglia: uno stile aggiunto da un aggiornamento **non compare da solo** in un
+`nametag.yml` che esiste gia' (su un server nuovo si', perche' il file nasce dal jar).
+
+**I segnaposto di un plugin che non c'e' restano vuoti**, non scritti a schermo: su un server senza
+fazioni `%magixfactions_faction%` non diventa spazzatura sopra la testa della gente, e se la riga
+resta senza niente da leggere `skip-empty-lines` non la disegna nemmeno. Cioe' la decorazione di una
+modalita' sparisce da sola dove quella modalita' non esiste. Nel log si dice una volta per segnaposto,
+perche' sparire in silenzio e' comodo oggi e un mistero domani.
 
 **Due maniere di disegnarla, e nessuna vince sempre** — lo decide `mode`:
 

@@ -49,11 +49,12 @@ public final class MagixEssentials extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         modules.ricarica();   // dopo l'allineamento: cosi' legge anche le chiavi appena aggiunte
-        // Il capitolo della guida per lo staff sul sito + il README nella cartella del plugin:
-        // stessa scrittura, letta dal config vivo. Puro I/O, fuori dal tick d'avvio.
-        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
-
         avviaModuli();
+        // Il capitolo della guida per lo staff sul sito + il README nella cartella del plugin:
+        // stessa scrittura, letta dal config vivo. Puro I/O, fuori dal tick d'avvio. Va DOPO
+        // l'accensione dei moduli perche' racconta anche quello che i moduli hanno scelto (per
+        // esempio quale stile di nametag va bene per questo server), non solo quello che c'e' scritto.
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         getLogger().info("MagixEssentials abilitato (moduli: " + modules.riepilogo() + ").");
     }
 
@@ -126,7 +127,13 @@ public final class MagixEssentials extends JavaPlugin {
                 .values(new ConfigValues(this)
                         .also(modules.configurazioneDi(Modules.TABLIST))
                         .also(modules.configurazioneDi(Modules.MOTD))
-                        .also(modules.configurazioneDi(Modules.NAMETAG)))
+                        .also(modules.configurazioneDi(Modules.NAMETAG))
+                        // Lo stile dei nametag non e' un valore del config: e' una SCELTA fatta
+                        // all'avvio guardando quali plugin ci sono. Chiederlo al modulo e' l'unico
+                        // modo di non raccontarne uno sbagliato.
+                        .extra("NAMETAG_STILE", nametag == null
+                                ? "il modulo e' spento, quindi nessuno"
+                                : nametag.describe()))
                 .intro("Raccoglie le utilita' di base del server. Oggi ne fa tre: il **tablist**, "
                         + "cioe' la lista giocatori che si apre col tasto Tab, la **MOTD**, le "
                         + "righe che si leggono nella lista server prima di entrare, e il **nametag**, "
@@ -231,6 +238,37 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "della fazione non si vede sopra la testa di chi non ne ha nessuna, invece di "
                                 + "lasciare appeso un «[]». Una riga senza segnaposto — una decorazione scritta a "
                                 + "mano — si vede sempre, e la riga del nome non si salta mai.")
+
+                .section("Una modalita', uno stile (e il network)",
+                        "Lo stesso jar gira su server di modalita' diverse, e una targhetta che parla "
+                                + "di fazioni sarebbe sbagliata su tutti gli altri. Percio' di fabbrica "
+                                + "**lines e' vuota** e le righe le decide uno **stile**: il file ne porta un "
+                                + "elenco, uno per modalita', e ogni stile dichiara in **requires** i plugin che "
+                                + "gli servono.",
+                        "Con **style: auto** si usa il primo stile dell'elenco i cui plugin ci sono TUTTI: e' "
+                                + "questa la rilevazione della modalita' — non un indovinello sul nome del "
+                                + "server, ma cosa c'e' davvero installato. L'ordine conta (vince il primo che "
+                                + "va bene) e l'ultimo non chiede niente, cosi' una risposta c'e' sempre. "
+                                + "Scrivendo un nome invece di *auto* si impone quello stile, requisiti o no.",
+                        "**Adesso, su questo server: {{NAMETAG_STILE}}.** La stessa riga la scrive nel log a "
+                                + "ogni avvio: se sopra la testa non vedi quello che ti aspetti, la risposta e' li'.",
+                        "**Quello che scrivi in lines vince su tutto.** E' il modo giusto di fare a modo proprio "
+                                + "su UN server: gli stili servono a far partire bene un server nuovo, non a "
+                                + "tenere insieme le decisioni di tutti.",
+                        "**Per una modalita' nuova** (bedwars, per dirne una) si aggiunge una voce all'elenco "
+                                + "styles, sopra quella senza requisiti: nome, i plugin che le servono, le sue "
+                                + "righe. Gli stili sono un ELENCO e non delle chiavi, e la differenza conta: "
+                                + "l'allineamento dei config toglie le chiavi che il jar non conosce, mentre le "
+                                + "voci di un elenco le lascia stare. Quindi una modalita' nuova non aspetta una "
+                                + "versione del plugin. Il rovescio: uno stile aggiunto da un aggiornamento del "
+                                + "plugin non compare da solo in un file che esiste gia' — su un server nuovo "
+                                + "si', perche' il file nasce dal jar.",
+                        "**E i segnaposto di un plugin che qui non c'e'?** Restano **vuoti**, non scritti a "
+                                + "schermo: %magixfactions_faction% su un server senza fazioni non diventa "
+                                + "spazzatura sopra la testa della gente. E se la riga resta senza niente da "
+                                + "leggere, con skip-empty-lines non viene nemmeno disegnata — cioe' la "
+                                + "decorazione di una modalita' sparisce da sola dove quella modalita' non "
+                                + "esiste. Nel log si dice una volta per segnaposto.")
 
                 .section("Le due maniere di disegnarla, e perche' sono due",
                         "La targhetta **del gioco** e' una riga sola. Il client la disegna da se' come "
@@ -400,7 +438,8 @@ public final class MagixEssentials extends JavaPlugin {
                 .settingsFrom(modules.configurazioneDi(Modules.NAMETAG), "Impostazioni del nametag (nametag.yml)",
                         "update-interval-ticks", "Ogni quanti tick si ricontrollano le targhette. Si riscrive solo quello che cambia.",
                         "mode", "Chi disegna: vanilla (il gioco, una riga), display (noi, piu' righe), auto (una riga il gioco, due o piu' noi).",
-                        "lines", "Le righe dall'alto in basso. L'ultima e' quella del nome: mettici {name}.",
+                        "lines", "Le righe dall'alto in basso. L'ultima e' quella del nome: mettici {name}. Vuota = decide lo stile.",
+                        "style", "Quale stile quando lines e' vuota: auto (il primo i cui plugin ci sono) o il nome di uno.",
                         "skip-empty-lines", "Una riga i cui segnaposto risolvono tutti a vuoto non si disegna. La riga del nome non si salta mai.",
                         "per-viewer", "Targhetta diversa per chi guarda (i %rel_...%): auto, always, never. Solo in modalita' vanilla.",
                         "disabled-worlds", "I mondi in cui il modulo non tocca niente: li' resta la targhetta nuda del gioco.",
@@ -482,6 +521,11 @@ public final class MagixEssentials extends JavaPlugin {
                         "Sono display.height e display.line-spacing, e si misurano in blocchi: l'altezza si conta da "
                                 + "dove siede un passeggero, cioe' piu' o meno le spalle, non dai piedi. Si regola a "
                                 + "occhio, un decimo alla volta, con /magixessentials reload dopo ogni prova.")
+                .issue("Su un server di un'altra modalita' la targhetta e' solo il nome",
+                        "E' quello che deve succedere: nessuno stile dell'elenco ha trovato i suoi plugin, quindi "
+                                + "vale l'ultimo, quello che non chiede niente. Per dare a quella modalita' la sua "
+                                + "targhetta: o si scrivono le righe in lines su quel server, o si aggiunge una voce "
+                                + "a styles con i plugin che le servono. Il log all'avvio dice quale stile ha scelto.")
                 .issue("Sopra la testa di chi non ha fazione resta appeso un «[]»",
                         "E' skip-empty-lines spento: con quello acceso una riga i cui segnaposto risolvono tutti a "
                                 + "vuoto non viene disegnata. Se invece la riga ha anche del testo FISSO oltre al "
@@ -516,6 +560,9 @@ public final class MagixEssentials extends JavaPlugin {
                 .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
                         + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "
                         + "dipende dall'ordine di caricamento, cioe' dal caso.")
+                .never("Non mettere i segnaposto di una modalita' nello stile senza requisiti (l'ultimo): "
+                        + "quello vale su qualunque server, comprese le modalita' dove quei placeholder non "
+                        + "esistono. I requisiti sono il punto: dichiarali.")
                 .never("Non lasciare acceso anche il modulo dei nametag di CMI: sulla stessa targhetta non si "
                         + "spartiscono il lavoro, e il giocatore finisce per vederne due. Se cmi.disable-module e' "
                         + "acceso lo spegniamo noi, ma solo un riavvio lo rende vero.")
