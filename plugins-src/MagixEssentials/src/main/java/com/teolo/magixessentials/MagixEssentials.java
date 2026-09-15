@@ -2,6 +2,7 @@ package com.teolo.magixessentials;
 
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
+import com.teolo.magixessentials.nametag.NametagManager;
 import com.teolo.magixessentials.tab.TabManager;
 import com.teolo.magixessentials.util.ConfigAlign;
 import com.teolo.magixessentials.util.ConfigValues;
@@ -14,21 +15,25 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * MagixEssentials: raccoglie le utilita' "di base" del server — oggi il <b>tablist</b> (la lista
- * giocatori del tasto Tab) e la <b>MOTD</b> (le righe che si leggono nella lista server);
- * l'idea a lungo termine e' che assorba cio' che oggi fa CMI.
+ * giocatori del tasto Tab), la <b>MOTD</b> (le righe che si leggono nella lista server) e il
+ * <b>nametag</b> (la targhetta sopra la testa dei giocatori); l'idea a lungo termine e' che
+ * assorba cio' che oggi fa CMI.
  *
  * <p>Ogni funzione si accende e si spegne dal {@code modules.yml}, come nel Modules.yml di CMI, e
- * si regola nel file che porta il suo nome ({@code tablist.yml}, {@code motd.yml}); il
- * {@code config.yml} tiene solo cio' che vale per il plugin intero. Vedi {@link Modules}.
+ * si regola nel file che porta il suo nome ({@code tablist.yml}, {@code motd.yml},
+ * {@code nametag.yml}); il {@code config.yml} tiene solo cio' che vale per il plugin intero. Vedi
+ * {@link Modules}.
  *
- * <p>Ogni funzione sta per conto suo ({@link TabManager}, {@link MotdListener}): questa classe si
- * limita ad accenderle e spegnerle e a offrire {@code /magixessentials reload}.
+ * <p>Ogni funzione sta per conto suo ({@link TabManager}, {@link MotdListener},
+ * {@link NametagManager}): questa classe si limita ad accenderle e spegnerle e a offrire
+ * {@code /magixessentials reload}.
  */
 public final class MagixEssentials extends JavaPlugin {
 
     private Modules modules;
     private TabManager tabManager;
     private MotdListener motd;
+    private NametagManager nametag;
 
     @Override
     public void onEnable() {
@@ -95,12 +100,17 @@ public final class MagixEssentials extends JavaPlugin {
             motd = new MotdListener(this, modules.configurazioneDi(Modules.MOTD));
             motd.start();
         }
+        if (modules.attivo(Modules.NAMETAG)) {
+            nametag = new NametagManager(this, modules.configurazioneDi(Modules.NAMETAG));
+            nametag.start();
+        }
     }
 
     /** Spegne tutto: al reload si riparte da zero, allo spegnimento non si lascia niente appeso. */
     private void spegniModuli() {
         if (tabManager != null) { tabManager.stop(); tabManager = null; }
         if (motd != null) { motd.stop(); motd = null; }
+        if (nametag != null) { nametag.stop(); nametag = null; }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -110,15 +120,17 @@ public final class MagixEssentials extends JavaPlugin {
      * valori di configurazione non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
      */
     private void writeStaffGuide() {
-        StaffGuide.create(this, "MagixEssentials — tablist, MOTD e utilita' del server", 90)
+        StaffGuide.create(this, "MagixEssentials — tablist, MOTD, nametag e utilita' del server", 90)
                 // I numeri (intervallo, slot...) vengono dai file veri: cambiando una chiave,
                 // questo capitolo cambia da solo (vedi util/ConfigValues).
                 .values(new ConfigValues(this)
                         .also(modules.configurazioneDi(Modules.TABLIST))
-                        .also(modules.configurazioneDi(Modules.MOTD)))
-                .intro("Raccoglie le utilita' di base del server. Oggi ne fa due: il **tablist**, "
-                        + "cioe' la lista giocatori che si apre col tasto Tab, e la **MOTD**, le "
-                        + "righe che si leggono nella lista server prima di entrare. A lungo "
+                        .also(modules.configurazioneDi(Modules.MOTD))
+                        .also(modules.configurazioneDi(Modules.NAMETAG)))
+                .intro("Raccoglie le utilita' di base del server. Oggi ne fa tre: il **tablist**, "
+                        + "cioe' la lista giocatori che si apre col tasto Tab, la **MOTD**, le "
+                        + "righe che si leggono nella lista server prima di entrare, e il **nametag**, "
+                        + "la targhetta sopra la testa dei giocatori. A lungo "
                         + "andare dovrebbe assorbire cio' che oggi fa CMI.")
 
                 .section("I moduli: cosa e' acceso e cosa no",
@@ -202,6 +214,95 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "E se i giocatori veri sono piu' del totale non si riempie niente — il tab e' gia' "
                                 + "pieno di gente vera, che e' meglio.")
 
+                .section("La targhetta sopra la testa (nametag)",
+                        "E' quella che si legge **sopra la testa** dei giocatori, in gioco: non il tablist "
+                                + "(quello del tasto Tab) e non il formato della chat. Si scrive tutto in "
+                                + "**nametag.yml**, e l'interruttore — come per le altre funzioni — sta nel "
+                                + "modules.yml.",
+                        "**Le righe** stanno in **lines**, dall'alto verso il basso. L'ULTIMA e' la riga del "
+                                + "nome, quella che sta appena sopra la testa: e' li' che va **{name}**. Le altre "
+                                + "sono decorazioni che le stanno sopra. Valgono i codici **&** e **&#RRGGBB**, i "
+                                + "tag (<bold>, <gradient:#C046E8:#A8DC2C>) e **tutti** i placeholder di "
+                                + "PlaceholderAPI: quindi anche tutti quelli dei plugin Magix, che di PAPI sono "
+                                + "espansioni — %magixfactions_faction%, %magixweb_namecolor%, %magixtime_*% — e "
+                                + "quelli di chiunque altro.",
+                        "**Una riga che non ha niente da dire sparisce.** Con **skip-empty-lines** acceso, una "
+                                + "riga i cui segnaposto risolvono TUTTI a vuoto non viene disegnata: la riga "
+                                + "della fazione non si vede sopra la testa di chi non ne ha nessuna, invece di "
+                                + "lasciare appeso un «[]». Una riga senza segnaposto — una decorazione scritta a "
+                                + "mano — si vede sempre, e la riga del nome non si salta mai.")
+
+                .section("Le due maniere di disegnarla, e perche' sono due",
+                        "La targhetta **del gioco** e' una riga sola. Il client la disegna da se' come "
+                                + "prefisso + NOME VERO + suffisso, e il nome vero puo' avere solo i **16 colori "
+                                + "storici**: nel protocollo la squadra porta un colore scelto fra quelli, un "
+                                + "&#RRGGBB li' non esiste. In cambio costa quasi niente, sfuma con la distanza, "
+                                + "sparisce da sola quando uno si accuccia — e **puo' essere diversa per chi "
+                                + "guarda**.",
+                        "Le righe **disegnate da noi** sono entita' di testo agganciate al giocatore come un "
+                                + "passeggero: piu' righe, colori esatti, sfumature anche sul nome, misura e "
+                                + "altezza regolabili. Il nome del gioco viene nascosto, altrimenti si vedrebbe "
+                                + "doppio. Il limite e' l'altra faccia della stessa medaglia: un'entita' e' un "
+                                + "**oggetto del mondo**, e un oggetto del mondo lo vedono tutti uguale.",
+                        "Lo decide **mode**: *vanilla* la targhetta del gioco, *display* le righe nostre, *auto* "
+                                + "— quello che c'e' adesso, **{{cfg:mode}}** — sceglie da se': una riga sola la "
+                                + "fa il gioco, da due in su la disegniamo noi. Con *vanilla* e piu' righe scritte, "
+                                + "il gioco disegna l'ultima e le altre restano nel file: lo dice nel log all'avvio.",
+                        "Le righe nostre si regolano nella sezione **display**: **height** quanto stanno in alto, "
+                                + "**line-spacing** quanto sono distanti fra loro, **scale** quanto sono grandi, "
+                                + "**background** lo sfondo dietro il testo (*default* il rettangolo scuro del "
+                                + "gioco, *none* niente, oppure un #AARRGGBB), **see-through** se si vedono "
+                                + "attraverso i muri, **view-range** da quanto lontano. Altezza e distanza si "
+                                + "regolano guardando in gioco: sono blocchi, non pixel.")
+
+                .section("Targhetta diversa per chi guarda",
+                        "Il verde dell'alleato e il rosso del nemico non sono una proprieta' del giocatore "
+                                + "guardato: dipendono da **chi guarda**. In PlaceholderAPI sono i segnaposto "
+                                + "**relazionali**, quelli che cominciano con %rel_ — da noi "
+                                + "%rel_magixfactions_relation_color%, che e' il colore della relazione fra le due "
+                                + "fazioni ed e' configurabile in MagixFactions.",
+                        "**per-viewer** decide se usarli: *auto* (ora: **{{cfg:per-viewer}}**) si accende da sola "
+                                + "se in lines c'e' almeno un %rel_, *always* sempre, *never* mai. Funziona **solo** "
+                                + "con la targhetta del gioco: le entita' della modalita' display sono oggetti del "
+                                + "mondo, e li' un %rel_ vale come se il giocatore guardasse se stesso. Se lo scrivi "
+                                + "dove non puo' funzionare, il log all'avvio te lo dice invece di lasciarti a "
+                                + "chiederti perche' sono tutti dello stesso colore.",
+                        "**Il prezzo**, detto prima di accenderla: per far vedere a due giocatori due cose diverse "
+                                + "serve dare a ciascuno una **lavagna** (scoreboard) sua, e quella e' la stessa "
+                                + "lavagna su cui un altro plugin disegnerebbe il pannello laterale. Se CMI tiene "
+                                + "ancora il suo, i due se la strappano di mano: o per-viewer su *never*, o il "
+                                + "pannello di CMI spento.")
+
+                .section("Quando la targhetta non si vede",
+                        "Chi si **accuccia**, chi e' **invisibile** (pozione o /vanish dello staff), chi e' in "
+                                + "**spettatore**: in tutti e tre i casi le righe nostre vengono tolte, perche' un "
+                                + "rettangolo di testo che galleggia da solo direbbe a tutti dov'e' chi non si "
+                                + "dovrebbe vedere. Si regola con le tre chiavi **display.hide-when-sneaking**, "
+                                + "**display.hide-when-invisible**, **display.hide-in-spectator**. La targhetta del "
+                                + "gioco queste cose le fa da se', e quelle chiavi non la riguardano.",
+                        "**hide-self** nasconde a ciascuno la PROPRIA targhetta: in prima persona non si vedrebbe "
+                                + "comunque, ma in terza si vedrebbe da dietro le spalle. E' l'unica cosa che di un "
+                                + "oggetto del mondo si puo' rendere diversa da spettatore a spettatore.",
+                        "**disabled-worlds** sono i mondi in cui il modulo non tocca niente: li' resta la targhetta "
+                                + "nuda del gioco. Serve per una lobby o un mondo-evento, dove le decorazioni danno "
+                                + "solo fastidio.",
+                        "**Non lascia niente in giro.** Le righe nascono col divieto di essere salvate nel mondo e "
+                                + "con un marchio nostro: allo spegnimento del modulo si tolgono, e a ogni avvio si "
+                                + "fa una passata a cercare quelle marchiate rimaste in piedi (un /reload a caldo, un "
+                                + "crash) e si buttano, scrivendo nel log quante erano. Una targhetta orfana che "
+                                + "galleggia in mezzo al mondo e' il difetto peggiore di questo modo di fare le cose.")
+
+                .section("Nametag e CMI",
+                        "Anche la targhetta ce l'ha **chi scrive per ultimo**, come il tablist. Finche' anche CMI "
+                                + "la gestisce i due si sovrascrivono a vicenda e vince il caso. Qui pero' non ci "
+                                + "limitiamo ad avvisare: con **cmi.disable-module** acceso, all'avvio spegniamo noi "
+                                + "il suo modulo dei nametag nel suo **Settings/Modules.yml** — cambiando quella riga "
+                                + "sola, con una copia di scorta del file accanto — e lo scriviamo nel log.",
+                        "**Serve un riavvio** perche' abbia effetto: quel file CMI lo legge all'avvio, quindi "
+                                + "finche' non riparte continua a scrivere anche lui. Se preferisci farlo a mano, "
+                                + "spegni cmi.disable-module: in quel caso ci limitiamo all'avviso nel log, con la "
+                                + "riga da cambiare.")
+
                 .section("La MOTD della lista server",
                         "E' quello che si legge nella lista server prima di entrare: **due righe** di testo "
                                 + "(la terza il client non la disegna), l'icona, il numero dei giocatori e la "
@@ -269,7 +370,9 @@ public final class MagixEssentials extends JavaPlugin {
                 // funzione nel suo (tablist.yml): qui si vedono col valore che hanno adesso sul
                 // server. Il config.yml non compare finche' non ha chiavi: sarebbe una tabella vuota.
                 .settingsFrom(modules.configurazione(), "Moduli (modules.yml)",
-                        "tablist", "Il tablist del tasto Tab. Spento, il tablist resta quello di CMI (o del gioco).")
+                        "tablist", "Il tablist del tasto Tab. Spento, il tablist resta quello di CMI (o del gioco).",
+                        "motd", "Le righe della lista server. Spento, vale la riga 'motd' di server.properties.",
+                        "nametag", "La targhetta sopra la testa. Spento, resta quella di CMI (o il nome nudo del gioco).")
 
                 .settingsFrom(modules.configurazioneDi(Modules.TABLIST), "Impostazioni del tablist (tablist.yml)",
                         "update-interval-ticks", "Ogni quanti tick si riscrivono intestazione, fondo e nomi.",
@@ -293,6 +396,27 @@ public final class MagixEssentials extends JavaPlugin {
                         "version.always-show", "Lo mostra a tutti, ma il server appare NON compatibile (barra rossa, niente conto).",
                         "icons.enabled", "Icone nostre al posto di server-icon.png, a rotazione come le MOTD.",
                         "icons.files", "I PNG 64x64 nella cartella del plugin. Uno sbagliato viene saltato e detto nel log.")
+
+                .settingsFrom(modules.configurazioneDi(Modules.NAMETAG), "Impostazioni del nametag (nametag.yml)",
+                        "update-interval-ticks", "Ogni quanti tick si ricontrollano le targhette. Si riscrive solo quello che cambia.",
+                        "mode", "Chi disegna: vanilla (il gioco, una riga), display (noi, piu' righe), auto (una riga il gioco, due o piu' noi).",
+                        "lines", "Le righe dall'alto in basso. L'ultima e' quella del nome: mettici {name}.",
+                        "skip-empty-lines", "Una riga i cui segnaposto risolvono tutti a vuoto non si disegna. La riga del nome non si salta mai.",
+                        "per-viewer", "Targhetta diversa per chi guarda (i %rel_...%): auto, always, never. Solo in modalita' vanilla.",
+                        "disabled-worlds", "I mondi in cui il modulo non tocca niente: li' resta la targhetta nuda del gioco.",
+                        "vanilla.name-color", "Come si colora il nome VERO: auto = il piu' vicino fra i 16 colori, none = bianco.",
+                        "display.height", "Quanto in alto sta la riga piu' bassa, in blocchi. Da regolare a occhio, in gioco.",
+                        "display.line-spacing", "Distanza fra una riga e quella sopra, in blocchi.",
+                        "display.scale", "Ingrandimento del testo: 1.0 e' la misura di una targhetta normale.",
+                        "display.see-through", "Se le righe si vedono attraverso i muri.",
+                        "display.text-shadow", "L'ombra sotto le lettere. Con lo sfondo acceso sporca.",
+                        "display.background", "Lo sfondo: default (il rettangolo del gioco), none (niente) o #AARRGGBB.",
+                        "display.view-range", "Da quanto lontano si vedono, come moltiplicatore della distanza normale.",
+                        "display.hide-self", "Nasconde a ciascuno la propria targhetta (in terza persona la vedrebbe da dietro).",
+                        "display.hide-when-sneaking", "La toglie a chi si accuccia, come fa il gioco con la sua.",
+                        "display.hide-when-invisible", "La toglie a chi e' invisibile o in vanish: una riga sospesa direbbe dov'e'.",
+                        "display.hide-in-spectator", "La toglie a chi e' in spettatore.",
+                        "cmi.disable-module", "Se all'avvio spegniamo noi il modulo nametag di CMI nel suo file (serve un riavvio).")
 
                 .issue("Le caselle vuote hanno una testa e le tacchette di connessione",
                         "Allora non sono le nostre, sono quelle di CMI: le nostre nascono senza testa e senza "
@@ -331,6 +455,51 @@ public final class MagixEssentials extends JavaPlugin {
                         "Qualcun altro sta scrivendo sullo stesso ping. Il vecchio plugin CustomMOTD e' stato "
                                 + "tolto proprio per questo: se e' tornato nella cartella dei plugin, toglilo di "
                                 + "nuovo. Col modulo motd spento, invece, vale la riga 'motd' di server.properties.")
+                .issue("Il plugin non c'e' piu' e i nomi sopra la testa restano invisibili",
+                        "Le squadre dello scoreboard il server le salva su disco, e in modalita' display la "
+                                + "targhetta del gioco viene nascosta proprio con una squadra. Spegnendosi come si "
+                                + "deve il modulo disfa le sue (lo fa anche a ogni /magixessentials reload), ma dopo "
+                                + "un crash possono restare li'. Si rimedia riaccendendo il modulo una volta, oppure "
+                                + "a mano con /team modify <nome> nametagVisibility always.")
+                .issue("Il prefisso della targhetta compare anche nei messaggi di morte",
+                        "E' il gioco, non un difetto: la targhetta in modalita' vanilla si scrive con le squadre "
+                                + "dello scoreboard, e il NOME VISUALIZZATO di un giocatore in squadra e' "
+                                + "prefisso + nome + suffisso — lo stesso che il gioco usa nei messaggi di morte. "
+                                + "Se li vuoi puliti, la strada e' mode: display: li' le righe sono nostre e il nome "
+                                + "che il gioco conosce resta quello nudo.")
+                .issue("Sopra la testa si vedono DUE targhette, una sopra l'altra",
+                        "Una e' nostra e l'altra e' il nome del gioco che qualcuno ha rimesso visibile: succede "
+                                + "quando un altro plugin (CMI, o un plugin di prefissi) riscrive le squadre dello "
+                                + "scoreboard dopo di noi. Spegni il suo modulo dei nametag — cmi.disable-module lo "
+                                + "fa da se' per CMI, ma serve un riavvio — e controlla che non ci sia un terzo "
+                                + "plugin che scrive prefissi.")
+                .issue("La targhetta e' rimasta vecchia, o e' sparita del tutto",
+                        "Guarda il log all'avvio: il modulo dice se CMI gli sta scrivendo sopra e se nelle righe c'e' "
+                                + "un segnaposto che in quella modalita' non puo' funzionare. Se hai cambiato "
+                                + "nametag.yml, serve /magixessentials reload: la risposta in chat elenca i moduli e "
+                                + "il loro stato. E ricorda che il deploy porta il jar, non i config.")
+                .issue("Le righe stanno troppo in alto (o dentro la testa)",
+                        "Sono display.height e display.line-spacing, e si misurano in blocchi: l'altezza si conta da "
+                                + "dove siede un passeggero, cioe' piu' o meno le spalle, non dai piedi. Si regola a "
+                                + "occhio, un decimo alla volta, con /magixessentials reload dopo ogni prova.")
+                .issue("Sopra la testa di chi non ha fazione resta appeso un «[]»",
+                        "E' skip-empty-lines spento: con quello acceso una riga i cui segnaposto risolvono tutti a "
+                                + "vuoto non viene disegnata. Se invece la riga ha anche del testo FISSO oltre al "
+                                + "segnaposto, quel testo conta come qualcosa da leggere: togli il testo fisso o "
+                                + "spostalo su un'altra riga.")
+                .issue("Il colore del nome non e' quello giusto (modalita' vanilla)",
+                        "Il nome VERO nella targhetta del gioco puo' avere solo i 16 colori storici: %magixweb_namecolor% "
+                                + "e' un esadecimale, e il plugin usa il piu' vicino fra i 16. Per il colore esatto "
+                                + "serve mode: display, dove il nome lo disegniamo noi.")
+                .issue("Sono tutti dello stesso colore, invece di verde-alleato e rosso-nemico",
+                        "I %rel_...% dipendono da chi guarda, e quello si puo' fare solo con la targhetta del gioco: "
+                                + "con mode: display sono oggetti del mondo, uguali per tutti. Serve una riga sola "
+                                + "(mode: vanilla) e per-viewer su auto o always. Il log all'avvio lo dice.")
+                .issue("Dopo un /reload restano delle scritte che galleggiano in aria",
+                        "Sono le nostre righe rimaste orfane: /reload a caldo non e' un riavvio e lascia le entita' "
+                                + "dov'erano. Il plugin le ritrova dal marchio e le butta al primo avvio del modulo — "
+                                + "basta /magixessentials reload, e nel log si legge quante ne ha tolte. In generale "
+                                + "meglio riavviare che /reload.")
                 .issue("Il tablist lampeggia o torna com'era",
                         "Lo sta riscrivendo anche CMI: spegni il suo modulo tablist "
                                 + "(plugins/CMI/Settings/Modules.yml → tablist: false) e riavvia.")
@@ -347,6 +516,13 @@ public final class MagixEssentials extends JavaPlugin {
                 .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
                         + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "
                         + "dipende dall'ordine di caricamento, cioe' dal caso.")
+                .never("Non lasciare acceso anche il modulo dei nametag di CMI: sulla stessa targhetta non si "
+                        + "spartiscono il lavoro, e il giocatore finisce per vederne due. Se cmi.disable-module e' "
+                        + "acceso lo spegniamo noi, ma solo un riavvio lo rende vero.")
+                .never("Non accendere per-viewer mentre un altro plugin disegna il pannello laterale: la lavagna "
+                        + "(scoreboard) e' una per giocatore, e la targhetta per spettatore se la prende tutta.")
+                .never("Non cercare di far vedere il verde dell'alleato con mode: display. Un'entita' di testo e' un "
+                        + "oggetto del mondo: chi guarda non c'entra, e il colore che esce e' sempre lo stesso.")
                 .never("Non lasciare acceso anche il tablist di CMI: due plugin sullo stesso tablist non si "
                         + "spartiscono il lavoro, se lo strappano di mano.")
                 .never("Non scrivere i numeri del logo qui: dimensione e posizione stanno nel config di "

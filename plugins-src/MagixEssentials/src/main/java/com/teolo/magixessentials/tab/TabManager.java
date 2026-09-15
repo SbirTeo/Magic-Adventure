@@ -1,5 +1,6 @@
 package com.teolo.magixessentials.tab;
 
+import com.teolo.magixessentials.util.CmiModules;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -97,15 +98,12 @@ public final class TabManager implements Listener {
      * "torna come prima": il file di CMI e' li' sul disco e si puo' leggere.
      */
     private void avvisaSeCmiScriveAncheLui() {
-        if (Bukkit.getPluginManager().getPlugin("CMI") == null) return;
-        java.io.File moduli = new java.io.File(plugin.getDataFolder().getParentFile(), "CMI/Settings/Modules.yml");
-        String stato = "non leggibile";
-        if (moduli.isFile()) {
-            boolean acceso = org.bukkit.configuration.file.YamlConfiguration
-                    .loadConfiguration(moduli).getBoolean("tablist", false);
-            if (!acceso) return;                 // CMI c'e' ma il suo tablist e' spento: nessun conflitto
-            stato = "acceso";
-        }
+        if (!CmiModules.installed()) return;
+        // Dove CMI tiene i suoi interruttori e come sono scritti lo sa una classe sola (util/CmiModules),
+        // che serve anche al modulo dei nametag: e' l'ultimo posto da cambiare il giorno che CMI va via.
+        Boolean acceso = CmiModules.enabled(plugin, "tablist");
+        if (Boolean.FALSE.equals(acceso)) return;   // CMI c'e' ma il suo tablist e' spento: nessun conflitto
+        String stato = acceso == null ? "non leggibile" : "acceso";
         plugin.getLogger().warning("[Tab] CMI e' installato e il suo modulo tablist risulta " + stato
                 + ": due plugin sullo stesso tablist se lo strappano di mano. Intestazione, fondo e nomi"
                 + " li riscriviamo dopo di lui (tablist.yml -> priority), ma le sue caselle FINTE (le 80 slot,"

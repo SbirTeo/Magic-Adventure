@@ -1,0 +1,112 @@
+# ============================================================
+#  MagixEssentials - Nametag
+# ============================================================
+# Il NAMETAG e' la targhetta che si legge SOPRA LA TESTA dei giocatori, in gioco. Non e' il tablist
+# (la lista del tasto Tab, tablist.yml) e non e' il formato della chat: e' solo quella riga — o due —
+# che si vede avvicinandosi a qualcuno.
+#
+# Questo file dice COM'E' FATTA la targhetta, non se c'e': l'interruttore sta nel modules.yml
+# (nametag: true/false). A modulo spento questo file resta qui, intatto, e torna in uso appena lo si
+# riaccende.
+#
+# Valgono i codici colore & e &#RRGGBB, i tag <bold>/<gradient:...> (MiniMessage) e TUTTI i
+# placeholder di PlaceholderAPI, compresi quelli dei plugin Magix (%magixfactions_*%, %magixtime_*%,
+# %magixweb_namecolor%) e quelli relazionali %rel_...%. Il segnaposto {name} e' il nome del giocatore.
+#
+# NB: il nametag ce l'ha chi scrive per ultimo, come il tablist. Se anche CMI lo gestisce i due si
+# sovrascrivono a vicenda: con cmi.disable-module acceso lo spegniamo noi nel suo file, una volta sola.
+
+# Ogni quanti tick (20 = 1 secondo) si ricontrollano le targhette. Il ricalcolo e' solo un confronto:
+# si riscrive davvero soltanto quello che e' CAMBIATO, quindi un intervallo basso costa poco. Sotto i
+# 10 tick non si vede comunque nessuna differenza.
+update-interval-ticks: 40
+
+# Come viene disegnata la targhetta. Tre valori:
+#   vanilla  - quella del gioco (squadre del scoreboard): UNA riga sola, gratis, sfuma con la distanza
+#              e sparisce da sola quando il giocatore si accuccia o e' invisibile. E' l'unica che puo'
+#              essere DIVERSA per ogni spettatore (vedi per-viewer e i placeholder %rel_...%).
+#   display  - la disegniamo noi con delle entita' di testo agganciate al giocatore: PIU' RIGHE,
+#              colori esadecimali e sfumature anche sul nome, misura e altezza regolabili. Il nome
+#              del gioco viene nascosto, altrimenti si vedrebbe doppio. Uguale per tutti.
+#   auto     - (consigliato) vanilla con una riga sola, display da due righe in su.
+mode: auto
+
+# Le righe della targhetta, DALL'ALTO VERSO IL BASSO. L'ULTIMA e' la riga del nome, quella che sta
+# subito sopra la testa: e' li' che va {name}. Le altre sono decorazioni sopra di essa e si vedono
+# solo in modalita' display (in vanilla il gioco ne disegna una sola, e le altre vengono ignorate).
+# Una riga vuota ('') lascia uno spazio.
+lines:
+  - '&8[&d%magixfactions_faction%&8]'
+  - '%magixweb_namecolor%{name}'
+
+# Una riga i cui segnaposto risolvono TUTTI a vuoto non viene disegnata: cosi' la riga della fazione
+# sparisce da sola sopra la testa di chi una fazione non ce l'ha, invece di lasciare un '[]' appeso.
+# Una riga senza segnaposto (una decorazione fissa) si vede sempre, e la riga del nome non si salta mai.
+skip-empty-lines: true
+
+# Targhetta DIVERSA per ogni spettatore: serve ai placeholder relazionali %rel_...% (per esempio
+# %rel_magixfactions_relation_color%, il verde/rosso di alleato o nemico, che dipende da CHI guarda).
+# Tre valori:
+#   auto   - accesa solo se nelle righe c'e' almeno un %rel_...%; altrimenti spenta, che costa meno.
+#   always - sempre accesa.
+#   never  - mai: la targhetta e' la stessa per tutti e i %rel_...% valgono come se il giocatore
+#            guardasse se stesso.
+# Vale SOLO in modalita' vanilla: le entita' di testo della modalita' display sono oggetti del mondo,
+# e un oggetto del mondo lo vedono tutti uguale.
+# ATTENZIONE: da accesa il plugin deve dare a ogni giocatore una lavagna (scoreboard) sua. Se un altro
+# plugin usa la propria per il pannello laterale (CMI), i due se la strappano di mano: in quel caso
+# lasciala su never, o spegni il pannello dell'altro.
+per-viewer: auto
+
+# Mondi in cui il modulo non tocca niente: la targhetta resta quella del gioco. Vuoto = tutti.
+disabled-worlds: []
+
+# --- LA TARGHETTA DEL GIOCO (modalita' vanilla) ---
+# Il gioco disegna prefisso + NOME VERO + suffisso, e il nome vero puo' avere solo i 16 colori
+# storici: un &#RRGGBB su di lui non esiste nel protocollo. Il resto della riga invece e' libero.
+vanilla:
+  # Come si colora il nome vero. Due valori:
+  #   auto - prende l'ultimo colore scritto prima di {name} (anche un esadecimale) e usa il piu'
+  #          vicino fra i 16: cosi' %magixweb_namecolor% si vede anche qui, per quanto si puo'.
+  #   none - nome bianco, e i colori valgono solo per quello che gli sta intorno.
+  # In modalita' display questa chiave non serve: li' il nome lo disegniamo noi, col colore esatto.
+  name-color: auto
+
+# --- LE RIGHE DISEGNATE DA NOI (modalita' display) ---
+# Sono entita' di testo (text_display) agganciate al giocatore come un passeggero: seguono il
+# movimento senza scatti, non hanno collisione, non si possono colpire e non vengono salvate nel
+# mondo. Il plugin le toglie da solo allo spegnimento e ripulisce quelle rimaste da un crash.
+display:
+  # Quanto in alto sta la riga piu' bassa, in blocchi, contati da dove siede un passeggero (circa
+  # l'altezza delle spalle). Si regola a occhio: piu' alto la stacca dalla testa.
+  height: 0.8
+  # Distanza fra una riga e quella sopra, in blocchi. 0.29 e' circa l'altezza di una riga di testo.
+  line-spacing: 0.29
+  # Ingrandimento del testo: 1.0 e' la misura di una targhetta normale.
+  scale: 1.0
+  # Se true si vede anche attraverso i muri, come la targhetta del gioco da vicino.
+  see-through: false
+  # L'ombra sotto le lettere. Con lo sfondo acceso non serve, e sporca.
+  text-shadow: false
+  # Lo sfondo dietro il testo. Tre modi: 'default' il rettangolo scuro del gioco, 'none' niente
+  # sfondo (solo le lettere), oppure un colore in esadecimale con la trasparenza davanti, #AARRGGBB.
+  background: default
+  # Da quanto lontano si vede, come moltiplicatore della distanza normale: 1.0 e' quella del gioco.
+  view-range: 1.0
+  # Nasconde a ciascuno la PROPRIA targhetta: in terza persona uno vedrebbe le righe da dietro.
+  hide-self: true
+  # La toglie a chi si accuccia, come fa il gioco con la targhetta normale.
+  hide-when-sneaking: true
+  # La toglie a chi e' invisibile (pozione, /vanish dello staff): una riga che galleggia da sola
+  # dice a tutti dov'e' chi non si dovrebbe vedere.
+  hide-when-invisible: true
+  # La toglie a chi e' in spettatore.
+  hide-in-spectator: true
+
+# --- CMI ---
+# Due plugin sulla stessa targhetta si sovrascrivono a vicenda e vince chi scrive per ultimo.
+cmi:
+  # Se CMI e' installato e il suo modulo dei nametag e' acceso, lo spegniamo noi nel suo
+  # Settings/Modules.yml (con una copia di scorta accanto) e lo scriviamo nel log: e' un ritocco a una
+  # riga sola, e CMI lo legge al riavvio. Spento qui, ci limitiamo ad avvisare.
+  disable-module: true

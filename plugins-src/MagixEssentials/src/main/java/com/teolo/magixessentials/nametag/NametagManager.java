@@ -1,0 +1,392 @@
+package com.teolo.magixessentials.nametag;
+
+import com.teolo.magixessentials.util.CmiModules;
+import com.teolo.magixessentials.util.TextFormat;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerGameModeChangeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.metadata.MetadataValue;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scoreboard.Scoreboard;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Gestore dei <b>nametag</b>: la targhetta che si legge sopra la testa dei giocatori, in gioco.
+ *
+ * <p>Acceso e spento NON si decidono qui: il modulo {@code nametag} sta nel {@code modules.yml} e lo
+ * legge la classe principale, che costruisce questa classe solo se e' attivo. Le impostazioni — righe,
+ * modalita', altezze, quando sparisce — stanno nel file della funzione, {@code nametag.yml}, che arriva
+ * gia' letto nel costruttore.</p>
+ *
+ * <h2>Due modi di disegnarla, e perche'</h2>
+ * Il gioco ne sa fare una sola, di riga, e il nome vero che ci mette in mezzo accetta solo i 16 colori
+ * storici: e' la targhetta di {@link NameTeams}, che in cambio costa quasi niente, sfuma con la
+ * distanza, sparisce da sola quando uno si accuccia e — sola fra le due — puo' essere <b>diversa per
+ * ogni spettatore</b> (i placeholder {@code %rel_...%}: il verde dell'alleato, il rosso del nemico).
+ * Due righe, un esadecimale sul nome, una misura diversa vogliono invece delle entita' di testo
+ * agganciate al giocatore: {@link DisplayLines}, che pero' e' un oggetto del mondo e come tale lo
+ * vedono tutti uguale. Non c'e' un modo che vinca sempre, quindi ci sono tutti e due e il config
+ * sceglie; con {@code mode: auto} sceglie da se' guardando quante righe sono state scritte.
+ *
+ * <h2>Si lavora solo sulla differenza</h2>
+ * A ogni giro si ricompone il testo di ciascuno e si confronta con quello di prima: si scrive — cioe'
+ * si mandano pacchetti — solo dove e' cambiato qualcosa. Una targhetta cambia raramente (una fazione,
+ * un grado), quindi il costo vero di un giro e' il conto dei placeholder, non la rete.
+ */
+public final class NametagManager implements Listener {
+
+    /** Dove va il nome del giocatore in una riga. */
+    private static final String NAME_TOKEN = "{name}";
+
+    /** Un placeholder qualunque: serve per sapere se una riga, risolta, resta senza niente da leggere. */
+    private static final Pattern PLACEHOLDER = Pattern.compile("%[^%\\s]+%");
+
+    /** I placeholder RELAZIONALI di PlaceholderAPI: dipendono da chi guarda, non solo da chi e' guardato. */
+    private static final String RELATIONAL = "%rel_";
+
+    private final JavaPlugin plugin;
+    /** Le impostazioni dei nametag: il {@code nametag.yml} della cartella dati. */
+    private final ConfigurationSection cfg;
+    private final boolean papi;
+    private final NameTeams teams = new NameTeams();
+    private final DisplayLines displays;
+
+    private BukkitTask task;
+    private List<String> lines = List.of(NAME_TOKEN);
+    /** Se le righe le disegniamo noi (modalita' display) invece di lasciarle al gioco. */
+    private boolean ourLines;
+    private boolean perViewer;
+    private boolean skipEmpty = true;
+    private boolean nameColor = true;
+    private Set<String> offWorlds = Set.of();
+    private boolean hideSneaking = true;
+    private boolean hideInvisible = true;
+    private boolean hideSpectator = true;
+    /** Una riga senza {name} e' un errore di configurazione: si dice una volta, non a ogni giro. */
+    private boolean warnedNameless;
+
+    public NametagManager(JavaPlugin plugin, ConfigurationSection cfg) {
+        this.plugin = plugin;
+        this.cfg = cfg;
+        this.papi = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+        this.displays = new DisplayLines(plugin, cfg.getConfigurationSection("display"));
+    }
+
+    public void start() {
+        readConfig();
+        settleWithCmi();
+        displays.load();
+        teams.perViewer(perViewer);
+
+        Bukkit.getPluginManager().registerEvents(this, plugin);
+        long interval = Math.max(1, cfg.getLong("update-interval-ticks", 40));
+        task = Bukkit.getScheduler().runTaskTimer(plugin, this::refresh, 20L, interval);
+        refresh();
+    }
+
+    public void stop() {
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
+        HandlerList.unregisterAll(this);
+        // Prima le entita' (vivono nel mondo), poi le squadre (vivono nelle lavagne): dopo un reload
+        // non deve restare in giro niente che nessuno aggiorna piu'.
+        displays.clear();
+        teams.clear();
+    }
+
+    /** Le impostazioni di questo giro di accensione, lette una volta sola. */
+    private void readConfig() {
+        List<String> read = cfg.getStringList("lines");
+        if (read.isEmpty()) {
+            plugin.getLogger().warning("[Nametag] nametag.yml -> lines e' vuoto: resta il nome nudo del"
+                    + " gioco. Scrivi almeno una riga, quella del nome, con {name} dentro.");
+            read = List.of(NAME_TOKEN);
+        }
+        lines = List.copyOf(read);
+
+        String mode = String.valueOf(cfg.getString("mode", "auto")).trim();
+        boolean vanilla = mode.equalsIgnoreCase("vanilla");
+        // auto: il gioco quando basta (una riga sola), noi quando non basta piu'.
+        ourLines = mode.equalsIgnoreCase("display") || (!vanilla && lines.size() > 1);
+        if (vanilla && lines.size() > 1) {
+            plugin.getLogger().info("[Nametag] mode: vanilla — il gioco disegna una riga sola: uso"
+                    + " l'ultima (quella del nome) e lascio le altre nel file. Per vederle tutte serve"
+                    + " mode: display (o auto).");
+        }
+
+        String viewers = String.valueOf(cfg.getString("per-viewer", "auto")).trim();
+        boolean relational = false;
+        for (String line : lines) {
+            relational |= line.contains(RELATIONAL);
+        }
+        perViewer = !ourLines && (viewers.equalsIgnoreCase("always")
+                || (!viewers.equalsIgnoreCase("never") && relational));
+        if (relational && !perViewer) {
+            plugin.getLogger().warning("[Nametag] nelle righe c'e' un placeholder relazionale (" + RELATIONAL
+                    + "...), ma la targhetta e' la stessa per tutti"
+                    + (ourLines ? ": in modalita' display e' un oggetto del mondo, e un oggetto del mondo lo"
+                            + " vedono tutti uguale (serve mode: vanilla con una riga sola)"
+                            : " perche' per-viewer e' su never")
+                    + ". Quei placeholder valgono come se il giocatore guardasse se stesso.");
+        }
+
+        skipEmpty = cfg.getBoolean("skip-empty-lines", true);
+        nameColor = "auto".equalsIgnoreCase(cfg.getString("vanilla.name-color", "auto"));
+        Set<String> worlds = new HashSet<>();
+        for (String world : cfg.getStringList("disabled-worlds")) {
+            worlds.add(world.toLowerCase(Locale.ROOT));
+        }
+        offWorlds = Set.copyOf(worlds);
+        hideSneaking = cfg.getBoolean("display.hide-when-sneaking", true);
+        hideInvisible = cfg.getBoolean("display.hide-when-invisible", true);
+        hideSpectator = cfg.getBoolean("display.hide-in-spectator", true);
+    }
+
+    /**
+     * La targhetta ce l'ha chi scrive per ultimo: finche' anche CMI la gestisce, i due si sovrascrivono
+     * a vicenda e vince il caso. Se il config lo permette gli spegniamo il modulo nel suo file — un
+     * ritocco a una riga sola, con la copia di scorta accanto — altrimenti ci limitiamo ad avvisare.
+     * In tutti e due i casi lo scriviamo nel log: lo staff non deve indovinare perche' la targhetta
+     * "torna come prima".
+     */
+    private void settleWithCmi() {
+        if (!CmiModules.installed()) {
+            return;
+        }
+        Boolean on = CmiModules.enabled(plugin, "nametag", "nametags", "playernametag");
+        if (Boolean.FALSE.equals(on)) {
+            return;         // CMI c'e' ma le targhette non le tocca: nessun conflitto
+        }
+        String state = on == null ? "non leggibile" : "acceso";
+        if (Boolean.TRUE.equals(on) && cfg.getBoolean("cmi.disable-module", true)
+                && CmiModules.disable(plugin, "nametag", "nametags", "playernametag")) {
+            plugin.getLogger().info("[Nametag] il modulo dei nametag di CMI era acceso: l'ho spento nel suo"
+                    + " Settings/Modules.yml (copia di scorta accanto). CMI quel file lo legge all'avvio,"
+                    + " quindi serve un RIAVVIO del server perche' smetta di scrivere anche lui.");
+            return;
+        }
+        plugin.getLogger().warning("[Nametag] CMI e' installato e il suo modulo dei nametag risulta " + state
+                + ": due plugin sulla stessa targhetta se la strappano di mano, e vince chi scrive per"
+                + " ultimo. Spegnilo in plugins/CMI/Settings/Modules.yml (la riga dei nametag -> false)"
+                + " e riavvia, oppure lascia fare a noi con nametag.yml -> cmi.disable-module: true.");
+    }
+
+    // ------------------------------------------------- IL GIRO
+
+    private void refresh() {
+        Collection<? extends Player> online = Bukkit.getOnlinePlayers();
+        List<Scoreboard> boards = teams.boards(online);
+        for (Player target : online) {
+            apply(target, boards, online);
+        }
+    }
+
+    /** La targhetta di un giocatore, scritta dove va scritta. */
+    private void apply(Player target, List<Scoreboard> boards, Collection<? extends Player> online) {
+        boolean off = offWorlds.contains(target.getWorld().getName().toLowerCase(Locale.ROOT));
+        if (ourLines) {
+            displays.update(target, off || hidden(target) ? List.of() : rendered(target));
+            // Il nome del gioco si nasconde solo dove la targhetta la disegniamo noi: due targhette
+            // sovrapposte sono peggio di una brutta. Nei mondi esclusi torna visibile.
+            for (Scoreboard board : boards) {
+                teams.write(board, target, "", "", !off, false);
+            }
+            return;
+        }
+        // Modalita' vanilla: il gioco disegna prefisso + nome + suffisso, e le righe in piu' (se ce ne
+        // sono) restano nel file. Nei mondi esclusi si scrive il nome nudo.
+        String format = off ? NAME_TOKEN : lines.get(lines.size() - 1);
+        if (perViewer) {
+            for (Player viewer : online) {
+                String[] parts = parts(viewer, target, format);
+                teams.write(teams.boardOf(viewer), target, parts[0], parts[1], false, nameColor);
+            }
+            return;
+        }
+        String[] parts = parts(target, target, format);
+        for (Scoreboard board : boards) {
+            teams.write(board, target, parts[0], parts[1], false, nameColor);
+        }
+    }
+
+    /**
+     * La riga del nome spezzata nei due pezzi che il gioco sa mettere intorno al nome vero: quello che
+     * sta prima di {@code {name}} e quello che sta dopo, coi placeholder gia' risolti.
+     */
+    private String[] parts(Player viewer, Player target, String format) {
+        int at = format.indexOf(NAME_TOKEN);
+        if (at < 0 && !warnedNameless) {
+            warnedNameless = true;
+            plugin.getLogger().warning("[Nametag] nell'ultima riga di nametag.yml -> lines non c'e' {name}:"
+                    + " il gioco il nome vero lo disegna comunque, quindi quella riga gli finisce davanti"
+                    + " come prefisso. Mettici {name} dove vuoi che compaia il nome.");
+        }
+        String prefix = at < 0 ? format : format.substring(0, at);
+        String suffix = at < 0 ? "" : format.substring(at + NAME_TOKEN.length());
+        return new String[]{resolve(viewer, target, prefix), resolve(viewer, target, suffix)};
+    }
+
+    /**
+     * Le righe da disegnare, dall'alto verso il basso, coi placeholder risolti. Con
+     * {@code skip-empty-lines} le righe rimaste senza niente da leggere non vengono nemmeno create —
+     * tutte tranne l'ultima, che e' quella del nome e non si salta mai.
+     */
+    private List<String> rendered(Player target) {
+        List<String> out = new ArrayList<>(lines.size());
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            boolean last = i == lines.size() - 1;
+            if (!last && skipEmpty && nothingLeft(target, line)) {
+                continue;
+            }
+            out.add(resolve(target, target, line.replace(NAME_TOKEN, target.getName())));
+        }
+        return out;
+    }
+
+    /**
+     * Se di una riga, risolta, non resta niente da leggere: cioe' se ha dei placeholder e sono
+     * <b>tutti</b> vuoti. E' la riga della fazione sopra la testa di chi non ne ha nessuna: senza
+     * questo controllo resterebbe appeso un {@code []}. Una riga senza placeholder — una decorazione
+     * scritta a mano — non e' mai "vuota": quella l'ha voluta qualcuno.
+     */
+    private boolean nothingLeft(Player target, String line) {
+        Matcher m = PLACEHOLDER.matcher(line);
+        StringBuilder found = new StringBuilder();
+        while (m.find()) {
+            found.append(m.group());
+        }
+        if (found.length() == 0) {
+            return false;
+        }
+        return TextFormat.plain(resolve(target, target, found.toString())).isBlank();
+    }
+
+    /**
+     * I placeholder di un testo, risolti. Ci passa tutto: dentro valgono <b>tutti</b> quelli di
+     * PlaceholderAPI — quindi anche tutti quelli dei plugin Magix, che sono espansioni di PAPI — e
+     * quelli <b>relazionali</b> {@code %rel_...%}, che dipendono da chi guarda.
+     *
+     * <p>PAPI e' softdepend: senza di lui la targhetta funziona lo stesso, ma i {@code %...%} restano
+     * scritti come sono.</p>
+     */
+    private String resolve(Player viewer, Player target, String text) {
+        if (text.isEmpty() || !papi) {
+            return text;
+        }
+        String out = text;
+        // I relazionali si chiedono a parte (vogliono due giocatori) e prima: quello che tornano sono
+        // di solito colori, che poi devono valere per il testo che segue.
+        if (out.contains(RELATIONAL)) {
+            out = me.clip.placeholderapi.PlaceholderAPI.setRelationalPlaceholders(viewer, target, out);
+        }
+        return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(target, out);
+    }
+
+    /**
+     * Quando le righe che disegniamo noi non si devono vedere. La targhetta del gioco queste cose le
+     * fa da se' — accucciarsi la nasconde, l'invisibilita' pure — ma un'entita' di testo no: un
+     * rettangolo che galleggia da solo direbbe a tutti dov'e' chi non si dovrebbe vedere.
+     */
+    private boolean hidden(Player p) {
+        if (p.isDead()) {
+            return true;
+        }
+        if (hideSneaking && p.isSneaking()) {
+            return true;
+        }
+        if (hideSpectator && p.getGameMode() == GameMode.SPECTATOR) {
+            return true;
+        }
+        return hideInvisible && (p.isInvisible() || p.hasPotionEffect(PotionEffectType.INVISIBILITY)
+                || vanished(p));
+    }
+
+    /**
+     * Se un altro plugin lo tiene nascosto. Il {@code /vanish} non e' roba del gioco: e' una
+     * convenzione fra plugin, che marchiano il giocatore con {@code vanished} — la leggono cosi'
+     * Essentials, CMI e chi viene dopo, e la leggiamo cosi' anche noi.
+     */
+    private boolean vanished(Player p) {
+        for (MetadataValue value : p.getMetadata("vanished")) {
+            if (value.asBoolean()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ------------------------------------------------- EVENTI
+
+    /**
+     * Un ingresso cambia le carte a tutti: il nuovo arrivato ha bisogno delle targhette di chi c'e'
+     * gia', e gli altri della sua. Si rifa' il giro intero un tick dopo — cosi' mondo e placeholder
+     * sono pronti — e non costa niente, perche' si riscrive solo quello che e' cambiato.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onJoin(PlayerJoinEvent e) {
+        later();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onQuit(PlayerQuitEvent e) {
+        displays.remove(e.getPlayer());
+        teams.forget(e.getPlayer());
+    }
+
+    /** Accucciarsi nasconde la targhetta: aspettare il prossimo giro si vedrebbe come un ritardo. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSneak(PlayerToggleSneakEvent e) {
+        later();
+    }
+
+    /** Cambiando mondo le entita' restano nel mondo di prima: vanno rifatte di la'. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWorldChange(PlayerChangedWorldEvent e) {
+        later();
+    }
+
+    /** Morendo il giocatore perde i passeggeri: al ritorno si rimontano. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onRespawn(PlayerRespawnEvent e) {
+        later();
+    }
+
+    /** Entrare o uscire da spettatore cambia chi si vede. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onGameMode(PlayerGameModeChangeEvent e) {
+        later();
+    }
+
+    /**
+     * Un giro un tick piu' tardi. Gli eventi arrivano PRIMA che lo stato cambi davvero (chi si
+     * accuccia non e' ancora accucciato, chi rinasce non e' ancora rinato): leggerlo subito darebbe
+     * la risposta di un attimo prima.
+     */
+    private void later() {
+        Bukkit.getScheduler().runTaskLater(plugin, this::refresh, 1L);
+    }
+}

@@ -30,7 +30,8 @@ import java.util.Set;
  *
  * <h2>Un file di impostazioni per funzione</h2>
  * Le impostazioni di una funzione stanno nel file che porta il suo nome — {@code tablist.yml},
- * {@code motd.yml} — e il {@code config.yml} resta per cio' che vale per il plugin intero. Cosi' per sapere che cosa sta facendo il plugin si apre {@code modules.yml}, e per
+ * {@code motd.yml}, {@code nametag.yml} — e il {@code config.yml} resta per cio' che vale per il
+ * plugin intero. Cosi' per sapere che cosa sta facendo il plugin si apre {@code modules.yml}, e per
  * cambiare come lo fa si apre il file di quella funzione: nessun file cresce all'infinito.
  *
  * <h2>Cosa vuol dire "spento"</h2>
@@ -54,6 +55,9 @@ public final class Modules {
 
     /** La MOTD: le righe che si leggono nella lista server. */
     public static final String MOTD = "motd";
+
+    /** Il nametag: la targhetta sopra la testa dei giocatori, in gioco. */
+    public static final String NAMETAG = "nametag";
 
     private final JavaPlugin plugin;
     /** {@code modules.yml}: l'elenco delle funzioni, accese o spente. */

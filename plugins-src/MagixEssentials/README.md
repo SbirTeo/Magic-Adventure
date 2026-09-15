@@ -1,10 +1,10 @@
 # MagixEssentials
 
 Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base** del server: quelle
-cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa due — il
-**tablist** e la **MOTD** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
+cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
+**tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.7.0**
+Versione: **0.8.0**
 
 ---
 
@@ -18,6 +18,7 @@ file diversi:
 | `modules.yml` | L'elenco delle funzioni, una riga ciascuna: **acceso o spento**. Si apre questo per sapere che cosa sta facendo il plugin. |
 | `tablist.yml` | Come e' fatto il tablist: intervallo, intestazione, fondo, nomi, caselle fisse. |
 | `motd.yml` | Come e' fatta la MOTD: le varianti e come ruotano, la tendina, il conto dei giocatori, le icone. |
+| `nametag.yml` | Com'e' fatta la targhetta sopra la testa: le righe, chi la disegna, altezze, quando sparisce. |
 | `config.yml` | Solo cio' che vale per il **plugin intero**. Per ora niente, e lo dice. |
 
 Una funzione spenta non parte affatto: niente task, niente aggancio agli eventi. Il suo file resta
@@ -139,6 +140,61 @@ Due cose da decidere quel giorno, non prima:
    numeri) e non sa da dove vengano.
 
 Regola pratica: se in `MotdText` compare un `import org.bukkit`, quella strada si e' chiusa.
+
+---
+
+## Nametag
+
+La targhetta che si legge **sopra la testa** dei giocatori, in gioco: non il tablist, non la chat.
+Le righe stanno in `lines`, dall'alto verso il basso, e **l'ultima e' quella del nome** — e' li' che
+va `{name}`. Valgono i codici `&` e `&#RRGGBB`, i tag MiniMessage (`<gradient:...>`) e **tutti** i
+placeholder di PlaceholderAPI: quindi anche tutti quelli dei plugin Magix, che di PAPI sono
+espansioni, e i **relazionali** `%rel_...%`.
+
+**Due maniere di disegnarla, e nessuna vince sempre** — lo decide `mode`:
+
+| `mode` | Chi disegna | Cosa si guadagna | Cosa si perde |
+|---|---|---|---|
+| `vanilla` | il gioco, con le squadre dello scoreboard | costa quasi niente, sfuma con la distanza, sparisce da sola quando uno si accuccia, e **puo' essere diversa per chi guarda** | **una riga sola**, e il nome vero accetta solo i **16 colori** storici |
+| `display` | noi, con entita' di testo agganciate al giocatore | **piu' righe**, colori esatti e sfumature anche sul nome, misura e altezza regolabili | e' un **oggetto del mondo**: lo vedono tutti uguale |
+| `auto` | il gioco con una riga sola, noi da due in su | la scelta giusta senza pensarci | — |
+
+**Targhetta diversa per chi guarda.** Il verde dell'alleato e il rosso del nemico non sono una
+proprieta' di chi viene guardato: dipendono da **chi guarda**, e in PlaceholderAPI sono i segnaposto
+relazionali (`%rel_magixfactions_relation_color%`). `per-viewer` li accende — `auto` da sola se in
+`lines` ce n'e' almeno uno — e funziona **solo** in modalita' `vanilla`: le entita' della modalita'
+`display` sono oggetti del mondo. Il prezzo e' che serve una **lavagna** (scoreboard) per giocatore,
+la stessa su cui un altro plugin disegnerebbe il pannello laterale: se CMI tiene ancora il suo, o
+`per-viewer: never` o il suo pannello spento. Se un `%rel_` finisce dove non puo' funzionare, il log
+all'avvio lo dice.
+
+**Una riga che non ha niente da dire sparisce.** Con `skip-empty-lines` una riga i cui segnaposto
+risolvono *tutti* a vuoto non viene disegnata: la riga della fazione non compare sopra la testa di
+chi non ne ha nessuna, invece di lasciare appeso un `[]`. Una riga senza segnaposto — una decorazione
+scritta a mano — si vede sempre, e la riga del nome non si salta mai.
+
+**Quando non si vede.** Chi si accuccia, chi e' invisibile (pozione o `/vanish`), chi e' in
+spettatore: le righe nostre vengono tolte, perche' un rettangolo di testo che galleggia da solo
+direbbe a tutti dov'e' chi non si dovrebbe vedere. La targhetta del gioco queste cose le fa da se'.
+`hide-self` nasconde a ciascuno la propria (in terza persona la vedrebbe da dietro le spalle), e
+`disabled-worlds` lascia interi mondi con la targhetta nuda del gioco.
+
+**Non lascia niente in giro.** Le righe nascono col divieto di essere salvate nel mondo e con un
+marchio nostro: allo spegnimento del modulo si tolgono, e a ogni avvio si fa una passata a cercare
+quelle marchiate rimaste in piedi (un `/reload` a caldo, un crash) e si buttano, scrivendo nel log
+quante erano.
+
+**CMI.** Anche la targhetta ce l'ha chi scrive per ultimo. Qui, a differenza del tablist, non ci
+limitiamo ad avvisare: con `cmi.disable-module` acceso spegniamo noi il suo modulo dei nametag nel suo
+`Settings/Modules.yml`, cambiando quella riga sola e lasciando una copia di scorta del file accanto.
+CMI quel file lo legge all'avvio, quindi **serve un riavvio** perche' smetta di scrivere anche lui.
+
+| Classe | Cosa fa |
+|---|---|
+| `nametag/NametagManager` | Il giro: compone le righe, sceglie chi le disegna, decide quando non si vedono |
+| `nametag/NameTeams` | La targhetta **del gioco**: le squadre dello scoreboard, su tutte le lavagne che i giocatori hanno davvero |
+| `nametag/DisplayLines` | Le righe **nostre**: le entita' di testo agganciate al giocatore |
+| `util/CmiModules` | L'unico punto che sa dove CMI tiene i suoi interruttori e come si spengono |
 
 ---
 

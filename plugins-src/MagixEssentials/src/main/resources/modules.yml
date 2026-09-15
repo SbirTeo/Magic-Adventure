@@ -20,3 +20,8 @@ tablist: true
 # MOTD: le due righe che si leggono nella lista server, col numero dei giocatori e la tendina che
 # esce col mouse. Spento, vale la riga 'motd' di server.properties. Si regola in motd.yml.
 motd: true
+
+# Nametag: la targhetta sopra la testa dei giocatori, in gioco (non il tablist, non la chat). Spento,
+# la targhetta torna quella di CMI (o, se anche il suo modulo e' spento, il nome nudo del gioco).
+# Si regola in nametag.yml.
+nametag: true
