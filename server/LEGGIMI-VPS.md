@@ -57,6 +57,9 @@ esegue `./backup.sh` se presente ed eseguibile. Lo script `backup.sh` per Linux
 
 ## Plugin custom inclusi
 - **MagixFactions** — fazioni, gradi, relazioni alleati/nemici, chat.
+- **MagixEssentials** — utilita' di base: tablist e **MOTD** della lista server.
 - **AutoBackup** — backup schedulati con preavviso e spegnimento.
-- **CustomMOTD** — MOTD personalizzata della lista server.
+
+Il vecchio **CustomMOTD** e' stato tolto: la MOTD la fa il modulo `motd` di MagixEssentials. Il suo
+jar non e' cancellato, sta in `plugins/.rimossi/` (vedi il workflow `rimuovi-plugin.yml`).
 Più CMI, LuckPerms, Vault, PlaceholderAPI.

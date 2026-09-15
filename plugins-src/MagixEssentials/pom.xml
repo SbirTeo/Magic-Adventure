@@ -6,11 +6,11 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixEssentials</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0</version>
     <packaging>jar</packaging>
 
     <name>MagixEssentials</name>
-    <description>Utilita' del server (tablist e, in futuro, il resto che oggi fa CMI)</description>
+    <description>Utilita' del server (tablist, MOTD e, in futuro, il resto che oggi fa CMI)</description>
 
     <properties>
         <!-- paper-api 26.1.2 e' compilata per Java 25 (class file 69.0): serve JDK 25 per buildare.

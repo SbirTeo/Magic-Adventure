@@ -1,6 +1,7 @@
 package com.teolo.magixessentials;
 
 import com.teolo.magixessentials.module.Modules;
+import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.tab.TabManager;
 import com.teolo.magixessentials.util.ConfigAlign;
 import com.teolo.magixessentials.util.ConfigValues;
@@ -12,20 +13,22 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * MagixEssentials: raccoglie le utilita' "di base" del server. Per ora gestisce SOLO il tablist
- * (la lista giocatori, tasto Tab); l'idea a lungo termine e' che assorba cio' che oggi fa CMI.
+ * MagixEssentials: raccoglie le utilita' "di base" del server — oggi il <b>tablist</b> (la lista
+ * giocatori del tasto Tab) e la <b>MOTD</b> (le righe che si leggono nella lista server);
+ * l'idea a lungo termine e' che assorba cio' che oggi fa CMI.
  *
  * <p>Ogni funzione si accende e si spegne dal {@code modules.yml}, come nel Modules.yml di CMI, e
- * si regola nel file che porta il suo nome ({@code tablist.yml}); il {@code config.yml} tiene solo
- * cio' che vale per il plugin intero. Vedi {@link Modules}.
+ * si regola nel file che porta il suo nome ({@code tablist.yml}, {@code motd.yml}); il
+ * {@code config.yml} tiene solo cio' che vale per il plugin intero. Vedi {@link Modules}.
  *
- * <p>Il tablist e' volutamente separato in {@link TabManager}: la classe principale si limita ad
- * accenderlo/spegnerlo e a offrire {@code /magixessentials reload}.
+ * <p>Ogni funzione sta per conto suo ({@link TabManager}, {@link MotdListener}): questa classe si
+ * limita ad accenderle e spegnerle e a offrire {@code /magixessentials reload}.
  */
 public final class MagixEssentials extends JavaPlugin {
 
     private Modules modules;
     private TabManager tabManager;
+    private MotdListener motd;
 
     @Override
     public void onEnable() {
@@ -45,13 +48,13 @@ public final class MagixEssentials extends JavaPlugin {
         // stessa scrittura, letta dal config vivo. Puro I/O, fuori dal tick d'avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
-        if (modules.attivo(Modules.TABLIST)) avviaTablist();
+        avviaModuli();
         getLogger().info("MagixEssentials abilitato (moduli: " + modules.riepilogo() + ").");
     }
 
     @Override
     public void onDisable() {
-        if (tabManager != null) tabManager.stop();
+        spegniModuli();
     }
 
     @Override
@@ -63,10 +66,11 @@ public final class MagixEssentials extends JavaPlugin {
             ConfigAlign.alignAll(this);
             reloadConfig();
             modules.ricarica();
-            // Sempre stop() e poi, solo se il modulo e' acceso, si riparte: cosi' un tablist
-            // spento adesso sparisce davvero, invece di restare appeso com'era prima del reload.
-            if (tabManager != null) { tabManager.stop(); tabManager = null; }
-            if (modules.attivo(Modules.TABLIST)) avviaTablist();
+            // Sempre tutto spento e poi riacceso solo quello che il modules.yml dice adesso:
+            // cosi' una funzione spenta un attimo fa sparisce davvero, invece di restare appesa
+            // com'era prima del reload.
+            spegniModuli();
+            avviaModuli();
             // La guida riporta i valori VIVI del config: se non la riscrivessimo qui, dopo un
             // reload resterebbe indietro fino al prossimo riavvio.
             Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
@@ -78,10 +82,25 @@ public final class MagixEssentials extends JavaPlugin {
         return true;
     }
 
-    /** Accende il tablist con le impostazioni di {@code tablist.yml}, rilette adesso. */
-    private void avviaTablist() {
-        tabManager = new TabManager(this, modules.configurazioneDi(Modules.TABLIST));
-        tabManager.start();
+    /**
+     * Accende le funzioni accese nel {@code modules.yml}, ciascuna col suo file di impostazioni
+     * riletto adesso. Una funzione spenta non viene nemmeno costruita.
+     */
+    private void avviaModuli() {
+        if (modules.attivo(Modules.TABLIST)) {
+            tabManager = new TabManager(this, modules.configurazioneDi(Modules.TABLIST));
+            tabManager.start();
+        }
+        if (modules.attivo(Modules.MOTD)) {
+            motd = new MotdListener(this, modules.configurazioneDi(Modules.MOTD));
+            motd.start();
+        }
+    }
+
+    /** Spegne tutto: al reload si riparte da zero, allo spegnimento non si lascia niente appeso. */
+    private void spegniModuli() {
+        if (tabManager != null) { tabManager.stop(); tabManager = null; }
+        if (motd != null) { motd.stop(); motd = null; }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -91,13 +110,16 @@ public final class MagixEssentials extends JavaPlugin {
      * valori di configurazione non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
      */
     private void writeStaffGuide() {
-        StaffGuide.create(this, "MagixEssentials — tablist e utilita' del server", 90)
+        StaffGuide.create(this, "MagixEssentials — tablist, MOTD e utilita' del server", 90)
                 // I numeri (intervallo, slot...) vengono dai file veri: cambiando una chiave,
                 // questo capitolo cambia da solo (vedi util/ConfigValues).
-                .values(new ConfigValues(this).also(modules.configurazioneDi(Modules.TABLIST)))
-                .intro("Raccoglie le utilita' di base del server. Per ora fa una cosa sola: il "
-                        + "**tablist**, cioe' la lista giocatori che si apre col tasto Tab. "
-                        + "A lungo andare dovrebbe assorbire cio' che oggi fa CMI.")
+                .values(new ConfigValues(this)
+                        .also(modules.configurazioneDi(Modules.TABLIST))
+                        .also(modules.configurazioneDi(Modules.MOTD)))
+                .intro("Raccoglie le utilita' di base del server. Oggi ne fa due: il **tablist**, "
+                        + "cioe' la lista giocatori che si apre col tasto Tab, e la **MOTD**, le "
+                        + "righe che si leggono nella lista server prima di entrare. A lungo "
+                        + "andare dovrebbe assorbire cio' che oggi fa CMI.")
 
                 .section("I moduli: cosa e' acceso e cosa no",
                         "Come in CMI, ogni funzione ha il suo interruttore in un file a parte: "
@@ -180,6 +202,38 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "E se i giocatori veri sono piu' del totale non si riempie niente — il tab e' gia' "
                                 + "pieno di gente vera, che e' meglio.")
 
+                .section("La MOTD della lista server",
+                        "E' quello che si legge nella lista server prima di entrare: **due righe** di testo "
+                                + "(la terza il client non la disegna), il numero dei giocatori e la **tendina** "
+                                + "che esce passandoci sopra col mouse. Si scrive tutto in **motd.yml**.",
+                        "Le due righe fisse sono **first-line** e **second-line**. Se si accende "
+                                + "**random.enabled**, a ogni ping ne esce una a caso fra le voci di "
+                                + "**random.messages** e le due righe fisse si ignorano: serve a non far leggere "
+                                + "sempre la stessa cosa a chi apre la lista dieci volte al giorno. Acceso con la "
+                                + "lista vuota, tornano le righe fisse — meglio che una MOTD vuota.",
+                        "Nelle righe valgono i colori **&** e **&#RRGGBB**, e due segnaposto: **{online}** e "
+                                + "**{max}**. Di segnaposto per-giocatore non ce ne sono e non possono essercene: "
+                                + "al ping il server non sa CHI sta guardando, sa solo che qualcuno ha aperto la "
+                                + "lista. Per lo stesso motivo qui PlaceholderAPI non c'entra.",
+                        "**player-count.max** cambia il numero scritto accanto agli online senza far entrare "
+                                + "nessuno in piu' (-1 = quello vero del server). **player-count.hide** nasconde "
+                                + "il conto: al suo posto il client disegna le due frecce rosse dei server "
+                                + "irraggiungibili, e la tendina sparisce con lui.",
+                        "Questo modulo prende il posto del vecchio plugin **CustomMOTD**, che e' stato tolto dal "
+                                + "server: due plugin sulla stessa MOTD si sovrascrivono a vicenda, e vince chi "
+                                + "scrive per ultimo.")
+
+                .section("MOTD e Velocity (quando ci sara' il proxy)",
+                        "La MOTD la scrive **chi risponde al ping**. Oggi risponde il server, perche' il client "
+                                + "ci parla diretto. Il giorno che davanti ci sara' **Velocity**, al ping "
+                                + "rispondera' il proxy: il server dietro non lo vedra' nemmeno, e questo modulo "
+                                + "— che e' un plugin del server — non potra' piu' farci niente.",
+                        "Per quel giorno il plugin e' gia' spaccato in due: **come si compone** la MOTD (scelta "
+                                + "della variante, segnaposto, colori, le due righe) sta in una classe che non "
+                                + "sa niente di Bukkit, e **chi ascolta il ping** e' un file a parte di trenta "
+                                + "righe. Sul proxy si riscrive solo il secondo, con lo stesso motd.yml e le "
+                                + "stesse regole: la MOTD non va riscritta due volte ne' tenuta allineata a mano.")
+
                 .commands()
                 .permissions()
                 // Gli interruttori stanno in un file loro (modules.yml) e le impostazioni di ogni
@@ -196,6 +250,15 @@ public final class MagixEssentials extends JavaPlugin {
                         "fixed-slots.enabled", "Caselle fisse: il tab resta sempre della stessa misura. Serve ProtocolLib.",
                         "fixed-slots.total", "Quante caselle in tutto: il gioco ne disegna al massimo 80 (4 colonne x 20).",
                         "fixed-slots.empty-text", "Cosa c'e' scritto in una casella vuota: uno spazio la lascia muta.")
+
+                .settingsFrom(modules.configurazioneDi(Modules.MOTD), "Impostazioni della MOTD (motd.yml)",
+                        "first-line", "La prima riga della lista server. Colori & e &#RRGGBB, segnaposto {online} e {max}.",
+                        "second-line", "La seconda riga. Una terza non si vedrebbe: il client ne disegna due.",
+                        "random.enabled", "Acceso, a ogni ping esce una voce a caso di random.messages e le due righe fisse si ignorano.",
+                        "random.messages", "Le varianti: una voce = una MOTD intera, le due righe separate da \\n.",
+                        "hover", "Le righe della tendina sul numero giocatori. Vuota = resta l'elenco vero di chi e' online.",
+                        "player-count.max", "Il massimo mostrato accanto agli online. -1 = quello vero; alzarlo non fa entrare nessuno in piu'.",
+                        "player-count.hide", "Nasconde il conto: il client disegna le frecce dei server irraggiungibili, e niente tendina.")
 
                 .issue("Le caselle vuote hanno una testa e le tacchette di connessione",
                         "Allora non sono le nostre, sono quelle di CMI: le nostre nascono senza testa e senza "
@@ -214,6 +277,15 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "riesce, e il motivo quando no (ProtocolLib assente, o struttura del pacchetto "
                                 + "diversa). Se il messaggio dice che sono attive ma a schermo non si vedono, il "
                                 + "tablist lo sta ancora riscrivendo CMI.")
+                .issue("Ho cambiato la MOTD e nella lista server si legge ancora quella vecchia",
+                        "Il client si tiene in memoria l'ultima MOTD che ha visto: finche' non ripinga, mostra "
+                                + "quella. Togli il server dall'elenco e rimettilo, oppure aspetta. Se dopo un "
+                                + "ping nuovo non e' cambiata, allora e' il file: hai fatto "
+                                + "/magixessentials reload, e il modulo motd risulta acceso?")
+                .issue("La MOTD non e' quella di motd.yml ma una che non ho scritto io",
+                        "Qualcun altro sta scrivendo sullo stesso ping. Il vecchio plugin CustomMOTD e' stato "
+                                + "tolto proprio per questo: se e' tornato nella cartella dei plugin, toglilo di "
+                                + "nuovo. Col modulo motd spento, invece, vale la riga 'motd' di server.properties.")
                 .issue("Il tablist lampeggia o torna com'era",
                         "Lo sta riscrivendo anche CMI: spegni il suo modulo tablist "
                                 + "(plugins/CMI/Settings/Modules.yml → tablist: false) e riavvia.")
@@ -227,6 +299,9 @@ public final class MagixEssentials extends JavaPlugin {
                         "Aggiungi righe vuote (' ') sotto {logo} nell'header, oppure abbassa tablist.logo.height "
                                 + "nel config di MagixFactions.")
 
+                .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
+                        + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "
+                        + "dipende dall'ordine di caricamento, cioe' dal caso.")
                 .never("Non lasciare acceso anche il tablist di CMI: due plugin sullo stesso tablist non si "
                         + "spartiscono il lavoro, se lo strappano di mano.")
                 .never("Non scrivere i numeri del logo qui: dimensione e posizione stanno nel config di "

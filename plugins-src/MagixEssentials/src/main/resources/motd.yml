@@ -1,0 +1,52 @@
+# ============================================================
+#  MagixEssentials - MOTD
+# ============================================================
+# La MOTD e' quello che si legge nella lista server, prima di entrare: due righe di testo, il
+# numero dei giocatori e la tendina che esce passandoci sopra col mouse.
+#
+# Questo file dice COM'E' FATTA la MOTD, non se c'e': l'interruttore sta nel modules.yml
+# (motd: true/false). A modulo spento vale la riga 'motd' di server.properties.
+#
+# Colori: & + lettera/numero (&a, &7, &l grassetto, &r reset) e &#RRGGBB per l'esadecimale.
+# Segnaposto: {online} = quanti ci sono adesso, {max} = il massimo mostrato. Al ping il server
+# non sa CHI sta guardando, quindi di segnaposto per-giocatore non ce ne sono.
+#
+# NB: il client si tiene in memoria l'ultima MOTD vista. Dopo una modifica, per rivederla,
+# togli il server dall'elenco e rimettilo, oppure aspetta che ripinghi.
+
+# --- LE DUE RIGHE ---
+# Il client ne disegna due: la terza non si vedrebbe. Corte, che nella lista lo spazio e' poco.
+first-line: '&#C046E8&lMAGIC&#A8DC2C&lADVENTURE   &8»   &#9A8CA8Fazioni, mercato e stagioni'
+second-line: '&#9A8CA8Online adesso &8» &#A8DC2C{online}&8/&#9A8CA8{max}   &8•   &#A8DC2Cmagicadventure.it'
+
+# --- VARIANTI A CASO ---
+# Serve a non far leggere sempre la stessa cosa a chi apre la lista dieci volte al giorno.
+random:
+  # Se true, a ogni ping si sceglie una voce a caso qui sotto e le due righe sopra si ignorano.
+  # Se e' true ma la lista e' vuota, tornano le due righe sopra: meglio che una MOTD vuota.
+  enabled: false
+  # Una voce = una MOTD intera, con le due righe separate da \n. Le virgolette DOPPIE sono
+  # volute: fra apici singoli lo YAML non traduce \n (il plugin lo accetta lo stesso, ma tanto
+  # vale scriverlo giusto).
+  messages:
+    - "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE   &8»   &#9A8CA8La stagione e' aperta\n&#9A8CA8Online adesso &8» &#A8DC2C{online}&8/&#9A8CA8{max}"
+    - "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE   &8»   &#9A8CA8Fazioni, mercato e stagioni\n&#9A8CA8Entra da &#A8DC2Cmagicadventure.it"
+
+# --- LA TENDINA ---
+# Le righe che escono passando col mouse sul numero dei giocatori. Di serie il gioco ci mette
+# l'elenco di chi e' online: queste righe prendono il suo posto. Lista vuota = resta l'elenco vero.
+hover:
+  - '&#9A8CA8Fazioni, territori e mercato'
+  - '&#9A8CA8Stagioni che cambiano il mondo'
+  - ' '
+  - '&#A8DC2Cmagicadventure.it'
+
+# --- IL NUMERO DEI GIOCATORI ---
+player-count:
+  # Il massimo da mostrare accanto agli online. -1 = quello vero del server (server.properties).
+  # Alzarlo non fa entrare nessuno in piu': cambia solo il numero che si legge.
+  max: -1
+  # Se true, al posto di "3/80" il client disegna le due frecce rosse dei server irraggiungibili,
+  # e la tendina qui sopra non si vede. Da tenere false, salvo che si voglia proprio nascondere
+  # quanti ci sono dentro.
+  hide: false

@@ -2,17 +2,21 @@
 #  MagixEssentials - Moduli
 # ============================================================
 # Un interruttore per funzione, come il Modules.yml di CMI: qui si ACCENDE o si SPEGNE una
-# funzione intera, non la si regola. Le impostazioni di ciascuna (righe, intervalli, formati)
-# restano nel config.yml, che e' e resta il file della configurazione di base.
+# funzione intera, non la si regola. Le impostazioni di ciascuna stanno nel file che porta il suo
+# nome — tablist.yml, motd.yml — e il config.yml tiene solo cio' che vale per il plugin intero.
 #
 # Una funzione spenta qui non parte affatto: niente aggiornamenti a intervalli, niente aggancio
-# agli eventi. Le sue chiavi nel config.yml non si toccano: restano li', pronte per quando la si
-# riaccende.
+# agli eventi. Il suo file di impostazioni resta dov'e', intatto: spegnere non e' buttare via la
+# configurazione.
 #
-# Ogni funzione nuova che verra' aggiunta al plugin avra' la sua riga qui. Le modifiche si
-# applicano con /magixessentials reload (o al riavvio del server).
+# Ogni funzione nuova che verra' aggiunta al plugin avra' la sua riga qui, e il suo file accanto.
+# Le modifiche si applicano con /magixessentials reload (o al riavvio del server).
 
 # Tablist: la lista giocatori che si apre col tasto Tab — intestazione, fondo, nome dei giocatori
 # e le caselle fisse. Spento, il tablist torna quello di CMI (o, se anche il suo modulo e' spento,
-# quello del gioco). Si regola nella sezione 'tablist' del config.yml.
+# quello del gioco). Si regola in tablist.yml.
 tablist: true
+
+# MOTD: le due righe che si leggono nella lista server, col numero dei giocatori e la tendina che
+# esce col mouse. Spento, vale la riga 'motd' di server.properties. Si regola in motd.yml.
+motd: true
