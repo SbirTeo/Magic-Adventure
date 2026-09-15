@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       plugin:
-        description: "Cartella del plugin (es. MagixEntities)"
+        description: "Cartella del plugin (es. MagixEntities), oppure 'tutti' per l'elenco delle chiavi di tutti i Magix"
         required: true
         default: "MagixEntities"
       file:
@@ -94,6 +94,39 @@ jobs:
           ls -la "$BASE/plugins"/*.jar 2>/dev/null
 
           echo
+          # 'tutti': non la fotografia di un plugin, ma l'elenco delle CHIAVI dei config vivi di
+          # tutti i Magix. Serve a confrontarle con quelle del repo: una chiave rimasta col nome
+          # vecchio sul VPS il plugin non la legge piu' e riparte dal default del jar, in silenzio.
+          if [ "$PLUGIN" = "tutti" ]; then
+            for D in "$BASE/plugins"/Magix*/; do
+              NOME="$(basename "$D")"
+              for F in config.yml messages.yml; do
+                [ -f "$D$F" ] || continue
+                echo "### $NOME/$F"
+                python3 - "$D$F" <<'PYKEYS'
+          # Niente PyYAML (sul VPS puo' non esserci): le chiavi si leggono dall'indentazione,
+          # che per questi file basta e avanza. Interessa il NOME della chiave, non il valore.
+          import sys, re
+          riga = re.compile(r'^(\s*)([A-Za-z0-9_.\-]+):(\s|$)')
+          pila = []
+          with open(sys.argv[1], encoding='utf-8', errors='replace') as f:
+              for l in f:
+                  if l.lstrip().startswith('#'):
+                      continue
+                  m = riga.match(l)
+                  if not m:
+                      continue
+                  ind, chiave = len(m.group(1)), m.group(2)
+                  while pila and pila[-1][0] >= ind:
+                      pila.pop()
+                  pila.append((ind, chiave))
+                  print('.'.join(k for _, k in pila))
+          PYKEYS
+              done
+            done
+            exit 0
+          fi
+
           echo "=== CARTELLA DATI $PLUGIN ==="
           ls -la "$BASE/plugins/$PLUGIN" 2>/dev/null || echo "(cartella assente)"
 
