@@ -214,6 +214,10 @@ public final class ConfigAlign {
                 // cancellazione), la versione di prima resta li' accanto, con la data nel nome.
                 backup(plugin, onDisk);
                 Files.writeString(onDisk.toPath(), result.text, StandardCharsets.UTF_8);
+            }
+            // Ogni riga solo se ha davvero qualcosa da dire: il file puo' essere stato riscritto
+            // per una rinomina o una pulizia, senza che sia stata aggiunta nessuna chiave.
+            if (!result.added.isEmpty()) {
                 plugin.getLogger().info(fileName + ": aggiunte le chiavi nuove di questa versione ("
                         + String.join(", ", result.added) + ").");
             }
