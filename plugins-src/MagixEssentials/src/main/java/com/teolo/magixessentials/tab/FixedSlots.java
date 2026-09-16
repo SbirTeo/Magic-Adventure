@@ -4,6 +4,7 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.reflect.StructureModifier;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.PlayerInfoData;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
@@ -61,6 +62,8 @@ public final class FixedSlots {
     /** I profili finti, creati una volta sola: ricrearli a ogni giro farebbe lampeggiare il tab. */
     private final List<PlayerInfoData> riempitivi = new ArrayList<>();
     private boolean disponibile;
+    /** Il primo invio andato a buon fine: prima di quello "attive" e' solo una speranza. */
+    private boolean confermate;
     private int totale;
 
     public FixedSlots(JavaPlugin plugin, ConfigurationSection cfg) {
@@ -108,7 +111,12 @@ public final class FixedSlots {
                         WrappedChatComponent.fromLegacyText(testo)));
             }
             disponibile = true;
-            plugin.getLogger().info("[Tab] slot fisse attive: " + totale + " caselle.");
+            confermate = false;
+            // "Pronte", non "attive": qui i profili esistono, ma se il pacchetto e' fatto in un altro
+            // modo il guasto si vede solo al primo invio. Dire "attive" adesso vorrebbe dire scriverlo
+            // nel log anche quando poi non si vede niente — ed e' esattamente com'e' andata.
+            plugin.getLogger().info("[Tab] slot fisse pronte: " + totale
+                    + " caselle. Al primo invio riuscito lo scrivo qui.");
         } catch (Throwable t) {
             riempitivi.clear();
             plugin.getLogger().warning("[Tab] slot fisse non disponibili (" + t.getClass().getSimpleName()
@@ -136,19 +144,56 @@ public final class FixedSlots {
             // Dalla 1.19.3 il pacchetto porta l'insieme delle AZIONI da applicare: aggiungere la voce,
             // renderla visibile in lista, e fissarne latenza e nome mostrato. Senza UPDATE_LISTED la
             // voce esiste ma il tab non la disegna.
-            pacchetto.getPlayerInfoActions().write(0, EnumSet.of(
+            if (!scriviInFondo(pacchetto.getPlayerInfoActions(), EnumSet.of(
                     EnumWrappers.PlayerInfoAction.ADD_PLAYER,
                     EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
                     EnumWrappers.PlayerInfoAction.UPDATE_LATENCY,
-                    EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME));
-            pacchetto.getPlayerInfoDataLists().write(1, new ArrayList<>(riempitivi.subList(0, quante)));
+                    EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME))) {
+                throw new IllegalStateException("nessun campo per l'insieme delle azioni (campi: "
+                        + pacchetto.getPlayerInfoActions().size() + ")");
+            }
+            if (!scriviInFondo(pacchetto.getPlayerInfoDataLists(),
+                    new ArrayList<>(riempitivi.subList(0, quante)))) {
+                throw new IllegalStateException("nessun campo per l'elenco delle voci (campi elenco: "
+                        + pacchetto.getPlayerInfoDataLists().size() + ")");
+            }
             pm.sendServerPacket(viewer, pacchetto);
+            if (!confermate) {
+                confermate = true;
+                plugin.getLogger().info("[Tab] slot fisse attive: " + totale + " caselle.");
+            }
         } catch (Throwable t) {
             // Una struttura di pacchetto diversa da quella attesa spegne la funzione, non il tablist.
             disponibile = false;
             plugin.getLogger().warning("[Tab] invio delle slot fisse fallito (" + t.getClass().getSimpleName()
                     + ": " + t.getMessage() + "): da ora resta il tablist dinamico.");
         }
+    }
+
+    /**
+     * Scrive un valore nell'<b>ultimo</b> campo del pacchetto che lo accetta, invece che in un indice
+     * deciso a tavolino.
+     *
+     * <p>Qui c'era un numero scritto a mano — l'indice 1 — e a un aggiornamento del gioco quel campo
+     * non c'era piu': {@code Field index 1 is out of bounds for length 1}, e la funzione si spegneva
+     * da sola tutti i giorni. L'indice giusto non e' una costante: dipende da quanti campi di quel
+     * tipo ha il pacchetto nella versione che gira adesso. Quando ce n'e' piu' d'uno, quello nuovo e'
+     * in fondo (il vecchio resta prima, per compatibilita'), quindi si parte dall'ultimo e si scende
+     * finche' uno accetta il valore.</p>
+     *
+     * @return {@code false} se non l'ha accettato nessuno: allora il pacchetto e' fatto in un modo che
+     *         non conosciamo, e chi chiama spegne la funzione dicendo quanti campi ha trovato.
+     */
+    private static <T> boolean scriviInFondo(StructureModifier<T> campi, T valore) {
+        for (int i = campi.size() - 1; i >= 0; i--) {
+            try {
+                campi.write(i, valore);
+                return true;
+            } catch (RuntimeException e) {
+                // Quel campo non fa per noi (tipo diverso, o non scrivibile): si prova quello prima.
+            }
+        }
+        return false;
     }
 
     /** Toglie le caselle finte dal tab di chi sta guardando (allo spegnimento o a un reload). */
@@ -159,7 +204,7 @@ public final class FixedSlots {
             PacketContainer pacchetto = pm.createPacket(PacketType.Play.Server.PLAYER_INFO_REMOVE);
             List<UUID> id = new ArrayList<>(riempitivi.size());
             for (PlayerInfoData d : riempitivi) id.add(d.getProfile().getUUID());
-            pacchetto.getUUIDLists().write(0, id);
+            scriviInFondo(pacchetto.getUUIDLists(), id);
             pm.sendServerPacket(viewer, pacchetto);
         } catch (Throwable ignored) {
             // Il client le butta comunque alla disconnessione: non vale un errore in console.

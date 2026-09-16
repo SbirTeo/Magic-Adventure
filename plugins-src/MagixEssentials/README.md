@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.3**
+Versione: **0.8.4**
 
 ---
 
@@ -48,6 +48,13 @@ sono: con pochi giocatori il tab e' una colonna sottile, con tanti si allarga. C
 acceso il tab mostra sempre lo stesso numero di caselle, riempiendo con voci decorative **senza
 testa** (skin trasparente) e **senza tacchette** (latenza -1). Richiede ProtocolLib; se manca, la
 funzione si spegne da sola e resta il tablist dinamico.
+
+Il campo del pacchetto in cui finiscono le voci **non e' un indice scritto a mano**: si scrive
+nell'ultimo campo che accetta l'elenco, partendo dal fondo. L'indice fisso (era `1`) ha smesso di
+esistere a un aggiornamento del gioco — `Field index 1 is out of bounds for length 1` — e la funzione
+si spegneva da sola a ogni avvio. Nel log le righe sono due: **pronte** quando i profili esistono,
+**attive** al primo invio riuscito; se c'e' solo la prima, il pacchetto non e' partito e accanto c'e'
+il motivo.
 
 **Il tablist ce l'ha chi scrive per ultimo.** Se anche CMI lo gestisce, i due si sovrascrivono a
 vicenda: `priority` ci fa riscrivere poco dopo di lui, ma le sue caselle finte non si tolgono da

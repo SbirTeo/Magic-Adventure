@@ -485,10 +485,14 @@ public final class MagixEssentials extends JavaPlugin {
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Le slot fisse non compaiono",
-                        "Guarda il log all'avvio: il plugin scrive «slot fisse attive: N caselle» quando ci "
-                                + "riesce, e il motivo quando no (ProtocolLib assente, o struttura del pacchetto "
-                                + "diversa). Se il messaggio dice che sono attive ma a schermo non si vedono, il "
-                                + "tablist lo sta ancora riscrivendo CMI.")
+                        "Nel log ci sono DUE righe, e dicono cose diverse. All'avvio «slot fisse **pronte**: N "
+                                + "caselle» vuol dire solo che i profili finti esistono; «slot fisse **attive**: N "
+                                + "caselle» arriva al primo invio andato a buon fine, ed e' quella che conta. Se "
+                                + "vedi solo la prima, il pacchetto non e' partito e il motivo e' scritto li' "
+                                + "accanto (ProtocolLib assente, o un campo che in questa versione del gioco non "
+                                + "c'e' piu'). Se invece leggi «attive» ma a schermo non si vedono, il pacchetto "
+                                + "e' partito e il tablist lo sta riscrivendo qualcun altro: quasi sempre CMI col "
+                                + "suo modulo tablist.")
                 .issue("Ho cambiato la MOTD e nella lista server si legge ancora quella vecchia",
                         "Il client si tiene in memoria l'ultima MOTD che ha visto: finche' non ripinga, mostra "
                                 + "quella. Togli il server dall'elenco e rimettilo, oppure aspetta. Se dopo un "
