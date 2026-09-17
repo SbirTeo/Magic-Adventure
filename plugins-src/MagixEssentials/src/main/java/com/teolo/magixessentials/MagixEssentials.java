@@ -192,7 +192,12 @@ public final class MagixEssentials extends JavaPlugin {
                         "Il segnaposto **{logo}** diventa il carattere del logo del server. Il logo NON e' roba di "
                                 + "questo plugin: e' un glifo del resource pack di **MagixFactions**, e li' si "
                                 + "regolano dimensione e altezza (tablist.logo.height / tablist.logo.ascent). Qui si "
-                                + "decide solo dove metterlo.")
+                                + "decide solo dove metterlo — con le righe VUOTE dopo {logo} nell'header: il logo "
+                                + "non e' testo e la sua altezza non spinge giu' le righe che seguono da sola, "
+                                + "quindi poche righe vuote lo fanno finire SOPRA le informazioni invece che sopra "
+                                + "di esse. Quante ce ne vogliono si calcola da height e ascent di MagixFactions — "
+                                + "la formula e' nel suo capitolo della guida — e va ricalcolato ogni volta che uno "
+                                + "dei due cambia.")
 
                 .section("Quando si aggiorna",
                         "Ogni **{{cfg:update-interval-ticks}}** tick (20 tick = 1 secondo) e, in piu', un "
@@ -617,8 +622,13 @@ public final class MagixEssentials extends JavaPlugin {
                         "Il giocatore non ha il resource pack di MagixFactions (rifiutato o non ancora scaricato). "
                                 + "Il carattere del logo esiste solo dentro quel pacchetto.")
                 .issue("Il logo copre le righe di informazioni",
-                        "Aggiungi righe vuote (' ') sotto {logo} nell'header, oppure abbassa tablist.logo.height "
-                                + "nel config di MagixFactions.")
+                        "Non e' un valore a caso: le righe vuote sotto {logo} servono (height - ascent) / 9 volte, "
+                                + "9 pixel essendo l'altezza di una riga normale — height e ascent sono in "
+                                + "MagixFactions (config.yml -> tablist.logo). Con quelli di ORA ne servono almeno "
+                                + "10, e qui ce ne sono 11: se il conto e' cambiato (height alzato, o ascent "
+                                + "abbassato/reso piu' negativo) e la copertura e' tornata, aggiungi righe fino a "
+                                + "coprire il nuovo numero. In alternativa si abbassa tablist.logo.height in "
+                                + "MagixFactions, che pero' rimpicciolisce anche il logo.")
 
                 .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
                         + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "
