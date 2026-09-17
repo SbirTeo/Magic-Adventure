@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.5**
+Versione: **0.8.6**
 
 ---
 
@@ -42,6 +42,13 @@ La lista giocatori del tasto Tab: intestazione, fondo e nome dei giocatori, risc
 regolari e a ogni ingresso. Supporta i colori `&` e `&#RRGGBB`, i placeholder di PlaceholderAPI
 (ricalcolati per ogni giocatore: ping, fazione, coordinate) e il segnaposto `{logo}`, che diventa il
 carattere del logo nel resource pack di MagixFactions.
+
+**Il logo non e' testo, e' un'immagine**: la sua altezza non spinge giu' da sola le righe che
+vengono dopo, quindi servono delle righe VUOTE sotto `{logo}` per non farci scrivere sopra le
+informazioni. Quante: `(height - ascent) / 9`, arrotondato per eccesso — `height`/`ascent` sono in
+MagixFactions (`config.yml -> tablist.logo`, in pixel), 9 e' l'altezza di una riga di testo normale.
+Con `height: 78, ascent: -8` (i valori di ora) servono almeno 10 righe; l'header qui ne tiene 11. Se
+quei due numeri cambiano, il conto va rifatto — altrimenti il logo torna a coprire le informazioni.
 
 **L'ordine dei giocatori.** Da solo il gioco mette avanti chi non ha una squadra (scoreboard team)
 e ordina per nome, non per grado. Con `sort-by-rank-weight` acceso i giocatori VERI vanno sempre
