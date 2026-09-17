@@ -4608,23 +4608,36 @@ if ($section === 'dashboard') {
     return (h ? h.getBoundingClientRect().height : 98) + 16;
   }
   function attendiFermo(cb) {
-    // Un salto lungo (dall'inizio pagina a un capitolo in fondo) puo' impiegare piu' di 350ms
-    // ad ANIMARE: ricontrollare la posizione a meta' corsa e correggere su quel valore
-    // interromperebbe l'animazione a meta' (visto succedere: il capitolo finiva sotto la barra
-    // invece che sistemato). Si aspetta che lo scroll sia davvero FERMO (nessun movimento per
-    // due controlli di fila) prima di ricontrollare, con un tetto per non restare in attesa.
+    // 'scrollend' (Chrome/Firefox recenti) e' l'evento nativo che dice ESATTAMENTE quando lo
+    // scroll (animato compreso) e' finito: a differenza di un polling sulla posizione, non si fa
+    // ingannare da uno scatto/jank a meta' animazione che per un istante sembra fermo (visto
+    // succedere: due letture ravvicinate uguali per un frame perso, non per essere arrivati).
+    if ('onscrollend' in window) {
+      var fatto = false;
+      var fine = function () {
+        if (fatto) return;
+        fatto = true;
+        window.removeEventListener('scrollend', fine);
+        cb();
+      };
+      window.addEventListener('scrollend', fine);
+      setTimeout(fine, 2000);   // rete di sicurezza: l'evento non arriva mai su alcuni setup
+      return;
+    }
+    // Ripiego per browser senza 'scrollend': piu' campioni fermi di fila (invece di 2, che uno
+    // scatto isolato puo' simulare) prima di dire che e' arrivato.
     var precedente = window.pageYOffset, fermi = 0;
     var iv = setInterval(function () {
       var ora = window.pageYOffset;
       if (Math.abs(ora - precedente) < 0.5) {
         fermi++;
-        if (fermi >= 2) { clearInterval(iv); cb(); }
+        if (fermi >= 4) { clearInterval(iv); cb(); }
       } else {
         fermi = 0;
       }
       precedente = ora;
     }, 80);
-    setTimeout(function () { clearInterval(iv); cb(); }, 1500);
+    setTimeout(function () { clearInterval(iv); cb(); }, 2000);
   }
   // Se si clicca un capitolo nuovo prima che la correzione del precedente sia scattata, quella
   // vecchia non deve piu' agire: correggerebbe su un bersaglio ormai abbandonato, tirando la

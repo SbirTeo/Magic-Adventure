@@ -281,18 +281,36 @@ require __DIR__ . '/../includes/header.php';
     }
 
     function attendiFermo(cb) {
+      // 'scrollend' (Chrome/Firefox recenti) e' l'evento nativo che dice ESATTAMENTE quando lo
+      // scroll (animato compreso) e' finito: a differenza di un polling sulla posizione, non si
+      // fa ingannare da uno scatto/jank a meta' animazione che per un istante sembra fermo (visto
+      // succedere: due letture ravvicinate uguali per un frame perso, non per essere arrivati).
+      if ('onscrollend' in window) {
+        var fatto = false;
+        var fine = function () {
+          if (fatto) return;
+          fatto = true;
+          window.removeEventListener('scrollend', fine);
+          cb();
+        };
+        window.addEventListener('scrollend', fine);
+        setTimeout(fine, 2000);   // rete di sicurezza: l'evento non arriva mai su alcuni setup
+        return;
+      }
+      // Ripiego per browser senza 'scrollend': piu' campioni fermi di fila (invece di 2, che uno
+      // scatto isolato puo' simulare) prima di dire che e' arrivato.
       var precedente = window.pageYOffset, fermi = 0;
       var iv = setInterval(function () {
         var ora = window.pageYOffset;
         if (Math.abs(ora - precedente) < 0.5) {
           fermi++;
-          if (fermi >= 2) { clearInterval(iv); cb(); }
+          if (fermi >= 4) { clearInterval(iv); cb(); }
         } else {
           fermi = 0;
         }
         precedente = ora;
       }, 80);
-      setTimeout(function () { clearInterval(iv); cb(); }, 1500);
+      setTimeout(function () { clearInterval(iv); cb(); }, 2000);
     }
 
     // L'intestazione del sito e' fissa (sticky) e la sua altezza NON e' costante: su finestre
