@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.7**
+Versione: **0.8.8**
 
 ---
 
@@ -69,6 +69,26 @@ rendere trasparente nel resource pack di MagixFactions senza spegnere anche la b
 altro — le 5 barre vere (giocatori veri) non si toccano. Richiede ProtocolLib; se manca, la
 funzione si spegne da sola e resta il tablist dinamico. Richiede anche che il client abbia
 scaricato il resource pack di MagixFactions: chi ha il permesso di bypassarlo vede ancora l'icona.
+
+**Le colonne sono larghe quanto lo schermo lo permette, non strette.** Verificato decompilando
+`PlayerTabOverlay.extractRenderState` nel client vanilla reale di questa versione: il gioco sceglie
+UNA sola larghezza per tutte le colonne, quella del nome PIU' LARGO fra le 80 voci (vere e finte
+insieme), fino al massimo che lo schermo di chi guarda permette (`screenWidth - 50`). Un nome finto
+corto (una casella vuota e' quasi sempre solo uno spazio) tiene quindi le colonne strette quanto il
+nome vero piu' corto in lista — non quanto lo schermo. Il plugin aggiunge da solo 400 spazi
+invisibili in coda al testo di ogni casella vuota (`FixedSlots.WIDTH_PADDING`, 4 pixel di avanzamento
+l'uno, verificato nel vero `assets/minecraft/font/include/space.json` del client): non si vedono, ma
+bastano a far scattare sempre il tetto dello schermo, quindi le colonne sono sempre al massimo
+estensibile.
+
+**Cosa NON si puo' nascondere.** Dietro ogni voce del tablist — vera o finta — il client disegna
+sempre un rettangolo semitrasparente largo quanto la colonna: non e' una texture del resource pack,
+e' un `fill()` scritto nel codice del client (stesso `PlayerTabOverlay`), quindi non dipende da
+niente che il plugin manda nel pacchetto e non si puo' spegnere per le sole caselle finte senza
+spegnerlo anche per i giocatori veri. Il colore lo decide un'opzione **del client di chi guarda**
+(la stessa usata per lo sfondo del testo in chat), non il server: chi lo vuole invisibile lo spegne
+da solo (Opzioni → Chat → Trasparenza sfondo chat a 0) — sparisce per tutte le voci, non solo per
+quelle finte.
 
 Sia la testa che l'icona possono marcire **senza un errore nel log**: un link a una skin che smette
 di rispondere non lancia un'eccezione, fa solo riapparire la skin di serie (Steve/Alex) — e' successo

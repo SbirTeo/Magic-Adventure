@@ -46,7 +46,24 @@ import java.util.UUID;
  *       MagixFactions sostituisce con una trasparente — l'unica delle sei icone di ping che un
  *       giocatore VERO non puo' mai avere davvero, quindi l'unica spegnibile senza spegnere anche
  *       la barra di qualcun altro. Le 5 barre vere restano quelle vere: non si toccano.</li>
+ *   <li><b>colonne larghe quanto lo schermo lo permette</b>: il client sceglie UNA sola larghezza
+ *       per tutte le colonne, quella del nome piu' largo fra le 80 voci — vere e finte insieme —
+ *       fino al massimo che lo schermo di chi guarda permette (verificato decompilando
+ *       {@code PlayerTabOverlay.extractRenderState} nel client vanilla reale di questa versione).
+ *       Un nome finto corto tiene quindi le colonne strette quanto il nome vero piu' corto in
+ *       lista: {@link #WIDTH_PADDING} aggiunge spazi invisibili (4 pixel l'uno, verificato) in
+ *       coda a ogni casella vuota apposta per essere sempre IL nome piu' largo, cosi' le colonne
+ *       arrivano sempre al massimo estensibile invece di restare strette.</li>
  * </ul>
+ *
+ * <p><b>Quello che non si puo' nascondere.</b> Dietro OGNI voce del tablist — vera o finta — il
+ * client disegna sempre un rettangolo semitrasparente, largo quanto la colonna: non e' una
+ * texture (non e' nel resource pack, e' un {@code fill()} nel codice del client) e non dipende
+ * dal pacchetto che mandiamo, quindi non si puo' spegnere per le sole caselle finte senza
+ * spegnerlo anche per i giocatori veri. Il colore lo decide un'opzione DEL CLIENT di chi guarda
+ * (verificato: e' lo stesso valore usato per lo sfondo del testo in chat), non il server: chi lo
+ * vuole invisibile lo spegne da solo (Opzioni → Chat → Trasparenza sfondo chat a 0), e sparisce
+ * per tutte le voci, non solo per quelle finte.</p>
  *
  * <p>Se qualcosa non torna (ProtocolLib assente, struttura del pacchetto diversa da quella che ci
  * aspettiamo) non si rompe niente: si spegne da sola e il tablist resta quello dinamico. Un tab
@@ -95,6 +112,28 @@ public final class FixedSlots {
      */
     private static final int NO_PING = -1;
 
+    /**
+     * Spazi invisibili aggiunti in coda al testo di ogni casella vuota, SOLO per allargare le
+     * colonne — non per essere letti.
+     *
+     * <p>Verificato decompilando {@code PlayerTabOverlay.extractRenderState} nel client vanilla
+     * reale di questa versione (26.1.2): la larghezza di OGNI colonna e' UNA SOLA, calcolata dal
+     * nome PIU' LARGO fra le 80 voci (vere e finte insieme) — {@code slotWidth = min(cols * (9 +
+     * maxNameWidth + 13), screenWidth - 50) / cols} — quindi con un nome finto corto (uno spazio)
+     * la colonna resta stretta quanto il nome vero piu' corto, non quanto lo schermo. L'unico modo
+     * di renderla larga quanto lo schermo lo permette e' rendere IL PIU' LARGO fra gli 80 nomi
+     * abbastanza largo da far scattare sempre il tetto {@code screenWidth - 50}, qualunque sia la
+     * risoluzione di chi guarda.</p>
+     *
+     * <p>Uno spazio avanza 4 pixel (verificato nel vero {@code assets/minecraft/font/include/
+     * space.json} del client) ed e' invisibile per costruzione (nessun glifo disegnato): 400 di
+     * fila fanno 1600 pixel di larghezza "finta" senza scrivere NIENTE a schermo, un margine
+     * abbondante anche per un monitor ultra-wide a bassa scala GUI. Vanno in coda a empty-text
+     * (non lo sostituiscono): quello che lo staff sceglie di scrivere nella casella resta il
+     * primo testo, gli spazi restano dopo e non si vedono.</p>
+     */
+    private static final String WIDTH_PADDING = " ".repeat(400);
+
     private final JavaPlugin plugin;
     /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
     private final ConfigurationSection cfg;
@@ -134,7 +173,7 @@ public final class FixedSlots {
 
         // Il gioco disegna al massimo 4 colonne da 20: oltre 80 le voci in piu' non si vedrebbero.
         totale = Math.max(1, Math.min(80, cfg.getInt("fixed-slots.total", 80)));
-        String testo = cfg.getString("fixed-slots.empty-text", " ");
+        String testo = cfg.getString("fixed-slots.empty-text", " ") + WIDTH_PADDING;
 
         try {
             for (int i = 0; i < totale; i++) {
