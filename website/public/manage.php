@@ -4607,6 +4607,25 @@ if ($section === 'dashboard') {
     var h = document.querySelector('.site-header');
     return (h ? h.getBoundingClientRect().height : 98) + 16;
   }
+  function attendiFermo(cb) {
+    // Un salto lungo (dall'inizio pagina a un capitolo in fondo) puo' impiegare piu' di 350ms
+    // ad ANIMARE: ricontrollare la posizione a meta' corsa e correggere su quel valore
+    // interromperebbe l'animazione a meta' (visto succedere: il capitolo finiva sotto la barra
+    // invece che sistemato). Si aspetta che lo scroll sia davvero FERMO (nessun movimento per
+    // due controlli di fila) prima di ricontrollare, con un tetto per non restare in attesa.
+    var precedente = window.pageYOffset, fermi = 0;
+    var iv = setInterval(function () {
+      var ora = window.pageYOffset;
+      if (Math.abs(ora - precedente) < 0.5) {
+        fermi++;
+        if (fermi >= 2) { clearInterval(iv); cb(); }
+      } else {
+        fermi = 0;
+      }
+      precedente = ora;
+    }, 80);
+    setTimeout(function () { clearInterval(iv); cb(); }, 1500);
+  }
   indice.addEventListener('click', function (ev) {
     var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
     if (!a) return;
@@ -4622,14 +4641,14 @@ if ($section === 'dashboard') {
       if (Math.abs(window.pageYOffset - partenza) < 2 && Math.abs(y - partenza) > 2) {
         window.scrollTo(0, y);
       }
+      // Ricontrollo a scorrimento DAVVERO finito: fra il calcolo di sopra e l'arrivo la barra
+      // puo' essere cambiata altezza, e il titolo restare comunque coperto. Rimisuro la
+      // posizione VERA e correggo invece di fidarmi del calcolo fatto prima di muovermi.
+      attendiFermo(function () {
+        var scarto = stacco() - meta.getBoundingClientRect().top;   // > 0 = ancora sotto la barra
+        if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
+      });
     }, 350);
-    // Ricontrollo a scorrimento finito: fra il calcolo di sopra e l'arrivo la barra puo' essere
-    // cambiata altezza, e il titolo restare comunque coperto. Rimisuro la posizione VERA e
-    // correggo invece di fidarmi del calcolo fatto prima di muovermi.
-    setTimeout(function () {
-      var scarto = stacco() - meta.getBoundingClientRect().top;   // > 0 = ancora sotto la barra
-      if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
-    }, 420);
   });
 })();
 </script>
