@@ -239,15 +239,19 @@ public final class MagixEssentials extends JavaPlugin {
                         "Oltre 80 non si va: il gioco disegna al massimo 4 colonne da 20, e il plugin taglia li'. "
                                 + "E se i giocatori veri sono piu' del totale non si riempie niente — il tab e' gia' "
                                 + "pieno di gente vera, che e' meglio.",
-                        "**Le colonne sono larghe quanto lo schermo lo permette, non strette.** Verificato "
-                                + "decompilando PlayerTabOverlay.extractRenderState nel client vanilla reale di "
-                                + "questa versione: il gioco sceglie UNA sola larghezza per TUTTE le colonne, quella "
-                                + "del nome PIU' LARGO fra le 80 voci (vere e finte insieme), fino al massimo che lo "
-                                + "schermo di chi guarda permette. Un nome finto corto (una casella vuota e' quasi "
-                                + "sempre solo uno spazio) terrebbe le colonne strette quanto il nome vero piu' corto "
-                                + "in lista — non quanto lo schermo. Il plugin aggiunge da solo 400 spazi invisibili "
-                                + "in coda al testo di ogni casella vuota apposta per questo (FixedSlots.WIDTH_PADDING): "
-                                + "non si vedono, ma bastano a far scattare sempre il tetto dello schermo.",
+                        "**Le colonne sono larghe quanto un nickname vanilla puo' esserlo, non strette e non a "
+                                + "tutto schermo.** Verificato decompilando PlayerTabOverlay.extractRenderState nel "
+                                + "client vanilla reale di questa versione: il gioco sceglie UNA sola larghezza per "
+                                + "TUTTE le colonne, quella del nome PIU' LARGO fra le 80 voci (vere e finte insieme). "
+                                + "Un nome finto corto (una casella vuota e' quasi sempre solo uno spazio) terrebbe le "
+                                + "colonne strette quanto il nome vero piu' corto in lista — non quanto un nome vero "
+                                + "potrebbe davvero essere. Un nickname di Minecraft e' lungo al massimo 16 caratteri, "
+                                + "e nel font di gioco nessuna lettera/cifra/underscore valida in un nickname avanza "
+                                + "piu' di 6 pixel (verificato decompilando BitmapProvider e rifacendo lo stesso "
+                                + "calcolo sul vero ascii.png): il nickname vanilla piu' largo possibile e' quindi "
+                                + "16 x 6 = 96 pixel, mai di piu'. Il plugin aggiunge da solo 24 spazi invisibili in "
+                                + "coda al testo di ogni casella vuota (FixedSlots.WIDTH_PADDING, 4 pixel l'uno = 96 "
+                                + "in tutto): non si vedono, ma pareggiano esattamente quel massimo.",
                         "**Quello che non si puo' nascondere.** Dietro OGNI voce del tablist — vera o finta — il "
                                 + "client disegna sempre un rettangolo semitrasparente largo quanto la colonna: non "
                                 + "e' una texture del resource pack, e' scritto nel codice del client, quindi non "
@@ -561,12 +565,16 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "server, un reload a caldo non basta. NON e' piu' un difetto di NO_PING: quel "
                                 + "campo e' -1 apposta, l'icona che ne esce e' quella che il resource pack deve "
                                 + "coprire.")
-                .issue("Le colonne del tablist sono strette invece di riempire lo schermo",
+                .issue("Le colonne del tablist sono strette, o sfondano lo schermo",
                         "Il gioco sceglie UNA sola larghezza per tutte le colonne, quella del nome PIU' LARGO fra le "
                                 + "80 voci — vere e finte insieme (verificato decompilando PlayerTabOverlay nel client "
                                 + "vanilla reale). Se le colonne sono strette, il nome piu' largo in tab e' ancora "
-                                + "corto: o WIDTH_PADDING e' stato tolto da FixedSlots.java, o fixed-slots e' spento "
-                                + "(niente voci finte a fare da nome largo, resta solo il nome vero piu' corto).")
+                                + "corto: o WIDTH_PADDING e' stato tolto o ridotto in FixedSlots.java, o fixed-slots "
+                                + "e' spento (niente voci finte a fare da nome largo, resta solo il nome vero piu' "
+                                + "corto). Se invece le colonne sfondano quasi tutto lo schermo, WIDTH_PADDING e' "
+                                + "stato allargato oltre i 24 spazi (96 pixel, il nickname vanilla piu' lungo "
+                                + "possibile): non serve andare oltre, e con troppo margine si arriva al tetto "
+                                + "screenWidth - 50 di PlayerTabOverlay, colonne a tutto schermo comprese.")
                 .issue("Dietro le caselle vuote si vede un rettangolo chiaro anche senza testa e senza icona",
                         "NON e' un difetto di questo plugin, ed e' verificato: dietro OGNI voce del tablist, vera o "
                                 + "finta, il client disegna sempre un rettangolo semitrasparente largo quanto la "

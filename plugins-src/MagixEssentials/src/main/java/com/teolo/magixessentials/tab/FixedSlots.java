@@ -46,14 +46,14 @@ import java.util.UUID;
  *       MagixFactions sostituisce con una trasparente — l'unica delle sei icone di ping che un
  *       giocatore VERO non puo' mai avere davvero, quindi l'unica spegnibile senza spegnere anche
  *       la barra di qualcun altro. Le 5 barre vere restano quelle vere: non si toccano.</li>
- *   <li><b>colonne larghe quanto lo schermo lo permette</b>: il client sceglie UNA sola larghezza
- *       per tutte le colonne, quella del nome piu' largo fra le 80 voci — vere e finte insieme —
- *       fino al massimo che lo schermo di chi guarda permette (verificato decompilando
- *       {@code PlayerTabOverlay.extractRenderState} nel client vanilla reale di questa versione).
- *       Un nome finto corto tiene quindi le colonne strette quanto il nome vero piu' corto in
- *       lista: {@link #WIDTH_PADDING} aggiunge spazi invisibili (4 pixel l'uno, verificato) in
- *       coda a ogni casella vuota apposta per essere sempre IL nome piu' largo, cosi' le colonne
- *       arrivano sempre al massimo estensibile invece di restare strette.</li>
+ *   <li><b>colonne larghe quanto un nickname vanilla puo' esserlo</b>: il client sceglie UNA sola
+ *       larghezza per tutte le colonne, quella del nome piu' largo fra le 80 voci — vere e finte
+ *       insieme (verificato decompilando {@code PlayerTabOverlay.extractRenderState} nel client
+ *       vanilla reale di questa versione). Un nome finto corto tiene quindi le colonne strette
+ *       quanto il nome vero piu' corto in lista: {@link #WIDTH_PADDING} aggiunge spazi invisibili
+ *       in coda a ogni casella vuota, quanti ne servono per pareggiare il nickname di Minecraft
+ *       PIU' LUNGO possibile (16 caratteri) — non di piu': le colonne arrivano al massimo che il
+ *       gioco stesso userebbe con un nome vero lunghissimo, non a riempire lo schermo.</li>
  * </ul>
  *
  * <p><b>Quello che non si puo' nascondere.</b> Dietro OGNI voce del tablist — vera o finta — il
@@ -114,25 +114,31 @@ public final class FixedSlots {
 
     /**
      * Spazi invisibili aggiunti in coda al testo di ogni casella vuota, SOLO per allargare le
-     * colonne — non per essere letti.
+     * colonne fino al MASSIMO VANILLA — quanto sarebbero larghe se in tab ci fosse davvero il nome
+     * piu' lungo possibile — non fino a riempire lo schermo.
      *
      * <p>Verificato decompilando {@code PlayerTabOverlay.extractRenderState} nel client vanilla
      * reale di questa versione (26.1.2): la larghezza di OGNI colonna e' UNA SOLA, calcolata dal
      * nome PIU' LARGO fra le 80 voci (vere e finte insieme) — {@code slotWidth = min(cols * (9 +
      * maxNameWidth + 13), screenWidth - 50) / cols} — quindi con un nome finto corto (uno spazio)
-     * la colonna resta stretta quanto il nome vero piu' corto, non quanto lo schermo. L'unico modo
-     * di renderla larga quanto lo schermo lo permette e' rendere IL PIU' LARGO fra gli 80 nomi
-     * abbastanza largo da far scattare sempre il tetto {@code screenWidth - 50}, qualunque sia la
-     * risoluzione di chi guarda.</p>
+     * la colonna resta stretta quanto il nome vero piu' corto, non quanto un nome vero potrebbe
+     * davvero essere.</p>
      *
-     * <p>Uno spazio avanza 4 pixel (verificato nel vero {@code assets/minecraft/font/include/
-     * space.json} del client) ed e' invisibile per costruzione (nessun glifo disegnato): 400 di
-     * fila fanno 1600 pixel di larghezza "finta" senza scrivere NIENTE a schermo, un margine
-     * abbondante anche per un monitor ultra-wide a bassa scala GUI. Vanno in coda a empty-text
-     * (non lo sostituiscono): quello che lo staff sceglie di scrivere nella casella resta il
-     * primo testo, gli spazi restano dopo e non si vedono.</p>
+     * <p>Un nickname di Minecraft e' lungo al massimo 16 caratteri, e nel font di gioco (bitmap
+     * {@code ascii.png}, lo stesso di sempre) NESSUNA lettera, cifra o underscore valida in un
+     * nickname avanza piu' di 6 pixel — verificato decompilando {@code BitmapProvider} e
+     * rifacendo lo stesso calcolo (larghezza del glifo nella griglia 16x16, {@code (colonna
+     * opaca piu' a destra + 1) + 1}) sul vero {@code assets/minecraft/textures/font/ascii.png}:
+     * tutte le lettere A-Z/a-z e le cifre 0-9 avanzano 6 pixel, tranne poche piu' strette (i, l,
+     * t...). Il nickname vanilla PIU' LARGO possibile e' quindi 16 x 6 = 96 pixel, mai di piu'.</p>
+     *
+     * <p>24 spazi (4 pixel l'uno, verificato nel vero {@code assets/minecraft/font/include/
+     * space.json}: 24 x 4 = 96) rendono quindi il nome finto esattamente largo quanto il nickname
+     * vanilla piu' lungo possibile — ne' uno stretto quanto "SbirTeo", ne' uno che sfonda lo
+     * schermo. Vanno in coda a empty-text (non lo sostituiscono): quello che lo staff sceglie di
+     * scrivere nella casella resta il primo testo, gli spazi restano dopo e non si vedono.</p>
      */
-    private static final String WIDTH_PADDING = " ".repeat(400);
+    private static final String WIDTH_PADDING = " ".repeat(24);
 
     private final JavaPlugin plugin;
     /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
