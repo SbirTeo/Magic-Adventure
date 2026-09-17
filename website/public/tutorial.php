@@ -305,7 +305,13 @@ require __DIR__ . '/../includes/header.php';
       return (h ? h.getBoundingClientRect().height : 64) + 12;
     }
 
+    // Se si clicca un capitolo nuovo prima che la correzione del precedente sia scattata, quella
+    // vecchia non deve piu' agire: correggerebbe su un bersaglio ormai abbandonato, tirando la
+    // pagina indietro sopra quello nuovo. Ogni vaiA() si prende un numero; solo l'ultimo vale.
+    var vaiAGen = 0;
+
     function vaiA(id) {
+      var mioGen = ++vaiAGen;
       // Se il lettore era sulla scheda del regolamento, prima si torna sulla guida:
       // i capitoli stanno nel riquadro, e da nascosto non ci si potrebbe muovere.
       var btnGuida = document.querySelector('.rank-tab-btn[data-tab="guida"]');
@@ -318,6 +324,7 @@ require __DIR__ . '/../includes/header.php';
             + (meta ? meta.getBoundingClientRect().top + doc.documentElement.scrollTop : 0)
             - headerOffset();   // spazio per l'intestazione fissa del sito (altezza reale)
       scorriA(Math.max(0, y), meta && function () {
+        if (mioGen !== vaiAGen) return;   // superato da un click piu' recente: non correggere
         // Ricontrollo a scorrimento DAVVERO finito: fra il calcolo di sopra e l'arrivo
         // l'intestazione puo' essere cambiata altezza (loghi/font ancora in caricamento, riga in
         // piu' da loggato) e il titolo restare comunque sotto la barra (segnalato da un

@@ -4626,12 +4626,17 @@ if ($section === 'dashboard') {
     }, 80);
     setTimeout(function () { clearInterval(iv); cb(); }, 1500);
   }
+  // Se si clicca un capitolo nuovo prima che la correzione del precedente sia scattata, quella
+  // vecchia non deve piu' agire: correggerebbe su un bersaglio ormai abbandonato, tirando la
+  // pagina indietro sopra quello nuovo. Ogni click si prende un numero; solo l'ultimo vale.
+  var clickGen = 0;
   indice.addEventListener('click', function (ev) {
     var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
     if (!a) return;
     var meta = document.getElementById(a.getAttribute('href').slice(1));
     if (!meta) return;   // ancora senza destinazione: lascio fare al browser
     ev.preventDefault();
+    var mioGen = ++clickGen;
     var y = Math.max(0, meta.getBoundingClientRect().top + window.pageYOffset - stacco());
     var partenza = window.pageYOffset;
     window.scrollTo({ top: y, behavior: 'smooth' });
@@ -4645,6 +4650,7 @@ if ($section === 'dashboard') {
       // puo' essere cambiata altezza, e il titolo restare comunque coperto. Rimisuro la
       // posizione VERA e correggo invece di fidarmi del calcolo fatto prima di muovermi.
       attendiFermo(function () {
+        if (mioGen !== clickGen) return;   // superato da un click piu' recente: non correggere
         var scarto = stacco() - meta.getBoundingClientRect().top;   // > 0 = ancora sotto la barra
         if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
       });
