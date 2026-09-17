@@ -295,6 +295,7 @@ home:
   world-missing: "&cIl mondo della home non e' disponibile."
   teleported: "&aTeletrasportato alla home della fazione."
   failed: "&cTeletrasporto fallito, riprova."
+  lost-unclaim: "&cAvevi la HOME in quel territorio: e' stata rimossa. Impostane una nuova con &e/f sethome&c."
 
 # Potenza (Power): /f power [giocatore] e avviso alla morte.
 power:

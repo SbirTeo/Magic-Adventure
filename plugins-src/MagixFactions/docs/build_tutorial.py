@@ -283,6 +283,9 @@ HTML = r"""<!DOCTYPE html>
   <p><span class="cmd">/f unclaimall</span> — rilascia TUTTI i territori della fazione in un colpo solo.</p>
   <div class="warn"><b>/f unclaimall è IRREVERSIBILE.</b> La prima volta mostra solo un avviso a schermo (con un
   suono di pericolo): devi rieseguire il comando entro {{secondi:claims.unclaim-all-confirm-seconds}} per confermare davvero.</div>
+  <div class="tip">Se il chunk che rilasci (con <span class="cmd">/f unclaim</span> o <span class="cmd">/f unclaimall</span>)
+  conteneva la <b>casa</b> della fazione, la casa viene tolta insieme al territorio: dovrai impostarne una nuova
+  con <span class="cmd">/f sethome</span> in un territorio che possiedi ancora.</div>
   <h3>Assegnare una land a un membro — <span class="cmd" style="font-size:14px">/f owner</span></h3>
   <p>Di norma tutti i membri della fazione possono costruire e aprire le casse in ogni vostro territorio. Se
   però vuoi che un <b>singolo chunk</b> sia <b>riservato a una persona</b> — la sua casa, il suo magazzino — il

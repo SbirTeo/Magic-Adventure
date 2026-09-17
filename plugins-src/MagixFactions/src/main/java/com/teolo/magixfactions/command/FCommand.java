@@ -709,6 +709,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         Long ownerId = claims.owner(world, cx, cz);
         if (ownerId == null || ownerId != f.getId()) { msg(p, M.get("unclaim.not-your-land")); return true; }
 
+        // Se il chunk rilasciato conteneva la HOME della fazione, togliamola: senza, /f home continuerebbe
+        // a teletrasportare su un chunk ormai neutrale (segnalato dall'utente: home impostata ma 0 territori).
+        boolean wasHome = (world + ":" + cx + ":" + cz).equals(fm.homeChunkKey(f.getId()));
+
         // Rimborso: una % (config claims.unclaim-refund-percent) di QUANTO FU PAGATO per QUESTO chunk
         // (salvato al claim: i prezzi incrementali cambiano nel tempo). Va alla BANCA della fazione.
         double refund = unclaimRefund(claims.paidAt(world, cx, cz));
@@ -718,6 +722,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (refund > 0) {
             fm.setBank(f, f.getBank() + refund);
             msg(p, M.get("unclaim.refund", "refund", Econ.format(refund), "bank", Econ.format(f.getBank())));
+        }
+        if (wasHome) {
+            fm.unsetHome(f);
+            msg(p, M.get("home.lost-unclaim"));
         }
         return true;
     }
@@ -750,7 +758,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             // Rimborso: stessa % del singolo unclaim, sulla SOMMA di quanto fu pagato per tutti i
             // territori (letta PRIMA della rimozione). Va alla banca della fazione.
             double refund = unclaimRefund(claims.paidTotal(f.getId()));
+            boolean hadHome = fm.getHome(f.getId()) != null;
             int removed = claims.removeAll(f.getId());
+            // Con tutti i territori rilasciati anche la HOME (se impostata) va tolta: restava altrimenti
+            // agganciata a un chunk ormai neutrale, teletrasportando li' pur risultando "impostata".
+            if (hadHome) fm.unsetHome(f);
             // Avviso a centro schermo + suono ALLA CONFERMA (secondo comando): e' qui che l'azione
             // irreversibile avviene davvero, non al primo /f unclaimall (che chiede solo conferma).
             String title = org.bukkit.ChatColor.translateAlternateColorCodes('&', M.get("unclaimall.done-title"));
@@ -763,6 +775,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 fm.setBank(f, f.getBank() + refund);
                 msg(p, M.get("unclaim.refund", "refund", Econ.format(refund), "bank", Econ.format(f.getBank())));
             }
+            if (hadHome) msg(p, M.get("home.lost-unclaim"));
             return true;
         }
 
