@@ -263,14 +263,36 @@ require __DIR__ . '/../includes/header.php';
     // Lo scorrimento morbido non c'e' dappertutto: certi browser incorporati (e chi ha
     // spento le animazioni) lo ignorano SENZA dire niente, e il link non muoveva nulla.
     // Si prova con le buone e, se dopo un attimo non ci si e' mossi, si salta e basta.
-    function scorriA(y) {
+    function scorriA(y, dopoFermo) {
       var partenza = window.pageYOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
       setTimeout(function () {
         if (Math.abs(window.pageYOffset - partenza) < 2 && Math.abs(y - partenza) > 2) {
           window.scrollTo(0, y);
         }
+        // Un salto lungo (dall'inizio pagina a un capitolo in fondo) puo' impiegare piu' di
+        // 350ms ad ANIMARE: se un correttore leggesse la posizione ora, la leggerebbe a meta'
+        // corsa e correggerebbe sul valore SBAGLIATO, interrompendo l'animazione a meta' (visto
+        // succedere: il capitolo finiva sotto la barra invece che sistemato). Si aspetta che lo
+        // scroll sia davvero FERMO (nessun movimento per due controlli di fila) prima di dire
+        // che e' finito, con un tetto di 1.5s per non restare in attesa all'infinito.
+        if (dopoFermo) attendiFermo(dopoFermo);
       }, 350);
+    }
+
+    function attendiFermo(cb) {
+      var precedente = window.pageYOffset, fermi = 0;
+      var iv = setInterval(function () {
+        var ora = window.pageYOffset;
+        if (Math.abs(ora - precedente) < 0.5) {
+          fermi++;
+          if (fermi >= 2) { clearInterval(iv); cb(); }
+        } else {
+          fermi = 0;
+        }
+        precedente = ora;
+      }, 80);
+      setTimeout(function () { clearInterval(iv); cb(); }, 1500);
     }
 
     // L'intestazione del sito e' fissa (sticky) e la sua altezza NON e' costante: su finestre
@@ -295,7 +317,17 @@ require __DIR__ . '/../includes/header.php';
       var y = frame.getBoundingClientRect().top + window.pageYOffset
             + (meta ? meta.getBoundingClientRect().top + doc.documentElement.scrollTop : 0)
             - headerOffset();   // spazio per l'intestazione fissa del sito (altezza reale)
-      scorriA(Math.max(0, y));
+      scorriA(Math.max(0, y), meta && function () {
+        // Ricontrollo a scorrimento DAVVERO finito: fra il calcolo di sopra e l'arrivo
+        // l'intestazione puo' essere cambiata altezza (loghi/font ancora in caricamento, riga in
+        // piu' da loggato) e il titolo restare comunque sotto la barra (segnalato da un
+        // giocatore loggato: la mappa fazioni non si leggeva). Rimisuro la posizione VERA del
+        // capitolo nel viewport e correggo se e' ancora coperto, invece di fidarmi del calcolo
+        // fatto prima di muovermi.
+        var top = frame.getBoundingClientRect().top + meta.getBoundingClientRect().top;
+        var scarto = headerOffset() - top;   // > 0 = ancora sotto la barra
+        if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
+      });
       // Un lampo sul capitolo appena raggiunto: senza, in mezzo a dodici riquadri uguali non
       // si capisce quale fosse quello giusto. Il colore arriva dal tema del sito.
       if (meta) {
