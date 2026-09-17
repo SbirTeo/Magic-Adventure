@@ -595,7 +595,12 @@ map:
 
   # --- Mappa in modalita' CHAT ---
   chat:
-    rows: 9                 # dimensione della mappa testuale (quadrata NxN; usa un numero DISPARI)
+    # Griglia testuale (quadrata NxN, un carattere = un chunk): segue lo stesso zoom di /f map/della
+    # minimap (blocchi/pixel), cosi' un giocatore con lo zoom piu' lontano vede davvero PIU' territorio
+    # in chat, non solo un numero diverso nell'intestazione. Oltre questa soglia (zoom molto lontani, o
+    # override di /mf admin setmap) la griglia smette di crescere e ogni casella rappresenta piu' chunk
+    # invece di continuare ad allungare il messaggio in chat. Usa un numero DISPARI.
+    max-rows: 21
     symbols:
       you: "&f&l+"          # dove sei tu (centro mappa)
       home: "&6&l⌂"         # la tua home

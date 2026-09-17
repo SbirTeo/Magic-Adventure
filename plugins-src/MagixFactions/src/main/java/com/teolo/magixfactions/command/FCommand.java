@@ -873,16 +873,20 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     /**
-     * /f map in modalita' CHAT: mappa testuale quadrata NxN (config {@code map.chat.rows}) centrata sul
-     * giocatore. Ogni cella aggrega {@code step} chunk (derivato dai blocchi-per-pixel). Le fazioni sono
-     * lettere colorate per relazione.
+     * /f map in modalita' CHAT: mappa testuale quadrata NxN centrata sul giocatore. La griglia copre la
+     * STESSA area (in chunk) che mostrano mappa-item e minimap per il suo zoom (128 pixel / 16 blocchi
+     * per chunk * bpp): un giocatore piu' zoomato-fuori vede davvero piu' territorio in chat, non solo un
+     * numero diverso nell'intestazione. Oltre {@code map.chat.max-rows} la griglia smette di crescere e
+     * ogni cella aggrega piu' chunk (step), per non riempire la chat di righe a zoom molto lontani. Le
+     * fazioni sono lettere colorate per relazione.
      */
     private boolean mapChat(Player p, double bpp) {
-        int rows = Math.max(3, plugin.getConfig().getInt("map.chat.rows", 9));
+        double totalChunks = 8 * bpp; // stessa area di mappa-item/minimap (128px / 16 blocchi-per-chunk)
+        int maxRows = Math.max(3, plugin.getConfig().getInt("map.chat.max-rows", 21));
+        int step = Math.max(1, (int) Math.ceil(totalChunks / maxRows));
+        int rows = Math.max(3, (int) Math.round(totalChunks / step));
         if (rows % 2 == 0) rows++;                       // dispari: il centro e' una cella
         int half = rows / 2;
-        // In chat una cella e' almeno un chunk: dai blocchi-per-pixel ricaviamo i chunk/cella (min 1).
-        int step = Math.max(1, (int) Math.round(bpp));
         String world = p.getWorld().getName();
         int pcx = p.getLocation().getBlockX() >> 4, pcz = p.getLocation().getBlockZ() >> 4;
         Faction own = fm.getFaction(p.getUniqueId());

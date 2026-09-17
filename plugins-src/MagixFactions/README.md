@@ -420,7 +420,7 @@ si consuma **prima il gruppo più lontano dalla home** (dai bordi verso l'intern
 
 | `map.mode` | Cosa fa |
 |---|---|
-| **`chat`** *(default)* | Stampa in chat un quadrato di `map.chat.rows`×`map.chat.rows` caselle centrato sul giocatore: una **lettera** per fazione, colorata col `fill` della relazione, piu' la legenda lettera→fazione. Simboli in `map.chat.symbols` (`you` / `home` / `neutral`). Una casella e' un chunk; con lo zoom piu' largo ne riassume piu' d'uno. E' una fotografia dell'istante: non si aggiorna da sola |
+| **`chat`** *(default)* | Stampa in chat un quadrato centrato sul giocatore, grande quanto lo zoom `/f map`/minimap (stessa area in chunk, 128px/16blocchi×bpp): una **lettera** per fazione, colorata col `fill` della relazione, piu' la legenda lettera→fazione. Simboli in `map.chat.symbols` (`you` / `home` / `neutral`). Una casella e' normalmente un chunk; oltre `map.chat.max-rows` caselle per lato smette di crescere e ogni casella ne riassume piu' d'uno. E' una fotografia dell'istante: non si aggiorna da sola |
 | **`item`** | Consegna la **Mappa Fazioni**, l'item dinamico descritto qui sotto |
 
 Il **tutorial dei giocatori** segue questa chiave da solo (blocchi `{{se:map.mode=...}}`, vedi «I numeri nelle

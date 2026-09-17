@@ -286,10 +286,13 @@
   <h2><span class="n">9</span>La Mappa Fazioni — <span class="cmd" style="font-size:15px">/f map</span></h2>
 {{se:map.mode=chat}}
   <p>Il comando <span class="cmd">/f map</span> ti stampa <b>in chat</b> la mappa dei territori attorno a te: un
-  quadrato di <b>{{cfg:map.chat.rows}}×{{cfg:map.chat.rows}}</b> caselle con <b>te al centro</b>. Ogni casella è un
-  pezzo di terreno (un <i>chunk</i>, 16×16 blocchi). Se appartiene a una fazione ci trovi una <b>lettera</b>,
-  colorata secondo la tua <b>relazione</b> con chi lo possiede — <b>verde</b> = la tua fazione, <b>viola</b> =
-  alleata, <b>rossa</b> = nemica — e sotto la mappa la <b>legenda</b> ti dice di quale fazione è ogni lettera.</p>
+  quadrato con <b>te al centro</b>, grande quanto lo <b>zoom</b> della tua mappa/minimap (più sei zoomato
+  fuori, più territorio vedi in chat — fino a un massimo di <b>{{cfg:map.chat.max-rows}}×{{cfg:map.chat.max-rows}}</b>
+  caselle, oltre il quale ogni casella comincia a valere più di un pezzo di terreno). Ogni casella è
+  normalmente un pezzo di terreno (un <i>chunk</i>, 16×16 blocchi). Se appartiene a una fazione ci trovi una
+  <b>lettera</b>, colorata secondo la tua <b>relazione</b> con chi lo possiede — <b>verde</b> = la tua fazione,
+  <b>viola</b> = alleata, <b>rossa</b> = nemica — e sotto la mappa la <b>legenda</b> ti dice di quale fazione è
+  ogni lettera.</p>
   <div class="chat">
     <span class="gr">--</span> <span class="g">Mappa Fazioni</span> <span class="gr">(zoom: {{cfg:map.default-zoom}}) --</span><br>
     <span class="gr">- - - - - -</span> <span class="rd">C C</span> <span class="gr">-</span><br>

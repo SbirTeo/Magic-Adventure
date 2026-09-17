@@ -607,9 +607,10 @@ public final class MagixFactions extends JavaPlugin {
                         // Come risponde /f map lo dice il config: la frase cambia da sola con map.mode, cosi'
                         // questo capitolo non puo' descrivere una modalita' che non e' piu' quella in uso.
                         "/f map disegna i territori con i colori della relazione. "
-                                + "{{se:map.mode=chat}}Ora risponde in **CHAT**: un quadrato di "
-                                + "{{cfg:map.chat.rows}} caselle per lato, una lettera per fazione e la legenda "
-                                + "sotto. La mappa-ITEM da tenere in mano c'è ancora e si riaccende con "
+                                + "{{se:map.mode=chat}}Ora risponde in **CHAT**: un quadrato che segue lo zoom "
+                                + "`/f map`/minimap del giocatore (fino a {{cfg:map.chat.max-rows}} caselle per "
+                                + "lato, oltre cui ogni casella vale più di un chunk), una lettera per fazione e "
+                                + "la legenda sotto. La mappa-ITEM da tenere in mano c'è ancora e si riaccende con "
                                 + "map.mode: item.{{/se}}"
                                 + "{{se:map.mode=item}}Ora risponde con l'**ITEM** mappa da tenere in mano, che si "
                                 + "ricentra mentre il giocatore cammina. La versione testuale in chat si "
