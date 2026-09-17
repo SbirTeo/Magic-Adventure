@@ -35,9 +35,27 @@ priority:
 # nel config di MagixFactions (tablist.logo.height/ascent).
 #
 # Supporta i codici colore & e &#RRGGBB, e i placeholder di PlaceholderAPI (%server_online%,
-# %magixfactions_*%, %magixtime_*%, ...). Le righe " " (spazio) servono a dare aria sotto il logo.
+# %magixfactions_*%, %magixtime_*%, ...).
+#
+# Le righe " " (spazio) sotto {logo} servono a dare aria: il logo NON e' testo, e' un carattere
+# alto quanto un'immagine (assets/magicadventure/textures/gui/logo.png, iniettato nel font di
+# MagixFactions), e la sua altezza NON si adatta da sola alle righe che vengono dopo. Se le righe
+# vuote sono troppo poche, il logo finisce SOTTO la sua stessa riga e copre quella successiva.
+#
+# Quante servono si calcola da due numeri di MagixFactions (config.yml -> tablist.logo, in pixel
+# di gioco): height (quanto e' alto il logo) e ascent (quanto sale sopra la riga — puo' essere
+# negativo, e allora il logo scende TUTTO sotto la riga invece di salire sopra). Il logo si estende
+# da 'ascent' pixel sopra la riga fino a 'ascent - height' pixel sotto: quanto scende sotto e'
+# quindi 'height - ascent'. Una riga di testo normale e' alta 9 pixel, quindi le righe vuote che
+# servono sono (height - ascent) / 9, arrotondato per eccesso.
+# Esempio con i valori di ORA (height: 78, ascent: -8): (78 - (-8)) / 9 = 9,6 -> servono almeno 10
+# righe vuote; qui ce ne sono 11, con un margine di una riga.
+# Cambiando quei due numeri in MagixFactions vanno ricalcolate anche queste: se il logo torna a
+# coprire le informazioni, e' segno che sono di nuovo troppo poche.
 header:
   - '{logo}'
+  - ' '
+  - ' '
   - ' '
   - ' '
   - ' '
@@ -77,6 +95,13 @@ sort-by-rank-weight: true
 # pergamena, quella misura non puo' ballare. Con questo acceso il tablist mostra SEMPRE 'total'
 # caselle: quelle senza giocatore sono decorative, SENZA testa (skin trasparente) e SENZA
 # tacchette di connessione (latenza -1).
+# Le colonne sono anche larghe quanto lo schermo di chi guarda lo permette (non strette): il
+# plugin aggiunge da solo spazi invisibili al testo delle caselle vuote apposta per questo,
+# vedi FixedSlots.WIDTH_PADDING nel codice.
+# C'e' un limite che NESSUN plugin puo' togliere: dietro ogni voce del tablist (vera o finta) il
+# client disegna sempre un rettangolo semitrasparente, e il colore lo decide un'opzione del SUO
+# client (Opzioni -> Chat -> Trasparenza sfondo chat), non il server: chi lo vuole invisibile la
+# spegne da solo, per tutte le voci.
 # Richiede ProtocolLib: se manca, il plugin lo dice nel log e resta il tablist dinamico.
 # NB: perche' si vedano, il tablist dev'essere NOSTRO. Se lo gestisce ancora CMI, spegni il suo
 # modulo (plugins/CMI/Settings/Modules.yml -> tablist: false).

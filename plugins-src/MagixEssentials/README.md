@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.5**
+Versione: **0.8.8**
 
 ---
 
@@ -43,6 +43,13 @@ regolari e a ogni ingresso. Supporta i colori `&` e `&#RRGGBB`, i placeholder di
 (ricalcolati per ogni giocatore: ping, fazione, coordinate) e il segnaposto `{logo}`, che diventa il
 carattere del logo nel resource pack di MagixFactions.
 
+**Il logo non e' testo, e' un'immagine**: la sua altezza non spinge giu' da sola le righe che
+vengono dopo, quindi servono delle righe VUOTE sotto `{logo}` per non farci scrivere sopra le
+informazioni. Quante: `(height - ascent) / 9`, arrotondato per eccesso — `height`/`ascent` sono in
+MagixFactions (`config.yml -> tablist.logo`, in pixel), 9 e' l'altezza di una riga di testo normale.
+Con `height: 78, ascent: -8` (i valori di ora) servono almeno 10 righe; l'header qui ne tiene 11. Se
+quei due numeri cambiano, il conto va rifatto — altrimenti il logo torna a coprire le informazioni.
+
 **L'ordine dei giocatori.** Da solo il gioco mette avanti chi non ha una squadra (scoreboard team)
 e ordina per nome, non per grado. Con `sort-by-rank-weight` acceso i giocatori VERI vanno sempre
 davanti a tutto — caselle finte comprese, sempre in fondo — ordinati fra loro dal **peso piu' alto
@@ -53,16 +60,43 @@ Softdepend: senza LuckPerms la chiave non fa niente, e lo dice nel log una volta
 **Le 80 slot fisse.** Il gioco decide da solo quante colonne disegnare in base a quante voci ci
 sono: con pochi giocatori il tab e' una colonna sottile, con tanti si allarga. Con `fixed-slots`
 acceso il tab mostra sempre lo stesso numero di caselle, riempiendo con voci decorative **senza
-testa** (skin trasparente, verificata pixel per pixel — non solo scritta) e **senza tacchette
-rosse** (latenza `0`, cinque barre piene: una latenza NEGATIVA disegna invece la X rossa di
-connessione persa, non una barra vuota). Richiede ProtocolLib; se manca, la funzione si spegne da
-sola e resta il tablist dinamico.
+testa** (skin trasparente, verificata pixel per pixel — non solo scritta) e **senza icona di
+connessione**: latenza `-1` (negativa apposta — nel protocollo vuol dire "non ancora nota", ed e'
+semanticamente quello che una casella finta e': una connessione che non esiste), che il client
+disegna con l'icona "connessione sconosciuta" (`ping_unknown.png`). Quell'icona e' l'unica delle
+sei del protocollo che un giocatore VERO non puo' mai avere davvero, quindi l'unica che si puo'
+rendere trasparente nel resource pack di MagixFactions senza spegnere anche la barra di qualcun
+altro — le 5 barre vere (giocatori veri) non si toccano. Richiede ProtocolLib; se manca, la
+funzione si spegne da sola e resta il tablist dinamico. Richiede anche che il client abbia
+scaricato il resource pack di MagixFactions: chi ha il permesso di bypassarlo vede ancora l'icona.
 
-Entrambi questi valori possono marcire **senza un errore nel log**: un link a una skin che smette
+**Le colonne sono larghe quanto lo schermo lo permette, non strette.** Verificato decompilando
+`PlayerTabOverlay.extractRenderState` nel client vanilla reale di questa versione: il gioco sceglie
+UNA sola larghezza per tutte le colonne, quella del nome PIU' LARGO fra le 80 voci (vere e finte
+insieme), fino al massimo che lo schermo di chi guarda permette (`screenWidth - 50`). Un nome finto
+corto (una casella vuota e' quasi sempre solo uno spazio) tiene quindi le colonne strette quanto il
+nome vero piu' corto in lista — non quanto lo schermo. Il plugin aggiunge da solo 400 spazi
+invisibili in coda al testo di ogni casella vuota (`FixedSlots.WIDTH_PADDING`, 4 pixel di avanzamento
+l'uno, verificato nel vero `assets/minecraft/font/include/space.json` del client): non si vedono, ma
+bastano a far scattare sempre il tetto dello schermo, quindi le colonne sono sempre al massimo
+estensibile.
+
+**Cosa NON si puo' nascondere.** Dietro ogni voce del tablist — vera o finta — il client disegna
+sempre un rettangolo semitrasparente largo quanto la colonna: non e' una texture del resource pack,
+e' un `fill()` scritto nel codice del client (stesso `PlayerTabOverlay`), quindi non dipende da
+niente che il plugin manda nel pacchetto e non si puo' spegnere per le sole caselle finte senza
+spegnerlo anche per i giocatori veri. Il colore lo decide un'opzione **del client di chi guarda**
+(la stessa usata per lo sfondo del testo in chat), non il server: chi lo vuole invisibile lo spegne
+da solo (Opzioni → Chat → Trasparenza sfondo chat a 0) — sparisce per tutte le voci, non solo per
+quelle finte.
+
+Sia la testa che l'icona possono marcire **senza un errore nel log**: un link a una skin che smette
 di rispondere non lancia un'eccezione, fa solo riapparire la skin di serie (Steve/Alex) — e' successo
 per davvero, l'hash di prima era morto da chissa' quanto. Il sintomo e' silenzioso: se le teste
-tornano visibili o riappare la X rossa, si verifica scaricando l'URL dentro `TRANSPARENT_TEXTURE`
-(un base64 di una riga) invece di controllare il log, che li' non dira' niente.
+tornano visibili, si verifica scaricando l'URL dentro `TRANSPARENT_TEXTURE` (un base64 di una riga)
+invece di controllare il log, che li' non dira' niente. Se torna visibile l'icona di connessione
+sconosciuta, il sospetto e' il resource pack di MagixFactions (file mancante o non ricaricato dai
+client — serve un riavvio, non basta un reload).
 
 Il campo del pacchetto in cui finiscono le voci **non e' un indice scritto a mano**: si scrive
 nell'ultimo campo che accetta l'elenco, partendo dal fondo. L'indice fisso (era `1`) ha smesso di

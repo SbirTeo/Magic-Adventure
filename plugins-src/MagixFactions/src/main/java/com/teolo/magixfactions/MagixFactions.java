@@ -647,7 +647,25 @@ public final class MagixFactions extends JavaPlugin {
                                 + "non basta un reload.",
                         "**La texture deve stare sotto i 256 pixel** di lato. Più grande, il gioco non la disegna "
                                 + "affatto e al posto del logo resta un quadratino: è stato il guasto di v0.53.0, "
-                                + "risolto in v0.53.1 rimpicciolendo il file, non cambiando il config.")
+                                + "risolto in v0.53.1 rimpicciolendo il file, non cambiando il config.",
+                        "**Ingrandirlo copre le righe sotto, se non si aggiunge aria.** Il logo non è testo: la sua "
+                                + "altezza non spinge giù le righe che vengono dopo, quindi con height grande e "
+                                + "ascent basso (o negativo, come ora: scende TUTTO sotto la sua riga) resta un "
+                                + "pezzo di logo sopra le informazioni. Quante righe vuote servono in "
+                                + "MagixEssentials (tablist.yml -> header) si calcola così: **(height - ascent) / "
+                                + "9**, arrotondato per eccesso — 9 pixel è l'altezza di una riga di testo normale. "
+                                + "Con i valori di ora (height: {{cfg:tablist.logo.height}}, ascent: "
+                                + "{{cfg:tablist.logo.ascent}}) servono almeno 10 righe vuote; il file ne tiene 11, "
+                                + "un margine di sicurezza. Cambiando questi due numeri, quel conto va rifatto: se "
+                                + "il logo torna a coprire le informazioni, è quasi sempre per questo.",
+                        "**Un'altra texture nascosta qui, sempre per il tablist**: le 80 caselle finte di "
+                                + "MagixEssentials (tablist.yml -> fixed-slots) mandano una latenza NEGATIVA per non "
+                                + "avere un giocatore vero dietro, e il client la disegna con l'icona \"connessione "
+                                + "sconosciuta\" (ping_unknown.png). Il pacchetto sostituisce SOLO quel file con uno "
+                                + "trasparente: e' l'unica delle sei icone di ping che un giocatore vero non puo' mai "
+                                + "avere per davvero, quindi l'unica spegnibile senza spegnere anche la barra di "
+                                + "qualcun altro (le cinque \"ping_1..5\" vere non si toccano). Vale la stessa regola "
+                                + "di sopra: cambia solo con un riavvio, non con un reload.")
 
                 .section("Dati di test (prima dell'apertura)",
                         "Per non presentare un server e un sito **VUOTI** prima dell'apertura al pubblico si "

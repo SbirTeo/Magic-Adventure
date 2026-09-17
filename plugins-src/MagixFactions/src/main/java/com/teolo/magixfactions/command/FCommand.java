@@ -558,9 +558,29 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (h == null) { msg(p, M.get("home.not-set")); return true; }
         org.bukkit.Location loc = h.toLocation();
         if (loc == null) { msg(p, M.get("home.world-missing")); return true; }
-        p.teleport(loc);
-        msg(p, M.get("home.teleported"));
+        teleportHome(p, loc, true);
         return true;
+    }
+
+    /**
+     * Esegue il teletrasporto alla home e manda il messaggio SOLO se e' davvero riuscito: Bukkit
+     * rifiuta silenziosamente {@code Entity#teleport} fra due mondi diversi (ritorna false, il
+     * giocatore resta fermo, NESSUN evento sparato) se il giocatore ha un passeggero — tipicamente un
+     * pappagallo appollaiato sulla spalla, comune proprio in giro per il Nether/End (bug segnalato
+     * dall'utente: "dice che ti porta ma non ti porta" usando /f home da li'). {@code eject()} stacca
+     * il passeggero PRIMA del teleport (il pappagallo resta a terra, comportamento vanilla normale).
+     * Il retry di un tick dopo resta come rete di sicurezza per qualunque altra causa transitoria.
+     */
+    private void teleportHome(Player p, org.bukkit.Location loc, boolean retry) {
+        p.eject();
+        if (p.teleport(loc)) { msg(p, M.get("home.teleported")); return; }
+        if (retry) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (p.isOnline()) teleportHome(p, loc, false);
+            });
+            return;
+        }
+        msg(p, M.get("home.failed"));
     }
 
     /**

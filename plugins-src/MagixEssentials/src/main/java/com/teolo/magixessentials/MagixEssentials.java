@@ -192,7 +192,12 @@ public final class MagixEssentials extends JavaPlugin {
                         "Il segnaposto **{logo}** diventa il carattere del logo del server. Il logo NON e' roba di "
                                 + "questo plugin: e' un glifo del resource pack di **MagixFactions**, e li' si "
                                 + "regolano dimensione e altezza (tablist.logo.height / tablist.logo.ascent). Qui si "
-                                + "decide solo dove metterlo.")
+                                + "decide solo dove metterlo — con le righe VUOTE dopo {logo} nell'header: il logo "
+                                + "non e' testo e la sua altezza non spinge giu' le righe che seguono da sola, "
+                                + "quindi poche righe vuote lo fanno finire SOPRA le informazioni invece che sopra "
+                                + "di esse. Quante ce ne vogliono si calcola da height e ascent di MagixFactions — "
+                                + "la formula e' nel suo capitolo della guida — e va ricalcolato ogni volta che uno "
+                                + "dei due cambia.")
 
                 .section("Quando si aggiorna",
                         "Ogni **{{cfg:update-interval-ticks}}** tick (20 tick = 1 secondo) e, in piu', un "
@@ -209,10 +214,15 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "riempiendo con voci decorative quelle senza giocatore.",
                         "Le caselle vuote sono **senza testa** (portano una skin trasparente: un profilo senza "
                                 + "texture non e' invisibile, il gioco ci metterebbe ottanta teste di Steve) e "
-                                + "**senza tacchette rosse** (latenza 0: cinque barre piene, la meno rumorosa fra le "
-                                + "sei icone che il protocollo sa disegnare — una latenza NEGATIVA, usata qui prima, "
-                                + "mostra invece una **X rossa di connessione persa**, non una barra vuota). Cosa "
-                                + "c'e' scritto dentro lo decide **empty-text**.",
+                                + "**senza icona di connessione**: latenza **-1**, negativa apposta — nel protocollo "
+                                + "vuol dire \"connessione non ancora nota\", che e' esattamente cosa una casella "
+                                + "finta E'. Il client la disegna con l'icona \"connessione sconosciuta\" "
+                                + "(ping_unknown.png), che il resource pack di MagixFactions sostituisce con una "
+                                + "trasparente: e' l'UNICA delle sei icone di ping che un giocatore vero non puo' mai "
+                                + "avere per davvero, quindi l'unica spegnibile senza spegnere anche la barra di "
+                                + "qualcun altro. Serve pero' che il client abbia scaricato quel resource pack: chi "
+                                + "ha il permesso di bypassarlo vede ancora l'icona. Cosa c'e' scritto dentro lo "
+                                + "decide **empty-text**.",
                         "**La skin trasparente puo' marcire senza avvisare.** E' un link a un file su Mojang, e se "
                                 + "quel link smette di rispondere il client non da' NESSUN errore: mostra la skin di "
                                 + "serie (Steve o Alex), silenziosamente. E' successo davvero — l'hash di prima era "
@@ -228,7 +238,25 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "estetico, un tab che sparisce e' un guasto.",
                         "Oltre 80 non si va: il gioco disegna al massimo 4 colonne da 20, e il plugin taglia li'. "
                                 + "E se i giocatori veri sono piu' del totale non si riempie niente — il tab e' gia' "
-                                + "pieno di gente vera, che e' meglio.")
+                                + "pieno di gente vera, che e' meglio.",
+                        "**Le colonne sono larghe quanto lo schermo lo permette, non strette.** Verificato "
+                                + "decompilando PlayerTabOverlay.extractRenderState nel client vanilla reale di "
+                                + "questa versione: il gioco sceglie UNA sola larghezza per TUTTE le colonne, quella "
+                                + "del nome PIU' LARGO fra le 80 voci (vere e finte insieme), fino al massimo che lo "
+                                + "schermo di chi guarda permette. Un nome finto corto (una casella vuota e' quasi "
+                                + "sempre solo uno spazio) terrebbe le colonne strette quanto il nome vero piu' corto "
+                                + "in lista — non quanto lo schermo. Il plugin aggiunge da solo 400 spazi invisibili "
+                                + "in coda al testo di ogni casella vuota apposta per questo (FixedSlots.WIDTH_PADDING): "
+                                + "non si vedono, ma bastano a far scattare sempre il tetto dello schermo.",
+                        "**Quello che non si puo' nascondere.** Dietro OGNI voce del tablist — vera o finta — il "
+                                + "client disegna sempre un rettangolo semitrasparente largo quanto la colonna: non "
+                                + "e' una texture del resource pack, e' scritto nel codice del client, quindi non "
+                                + "dipende da niente che mandiamo nel pacchetto e non si puo' spegnere per le sole "
+                                + "caselle finte senza spegnerlo anche per i giocatori veri. Il colore lo decide "
+                                + "un'opzione DEL CLIENT di chi guarda (la stessa dello sfondo del testo in chat), non "
+                                + "il server: chi lo vuole invisibile lo spegne da solo (Opzioni -> Chat -> "
+                                + "Trasparenza sfondo chat a 0) — sparisce per tutte le voci, non solo per quelle "
+                                + "finte.")
 
                 .section("L'ordine dei giocatori",
                         "Da solo il gioco mette avanti a tutto chi NON ha una squadra (scoreboard team) e poi "
@@ -521,14 +549,34 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "c'e' piu'). Se invece leggi «attive» ma a schermo non si vedono, il pacchetto "
                                 + "e' partito e il tablist lo sta riscrivendo qualcun altro: quasi sempre CMI col "
                                 + "suo modulo tablist.")
-                .issue("Le caselle vuote hanno di nuovo una testa (Steve o Alex), o si vede una X rossa",
-                        "Sono due difetti diversi con la stessa causa: un valore sbagliato che non da' NESSUN "
-                                + "errore nel log, quindi non si nota da soli. La testa torna se il link della skin "
+                .issue("Le caselle vuote hanno di nuovo una testa (Steve o Alex), o si vede l'icona di connessione",
+                        "Sono due difetti diversi, e nessuno dei due da' un errore nel log: non si notano da soli, "
+                                + "si vedono solo guardando il tablist. La testa torna se il link della skin "
                                 + "trasparente smette di rispondere (un file che sparisce da Mojang non lancia "
                                 + "un'eccezione, fa solo apparire la skin di serie): si verifica scaricando l'URL "
-                                + "dentro TRANSPARENT_TEXTURE. La X rossa e' l'icona di connessione persa del "
-                                + "protocollo, e la disegna qualunque latenza NEGATIVA: se torna, e' che NO_PING "
-                                + "e' stato rimesso a un valore minore di zero.")
+                                + "dentro TRANSPARENT_TEXTURE. L'icona di connessione (\"?\" o una X, a seconda del "
+                                + "client) torna se il resource pack di MagixFactions manca il file "
+                                + "ping_unknown.png, o se il client di chi guarda non l'ha scaricato — un resource "
+                                + "pack nuovo lo riprende solo un client che si ricollega dopo il riavvio del "
+                                + "server, un reload a caldo non basta. NON e' piu' un difetto di NO_PING: quel "
+                                + "campo e' -1 apposta, l'icona che ne esce e' quella che il resource pack deve "
+                                + "coprire.")
+                .issue("Le colonne del tablist sono strette invece di riempire lo schermo",
+                        "Il gioco sceglie UNA sola larghezza per tutte le colonne, quella del nome PIU' LARGO fra le "
+                                + "80 voci — vere e finte insieme (verificato decompilando PlayerTabOverlay nel client "
+                                + "vanilla reale). Se le colonne sono strette, il nome piu' largo in tab e' ancora "
+                                + "corto: o WIDTH_PADDING e' stato tolto da FixedSlots.java, o fixed-slots e' spento "
+                                + "(niente voci finte a fare da nome largo, resta solo il nome vero piu' corto).")
+                .issue("Dietro le caselle vuote si vede un rettangolo chiaro anche senza testa e senza icona",
+                        "NON e' un difetto di questo plugin, ed e' verificato: dietro OGNI voce del tablist, vera o "
+                                + "finta, il client disegna sempre un rettangolo semitrasparente largo quanto la "
+                                + "colonna. E' scritto nel codice del client (un fill(), non una texture), non "
+                                + "dipende da niente che il pacchetto manda, quindi non esiste una chiave di config o "
+                                + "un valore del pacchetto che lo spenga per le sole caselle finte senza spegnerlo "
+                                + "anche per i giocatori veri. Il colore lo decide un'opzione DEL CLIENT di chi "
+                                + "guarda (la stessa dello sfondo del testo in chat): solo LUI puo' spegnerla "
+                                + "(Opzioni -> Chat -> Trasparenza sfondo chat a 0), e sparisce per tutte le voci, "
+                                + "non solo per quelle finte. Non proporre una `fix` lato server: non esiste.")
                 .issue("SbirTeo (o un altro giocatore) non e' il primo nel tablist",
                         "Prima cosa da guardare: sort-by-rank-weight e' acceso, e LuckPerms c'e' davvero? Senza "
                                 + "LuckPerms la chiave non fa niente (lo dice nel log all'avvio) e resta l'ordine "
@@ -617,8 +665,13 @@ public final class MagixEssentials extends JavaPlugin {
                         "Il giocatore non ha il resource pack di MagixFactions (rifiutato o non ancora scaricato). "
                                 + "Il carattere del logo esiste solo dentro quel pacchetto.")
                 .issue("Il logo copre le righe di informazioni",
-                        "Aggiungi righe vuote (' ') sotto {logo} nell'header, oppure abbassa tablist.logo.height "
-                                + "nel config di MagixFactions.")
+                        "Non e' un valore a caso: le righe vuote sotto {logo} servono (height - ascent) / 9 volte, "
+                                + "9 pixel essendo l'altezza di una riga normale — height e ascent sono in "
+                                + "MagixFactions (config.yml -> tablist.logo). Con quelli di ORA ne servono almeno "
+                                + "10, e qui ce ne sono 11: se il conto e' cambiato (height alzato, o ascent "
+                                + "abbassato/reso piu' negativo) e la copertura e' tornata, aggiungi righe fino a "
+                                + "coprire il nuovo numero. In alternativa si abbassa tablist.logo.height in "
+                                + "MagixFactions, che pero' rimpicciolisce anche il logo.")
 
                 .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
                         + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "

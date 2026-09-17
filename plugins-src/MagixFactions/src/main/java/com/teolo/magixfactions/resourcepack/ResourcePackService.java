@@ -66,6 +66,23 @@ public final class ResourcePackService {
             "assets/magicadventure/font/logo.json",
             "assets/magicadventure/textures/gui/logo.png",
 
+            // --- Icona di connessione delle caselle finte del tablist (MagixEssentials) ---
+            //
+            // Le 80 slot fisse (MagixEssentials, tablist.yml -> fixed-slots) sono voci senza un
+            // giocatore vero dietro: gli si manda una latenza NEGATIVA, che nel protocollo vuol
+            // dire "non ancora nota" — semanticamente e' proprio quello che sono, una connessione
+            // che non esiste. Il client la disegna come un'icona ("connessione persa", una X):
+            // qui la sostituiamo con una trasparente, cosi' la casella finta resta muta invece di
+            // avere un'icona sopra.
+            //
+            // Il file vero e il suo percorso sono stati VERIFICATI scaricando il client vanilla
+            // reale di QUESTA versione (26.1.2, lo stesso metodo di text.vsh/.fsh sopra):
+            // assets/minecraft/textures/gui/sprites/icon/ping_unknown.png, 10x8 RGBA. Le altre
+            // cinque (ping_1..ping_5, le barre da 1 a 5) NON si toccano: sono quelle che vedono i
+            // giocatori VERI, e a differenza della X non c'e' un valore di ping che i giocatori
+            // veri non possano mai avere davvero — spegnerle spegnerebbe anche la LORO icona.
+            "assets/minecraft/textures/gui/sprites/icon/ping_unknown.png",
+
             // --- MagixAuth: schermate di accesso e tasti del tastierino ---
             //
             // Stanno QUI e non in un pacchetto separato perche' il client ne applica uno

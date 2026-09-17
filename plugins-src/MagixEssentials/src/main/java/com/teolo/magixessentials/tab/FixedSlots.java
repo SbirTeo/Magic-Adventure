@@ -39,12 +39,31 @@ import java.util.UUID;
  *       Mojang): per mesi le caselle vuote hanno mostrato teste Steve/Alex a caso invece di
  *       essere invisibili, senza un solo errore nel log — un link che smette di rispondere non
  *       lancia un'eccezione, restituisce solo la skin di serie;</li>
- *   <li><b>niente tacchette</b>: latenza <b>0</b> (non -1). Il protocollo dice chiaro: una latenza
- *       NEGATIVA disegna l'icona di «connessione persa» — una X rossa, non una barra vuota, ed
- *       era esattamente quello che si vedeva. Un ping di 0 disegna le 5 barre piene: non
- *       invisibile, ma la meno rumorosa fra le uniche disegnabili (il protocollo non prevede
- *       un'icona vuota).</li>
+ *   <li><b>niente tacchette</b>: latenza <b>-1</b>, negativa apposta — nel protocollo vuol dire
+ *       "connessione non ancora nota", ed e' semanticamente quello che una casella finta e': una
+ *       connessione che non esiste. Il client la disegna con l'icona "connessione sconosciuta"
+ *       (assets/minecraft/textures/gui/sprites/icon/ping_unknown.png), che il resource pack di
+ *       MagixFactions sostituisce con una trasparente — l'unica delle sei icone di ping che un
+ *       giocatore VERO non puo' mai avere davvero, quindi l'unica spegnibile senza spegnere anche
+ *       la barra di qualcun altro. Le 5 barre vere restano quelle vere: non si toccano.</li>
+ *   <li><b>colonne larghe quanto lo schermo lo permette</b>: il client sceglie UNA sola larghezza
+ *       per tutte le colonne, quella del nome piu' largo fra le 80 voci — vere e finte insieme —
+ *       fino al massimo che lo schermo di chi guarda permette (verificato decompilando
+ *       {@code PlayerTabOverlay.extractRenderState} nel client vanilla reale di questa versione).
+ *       Un nome finto corto tiene quindi le colonne strette quanto il nome vero piu' corto in
+ *       lista: {@link #WIDTH_PADDING} aggiunge spazi invisibili (4 pixel l'uno, verificato) in
+ *       coda a ogni casella vuota apposta per essere sempre IL nome piu' largo, cosi' le colonne
+ *       arrivano sempre al massimo estensibile invece di restare strette.</li>
  * </ul>
+ *
+ * <p><b>Quello che non si puo' nascondere.</b> Dietro OGNI voce del tablist — vera o finta — il
+ * client disegna sempre un rettangolo semitrasparente, largo quanto la colonna: non e' una
+ * texture (non e' nel resource pack, e' un {@code fill()} nel codice del client) e non dipende
+ * dal pacchetto che mandiamo, quindi non si puo' spegnere per le sole caselle finte senza
+ * spegnerlo anche per i giocatori veri. Il colore lo decide un'opzione DEL CLIENT di chi guarda
+ * (verificato: e' lo stesso valore usato per lo sfondo del testo in chat), non il server: chi lo
+ * vuole invisibile lo spegne da solo (Opzioni → Chat → Trasparenza sfondo chat a 0), e sparisce
+ * per tutte le voci, non solo per quelle finte.</p>
  *
  * <p>Se qualcosa non torna (ProtocolLib assente, struttura del pacchetto diversa da quella che ci
  * aspettiamo) non si rompe niente: si spegne da sola e il tablist resta quello dinamico. Un tab
@@ -76,14 +95,44 @@ public final class FixedSlots {
             + "ZmFlOGE2NWUwNzk5Yzc4NzA1ZTgyZjZjNjAzZDkxYWFmZDQzZjdiNTJhYmZkNmJmZDUyNTE2NzhlMyJ9fX0=";
 
     /**
-     * Latenza mostrata nelle caselle vuote. NON -1: il protocollo lo dice esplicito (pagina
-     * "Player Info Update" del wiki del protocollo) — una latenza NEGATIVA disegna l'icona di
-     * "connessione persa", una X rossa, non una barra vuota come diceva il commento di prima. Con
-     * 0 il client disegna le 5 barre piene: non invisibile (il protocollo non prevede un'icona
-     * vuota, solo sei stati: la X e cinque livelli di barre), ma e' la meno appariscente fra
-     * quelle disegnabili, ed e' quella giusta per "va tutto bene, non sei tu a doverci pensare".
+     * Latenza mostrata nelle caselle vuote: NEGATIVA, apposta. Il protocollo lo dice esplicito
+     * (pagina "Player Info Update" del wiki del protocollo) — una latenza negativa vuol dire
+     * "non ancora nota", ed e' semanticamente quello che una casella finta E': una connessione
+     * che non esiste. Il client la disegna con un'icona a parte (assets/minecraft/textures/gui/
+     * sprites/icon/ping_unknown.png — verificato scaricando il client vanilla reale di questa
+     * versione), diversa dalle cinque barre che vedono i giocatori VERI.
+     *
+     * <p>Per un giro (v0.8.5) qui c'era 0: cinque barre piene invece della X, la meno vistosa fra
+     * le sei icone del protocollo — ma pur sempre un'icona, visibile. La soluzione buona non era
+     * scegliere fra le sei: era rendersi conto che l'icona di "connessione sconosciuta" e' l'UNICA,
+     * fra le sei, che un giocatore VERO non puo' mai avere davvero (un ping negativo non esiste per
+     * una connessione stabilita) — quindi e' l'unica che si puo' rendere trasparente nel resource
+     * pack di MagixFactions (gia' obbligatorio per la minimap) senza spegnere anche l'icona di
+     * qualcun altro. Le cinque barre restano quelle vere: quelle NON si toccano.</p>
      */
-    private static final int NO_PING = 0;
+    private static final int NO_PING = -1;
+
+    /**
+     * Spazi invisibili aggiunti in coda al testo di ogni casella vuota, SOLO per allargare le
+     * colonne — non per essere letti.
+     *
+     * <p>Verificato decompilando {@code PlayerTabOverlay.extractRenderState} nel client vanilla
+     * reale di questa versione (26.1.2): la larghezza di OGNI colonna e' UNA SOLA, calcolata dal
+     * nome PIU' LARGO fra le 80 voci (vere e finte insieme) — {@code slotWidth = min(cols * (9 +
+     * maxNameWidth + 13), screenWidth - 50) / cols} — quindi con un nome finto corto (uno spazio)
+     * la colonna resta stretta quanto il nome vero piu' corto, non quanto lo schermo. L'unico modo
+     * di renderla larga quanto lo schermo lo permette e' rendere IL PIU' LARGO fra gli 80 nomi
+     * abbastanza largo da far scattare sempre il tetto {@code screenWidth - 50}, qualunque sia la
+     * risoluzione di chi guarda.</p>
+     *
+     * <p>Uno spazio avanza 4 pixel (verificato nel vero {@code assets/minecraft/font/include/
+     * space.json} del client) ed e' invisibile per costruzione (nessun glifo disegnato): 400 di
+     * fila fanno 1600 pixel di larghezza "finta" senza scrivere NIENTE a schermo, un margine
+     * abbondante anche per un monitor ultra-wide a bassa scala GUI. Vanno in coda a empty-text
+     * (non lo sostituiscono): quello che lo staff sceglie di scrivere nella casella resta il
+     * primo testo, gli spazi restano dopo e non si vedono.</p>
+     */
+    private static final String WIDTH_PADDING = " ".repeat(400);
 
     private final JavaPlugin plugin;
     /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
@@ -124,7 +173,7 @@ public final class FixedSlots {
 
         // Il gioco disegna al massimo 4 colonne da 20: oltre 80 le voci in piu' non si vedrebbero.
         totale = Math.max(1, Math.min(80, cfg.getInt("fixed-slots.total", 80)));
-        String testo = cfg.getString("fixed-slots.empty-text", " ");
+        String testo = cfg.getString("fixed-slots.empty-text", " ") + WIDTH_PADDING;
 
         try {
             for (int i = 0; i < totale; i++) {
