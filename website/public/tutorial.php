@@ -296,6 +296,18 @@ require __DIR__ . '/../includes/header.php';
             + (meta ? meta.getBoundingClientRect().top + doc.documentElement.scrollTop : 0)
             - headerOffset();   // spazio per l'intestazione fissa del sito (altezza reale)
       scorriA(Math.max(0, y));
+      // Ricontrollo a scorrimento finito: fra il calcolo di sopra e l'arrivo l'intestazione puo'
+      // essere cambiata altezza (loghi/font ancora in caricamento, riga in piu' da loggato) e il
+      // titolo restare comunque sotto la barra (segnalato da un giocatore loggato: la mappa
+      // fazioni non si leggeva). Rimisuro la posizione VERA del capitolo nel viewport e correggo
+      // se e' ancora coperto, invece di fidarmi del calcolo fatto prima di muovermi.
+      if (meta) {
+        setTimeout(function () {
+          var top = frame.getBoundingClientRect().top + meta.getBoundingClientRect().top;
+          var scarto = headerOffset() - top;   // > 0 = ancora sotto la barra
+          if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
+        }, 420);
+      }
       // Un lampo sul capitolo appena raggiunto: senza, in mezzo a dodici riquadri uguali non
       // si capisce quale fosse quello giusto. Il colore arriva dal tema del sito.
       if (meta) {

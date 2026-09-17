@@ -4623,6 +4623,13 @@ if ($section === 'dashboard') {
         window.scrollTo(0, y);
       }
     }, 350);
+    // Ricontrollo a scorrimento finito: fra il calcolo di sopra e l'arrivo la barra puo' essere
+    // cambiata altezza, e il titolo restare comunque coperto. Rimisuro la posizione VERA e
+    // correggo invece di fidarmi del calcolo fatto prima di muovermi.
+    setTimeout(function () {
+      var scarto = stacco() - meta.getBoundingClientRect().top;   // > 0 = ancora sotto la barra
+      if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
+    }, 420);
   });
 })();
 </script>
