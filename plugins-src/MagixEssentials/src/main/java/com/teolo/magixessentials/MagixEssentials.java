@@ -209,8 +209,17 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "riempiendo con voci decorative quelle senza giocatore.",
                         "Le caselle vuote sono **senza testa** (portano una skin trasparente: un profilo senza "
                                 + "texture non e' invisibile, il gioco ci metterebbe ottanta teste di Steve) e "
-                                + "**senza tacchette di connessione** (latenza -1, il valore che il client disegna "
-                                + "come barra vuota). Cosa c'e' scritto dentro lo decide **empty-text**.",
+                                + "**senza tacchette rosse** (latenza 0: cinque barre piene, la meno rumorosa fra le "
+                                + "sei icone che il protocollo sa disegnare — una latenza NEGATIVA, usata qui prima, "
+                                + "mostra invece una **X rossa di connessione persa**, non una barra vuota). Cosa "
+                                + "c'e' scritto dentro lo decide **empty-text**.",
+                        "**La skin trasparente puo' marcire senza avvisare.** E' un link a un file su Mojang, e se "
+                                + "quel link smette di rispondere il client non da' NESSUN errore: mostra la skin di "
+                                + "serie (Steve o Alex), silenziosamente. E' successo davvero — l'hash di prima era "
+                                + "morto da chissa' quanto, e le caselle vuote hanno mostrato teste a caso per tutto "
+                                + "quel tempo senza una riga nel log. Se ricapita, il sintomo e' identico: teste "
+                                + "visibili, log muto. Si verifica scaricando l'URL dentro TRANSPARENT_TEXTURE (e' "
+                                + "un base64, si decodifica in una riga) e controllando che risponda.",
                         "**Serve ProtocolLib**, perche' una voce del tablist senza un giocatore vero dietro non "
                                 + "esiste nell'API di Bukkit: va mandata al client come pacchetto. E' l'unico punto "
                                 + "di questo plugin che parla di pacchetti. Se ProtocolLib manca, o se la struttura "
@@ -220,6 +229,24 @@ public final class MagixEssentials extends JavaPlugin {
                         "Oltre 80 non si va: il gioco disegna al massimo 4 colonne da 20, e il plugin taglia li'. "
                                 + "E se i giocatori veri sono piu' del totale non si riempie niente — il tab e' gia' "
                                 + "pieno di gente vera, che e' meglio.")
+
+                .section("L'ordine dei giocatori",
+                        "Da solo il gioco mette avanti a tutto chi NON ha una squadra (scoreboard team) e poi "
+                                + "ordina per nome — non per grado, e le caselle finte (senza squadra) finivano "
+                                + "PRIMA dei giocatori veri quando questi ne avevano una. Con **sort-by-rank-weight** "
+                                + "acceso (ora: **{{cfg:sort-by-rank-weight}}**) i giocatori VERI vengono messi "
+                                + "davanti a tutto — caselle finte comprese, sempre in fondo — e ordinati fra loro "
+                                + "dal **peso piu' alto al piu' basso** del loro gruppo LuckPerms: lo stesso peso "
+                                + "che decide anche %magixweb_namecolor%, quindi chi ha il nome piu' in vista ha "
+                                + "anche il posto piu' in vista.",
+                        "Tecnicamente e' il campo **Priority** del protocollo (Paper lo chiama "
+                                + "*player list order*): vince SEMPRE, prima di ogni altro criterio del gioco "
+                                + "(squadra, nome). Le caselle finte restano al valore di fabbrica e non vengono mai "
+                                + "toccate: non serve fare niente perche' restino in fondo.",
+                        "**Richiede LuckPerms** (softdepend): se manca, la chiave non fa niente e resta l'ordine "
+                                + "del gioco — lo dice nel log una volta all'avvio, non a ogni giro. Si aggiorna da "
+                                + "solo quando cambia il grado di qualcuno (una promozione): si scrive un pacchetto "
+                                + "nuovo solo se il numero e' davvero cambiato da un giro all'altro.")
 
                 .section("La targhetta sopra la testa (nametag)",
                         "E' quella che si legge **sopra la testa** dei giocatori, in gioco: non il tablist "
@@ -432,6 +459,7 @@ public final class MagixEssentials extends JavaPlugin {
                         "player-name", "Come appare il nome nella lista: {name} e' il nome, valgono colori e placeholder.",
                         "priority.enabled", "Riscrive una seconda volta per arrivare dopo CMI. Spegnila se il tablist e' solo nostro.",
                         "priority.reassert-delay-ticks", "Quanti tick dopo arriva la seconda scrittura: alzalo se CMI si vede ancora per un istante.",
+                        "sort-by-rank-weight", "Giocatori veri davanti a tutto, ordinati per peso del grado LuckPerms (piu' alto = piu' in alto).",
                         "fixed-slots.enabled", "Caselle fisse: il tab resta sempre della stessa misura. Serve ProtocolLib.",
                         "fixed-slots.total", "Quante caselle in tutto: il gioco ne disegna al massimo 80 (4 colonne x 20).",
                         "fixed-slots.empty-text", "Cosa c'e' scritto in una casella vuota: uno spazio la lascia muta.")
@@ -493,6 +521,22 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "c'e' piu'). Se invece leggi «attive» ma a schermo non si vedono, il pacchetto "
                                 + "e' partito e il tablist lo sta riscrivendo qualcun altro: quasi sempre CMI col "
                                 + "suo modulo tablist.")
+                .issue("Le caselle vuote hanno di nuovo una testa (Steve o Alex), o si vede una X rossa",
+                        "Sono due difetti diversi con la stessa causa: un valore sbagliato che non da' NESSUN "
+                                + "errore nel log, quindi non si nota da soli. La testa torna se il link della skin "
+                                + "trasparente smette di rispondere (un file che sparisce da Mojang non lancia "
+                                + "un'eccezione, fa solo apparire la skin di serie): si verifica scaricando l'URL "
+                                + "dentro TRANSPARENT_TEXTURE. La X rossa e' l'icona di connessione persa del "
+                                + "protocollo, e la disegna qualunque latenza NEGATIVA: se torna, e' che NO_PING "
+                                + "e' stato rimesso a un valore minore di zero.")
+                .issue("SbirTeo (o un altro giocatore) non e' il primo nel tablist",
+                        "Prima cosa da guardare: sort-by-rank-weight e' acceso, e LuckPerms c'e' davvero? Senza "
+                                + "LuckPerms la chiave non fa niente (lo dice nel log all'avvio) e resta l'ordine "
+                                + "del gioco, non quello per grado. Se LuckPerms c'e', il posto lo decide il PESO "
+                                + "del gruppo, non il nome del gruppo ne' l'ordine in cui e' scritto nel file di "
+                                + "LuckPerms: un giocatore che sembra dovrebbe stare avanti ma non ci sta ha, "
+                                + "probabilmente, un gruppo col peso piu' basso di quello che ti aspetti — si "
+                                + "controlla con /lp group <nome> info.")
                 .issue("Ho cambiato la MOTD e nella lista server si legge ancora quella vecchia",
                         "Il client si tiene in memoria l'ultima MOTD che ha visto: finche' non ripinga, mostra "
                                 + "quella. Togli il server dall'elenco e rimettilo, oppure aspetta. Se dopo un "

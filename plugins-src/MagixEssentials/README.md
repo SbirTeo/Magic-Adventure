@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.4**
+Versione: **0.8.5**
 
 ---
 
@@ -43,11 +43,26 @@ regolari e a ogni ingresso. Supporta i colori `&` e `&#RRGGBB`, i placeholder di
 (ricalcolati per ogni giocatore: ping, fazione, coordinate) e il segnaposto `{logo}`, che diventa il
 carattere del logo nel resource pack di MagixFactions.
 
+**L'ordine dei giocatori.** Da solo il gioco mette avanti chi non ha una squadra (scoreboard team)
+e ordina per nome, non per grado. Con `sort-by-rank-weight` acceso i giocatori VERI vanno sempre
+davanti a tutto — caselle finte comprese, sempre in fondo — ordinati fra loro dal **peso piu' alto
+al piu' basso** del gruppo LuckPerms, lo stesso che decide `%magixweb_namecolor%`. E' il campo
+**Priority** del protocollo (Paper lo chiama `player list order`): vince prima di squadra e nome.
+Softdepend: senza LuckPerms la chiave non fa niente, e lo dice nel log una volta sola.
+
 **Le 80 slot fisse.** Il gioco decide da solo quante colonne disegnare in base a quante voci ci
 sono: con pochi giocatori il tab e' una colonna sottile, con tanti si allarga. Con `fixed-slots`
 acceso il tab mostra sempre lo stesso numero di caselle, riempiendo con voci decorative **senza
-testa** (skin trasparente) e **senza tacchette** (latenza -1). Richiede ProtocolLib; se manca, la
-funzione si spegne da sola e resta il tablist dinamico.
+testa** (skin trasparente, verificata pixel per pixel — non solo scritta) e **senza tacchette
+rosse** (latenza `0`, cinque barre piene: una latenza NEGATIVA disegna invece la X rossa di
+connessione persa, non una barra vuota). Richiede ProtocolLib; se manca, la funzione si spegne da
+sola e resta il tablist dinamico.
+
+Entrambi questi valori possono marcire **senza un errore nel log**: un link a una skin che smette
+di rispondere non lancia un'eccezione, fa solo riapparire la skin di serie (Steve/Alex) — e' successo
+per davvero, l'hash di prima era morto da chissa' quanto. Il sintomo e' silenzioso: se le teste
+tornano visibili o riappare la X rossa, si verifica scaricando l'URL dentro `TRANSPARENT_TEXTURE`
+(un base64 di una riga) invece di controllare il log, che li' non dira' niente.
 
 Il campo del pacchetto in cui finiscono le voci **non e' un indice scritto a mano**: si scrive
 nell'ultimo campo che accetta l'elenco, partendo dal fondo. L'indice fisso (era `1`) ha smesso di

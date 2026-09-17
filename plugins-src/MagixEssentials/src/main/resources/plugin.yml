@@ -6,7 +6,9 @@ author: teolo
 description: "Utilita' del server (tablist, MOTD, nametag e, in futuro, cio' che oggi fa CMI)."
 # PlaceholderAPI: opzionale. Se presente, i placeholder %...% nel tablist e nei nametag vengono
 # risolti (compresi i relazionali %rel_...%). Senza di lui restano scritti come sono.
-softdepend: [PlaceholderAPI, ProtocolLib]
+# LuckPerms: opzionale. Se presente, il tablist puo' ordinare i giocatori per peso del grado
+# (tablist.yml -> sort-by-rank-weight). Senza di lui resta l'ordine del gioco.
+softdepend: [PlaceholderAPI, ProtocolLib, LuckPerms]
 commands:
   magixessentials:
     description: "Comandi di MagixEssentials (per ora, reload)."

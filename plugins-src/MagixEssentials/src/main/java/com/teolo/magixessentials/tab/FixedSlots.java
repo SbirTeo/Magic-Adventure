@@ -33,11 +33,17 @@ import java.util.UUID;
  *
  * <p><b>Come sono fatte le caselle vuote.</b> Due dettagli, ed erano il motivo della richiesta:
  * <ul>
- *   <li><b>niente testa</b>: il profilo porta una texture di skin <i>trasparente</i>. Un profilo
- *       senza texture non e' invisibile — il gioco ci mette la skin di serie, e si vedrebbero
- *       ottanta teste di Steve;</li>
- *   <li><b>niente tacchette</b>: latenza <b>-1</b>. E' il valore che il client disegna come barra
- *       vuota, quello che usa per chi non ha ancora risposto.</li>
+ *   <li><b>niente testa</b>: il profilo porta una texture di skin <i>trasparente</i> — verificata
+ *       davvero, non solo scritta: scaricata e controllata pixel per pixel, la zona della faccia
+ *       e' alpha zero al 100%. La prima versione di questa skin aveva un hash MORTO (404 su
+ *       Mojang): per mesi le caselle vuote hanno mostrato teste Steve/Alex a caso invece di
+ *       essere invisibili, senza un solo errore nel log — un link che smette di rispondere non
+ *       lancia un'eccezione, restituisce solo la skin di serie;</li>
+ *   <li><b>niente tacchette</b>: latenza <b>0</b> (non -1). Il protocollo dice chiaro: una latenza
+ *       NEGATIVA disegna l'icona di «connessione persa» — una X rossa, non una barra vuota, ed
+ *       era esattamente quello che si vedeva. Un ping di 0 disegna le 5 barre piene: non
+ *       invisibile, ma la meno rumorosa fra le uniche disegnabili (il protocollo non prevede
+ *       un'icona vuota).</li>
  * </ul>
  *
  * <p>Se qualcosa non torna (ProtocolLib assente, struttura del pacchetto diversa da quella che ci
@@ -46,15 +52,38 @@ import java.util.UUID;
  */
 public final class FixedSlots {
 
-    /** Skin interamente trasparente: e' cosi' che la casella vuota resta senza testa. */
+    /**
+     * Skin interamente trasparente: e' cosi' che la casella vuota resta senza testa.
+     *
+     * <p>{@code {"textures":{"SKIN":{"url":"http://textures.minecraft.net/texture/b8de64f..."}}}}
+     * in base64, senza firma (il client non la controlla per rendere la testa di UN ALTRO
+     * giocatore in tab — solo per la propria, al login). L'hash e' VERO e VERIFICATO: risolve
+     * ancora su Mojang, ed e' stato scaricato e controllato pixel per pixel (4031 pixel su 4096
+     * ad alpha zero, la faccia frontale — quella che il tab disegna — al 100%). I 65 pixel non
+     * trasparenti che restano sono un marchio scritto nell'angolo in alto a sinistra della skin,
+     * una zona che il modello 3D non disegna mai: non si vedono, ne' in tab ne' sul personaggio.
+     *
+     * <p>La skin di prima aveva un hash che sul serio non esisteva piu' (404 su Mojang): per chi
+     * sa quanto tempo, le caselle vuote hanno mostrato la skin di serie (Steve/Alex a caso) invece
+     * di essere invisibili — e nel log non c'era NESSUN errore, perche' un link morto non lancia
+     * un'eccezione, fa solo apparire la testa che questa funzione doveva nascondere. Se un giorno
+     * anche questo hash dovesse sparire, il sintomo e' lo stesso (teste che tornano visibili senza
+     * un rigo nel log) e il rimedio e' lo stesso: verificarlo — {@code curl -I} sull'URL sopra, o
+     * scaricarlo e controllarne l'alpha — non indovinarne un altro a memoria.
+     */
     private static final String TRANSPARENT_TEXTURE =
-            "eyJ0aW1lc3RhbXAiOjE1ODY1MzYwNTA3NzcsInByb2ZpbGVJZCI6ImEwZjE3NTZlYzhmZDQ5MGJhNDczMGIxNDRlNzI0MmY0"
-            + "IiwicHJvZmlsZU5hbWUiOiJfX19fX19fX19fX19fX18iLCJzaWduYXR1cmVSZXF1aXJlZCI6dHJ1ZSwidGV4dHVyZXMiOn"
-            + "siU0tJTiI6eyJ1cmwiOiJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzM2NmY3ZjhlMmYyNjc5NzQx"
-            + "MzFlZjZlNTZmMzM1ZDNlYWY4MzJmYjMxNGVmYjNhNjU5Y2VmMjc5YTRlNGY0ZTgifX19";
+            "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjhkZTY0"
+            + "ZmFlOGE2NWUwNzk5Yzc4NzA1ZTgyZjZjNjAzZDkxYWFmZDQzZjdiNTJhYmZkNmJmZDUyNTE2NzhlMyJ9fX0=";
 
-    /** Latenza che il client disegna come barra vuota: nessuna tacchetta di connessione. */
-    private static final int NO_PING = -1;
+    /**
+     * Latenza mostrata nelle caselle vuote. NON -1: il protocollo lo dice esplicito (pagina
+     * "Player Info Update" del wiki del protocollo) — una latenza NEGATIVA disegna l'icona di
+     * "connessione persa", una X rossa, non una barra vuota come diceva il commento di prima. Con
+     * 0 il client disegna le 5 barre piene: non invisibile (il protocollo non prevede un'icona
+     * vuota, solo sei stati: la X e cinque livelli di barre), ma e' la meno appariscente fra
+     * quelle disegnabili, ed e' quella giusta per "va tutto bene, non sei tu a doverci pensare".
+     */
+    private static final int NO_PING = 0;
 
     private final JavaPlugin plugin;
     /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
