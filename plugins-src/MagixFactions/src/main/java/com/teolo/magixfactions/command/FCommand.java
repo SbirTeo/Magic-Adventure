@@ -558,9 +558,27 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (h == null) { msg(p, M.get("home.not-set")); return true; }
         org.bukkit.Location loc = h.toLocation();
         if (loc == null) { msg(p, M.get("home.world-missing")); return true; }
-        p.teleport(loc);
-        msg(p, M.get("home.teleported"));
+        teleportHome(p, loc, true);
         return true;
+    }
+
+    /**
+     * Esegue il teletrasporto alla home e manda il messaggio SOLO se e' davvero riuscito: Bukkit
+     * rifiuta silenziosamente {@code Entity#teleport} (ritorna false, il giocatore resta fermo) se lo
+     * si chiama mentre il giocatore e' ancora "dentro" un portale Nether/End, perche' quel tick la
+     * logica vanilla del portale sta gia' gestendo lo spostamento (bug segnalato dall'utente: "dice
+     * che ti porta ma non ti porta" usando /f home dal Nether/End). Un tentativo un tick dopo basta,
+     * perche' a quel punto lo stato "dentro il portale" e' gia' risolto.
+     */
+    private void teleportHome(Player p, org.bukkit.Location loc, boolean retry) {
+        if (p.teleport(loc)) { msg(p, M.get("home.teleported")); return; }
+        if (retry) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (p.isOnline()) teleportHome(p, loc, false);
+            });
+            return;
+        }
+        msg(p, M.get("home.failed"));
     }
 
     /**

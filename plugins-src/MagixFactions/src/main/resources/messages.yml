@@ -294,6 +294,7 @@ home:
   not-set: "&cLa tua fazione non ha una home impostata."
   world-missing: "&cIl mondo della home non e' disponibile."
   teleported: "&aTeletrasportato alla home della fazione."
+  failed: "&cTeletrasporto fallito, riprova."
 
 # Potenza (Power): /f power [giocatore] e avviso alla morte.
 power:
