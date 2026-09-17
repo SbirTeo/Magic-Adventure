@@ -617,6 +617,21 @@ public final class MinimapManager {
         return 4;
     }
 
+    /**
+     * Spinge SUBITO il contenuto (zoom compreso) al giocatore, senza aspettare il prossimo giro del task
+     * di refresh — usato da {@code /mf admin setmap} cosi' la minimap cambia raggio nello stesso istante
+     * della mappa-item, invece che entro il prossimo tick di refresh (fino a {@code
+     * map.render-interval-ticks} tick di ritardo, percepibile se il valore e' alto). Non fa nulla se la
+     * minimap del giocatore non e' attiva.
+     */
+    public void refreshNow(Player viewer) {
+        if (!available) return;
+        UUID uuid = viewer.getUniqueId();
+        MapView view = views.get(uuid);
+        if (view == null || !frameIds.containsKey(uuid)) return;
+        pushMapContent(viewer, view, power.getResolvedZoomFactor(uuid));
+    }
+
     /** Distrugge (se presente) il display fittizio del giocatore e ferma il suo task di refresh. */
     public void deactivate(Player viewer) {
         if (!available) return;
