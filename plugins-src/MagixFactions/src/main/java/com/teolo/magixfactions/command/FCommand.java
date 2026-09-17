@@ -1487,6 +1487,21 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     /** /mf admin ... - comandi amministrativi (permesso magixfactions.admin, default OP). */
+    /**
+     * UUID del bersaglio di un comando admin dato il suo nome. Se e' ONLINE, usa il suo UUID reale
+     * ({@code Bukkit.getPlayerExact}) invece di cercarlo per nome in {@link PowerManager#findByName}: la
+     * cache di PowerManager e' indicizzata per UUID e puo' contenere una riga "fantasma" con lo stesso
+     * nome ma un UUID diverso (es. da un vecchio schema UUID, o da un giocatore che aveva questo nome
+     * prima) — cercarla per nome rischia di colpire quella riga invece del giocatore vero davanti a
+     * schermo (bug osservato: il messaggio di conferma leggeva subito la riga appena scritta e sembrava
+     * corretto, ma {@code /f map}/minimap — che usano l'UUID VERO del giocatore online — restavano sul
+     * valore vecchio). Offline invece l'UUID reale non c'e': resta l'unica via la ricerca per nome.
+     */
+    private UUID resolveAdminTarget(String name) {
+        Player online = Bukkit.getPlayerExact(name);
+        return online != null ? online.getUniqueId() : power.findByName(name);
+    }
+
     private boolean adminCommand(CommandSender s, String[] a) {
         if (!s.hasPermission("magixfactions.admin")) { msg(s, M.get("errors.no-permission")); return true; }
         String sc = a.length >= 2 ? a[1].toLowerCase(Locale.ROOT) : "";
@@ -1546,7 +1561,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     /** /mf admin setmap <giocatore> <closest|close|normal|far|farthest|reset>. */
     private boolean adminSetMap(CommandSender s, String[] a) {
         if (a.length < 4) { msg(s, M.get("admin.setmap-usage")); return true; }
-        UUID target = power.findByName(a[2]);
+        UUID target = resolveAdminTarget(a[2]);
         if (target == null) { msg(s, M.get("admin.not-found", "player", a[2])); return true; }
         boolean reset = a[3].equalsIgnoreCase("reset");
         double bpp = 0;
@@ -1583,7 +1598,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean adminSetPower(CommandSender s, String[] a) {
         if (a.length < 4) { msg(s, M.get("admin.usage")); return true; }
-        UUID target = power.findByName(a[2]);
+        UUID target = resolveAdminTarget(a[2]);
         if (target == null) { msg(s, M.get("admin.not-found", "player", a[2])); return true; }
         boolean reset = a[3].equalsIgnoreCase("reset");
         int value;
