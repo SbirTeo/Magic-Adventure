@@ -62,6 +62,15 @@ footer:
 # (es. %magixweb_namecolor% = colore del grado, come sul sito).
 player-name: '&7%magixweb_namecolor%{name}'
 
+# --- ORDINE DEI GIOCATORI ---
+# Il gioco, di suo, mette prima chi non ha una squadra (scoreboard team) e poi ordina per nome:
+# non per grado. Con questo acceso, i giocatori VERI vengono messi avanti a tutto (comprese le
+# caselle finte, sempre in fondo) e ordinati fra loro dal PESO piu' alto al piu' basso del loro
+# gruppo LuckPerms (lo stesso 'weight' che decide anche il colore del nome, vedi
+# %magixweb_namecolor%): il grado piu' importante sta per primo.
+# Richiede LuckPerms: se manca, questa chiave non fa niente e resta l'ordine del gioco.
+sort-by-rank-weight: true
+
 # --- 80 SLOT FISSE ---
 # Il gioco decide da solo quante colonne disegnare in base a quante voci ci sono: con pochi
 # giocatori il tab e' una colonna sottile, con tanti si allarga. Se sotto ci deve stare una
@@ -71,6 +80,8 @@ player-name: '&7%magixweb_namecolor%{name}'
 # Richiede ProtocolLib: se manca, il plugin lo dice nel log e resta il tablist dinamico.
 # NB: perche' si vedano, il tablist dev'essere NOSTRO. Se lo gestisce ancora CMI, spegni il suo
 # modulo (plugins/CMI/Settings/Modules.yml -> tablist: false).
+# NB: restano sempre IN FONDO alla lista, dopo tutti i giocatori veri (vedi sort-by-rank-weight):
+# e' cosi' che 'primo' vuol dire davvero primo, non "primo fra le caselle finte".
 fixed-slots:
   # Interruttore delle caselle fisse.
   enabled: true
