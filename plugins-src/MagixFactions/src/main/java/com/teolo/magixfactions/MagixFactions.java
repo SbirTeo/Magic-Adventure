@@ -657,7 +657,15 @@ public final class MagixFactions extends JavaPlugin {
                                 + "Con i valori di ora (height: {{cfg:tablist.logo.height}}, ascent: "
                                 + "{{cfg:tablist.logo.ascent}}) servono almeno 10 righe vuote; il file ne tiene 11, "
                                 + "un margine di sicurezza. Cambiando questi due numeri, quel conto va rifatto: se "
-                                + "il logo torna a coprire le informazioni, è quasi sempre per questo.")
+                                + "il logo torna a coprire le informazioni, è quasi sempre per questo.",
+                        "**Un'altra texture nascosta qui, sempre per il tablist**: le 80 caselle finte di "
+                                + "MagixEssentials (tablist.yml -> fixed-slots) mandano una latenza NEGATIVA per non "
+                                + "avere un giocatore vero dietro, e il client la disegna con l'icona \"connessione "
+                                + "sconosciuta\" (ping_unknown.png). Il pacchetto sostituisce SOLO quel file con uno "
+                                + "trasparente: e' l'unica delle sei icone di ping che un giocatore vero non puo' mai "
+                                + "avere per davvero, quindi l'unica spegnibile senza spegnere anche la barra di "
+                                + "qualcun altro (le cinque \"ping_1..5\" vere non si toccano). Vale la stessa regola "
+                                + "di sopra: cambia solo con un riavvio, non con un reload.")
 
                 .section("Dati di test (prima dell'apertura)",
                         "Per non presentare un server e un sito **VUOTI** prima dell'apertura al pubblico si "

@@ -214,10 +214,15 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "riempiendo con voci decorative quelle senza giocatore.",
                         "Le caselle vuote sono **senza testa** (portano una skin trasparente: un profilo senza "
                                 + "texture non e' invisibile, il gioco ci metterebbe ottanta teste di Steve) e "
-                                + "**senza tacchette rosse** (latenza 0: cinque barre piene, la meno rumorosa fra le "
-                                + "sei icone che il protocollo sa disegnare — una latenza NEGATIVA, usata qui prima, "
-                                + "mostra invece una **X rossa di connessione persa**, non una barra vuota). Cosa "
-                                + "c'e' scritto dentro lo decide **empty-text**.",
+                                + "**senza icona di connessione**: latenza **-1**, negativa apposta — nel protocollo "
+                                + "vuol dire \"connessione non ancora nota\", che e' esattamente cosa una casella "
+                                + "finta E'. Il client la disegna con l'icona \"connessione sconosciuta\" "
+                                + "(ping_unknown.png), che il resource pack di MagixFactions sostituisce con una "
+                                + "trasparente: e' l'UNICA delle sei icone di ping che un giocatore vero non puo' mai "
+                                + "avere per davvero, quindi l'unica spegnibile senza spegnere anche la barra di "
+                                + "qualcun altro. Serve pero' che il client abbia scaricato quel resource pack: chi "
+                                + "ha il permesso di bypassarlo vede ancora l'icona. Cosa c'e' scritto dentro lo "
+                                + "decide **empty-text**.",
                         "**La skin trasparente puo' marcire senza avvisare.** E' un link a un file su Mojang, e se "
                                 + "quel link smette di rispondere il client non da' NESSUN errore: mostra la skin di "
                                 + "serie (Steve o Alex), silenziosamente. E' successo davvero — l'hash di prima era "
@@ -526,14 +531,18 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "c'e' piu'). Se invece leggi «attive» ma a schermo non si vedono, il pacchetto "
                                 + "e' partito e il tablist lo sta riscrivendo qualcun altro: quasi sempre CMI col "
                                 + "suo modulo tablist.")
-                .issue("Le caselle vuote hanno di nuovo una testa (Steve o Alex), o si vede una X rossa",
-                        "Sono due difetti diversi con la stessa causa: un valore sbagliato che non da' NESSUN "
-                                + "errore nel log, quindi non si nota da soli. La testa torna se il link della skin "
+                .issue("Le caselle vuote hanno di nuovo una testa (Steve o Alex), o si vede l'icona di connessione",
+                        "Sono due difetti diversi, e nessuno dei due da' un errore nel log: non si notano da soli, "
+                                + "si vedono solo guardando il tablist. La testa torna se il link della skin "
                                 + "trasparente smette di rispondere (un file che sparisce da Mojang non lancia "
                                 + "un'eccezione, fa solo apparire la skin di serie): si verifica scaricando l'URL "
-                                + "dentro TRANSPARENT_TEXTURE. La X rossa e' l'icona di connessione persa del "
-                                + "protocollo, e la disegna qualunque latenza NEGATIVA: se torna, e' che NO_PING "
-                                + "e' stato rimesso a un valore minore di zero.")
+                                + "dentro TRANSPARENT_TEXTURE. L'icona di connessione (\"?\" o una X, a seconda del "
+                                + "client) torna se il resource pack di MagixFactions manca il file "
+                                + "ping_unknown.png, o se il client di chi guarda non l'ha scaricato — un resource "
+                                + "pack nuovo lo riprende solo un client che si ricollega dopo il riavvio del "
+                                + "server, un reload a caldo non basta. NON e' piu' un difetto di NO_PING: quel "
+                                + "campo e' -1 apposta, l'icona che ne esce e' quella che il resource pack deve "
+                                + "coprire.")
                 .issue("SbirTeo (o un altro giocatore) non e' il primo nel tablist",
                         "Prima cosa da guardare: sort-by-rank-weight e' acceso, e LuckPerms c'e' davvero? Senza "
                                 + "LuckPerms la chiave non fa niente (lo dice nel log all'avvio) e resta l'ordine "
