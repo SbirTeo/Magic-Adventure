@@ -3,17 +3,27 @@ package com.teolo.magixessentials.tab;
 import com.teolo.magixessentials.util.CmiModules;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
+import net.luckperms.api.model.group.Group;
+import net.luckperms.api.model.user.User;
+import net.luckperms.api.query.QueryOptions;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Gestore del tablist: intestazione, fondo e nome dei giocatori, presi dal config e aggiornati a
@@ -51,6 +61,15 @@ public final class TabManager implements Listener {
     private long ritardoRiassersione = 2L;
     private final FixedSlots slotFisse;
 
+    /** Se ordinare i giocatori veri per peso del grado (sort-by-rank-weight in tablist.yml). */
+    private boolean ordinaPerGrado;
+    private LuckPerms luckPerms;
+    /**
+     * L'ultimo ordine scritto per ciascun giocatore: si manda un pacchetto nuovo solo quando
+     * cambia davvero (una promozione, un cambio di gruppo), non a ogni giro.
+     */
+    private final Map<UUID, Integer> ultimoOrdine = new HashMap<>();
+
     public TabManager(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
         this.cfg = cfg;
@@ -67,6 +86,9 @@ public final class TabManager implements Listener {
         ritardoRiassersione = Math.max(1, cfg.getLong("priority.reassert-delay-ticks", 2));
         avvisaSeCmiScriveAncheLui();
 
+        ordinaPerGrado = cfg.getBoolean("sort-by-rank-weight", true);
+        agganciaLuckPerms();
+
         Bukkit.getPluginManager().registerEvents(this, plugin);
         long interval = Math.max(1, cfg.getLong("update-interval-ticks", 20));
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::updateAll, 20L, interval);
@@ -78,7 +100,8 @@ public final class TabManager implements Listener {
         // Le caselle finte vivono nel client: se non le togliamo qui, dopo un reload restano
         // appese insieme a quelle nuove e il tab si riempie di doppioni.
         for (Player p : Bukkit.getOnlinePlayers()) slotFisse.rimuoviDa(p);
-        PlayerJoinEvent.getHandlerList().unregister(this);
+        ultimoOrdine.clear();
+        HandlerList.unregisterAll(this);
     }
 
     /**
@@ -90,6 +113,12 @@ public final class TabManager implements Listener {
     public void onJoin(PlayerJoinEvent e) {
         // Un tick dopo il join: cosi' i placeholder di mondo/posizione sono gia' pronti.
         Bukkit.getScheduler().runTaskLater(plugin, () -> update(e.getPlayer()), 1L);
+    }
+
+    /** Dimentica l'ordine di chi esce: non e' un errore se rientra e lo si riscrive uguale. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onQuit(PlayerQuitEvent e) {
+        ultimoOrdine.remove(e.getPlayer().getUniqueId());
     }
 
     /**
@@ -112,6 +141,68 @@ public final class TabManager implements Listener {
                 + " plugins/CMI/Settings/Modules.yml -> tablist: false.");
     }
 
+    /**
+     * Si aggancia a LuckPerms, se {@code sort-by-rank-weight} e' acceso e il plugin c'e'. Softdepend
+     * vero: senza LuckPerms l'ordinamento resta spento e il tablist funziona lo stesso, nell'ordine
+     * del gioco.
+     */
+    private void agganciaLuckPerms() {
+        if (!ordinaPerGrado) return;
+        if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
+            plugin.getLogger().info("[Tab] sort-by-rank-weight e' acceso ma LuckPerms non c'e':"
+                    + " resta l'ordine del gioco.");
+            ordinaPerGrado = false;
+            return;
+        }
+        try {
+            luckPerms = LuckPermsProvider.get();
+        } catch (IllegalStateException e) {
+            plugin.getLogger().warning("[Tab] LuckPerms non ancora pronto: l'ordinamento per grado"
+                    + " parte al prossimo giro utile (" + e.getMessage() + ").");
+        }
+    }
+
+    /**
+     * Mette {@code p} davanti a tutto (caselle finte comprese, che restano a priorita' 0 di
+     * fabbrica) e, fra i giocatori veri, in ordine di PESO del grado piu' alto che ha — lo stesso
+     * peso che decide %magixweb_namecolor%. E' il campo "Priority" del protocollo (Paper lo
+     * espone come {@code playerListOrder}): a parita' di squadra e di nome, vince chi ha il
+     * numero piu' alto, prima di qualunque altro criterio di ordinamento del gioco.
+     *
+     * <p>Deve essere POSITIVO (lo richiede l'API): un grado di peso 0 avrebbe comunque priorita'
+     * 1, che basta e avanza per stare sempre sopra le caselle finte, mai toccate.</p>
+     *
+     * <p>Si scrive un pacchetto nuovo solo se il numero e' CAMBIATO da un giro all'altro (una
+     * promozione, un cambio di gruppo): a parita' di grado non si tocca niente.</p>
+     */
+    private void ordinaGiocatore(Player p) {
+        if (!ordinaPerGrado || luckPerms == null) return;
+        int peso = pesoDi(p);
+        int ordine = Math.max(1, peso + 1);
+        Integer prima = ultimoOrdine.put(p.getUniqueId(), ordine);
+        if (prima == null || prima != ordine) {
+            p.setPlayerListOrder(ordine);
+        }
+    }
+
+    /**
+     * Il peso piu' alto fra TUTTI i gruppi di {@code p} (non solo quello primario): stessa regola
+     * di MagixWeb/RankSync per il colore del nome, cosi' chi vede il grado piu' alto nel nome lo
+     * vede anche per primo nel tablist. Nessun gruppo utile (LuckPerms non ancora pronto per
+     * questo giocatore) -> 0, che e' il valore piu' basso possibile e comunque va bene: sara' lui
+     * il primo a scendere quando i dati arrivano.
+     */
+    private int pesoDi(Player p) {
+        User user = luckPerms.getUserManager().getUser(p.getUniqueId());
+        if (user == null) return 0;
+        QueryOptions options = luckPerms.getContextManager().getQueryOptions(p);
+        int massimo = 0;
+        for (Group g : user.getInheritedGroups(options)) {
+            massimo = Math.max(massimo, g.getWeight().orElse(0));
+        }
+        return massimo;
+    }
+
     private void updateAll() {
         for (Player p : Bukkit.getOnlinePlayers()) update(p);
     }
@@ -132,9 +223,10 @@ public final class TabManager implements Listener {
 
     private void scrivi(Player p) {
         if (!p.isOnline()) return;
-        // Prima le caselle finte, poi intestazione e fondo: cosi' la misura del tab e' gia' quella
-        // definitiva quando il client disegna il resto, e non si vede la finestra allargarsi.
+        // Prima le caselle finte, poi l'ordine, poi intestazione e fondo: cosi' la misura e la
+        // posizione nel tab sono gia' quelle definitive quando il client disegna il resto.
         slotFisse.inviaA(p);
+        ordinaGiocatore(p);
         Component header = buildLines(p, cfg.getStringList("header"));
         Component footer = buildLines(p, cfg.getStringList("footer"));
         p.sendPlayerListHeaderAndFooter(header, footer);

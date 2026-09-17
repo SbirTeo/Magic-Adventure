@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixEssentials</artifactId>
-    <version>0.8.4</version>
+    <version>0.8.5</version>
     <packaging>jar</packaging>
 
     <name>MagixEssentials</name>
@@ -27,6 +27,10 @@
         <repository>
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
+        <repository>
+            <id>luckperms-repo</id>
+            <url>https://repo.lucko.me/</url>
         </repository>
     </repositories>
 
@@ -55,6 +59,14 @@
             <groupId>net.dmulloy2</groupId>
             <artifactId>ProtocolLib</artifactId>
             <version>5.4.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Ordine del tablist per peso del gruppo: legge il grado piu' alto di ogni giocatore.
+             Softdepend: senza LuckPerms il tablist resta nell'ordine del gioco. -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.4</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
