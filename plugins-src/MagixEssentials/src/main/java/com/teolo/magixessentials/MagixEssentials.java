@@ -238,7 +238,25 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "estetico, un tab che sparisce e' un guasto.",
                         "Oltre 80 non si va: il gioco disegna al massimo 4 colonne da 20, e il plugin taglia li'. "
                                 + "E se i giocatori veri sono piu' del totale non si riempie niente — il tab e' gia' "
-                                + "pieno di gente vera, che e' meglio.")
+                                + "pieno di gente vera, che e' meglio.",
+                        "**Le colonne sono larghe quanto lo schermo lo permette, non strette.** Verificato "
+                                + "decompilando PlayerTabOverlay.extractRenderState nel client vanilla reale di "
+                                + "questa versione: il gioco sceglie UNA sola larghezza per TUTTE le colonne, quella "
+                                + "del nome PIU' LARGO fra le 80 voci (vere e finte insieme), fino al massimo che lo "
+                                + "schermo di chi guarda permette. Un nome finto corto (una casella vuota e' quasi "
+                                + "sempre solo uno spazio) terrebbe le colonne strette quanto il nome vero piu' corto "
+                                + "in lista — non quanto lo schermo. Il plugin aggiunge da solo 400 spazi invisibili "
+                                + "in coda al testo di ogni casella vuota apposta per questo (FixedSlots.WIDTH_PADDING): "
+                                + "non si vedono, ma bastano a far scattare sempre il tetto dello schermo.",
+                        "**Quello che non si puo' nascondere.** Dietro OGNI voce del tablist — vera o finta — il "
+                                + "client disegna sempre un rettangolo semitrasparente largo quanto la colonna: non "
+                                + "e' una texture del resource pack, e' scritto nel codice del client, quindi non "
+                                + "dipende da niente che mandiamo nel pacchetto e non si puo' spegnere per le sole "
+                                + "caselle finte senza spegnerlo anche per i giocatori veri. Il colore lo decide "
+                                + "un'opzione DEL CLIENT di chi guarda (la stessa dello sfondo del testo in chat), non "
+                                + "il server: chi lo vuole invisibile lo spegne da solo (Opzioni -> Chat -> "
+                                + "Trasparenza sfondo chat a 0) — sparisce per tutte le voci, non solo per quelle "
+                                + "finte.")
 
                 .section("L'ordine dei giocatori",
                         "Da solo il gioco mette avanti a tutto chi NON ha una squadra (scoreboard team) e poi "
@@ -543,6 +561,22 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "server, un reload a caldo non basta. NON e' piu' un difetto di NO_PING: quel "
                                 + "campo e' -1 apposta, l'icona che ne esce e' quella che il resource pack deve "
                                 + "coprire.")
+                .issue("Le colonne del tablist sono strette invece di riempire lo schermo",
+                        "Il gioco sceglie UNA sola larghezza per tutte le colonne, quella del nome PIU' LARGO fra le "
+                                + "80 voci — vere e finte insieme (verificato decompilando PlayerTabOverlay nel client "
+                                + "vanilla reale). Se le colonne sono strette, il nome piu' largo in tab e' ancora "
+                                + "corto: o WIDTH_PADDING e' stato tolto da FixedSlots.java, o fixed-slots e' spento "
+                                + "(niente voci finte a fare da nome largo, resta solo il nome vero piu' corto).")
+                .issue("Dietro le caselle vuote si vede un rettangolo chiaro anche senza testa e senza icona",
+                        "NON e' un difetto di questo plugin, ed e' verificato: dietro OGNI voce del tablist, vera o "
+                                + "finta, il client disegna sempre un rettangolo semitrasparente largo quanto la "
+                                + "colonna. E' scritto nel codice del client (un fill(), non una texture), non "
+                                + "dipende da niente che il pacchetto manda, quindi non esiste una chiave di config o "
+                                + "un valore del pacchetto che lo spenga per le sole caselle finte senza spegnerlo "
+                                + "anche per i giocatori veri. Il colore lo decide un'opzione DEL CLIENT di chi "
+                                + "guarda (la stessa dello sfondo del testo in chat): solo LUI puo' spegnerla "
+                                + "(Opzioni -> Chat -> Trasparenza sfondo chat a 0), e sparisce per tutte le voci, "
+                                + "non solo per quelle finte. Non proporre una `fix` lato server: non esiste.")
                 .issue("SbirTeo (o un altro giocatore) non e' il primo nel tablist",
                         "Prima cosa da guardare: sort-by-rank-weight e' acceso, e LuckPerms c'e' davvero? Senza "
                                 + "LuckPerms la chiave non fa niente (lo dice nel log all'avvio) e resta l'ordine "
