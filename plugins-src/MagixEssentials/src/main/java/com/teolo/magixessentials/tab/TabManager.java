@@ -83,6 +83,20 @@ public final class TabManager implements Listener {
     /** Quanto dura un giro completo di un'animazione (gradient-phase/rainbow-phase), in millisecondi. */
     private long periodoAnimazioneMs = 4000L;
 
+    /**
+     * Ogni quanto si rimandano le 80 slot finte, in millisecondi — SEPARATO da
+     * update-interval-ticks. Le slot finte non cambiano mai contenuto da sole (stesso profilo,
+     * stesso nome, stessa latenza finche' il config non cambia): rimandarle e' solo un rimedio a
+     * un altro plugin che scrive nello stesso tick, e un pacchetto da 80 voci ProtocolLib per
+     * giocatore online e' l'operazione piu' pesante di tutto questo modulo. Se lo si rimandasse
+     * alla stessa velocita' dell'animazione (update-interval-ticks abbassato per far scorrere un
+     * gradiente) lo si spedirebbe 10-20 volte al secondo per ogni giocatore invece che una volta
+     * al secondo: e' quello — non l'animazione in se' — a far scattare e bloccare il tablist con
+     * un update-interval-ticks basso. Un secondo basta e avanza per correggere CMI.
+     */
+    private static final long FIXED_SLOTS_RESEND_MS = 1000L;
+    private long prossimoInvioSlotFisseMs = 0L;
+
     public TabManager(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
         this.cfg = cfg;
@@ -128,7 +142,14 @@ public final class TabManager implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onJoin(PlayerJoinEvent e) {
         // Un tick dopo il join: cosi' i placeholder di mondo/posizione sono gia' pronti.
-        Bukkit.getScheduler().runTaskLater(plugin, () -> update(e.getPlayer()), 1L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Player p = e.getPlayer();
+            if (!p.isOnline()) return;
+            // Le slot finte non aspettano il prossimo giro di updateAll() (al massimo un secondo):
+            // chi si e' appena connesso le vuole subito, non con un ritardo casuale.
+            slotFisse.inviaA(p);
+            update(p);
+        }, 1L);
     }
 
     /** Dimentica l'ordine di chi esce: non e' un errore se rientra e lo si riscrive uguale. */
@@ -219,8 +240,20 @@ public final class TabManager implements Listener {
         return massimo;
     }
 
+    /**
+     * Un giro di aggiornamento per tutti: intestazione/fondo/nome a ogni chiamata (e' la parte
+     * veloce, quella che fa scorrere le animazioni), le 80 slot finte solo ogni
+     * {@link #FIXED_SLOTS_RESEND_MS}, indipendentemente da quanto spesso questo metodo gira.
+     */
     private void updateAll() {
-        for (Player p : Bukkit.getOnlinePlayers()) update(p);
+        boolean reinviaSlotFisse = System.currentTimeMillis() >= prossimoInvioSlotFisseMs;
+        if (reinviaSlotFisse) {
+            prossimoInvioSlotFisseMs = System.currentTimeMillis() + FIXED_SLOTS_RESEND_MS;
+        }
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (reinviaSlotFisse) slotFisse.inviaA(p);
+            update(p);
+        }
     }
 
     /**
@@ -228,7 +261,8 @@ public final class TabManager implements Listener {
      * volta poco dopo. Il tablist non ha un "proprietario": ce l'ha chi ha scritto per ultimo.
      * Quando un altro plugin (CMI) scrive nello stesso tick, la prima passata puo' perdere; la
      * seconda, qualche tick piu' in la', arriva dopo di lui. Vale per intestazione, fondo e nomi
-     * — non per le voci FINTE che un altro plugin inietta via pacchetto, che restano sue.
+     * — non per le voci FINTE che un altro plugin inietta via pacchetto, che restano sue (e che
+     * comunque non si rimandano da qui: vedi {@link #updateAll()} e {@link #onJoin}).
      */
     private void update(Player p) {
         scrivi(p);
@@ -237,11 +271,16 @@ public final class TabManager implements Listener {
         }
     }
 
+    /**
+     * Intestazione, fondo e nome — la parte che si riscrive a ogni {@code update-interval-ticks},
+     * comprese le animazioni. Le slot finte NON sono qui apposta: sono un pacchetto ProtocolLib da
+     * 80 voci, la cosa piu' pesante di questo modulo, e rimandarlo alla stessa velocita' voluta per
+     * un'animazione (update-interval-ticks basso) e' quello che fa scattare e bloccare il tablist —
+     * segnalato dall'utente. Chi le rimanda: {@link #updateAll()} (al massimo una volta al secondo)
+     * e {@link #onJoin} (subito, per chi si e' appena connesso).
+     */
     private void scrivi(Player p) {
         if (!p.isOnline()) return;
-        // Prima le caselle finte, poi l'ordine, poi intestazione e fondo: cosi' la misura e la
-        // posizione nel tab sono gia' quelle definitive quando il client disegna il resto.
-        slotFisse.inviaA(p);
         ordinaGiocatore(p);
         Component header = buildLines(p, cfg.getStringList("header"));
         Component footer = buildLines(p, cfg.getStringList("footer"));

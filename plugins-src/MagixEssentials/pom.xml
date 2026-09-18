@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixEssentials</artifactId>
-    <version>0.8.10</version>
+    <version>0.8.11</version>
     <packaging>jar</packaging>
 
     <name>MagixEssentials</name>

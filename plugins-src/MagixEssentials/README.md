@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.10**
+Versione: **0.8.11**
 
 ---
 
@@ -53,6 +53,15 @@ farebbe fare uno scatto) e `{rainbow-phase}` (intero 0..9, qui basta contare per
 gia' ciclico). Funzionano solo dentro quei due tag: `<gradient:#C046E8:#A8DC2C:{gradient-phase}>`,
 `<rainbow:{rainbow-phase}>`. Le caselle finte (`fixed-slots.empty-text`) non animano: sono profili
 costruiti una volta sola all'avvio, non righe ricalcolate a ogni giro.
+
+**Un `update-interval-ticks` basso (per un'animazione fluida) NON rimanda anche le 80 slot finte.**
+Sono due cadenze separate: intestazione/fondo/nome seguono `update-interval-ticks`, le slot finte
+si rimandano al massimo una volta al secondo per conto loro, fisso. Prima erano la stessa cosa:
+abbassare `update-interval-ticks` per un'animazione faceva rimandare anche il pacchetto ProtocolLib
+da 80 voci alla stessa velocita' (10-20 volte al secondo per giocatore online) — la cosa piu' pesante
+di questo modulo, ed era quello a far scattare e bloccare il tablist, non l'animazione in se'
+(segnalato dall'utente). Le slot finte non hanno bisogno di piu' di un rinvio al secondo: il loro
+contenuto non cambia da solo.
 
 **Il logo non e' testo, e' un'immagine**: la sua altezza non spinge giu' da sola le righe che
 vengono dopo, quindi servono delle righe VUOTE sotto `{logo}` per non farci scrivere sopra le

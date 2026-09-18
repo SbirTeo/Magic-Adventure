@@ -11,13 +11,18 @@
 # NB: il tablist ce l'ha chi scrive per ultimo. Se lo gestiamo noi, DISATTIVA quello di CMI
 # (plugins/CMI/Settings/Modules.yml -> tablist: false) per evitare che si sovrascrivano a vicenda.
 
-# Ogni quanti tick (20 = 1 secondo) si riaggiornano intestazione, fondo e nomi.
+# Ogni quanti tick (20 = 1 secondo) si riaggiornano intestazione, fondo e nomi. Abbassalo pure
+# per un'animazione piu' fluida (vedi animation-period-seconds sotto): le 80 slot finte NON
+# seguono questo numero, si rimandano al massimo una volta al secondo per conto loro (vedi
+# fixed-slots piu' sotto) — quindi un valore basso qui non intasa il pacchetto piu' pesante.
 update-interval-ticks: 20
 
 # Durata di un giro completo di una sfumatura animata ({gradient-phase}/{rainbow-phase}, vedi
-# sotto), in secondi. Un'animazione e' fatta a scatti: si vede scorrere solo se piu' rapida di
-# update-interval-ticks, quindi abbassare questo numero sotto l'intervallo di aggiornamento non
-# serve a nulla — abbassa prima quello.
+# sotto), in secondi. Un'animazione e' fatta a scatti: si vede scorrere solo se update-interval-
+# ticks e' piu' rapido di questo numero, quindi abbassarlo sotto l'intervallo di aggiornamento
+# non serve a nulla — abbassa prima quello. Per {rainbow-phase} c'e' anche un tetto naturale:
+# vale solo un intero da 0 a 9 (limite del tag <rainbow>), quindi sotto i 10 redraw per giro non
+# si guadagna altro — con animation-period-seconds: 1.0 bastano gia' update-interval-ticks: 2.
 animation-period-seconds: 4.0
 
 # --- CHI VINCE SUL TABLIST ---
@@ -126,6 +131,10 @@ sort-by-rank-weight: true
 # modulo (plugins/CMI/Settings/Modules.yml -> tablist: false).
 # NB: restano sempre IN FONDO alla lista, dopo tutti i giocatori veri (vedi sort-by-rank-weight):
 # e' cosi' che 'primo' vuol dire davvero primo, non "primo fra le caselle finte".
+# NB: il pacchetto che le manda (80 voci, ProtocolLib) e' la cosa piu' pesante di questo modulo, e
+# NON segue update-interval-ticks: si rimanda al massimo una volta al secondo, sempre, anche se
+# update-interval-ticks e' bassissimo per un'animazione. Un valore fisso, non configurabile: non
+# serve mai piu' spesso di cosi', dato che il contenuto delle caselle vuote non cambia da solo.
 fixed-slots:
   # Interruttore delle caselle fisse.
   enabled: true
