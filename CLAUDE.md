@@ -125,6 +125,15 @@ contesta una tua ricostruzione ("non ho fatto io questa azione"): i log del serv
 latest.log` + gli archivi `.log.gz` storici, letti insieme) hanno i comandi eseguiti da ogni
 giocatore con orario esatto, e chiudono la discussione meglio di qualunque deduzione dal codice.
 
+**"Testalo" / "verifica che funzioni" (da sessione cloud) significa anche questo, in automatico.**
+Quando l'utente chiede di testare, verificare o controllare che una modifica funzioni — anche
+senza nominare il workflow — lancialo tu da solo appena il deploy è confermato (vedi sopra),
+senza aspettare che te lo chieda esplicitamente: cerca nel log, con `grep`, il comando o
+l'evento che dovrebbe aver toccato la modifica, e leggi cosa è successo davvero prima di dire
+"funziona". Se il test riguarda un comportamento in-game che nessun log cattura (es. un
+render grafico, un suono, un timing visivo) dillo chiaramente invece di inventarti una verifica:
+la diagnostica prova quello che è nei log e nei file, non quello che un giocatore vede a schermo.
+
 Si lancia con `workflow_dispatch` passando:
 - `plugin` — cartella del plugin (es. `MagixFactions`), oppure `tutti` per l'elenco delle
   chiavi di config di TUTTI i Magix (utile per confrontare col repo dopo una rinomina).
