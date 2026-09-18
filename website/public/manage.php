@@ -4607,49 +4607,12 @@ if ($section === 'dashboard') {
     var h = document.querySelector('.site-header');
     return (h ? h.getBoundingClientRect().height : 98) + 16;
   }
-  function attendiFermo(cb) {
-    // 'scrollend' (Chrome/Firefox recenti) e' l'evento nativo che dice ESATTAMENTE quando lo
-    // scroll (animato compreso) e' finito: a differenza di un polling sulla posizione, non si fa
-    // ingannare da uno scatto/jank a meta' animazione che per un istante sembra fermo (visto
-    // succedere: due letture ravvicinate uguali per un frame perso, non per essere arrivati).
-    if ('onscrollend' in window) {
-      var fatto = false;
-      var fine = function () {
-        if (fatto) return;
-        fatto = true;
-        window.removeEventListener('scrollend', fine);
-        cb();
-      };
-      window.addEventListener('scrollend', fine);
-      setTimeout(fine, 2000);   // rete di sicurezza: l'evento non arriva mai su alcuni setup
-      return;
-    }
-    // Ripiego per browser senza 'scrollend': piu' campioni fermi di fila (invece di 2, che uno
-    // scatto isolato puo' simulare) prima di dire che e' arrivato.
-    var precedente = window.pageYOffset, fermi = 0;
-    var iv = setInterval(function () {
-      var ora = window.pageYOffset;
-      if (Math.abs(ora - precedente) < 0.5) {
-        fermi++;
-        if (fermi >= 4) { clearInterval(iv); cb(); }
-      } else {
-        fermi = 0;
-      }
-      precedente = ora;
-    }, 80);
-    setTimeout(function () { clearInterval(iv); cb(); }, 2000);
-  }
-  // Se si clicca un capitolo nuovo prima che la correzione del precedente sia scattata, quella
-  // vecchia non deve piu' agire: correggerebbe su un bersaglio ormai abbandonato, tirando la
-  // pagina indietro sopra quello nuovo. Ogni click si prende un numero; solo l'ultimo vale.
-  var clickGen = 0;
   indice.addEventListener('click', function (ev) {
     var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
     if (!a) return;
     var meta = document.getElementById(a.getAttribute('href').slice(1));
     if (!meta) return;   // ancora senza destinazione: lascio fare al browser
     ev.preventDefault();
-    var mioGen = ++clickGen;
     var y = Math.max(0, meta.getBoundingClientRect().top + window.pageYOffset - stacco());
     var partenza = window.pageYOffset;
     window.scrollTo({ top: y, behavior: 'smooth' });
@@ -4659,14 +4622,6 @@ if ($section === 'dashboard') {
       if (Math.abs(window.pageYOffset - partenza) < 2 && Math.abs(y - partenza) > 2) {
         window.scrollTo(0, y);
       }
-      // Ricontrollo a scorrimento DAVVERO finito: fra il calcolo di sopra e l'arrivo la barra
-      // puo' essere cambiata altezza, e il titolo restare comunque coperto. Rimisuro la
-      // posizione VERA e correggo invece di fidarmi del calcolo fatto prima di muovermi.
-      attendiFermo(function () {
-        if (mioGen !== clickGen) return;   // superato da un click piu' recente: non correggere
-        var scarto = stacco() - meta.getBoundingClientRect().top;   // > 0 = ancora sotto la barra
-        if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
-      });
     }, 350);
   });
 })();

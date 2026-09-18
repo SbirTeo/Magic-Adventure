@@ -263,54 +263,14 @@ require __DIR__ . '/../includes/header.php';
     // Lo scorrimento morbido non c'e' dappertutto: certi browser incorporati (e chi ha
     // spento le animazioni) lo ignorano SENZA dire niente, e il link non muoveva nulla.
     // Si prova con le buone e, se dopo un attimo non ci si e' mossi, si salta e basta.
-    function scorriA(y, dopoFermo) {
+    function scorriA(y) {
       var partenza = window.pageYOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
       setTimeout(function () {
         if (Math.abs(window.pageYOffset - partenza) < 2 && Math.abs(y - partenza) > 2) {
           window.scrollTo(0, y);
         }
-        // Un salto lungo (dall'inizio pagina a un capitolo in fondo) puo' impiegare piu' di
-        // 350ms ad ANIMARE: se un correttore leggesse la posizione ora, la leggerebbe a meta'
-        // corsa e correggerebbe sul valore SBAGLIATO, interrompendo l'animazione a meta' (visto
-        // succedere: il capitolo finiva sotto la barra invece che sistemato). Si aspetta che lo
-        // scroll sia davvero FERMO (nessun movimento per due controlli di fila) prima di dire
-        // che e' finito, con un tetto di 1.5s per non restare in attesa all'infinito.
-        if (dopoFermo) attendiFermo(dopoFermo);
       }, 350);
-    }
-
-    function attendiFermo(cb) {
-      // 'scrollend' (Chrome/Firefox recenti) e' l'evento nativo che dice ESATTAMENTE quando lo
-      // scroll (animato compreso) e' finito: a differenza di un polling sulla posizione, non si
-      // fa ingannare da uno scatto/jank a meta' animazione che per un istante sembra fermo (visto
-      // succedere: due letture ravvicinate uguali per un frame perso, non per essere arrivati).
-      if ('onscrollend' in window) {
-        var fatto = false;
-        var fine = function () {
-          if (fatto) return;
-          fatto = true;
-          window.removeEventListener('scrollend', fine);
-          cb();
-        };
-        window.addEventListener('scrollend', fine);
-        setTimeout(fine, 2000);   // rete di sicurezza: l'evento non arriva mai su alcuni setup
-        return;
-      }
-      // Ripiego per browser senza 'scrollend': piu' campioni fermi di fila (invece di 2, che uno
-      // scatto isolato puo' simulare) prima di dire che e' arrivato.
-      var precedente = window.pageYOffset, fermi = 0;
-      var iv = setInterval(function () {
-        var ora = window.pageYOffset;
-        if (Math.abs(ora - precedente) < 0.5) {
-          fermi++;
-          if (fermi >= 4) { clearInterval(iv); cb(); }
-        } else {
-          fermi = 0;
-        }
-        precedente = ora;
-      }, 80);
-      setTimeout(function () { clearInterval(iv); cb(); }, 2000);
     }
 
     // L'intestazione del sito e' fissa (sticky) e la sua altezza NON e' costante: su finestre
@@ -323,13 +283,7 @@ require __DIR__ . '/../includes/header.php';
       return (h ? h.getBoundingClientRect().height : 64) + 12;
     }
 
-    // Se si clicca un capitolo nuovo prima che la correzione del precedente sia scattata, quella
-    // vecchia non deve piu' agire: correggerebbe su un bersaglio ormai abbandonato, tirando la
-    // pagina indietro sopra quello nuovo. Ogni vaiA() si prende un numero; solo l'ultimo vale.
-    var vaiAGen = 0;
-
     function vaiA(id) {
-      var mioGen = ++vaiAGen;
       // Se il lettore era sulla scheda del regolamento, prima si torna sulla guida:
       // i capitoli stanno nel riquadro, e da nascosto non ci si potrebbe muovere.
       var btnGuida = document.querySelector('.rank-tab-btn[data-tab="guida"]');
@@ -341,18 +295,7 @@ require __DIR__ . '/../includes/header.php';
       var y = frame.getBoundingClientRect().top + window.pageYOffset
             + (meta ? meta.getBoundingClientRect().top + doc.documentElement.scrollTop : 0)
             - headerOffset();   // spazio per l'intestazione fissa del sito (altezza reale)
-      scorriA(Math.max(0, y), meta && function () {
-        if (mioGen !== vaiAGen) return;   // superato da un click piu' recente: non correggere
-        // Ricontrollo a scorrimento DAVVERO finito: fra il calcolo di sopra e l'arrivo
-        // l'intestazione puo' essere cambiata altezza (loghi/font ancora in caricamento, riga in
-        // piu' da loggato) e il titolo restare comunque sotto la barra (segnalato da un
-        // giocatore loggato: la mappa fazioni non si leggeva). Rimisuro la posizione VERA del
-        // capitolo nel viewport e correggo se e' ancora coperto, invece di fidarmi del calcolo
-        // fatto prima di muovermi.
-        var top = frame.getBoundingClientRect().top + meta.getBoundingClientRect().top;
-        var scarto = headerOffset() - top;   // > 0 = ancora sotto la barra
-        if (scarto > 2) window.scrollTo(0, Math.max(0, window.pageYOffset + scarto));
-      });
+      scorriA(Math.max(0, y));
       // Un lampo sul capitolo appena raggiunto: senza, in mezzo a dodici riquadri uguali non
       // si capisce quale fosse quello giusto. Il colore arriva dal tema del sito.
       if (meta) {
@@ -388,9 +331,15 @@ require __DIR__ . '/../includes/header.php';
     function sistema() {
       var doc;
       try { doc = frame.contentDocument; } catch (e) { return true; }
-      if (!doc || doc.readyState !== 'complete' || !doc.body) return false;
+      if (!doc) return false;
+      // Il click va agganciato APPENA c'e' un <body> a cui ascoltare, non quando la pagina e'
+      // "complete" (immagini comprese): aspettare 'complete' apre una finestra in cui un click
+      // sul capitolo arriva PRIMA dell'aggancio e passa al salto nativo del browser — senza lo
+      // scarto dell'intestazione (segnalato: il titolo finiva nascosto sotto la barra). Le altre
+      // rifiniture (colori del tema, altezza del riquadro) possono aspettare 'complete'.
+      if (doc.body) agganciaIndice();
+      if (doc.readyState !== 'complete' || !doc.body) return false;
       integrateIntoSite();
-      agganciaIndice();
       adatta();
       return true;
     }
