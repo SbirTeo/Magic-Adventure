@@ -41,3 +41,10 @@ server/plugins/
 # settings.local.json e' per-macchina (permessi, hook col percorso Windows, IP del VPS): non deve
 # viaggiare col repo, altrimenti l'hook rompe le sessioni cloud (percorso C:\ non valido su Linux).
 .claude/settings.local.json
+
+# Guida risolta di MagixFactions: la scrive SOLO il plugin a runtime (segnaposto {{cfg:...}}
+# risolti coi valori veri del config), un guardiano systemd (sync-guida.path) la copia qui dal
+# VPS. Se finisce nel repo, il deploy del sito la sovrascrive con una copia statica e superata
+# a ogni push (successo osservato: un fix CSS spariva al deploy successivo del sito, senza
+# toccare il plugin) — vedi CLAUDE.md, "GUIDA E TUTORIAL SEMPRE AGGIORNATI".
+website/public/assets/guida/
