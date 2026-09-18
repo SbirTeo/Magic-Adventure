@@ -1,8 +1,8 @@
 package com.teolo.magixessentials.tab;
 
 import com.teolo.magixessentials.util.CmiModules;
+import com.teolo.magixessentials.util.TextFormat;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.group.Group;
@@ -44,12 +44,22 @@ public final class TabManager implements Listener {
     private static final String LOGO_TOKEN = "{logo}";
     private static final String LOGO_CHAR = "";
 
-    /** &-codes + &#RRGGBB (il formato che produce %magixweb_namecolor%) + il vecchio &x&r&r... di Bungee. */
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder()
-            .character('&')
-            .hexColors()
-            .useUnusualXRepeatedCharacterHexFormat()
-            .build();
+    /**
+     * Il numero da mettere come ultimo parametro di {@code <gradient:...:qui>}, cosi' la sfumatura
+     * scorre nel tempo invece di restare ferma. Verificato decompilando GradientTag della vera
+     * libreria Adventure/MiniMessage in uso (4.26.1): la fase e' un numero DECIMALE fra -1.0 e 1.0,
+     * dove -1 e +1 producono la STESSA sfumatura ma con i colori scambiati — usare un'onda a
+     * TRIANGOLO (0 -&gt; 1 -&gt; 0, non un dente di sega 0..1 che poi salta a -1) evita quel salto:
+     * la posizione non fa mai un balzo, cambia solo il verso.
+     */
+    private static final String GRADIENT_PHASE_TOKEN = "{gradient-phase}";
+    /**
+     * Il numero da mettere in {@code <rainbow:qui>}. Verificato decompilando RainbowTag: qui la
+     * fase e' un INTERO, diviso da Adventure per 10 e poi usato con un modulo — un intero che
+     * cresce e ricomincia da 0 ogni 10 produce una rotazione di tonalita' continua, senza il
+     * problema del gradiente (l'arcobaleno e' gia' ciclico, un giro completo non fa "salti").
+     */
+    private static final String RAINBOW_PHASE_TOKEN = "{rainbow-phase}";
 
     private final JavaPlugin plugin;
     /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
@@ -70,6 +80,9 @@ public final class TabManager implements Listener {
      */
     private final Map<UUID, Integer> ultimoOrdine = new HashMap<>();
 
+    /** Quanto dura un giro completo di un'animazione (gradient-phase/rainbow-phase), in millisecondi. */
+    private long periodoAnimazioneMs = 4000L;
+
     public TabManager(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
         this.cfg = cfg;
@@ -88,6 +101,9 @@ public final class TabManager implements Listener {
 
         ordinaPerGrado = cfg.getBoolean("sort-by-rank-weight", true);
         agganciaLuckPerms();
+
+        double secondi = cfg.getDouble("animation-period-seconds", 4.0);
+        periodoAnimazioneMs = Math.max(100L, Math.round(secondi * 1000.0));
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
         long interval = Math.max(1, cfg.getLong("update-interval-ticks", 20));
@@ -247,10 +263,40 @@ public final class TabManager implements Listener {
         return out;
     }
 
-    /** Una riga -> Component: sostituisce {logo}, risolve i placeholder (se c'e' PAPI), applica i colori. */
+    /**
+     * Una riga -> Component: sostituisce {logo} e le fasi delle animazioni, risolve i placeholder
+     * (se c'e' PAPI), poi applica colori e tag — stesso motore di MOTD e nametag ({@link TextFormat}),
+     * quindi qui funzionano anche {@code <gradient:...>} e {@code <rainbow>}, non solo i codici {@code &}.
+     */
     private Component render(Player p, String line) {
-        String s = line.replace(LOGO_TOKEN, LOGO_CHAR);
+        String s = line.replace(LOGO_TOKEN, LOGO_CHAR)
+                .replace(GRADIENT_PHASE_TOKEN, gradientPhase())
+                .replace(RAINBOW_PHASE_TOKEN, rainbowPhase());
         if (papi) s = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(p, s);
-        return LEGACY.deserialize(s);
+        return TextFormat.component(s);
+    }
+
+    /**
+     * La fase di {@code <gradient:...:qui>} in questo istante: un'onda a triangolo fra -1.0 e 1.0,
+     * un giro ogni {@code animation-period-seconds}. A triangolo (non a dente di sega) perche' il
+     * gradiente NON e' ciclico come un arcobaleno: alla fase +1 la sfumatura torna quella della fase
+     * -1 ma con i colori scambiati (verificato in GradientTag), quindi un salto diretto da +1 a -1
+     * si vedrebbe come uno scatto. Con il triangolo la posizione cambia sempre con continuita'.
+     */
+    private String gradientPhase() {
+        double ciclo = (System.currentTimeMillis() % periodoAnimazioneMs) / (double) periodoAnimazioneMs;
+        double triangolo = ciclo < 0.5 ? ciclo * 2.0 : 2.0 - ciclo * 2.0;   // 0 -> 1 -> 0
+        return String.valueOf(triangolo * 2.0 - 1.0);                       // -1 -> 1 -> -1
+    }
+
+    /**
+     * La fase di {@code <rainbow:qui>} in questo istante: un intero 0-9 che scorre nel tempo. A
+     * differenza del gradiente qui non serve il triangolo: l'arcobaleno e' gia' un cerchio di
+     * tonalita' (verificato in RainbowTag, il valore lo si usa dopo un modulo), quindi ricominciare
+     * da 0 dopo 9 e' esso stesso il prossimo passo naturale, non un salto.
+     */
+    private String rainbowPhase() {
+        double ciclo = (System.currentTimeMillis() % periodoAnimazioneMs) / (double) periodoAnimazioneMs;
+        return String.valueOf((int) (ciclo * 10.0));
     }
 }

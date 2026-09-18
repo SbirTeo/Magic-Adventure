@@ -262,6 +262,37 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "Trasparenza sfondo chat a 0) — sparisce per tutte le voci, non solo per quelle "
                                 + "finte.")
 
+                .section("Sfumature e tag di MiniMessage",
+                        "Intestazione, fondo e nome dei giocatori non leggono solo i codici **&**: passano dallo "
+                                + "stesso motore di MOTD e nametag (util/TextFormat), quindi capiscono anche i tag di "
+                                + "MiniMessage — <bold>, <color:#C046E8>, <gradient:#C046E8:#A8DC2C>Testo</gradient>, "
+                                + "<rainbow>Testo</rainbow>. In una riga vale l'uno O l'altro: appena c'e' un tag "
+                                + "(un < seguito da una lettera) quella riga si legge come tag e le & restano scritte "
+                                + "com'erano.",
+                        "**Farle scorrere nel tempo.** <gradient:...> e <rainbow> accettano un ultimo numero, la "
+                                + "fase: cambiandolo la sfumatura si muove invece di restare ferma. Il plugin lo "
+                                + "calcola da solo — un giro ogni **{{cfg:animation-period-seconds}}** secondi — e lo "
+                                + "mette al posto di due segnaposto, uno per tag perche' i numeri che vogliono NON "
+                                + "sono compatibili fra loro: {gradient-phase} (decimale) dentro <gradient:...:"
+                                + "{gradient-phase}>, {rainbow-phase} (intero) dentro <rainbow:{rainbow-phase}>. "
+                                + "Funzionano solo dentro quei due tag, scritti a mano dove servono — non c'e' "
+                                + "un'animazione automatica su tutto.",
+                        "**Perche' non e' un semplice contatore che sale.** Verificato decompilando le due classi "
+                                + "vere di Adventure/MiniMessage (GradientTag, RainbowTag): il gradiente non e' "
+                                + "ciclico come un arcobaleno — alla fase +1 la sfumatura torna quella della fase -1 "
+                                + "ma con i colori scambiati, quindi {gradient-phase} sale e scende (un'onda a "
+                                + "triangolo) invece di ripartire da capo di scatto. L'arcobaleno invece e' gia' un "
+                                + "cerchio di tonalita': {rainbow-phase} puo' contare 0..9 e ricominciare, il giro "
+                                + "successivo e' gia' il passo giusto.",
+                        "**Le caselle finte NON animano.** fixed-slots.empty-text diventa un profilo costruito UNA "
+                                + "volta sola all'avvio (per non far lampeggiare il tab), non una riga ricalcolata a "
+                                + "ogni giro: un gradiente ci sta, ma resta fermo. L'animazione vale solo per "
+                                + "intestazione, fondo e nome — quelle si riscrivono davvero a ogni "
+                                + "update-interval-ticks.",
+                        "Un'animazione si vede scorrere solo se **update-interval-ticks** e' piu' rapido di "
+                                + "**animation-period-seconds**: abbassare la seconda sotto la prima non fa niente, "
+                                + "l'aggiornamento resta il collo di bottiglia.")
+
                 .section("L'ordine dei giocatori",
                         "Da solo il gioco mette avanti a tutto chi NON ha una squadra (scoreboard team) e poi "
                                 + "ordina per nome — non per grado, e le caselle finte (senza squadra) finivano "
@@ -488,6 +519,7 @@ public final class MagixEssentials extends JavaPlugin {
 
                 .settingsFrom(modules.configurazioneDi(Modules.TABLIST), "Impostazioni del tablist (tablist.yml)",
                         "update-interval-ticks", "Ogni quanti tick si riscrivono intestazione, fondo e nomi.",
+                        "animation-period-seconds", "Durata di un giro completo di una sfumatura animata (gradient-phase/rainbow-phase).",
                         "player-name", "Come appare il nome nella lista: {name} e' il nome, valgono colori e placeholder.",
                         "priority.enabled", "Riscrive una seconda volta per arrivare dopo CMI. Spegnila se il tablist e' solo nostro.",
                         "priority.reassert-delay-ticks", "Quanti tick dopo arriva la seconda scrittura: alzalo se CMI si vede ancora per un istante.",
