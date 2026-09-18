@@ -69,6 +69,17 @@
 
 * { box-sizing: border-box; }
 
+/* Scroll animato per TUTTA la pagina, non solo quando lo chiede esplicitamente il JS: un link
+   con # (indice della guida, ancore varie) che il nostro script non fa in tempo ad agganciare
+   ricade sul salto NATIVO del browser, che di suo e' secco — con questa regola diventa comunque
+   morbido, senza dipendere da nessun timing di script (il fallback CSS scroll-margin-top che
+   tiene il contenuto fuori dalla barra fissa resta indipendente da questa). Rispetta chi ha
+   spento le animazioni di sistema. */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
 /* Larghezza del contenuto ESCLUSA la barra di scorrimento: le fasce a tutta larghezza
    (.hero-cave, .section-divider) usavano 100vw, che la barra la INCLUDE, e sforavano di ~8px
    per lato creando una barra orizzontale. --sbw e' misurata da site.js (al caricamento e a

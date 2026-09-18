@@ -788,8 +788,10 @@
     menu = null;
     modificato = false;
     // Tornando all'elenco si riparte dall'alto: lo scorrimento di un menu lungo, qui, non
-    // vuol dire niente e lascerebbe la pagina a meta' del vuoto.
-    window.scrollTo(0, 0);
+    // vuol dire niente e lascerebbe la pagina a meta' del vuoto. Salto secco (behavior:'auto'
+    // esplicito): col nuovo scroll-behavior:smooth globale del sito, senza dirlo qui animerebbe
+    // ogni cambio di vista, che nell'editor deve essere immediato.
+    window.scrollTo({ top: 0, behavior: 'auto' });
     if (statoTesto) statoTesto.textContent = '';
     empty(app);
 
@@ -1078,11 +1080,14 @@
     corpo.appendChild(pannelloDestro());
     app.appendChild(corpo);
 
+    // Salto secco (behavior:'auto' esplicito): questo e' un RIDISEGNO della stessa vista dopo
+    // una modifica, non una navigazione — con lo scroll-behavior:smooth globale del sito,
+    // lasciato implicito animerebbe ogni tocco alla griglia invece di restare invisibile.
     if (vaiInCima) {
       vaiInCima = false;
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: 'auto' });
     } else {
-      window.scrollTo(0, scorrimento);
+      window.scrollTo({ top: scorrimento, behavior: 'auto' });
     }
     metteAFuocoLaNuova();
   }
