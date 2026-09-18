@@ -4,6 +4,7 @@
 #  Colori: &a...&f come sempre, oppure &#RRGGBB per un colore preciso.
 #  Fra graffe {} ci sono i valori che mette il plugin: non cambiare i nomi, si possono
 #  spostare o togliere.
+#  \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
 #
 #  La palette e' quella di tutti i plugin Magix (vedi plugins-src/STILE-MAGIX.md):
 #    viola  &#C046E8  chi parla, i titoli

@@ -1,5 +1,6 @@
 # MagixEntities - messaggi.
 # Colori: codici & classici (&a &c &l ...) ed esadecimali &#RRGGBB.
+# \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
 #
 # PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
 #   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
@@ -38,7 +39,7 @@ usage-info: "&#FFD166▸ Uso: &f/mentities info <nome>"
 usage-respawn: "&#FFD166▸ Uso: &f/mentities respawn <nome>"
 usage-equip: "&#FFD166▸ Uso: &f/mentities equip <nome>"
 usage-cmd: "&#FFD166▸ Uso: &f/mentities cmd <nome> <add|list|remove|clear>"
-usage-cmd-add: "&#FFD166▸ Uso: &f/mentities cmd <nome> add <comando> &8· &7prefissi: &fconsole:&7 (da console), &fmsg:&7 (messaggio, &f\\n&7 va a capo)"
+usage-cmd-add: "&#FFD166▸ Uso: &f/mentities cmd <nome> add <comando> &8· &7prefissi: &fconsole:&7 (da console), &fmsg:&7 (messaggio, &f%nl%&7 va a capo)"
 
 # ------------------------------------------------------------------ esiti
 created: "&#A8DC2C✔ Creata &f{name} &8· &7{type} &8· &r{display}"

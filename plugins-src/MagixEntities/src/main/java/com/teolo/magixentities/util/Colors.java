@@ -16,6 +16,11 @@ public final class Colors {
 
     public static String translate(String s) {
         if (s == null) return "";
+        // \n scritto nel file (due caratteri: backslash + n) diventa un vero a capo: senza
+        // virgolette doppie perfette YAML lo lascerebbe letterale, e chi scrive messages.yml
+        // scrive quasi sempre senza virgolette o con quelle singole (che NON interpretano gli
+        // escape). Cosi' un a capo funziona sempre, qualunque sia lo stile della stringa.
+        s = s.replace("\\n", "\n");
         Matcher m = HEX.matcher(s);
         StringBuffer sb = new StringBuffer();
         while (m.find()) {

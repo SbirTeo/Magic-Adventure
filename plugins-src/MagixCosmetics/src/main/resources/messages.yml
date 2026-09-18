@@ -1,5 +1,6 @@
 # MagixCosmetics - tutti i testi mostrati ai giocatori.
 # Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+# \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
 #
 # PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
 #   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff

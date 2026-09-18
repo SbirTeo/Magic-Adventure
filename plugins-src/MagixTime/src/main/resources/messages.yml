@@ -1,5 +1,6 @@
 # MagixTime - tutti i testi mostrati ai giocatori.
 # Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+# \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
 # Placeholder disponibili indicati riga per riga.
 #
 # PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):

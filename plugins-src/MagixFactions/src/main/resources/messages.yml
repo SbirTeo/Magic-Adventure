@@ -1,6 +1,7 @@
 # ============================================================
 #  MagixFactions - Messaggi (modificabili)
 #  Colori con & ; esadecimali &#RRGGBB ; placeholder fra {graffe}
+#  \n in un testo va a capo (funziona anche senza virgolette attorno alla riga)
 #  Dopo le modifiche: /mf reload  (oppure riavvia il server)
 #
 #  PALETTE MAGIX (uguale in tutti i plugin del server, vedi
