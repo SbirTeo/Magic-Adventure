@@ -57,6 +57,9 @@ public final class PackService {
 
     public PackService(JavaPlugin plugin) {
         this.plugin = plugin;
+        // Creata subito, anche vuota: e' il posto dove lo staff mette le proprie personalizzazioni,
+        // deve essere visibile senza dover indovinare il nome giusto (vedi readOverrides()).
+        new java.io.File(plugin.getDataFolder(), OVERRIDES_DIR).mkdirs();
     }
 
     /** Registra (o sostituisce) il contenuto di {@code owner} nel pacchetto: percorso nello zip
@@ -276,28 +279,44 @@ public final class PackService {
     // Costruzione dello zip
     // --------------------------------------------------------------------------------------------
 
+    /** Cartella (nella cartella DATI del plugin sul server, non nel jar) dove lo staff mette a mano
+     *  file da includere o sostituire nel pacchetto, senza toccare codice ne' aspettare un deploy:
+     *  vedi {@link #readOverrides()}. */
+    static final String OVERRIDES_DIR = "overrides";
+
     /** File propri di MagixPack + il contenuto registrato da ogni plugin, in ordine di
-     *  registrazione. Un percorso gia' scritto da un contributo precedente viene scartato con un
-     *  avviso: e' un conflitto vero fra due plugin che si contendono lo stesso file nello zip, non
-     *  qualcosa da risolvere a caso. */
+     *  registrazione, + le sostituzioni manuali dello staff (vedi {@link #readOverrides()}, che
+     *  VINCONO sempre su tutto il resto). Un percorso gia' scritto da un contributo precedente (fra
+     *  due plugin, non contro un override manuale) viene scartato con un avviso: e' un conflitto
+     *  vero, non qualcosa da risolvere a caso. */
     private byte[] buildZip() throws IOException {
+        Map<String, byte[]> merged = new LinkedHashMap<>();
+        for (String path : OWN_FILES) merged.put(path, ownResource(path));
+
+        for (Map.Entry<String, Map<String, byte[]>> e : contributions.entrySet()) {
+            for (Map.Entry<String, byte[]> f : e.getValue().entrySet()) {
+                if (merged.containsKey(f.getKey())) {
+                    plugin.getLogger().warning("[Pack] " + e.getKey() + " ha provato a registrare '"
+                            + f.getKey() + "', gia' presente nel pacchetto: scartato.");
+                    continue;
+                }
+                merged.put(f.getKey(), f.getValue());
+            }
+        }
+
+        Map<String, byte[]> overrides = readOverrides();
+        int replaced = 0;
+        for (Map.Entry<String, byte[]> o : overrides.entrySet()) {
+            if (merged.put(o.getKey(), o.getValue()) != null) replaced++;
+        }
+        if (!overrides.isEmpty()) {
+            plugin.getLogger().info("[Pack] " + overrides.size() + " file da " + OVERRIDES_DIR + "/ inclusi"
+                    + " nel pacchetto (" + replaced + " sostituiscono contenuto gia' presente).");
+        }
+
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(buffer)) {
-            java.util.Set<String> written = new java.util.HashSet<>();
-            for (String path : OWN_FILES) {
-                writeEntry(zip, path, ownResource(path));
-                written.add(path);
-            }
-            for (Map.Entry<String, Map<String, byte[]>> e : contributions.entrySet()) {
-                for (Map.Entry<String, byte[]> f : e.getValue().entrySet()) {
-                    if (!written.add(f.getKey())) {
-                        plugin.getLogger().warning("[Pack] " + e.getKey() + " ha provato a registrare '"
-                                + f.getKey() + "', gia' presente nel pacchetto: scartato.");
-                        continue;
-                    }
-                    writeEntry(zip, f.getKey(), f.getValue());
-                }
-            }
+            for (Map.Entry<String, byte[]> e : merged.entrySet()) writeEntry(zip, e.getKey(), e.getValue());
         }
         return buffer.toByteArray();
     }
@@ -313,6 +332,37 @@ public final class PackService {
             if (in == null) throw new IOException("Risorsa mancante nel jar: resourcepack/" + path);
             return in.readAllBytes();
         }
+    }
+
+    /**
+     * Legge {@code plugins/MagixPack/overrides/} sul server (creata vuota al primo avvio): ogni
+     * file li' dentro entra nel pacchetto allo stesso percorso relativo a questa cartella (es.
+     * {@code overrides/assets/minecraft/textures/gui/container/inventory.png} diventa
+     * {@code assets/minecraft/textures/gui/container/inventory.png} nello zip), e VINCE su
+     * qualunque contenuto gia' presente (file propri di MagixPack o registrato da un plugin) — e'
+     * la via per personalizzare il pacchetto a mano, senza toccare codice ne' aspettare un deploy:
+     * basta metterci un file e fare {@code /mpack reload} (stesso principio di Oraxen, che tiene le
+     * proprie risorse fuori dal jar, nella cartella dati del plugin).
+     */
+    private Map<String, byte[]> readOverrides() {
+        Map<String, byte[]> out = new LinkedHashMap<>();
+        java.io.File dir = new java.io.File(plugin.getDataFolder(), OVERRIDES_DIR);
+        if (!dir.isDirectory()) return out;
+        java.nio.file.Path root = dir.toPath();
+        try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(root)) {
+            walk.filter(java.nio.file.Files::isRegularFile).forEach(p -> {
+                try {
+                    String rel = root.relativize(p).toString().replace(java.io.File.separatorChar, '/');
+                    out.put(rel, java.nio.file.Files.readAllBytes(p));
+                } catch (IOException e) {
+                    plugin.getLogger().warning("[Pack] " + OVERRIDES_DIR + "/" + p.getFileName()
+                            + " illeggibile: " + e.getMessage());
+                }
+            });
+        } catch (IOException e) {
+            plugin.getLogger().warning("[Pack] Impossibile leggere " + OVERRIDES_DIR + "/: " + e.getMessage());
+        }
+        return out;
     }
 
     private static byte[] sha1(byte[] data) {

@@ -55,6 +55,26 @@ Il momento giusto per registrarsi e' il proprio `onEnable`, con `softdepend: [Ma
 proprio `plugin.yml`: cosi' MagixPack e' gia' abilitato (il metodo esiste) quando il chiamante
 prova a usarlo, anche se lo zip vero e proprio si costruisce solo dopo.
 
+## Personalizzare a mano, senza scrivere un plugin (come Oraxen)
+
+`plugins/MagixPack/overrides/` (creata vuota gia' al primo avvio) e' per chi vuole aggiungere o
+sostituire un file del pacchetto senza codice: ogni file li' dentro entra nello zip allo stesso
+percorso relativo a quella cartella —
+
+```
+plugins/MagixPack/overrides/assets/minecraft/textures/gui/container/inventory.png
+```
+
+diventa `assets/minecraft/textures/gui/container/inventory.png` nel pacchetto — e **vince sempre**
+su qualunque contenuto gia' presente (file propri di MagixPack o registrato da un plugin). Basta un
+file + `/mpack reload`, nessuna ricompilazione ne' redeploy: stesso principio di Oraxen, che tiene
+le proprie risorse nella cartella dati del plugin, non nel jar.
+
+Attenzione alle texture vanilla con un layout fisso (es. l'inventario e' 176x166 px con le caselle
+in posizioni scritte nel CLIENT, non nell'immagine): un file con proporzioni diverse viene scalato
+comunque a quella dimensione, e puo' venire illeggibile se non e' stato disegnato apposta per quel
+formato.
+
 ## Config
 
 - `public-host` / `port` — da dove i client scaricano lo zip (la porta va aperta sul firewall).

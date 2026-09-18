@@ -149,6 +149,25 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "hanno gia' fatto il loro onEnable e quindi la loro registrazione), non subito: "
                                 + "cosi' l'ordine di caricamento fra i vari plugin contributori non conta.")
 
+                .section("Personalizzare il pacchetto a mano (senza toccare codice)",
+                        "La cartella plugins/MagixPack/overrides/ (creata vuota gia' al primo avvio) e' per "
+                                + "chi vuole aggiungere o sostituire un file del pacchetto senza scrivere un "
+                                + "plugin: ogni file li' dentro entra nello zip allo stesso percorso relativo a "
+                                + "quella cartella — plugins/MagixPack/overrides/assets/minecraft/textures/gui/"
+                                + "container/inventory.png diventa assets/minecraft/textures/gui/container/"
+                                + "inventory.png nel pacchetto — e VINCE sempre su qualunque contenuto gia' "
+                                + "presente (file propri di MagixPack o registrato da un plugin). Stesso "
+                                + "principio di Oraxen: le risorse stanno nella cartella DATI del plugin, non nel "
+                                + "jar, e basta un file + /mpack reload per vederle in gioco, senza ricompilare o "
+                                + "ridistribuire niente.",
+                        "E' il posto giusto per una texture vanilla d'atmosfera (es. lo sfondo dell'inventario) "
+                                + "o per provare qualcosa prima di deciderne l'appartenenza definitiva a un "
+                                + "plugin. Attenzione pero' alle texture vanilla con un LAYOUT fisso (l'inventario "
+                                + "e' 176x166 px con le caselle in posizioni scritte nel client, non nell'immagine): "
+                                + "un file con proporzioni diverse viene scalato lo stesso a quella dimensione, e "
+                                + "il risultato puo' venire illeggibile se non e' stato disegnato apposta per "
+                                + "quel formato.")
+
                 .section("Comunicazione fra plugin senza dipendenze",
                         "Ogni plugin di questo repository si compila per conto suo (vedi "
                                 + "deploy-plugin.yml): due plugin non possono quindi condividere un'interfaccia "
@@ -199,6 +218,10 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "riavviare tutto il server) con softdepend rotto, o se MagixPack e' partito DOPO "
                                 + "di lui, la registrazione puo' non essere arrivata. Un riavvio completo del "
                                 + "server risolve sempre: rifà tutte le registrazioni nell'ordine giusto.")
+                .issue("Ho messo un file in overrides/ ma non lo vedo in gioco",
+                        "Serve /mpack reload (o un riavvio) dopo aver aggiunto/modificato un file: la "
+                                + "cartella viene riletta solo alla costruzione del pacchetto, non in "
+                                + "automatico a ogni scrittura su disco.")
                 .issue("Il pacchetto non si scarica per nessuno",
                         "Quasi sempre la porta configurata non e' aperta sul firewall del VPS verso "
                                 + "l'esterno, oppure public-host e' vuoto/sbagliato. Il log segnala i download "
