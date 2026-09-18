@@ -2100,12 +2100,20 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
+  /* --store-fila-gap MIRRORS the gap above, in px, for the flex-basis calc below (calc() can't
+     read a shorthand's resolved value, only a custom property). Every media query that changes
+     `gap` on this class MUST set this alongside it, to the same number — otherwise the two
+     drift apart and the math undercounts the real gap space, so 3 cards report they fit but
+     don't (bug seen live: two responsive tweaks disagreed on the gap at ≤560px, the later one
+     in the file won for `gap` but the basis formula still assumed the earlier value, so a
+     third card that should've fit wrapped to its own row). */
+  --store-fila-gap: 18px;
 }
 /* The flex item is the cell (card + name + price stacked). Cards per row is configurable
    (--store-cols, set on the grid from the manager, default 3): the basis leaves room for the
-   (cols - 1) gaps of 18px between them. */
+   (cols - 1) gaps between them, read from --store-fila-gap so it always matches the real gap. */
 .store-fila > .store-card-cella {
-  flex: 0 0 calc((100% - (var(--store-cols, 3) - 1) * 18px) / var(--store-cols, 3));
+  flex: 0 0 calc((100% - (var(--store-cols, 3) - 1) * var(--store-fila-gap, 18px)) / var(--store-cols, 3));
   display: flex;
   flex-direction: column;
 }
@@ -2377,9 +2385,11 @@ body.store-una-categoria .store-card-cat { display: none; }
 /* Phones: keep three cards per row but make them small and tidy — shorter covers, tighter
    gap, and smaller name/price/ribbon/badge so nothing overflows the narrow cards. */
 @media (max-width: 560px) {
-  .store-fila { gap: 8px; }
-  /* Phones always show three tidy cards, whatever the per-row setting is for desktop. */
-  .store-fila > .store-card-cella { flex-basis: calc((100% - 16px) / 3); }
+  .store-fila { gap: 8px; --store-fila-gap: 8px; }
+  /* Phones always show three tidy cards, whatever the per-row setting is for desktop. Reads
+     --store-fila-gap (not a hardcoded 16px) so this stays right even if another rule with equal
+     specificity — e.g. the max-width:900px one below — ends up deciding the real gap here. */
+  .store-fila > .store-card-cella { flex-basis: calc((100% - 2 * var(--store-fila-gap, 8px)) / 3); }
   .store-card { min-height: 122px; border-left-width: 2px; }
   .store-card-info { padding: 8px 2px 2px; }
   .store-card-nome { font-size: 12px; margin-bottom: 2px; }
@@ -4046,8 +4056,13 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   .forum-riga:hover { transform: none; }   /* niente scorrimento laterale: qui non c'e' il mouse */
 
   /* Store su schermi piccoli: sempre tre card per riga, solo piu' compatte (niente piu' una
-     card a schermo intero). Il ritocco fine per i telefoni e' sotto (max-width: 560px). */
-  .store-fila { gap: 12px; }
+     card a schermo intero). Il ritocco fine per i telefoni e' sotto (max-width: 560px). Sotto
+     i 560px questa regola e quella dei telefoni si applicano ENTRAMBE (stessa specificita': a
+     parita' vince l'ultima nel file, questa) — --store-fila-gap va di pari passo col gap qui
+     sotto, cosi' la formula delle 3 card per riga dei telefoni non conta uno spazio diverso da
+     quello vero (bug osservato: contava 8px, qui il vero gap era 12px, la terza card andava a
+     capo da sola). */
+  .store-fila { gap: 12px; --store-fila-gap: 12px; }
   .store-card { min-height: 210px; }
 
   /* --- ritmo verticale della pagina --- */
