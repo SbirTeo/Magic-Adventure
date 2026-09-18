@@ -291,7 +291,17 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "update-interval-ticks.",
                         "Un'animazione si vede scorrere solo se **update-interval-ticks** e' piu' rapido di "
                                 + "**animation-period-seconds**: abbassare la seconda sotto la prima non fa niente, "
-                                + "l'aggiornamento resta il collo di bottiglia.")
+                                + "l'aggiornamento resta il collo di bottiglia.",
+                        "**Abbassare update-interval-ticks NON rimanda anche le 80 slot finte.** Sono due cadenze "
+                                + "separate apposta: intestazione/fondo/nome seguono update-interval-ticks, le slot "
+                                + "finte si rimandano al massimo una volta al secondo per conto loro, un valore fisso "
+                                + "non legato al config. Prima erano la STESSA cosa: abbassare update-interval-ticks "
+                                + "per un'animazione fluida rimandava anche il pacchetto ProtocolLib da 80 voci alla "
+                                + "stessa velocita' (10-20 volte al secondo per giocatore online) — la cosa piu' "
+                                + "pesante di tutto questo modulo, ed era quello (non l'animazione in se') a far "
+                                + "scattare e bloccare il tablist. Segnalato dall'utente, corretto separando le due "
+                                + "cadenze: ora un update-interval-ticks basso serve solo a far scorrere le "
+                                + "animazioni, senza intasare le slot finte.")
 
                 .section("L'ordine dei giocatori",
                         "Da solo il gioco mette avanti a tutto chi NON ha una squadra (scoreboard team) e poi "
@@ -617,6 +627,15 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "guarda (la stessa dello sfondo del testo in chat): solo LUI puo' spegnerla "
                                 + "(Opzioni -> Chat -> Trasparenza sfondo chat a 0), e sparisce per tutte le voci, "
                                 + "non solo per quelle finte. Non proporre una `fix` lato server: non esiste.")
+                .issue("Il tablist scatta o si blocca con un'animazione (gradient/rainbow) attiva",
+                        "Controlla PRIMA di tutto la versione: se update-interval-ticks basso rimandava anche le 80 "
+                                + "slot finte alla stessa velocita' (10-20 volte al secondo), quello era il colpevole "
+                                + "vero, non l'animazione — un pacchetto ProtocolLib da 80 voci per ogni giocatore "
+                                + "online, ripetuto cosi' spesso, e' la cosa piu' pesante di tutto questo modulo. "
+                                + "Risolto separando le due cadenze: le slot finte si rimandano da sole al massimo "
+                                + "una volta al secondo, qualunque sia update-interval-ticks. Se il problema resta "
+                                + "DOPO questo fix, il sospetto si sposta altrove (un altro plugin che scrive nello "
+                                + "stesso tick, TPS del server basso per altri motivi).")
                 .issue("SbirTeo (o un altro giocatore) non e' il primo nel tablist",
                         "Prima cosa da guardare: sort-by-rank-weight e' acceso, e LuckPerms c'e' davvero? Senza "
                                 + "LuckPerms la chiave non fa niente (lo dice nel log all'avvio) e resta l'ordine "
