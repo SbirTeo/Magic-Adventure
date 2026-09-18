@@ -14,6 +14,12 @@
 # Ogni quanti tick (20 = 1 secondo) si riaggiornano intestazione, fondo e nomi.
 update-interval-ticks: 20
 
+# Durata di un giro completo di una sfumatura animata ({gradient-phase}/{rainbow-phase}, vedi
+# sotto), in secondi. Un'animazione e' fatta a scatti: si vede scorrere solo se piu' rapida di
+# update-interval-ticks, quindi abbassare questo numero sotto l'intervallo di aggiornamento non
+# serve a nulla — abbassa prima quello.
+animation-period-seconds: 4.0
+
 # --- CHI VINCE SUL TABLIST ---
 # Il tablist non ha un proprietario: ce l'ha chi ha scritto per ultimo. Se anche CMI gestisce il
 # tablist, i due si sovrascrivono a vicenda e il risultato dipende dall'ordine, cioe' dal caso.
@@ -34,8 +40,21 @@ priority:
 # (la texture nel resource pack di MagixFactions). Dimensione/posizione del logo si regolano
 # nel config di MagixFactions (tablist.logo.height/ascent).
 #
-# Supporta i codici colore & e &#RRGGBB, e i placeholder di PlaceholderAPI (%server_online%,
-# %magixfactions_*%, %magixtime_*%, ...).
+# Supporta i codici colore & e &#RRGGBB, i placeholder di PlaceholderAPI (%server_online%,
+# %magixfactions_*%, %magixtime_*%, ...) E i tag di MiniMessage: <bold>, <color:#C046E8>,
+# <gradient:#C046E8:#A8DC2C>Testo</gradient>, <rainbow>Testo</rainbow>. In una riga vale l'uno O
+# l'altro: se c'e' un tag (< seguito da una lettera), quella riga si legge come tag e le &
+# restano scritte com'erano — stessa regola della MOTD.
+#
+# --- ANIMARE UNA SFUMATURA ---
+# <gradient:...> e <rainbow> accettano un ultimo numero, la "fase": cambiandolo nel tempo la
+# sfumatura SCORRE invece di restare ferma. Il plugin lo calcola da solo e lo mette al posto di
+# due segnaposto, uno per tag (i numeri che vogliono i due tag NON sono compatibili fra loro):
+#   <gradient:#C046E8:#A8DC2C:{gradient-phase}>Testo</gradient>   (decimale, -1.0..1.0)
+#   <rainbow:{rainbow-phase}>Testo</rainbow>                       (intero, 0..9)
+# Un giro completo dura animation-period-seconds (sotto). Nessun altro colore del tablist si
+# anima da solo: {gradient-phase}/{rainbow-phase} funzionano SOLO dentro questi due tag, scritti
+# a mano dove servono.
 #
 # Le righe " " (spazio) sotto {logo} servono a dare aria: il logo NON e' testo, e' un carattere
 # alto quanto un'immagine (assets/magicadventure/textures/gui/logo.png, iniettato nel font di
