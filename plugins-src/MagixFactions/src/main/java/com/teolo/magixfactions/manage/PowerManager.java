@@ -60,7 +60,6 @@ public final class PowerManager {
     private final java.util.Set<UUID> minimapPending = new java.util.HashSet<>();
     private com.teolo.magixfactions.map.MapService mapService; // impostato dopo la costruzione (per aggiornare la mappa in mano al join)
     private com.teolo.magixfactions.minimap.MinimapManager minimapManager; // impostato dopo la costruzione (riattacco minimap al join)
-    private com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack; // idem, per rimandare il resource pack al join
     private com.teolo.magixfactions.lang.Messages messages; // impostato dopo la costruzione (avviso Potenza alla morte)
     private com.teolo.magixfactions.hook.LuckPermsHook luckPerms; // permessi dei giocatori OFFLINE (vedi tickOffline)
     private FactionManager factionManager; // per "chiudere" l'integrale della potenza media prima di un cambio Potenza
@@ -77,7 +76,6 @@ public final class PowerManager {
 
     public void setMapService(com.teolo.magixfactions.map.MapService mapService) { this.mapService = mapService; }
     public void setMinimapManager(com.teolo.magixfactions.minimap.MinimapManager minimapManager) { this.minimapManager = minimapManager; }
-    public void setResourcePack(com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack) { this.resourcePack = resourcePack; }
     public void setMessages(com.teolo.magixfactions.lang.Messages messages) { this.messages = messages; }
     public void setLuckPerms(com.teolo.magixfactions.hook.LuckPermsHook luckPerms) { this.luckPerms = luckPerms; }
     public void setFactionManager(FactionManager factionManager) { this.factionManager = factionManager; }
@@ -449,9 +447,12 @@ public final class PowerManager {
         Runnable run = () -> {
             minimapPending.remove(p.getUniqueId());
             if (!p.isOnline() || !canUseMinimap(p)) return;
-            // Col pack OBBLIGATORIO l'ha gia' ricevuto al join (ResourcePackListener): rimandarlo qui
-            // sarebbe un doppione che fa ripartire inutilmente il ciclo richiesta/esito sul client.
-            if (resourcePack != null && resourcePack.isAvailable() && !resourcePack.isRequired()) resourcePack.sendTo(p);
+            // Col pack OBBLIGATORIO l'ha gia' ricevuto al join (MagixPack.pack.PackListener): rimandarlo
+            // qui sarebbe un doppione che fa ripartire inutilmente il ciclo richiesta/esito sul client.
+            if (com.teolo.magixfactions.hook.MagixPackHook.isAvailable()
+                    && !com.teolo.magixfactions.hook.MagixPackHook.isRequired()) {
+                com.teolo.magixfactions.hook.MagixPackHook.sendTo(p);
+            }
             minimapManager.activate(p);
         };
         if (delayTicks <= 0) Bukkit.getScheduler().runTask(plugin, run);

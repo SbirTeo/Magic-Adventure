@@ -124,6 +124,20 @@ public final class MagixAuth extends JavaPlugin {
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
         async(this::writeStaffGuide);
 
+        // Schermate di accesso e tastierino OTP: un client Minecraft applica un solo resource pack
+        // alla volta, quindi non lo spediamo da soli ma registriamo il nostro contenuto nel plugin
+        // MagixPack, che lo fonde con quello degli altri plugin contributori (es. MagixFactions) in
+        // un unico zip. Se MagixPack non c'e', degradazione morbida: le schermate restano fatte di
+        // caratteri che il client non conosce (quadratini), ma il login funziona lo stesso.
+        com.teolo.magixauth.hook.MagixPackHook.setup(this);
+        if (com.teolo.magixauth.hook.MagixPackHook.enabled()) {
+            com.teolo.magixauth.hook.MagixPackHook.registerOwnPack(this);
+        } else {
+            getLogger().warning("MagixPack non trovato (o non abilitato): le schermate di accesso "
+                    + "resteranno senza il pacchetto grafico. Installalo e aggiungi 'MagixPack' al "
+                    + "softdepend di questo plugin.");
+        }
+
         if (!Bukkit.getOnlinePlayers().isEmpty()) {
             // Il plugin e' stato caricato a caldo con gente gia' collegata: quella gente non
             // e' passata dal cancello e non lo passera'. Va detto chiaro, perche' e' una
@@ -256,6 +270,7 @@ public final class MagixAuth extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        com.teolo.magixauth.hook.MagixPackHook.unregisterOwnPack(this);
         if (gate != null) {
             gate.closeAll();
         }

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.teolo</groupId>
+    <artifactId>MagixPack</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <name>MagixPack</name>
+    <description>Server unico del resource pack: API generica di registrazione per gli altri plugin Magix</description>
+
+    <properties>
+        <!-- Stesso vincolo degli altri Magix: paper-api 26.1.2 e' compilata per Java 25
+             (class file 69.0). JDK 25 richiesto per buildare. -->
+        <java.version>25</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>papermc-repo</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <!-- Stesso build del server (log: "Paper version 26.1.2-72-ver/26.1.2"). -->
+            <version>26.1.2.build.72-stable</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.name}-${project.version}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${java.version}</release>
+                </configuration>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <!-- Il filtro sostituisce ${...} nei file di testo, e su un PNG lo farebbe
+                     corrompendolo (vedi MagixAuth, stesso schema): il pacchetto risorse resta
+                     fuori dal filtro per iscritto, non solo per l'esclusione automatica di Maven. -->
+                <excludes>
+                    <exclude>resourcepack/**</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>resourcepack/**</include>
+                </includes>
+            </resource>
+            <!-- README nel jar: il plugin lo riscrive in plugins/MagixPack/ ad ogni avvio. -->
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                    <include>README.md</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+    </build>
+</project>

@@ -1,0 +1,21 @@
+name: MagixPack
+version: '${project.version}'
+main: com.teolo.magixpack.MagixPack
+api-version: '26.1'
+author: teolo
+description: Server unico del resource pack del server, con API generica di registrazione per gli altri plugin Magix.
+
+commands:
+  magixpack:
+    aliases: [mpack]
+    description: Amministrazione del pacchetto risorse.
+    usage: /mpack reload
+    permission: magixpack.admin
+
+permissions:
+  magixpack.admin:
+    description: Ricaricare la configurazione di MagixPack (porta, host, messaggi, scadenze).
+    default: op
+  magixpack.bypass:
+    description: Non essere mai espulso quando il pacchetto obbligatorio non viene caricato (il pacchetto viene comunque inviato). Salvaguardia per non restare chiusi fuori dal server.
+    default: op

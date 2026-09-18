@@ -1,0 +1,61 @@
+# ==========================================================================================
+#  MagixPack - il resource pack UNICO del server.
+#
+#  Un client Minecraft applica un solo pacchetto risorse alla volta: qui dentro finiscono,
+#  fuse in un unico zip, i contenuti di TUTTI i plugin che ne hanno (MagixFactions per lo
+#  shader della minimap/mappa e il logo del tablist, MagixAuth per le schermate di accesso,
+#  e ogni plugin futuro che si registri). Nessuno dei due spedisce un pacchetto proprio: si
+#  registrano qui via API (vedi README.md), e questo plugin costruisce lo zip, lo serve via
+#  un piccolo server HTTP integrato (nessun hosting esterno richiesto) e lo rende
+#  obbligatorio al join.
+# ==========================================================================================
+
+# Porta del server HTTP che serve lo zip. Va aperta sul firewall del VPS: i client la
+# raggiungono da fuori.
+port: 8443
+
+# IP pubblico del VPS: i client scaricano il pacchetto da qui. Vuoto = pacchetto disabilitato
+# (nessun errore bloccante, semplicemente nessun client lo riceve).
+public-host: "141.94.123.249"
+
+# Ogni quanti secondi il plugin verifica DA SOLO che il pacchetto sia ancora scaricabile (una
+# richiesta in loopback su 127.0.0.1). Se non risponde, il servizio HTTP viene riavviato al volo.
+# E' la rete di sicurezza contro il blocco visto in passato: dopo qualche ora di uptime nessuno
+# riusciva piu' a scaricare il pacchetto finche' non si riavviava l'intero server.
+# 0 = controllo disattivato (sconsigliato).
+watchdog-seconds: 120
+
+# ---- PACCHETTO OBBLIGATORIO ----
+# true (default): il pacchetto e' RICHIESTO per giocare. Viene inviato a TUTTI al join con il
+# flag "obbligatorio" del protocollo — il client vanilla in quel caso non offre nemmeno il
+# tasto "No". Se comunque non viene caricato (client modificato, mod che disattiva i pack,
+# download fallito, o il giocatore che lo rimuove dalle impostazioni), il giocatore viene
+# ESPULSO con i messaggi qui sotto.
+# false = pacchetto facoltativo, nessuna espulsione.
+required: true
+
+# Ritardo (in tick, 20 = 1 s) tra l'ingresso del giocatore e l'invio del pacchetto. Un secondo
+# di respiro evita di chiedere il pacchetto mentre il client sta ancora ricevendo chunk e
+# inventario.
+send-delay-ticks: 20
+
+# Secondi di attesa di una risposta dal client prima di espellerlo (messaggio 'timeout'). Il
+# conto RIPARTE a ogni segnale di vita (pacchetto accettato / scaricato), quindi una
+# connessione lenta non viene punita: il timeout scatta solo se il client tace del tutto.
+# 0 = nessun timeout (chi non risponde mai resta dentro senza pacchetto).
+timeout-seconds: 30
+
+# Testo mostrato dal client nella richiesta del pacchetto ("Questo server richiede...").
+# Supporta i codici colore & e \n per andare a capo.
+prompt: "&e&lMAGICADVENTURE\n&7Il pacchetto risorse e' &cobbligatorio&7 per giocare qui."
+
+# Messaggi di espulsione (schermata di disconnessione), uno per motivo. Colori & e \n per
+# andare a capo. Se un motivo e' vuoto viene usato quello di 'declined'.
+#  - declined: il giocatore ha RIFIUTATO il pacchetto.
+#  - failed:   download fallito / URL non valido / il client non e' riuscito ad applicarlo o
+#              l'ha rimosso (e' il caso "per qualche strano motivo non si e' caricato").
+#  - timeout:  il client non ha mai risposto entro timeout-seconds.
+kick-messages:
+  declined: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Su &6MAGICADVENTURE&7 il pacchetto risorse e' &cobbligatorio&7.\n&7Rientra e premi &aAccetta&7 quando ti viene chiesto.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+  failed: "&c&lPACCHETTO RISORSE NON CARICATO\n\n&7Il pacchetto risorse &cobbligatorio&7 non e' stato scaricato dal tuo client.\n&7Riprova tra poco; se continua, controlla la connessione o\n&7svuota la cartella &fserver-resource-packs&7 del gioco.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+  timeout: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Il tuo client non ha risposto alla richiesta del pacchetto.\n&7Il pacchetto e' &cobbligatorio&7 per giocare: rientra e accetta il download.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"

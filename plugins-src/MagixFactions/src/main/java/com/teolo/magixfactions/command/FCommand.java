@@ -57,7 +57,6 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private final com.teolo.magixfactions.manage.ScoreManager score;
     private final com.teolo.magixfactions.map.MapService maps;
     private final com.teolo.magixfactions.minimap.MinimapManager minimap;
-    private final com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack;
     private final com.teolo.magixfactions.manage.FakeDataManager fake;
 
     private final Map<UUID, Long> invites = new HashMap<>();
@@ -67,10 +66,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     Messages messages, PowerManager power, ClaimManager claims,
                     com.teolo.magixfactions.manage.ScoreManager score,
                     com.teolo.magixfactions.map.MapService maps, com.teolo.magixfactions.minimap.MinimapManager minimap,
-                    com.teolo.magixfactions.resourcepack.ResourcePackService resourcePack,
                     com.teolo.magixfactions.manage.FakeDataManager fake) {
         this.plugin = plugin; this.fm = fm; this.ranks = ranks; this.chat = chat; this.db = db; this.M = messages;
-        this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap; this.resourcePack = resourcePack;
+        this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap;
         this.fake = fake;
     }
 
@@ -1579,18 +1577,17 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
     /**
      * /mf admin minimaprptest - comando TEMPORANEO di debug (Fase 0/1 del piano minimap v2): invia il
-     * resource pack della minimap a chi lo esegue, per verificare che l'intera pipeline funzioni
-     * (build zip -> server HTTP -> download client -> accettazione) PRIMA di aggiungere qualunque logica
-     * di shader/marcatore. L'esito (accettato/rifiutato/fallito) va controllato in console, vedi
-     * {@link com.teolo.magixfactions.resourcepack.ResourcePackListener}.
+     * resource pack UNICO del server (servito da MagixPack) a chi lo esegue, per verificare che
+     * l'intera pipeline funzioni (build zip -> server HTTP -> download client -> accettazione). L'esito
+     * (accettato/rifiutato/fallito) va controllato in console, vedi {@code MagixPack.pack.PackListener}.
      */
     private boolean adminMinimapResourcePackTest(CommandSender s) {
         if (!(s instanceof Player p)) { msg(s, M.get("errors.players-only")); return true; }
-        if (resourcePack == null || !resourcePack.isAvailable()) {
-            msg(s, Colors.translate("&cResource pack non disponibile (controlla minimap.resourcepack.public-host in config.yml)."));
+        if (!com.teolo.magixfactions.hook.MagixPackHook.isAvailable()) {
+            msg(s, Colors.translate("&cResource pack non disponibile (MagixPack assente, o public-host non configurato nel suo config.yml)."));
             return true;
         }
-        resourcePack.sendTo(p);
+        com.teolo.magixfactions.hook.MagixPackHook.sendTo(p);
         msg(s, Colors.translate("&aResource pack inviato. Controlla se il client chiede conferma, poi guarda la console per l'esito."));
         return true;
     }

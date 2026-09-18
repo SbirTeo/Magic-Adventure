@@ -4,7 +4,7 @@ main: com.teolo.magixfactions.MagixFactions
 api-version: '26.1'
 author: teolo
 description: Plugin tipo Factions - fazioni, gradi, leader/successione, chat, storage SQLite/MariaDB.
-softdepend: [Vault, PlaceholderAPI, CMI, ProtocolLib, LuckPerms]
+softdepend: [MagixPack, Vault, PlaceholderAPI, CMI, ProtocolLib, LuckPerms]
 
 commands:
   magixfactions:
@@ -18,9 +18,6 @@ permissions:
     default: true
   magixfactions.admin:
     description: Gestione amministrativa (database, migrazione, setpower, setmap...).
-    default: op
-  magixfactions.resourcepack.bypass:
-    description: Non essere mai espulso quando il resource pack obbligatorio non viene caricato (il pacchetto viene comunque inviato). Salvaguardia per non restare chiusi fuori dal server.
     default: op
   magixfactions.minimap:
     description: Vedere la minimap HUD nell'angolo dello schermo (extra VIP). Senza questo permesso la minimap non viene mai montata.

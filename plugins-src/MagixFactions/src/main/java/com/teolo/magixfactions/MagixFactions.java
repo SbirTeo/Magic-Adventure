@@ -38,7 +38,6 @@ public final class MagixFactions extends JavaPlugin {
     private com.teolo.magixfactions.manage.ScoreManager scoreManager;
     private com.teolo.magixfactions.manage.FakeDataManager fakeDataManager;
     private ChatService chatService;
-    private com.teolo.magixfactions.resourcepack.ResourcePackService resourcePackService;
 
     @Override
     public void onEnable() {
@@ -210,27 +209,30 @@ public final class MagixFactions extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new com.teolo.magixfactions.minimap.MinimapListener(this, minimap), this);
 
-        // Resource pack per lo shader HUD (v2 del piano minimap): server HTTP integrato, nessuna
-        // dipendenza esterna. Se la configurazione manca (public-host vuoto) resta semplicemente
-        // disabilitato — nessun errore bloccante, stessa filosofia di degradazione morbida gia' usata
-        // per l'assenza di ProtocolLib.
-        // Il listener lo rende OBBLIGATORIO (config map.minimap.resourcepack.required, default true):
-        // lo invia a tutti al join ed espelle chi non lo carica, con messaggi configurabili.
-        resourcePackService = new com.teolo.magixfactions.resourcepack.ResourcePackService(this);
-        resourcePackService.start();
-        getServer().getPluginManager().registerEvents(
-                new com.teolo.magixfactions.resourcepack.ResourcePackListener(this, resourcePackService), this);
+        // Resource pack per lo shader HUD e il logo del tablist: un client Minecraft ne applica uno
+        // solo, quindi non lo serve piu' MagixFactions da solo (v0.56.x e prima) ma il plugin
+        // MagixPack, che fonde il contenuto di tutti i plugin contributori in un unico zip. Qui si
+        // registra solo il PROPRIO contenuto, gia' coi propri segnaposto risolti (vedi
+        // resourcepack.ResourcePackContent). Se MagixPack non c'e', degradazione morbida: niente
+        // mappa/minimap/logo per i giocatori, stessa filosofia gia' usata per l'assenza di ProtocolLib.
+        com.teolo.magixfactions.hook.MagixPackHook.setup(this);
+        if (com.teolo.magixfactions.hook.MagixPackHook.enabled()) {
+            com.teolo.magixfactions.hook.MagixPackHook.registerOwnPack(this);
+        } else {
+            getLogger().warning("MagixPack non trovato (o non abilitato): mappa/minimap/logo del "
+                    + "tablist resteranno senza resource pack. Installalo e aggiungi 'MagixPack' al "
+                    + "softdepend di questo plugin.");
+        }
 
         // Collega la minimap a Potenza: chi ha il permesso magixfactions.minimap la riceve da solo al
         // login e dopo /reload (stesso principio gia' usato per l'item Mappa Fazioni sopra), e il giro
         // periodico di PowerManager.tickOnline la da'/toglie quando il permesso cambia a giocatore gia'
         // collegato.
         powerManager.setMinimapManager(minimap);
-        powerManager.setResourcePack(resourcePackService);
         Bukkit.getOnlinePlayers().forEach(powerManager::reattachMinimap); // dopo /reload
 
         // Comando
-        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, resourcePackService, fakeDataManager);
+        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager);
         getCommand("magixfactions").setExecutor(cmd);
         getCommand("magixfactions").setTabCompleter(cmd); // suggerimenti contestuali filtrati sui permessi
 
@@ -330,7 +332,7 @@ public final class MagixFactions extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (resourcePackService != null) resourcePackService.stop();
+        com.teolo.magixfactions.hook.MagixPackHook.unregisterOwnPack(this);
         if (powerManager != null) powerManager.saveAllOnline(); // accoda il salvataggio Potenza dei giocatori online
         // Ultimo campione del tempo giocato / giacenza media personale prima di chiudere.
         if (playerStatsManager != null) playerStatsManager.sampleAll();
@@ -627,9 +629,11 @@ public final class MagixFactions extends JavaPlugin {
 
                 .section("Pacchetto risorse",
                         "È obbligatorio: senza, la mappa e diversi elementi grafici non si vedono. Chi lo rifiuta "
-                                + "viene espulso con un messaggio che glielo spiega. Il permesso "
-                                + "magixfactions.resourcepack.bypass serve a chi deve entrare senza — prove, riprese, "
-                                + "ospiti di passaggio.")
+                                + "viene espulso con un messaggio che glielo spiega. Non lo serve più MagixFactions "
+                                + "da solo: lo costruisce e lo manda il plugin **MagixPack** (un client applica un "
+                                + "solo pacchetto alla volta, quindi tutti i plugin che ci mettono qualcosa si "
+                                + "registrano lì), e anche il permesso di bypass — magixpack.bypass, per chi deve "
+                                + "entrare senza: prove, riprese, ospiti di passaggio — sta nel suo config.")
 
                 .section("Il logo del server nel tablist",
                         "Il logo che si vede in cima alla lista giocatori (tasto Tab) è un **carattere**, non "

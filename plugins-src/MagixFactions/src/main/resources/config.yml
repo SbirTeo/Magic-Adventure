@@ -532,51 +532,11 @@ map:
     # map.default-zoom / /mf admin setmap) — non e' configurabile qui a parte, deve corrispondere
     # esattamente alla sua mappa cartacea.
 
-    # Resource pack per lo shader che "fissa" la minimap a schermo (v2 del piano: sostituisce il
-    # riposizionamento manuale, che restava a scatti). Il plugin costruisce e serve lo zip da solo via
-    # un piccolo server HTTP integrato: nessun altro hosting richiesto, ma la porta va raggiungibile
-    # dai client (aperta sul firewall del VPS).
-    resourcepack:
-      port: 8443
-      public-host: "141.94.123.249"  # IP pubblico del VPS: i client scaricano da qui
-
-      # Ogni quanti secondi il plugin verifica DA SOLO che il pacchetto sia ancora scaricabile (una
-      # richiesta in loopback su 127.0.0.1). Se non risponde, il servizio HTTP viene riavviato al volo.
-      # E' la rete di sicurezza contro il blocco visto in passato: dopo qualche ora di uptime nessuno
-      # riusciva piu' a scaricare il pack finche' non si riavviava l'intero server.
-      # 0 = controllo disattivato (sconsigliato).
-      watchdog-seconds: 120
-
-      # ---- PACCHETTO OBBLIGATORIO ----
-      # true (default): il pacchetto e' RICHIESTO per giocare. Viene inviato a TUTTI al join (non solo a
-      # chi ha la minimap HUD) con il flag "obbligatorio" del protocollo — il client vanilla in quel caso
-      # non offre nemmeno il tasto "No". Se comunque non viene caricato (client modificato, mod che
-      # disattiva i pack, download fallito, o il giocatore che lo rimuove dalle impostazioni), il
-      # giocatore viene ESPULSO con i messaggi qui sotto.
-      # false = comportamento vecchio: pacchetto facoltativo, inviato solo a chi ha la minimap abilitata,
-      # nessuna espulsione.
-      required: true
-      # Ritardo (in tick, 20 = 1 s) tra l'ingresso del giocatore e l'invio del pacchetto. Un secondo di
-      # respiro evita di chiedere il pacchetto mentre il client sta ancora ricevendo chunk e inventario.
-      send-delay-ticks: 20
-      # Secondi di attesa di una risposta dal client prima di espellerlo (messaggio 'timeout'). Il conto
-      # RIPARTE a ogni segnale di vita (pacchetto accettato / scaricato), quindi una connessione lenta non
-      # viene punita: il timeout scatta solo se il client tace del tutto. 0 = nessun timeout (chi non
-      # risponde mai resta dentro senza pacchetto).
-      timeout-seconds: 30
-      # Testo mostrato dal client nella richiesta del pacchetto ("Questo server richiede..."). Supporta i
-      # codici colore & e \n per andare a capo.
-      prompt: "&e&lMAGICADVENTURE\n&7Il pacchetto risorse e' &cobbligatorio&7 per giocare qui."
-      # Messaggi di espulsione (schermata di disconnessione), uno per motivo. Colori & e \n per andare a
-      # capo. Se un motivo e' vuoto viene usato quello di 'declined'.
-      #  - declined: il giocatore ha RIFIUTATO il pacchetto.
-      #  - failed:   download fallito / URL non valido / il client non e' riuscito ad applicarlo o l'ha
-      #              rimosso (e' il caso "per qualche strano motivo non si e' caricato").
-      #  - timeout:  il client non ha mai risposto entro timeout-seconds.
-      kick-messages:
-        declined: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Su &6MAGICADVENTURE&7 il pacchetto risorse e' &cobbligatorio&7.\n&7Rientra e premi &aAccetta&7 quando ti viene chiesto.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
-        failed: "&c&lPACCHETTO RISORSE NON CARICATO\n\n&7Il pacchetto risorse &cobbligatorio&7 non e' stato scaricato dal tuo client.\n&7Riprova tra poco; se continua, controlla la connessione o\n&7svuota la cartella &fserver-resource-packs&7 del gioco.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
-        timeout: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Il tuo client non ha risposto alla richiesta del pacchetto.\n&7Il pacchetto e' &cobbligatorio&7 per giocare: rientra e accetta il download.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+    # Il resource pack che serve lo shader di forma/cornice della minimap e il logo del tablist NON
+    # lo costruisce/serve piu' questo plugin: un client Minecraft ne applica uno solo alla volta, e
+    # tutti i plugin che ci mettono qualcosa (anche MagixAuth) registrano il loro contenuto nel
+    # plugin MagixPack, che li fonde in un unico zip. Porta, host pubblico, obbligatorieta',
+    # messaggi di espulsione e permesso di bypass stanno ora nel SUO config.yml.
 
   # Colori di BORDO e SFONDO (fill) dei territori, in base alla relazione con chi guarda la mappa.
   # own = tua fazione, ally = alleata, enemy = nemica (anche senza fazione propria: si e' nemici di

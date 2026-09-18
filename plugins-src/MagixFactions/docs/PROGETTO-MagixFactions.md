@@ -89,8 +89,11 @@ Package `com.teolo.magixfactions`:
   mappa headless (`MapService#createHeadless`/`renderPaletteWithHeader`) ricentrata su di lui. Header magico nei
   primi pixel + shader del resource pack (`rendertype_text` override) che riposiziona il contenuto in un angolo
   fisso dello schermo (architettura v3, vedi Javadoc di `minimap/MinimapManager`).
-- Resource pack costruito e servito dal plugin stesso via un piccolo server HTTP integrato (`resourcepack/ResourcePackService`,
-  porta/host in `map.minimap.resourcepack`).
+- Resource pack (shader + logo tablist) registrato — coi propri segnaposto gia' risolti — nel plugin
+  **MagixPack** (`resourcepack/ResourcePackContent` + `hook/MagixPackHook`), che lo fonde con quello degli
+  altri plugin contributori (es. MagixAuth) e lo costruisce/serve/rende obbligatorio da solo: un client
+  applica un solo pacchetto alla volta, quindi da v0.57.0 MagixFactions non lo serve piu' in proprio
+  (porta/host/messaggi sono nel config.yml di MagixPack, non piu' in `map.minimap.resourcepack`).
 - **Persistente** (v0.14.0): flag per giocatore su colonna DB `players.minimap_on` (`PowerManager#isMinimapEnabled`/
   `setMinimapEnabled`); si riattacca da sola al login e dopo `/reload` (`PowerManager#reattachMinimap`), stesso
   principio della Mappa Fazioni.
