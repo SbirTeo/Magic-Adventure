@@ -59,7 +59,17 @@ HTML = r"""<!DOCTYPE html>
   .toc h3{margin:.1rem 0 .6rem;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub)}
   .toc ol{margin:0;padding-left:20px;columns:2;column-gap:30px}
   .toc a{color:var(--cyan);text-decoration:none} .toc a:hover{text-decoration:underline}
-  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:20px 0}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:20px 0;
+    /* Dentro il sito questo file vive in un iframe sotto la barra fissa del sito (che qui non
+       esiste: questo documento e' scuro e autonomo, si apre anche da solo). Il salto a un
+       capitolo di solito lo aggancia il JS del sito (tutorial.php), che calcola lo scarto giusto
+       — ma se un click arriva PRIMA che quell'aggancio sia pronto (pagina appena aperta), il
+       browser fa un salto NATIVO, non intercettato: senza margine il titolo finiva nascosto
+       sotto la barra (segnalato da un giocatore loggato). Questo valore approssima l'altezza
+       della barra del sito (a schermo largo ~65px, stretta ~98px) piu' un margine: non e' esatto
+       in ogni caso ma e' sempre meglio di zero, ed e' innocuo quando il file si apre da solo
+       (nessuna barra sopra, resta solo un margine in piu' prima del titolo). */
+    scroll-margin-top:110px}
   h2{margin:.1rem 0 .7rem;font-size:22px;display:flex;align-items:center;gap:10px}
   h2 .n{display:inline-flex;width:30px;height:30px;flex:none;align-items:center;justify-content:center;
     background:var(--green);color:#0c1a0e;border-radius:9px;font-size:15px;font-weight:800}

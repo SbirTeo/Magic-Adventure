@@ -95,9 +95,9 @@ sort-by-rank-weight: true
 # pergamena, quella misura non puo' ballare. Con questo acceso il tablist mostra SEMPRE 'total'
 # caselle: quelle senza giocatore sono decorative, SENZA testa (skin trasparente) e SENZA
 # tacchette di connessione (latenza -1).
-# Le colonne sono anche larghe quanto lo schermo di chi guarda lo permette (non strette): il
-# plugin aggiunge da solo spazi invisibili al testo delle caselle vuote apposta per questo,
-# vedi FixedSlots.WIDTH_PADDING nel codice.
+# Le colonne sono anche larghe quanto un nickname vanilla puo' esserlo (16 caratteri), non
+# strette quanto il nome vero piu' corto in lista: il plugin aggiunge da solo spazi invisibili
+# al testo delle caselle vuote apposta per questo, vedi FixedSlots.WIDTH_PADDING nel codice.
 # C'e' un limite che NESSUN plugin puo' togliere: dietro ogni voce del tablist (vera o finta) il
 # client disegna sempre un rettangolo semitrasparente, e il colore lo decide un'opzione del SUO
 # client (Opzioni -> Chat -> Trasparenza sfondo chat), non il server: chi lo vuole invisibile la
