@@ -3113,22 +3113,38 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   display: flex;
   align-items: center;
   gap: 12px;
-  /* Cinque pulsanti (Modifica/Clona/Prova consegna/Nascondi/Elimina) piu' il nome: su schermi
-     stretti la riga senza wrap non ci sta, e il pulsante piu' a destra finiva fuori dallo
-     schermo — non tagliato, PROPRIO fuori, con tutta la pagina che prendeva uno scorrimento
-     orizzontale per raggiungerlo (segnalato da telefono). Con flex-wrap i pulsanti scendono
-     sotto al nome invece di spingerlo fuori. */
-  flex-wrap: wrap;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
 /* Senza min-width:0 un titolo lungo pretende tutto lo spazio che gli serve (il default di un
-   figlio flex e' min-width:auto, non 0) invece di lasciarsi mettere a capo — e da solo bastava
-   a spingere i pulsanti fuori schermo anche con flex-wrap sul contenitore. */
+   figlio flex e' min-width:auto, non 0) invece di lasciarsi comprimere — bastava da solo a
+   spingere i pulsanti fuori dalla riga su schermi stretti. */
 .store-sort-nome { min-width: 0; flex: 1 1 160px; }
-.store-sort-pacchetto .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* Cinque pulsanti (Modifica/Clona/Prova consegna/Nascondi/Elimina): su schermi stretti non
+   entrano tutti. La riga resta su UNA riga sola (va a capo solo spezzava il trascinamento per
+   riordinare i pacchetti, che prende l'intera riga): i pulsanti che non entrano scorrono
+   ORIZZONTALMENTE dentro il proprio spazio invece di spingere fuori la pagina intera (bug
+   segnalato da telefono) — stesso pattern gia' usato altrove nel sito per lo stesso motivo
+   (.code-box-lungo, .tabella-scorrevole, .me-griglia-scorri): il dito o il trascinamento col
+   mouse li scoprono, la pagina resta ferma. min-width:0 e' quello che permette a questo
+   contenitore di restringersi oltre il contenuto invece di spingerlo fuori (il default di un
+   figlio flex e' min-width:auto = non restringersi mai sotto il proprio contenuto).
+*/
+.store-sort-pacchetto .actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+  padding-bottom: 2px;   /* la barretta di scorrimento non deve stare appiccicata ai pulsanti */
+}
+.store-sort-pacchetto .actions > * { flex-shrink: 0; }   /* mai schiacciati, si scorre invece */
 .store-sort-nome .title { font-weight: 600; }
 .store-sort-nome .sub { font-size: 12px; color: var(--text-dim); }
 /* la maniglia dice "questo si trascina" senza doverlo spiegare */
