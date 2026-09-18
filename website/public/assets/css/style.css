@@ -3113,12 +3113,22 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   display: flex;
   align-items: center;
   gap: 12px;
+  /* Cinque pulsanti (Modifica/Clona/Prova consegna/Nascondi/Elimina) piu' il nome: su schermi
+     stretti la riga senza wrap non ci sta, e il pulsante piu' a destra finiva fuori dallo
+     schermo — non tagliato, PROPRIO fuori, con tutta la pagina che prendeva uno scorrimento
+     orizzontale per raggiungerlo (segnalato da telefono). Con flex-wrap i pulsanti scendono
+     sotto al nome invece di spingerlo fuori. */
+  flex-wrap: wrap;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
-.store-sort-pacchetto .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+/* Senza min-width:0 un titolo lungo pretende tutto lo spazio che gli serve (il default di un
+   figlio flex e' min-width:auto, non 0) invece di lasciarsi mettere a capo — e da solo bastava
+   a spingere i pulsanti fuori schermo anche con flex-wrap sul contenitore. */
+.store-sort-nome { min-width: 0; flex: 1 1 160px; }
+.store-sort-pacchetto .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .store-sort-nome .title { font-weight: 600; }
 .store-sort-nome .sub { font-size: 12px; color: var(--text-dim); }
 /* la maniglia dice "questo si trascina" senza doverlo spiegare */
