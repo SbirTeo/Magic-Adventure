@@ -54,6 +54,9 @@ esplicitamente all'utente cosa manca — vedi sotto).
     `messages.yml`/`config.yml`) → **non** basta il push (l'auto-deploy plugin copia solo il
     jar, e il plugin legge il file già sul VPS, non il default del jar): lancia il workflow
     manuale `deploy-plugin-config.yml` (vedi sotto). Anche questo funziona da cloud.
+  - **Diagnostica/lettura** (log, config vivo, versione del jar in esecuzione) → workflow
+    manuale `diagnostica-vps.yml`, **sola lettura** (vedi sotto). Da usare PRIMA di ipotizzare
+    a tavolino cosa è successo su un bug segnalato dall'utente: i log hanno la risposta vera.
   Quindi, da una sessione cloud, dopo i passi 1–2 fai partire il deploy VPS con l'Action giusta
   e **verifica che il run vada a buon fine**. Avvisa l'utente solo se un deploy fallisce o se i
   secret VPS non sono configurati.
@@ -107,6 +110,43 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
 - **Quando si rinomina una chiave nel codice**, il file gia' sul VPS resta col nome vecchio: il
   plugin non lo legge piu' e riparte dal default del jar, senza dire niente. Va sistemato con
   `mode=rename` nella stessa sessione della rinomina.
+
+## Diagnostica del VPS da sessione cloud (sola lettura, sempre disponibile)
+
+**Una sessione cloud NON è senza occhi sul VPS.** Non ha SSH diretto (vedi sopra), ma il
+workflow `.github/workflows/diagnostica-vps.yml` esiste apposta per questo: usa gli stessi
+secret `VPS_HOST`/`VPS_USER`/`VPS_SSH_KEY` del deploy per leggere (mai scrivere) lo stato del
+server, e stampa tutto nel log del run, che una sessione cloud rilegge via API GitHub
+(`workflow_dispatch` per lanciarlo, poi i job log per leggerlo).
+
+**Usalo PRIMA di rispondere a occhio/per ipotesi** a un bug segnalato dall'utente che riguarda
+lo stato live del VPS (log, config effettivo, cosa gira davvero) — specialmente se l'utente
+contesta una tua ricostruzione ("non ho fatto io questa azione"): i log del server (`logs/
+latest.log` + gli archivi `.log.gz` storici, letti insieme) hanno i comandi eseguiti da ogni
+giocatore con orario esatto, e chiudono la discussione meglio di qualunque deduzione dal codice.
+
+**"Testalo" / "verifica che funzioni" (da sessione cloud) significa anche questo, in automatico.**
+Quando l'utente chiede di testare, verificare o controllare che una modifica funzioni — anche
+senza nominare il workflow — lancialo tu da solo appena il deploy è confermato (vedi sopra),
+senza aspettare che te lo chieda esplicitamente: cerca nel log, con `grep`, il comando o
+l'evento che dovrebbe aver toccato la modifica, e leggi cosa è successo davvero prima di dire
+"funziona". Se il test riguarda un comportamento in-game che nessun log cattura (es. un
+render grafico, un suono, un timing visivo) dillo chiaramente invece di inventarti una verifica:
+la diagnostica prova quello che è nei log e nei file, non quello che un giocatore vede a schermo.
+
+Si lancia con `workflow_dispatch` passando:
+- `plugin` — cartella del plugin (es. `MagixFactions`), oppure `tutti` per l'elenco delle
+  chiavi di config di TUTTI i Magix (utile per confrontare col repo dopo una rinomina).
+- `file` (opzionale) — un file della cartella dati del plugin da stampare per intero.
+- `grep` (opzionale, default = nome del plugin) — regex estesa case-insensitive da cercare nel
+  log; supporta l'alternanza (`overclaim|unclaimall|home`) per più indizi in un colpo solo.
+- `righe` (default 120) — quante righe di log mostrare per sorgente.
+- `storico` (default `si`) — se cercare anche negli archivi `.log.gz` vecchi, non solo
+  `latest.log` (i log ruotano a ogni riavvio, quindi quasi sempre serve `si`).
+
+Stampa sempre anche: jar del server e dei plugin installati (con date), se lo screen `mc` è
+attivo, la cartella dati e il `config.yml` vivo del plugin scelto, e le righe di log con errori/
+eccezioni dei plugin Magix. Non modifica nulla: è sicuro da lanciare quante volte serve.
 
 ## I CONFIG SUL VPS SONO SEMPRE ALLINEATI AL SORGENTE (obbligatorio)
 
