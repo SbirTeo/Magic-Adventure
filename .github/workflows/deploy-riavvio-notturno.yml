@@ -1,0 +1,75 @@
+name: Deploy riavvio notturno del server
+
+# Copia website/vps/riavvio-notturno.sh sul VPS e (ri)installa il cron dell'utente ubuntu
+# che lo lancia ogni notte alle 02:55 (lo script stesso aspetta fino alle 03:00 per il
+# riavvio vero, mandando i preavvisi in game nel frattempo - vedi i commenti nello script).
+#
+# Il cron non serve a mandare i comandi in game (quello lo fa lo script via screen): serve
+# a far PARTIRE lo script alla stessa ora ogni giorno. E' un crontab dell'utente, non un
+# servizio systemd: non serve sudo per installarlo, cosi' funziona anche da sessioni cloud
+# con gli stessi secret VPS_HOST/VPS_USER/VPS_SSH_KEY del deploy sito/plugin.
+#
+# Automatico: push su main che tocca questo file o lo script. Manuale: workflow_dispatch,
+# utile per re-installare il cron senza toccare il file (es. dopo un intervento a mano sul
+# crontab del VPS).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/vps/riavvio-notturno.sh"
+      - ".github/workflows/deploy-riavvio-notturno.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-riavvio-notturno
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia lo script e installa il cron
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          KEY=~/.ssh/deploy_key
+          SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
+          REMOTE_PATH=/home/ubuntu/magicadventure/scripts/riavvio-notturno.sh
+
+          $SSH "mkdir -p /home/ubuntu/magicadventure/scripts"
+          scp -i "$KEY" -o StrictHostKeyChecking=yes website/vps/riavvio-notturno.sh "$DEST:$REMOTE_PATH"
+          $SSH "chmod +x '$REMOTE_PATH'"
+
+          # Idempotente: toglie una riga precedente per questo script (se c'era) e ne
+          # aggiunge una fresca, senza toccare il resto del crontab dell'utente.
+          $SSH "REMOTE_PATH='$REMOTE_PATH' bash -s" <<'REMOTE'
+          set -e
+          (crontab -l 2>/dev/null | grep -vF "$REMOTE_PATH"; echo "55 2 * * * $REMOTE_PATH") | crontab -
+          echo "--- crontab di ubuntu ---"
+          crontab -l
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
