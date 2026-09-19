@@ -47,10 +47,15 @@ public final class TabManager implements Listener {
     /**
      * Il numero da mettere come ultimo parametro di {@code <gradient:...:qui>}, cosi' la sfumatura
      * scorre nel tempo invece di restare ferma. Verificato decompilando GradientTag della vera
-     * libreria Adventure/MiniMessage in uso (4.26.1): la fase e' un numero DECIMALE fra -1.0 e 1.0,
-     * dove -1 e +1 producono la STESSA sfumatura ma con i colori scambiati — usare un'onda a
-     * TRIANGOLO (0 -&gt; 1 -&gt; 0, non un dente di sega 0..1 che poi salta a -1) evita quel salto:
-     * la posizione non fa mai un balzo, cambia solo il verso.
+     * libreria Adventure/MiniMessage in uso (4.26.1) — e poi RI-verificato facendola davvero
+     * disegnare (MiniMessage.deserialize) ai due estremi: la fase e' un numero DECIMALE fra -1.0 e
+     * 1.0, e -1.0 e +1.0 producono ESATTAMENTE la stessa sequenza di colori (non "colori scambiati
+     * fra loro" come si potrebbe pensare leggendo solo il codice: entrambi sono la sfumatura
+     * invertita rispetto alla fase 0, ma identica fra loro). Il punto di giunzione e' quindi GIA'
+     * continuo da solo: un dente di sega da -1.0 a 1.0 che poi ricomincia da -1.0 non fa nessuno
+     * scatto. (Una versione precedente usava un'onda a triangolo pensando di evitare un salto che
+     * in realta' non esisteva: il rimbalzo avanti-indietro del triangolo e' quello che si vedeva
+     * come un'interruzione, segnalato dall'utente.)
      */
     private static final String GRADIENT_PHASE_TOKEN = "{gradient-phase}";
     /**
@@ -316,16 +321,17 @@ public final class TabManager implements Listener {
     }
 
     /**
-     * La fase di {@code <gradient:...:qui>} in questo istante: un'onda a triangolo fra -1.0 e 1.0,
-     * un giro ogni {@code animation-period-seconds}. A triangolo (non a dente di sega) perche' il
-     * gradiente NON e' ciclico come un arcobaleno: alla fase +1 la sfumatura torna quella della fase
-     * -1 ma con i colori scambiati (verificato in GradientTag), quindi un salto diretto da +1 a -1
-     * si vedrebbe come uno scatto. Con il triangolo la posizione cambia sempre con continuita'.
+     * La fase di {@code <gradient:...:qui>} in questo istante: un dente di sega da -1.0 a 1.0, un
+     * giro ogni {@code animation-period-seconds}, che poi ricomincia da -1.0. Verificato facendo
+     * disegnare a MiniMessage la stessa sfumatura a fase -1.0 e a fase 1.0: il colore che ne esce e'
+     * IDENTICO, quindi il punto in cui il dente di sega ricomincia e' gia' continuo da solo — non
+     * serve nessun rimbalzo avanti-indietro per "aggiustarlo". Un giro completo, sempre nello stesso
+     * verso, non un pendolo: e' proprio questo — non l'assenza di scatti, che c'era gia' anche col
+     * pendolo — a fare la differenza fra "loop continuo" e "si interrompe e riparte" all'occhio.
      */
     private String gradientPhase() {
         double ciclo = (System.currentTimeMillis() % periodoAnimazioneMs) / (double) periodoAnimazioneMs;
-        double triangolo = ciclo < 0.5 ? ciclo * 2.0 : 2.0 - ciclo * 2.0;   // 0 -> 1 -> 0
-        return String.valueOf(triangolo * 2.0 - 1.0);                       // -1 -> 1 -> -1
+        return String.valueOf(ciclo * 2.0 - 1.0);   // -1 -> 1, poi ricomincia da -1 senza scatti
     }
 
     /**

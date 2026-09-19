@@ -277,13 +277,16 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "{gradient-phase}>, {rainbow-phase} (intero) dentro <rainbow:{rainbow-phase}>. "
                                 + "Funzionano solo dentro quei due tag, scritti a mano dove servono — non c'e' "
                                 + "un'animazione automatica su tutto.",
-                        "**Perche' non e' un semplice contatore che sale.** Verificato decompilando le due classi "
-                                + "vere di Adventure/MiniMessage (GradientTag, RainbowTag): il gradiente non e' "
-                                + "ciclico come un arcobaleno — alla fase +1 la sfumatura torna quella della fase -1 "
-                                + "ma con i colori scambiati, quindi {gradient-phase} sale e scende (un'onda a "
-                                + "triangolo) invece di ripartire da capo di scatto. L'arcobaleno invece e' gia' un "
-                                + "cerchio di tonalita': {rainbow-phase} puo' contare 0..9 e ricominciare, il giro "
-                                + "successivo e' gia' il passo giusto.",
+                        "**Un giro sempre nello stesso verso, non un pendolo.** {gradient-phase} e' un dente di sega "
+                                + "da -1.0 a 1.0 che poi ricomincia da -1.0 — verificato non solo leggendo GradientTag "
+                                + "ma facendo davvero disegnare a MiniMessage la sfumatura a fase -1.0 e a fase 1.0: "
+                                + "il colore che esce e' IDENTICO, quindi il punto di ripartenza e' gia' continuo da "
+                                + "solo, senza bisogno di andare avanti e indietro. Una versione precedente usava "
+                                + "un'onda a triangolo (sale, poi scende) pensando di evitare un salto che in realta' "
+                                + "non esisteva: il rimbalzo del triangolo era proprio quello che si vedeva come "
+                                + "un'interruzione a ogni fine giro (segnalato dall'utente). {rainbow-phase} invece "
+                                + "e' gia' un intero che conta 0..9 e ricomincia: l'arcobaleno e' un cerchio di "
+                                + "tonalita', quindi il giro successivo e' gia' il passo giusto, senza questo problema.",
                         "**Le caselle finte NON animano.** fixed-slots.empty-text diventa un profilo costruito UNA "
                                 + "volta sola all'avvio (per non far lampeggiare il tab), non una riga ricalcolata a "
                                 + "ogni giro: un gradiente ci sta, ma resta fermo. L'animazione vale solo per "
