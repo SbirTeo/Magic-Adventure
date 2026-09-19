@@ -187,6 +187,9 @@ comuni a tutti i plugin Magix: vedi `plugins-src/STILE-MAGIX.md`.
 | `/mf db migrate <sqlite\|mariadb>` | (admin) copia i dati nell'altro DB |
 | `/mf admin setpower <gioc> <val\|reset>` | (admin) imposta la Potenza **attuale** (o `reset` al default). Il **tetto** non si imposta più da comando: è il permesso `magixfactions.power.powermax.<n>` |
 | `/mf admin setmap <gioc> <zoom\|reset>` | (admin) imposta lo zoom mappa del giocatore (`closer\|closest..farthest` o `reset` al default). Se ha già una Mappa Fazioni in inventario (ed è online), lo zoom si aggiorna **sul posto**, senza rifare `/f map` |
+| `/mf admin bypass [on\|off]` | (admin) attiva/disattiva il **tuo** bypass della protezione territori. Chi ha già `magixfactions.bypass`/`.admin` può spegnerlo un momento per testare come un giocatore normale, senza doversi togliere il permesso. Senza argomento: inverte lo stato attuale |
+| `/mf admin home <fazione>` | (admin) teletrasporto alla home di **una fazione qualsiasi**, non solo la propria |
+| `/mf admin disband <fazione>` | (admin) scioglie **una fazione qualsiasi**, senza doverne essere il leader |
 | `/mf reload` | (admin) ricarica `config.yml` e `messages.yml` |
 
 Permessi Bukkit: `magixfactions.use` (default: tutti), `magixfactions.admin` (default: op).
