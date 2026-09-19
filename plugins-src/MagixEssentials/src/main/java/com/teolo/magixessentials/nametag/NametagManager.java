@@ -97,7 +97,8 @@ public final class NametagManager implements Listener {
     private boolean skipEmpty = true;
     private boolean nameColor = true;
     private Set<String> offWorlds = Set.of();
-    private boolean hideSneaking = true;
+    /** Quanto resta visibile la targhetta di chi si accuccia: 1.0 = invariata, 0.0 = invisibile. */
+    private float sneakOpacity = 0.3f;
     private boolean hideInvisible = true;
     private boolean hideSpectator = true;
     /** Una riga senza {name} e' un errore di configurazione: si dice una volta, non a ogni giro. */
@@ -186,7 +187,7 @@ public final class NametagManager implements Listener {
             worlds.add(world.toLowerCase(Locale.ROOT));
         }
         offWorlds = Set.copyOf(worlds);
-        hideSneaking = cfg.getBoolean("display.hide-when-sneaking", true);
+        sneakOpacity = clamp01((float) cfg.getDouble("display.sneak-opacity", 0.3));
         hideInvisible = cfg.getBoolean("display.hide-when-invisible", true);
         hideSpectator = cfg.getBoolean("display.hide-in-spectator", true);
         // Una riga nel log che risponde da sola alla domanda "perche' sopra la testa vedo questo?".
@@ -298,6 +299,10 @@ public final class NametagManager implements Listener {
         return value == null ? "" : String.valueOf(value);
     }
 
+    private static float clamp01(float value) {
+        return Math.max(0f, Math.min(1f, value));
+    }
+
     /**
      * La targhetta ce l'ha chi scrive per ultimo: finche' anche CMI la gestisce, i due si sovrascrivono
      * a vicenda e vince il caso. Se il config lo permette gli spegniamo il modulo nel suo file — un
@@ -342,7 +347,7 @@ public final class NametagManager implements Listener {
     private void apply(Player target, List<Scoreboard> boards, Collection<? extends Player> online) {
         boolean off = offWorlds.contains(target.getWorld().getName().toLowerCase(Locale.ROOT));
         if (ourLines) {
-            displays.update(target, off || hidden(target) ? List.of() : rendered(target));
+            displays.update(target, off || hidden(target) ? List.of() : rendered(target), opacity(target));
             // Il nome del gioco si nasconde solo dove la targhetta la disegniamo noi: due targhette
             // sovrapposte sono peggio di una brutta. Nei mondi esclusi torna visibile.
             for (Scoreboard board : boards) {
@@ -482,15 +487,15 @@ public final class NametagManager implements Listener {
     }
 
     /**
-     * Quando le righe che disegniamo noi non si devono vedere. La targhetta del gioco queste cose le
-     * fa da se' — accucciarsi la nasconde, l'invisibilita' pure — ma un'entita' di testo no: un
+     * Quando le righe che disegniamo noi non si devono vedere per niente. La targhetta del gioco
+     * queste cose le fa da se' — l'invisibilita' la nasconde — ma un'entita' di testo no: un
      * rettangolo che galleggia da solo direbbe a tutti dov'e' chi non si dovrebbe vedere.
+     *
+     * <p>Accucciarsi NON e' fra questi casi: il gioco, con la sua targhetta, non la fa sparire del
+     * tutto mentre ci si accuccia, la sfuma soltanto — vedi {@link #opacity(Player)}.</p>
      */
     private boolean hidden(Player p) {
         if (p.isDead()) {
-            return true;
-        }
-        if (hideSneaking && p.isSneaking()) {
             return true;
         }
         if (hideSpectator && p.getGameMode() == GameMode.SPECTATOR) {
@@ -498,6 +503,18 @@ public final class NametagManager implements Listener {
         }
         return hideInvisible && (p.isInvisible() || p.hasPotionEffect(PotionEffectType.INVISIBILITY)
                 || vanished(p));
+    }
+
+    /**
+     * Quanto opaca deve essere la targhetta disegnata da noi: piena (byte -1, cioe' 255 senza segno)
+     * di norma, sfumata a {@link #sneakOpacity} mentre il giocatore si accuccia — cosi' com'e' la
+     * targhetta del gioco, che l'accucciata non la nasconde ma la sfuma.
+     */
+    private byte opacity(Player p) {
+        if (sneakOpacity >= 1f || !p.isSneaking()) {
+            return (byte) -1;
+        }
+        return (byte) Math.round(sneakOpacity * 255f);
     }
 
     /**

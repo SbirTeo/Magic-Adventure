@@ -60,6 +60,8 @@ public final class DisplayLines {
     private final Map<UUID, List<TextDisplay>> mounted = new HashMap<>();
     /** L'ultimo testo scritto su ciascuna riga: si riscrive solo alla differenza. */
     private final Map<UUID, List<String>> written = new HashMap<>();
+    /** L'ultima opacita' scritta (vedi {@link NametagManager#opacity}): si riscrive solo alla differenza. */
+    private final Map<UUID, Byte> writtenOpacity = new HashMap<>();
 
     private double height = 0.8;
     private double spacing = 0.29;
@@ -92,10 +94,12 @@ public final class DisplayLines {
     }
 
     /**
-     * Le righe di un giocatore, dall'alto verso il basso, gia' coi placeholder risolti. Una lista
-     * vuota le toglie: e' cosi' che sparisce la targhetta di chi si accuccia o e' invisibile.
+     * Le righe di un giocatore, dall'alto verso il basso, gia' coi placeholder risolti, con
+     * l'opacita' che devono avere (piena o sfumata mentre si accuccia — vedi
+     * {@link NametagManager#opacity}). Una lista vuota le toglie: e' cosi' che sparisce la
+     * targhetta di chi e' invisibile o in spettatore.
      */
-    public void update(Player target, List<String> lines) {
+    public void update(Player target, List<String> lines, byte opacity) {
         if (lines.isEmpty()) {
             remove(target);
             return;
@@ -108,7 +112,7 @@ public final class DisplayLines {
             remove(target);
             rows = new ArrayList<>();
             for (int i = 0; i < lines.size(); i++) {
-                TextDisplay row = spawn(target, i, lines.size(), lines.get(i));
+                TextDisplay row = spawn(target, i, lines.size(), lines.get(i), opacity);
                 if (row == null) {
                     // Non e' nata: si annulla tutto il gruppo, meglio niente targhetta che una a meta'.
                     for (TextDisplay done : rows) {
@@ -120,13 +124,18 @@ public final class DisplayLines {
             }
             mounted.put(target.getUniqueId(), rows);
             written.put(target.getUniqueId(), new ArrayList<>(lines));
+            writtenOpacity.put(target.getUniqueId(), opacity);
             return;
         }
         List<String> before = written.computeIfAbsent(target.getUniqueId(), id -> new ArrayList<>());
+        boolean opacityChanged = !Byte.valueOf(opacity).equals(writtenOpacity.get(target.getUniqueId()));
         for (int i = 0; i < rows.size(); i++) {
             TextDisplay row = rows.get(i);
             if (i >= before.size() || !lines.get(i).equals(before.get(i))) {
                 row.text(TextFormat.component(lines.get(i)));
+            }
+            if (opacityChanged) {
+                row.setTextOpacity(opacity);
             }
             // Il passeggero viene buttato giu' da parecchie cose (la morte, un teletrasporto, una
             // barca): rimontarlo qui e' piu' semplice che inseguire ogni caso con un evento suo.
@@ -135,12 +144,14 @@ public final class DisplayLines {
             }
         }
         written.put(target.getUniqueId(), new ArrayList<>(lines));
+        writtenOpacity.put(target.getUniqueId(), opacity);
     }
 
     /** Toglie le righe di un giocatore. */
     public void remove(Player target) {
         List<TextDisplay> rows = mounted.remove(target.getUniqueId());
         written.remove(target.getUniqueId());
+        writtenOpacity.remove(target.getUniqueId());
         if (rows == null) {
             return;
         }
@@ -158,6 +169,7 @@ public final class DisplayLines {
         }
         mounted.clear();
         written.clear();
+        writtenOpacity.clear();
         sweep();
     }
 
@@ -195,13 +207,14 @@ public final class DisplayLines {
      * piu' in alto), {@code total} quante sono: la piu' bassa sta a {@code height}, le altre una
      * {@code line-spacing} sopra l'altra.
      */
-    private TextDisplay spawn(Player target, int index, int total, String line) {
+    private TextDisplay spawn(Player target, int index, int total, String line, byte opacity) {
         double y = height + (total - 1 - index) * spacing;
         TextDisplay row = target.getWorld().spawn(target.getLocation(), TextDisplay.class, e -> {
             e.addScoreboardTag(TAG);
             // Non finisce nei file del mondo: se il server cade, non si risveglia una targhetta orfana.
             e.setPersistent(false);
             e.text(TextFormat.component(line));
+            e.setTextOpacity(opacity);
             e.setBillboard(Display.Billboard.CENTER);      // sempre girata verso chi guarda
             e.setAlignment(TextDisplay.TextAlignment.CENTER);
             e.setSeeThrough(seeThrough);

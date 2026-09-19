@@ -435,12 +435,14 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "pannello di CMI spento.")
 
                 .section("Quando la targhetta non si vede",
-                        "Chi si **accuccia**, chi e' **invisibile** (pozione o /vanish dello staff), chi e' in "
-                                + "**spettatore**: in tutti e tre i casi le righe nostre vengono tolte, perche' un "
-                                + "rettangolo di testo che galleggia da solo direbbe a tutti dov'e' chi non si "
-                                + "dovrebbe vedere. Si regola con le tre chiavi **display.hide-when-sneaking**, "
-                                + "**display.hide-when-invisible**, **display.hide-in-spectator**. La targhetta del "
-                                + "gioco queste cose le fa da se', e quelle chiavi non la riguardano.",
+                        "Chi e' **invisibile** (pozione o /vanish dello staff) o chi e' in **spettatore**: in "
+                                + "entrambi i casi le righe nostre vengono tolte, perche' un rettangolo di testo che "
+                                + "galleggia da solo direbbe a tutti dov'e' chi non si dovrebbe vedere. Si regola con "
+                                + "le due chiavi **display.hide-when-invisible**, **display.hide-in-spectator**. La "
+                                + "targhetta del gioco queste cose le fa da se', e quelle chiavi non la riguardano.",
+                        "Chi si **accuccia** invece non sparisce: si sfuma, come fa la targhetta del gioco con la "
+                                + "sua. **display.sneak-opacity** decide quanto (ora: **{{cfg:display.sneak-opacity}}**"
+                                + "), da 1.0 (invariata) a 0.0 (invisibile).",
                         "**hide-self** nasconde a ciascuno la PROPRIA targhetta: in prima persona non si vedrebbe "
                                 + "comunque, ma in terza si vedrebbe da dietro le spalle. E' l'unica cosa che di un "
                                 + "oggetto del mondo si puo' rendere diversa da spettatore a spettatore.",
