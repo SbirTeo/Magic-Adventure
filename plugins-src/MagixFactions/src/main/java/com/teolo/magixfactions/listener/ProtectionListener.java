@@ -62,6 +62,12 @@ public final class ProtectionListener implements Listener {
     private final ClaimManager claims;
     private final Messages M;
     private final Map<UUID, Long> lastDenyMsg = new HashMap<>();
+    /**
+     * Chi ha il permesso di bypass ma lo ha SPENTO di sua scelta ({@code /mf admin bypass off}), per
+     * poter testare la protezione come un giocatore normale senza doversi togliere il permesso.
+     * Chi non e' in questo insieme bypassa (se ha il permesso), come sempre di fabbrica.
+     */
+    private final java.util.Set<UUID> bypassOff = new java.util.HashSet<>();
 
     public ProtectionListener(JavaPlugin plugin, FactionManager fm, ClaimManager claims, Messages messages) {
         this.plugin = plugin; this.fm = fm; this.claims = claims; this.M = messages;
@@ -69,8 +75,30 @@ public final class ProtectionListener implements Listener {
 
     private boolean enabled() { return plugin.getConfig().getBoolean("protection.enabled", true); }
 
+    /** true se {@code p} bypassa la protezione adesso: ha il permesso E non l'ha spento lui stesso. */
     private boolean bypass(Player p) {
-        return p.hasPermission("magixfactions.bypass") || p.hasPermission("magixfactions.admin");
+        return (p.hasPermission("magixfactions.bypass") || p.hasPermission("magixfactions.admin"))
+                && !bypassOff.contains(p.getUniqueId());
+    }
+
+    /** Se {@code id} bypassa adesso, a prescindere dal permesso (per il messaggio di /mf admin bypass). */
+    public boolean isBypassOn(UUID id) {
+        return !bypassOff.contains(id);
+    }
+
+    /**
+     * Attiva/disattiva il bypass per {@code id}. Non da' ne' toglie il permesso: chi non ha
+     * {@code magixfactions.bypass}/{@code .admin} resta comunque protetto come chiunque altro.
+     */
+    public void setBypass(UUID id, boolean enabled) {
+        if (enabled) bypassOff.remove(id); else bypassOff.add(id);
+    }
+
+    /** Inverte lo stato attuale e torna quello NUOVO (true = ora bypassa). */
+    public boolean toggleBypass(UUID id) {
+        if (bypassOff.remove(id)) return true;   // era spento (era nell'insieme): ora acceso
+        bypassOff.add(id);
+        return false;                            // era acceso: ora spento
     }
 
     /**

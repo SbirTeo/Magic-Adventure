@@ -165,9 +165,11 @@ public final class MagixFactions extends JavaPlugin {
         Messages messages = new Messages(this);
         powerManager.setMessages(messages); // avviso Potenza persa alla morte (solo al giocatore interessato)
         // Protezione territori: senza costruire/interagire nei chunk di ALTRE fazioni (proprio territorio
-        // e terreno neutrale restano liberi). Staff con magixfactions.bypass/admin costruiscono ovunque.
-        getServer().getPluginManager().registerEvents(
-                new com.teolo.magixfactions.listener.ProtectionListener(this, factionManager, claimManager, messages), this);
+        // e terreno neutrale restano liberi). Staff con magixfactions.bypass/admin costruiscono ovunque,
+        // e puo' spegnere/riaccendere il proprio bypass con /mf admin bypass (vedi FCommand).
+        com.teolo.magixfactions.listener.ProtectionListener protection =
+                new com.teolo.magixfactions.listener.ProtectionListener(this, factionManager, claimManager, messages);
+        getServer().getPluginManager().registerEvents(protection, this);
         // PvP di fazione: fuoco amico impedito fra compagni/alleati + conteggio uccisioni/morti valide (K/D)
         // con anti fake-kill (cooldown stessa vittima, stesso IP/alt, vita minima). Vedi CombatListener.
         getServer().getPluginManager().registerEvents(
@@ -232,7 +234,7 @@ public final class MagixFactions extends JavaPlugin {
         Bukkit.getOnlinePlayers().forEach(powerManager::reattachMinimap); // dopo /reload
 
         // Comando
-        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager);
+        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager, protection);
         getCommand("magixfactions").setExecutor(cmd);
         getCommand("magixfactions").setTabCompleter(cmd); // suggerimenti contestuali filtrati sui permessi
 

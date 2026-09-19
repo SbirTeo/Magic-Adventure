@@ -58,6 +58,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private final com.teolo.magixfactions.map.MapService maps;
     private final com.teolo.magixfactions.minimap.MinimapManager minimap;
     private final com.teolo.magixfactions.manage.FakeDataManager fake;
+    private final com.teolo.magixfactions.listener.ProtectionListener protection;
 
     private final Map<UUID, Long> invites = new HashMap<>();
     private final Map<UUID, Long> unclaimAllConfirm = new HashMap<>(); // giocatore -> timestamp richiesta /f unclaimall
@@ -66,10 +67,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     Messages messages, PowerManager power, ClaimManager claims,
                     com.teolo.magixfactions.manage.ScoreManager score,
                     com.teolo.magixfactions.map.MapService maps, com.teolo.magixfactions.minimap.MinimapManager minimap,
-                    com.teolo.magixfactions.manage.FakeDataManager fake) {
+                    com.teolo.magixfactions.manage.FakeDataManager fake,
+                    com.teolo.magixfactions.listener.ProtectionListener protection) {
         this.plugin = plugin; this.fm = fm; this.ranks = ranks; this.chat = chat; this.db = db; this.M = messages;
         this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap;
-        this.fake = fake;
+        this.fake = fake; this.protection = protection;
     }
 
     /**
@@ -1417,10 +1419,14 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "admin":
                 if (!s.hasPermission("magixfactions.admin")) break;
                 if (args.length == 2)
-                    return filterPrefix(args[1], List.of("setpower", "setmap", "fake"));
+                    return filterPrefix(args[1], List.of("setpower", "setmap", "fake", "bypass", "home", "disband"));
                 if (args.length == 3) {
                     if (args[1].equalsIgnoreCase("fake"))
                         return filterPrefix(args[2], List.of("create", "clear", "info"));
+                    if (args[1].equalsIgnoreCase("home") || args[1].equalsIgnoreCase("disband"))
+                        return filterPrefix(args[2], factionNames());
+                    if (args[1].equalsIgnoreCase("bypass"))
+                        return filterPrefix(args[2], List.of("on", "off"));
                     return filterPrefix(args[2], onlineNames());
                 }
                 if (args.length == 4) {
@@ -1546,6 +1552,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "setpower": return adminSetPower(s, a);
             case "setmap": return adminSetMap(s, a);
             case "fake": return adminFake(s, a);
+            case "bypass": return adminBypass(s, a);
+            case "home": return adminHome(s, a);
+            case "disband": return adminDisband(s, a);
             case "minimapdump": minimap.dumpMapPacketStructure(s); return true;
             case "minimaprptest": return adminMinimapResourcePackTest(s);
             case "minimapmarker": return adminMinimapMarkerTest(s);
@@ -1693,6 +1702,54 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     /** Un intero dal testo, o il default se non è un numero valido. */
     private static int parseIntOr(String s, int def) {
         try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return def; }
+    }
+
+    /**
+     * /mf admin bypass [on|off] - attiva/disattiva il bypass costruzione DI CHI ESEGUE il comando.
+     * Non da' ne' toglie il permesso magixfactions.bypass/.admin (serve gia' averne uno per arrivare
+     * fin qui, essendo /mf admin tutto dietro magixfactions.admin): serve solo a poterlo spegnere un
+     * momento per testare la protezione come un giocatore normale, senza doversi togliere il permesso
+     * e poi rimetterlo. Senza argomento inverte lo stato attuale.
+     */
+    private boolean adminBypass(CommandSender s, String[] a) {
+        if (!(s instanceof Player p)) { msg(s, M.get("errors.players-only")); return true; }
+        boolean enabled;
+        if (a.length >= 3) {
+            String v = a[2].toLowerCase(Locale.ROOT);
+            if (!v.equals("on") && !v.equals("off")) { msg(s, M.get("admin.bypass-usage")); return true; }
+            enabled = v.equals("on");
+            protection.setBypass(p.getUniqueId(), enabled);
+        } else {
+            enabled = protection.toggleBypass(p.getUniqueId());
+        }
+        msg(s, M.get(enabled ? "admin.bypass-on" : "admin.bypass-off"));
+        return true;
+    }
+
+    /** /mf admin home <fazione> - teletrasporta chi esegue il comando alla home di UNA FAZIONE QUALSIASI. */
+    private boolean adminHome(CommandSender s, String[] a) {
+        if (!(s instanceof Player p)) { msg(s, M.get("errors.players-only")); return true; }
+        if (a.length < 3) { msg(s, M.get("admin.home-usage")); return true; }
+        Faction f = fm.getByName(a[2]);
+        if (f == null) { msg(s, M.get("admin.faction-not-found", "faction", a[2])); return true; }
+        FactionManager.Home h = fm.getHome(f.getId());
+        if (h == null) { msg(s, M.get("admin.home-not-set", "faction", f.getName())); return true; }
+        org.bukkit.Location loc = h.toLocation();
+        if (loc == null) { msg(s, M.get("home.world-missing")); return true; }
+        teleportHome(p, loc, true);
+        return true;
+    }
+
+    /** /mf admin disband <fazione> - scioglie UNA FAZIONE QUALSIASI, senza doverne essere il leader. */
+    private boolean adminDisband(CommandSender s, String[] a) {
+        if (a.length < 3) { msg(s, M.get("admin.disband-usage")); return true; }
+        Faction f = fm.getByName(a[2]);
+        if (f == null) { msg(s, M.get("admin.faction-not-found", "faction", a[2])); return true; }
+        String name = f.getName();
+        fm.disband(f);
+        msg(s, M.get("admin.disband-ok", "faction", name));
+        broadcastAll(M.get("disband.announce", "name", name, "player", s.getName()));
+        return true;
     }
 
     private boolean dbCommand(CommandSender s, String[] a) {
