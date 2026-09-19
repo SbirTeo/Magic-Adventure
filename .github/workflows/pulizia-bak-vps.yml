@@ -1,0 +1,103 @@
+name: Pulizia file .bak sul VPS
+
+# Sposta (NON cancella) tutte le copie di scorta ".bak-<data>" che ConfigAlign (e CmiModules)
+# mettono accanto a un file PRIMA di ogni scrittura — vedi CLAUDE.md, sezione "I CONFIG SUL VPS
+# SONO SEMPRE ALLINEATI AL SORGENTE". Normalmente si autolimitano da sole a 10 copie per file, ma
+# con tanti plugin e tanti riavvii la cartella plugins/ si riempie lo stesso di file che nessuno
+# legge piu'. Non tocca NESSUN file vivo: solo quelli con ".bak-" nel nome.
+#
+# Finiscono in plugins/.bak/<Plugin>/..., una sottocartella per plugin (il primo pezzo del
+# percorso sotto plugins/), col resto del percorso invariato — quindi
+# plugins/CMI/Settings/Modules.yml.bak-20260918-193233 diventa
+# plugins/.bak/CMI/Settings/Modules.yml.bak-20260918-193233. Stessa filosofia di
+# rimuovi-plugin.yml (sposta in .rimossi/, non cancella): un file spostato per sbaglio si
+# rimette a posto con un mv, uno cancellato no.
+#
+# Serve alle sessioni CLOUD, che non hanno SSH verso il VPS. Stessi secret del deploy
+# (VPS_HOST / VPS_USER / VPS_SSH_KEY). Elenca sempre cosa sposta, cosi' il log del run resta la
+# prova di cosa e' cambiato.
+#
+# Con dry-run=si (default) NON sposta niente: elenca solo cosa sposterebbe. Serve a controllare
+# prima di lanciarlo per davvero con dry-run=no.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "si = elenca soltanto (non sposta nulla), no = sposta davvero in plugins/.bak/"
+        required: false
+        default: "si"
+
+jobs:
+  pulizia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Elenca (ed eventualmente sposta) i file .bak
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          IN_DRYRUN: ${{ inputs.dry-run }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes $DEST"
+          $SSH "DRYRUN='${IN_DRYRUN:-si}' bash -s" <<'REMOTE'
+          set -euo pipefail
+          PLUGDIR=/home/ubuntu/magicadventure/plugins
+          BAKDIR="$PLUGDIR/.bak"
+
+          # Lo stesso schema di nome usato da ConfigAlign/CmiModules: "<file>.bak-<yyyyMMdd-HHmmss>".
+          # -name con '*.bak-*' prende sia config.yml.bak-... sia Modules.yml.bak-... ovunque sotto
+          # plugins/ (anche nelle sottocartelle, es. CMI/Settings/). -path esclude BAKDIR stesso: un
+          # run gia' eseguito non deve provare a spostare quello che ha gia' spostato lui.
+          mapfile -d '' -t TROVATI < <(find "$PLUGDIR" -type f -name '*.bak-*' -not -path "$BAKDIR/*" -print0 | sort -z)
+
+          if [ "${#TROVATI[@]}" -eq 0 ]; then
+            echo "Nessun file .bak trovato sotto $PLUGDIR (fuori da .bak/)."
+            exit 0
+          fi
+
+          echo "Trovati ${#TROVATI[@]} file .bak:"
+          TOTALE=0
+          for F in "${TROVATI[@]}"; do
+            DIM="$(stat -c%s "$F" 2>/dev/null || echo 0)"
+            TOTALE=$((TOTALE + DIM))
+            # Percorso relativo a plugins/ (es. "CMI/Settings/Modules.yml.bak-...") -> dove finirebbe
+            # sotto .bak/, un pezzo per plugin (il primo componente del percorso).
+            REL="${F#"$PLUGDIR"/}"
+            echo "  $F  ->  $BAKDIR/$REL"
+          done
+          echo "Spazio occupato: $((TOTALE / 1024)) KB"
+
+          if [ "${DRYRUN:-si}" = "si" ]; then
+            echo
+            echo "dry-run=si: NON ho spostato nulla. Rilancia con dry-run=no per spostarli davvero."
+            exit 0
+          fi
+
+          echo
+          echo "Sposto..."
+          for F in "${TROVATI[@]}"; do
+            REL="${F#"$PLUGDIR"/}"
+            DEST_F="$BAKDIR/$REL"
+            mkdir -p "$(dirname "$DEST_F")"
+            mv -- "$F" "$DEST_F"
+          done
+          echo "Fatto: spostati ${#TROVATI[@]} file .bak in $BAKDIR/ ($((TOTALE / 1024)) KB)."
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
