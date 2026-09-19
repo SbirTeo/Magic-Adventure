@@ -85,9 +85,12 @@ formato.
 
 ## Comandi
 
-- `/mpack reload` (permesso `magixpack.admin`) — rilegge config.yml e ricostruisce il pacchetto con
-  le registrazioni gia' in mano. Non richiede di nuovo il contenuto agli altri plugin: se e'
-  cambiato un LORO segnaposto, serve ricaricare (o riavviare) quel plugin.
+- `/mpack reload` (permesso `magixpack.admin`) — rilegge config.yml, ricostruisce il pacchetto con
+  le registrazioni gia' in mano e lo **rimanda a chi e' gia' online** (senza, un client connesso non
+  saprebbe mai che lo zip e' cambiato: si manda da solo solo al join). `F3+T` dal client NON basta:
+  ricarica solo i pacchetti gia' scaricati sul disco, non ricontatta il server. Non richiede di
+  nuovo il contenuto agli altri plugin: se e' cambiato un LORO segnaposto, serve ricaricare (o
+  riavviare) quel plugin.
 
 ## Permessi
 

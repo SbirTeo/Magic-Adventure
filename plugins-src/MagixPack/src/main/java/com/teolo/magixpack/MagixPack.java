@@ -85,11 +85,20 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
     /** Rilegge config.yml e ricostruisce subito il pacchetto (porta/host cambiati richiedono
      *  comunque un riavvio del servizio HTTP, che questo fa da solo). Le registrazioni dei plugin
-     *  contributori NON vengono richieste di nuovo: restano quelle gia' in mano. */
+     *  contributori NON vengono richieste di nuovo: restano quelle gia' in mano.
+     *
+     * <p>Rimanda anche il pacchetto a chi e' GIA' online: senza, un reload cambierebbe lo zip sul
+     * server ma nessun client gia' connesso lo saprebbe mai (il pacchetto si manda solo al join).
+     * Cosi' invece {@code /mpack reload} basta davvero per vedere le modifiche, come in Oraxen —
+     * F3+T dal client NON serve a questo: ricarica solo i pacchetti gia' scaricati sul disco, non
+     * ricontatta il server. */
     public void reload() {
         ConfigAlign.alignAll(this);
         reloadConfig();
         packService.reloadConfig();
+        if (packService.isAvailable()) {
+            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) packService.sendTo(p);
+        }
     }
 
     // --------------------------------------------------------------------------------------------
@@ -196,10 +205,13 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "pacchetto finche' non si riavviava l'intero server Minecraft.")
 
                 .subcommands("I comandi (/mpack)",
-                        "/mpack reload", "Rilegge config.yml (porta, host, messaggi, scadenze) e ricostruisce "
-                                + "subito il pacchetto con le registrazioni gia' in mano. Non richiede di nuovo "
-                                + "il contenuto agli altri plugin: se e' cambiato un LORO segnaposto, serve "
-                                + "ricaricare (o riavviare) quel plugin, non questo.")
+                        "/mpack reload", "Rilegge config.yml (porta, host, messaggi, scadenze), ricostruisce "
+                                + "subito il pacchetto con le registrazioni gia' in mano e lo RIMANDA a chi e' "
+                                + "gia' online (senza, un client gia' connesso non saprebbe mai che lo zip e' "
+                                + "cambiato: il pacchetto si manda da solo solo al join). F3+T dal client NON "
+                                + "basta: ricarica solo i pacchetti gia' scaricati sul disco, non ricontatta il "
+                                + "server. Non richiede di nuovo il contenuto agli altri plugin: se e' cambiato "
+                                + "un LORO segnaposto, serve ricaricare (o riavviare) quel plugin, non questo.")
 
                 .commands()
                 .permissions()
