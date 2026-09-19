@@ -50,7 +50,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Copia lo script e installa il cron
+      - name: RIMOZIONE - toglie il cron e lo script (approccio sbagliato, si usa CMI)
         env:
           DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
         run: |
@@ -59,21 +59,14 @@ jobs:
           SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
           REMOTE_PATH=/home/ubuntu/magicadventure/scripts/riavvio-notturno.sh
 
-          $SSH "mkdir -p /home/ubuntu/magicadventure/scripts"
-          scp -i "$KEY" -o StrictHostKeyChecking=yes website/vps/riavvio-notturno.sh "$DEST:$REMOTE_PATH"
-          $SSH "chmod +x '$REMOTE_PATH'"
-
-          # Idempotente: toglie una riga precedente per questo script (se c'era) e ne
-          # aggiunge una fresca, senza toccare il resto del crontab dell'utente.
-          # NB: "grep -v" su un crontab vuoto/assente esce con status 1 (nessuna riga
-          # selezionata) - il "|| true" e' necessario, altrimenti "set -e" interrompe la
-          # subshell PRIMA dell'echo che scrive la riga, e "crontab -" installa un
-          # crontab vuoto senza errori visibili (bug reale, capitato al primo giro).
           $SSH "REMOTE_PATH='$REMOTE_PATH' bash -s" <<'REMOTE'
           set -e
-          (crontab -l 2>/dev/null | grep -vF "$REMOTE_PATH" || true; echo "* * * * * $REMOTE_PATH") | crontab -
-          echo "--- crontab di ubuntu ---"
-          crontab -l
+          (crontab -l 2>/dev/null | grep -vF "$REMOTE_PATH" || true) | crontab - || crontab -r || true
+          rm -f "$REMOTE_PATH"
+          echo "--- crontab di ubuntu (deve essere vuoto) ---"
+          crontab -l 2>/dev/null || echo "(nessun crontab)"
+          echo "--- script rimosso? ---"
+          [ -f "$REMOTE_PATH" ] && echo "ANCORA PRESENTE" || echo "rimosso"
           REMOTE
 
       - name: Rimuovi la chiave dal runner
