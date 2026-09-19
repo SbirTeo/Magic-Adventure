@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.11**
+Versione: **0.8.12**
 
 ---
 
@@ -47,9 +47,10 @@ segnaposto `{logo}`, che diventa il carattere del logo nel resource pack di Magi
 **Sfumature animate.** `<gradient:...>` e `<rainbow>` accettano un ultimo numero, la fase: cambiarlo
 nel tempo la fa scorrere. Il plugin lo calcola da solo — un giro ogni `animation-period-seconds`
 (default 4s) — e lo sostituisce a due segnaposto, uno per tag perche' i due numeri non sono
-compatibili: `{gradient-phase}` (decimale -1.0..1.0, un'onda a triangolo: verificato decompilando
-GradientTag che +1 e -1 danno la stessa sfumatura con i colori scambiati, un dente di sega ci
-farebbe fare uno scatto) e `{rainbow-phase}` (intero 0..9, qui basta contare perche' l'arcobaleno e'
+compatibili: `{gradient-phase}` (decimale, un dente di sega da -1.0 a 1.0 che poi ricomincia da
+-1.0: verificato facendo disegnare a MiniMessage la sfumatura a fase -1.0 e a fase 1.0, il colore
+che esce e' IDENTICO, quindi il punto di ripartenza e' gia' continuo da solo, un giro sempre nello
+stesso verso) e `{rainbow-phase}` (intero 0..9, qui basta contare perche' l'arcobaleno e'
 gia' ciclico). Funzionano solo dentro quei due tag: `<gradient:#C046E8:#A8DC2C:{gradient-phase}>`,
 `<rainbow:{rainbow-phase}>`. Le caselle finte (`fixed-slots.empty-text`) non animano: sono profili
 costruiti una volta sola all'avvio, non righe ricalcolate a ogni giro.
