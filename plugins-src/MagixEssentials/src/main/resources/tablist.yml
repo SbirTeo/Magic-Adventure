@@ -61,6 +61,17 @@ priority:
 # anima da solo: {gradient-phase}/{rainbow-phase} funzionano SOLO dentro questi due tag, scritti
 # a mano dove servono.
 #
+# --- BANDA PIU' STRETTA (ripetere l'animazione piu' volte sullo stesso testo) ---
+# Un <rainbow> o <gradient> solo fa un giro di colori largo quanto tutto il testo dentro il tag:
+# per farlo ripetere (bande piu' strette) servirebbe spezzare il testo a mano in piu' tag uguali,
+# scomodo da scrivere. Scorciatoia pronta, un tag SOLO:
+#   <rainbow-x3>Testo</rainbow-x3>                          (il numero = quante ripetizioni)
+#   <gradient-x3:#C046E8:#A8DC2C>Testo</gradient-x3>         (stessi colori di sempre, prima del testo)
+# Il plugin spezza "Testo" in altrettanti pezzi (il piu' possibile uguali) e mette ciascuno nel suo
+# <rainbow:{rainbow-phase}>/<gradient:...:{gradient-phase}> vero, gia' con la fase — non serve
+# scriverla. Piu' alto il numero, piu' stretta la banda. Con piu' lettere del testo non succede
+# niente di male: il plugin non fa piu' pezzi di quante lettere ci sono.
+#
 # Le righe " " (spazio) sotto {logo} servono a dare aria: il logo NON e' testo, e' un carattere
 # alto quanto un'immagine (assets/magicadventure/textures/gui/logo.png, iniettato nel font di
 # MagixFactions), e la sua altezza NON si adatta da sola alle righe che vengono dopo. Se le righe

@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Gestore del tablist: intestazione, fondo e nome dei giocatori, presi dal config e aggiornati a
@@ -65,6 +67,19 @@ public final class TabManager implements Listener {
      * problema del gradiente (l'arcobaleno e' gia' ciclico, un giro completo non fa "salti").
      */
     private static final String RAINBOW_PHASE_TOKEN = "{rainbow-phase}";
+
+    /**
+     * Scorciatoia per ripetere un'animazione N volte sullo stesso pezzo di testo, invece di
+     * scrivere N tag identici a mano: {@code <rainbow-x3>testo</rainbow-x3>} spezza "testo" in 3
+     * pezzi e mette ciascuno nel proprio {@code <rainbow:{rainbow-phase}>}, cosi' i colori si
+     * ripetono 3 volte invece di un giro solo largo quanto tutto il testo — una banda piu' stretta,
+     * senza scrivere i tag a mano. Espansa PRIMA di {@link #GRADIENT_PHASE_TOKEN}/
+     * {@link #RAINBOW_PHASE_TOKEN}, cosi' il segnaposto che lascia dentro si sostituisce insieme
+     * agli altri, con lo stesso valore ovunque: le bande si muovono in sincrono.
+     */
+    private static final Pattern RAINBOW_REPEAT = Pattern.compile("<rainbow-x(\\d+)>(.*?)</rainbow-x\\d+>");
+    /** Lo stesso, per {@code <gradient-xN:colori>testo</gradient-xN>} (i colori sono quelli di sempre). */
+    private static final Pattern GRADIENT_REPEAT = Pattern.compile("<gradient-x(\\d+):([^>]+)>(.*?)</gradient-x\\d+>");
 
     private final JavaPlugin plugin;
     /** Le impostazioni del tablist: il {@code tablist.yml} della cartella dati. */
@@ -313,11 +328,62 @@ public final class TabManager implements Listener {
      * quindi qui funzionano anche {@code <gradient:...>} e {@code <rainbow>}, non solo i codici {@code &}.
      */
     private Component render(Player p, String line) {
-        String s = line.replace(LOGO_TOKEN, LOGO_CHAR)
+        String s = espandiRipetizioni(line.replace(LOGO_TOKEN, LOGO_CHAR))
                 .replace(GRADIENT_PHASE_TOKEN, gradientPhase())
                 .replace(RAINBOW_PHASE_TOKEN, rainbowPhase());
         if (papi) s = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(p, s);
         return TextFormat.component(s);
+    }
+
+    /**
+     * Sostituisce {@code <rainbow-xN>testo</rainbow-xN>} e {@code <gradient-xN:colori>testo</
+     * gradient-xN>} con N tag veri concatenati, uno per ogni pezzo in cui "testo" viene spezzato
+     * (il piu' possibile uguali: i caratteri in avanzo vanno ai primi pezzi). Il segnaposto di fase
+     * resta dentro ogni tag generato: si sostituisce dopo, con lo stesso valore per tutti.
+     */
+    private String espandiRipetizioni(String line) {
+        String out = espandi(line, RAINBOW_REPEAT, m ->
+                spezza(m.group(2), Integer.parseInt(m.group(1)), "<rainbow:" + RAINBOW_PHASE_TOKEN + ">",
+                        "</rainbow>"));
+        return espandi(out, GRADIENT_REPEAT, m ->
+                spezza(m.group(3), Integer.parseInt(m.group(1)),
+                        "<gradient:" + m.group(2) + ":" + GRADIENT_PHASE_TOKEN + ">", "</gradient>"));
+    }
+
+    private interface Espansore {
+        String espandi(Matcher m);
+    }
+
+    private String espandi(String line, Pattern pattern, Espansore f) {
+        Matcher m = pattern.matcher(line);
+        if (!m.find()) return line;
+        StringBuilder out = new StringBuilder();
+        int fine = 0;
+        do {
+            out.append(line, fine, m.start()).append(f.espandi(m));
+            fine = m.end();
+        } while (m.find());
+        return out.append(line, fine, line.length()).toString();
+    }
+
+    /**
+     * "testo" spezzato in {@code quante} pezzi il piu' possibile uguali (i primi ricevono un
+     * carattere in piu' quando la divisione non torna esatta), ciascuno chiuso fra prefisso e
+     * suffisso. Meno di 1 pezzo o piu' pezzi che caratteri non avrebbe senso: si tiene fra 1 e la
+     * lunghezza del testo.
+     */
+    private String spezza(String testo, int quante, String prefisso, String suffisso) {
+        int n = Math.max(1, Math.min(quante, Math.max(1, testo.length())));
+        int base = testo.length() / n;
+        int resto = testo.length() % n;
+        StringBuilder out = new StringBuilder();
+        int i = 0;
+        for (int pezzo = 0; pezzo < n; pezzo++) {
+            int lunghezza = base + (pezzo < resto ? 1 : 0);
+            out.append(prefisso).append(testo, i, i + lunghezza).append(suffisso);
+            i += lunghezza;
+        }
+        return out.toString();
     }
 
     /**
