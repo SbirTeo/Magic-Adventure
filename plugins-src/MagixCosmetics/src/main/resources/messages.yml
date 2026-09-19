@@ -24,30 +24,55 @@ info:
   - "  &#C046E8&lMagixCosmetics &7v{version}"
   - "&8&m                                        "
 
-# Riga di stato per un GIOCATORE, secondo il suo caso.
+# Righe di stato per un GIOCATORE, secondo il suo caso. {color} = nome del colore (vedi color-names).
 halo-on:
-  - "  &7Aureola gialla: &#A8DC2CACCESA &8· &7spegnila con &#A8DC2C/cosmetics halo off"
+  - "  &7Aureola: &#A8DC2CACCESA &8({color}) &8· &7spegnila con &#A8DC2C/halo off"
 halo-off:
-  - "  &7Aureola gialla: &#FF6B6BSPENTA &8· &7riaccendila con &#A8DC2C/cosmetics halo on"
+  - "  &7Aureola: &#FF6B6BSPENTA &8· &7riaccendila con &#A8DC2C/halo on"
+halo-in-combat:
+  - "  &7Aureola ({color}): &#FFD166nascosta in combattimento &8· &7torna a vedersi poco dopo la fine dello scontro"
+halo-no-color:
+  - "  &7Aureola: &8nessun colore assegnato &8· &7chiedi allo staff un permesso colore"
 halo-vip-only:
-  - "  &7Aureola gialla: &8riservata ai &#C046E8VIP&8."
+  - "  &7Aureola: &8riservata ai &#C046E8VIP&8."
 halo-disabled-server:
-  - "  &7Aureola gialla: &8disattivata sul server."
+  - "  &7Aureola: &8disattivata sul server."
 
 # Riga di stato quando /cosmetics info lo lancia la CONSOLE (nessun giocatore a cui riferirsi).
 halo-status-server-on:
-  - "  &7Aureola: &#A8DC2Cattiva &8(la vedono i giocatori con magixcosmetics.halo)."
+  - "  &7Aureola: &#A8DC2Cattiva &8(la vedono i giocatori con magixcosmetics.halo e un permesso colore)."
 halo-status-server-off:
   - "  &7Aureola: &#FF6B6Bdisattivata &8(halo.enabled: false)."
 
-# ---------------------------------------------------------------- /cosmetics halo
-halo-set-on: "&aLa tua aureola gialla e' stata riaccesa."
-halo-set-off: "&7La tua aureola gialla e' stata spenta."
+# ---------------------------------------------------------------- /halo
+halo-set-on: "&aLa tua aureola e' stata riaccesa."
+halo-set-off: "&7La tua aureola e' stata spenta."
 halo-already-on: "&eLa tua aureola era gia' accesa."
 halo-already-off: "&eLa tua aureola era gia' spenta."
-halo-no-vip: "&cL'aureola gialla e' riservata ai VIP."
+halo-no-vip: "&cL'aureola e' riservata ai VIP."
 halo-disabled: "&cIn questo momento l'aureola e' disattivata sul server."
-halo-usage: "&eUso: &#A8DC2C/cosmetics halo <on|off>"
+halo-usage: "&eUso: &#A8DC2C/halo <on|off> &7oppure &#A8DC2C/halo setcolor <colore>"
+# {colors} = elenco dei nomi di colore validi (vedi color-names), separati da virgola.
+halo-setcolor-unknown: "&cColore sconosciuto. Colori disponibili: &e{colors}"
+# {color} = nome del colore che non gli e' permesso.
+halo-setcolor-no-permission: "&cNon hai il permesso per il colore &e{color}&c. Chiedilo allo staff."
+# {color} = nome del colore appena scelto.
+halo-setcolor-set: "&aAureola impostata al colore &e{color}&a."
+
+# Nomi dei colori come li legge un giocatore in chat. Le CHIAVI corrispondono a quelle di
+# halo.colors nel config e al permesso magixcosmetics.halo.color.<chiave>: sono l'handle del
+# comando "/halo setcolor <chiave>", quindi NON si traducono. Solo i VALORI sono il testo in
+# italiano che compare in chat.
+color-names:
+  yellow: "giallo"
+  red: "rosso"
+  orange: "arancione"
+  lime: "lime"
+  aqua: "azzurro"
+  blue: "blu"
+  purple: "viola"
+  pink: "rosa"
+  white: "bianco"
 
 # ---------------------------------------------------------------- /cosmetics help
 # L'aiuto lo impagina la classe Help (la stessa in tutti i plugin Magix): una sezione per
@@ -61,7 +86,8 @@ help:
       title: "Cosmetici"
       entries:
         - "/cosmetics info :: mostra i tuoi cosmetici e il loro stato"
-        - "/cosmetics halo <on|off> :: accendi o spegni la tua aureola (VIP)"
+        - "/halo <on|off> :: accendi o spegni la tua aureola (VIP)"
+        - "/halo setcolor <colore> :: cambia il colore della tua aureola (serve il permesso di quel colore)"
     staff:
       title: "Staff"
       staff: true

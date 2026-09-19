@@ -3,20 +3,50 @@ version: '${project.version}'
 main: com.teolo.magixcosmetics.MagixCosmetics
 api-version: '26.1'
 author: teolo
-description: "Cosmetici a particelle per i giocatori (per ora: l'aureola gialla dei VIP)."
+description: "Cosmetici a particelle per i giocatori (per ora: l'aureola colorata dei VIP)."
 
 commands:
   magixcosmetics:
     aliases: [cosmetics, cosmetic, mcosmetics]
-    description: Stato dei propri cosmetici e accensione dell'aureola.
+    description: Stato dei propri cosmetici.
     usage: /cosmetics help
+  halo:
+    description: Accendi, spegni e scegli il colore della tua aureola.
+    usage: /halo <on|off|setcolor <colore>>
 
 permissions:
   magixcosmetics.use:
-    description: Usare /cosmetics per vedere e accendere i propri cosmetici.
+    description: Usare /cosmetics per vedere lo stato dei propri cosmetici.
     default: true
   magixcosmetics.halo:
-    description: Mostra l'aureola gialla sopra la testa. Da assegnare ai VIP.
+    description: Puo' avere l'aureola sopra la testa (serve ANCHE un permesso colore, es. magixcosmetics.halo.color.yellow). Da assegnare ai VIP.
+    default: false
+  magixcosmetics.halo.color.yellow:
+    description: Aureola gialla.
+    default: false
+  magixcosmetics.halo.color.red:
+    description: Aureola rossa.
+    default: false
+  magixcosmetics.halo.color.orange:
+    description: Aureola arancione.
+    default: false
+  magixcosmetics.halo.color.lime:
+    description: Aureola verde lime.
+    default: false
+  magixcosmetics.halo.color.aqua:
+    description: Aureola azzurra.
+    default: false
+  magixcosmetics.halo.color.blue:
+    description: Aureola blu.
+    default: false
+  magixcosmetics.halo.color.purple:
+    description: Aureola viola.
+    default: false
+  magixcosmetics.halo.color.pink:
+    description: Aureola rosa.
+    default: false
+  magixcosmetics.halo.color.white:
+    description: Aureola bianca.
     default: false
   magixcosmetics.admin:
     description: Comandi amministrativi (reload).
