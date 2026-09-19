@@ -78,12 +78,14 @@ style: auto
 # jar non conosce viene tolta). I segnaposto di un plugin che su questo server non c'e' restano
 # VUOTI, non scritti a schermo — quindi una voce sbagliata non riempie di %...% la testa di nessuno.
 styles:
-  # Fazioni: il nome della fazione sopra il nome, col colore del grado che si vede anche sul sito.
+  # Fazioni: il nome della fazione sopra il nome, entrambi col colore RELAZIONALE (verde/alleato,
+  # rosso/nemico...) verso chi guarda — non col colore del grado (%magixweb_namecolor%), che e'
+  # lo stesso per tutti e non direbbe niente sulla relazione fra le fazioni.
   - name: factions
     requires: [MagixFactions]
     lines:
-      - '&8[&d%magixfactions_faction%&8]'
-      - '%magixweb_namecolor%{name}'
+      - '&8[%rel_magixfactions_relation_color%%magixfactions_faction%&8]'
+      - '%rel_magixfactions_relation_color%{name}'
   # Nessuna modalita' riconosciuta: il nome e basta, col colore del grado. Non chiede niente, quindi
   # va sempre bene: per questo sta in fondo.
   - name: plain
@@ -147,8 +149,10 @@ display:
   view-range: 1.0
   # Nasconde a ciascuno la PROPRIA targhetta: in terza persona uno vedrebbe le righe da dietro.
   hide-self: true
-  # La toglie a chi si accuccia, come fa il gioco con la targhetta normale.
-  hide-when-sneaking: true
+  # Quanto resta visibile la targhetta di chi si accuccia: 1.0 = invariata, 0.0 = invisibile. Il
+  # gioco, con la sua targhetta normale, l'accucciata non la nasconde del tutto: la sfuma soltanto.
+  # 0.3 e' una sfumatura vicina a quella.
+  sneak-opacity: 0.3
   # La toglie a chi e' invisibile (pozione, /vanish dello staff): una riga che galleggia da sola
   # dice a tutti dov'e' chi non si dovrebbe vedere.
   hide-when-invisible: true
