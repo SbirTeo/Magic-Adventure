@@ -88,6 +88,8 @@ jobs:
           grep -m1 -E "This server is running|Starting minecraft server version" "$LOG" 2>/dev/null
           java -version 2>&1 | head -n1
           if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then echo "screen mc: attivo"; else echo "screen mc: NON attivo"; fi
+          systemctl show magicadventure.service --property=Restart,RestartSec 2>/dev/null \
+            || echo "(systemctl non raggiungibile o servizio magicadventure non installato con questo nome)"
 
           echo
           echo "=== PLUGIN INSTALLATI ==="
