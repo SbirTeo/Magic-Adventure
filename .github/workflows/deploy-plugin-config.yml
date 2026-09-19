@@ -44,6 +44,12 @@ name: Aggiorna una chiave di config plugin sul VPS
 #                    da scrivere, dalla riga "key:" in poi con la sua indentazione, codificato
 #                    come sempre in base64 per sopravvivere a `:`, `&`, righe multiple ecc.
 #                    `marker` non si usa.
+#   - replace-block: come append-block ma per un blocco di primo livello che c'e' GIA':
+#                    toglie tutte le righe da "key:" fino alla prossima riga a colonna 0
+#                    (comprese) e ci scrive al loro posto `value`, nella stessa posizione nel
+#                    file. Serve a correggere un blocco sbagliato (es. un append-block con un
+#                    errore) senza doppioni. ERRORE se "key:" non esiste (in quel caso serve
+#                    append-block, non replace-block). `marker` non si usa.
 #
 # Solo manuale (workflow_dispatch): non parte da solo su push.
 
@@ -66,7 +72,7 @@ on:
         required: false
         default: ""
       mode:
-        description: "set | insert-after | rename | dedup | append-block (vedi commenti in testa al file)"
+        description: "set | insert-after | rename | dedup | append-block | replace-block (vedi commenti in testa al file)"
         required: false
         default: "set"
       marker:
@@ -164,6 +170,35 @@ jobs:
                       f.write('\n')
                   f.write(testo)
               print('OK -> aggiunto il blocco "%s" in fondo a %s' % (keyraw, path))
+              print('Backup:', bak)
+              sys.exit(0)
+
+          if mode == 'replace-block':
+              # Come append-block ma il blocco c'e' GIA': lo toglie (dalla riga "key:" fino alla
+              # prossima riga a colonna 0, escluse le righe vuote/di commento che restano) e ci
+              # scrive al suo posto `value`, nella stessa posizione. Serve a correggere un
+              # blocco sbagliato senza lasciare un doppione (in YAML vince l'ultimo, ma un
+              # doppione e' comunque sporco e confonde chi legge il file a mano).
+              top_pat = re.compile(r'^' + re.escape(keyraw) + r':([ \t].*)?$')
+              start = None
+              for i, l in enumerate(lines):
+                  if top_pat.match(l.rstrip('\n').rstrip('\r')):
+                      start = i; break
+              if start is None:
+                  print('ERRORE: blocco non trovato:', keyraw, '(serve append-block, non replace-block)'); sys.exit(6)
+              fine = start + 1
+              while fine < len(lines):
+                  r = lines[fine].rstrip('\n').rstrip('\r')
+                  if r.strip() and indent_of(r) == 0:
+                      break
+                  fine += 1
+              bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+              shutil.copy2(path, bak)
+              testo = val if val.endswith('\n') else val + '\n'
+              lines[start:fine] = [testo]
+              with open(path, 'w', encoding='utf-8') as f:
+                  f.writelines(lines)
+              print('OK -> sostituito il blocco "%s" in %s' % (keyraw, path))
               print('Backup:', bak)
               sys.exit(0)
 
