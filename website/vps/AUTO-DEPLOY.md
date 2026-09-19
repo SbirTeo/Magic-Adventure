@@ -91,24 +91,22 @@ Dettagli d'ambiente (da `istanze.conf`): sessione screen `mc`, utente `ubuntu`, 
 
 ## Riavvio notturno automatico (attivo)
 
-Ogni notte alle 03:00 **ora italiana** il server si riavvia da solo, con preavviso ai
-giocatori: 5 minuti, 1 minuto, 30 secondi, poi un conto alla rovescia 10..1 (anche come
-titolo a schermo negli ultimi 10 secondi), un `save-all` e infine il riavvio vero.
+Ogni notte il server si riavvia da solo, con preavviso ai giocatori: 5 minuti, 1 minuto,
+30 secondi, poi un conto alla rovescia 10..1 (anche come titolo a schermo negli ultimi 10
+secondi) e infine un semplice `stop`.
 
-Non e' un job di GitHub Actions (il minimo per uno `schedule` li' e' un'ora, troppo grezzo
-per un countdown al secondo): e' `website/vps/riavvio-notturno.sh`, lanciato dal **crontab
-dell'utente `ubuntu`** sul VPS (nessun sudo per installarlo: e' il crontab dell'utente
-stesso). Il VPS gira in UTC (verificato via diagnostica-vps), quindi il crontab lo lancia
-**ogni minuto**: e' lo script stesso, ragionando sempre in fuso `Europe/Rome`, a uscire
-subito a vuoto finche' non sono esattamente le 02:55 ora italiana — cosi' il cambio tra ora
-solare e legale non lo manda un'ora fuori, cosa che capiterebbe con un orario fisso scritto
-nel crontab in UTC. Lo script calcola poi da solo il tempo che manca alle 03:00 e manda i
-messaggi in game via `screen` (stesso meccanismo del reload dei plugin); il riavvio finale
-usa `systemctl restart magicadventure.service` con gli **stessi** permessi sudo del deploy
-plugin qui sopra — necessario perche' il servizio ha `Restart=no`: un semplice `/stop` dentro
-al gioco lascerebbe il server giu' per sempre, non lo farebbe ripartire da solo.
+Non serve systemd ne' un cron esterno: `server/start.sh` (`while true; do java ...; done`)
+gia' riavvia da solo il processo qualche secondo dopo QUALSIASI stop, backup di AutoBackup
+compreso — mandare "stop" da un plugin di gioco basta e avanza. Il countdown vive quindi
+interamente in `plugins/CMI/Settings/Schedules.yml` come una voce dello scheduler di CMI
+(`PerformOn`, con `delay!` tra un avviso e l'altro — stesso meccanismo dell'esempio
+`StopServer` gia' presente di default in quel file), aggiunta/corretta con gli stessi
+workflow usati per gli altri interventi mirati su un file di config gia' sul VPS
+(`deploy-plugin-config.yml`, modalita' `append-block`/`replace-block`).
 
-Setup/aggiornamento: `.github/workflows/deploy-riavvio-notturno.yml`, automatico su push che
-tocca lo script, oppure manuale (utile per re-installare il cron senza cambiare il file).
-Usa gli stessi tre secret VPS del deploy sito/plugin. Log delle esecuzioni:
-`/home/ubuntu/magicadventure/logs/riavvio-notturno.log` sul VPS.
+ATTENZIONE fuso orario: il VPS gira in UTC (verificato via diagnostica-vps), e CMI legge
+l'ora dalla JVM del server — anche lei in UTC, non in ora italiana. L'orario scritto nello
+schedule (`PerformOn: Hour: ...`) va quindi letto come UTC: nella pratica, con l'Italia in
+ora legale (CEST, UTC+2) le 3 di notte italiane sono `Hour: 1` nello schedule, e in ora
+solare (CET, UTC+1) diventano `Hour: 2` — da aggiustare a mano ai due cambi d'ora annuali
+finche' nessuno dei due (server o schedule) tiene conto del fuso italiano.
