@@ -1,13 +1,15 @@
 name: Deploy riavvio notturno del server
 
 # Copia website/vps/riavvio-notturno.sh sul VPS e (ri)installa il cron dell'utente ubuntu
-# che lo lancia ogni notte alle 02:55 (lo script stesso aspetta fino alle 03:00 per il
-# riavvio vero, mandando i preavvisi in game nel frattempo - vedi i commenti nello script).
+# che lo lancia OGNI MINUTO (lo script stesso esce subito a vuoto finche' non sono le
+# 02:55 ora italiana - il VPS gira in UTC, quindi un orario fisso nel crontab sbaglierebbe
+# di un'ora tra ora solare e legale; vedi i commenti in testa allo script).
 #
 # Il cron non serve a mandare i comandi in game (quello lo fa lo script via screen): serve
-# a far PARTIRE lo script alla stessa ora ogni giorno. E' un crontab dell'utente, non un
-# servizio systemd: non serve sudo per installarlo, cosi' funziona anche da sessioni cloud
-# con gli stessi secret VPS_HOST/VPS_USER/VPS_SSH_KEY del deploy sito/plugin.
+# solo a far girare lo script abbastanza spesso da non perdere il minuto giusto. E' un
+# crontab dell'utente, non un servizio systemd: non serve sudo per installarlo, cosi'
+# funziona anche da sessioni cloud con gli stessi secret VPS_HOST/VPS_USER/VPS_SSH_KEY del
+# deploy sito/plugin.
 #
 # Automatico: push su main che tocca questo file o lo script. Manuale: workflow_dispatch,
 # utile per re-installare il cron senza toccare il file (es. dopo un intervento a mano sul
@@ -63,9 +65,13 @@ jobs:
 
           # Idempotente: toglie una riga precedente per questo script (se c'era) e ne
           # aggiunge una fresca, senza toccare il resto del crontab dell'utente.
+          # NB: "grep -v" su un crontab vuoto/assente esce con status 1 (nessuna riga
+          # selezionata) - il "|| true" e' necessario, altrimenti "set -e" interrompe la
+          # subshell PRIMA dell'echo che scrive la riga, e "crontab -" installa un
+          # crontab vuoto senza errori visibili (bug reale, capitato al primo giro).
           $SSH "REMOTE_PATH='$REMOTE_PATH' bash -s" <<'REMOTE'
           set -e
-          (crontab -l 2>/dev/null | grep -vF "$REMOTE_PATH"; echo "55 2 * * * $REMOTE_PATH") | crontab -
+          (crontab -l 2>/dev/null | grep -vF "$REMOTE_PATH" || true; echo "* * * * * $REMOTE_PATH") | crontab -
           echo "--- crontab di ubuntu ---"
           crontab -l
           REMOTE

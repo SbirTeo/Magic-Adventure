@@ -1,12 +1,20 @@
 #!/bin/bash
-# Riavvio automatico del server Minecraft ogni notte alle 03:00, con preavviso ai giocatori
-# (5 minuti, 1 minuto, 30 secondi, poi conto alla rovescia 10..1 con titolo a schermo).
+# Riavvio automatico del server Minecraft ogni notte alle 03:00 ORA ITALIANA, con
+# preavviso ai giocatori (5 minuti, 1 minuto, 30 secondi, poi conto alla rovescia 10..1
+# con titolo a schermo).
 #
-# Lanciato dal crontab dell'utente ubuntu alle 02:55 (installato/aggiornato da
-# .github/workflows/deploy-riavvio-notturno.yml a ogni push che tocca questo file).
-# Da qui in poi il tempo che manca a mezzanotte... ehm, alle 03:00 si ricalcola ogni
+# Il VPS gira in UTC (verificato via diagnostica-vps), quindi "le 3 del mattino" non e'
+# un orario fisso in UTC: cambia di un'ora tra ora solare e legale. Anziche' calcolare a
+# mano il turno legale/solare nel crontab, il crontab lancia questo script OGNI MINUTO
+# (installato/aggiornato da .github/workflows/deploy-riavvio-notturno.yml) e lo script
+# stesso, ragionando SEMPRE in fuso Europe/Rome (TZ sotto), esce subito a vuoto finche'
+# non e' esattamente 02:55 ora italiana: e' quel controllo interno, non il crontab, a
+# scattare sempre alla stessa ora italiana tutto l'anno (Europe/Rome gestisce da solo il
+# cambio ora legale/solare). Il costo di un controllo a vuoto ogni minuto e' trascurabile.
+#
+# Da qui in poi (trovato il minuto giusto) il tempo che manca alle 03:00 si ricalcola ogni
 # volta dall'orologio (aspetta_fino_a), invece di sommare sleep fissi in sequenza: cosi'
-# non accumula ritardo se il cron parte con qualche secondo di scarto.
+# non accumula ritardo se l'avvio ha anche solo un secondo di scarto.
 #
 # Il riavvio VERO (che rimette su il server) deve passare da qui, non da un /stop dentro
 # al gioco: plugins/CMI/Settings/Schedules.yml puo' mandare solo comandi di Minecraft, e
@@ -14,10 +22,23 @@
 # non lo riavvia qualcuno a mano. Il comando di restart usa la stessa regola sudoers gia'
 # in uso per l'auto-deploy dei plugin (systemctl restart magicadventure.service, NOPASSWD).
 set -uo pipefail
+export TZ=Europe/Rome
 
 SCREEN_SESSION=mc
 BASE=/home/ubuntu/magicadventure
 LOG="$BASE/logs/riavvio-notturno.log"
+LOCKFILE=/tmp/riavvio-notturno.lock
+
+# Il crontab lancia lo script ogni minuto: esce subito se non e' il minuto giusto (ora
+# italiana). Il lockfile e' una sicurezza in piu' contro un doppio avvio nello stesso
+# minuto (es. un'esecuzione precedente ancora in corso per qualche motivo).
+[ "$(date +%H:%M)" = "02:55" ] || exit 0
+if [ -e "$LOCKFILE" ]; then
+  echo "$(date '+%F %T') gia' in corso (lockfile presente), esco" >> "$LOG"
+  exit 0
+fi
+touch "$LOCKFILE"
+trap 'rm -f "$LOCKFILE"' EXIT
 
 manda() {
   # $1 = comando da eseguire in game (senza lo slash iniziale, come in console)

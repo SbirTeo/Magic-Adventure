@@ -91,15 +91,19 @@ Dettagli d'ambiente (da `istanze.conf`): sessione screen `mc`, utente `ubuntu`, 
 
 ## Riavvio notturno automatico (attivo)
 
-Ogni notte alle 03:00 (ora del VPS) il server si riavvia da solo, con preavviso ai
+Ogni notte alle 03:00 **ora italiana** il server si riavvia da solo, con preavviso ai
 giocatori: 5 minuti, 1 minuto, 30 secondi, poi un conto alla rovescia 10..1 (anche come
 titolo a schermo negli ultimi 10 secondi), un `save-all` e infine il riavvio vero.
 
 Non e' un job di GitHub Actions (il minimo per uno `schedule` li' e' un'ora, troppo grezzo
-per un countdown al secondo): e' `website/vps/riavvio-notturno.sh`, lanciato ogni giorno
-alle 02:55 dal **crontab dell'utente `ubuntu`** sul VPS (nessun sudo per installarlo: e' il
-crontab dell'utente stesso). Lo script calcola da solo il tempo che manca alle 03:00 e manda
-i messaggi in game via `screen` (stesso meccanismo del reload dei plugin); il riavvio finale
+per un countdown al secondo): e' `website/vps/riavvio-notturno.sh`, lanciato dal **crontab
+dell'utente `ubuntu`** sul VPS (nessun sudo per installarlo: e' il crontab dell'utente
+stesso). Il VPS gira in UTC (verificato via diagnostica-vps), quindi il crontab lo lancia
+**ogni minuto**: e' lo script stesso, ragionando sempre in fuso `Europe/Rome`, a uscire
+subito a vuoto finche' non sono esattamente le 02:55 ora italiana — cosi' il cambio tra ora
+solare e legale non lo manda un'ora fuori, cosa che capiterebbe con un orario fisso scritto
+nel crontab in UTC. Lo script calcola poi da solo il tempo che manca alle 03:00 e manda i
+messaggi in game via `screen` (stesso meccanismo del reload dei plugin); il riavvio finale
 usa `systemctl restart magicadventure.service` con gli **stessi** permessi sudo del deploy
 plugin qui sopra — necessario perche' il servizio ha `Restart=no`: un semplice `/stop` dentro
 al gioco lascerebbe il server giu' per sempre, non lo farebbe ripartire da solo.
