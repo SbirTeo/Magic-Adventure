@@ -78,14 +78,18 @@ style: auto
 # jar non conosce viene tolta). I segnaposto di un plugin che su questo server non c'e' restano
 # VUOTI, non scritti a schermo — quindi una voce sbagliata non riempie di %...% la testa di nessuno.
 styles:
-  # Fazioni: il nome della fazione sopra il nome, entrambi col colore RELAZIONALE (verde/alleato,
+  # Fazioni: il tag della fazione e il nome, entrambi col colore RELAZIONALE (verde/alleato,
   # rosso/nemico...) verso chi guarda — non col colore del grado (%magixweb_namecolor%), che e'
   # lo stesso per tutti e non direbbe niente sulla relazione fra le fazioni.
+  #
+  # UNA riga sola, di proposito: il relazionale e' DIVERSO per ogni spettatore, e questo lo sa
+  # fare solo la targhetta del gioco (mode: vanilla), che con una riga sola e' quello che 'auto'
+  # sceglie da se'. Con due righe 'auto' passerebbe a mode: display — un'entita' del mondo, uguale
+  # per tutti — e il relazionale varrebbe come se ciascuno guardasse se stesso (sempre verde).
   - name: factions
     requires: [MagixFactions]
     lines:
-      - '&8[%rel_magixfactions_relation_color%%magixfactions_faction%&8]'
-      - '%rel_magixfactions_relation_color%{name}'
+      - '&8[%rel_magixfactions_relation_color%%magixfactions_faction%&8] %rel_magixfactions_relation_color%{name}'
   # Nessuna modalita' riconosciuta: il nome e basta, col colore del grado. Non chiede niente, quindi
   # va sempre bene: per questo sta in fondo.
   - name: plain
