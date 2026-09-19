@@ -76,6 +76,12 @@ public final class Messages {
         return cfg.getConfigurationSection(path);
     }
 
+    /** Il nome di un colore come lo legge un giocatore (da "color-names" in messages.yml), o la chiave stessa se manca. */
+    public String colorLabel(String colorKey) {
+        ConfigurationSection names = section("color-names");
+        return names != null ? names.getString(colorKey, colorKey) : colorKey;
+    }
+
     /** Componente Adventure gia' colorato: serve per titoli e action bar. */
     public Component component(String path, String... kv) {
         return Colors.component(get(path, kv));

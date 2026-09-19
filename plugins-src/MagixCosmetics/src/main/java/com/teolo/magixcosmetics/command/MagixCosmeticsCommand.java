@@ -36,7 +36,6 @@ public final class MagixCosmeticsCommand implements CommandExecutor, TabComplete
         switch (sub) {
             case "info" -> info(sender);
             case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
-            case "halo", "aureola" -> halo(sender, args);
             case "reload" -> reload(sender);
             default -> msg.send(sender, "unknown-subcommand");
         }
@@ -51,36 +50,14 @@ public final class MagixCosmeticsCommand implements CommandExecutor, TabComplete
             msg.sendList(sender, plugin.halo().enabled() ? "halo-status-server-on" : "halo-status-server-off");
             return;
         }
-        if (!plugin.halo().enabled()) msg.sendList(sender, "halo-disabled-server");
-        else if (!p.hasPermission(HaloManager.HALO_PERMISSION)) msg.sendList(sender, "halo-vip-only");
-        else if (plugin.halo().isDisabled(p.getUniqueId())) msg.sendList(sender, "halo-off");
-        else msg.sendList(sender, "halo-on");
-    }
-
-    // ------------------------------------------------------------- aureola
-
-    private void halo(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player p)) { msg.send(sender, "players-only"); return; }
-        if (!plugin.halo().enabled()) { msg.send(sender, "halo-disabled"); return; }
-        if (!p.hasPermission(HaloManager.HALO_PERMISSION)) { msg.send(sender, "halo-no-vip"); return; }
-
-        boolean currentlyOn = !plugin.halo().isDisabled(p.getUniqueId());
-        boolean want;
-        if (args.length >= 2) {
-            String a = args[1].toLowerCase(Locale.ROOT);
-            if (a.equals("on") || a.equals("accendi")) want = true;
-            else if (a.equals("off") || a.equals("spegni")) want = false;
-            else if (a.equals("toggle")) want = !currentlyOn;
-            else { msg.send(sender, "halo-usage"); return; }
-        } else {
-            want = !currentlyOn;   // nessun argomento = inverti
-        }
-
-        if (want && currentlyOn) { msg.send(sender, "halo-already-on"); return; }
-        if (!want && !currentlyOn) { msg.send(sender, "halo-already-off"); return; }
-
-        plugin.halo().toggle(p.getUniqueId(), want);
-        msg.send(sender, want ? "halo-set-on" : "halo-set-off");
+        HaloManager halo = plugin.halo();
+        if (!halo.enabled()) { msg.sendList(sender, "halo-disabled-server"); return; }
+        if (!p.hasPermission(HaloManager.HALO_PERMISSION)) { msg.sendList(sender, "halo-vip-only"); return; }
+        if (halo.isDisabled(p.getUniqueId())) { msg.sendList(sender, "halo-off"); return; }
+        String color = halo.activeColorName(p);
+        if (color == null) { msg.sendList(sender, "halo-no-color"); return; }
+        if (halo.isInCombat(p.getUniqueId())) { msg.sendList(sender, "halo-in-combat", "color", msg.colorLabel(color)); return; }
+        msg.sendList(sender, "halo-on", "color", msg.colorLabel(color));
     }
 
     // ------------------------------------------------------------- aiuto
@@ -110,12 +87,9 @@ public final class MagixCosmeticsCommand implements CommandExecutor, TabComplete
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         boolean admin = sender.hasPermission(ADMIN);
         if (args.length == 1) {
-            List<String> base = new ArrayList<>(List.of("info", "halo", "help"));
+            List<String> base = new ArrayList<>(List.of("info", "help"));
             if (admin) base.add("reload");
             return filter(base, args[0]);
-        }
-        if (args.length == 2 && (args[0].equalsIgnoreCase("halo") || args[0].equalsIgnoreCase("aureola"))) {
-            return filter(List.of("on", "off"), args[1]);
         }
         return Collections.emptyList();
     }

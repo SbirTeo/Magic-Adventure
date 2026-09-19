@@ -1,8 +1,10 @@
 # MagixCosmetics - cosmetici a particelle per i giocatori.
-# Per ora c'e' una cosa sola: l'aureola gialla che gira sopra la testa dei VIP.
+# Per ora c'e' una cosa sola: l'aureola colorata che gira sopra la testa dei VIP.
 #
 # Chi vede l'aureola? Chi ha il permesso magixcosmetics.halo (di norma il grado VIP su
-# LuckPerms). Non serve nessun comando: appena il permesso c'e', l'aureola compare.
+# LuckPerms). NON basta pero': senza ANCHE un permesso colore (vedi halo.colors sotto)
+# l'aureola non ha nessun colore e non si disegna. Non serve nessun comando per accenderla:
+# appena i due permessi ci sono, l'aureola compare da sola nel colore giusto.
 # I testi e i colori dei messaggi stanno in messages.yml; qui ci sono solo i numeri della resa.
 
 # L'aureola e' un SOLO puntino che orbita in cerchio sopra la testa (non un anello pieno).
@@ -10,8 +12,21 @@ halo:
   # Interruttore generale dell'aureola. Spento, nessuno la vede e il task non gira.
   enabled: true
 
-  # Colore del puntino, in esadecimale #RRGGBB. Il giallo dei VIP e' #FFDD33.
-  color: "#FFDD33"
+  # La tavolozza dei colori disponibili, in esadecimale #RRGGBB. Ogni nome qui sotto e' anche
+  # un permesso: magixcosmetics.halo.color.<nome> (es. magixcosmetics.halo.color.yellow).
+  # NON c'e' un colore di default: un giocatore senza nessuno di questi permessi non ha
+  # colore, quindi l'aureola non si disegna anche se ha magixcosmetics.halo. Con uno di questi
+  # permessi il colore si accende da solo; con piu' di uno si sceglie con /halo setcolor <nome>.
+  colors:
+    yellow: "#FFDD33"
+    red: "#FF5C5C"
+    orange: "#FFA033"
+    lime: "#66FF66"
+    aqua: "#33DDDD"
+    blue: "#3388FF"
+    purple: "#B266FF"
+    pink: "#FF66CC"
+    white: "#F5F5F5"
 
   # Raggio dell'orbita, in blocchi. 0.4 sta appena piu' largo della testa.
   radius: 0.4
@@ -35,3 +50,12 @@ halo:
 
   # Nascondi l'aureola a chi ha la pozione di invisibilita'.
   hide-when-invisible: true
+
+  # L'aureola sparisce durante un combattimento PvP e per un po' dopo: da bersaglio colorato
+  # diventerebbe un vantaggio ingiusto per chi insegue o scappa in mezzo alla folla.
+  combat:
+    # Interruttore di questa funzione. Spento, l'aureola resta visibile anche in combattimento.
+    hide-while-fighting: true
+
+    # Quanti secondi dopo l'ultimo colpo dato o subito l'aureola torna a vedersi.
+    cooldown-after-combat-seconds: 30
