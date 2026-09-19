@@ -36,6 +36,14 @@ name: Aggiorna una chiave di config plugin sul VPS
 #                    codice: il file gia' sul VPS resterebbe con il nome vecchio, che
 #                    il plugin non legge piu' (e il vecchio valore verrebbe ignorato
 #                    in silenzio). Idempotente: se c'e' gia' il nome nuovo, non fa nulla.
+#   - append-block:  aggiunge in fondo al file un blocco NUOVO di primo livello (piu' righe,
+#                    es. una voce di plugins/CMI/Settings/Schedules.yml con la sua lista di
+#                    Commands) invece di cambiare un valore gia' presente. `key` e' il NOME
+#                    del blocco (es. AutoMessaggi): se un rigo "key:" a colonna 0 esiste gia',
+#                    e' un NO-OP (idempotente, non tocca nulla). `value` e' il blocco intero
+#                    da scrivere, dalla riga "key:" in poi con la sua indentazione, codificato
+#                    come sempre in base64 per sopravvivere a `:`, `&`, righe multiple ecc.
+#                    `marker` non si usa.
 #
 # Solo manuale (workflow_dispatch): non parte da solo su push.
 
@@ -58,7 +66,7 @@ on:
         required: false
         default: ""
       mode:
-        description: "set | insert-after | rename | dedup (toglie i blocchi duplicati tenendo il primo)"
+        description: "set | insert-after | rename | dedup | append-block (vedi commenti in testa al file)"
         required: false
         default: "set"
       marker:
@@ -138,6 +146,26 @@ jobs:
 
           def indent_of(s):
               return len(s) - len(s.lstrip(' \t'))
+
+          if mode == 'append-block':
+              # Blocco NUOVO di primo livello (piu' righe): non cambia un valore che c'e' gia',
+              # aggiunge in fondo al file una voce che prima non c'era (es. una nuova voce di
+              # Schedules.yml). key = nome del blocco, usato solo per il controllo idempotente
+              # (un rigo "key:" a colonna 0 gia' presente vuol dire che il blocco c'e' gia').
+              top_pat = re.compile(r'^' + re.escape(keyraw) + r':([ \t].*)?$')
+              for l in lines:
+                  if top_pat.match(l.rstrip('\n').rstrip('\r')):
+                      print('NO-OP: blocco "%s" gia\' presente in %s' % (keyraw, path)); sys.exit(0)
+              bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+              shutil.copy2(path, bak)
+              testo = val if val.endswith('\n') else val + '\n'
+              with open(path, 'a', encoding='utf-8') as f:
+                  if lines and not lines[-1].endswith('\n'):
+                      f.write('\n')
+                  f.write(testo)
+              print('OK -> aggiunto il blocco "%s" in fondo a %s' % (keyraw, path))
+              print('Backup:', bak)
+              sys.exit(0)
 
           if mode == 'dedup':
               # Tiene il PRIMO blocco di ogni chiave di primo livello e butta i successivi, coi
