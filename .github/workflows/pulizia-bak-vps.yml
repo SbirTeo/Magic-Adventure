@@ -57,15 +57,19 @@ jobs:
           set -euo pipefail
           PLUGDIR=/home/ubuntu/magicadventure/plugins
           BAKDIR="$PLUGDIR/.bak"
+          RIMOSSIDIR="$PLUGDIR/.rimossi"
 
           # Lo stesso schema di nome usato da ConfigAlign/CmiModules: "<file>.bak-<yyyyMMdd-HHmmss>".
           # -name con '*.bak-*' prende sia config.yml.bak-... sia Modules.yml.bak-... ovunque sotto
-          # plugins/ (anche nelle sottocartelle, es. CMI/Settings/). -path esclude BAKDIR stesso: un
-          # run gia' eseguito non deve provare a spostare quello che ha gia' spostato lui.
-          mapfile -d '' -t TROVATI < <(find "$PLUGDIR" -type f -name '*.bak-*' -not -path "$BAKDIR/*" -print0 | sort -z)
+          # plugins/ (anche nelle sottocartelle, es. CMI/Settings/). -path esclude BAKDIR stesso (un
+          # run gia' eseguito non deve rispostare quello che ha gia' spostato lui) e RIMOSSIDIR: i
+          # .bak dentro un plugin gia' disinstallato (plugins/.rimossi/<Plugin>.dati.<data>/...) sono
+          # backup di un backup ormai inutile, e restano dov'erano.
+          mapfile -d '' -t TROVATI < <(find "$PLUGDIR" -type f -name '*.bak-*' \
+              -not -path "$BAKDIR/*" -not -path "$RIMOSSIDIR/*" -print0 | sort -z)
 
           if [ "${#TROVATI[@]}" -eq 0 ]; then
-            echo "Nessun file .bak trovato sotto $PLUGDIR (fuori da .bak/)."
+            echo "Nessun file .bak trovato sotto $PLUGDIR (fuori da .bak/ e .rimossi/)."
             exit 0
           fi
 
