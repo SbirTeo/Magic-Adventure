@@ -292,6 +292,15 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "ogni giro: un gradiente ci sta, ma resta fermo. L'animazione vale solo per "
                                 + "intestazione, fondo e nome — quelle si riscrivono davvero a ogni "
                                 + "update-interval-ticks.",
+                        "**Banda piu' stretta: <rainbow-xN> e <gradient-xN:colori>.** Un tag solo fa un giro largo "
+                                + "quanto tutto il testo dentro; per ripeterlo (bande piu' strette) servirebbe "
+                                + "spezzare il testo a mano in piu' tag identici, scomodo da scrivere (segnalato "
+                                + "dall'utente). Scorciatoia: <rainbow-x3>Testo</rainbow-x3> oppure "
+                                + "<gradient-x3:#C046E8:#A8DC2C>Testo</gradient-x3> — il plugin spezza \"Testo\" in "
+                                + "altrettanti pezzi il piu' possibile uguali e genera da solo i tag veri, gia' con "
+                                + "la fase dentro: non serve scrivere {gradient-phase}/{rainbow-phase} a mano in "
+                                + "questo caso. Piu' alto il numero, piu' stretta la banda; oltre quante lettere ha "
+                                + "il testo non ha effetto (il plugin non fa pezzi piu' piccoli di un carattere).",
                         "Un'animazione si vede scorrere solo se **update-interval-ticks** e' piu' rapido di "
                                 + "**animation-period-seconds**: abbassare la seconda sotto la prima non fa niente, "
                                 + "l'aggiornamento resta il collo di bottiglia.",

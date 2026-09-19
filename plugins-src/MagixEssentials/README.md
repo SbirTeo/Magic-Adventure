@@ -4,7 +4,7 @@ Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base**
 cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — il
 **tablist**, la **MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.12**
+Versione: **0.8.13**
 
 ---
 
@@ -54,6 +54,15 @@ stesso verso) e `{rainbow-phase}` (intero 0..9, qui basta contare perche' l'arco
 gia' ciclico). Funzionano solo dentro quei due tag: `<gradient:#C046E8:#A8DC2C:{gradient-phase}>`,
 `<rainbow:{rainbow-phase}>`. Le caselle finte (`fixed-slots.empty-text`) non animano: sono profili
 costruiti una volta sola all'avvio, non righe ricalcolate a ogni giro.
+
+**Banda piu' stretta: `<rainbow-xN>`/`<gradient-xN:colori>`.** Un tag solo fa un giro di colori
+largo quanto tutto il testo dentro; per farlo ripetere (bande piu' strette) servirebbe spezzare il
+testo a mano in piu' tag identici. Scorciatoia: `<rainbow-x3>Testo</rainbow-x3>` o
+`<gradient-x3:#C046E8:#A8DC2C>Testo</gradient-x3>` — il plugin spezza "Testo" in altrettanti pezzi
+(il piu' possibile uguali, i caratteri in avanzo vanno ai primi) e genera da solo i tag veri, gia'
+con la fase dentro. Non serve scrivere `{gradient-phase}`/`{rainbow-phase}` a mano in questo caso:
+ci pensa il plugin. Un numero piu' alto di quante lettere ha il testo si accorcia da solo (non ha
+senso fare pezzi piu' piccoli di un carattere).
 
 **Un `update-interval-ticks` basso (per un'animazione fluida) NON rimanda anche le 80 slot finte.**
 Sono due cadenze separate: intestazione/fondo/nome seguono `update-interval-ticks`, le slot finte
