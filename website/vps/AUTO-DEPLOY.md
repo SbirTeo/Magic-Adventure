@@ -88,3 +88,23 @@ Dettagli d'ambiente (da `istanze.conf`): sessione screen `mc`, utente `ubuntu`, 
 > Convenzione: il nome della cartella in `plugins-src/` deve coincidere col prefisso del jar
 > (es. `MagixFactions` -> `MagixFactions-<versione>.jar`), cosi' la rimozione della vecchia
 > versione (`MagixFactions-*.jar`) e' precisa.
+
+## Riavvio notturno automatico (attivo)
+
+Ogni notte alle 03:00 (ora del VPS) il server si riavvia da solo, con preavviso ai
+giocatori: 5 minuti, 1 minuto, 30 secondi, poi un conto alla rovescia 10..1 (anche come
+titolo a schermo negli ultimi 10 secondi), un `save-all` e infine il riavvio vero.
+
+Non e' un job di GitHub Actions (il minimo per uno `schedule` li' e' un'ora, troppo grezzo
+per un countdown al secondo): e' `website/vps/riavvio-notturno.sh`, lanciato ogni giorno
+alle 02:55 dal **crontab dell'utente `ubuntu`** sul VPS (nessun sudo per installarlo: e' il
+crontab dell'utente stesso). Lo script calcola da solo il tempo che manca alle 03:00 e manda
+i messaggi in game via `screen` (stesso meccanismo del reload dei plugin); il riavvio finale
+usa `systemctl restart magicadventure.service` con gli **stessi** permessi sudo del deploy
+plugin qui sopra — necessario perche' il servizio ha `Restart=no`: un semplice `/stop` dentro
+al gioco lascerebbe il server giu' per sempre, non lo farebbe ripartire da solo.
+
+Setup/aggiornamento: `.github/workflows/deploy-riavvio-notturno.yml`, automatico su push che
+tocca lo script, oppure manuale (utile per re-installare il cron senza cambiare il file).
+Usa gli stessi tre secret VPS del deploy sito/plugin. Log delle esecuzioni:
+`/home/ubuntu/magicadventure/logs/riavvio-notturno.log` sul VPS.

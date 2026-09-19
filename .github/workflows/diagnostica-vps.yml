@@ -90,6 +90,9 @@ jobs:
           if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then echo "screen mc: attivo"; else echo "screen mc: NON attivo"; fi
           systemctl show magicadventure.service --property=Restart,RestartSec 2>/dev/null \
             || echo "(systemctl non raggiungibile o servizio magicadventure non installato con questo nome)"
+          echo "Ora e fuso orario del VPS: $(date) ($(timedatectl show --property=Timezone --value 2>/dev/null || echo '?'))"
+          echo "Crontab di ubuntu:"
+          crontab -l 2>/dev/null || echo "(nessun crontab)"
 
           echo
           echo "=== PLUGIN INSTALLATI ==="
