@@ -1,0 +1,22 @@
+# ==========================================================================================
+#  cornice-test.yml — banco di prova per la cornice a glifo font (vedi CLAUDE.md,
+#  "Copiare un file BINARIO nuovo sul VPS" e MagixPack/overrides-vps/).
+#
+#  Il titolo contiene solo il glifo (nessun testo visibile): serve a vedere DOVE cade la
+#  cornice rispetto al baule 6 righe, per tarare ascent/height nel font.json di MagixPack.
+#  Una volta calibrata, il titolo si scrive normalmente e ci si mette il glifo in coda.
+# ==========================================================================================
+
+menu:
+  type: chest
+  rows: 6
+  title: ""
+  update: 0
+  commands: [cornicetest]
+  closeable: true
+
+items:
+  sfondo:
+    slot: all
+    id: GRAY_STAINED_GLASS_PANE
+    display_name: " "

@@ -111,6 +111,31 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
   plugin non lo legge piu' e riparte dal default del jar, senza dire niente. Va sistemato con
   `mode=rename` nella stessa sessione della rinomina.
 
+## Copiare un file BINARIO nuovo (non solo una riga) sul VPS, anche da cloud
+
+`deploy-plugin-config.yml` cambia solo una riga di un file YAML gia' esistente; `deploy-plugin.yml`
+copia solo il jar. Per portare sul VPS un file **nuovo o binario** (una texture, un font.json, un
+intero file di config mai visto prima) dentro la cartella dati di un plugin, senza SSH diretto, c'e'
+il workflow manuale `.github/workflows/deploy-plugin-override.yml`.
+
+Convenzione: quello che sta in `plugins-src/<Plugin>/overrides-vps/` nel repo (con la stessa
+struttura di cartelle della destinazione, es. `overrides-vps/assets/minecraft/font/default.json`)
+viene copiato via SCP dentro `plugins/<Plugin>/overrides/` sul VPS, poi (se il server e' su) manda
+un comando di reload in console (default `mpack reload`, personalizzabile). Copia in AGGIUNTA (`scp
+-r`, niente `--delete`): un file gia' sul VPS ma tolto da `overrides-vps/` nel repo non viene
+cancellato in automatico.
+
+E' nato per `MagixPack`: `overrides/` (vedi `MagixPack/README.md`) e' la cartella che MagixPack
+fonde SEMPRE per ultima nel pacchetto risorse, qualunque cosa ci sia gia' (file propri o registrati
+da un plugin) — il modo per personalizzare il resource pack a mano, senza scrivere codice ne'
+aspettare un deploy dei jar. Funziona per qualunque plugin che legga file dalla propria cartella
+dati allo stesso modo.
+
+Lancialo con `workflow_dispatch` passando `plugin` (default `MagixPack`) e `reload_cmd` (default
+`mpack reload`, vuoto = nessun reload). Committa prima i file in `overrides-vps/`, poi lancia il
+workflow: e' l'unico modo, da cloud, di far arrivare un'immagine o un JSON nuovo sul VPS senza
+passare dal jar del plugin.
+
 ## Diagnostica del VPS da sessione cloud (sola lettura, sempre disponibile)
 
 **Una sessione cloud NON è senza occhi sul VPS.** Non ha SSH diretto (vedi sopra), ma il
