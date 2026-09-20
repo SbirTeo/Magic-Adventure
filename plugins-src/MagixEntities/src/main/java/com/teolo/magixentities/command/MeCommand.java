@@ -313,7 +313,11 @@ public final class MeCommand implements TabExecutor {
         }
     }
 
-    /** Cambia solo la scritta sopra la testa. "reset" la fa tornare a seguire il nome. */
+    /**
+     * Cambia solo la scritta sopra la testa. "reset" la fa tornare a seguire il nome; "off"/"on"
+     * la nascondono/rimostrano senza toccare il testo (stessa opzione di
+     * {@code /mentities set <nome> nametag <on|off>}, solo piu' comoda da qui).
+     */
     private void displayname(CommandSender sender, String[] args) {
         if (args.length < 3) {
             M.send(sender, "usage-displayname");
@@ -325,6 +329,15 @@ public final class MeCommand implements TabExecutor {
             return;
         }
         String text = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+        if (text.equalsIgnoreCase("off") || text.equalsIgnoreCase("on")) {
+            boolean visible = text.equalsIgnoreCase("on");
+            d.options.put("nametag", visible);
+            applyLive(sender, d);
+            npcs.save();
+            M.send(sender, visible ? "display-on" : "display-off",
+                    "name", d.name, "display", Colors.translate(d.displayText()));
+            return;
+        }
         boolean reset = text.equalsIgnoreCase("reset");
         boolean hadClones = d.needsClones();
         d.display = reset ? null : text;
@@ -661,7 +674,7 @@ public final class MeCommand implements TabExecutor {
             return switch (sub) {
                 case "create", "type", "tipo" -> filter(allTypes(), args[2]);
                 case "skin" -> filter(skinSuggestions(), args[2]);
-                case "displayname", "display" -> filter(List.of(NpcDef.MIRROR, "reset"), args[2]);
+                case "displayname", "display" -> filter(List.of(NpcDef.MIRROR, "reset", "off", "on"), args[2]);
                 case "pose" -> filter(npcs.validPoses(), args[2]);
                 case "set", "toggle" -> filter(NpcDef.OPTIONS, args[2]);
                 case "cmd", "command", "comandi" -> filter(List.of("add", "list", "remove", "clear"), args[2]);

@@ -43,6 +43,7 @@ Comando principale: `/magixentities` — alias: `/mentities`, `/mentity`, `/ment
 | `/mentities name <nome> <nuovoNome>` | **Rinomina l'entita' stessa** (per il tipo `player` la skin segue) |
 | `/mentities displayname <nome> <testo>` | Cambia **solo la scritta sopra la testa** (`reset` = segue il nome) |
 | `/mentities displayname <nome> mirror` | Specchio: **ognuno vede il proprio nome** sopra la testa |
+| `/mentities displayname <nome> off\|on` | Nasconde/rimostra il nome sopra la testa (stessa opzione di `/mentities set <nome> nametag`) |
 | `/mentities skin <nome> <nick>` | Cambia la skin (solo tipo `player`) |
 | `/mentities skin <nome> mirror` | Specchio: **ognuno la vede con la propria skin** |
 | `/mentities pose <nome> <posa>` | Posa della statua (solo tipo `player`) |
@@ -98,6 +99,10 @@ Sono due cose distinte:
 testa leggi "Fabbro", e se poi fai `/mentities name Fabbro Mastro` la scritta diventa "Mastro" da sola.
 Appena assegni un displayname esplicito, quello resta anche se rinomini l'entita' — per tornare a farlo
 seguire il nome usa `/mentities displayname <nome> reset`.
+
+`off`/`on` su `displayname` non toccano il testo: nascondono/rimostrano solo il nametag, la
+stessa opzione booleana `nametag` di `/mentities set` (vedi sotto) letta e scritta da un altro
+comando piu' comodo da ricordare quando si sta gia' lavorando sul displayname.
 
 `mirror` e' una **parola riservata** su `displayname` e su `skin` (vedi sotto), **non** su `name`:
 il nome e' un identificativo, li' `mirror` sarebbe solo un nome come un altro.

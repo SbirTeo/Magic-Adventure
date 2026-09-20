@@ -151,6 +151,9 @@ public final class MagixEntities extends JavaPlugin {
                 .section("Aspetto, equipaggiamento e sguardo",
                         "Nome visibile, equipaggiamento e posa si cambiano dai comandi o dal menu in gioco, senza "
                                 + "toccare il file.",
+                        "Il nome sopra la testa si può anche nascondere del tutto senza perdere il testo scelto: "
+                                + "`/mentities displayname <nome> off` lo spegne, `... on` lo riaccende — stessa "
+                                + "opzione di `/mentities set <nome> nametag`, solo più comoda da qui.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
                                 + "Si accende per singola entità.")
 
