@@ -18,7 +18,7 @@ on:
         required: true
         default: "MagixEntities"
       file:
-        description: "File della cartella dati da stampare (vuoto = nessuno, es. entities.yml)"
+        description: "File o SOTTOCARTELLA (elenca invece di stampare) della cartella dati, vuoto = nessuno (es. entities.yml o CustomAlias)"
         required: false
         default: ""
       grep:
@@ -142,7 +142,11 @@ jobs:
           if [ -n "$FILE" ]; then
             echo
             echo "=== $FILE ($PLUGIN) ==="
-            tail -n 400 "$BASE/plugins/$PLUGIN/$FILE" 2>/dev/null || echo "(file assente)"
+            if [ -d "$BASE/plugins/$PLUGIN/$FILE" ]; then
+              ls -la "$BASE/plugins/$PLUGIN/$FILE" 2>/dev/null || echo "(cartella assente)"
+            else
+              tail -n 400 "$BASE/plugins/$PLUGIN/$FILE" 2>/dev/null || echo "(file assente)"
+            fi
           fi
 
           # I log ruotano a ogni riavvio: latest.log copre solo l'ultima accensione, quindi

@@ -136,6 +136,14 @@ Lancialo con `workflow_dispatch` passando `plugin` (default `MagixPack`) e `relo
 workflow: e' l'unico modo, da cloud, di far arrivare un'immagine o un JSON nuovo sul VPS senza
 passare dal jar del plugin.
 
+Il quarto input, `dest_subdir` (default `overrides`), serve quando il file da portare non va
+fuso in un `overrides/` ma scritto in un'ALTRA sottocartella della cartella dati del plugin — es.
+un menu YAML nuovo di MagixMenus: quel plugin legge i menu solo da `plugins/MagixMenus/menus/`
+(niente merge li', vedi `MenuManager.copyExample`: un file di menu aggiunto al jar non arriva da
+solo sul server, a differenza delle chiavi di config che `ConfigAlign` allinea da solo). In quel
+caso si mette il file in `plugins-src/MagixMenus/overrides-vps/` (stessa cartella di staging,
+percorso relativo a `menus/` invece che a `overrides/`) e si lancia con `dest_subdir: menus`.
+
 ## Diagnostica del VPS da sessione cloud (sola lettura, sempre disponibile)
 
 **Una sessione cloud NON è senza occhi sul VPS.** Non ha SSH diretto (vedi sopra), ma il

@@ -20,6 +20,14 @@ name: Copia la cartella overrides-vps di un plugin sul VPS
 # Solo manuale (workflow_dispatch): non parte da solo su push, perche' un
 # push a overrides-vps/ potrebbe essere ancora in lavorazione (es. una taratura
 # di ascent/height non ancora buona) e non tutti i cambi vanno spinti subito.
+#
+# dest_subdir (default "overrides"): per il caso normale (MagixPack) non va toccato.
+# Serve quando il file da portare non e' un override da fondere ma va scritto dentro
+# un'ALTRA sottocartella della cartella dati del plugin — es. un menu YAML nuovo di
+# MagixMenus, che legge solo da plugins/MagixMenus/menus/ (non c'e' un merge li': un
+# file nuovo nel jar non arriva da solo sul server, vedi MenuManager.copyExample). Il
+# contenuto di overrides-vps/ nel repo resta la stessa cosa: quello che c'e' li' va
+# copiato tale quale dentro plugins/<plugin>/<dest_subdir>/.
 
 on:
   workflow_dispatch:
@@ -32,6 +40,10 @@ on:
         description: "Comando di reload da mandare in console dopo la copia (vuoto = nessuno)"
         required: false
         default: "mpack reload"
+      dest_subdir:
+        description: "Sottocartella dentro plugins/<plugin>/ dove copiare (default overrides, per il merge di MagixPack). Es. 'menus' per portare un file nuovo dentro plugins/MagixMenus/menus/."
+        required: false
+        default: "overrides"
       remove_path:
         description: "Percorso di UN file da togliere da overrides/ PRIMA della copia (relativo a overrides/, es. assets/minecraft/textures/gui/container/inventory.png). Vuoto = non tocca niente. Serve a ripulire un file lasciato da un test precedente."
         required: false
@@ -95,11 +107,16 @@ jobs:
           IN_PLUGIN: ${{ inputs.plugin }}
           IN_RELOAD: ${{ inputs.reload_cmd }}
           IN_REMOVE: ${{ inputs.remove_path }}
+          IN_DEST_SUBDIR: ${{ inputs.dest_subdir }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
           SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
-          REMOTE_DIR="/home/ubuntu/magicadventure/plugins/$IN_PLUGIN/overrides"
+          DEST_SUBDIR="${IN_DEST_SUBDIR:-overrides}"
+          case "$DEST_SUBDIR" in
+            *..*) echo "::error::dest_subdir non puo' contenere '..'"; exit 1 ;;
+          esac
+          REMOTE_DIR="/home/ubuntu/magicadventure/plugins/$IN_PLUGIN/$DEST_SUBDIR"
 
           $SSH "mkdir -p '$REMOTE_DIR'" </dev/null
 

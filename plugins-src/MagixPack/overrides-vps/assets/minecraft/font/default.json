@@ -11,7 +11,7 @@
       "type": "bitmap",
       "file": "magicadventure:gui/crystal_frame.png",
       "ascent": 32,
-      "height": 260,
+      "height": 256,
       "chars": [""]
     },
     {
