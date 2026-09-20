@@ -2,10 +2,11 @@
 #  cornice-test.yml — banco di prova per la cornice a glifo font (vedi CLAUDE.md,
 #  "Copiare un file BINARIO nuovo sul VPS" e MagixPack/overrides-vps/).
 #
-#  TEST DIAGNOSTICO: il titolo contiene il glifo del LOGO DEL TABLIST (), quello che
-#  gia' funziona li'. Se compare anche qui, il problema e' solo l'immagine/i valori della
-#  cornice. Se NON compare nemmeno questo, il titolo dei bauli non risolve i glifi custom del
-#  font in questa versione — serve un'altra strada (es. un item invece di un glifo nel titolo).
+#  TEST DIAGNOSTICO 2: il logo del tablist () si vede nel titolo di un baule — il
+#  meccanismo funziona. Ora il glifo della cornice () con height: 40 (piccolo, come il
+#  logo) invece di 256, stessa immagine nativa 976x1000: se compare (anche piccolo), il
+#  problema era il valore "height" grande; se resta un rettangolino, il problema e' la
+#  risoluzione nativa dell'immagine (troppo grande per l'atlas del font).
 #
 #  NESSUN item negli slot: il client disegna le icone degli item SOPRA il testo del titolo,
 #  quindi coprirebbero il glifo.
@@ -14,7 +15,7 @@
 menu:
   type: chest
   rows: 6
-  title: ""
+  title: ""
   update: 0
   commands: [cornicetest]
   closeable: true
