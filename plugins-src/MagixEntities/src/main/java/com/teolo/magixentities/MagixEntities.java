@@ -146,10 +146,7 @@ public final class MagixEntities extends JavaPlugin {
                                 + "riproduce sopra la testa anche la sua stessa aureola colorata — ma solo se in quel "
                                 + "momento lui ce l'ha davvero attiva (permesso, colore scelto, non spenta, non in "
                                 + "combattimento). Senza MagixCosmetics non succede nulla, senza bisogno di configurare "
-                                + "niente in più.",
-                        "Il nametag non si può alzare (nessuna API vanilla per farlo), quindi per non sovrapporlo "
-                                + "all'aureola è quest'ultima ad alzarsi di **mirror.halo.height-offset** blocchi in "
-                                + "più sopra la copia.")
+                                + "niente in più.")
 
                 .section("Aspetto, equipaggiamento e sguardo",
                         "Nome visibile, equipaggiamento e posa si cambiano dai comandi o dal menu in gioco, senza "
@@ -212,8 +209,7 @@ public final class MagixEntities extends JavaPlugin {
                         "defaults.gravity", "Le entità appena create subiscono la gravità.",
                         "defaults.collidable", "Le entità appena create bloccano il passaggio dei giocatori.",
                         "mirror.halo.enabled", "Aureola VIP sulle copie a specchio skin (richiede MagixCosmetics installato e abilitato).",
-                        "mirror.halo.interval-ticks", "Ogni quanti tick il puntino dell'aureola sui mirror avanza lungo il cerchio.",
-                        "mirror.halo.height-offset", "Blocchi in più oltre halo.height di MagixCosmetics: alza l'aureola sui mirror per non sovrapporla al nametag, che non si può alzare.")
+                        "mirror.halo.interval-ticks", "Ogni quanti tick il puntino dell'aureola sui mirror avanza lungo il cerchio.")
 
                 .never("Non modificare entities.yml mentre il server gira: al primo salvataggio del plugin le tue "
                         + "modifiche vengono sovrascritte.")

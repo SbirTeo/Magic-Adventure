@@ -63,13 +63,9 @@ public final class MirrorManager {
     }
 
     private void haloTick() {
-        // Il nametag del Mannequin non si puo' alzare (nessuna API vanilla per farlo): per non
-        // sovrapporlo all'aureola, si alza l'aureola di questo tanto sopra la copia.
-        double extraHeight = plugin.getConfig().getDouble("mirror.halo.height-offset", 0.35);
         for (NpcDef d : npcs.all()) {
             if (!d.isSkinMirror()) continue;
-            forEachClone(d, (owner, clone) ->
-                    MagixCosmeticsHook.drawHaloIfActive(owner, clone.getLocation().add(0, extraHeight, 0)));
+            forEachClone(d, (owner, clone) -> MagixCosmeticsHook.drawHaloIfActive(owner, clone.getLocation()));
         }
     }
 
