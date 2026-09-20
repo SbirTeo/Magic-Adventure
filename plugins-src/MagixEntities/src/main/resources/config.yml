@@ -77,6 +77,10 @@ mirror:
     # Ogni quanti tick il puntino avanza lungo il cerchio: stesso identico funzionamento di
     # halo.update-interval-ticks in MagixCosmetics. Basso = piu' fluido, alto = piu' leggero.
     interval-ticks: 1
+    # Blocchi aggiunti in piu' rispetto a halo.height di MagixCosmetics, solo sui mirror: il
+    # nametag di un Mannequin non si puo' alzare (nessuna API vanilla per farlo), quindi per
+    # evitare che ci si sovrapponga si alza l'aureola di questo tanto sopra la copia.
+    height-offset: 0.35
 
 skin:
   # Scarica le texture della skin da Mojang (in async) quando crei un'entita' "player".

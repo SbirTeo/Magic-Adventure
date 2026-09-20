@@ -239,7 +239,10 @@ riproduce sopra la testa la sua stessa aureola colorata da VIP — ma solo se in
 quel giocatore ce l'ha **davvero attiva** (permesso `magixcosmetics.halo` + un permesso colore,
 non spenta con `/halo off`, non in combattimento PvP, non in spettatore/vanish/invisibile: le
 stesse condizioni della sua aureola vera). Un giocatore senza aureola attiva vede/mostra la sua
-copia senza. Si regola con `mirror.halo.enabled` e `mirror.halo.interval-ticks` nel config.
+copia senza. Il nametag del Mannequin non si puo' alzare (nessuna API vanilla per farlo), quindi
+per non sovrapporlo all'aureola quest'ultima viene disegnata `mirror.halo.height-offset` blocchi
+piu' in alto del solito sopra la copia. Si regola con `mirror.halo.enabled`,
+`mirror.halo.interval-ticks` e `mirror.halo.height-offset` nel config.
 
 ---
 
