@@ -5,6 +5,10 @@
 #  Il titolo contiene solo il glifo (nessun testo visibile): serve a vedere DOVE cade la
 #  cornice rispetto al baule 6 righe, per tarare ascent/height nel font.json di MagixPack.
 #  Una volta calibrata, il titolo si scrive normalmente e ci si mette il glifo in coda.
+#
+#  NESSUN item negli slot apposta: il client disegna il testo del titolo (quindi il glifo)
+#  PRIMA delle icone degli item, che quindi lo coprirebbero del tutto — era per questo che il
+#  primo test, con lo sfondo di vetro colorato su ogni slot, sembrava non mostrare niente.
 # ==========================================================================================
 
 menu:
@@ -14,9 +18,3 @@ menu:
   update: 0
   commands: [cornicetest]
   closeable: true
-
-items:
-  sfondo:
-    slot: all
-    id: GRAY_STAINED_GLASS_PANE
-    display_name: " "
