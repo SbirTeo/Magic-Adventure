@@ -12,11 +12,6 @@
 # Ogni funzione nuova che verra' aggiunta al plugin avra' la sua riga qui, e il suo file accanto.
 # Le modifiche si applicano con /magixessentials reload (o al riavvio del server).
 
-# Tablist: la lista giocatori che si apre col tasto Tab — intestazione, fondo, nome dei giocatori
-# e le caselle fisse. Spento, il tablist torna quello di CMI (o, se anche il suo modulo e' spento,
-# quello del gioco). Si regola in tablist.yml.
-tablist: true
-
 # MOTD: le due righe che si leggono nella lista server, col numero dei giocatori e la tendina che
 # esce col mouse. Spento, vale la riga 'motd' di server.properties. Si regola in motd.yml.
 motd: true

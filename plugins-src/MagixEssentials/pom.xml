@@ -6,11 +6,11 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixEssentials</artifactId>
-    <version>0.8.13</version>
+    <version>0.8.14</version>
     <packaging>jar</packaging>
 
     <name>MagixEssentials</name>
-    <description>Utilita' del server (tablist, MOTD, nametag e, in futuro, il resto che oggi fa CMI)</description>
+    <description>Utilita' del server (MOTD, nametag e, in futuro, il resto che oggi fa CMI)</description>
 
     <properties>
         <!-- paper-api 26.1.2 e' compilata per Java 25 (class file 69.0): serve JDK 25 per buildare.
@@ -28,10 +28,6 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/releases/</url>
         </repository>
-        <repository>
-            <id>luckperms-repo</id>
-            <url>https://repo.lucko.me/</url>
-        </repository>
     </repositories>
 
     <dependencies>
@@ -42,7 +38,7 @@
             <version>26.1.2.build.72-stable</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Placeholder nel tablist (%server_online%, %magixfactions_*%, %magixtime_*%, ...). Opzionale
+        <!-- Placeholder nei nametag (%magixfactions_*%, %magixweb_*%, %rel_*%, ...). Opzionale
              a runtime (softdepend): se non c'e', i placeholder restano grezzi ma il plugin funziona. -->
         <dependency>
             <groupId>me.clip</groupId>
@@ -50,23 +46,14 @@
             <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Caselle FINTE del tablist (le 80 slot fisse): si mandano come voci player-info, e per
-             quelle serve il pacchetto. Stessa dipendenza di MagixFactions (minimap), plugin reale
-             gia' installato sul server (log: ProtocolLib v5.5.0-SNAPSHOT) quindi 'provided', non
-             shadato. GroupId reale net.dmulloy2, su Maven Central. Softdepend: senza ProtocolLib il
-             tablist funziona lo stesso, solo senza slot fisse. -->
+        <!-- Serve al nametag in modalita' display (entita' di testo agganciate al giocatore).
+             Stessa dipendenza di MagixFactions (minimap), plugin reale gia' installato sul server
+             (log: ProtocolLib v5.5.0-SNAPSHOT) quindi 'provided', non shadato. GroupId reale
+             net.dmulloy2, su Maven Central. -->
         <dependency>
             <groupId>net.dmulloy2</groupId>
             <artifactId>ProtocolLib</artifactId>
             <version>5.4.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- Ordine del tablist per peso del gruppo: legge il grado piu' alto di ogni giocatore.
-             Softdepend: senza LuckPerms il tablist resta nell'ordine del gioco. -->
-        <dependency>
-            <groupId>net.luckperms</groupId>
-            <artifactId>api</artifactId>
-            <version>5.4</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
