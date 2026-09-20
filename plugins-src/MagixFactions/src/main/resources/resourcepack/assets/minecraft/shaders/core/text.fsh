@@ -221,6 +221,19 @@ void main() {
         fragColor = vec4(rgb, 1.0);
         return;
     }
+
+    // PANNELLO INFO (custom==3): striscia sotto la minimap con orologio/coordinate/info. Come la minimap
+    // sta SEMPRE davanti a tutto (gl_FragDepth = 1.0, reversed-Z). Testo campionato NEAREST (niente
+    // upscaling smart: sul testo distorcerebbe i glifi). Le prime HEADER_ROWS righe portano la firma
+    // magica e vanno nascoste: si campiona da riga >= HEADER_ROWS.
+    if (custom == 3) {
+        gl_FragDepth = 1.0;
+        vec2 uv = vec2(uvCoord.x, max(uvCoord.y, HEADER_ROWS));
+        ivec2 tx = clamp(ivec2(uv), ivec2(0), ivec2(127));
+        vec3 rgb = texelFetch(Sampler0, tx, 0).rgb * ColorModulator.rgb;
+        fragColor = vec4(rgb, 1.0);
+        return;
+    }
 #endif
 
 #ifdef IS_GRAYSCALE

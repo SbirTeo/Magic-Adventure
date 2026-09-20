@@ -72,6 +72,16 @@ flat out vec4 arrows[ARROW_MAX];
 const vec2 MAP_SIZE = vec2(__MAP_SIZE__, __MAP_SIZE__);
 const vec2 MAP_OFFSET = vec2(0.03, 0.03);
 
+// --- Pannello info (orologio/coordinate/info) sotto la minimap -------------------------------------
+// Una SECONDA mappa finta (firma magica diversa, vedi sotto) viene piazzata come striscia larga quanto
+// la minimap, subito SOTTO di essa. __PANEL_ROWS__ = quante righe (px) della texture del pannello sono
+// usate dal testo (il resto della mappa 128x128 e' inutilizzato): l'altezza a schermo e proporzionale a
+// queste righe, cosi' i pixel del testo restano quadrati come quelli della minimap. __PANEL_GAP__ = spazio
+// (frazione di schermo, NDC) tra il bordo basso della minimap e il bordo alto del pannello. Entrambi
+// sostituiti dal plugin da config (map.minimap.info-panel), come __MAP_SIZE__.
+const float PANEL_ROWS = __PANEL_ROWS__;
+const float PANEL_GAP  = __PANEL_GAP__;
+
 // Colori magici dell'header (RGB impacchettati come 0xRRGGBB), come li legge la GPU dalla map texture.
 const int MK0 = 0xFF0000;
 const int MK1 = 0x597D27;
@@ -174,6 +184,24 @@ void main() {
             // e con l'upscaling smart, identica alla minimap. Scritta da FactionMapRenderer.
             custom = 2;
             uvCoord = cornerUV * 128.0;
+        } else if (idAt(mapUV + ivec2(0, 0)) == MK0 && idAt(mapUV + ivec2(1, 0)) == MK2 && idAt(mapUV + ivec2(2, 0)) == MK1) {
+            // Firma (18/49/4 = MK0/MK2/MK1) = PANNELLO INFO: striscia sotto la minimap, stesso bordo destro
+            // e stessa larghezza. Scritto da InfoPanelRenderer. La minimap occupa in NDC (asse "map"):
+            //   x in [-MAP_OFFSET.x - s, -MAP_OFFSET.x],  y in [MAP_OFFSET.y, MAP_OFFSET.y + s]
+            // (vedi il ramo minimap sopra). Il pannello parte quindi a y = MAP_OFFSET.y + s + PANEL_GAP e
+            // alto s*(PANEL_ROWS/128) -> pixel quadrati come la minimap. La texture e' campionata solo sulle
+            // prime PANEL_ROWS righe (uvCoord.y in [0, PANEL_ROWS]); il resto della mappa 128x128 non si usa.
+            float s = MAP_SIZE.x;
+            float panelH = s * (PANEL_ROWS / 128.0);
+            vec2 mp;
+            mp.x = cornerUV.x * s - MAP_OFFSET.x - s;
+            mp.y = MAP_OFFSET.y + s + PANEL_GAP + cornerUV.y * panelH;
+            gl_Position = vec4(vec2(1.0, -ProjMat[1][1] / ProjMat[0][0]) * mp + vec2(1.0, 1.0), 0.0, 1.0);
+            vertexColor = vec4(1.0);
+            uvCoord = cornerUV * vec2(128.0, PANEL_ROWS);
+            custom = 3;
+            sphericalVertexDistance = 0.0;
+            cylindricalVertexDistance = 0.0;
         }
     }
 #endif
