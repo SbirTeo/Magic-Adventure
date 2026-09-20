@@ -31,8 +31,8 @@ halo:
   # Raggio dell'orbita, in blocchi. 0.25 sta stretto, quasi a sfiorare la testa.
   radius: 0.25
 
-  # Altezza sopra i piedi del giocatore, in blocchi. 2.2 la mette poco sopra la testa.
-  height: 2.2
+  # Altezza sopra i piedi del giocatore, in blocchi. 2.0 la mette appena sopra la testa.
+  height: 2.0
 
   # Dimensione del puntino (particella DUST). 1.0 e' la taglia normale; 0.55 e' un puntino sottile,
   # discreto, pensato per non saltare troppo all'occhio.
