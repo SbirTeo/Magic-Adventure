@@ -34,8 +34,9 @@ halo:
   # Altezza sopra i piedi del giocatore, in blocchi. 2.2 la mette poco sopra la testa.
   height: 2.2
 
-  # Dimensione del puntino (particella DUST). 1.0 e' la taglia normale; 0.8 e' un puntino piccolo.
-  particle-size: 0.8
+  # Dimensione del puntino (particella DUST). 1.0 e' la taglia normale; 0.55 e' un puntino sottile,
+  # discreto, pensato per non saltare troppo all'occhio.
+  particle-size: 0.55
 
   # Ogni quanti tick il puntino avanza (e viene disegnato). 1 = ogni tick, il movimento piu' fluido.
   # Piu' alto = piu' leggero ma il movimento e' piu' a scatti.
