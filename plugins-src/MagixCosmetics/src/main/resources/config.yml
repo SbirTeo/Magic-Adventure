@@ -28,8 +28,8 @@ halo:
     pink: "#FF66CC"
     white: "#F5F5F5"
 
-  # Raggio dell'orbita, in blocchi. 0.4 sta appena piu' largo della testa.
-  radius: 0.4
+  # Raggio dell'orbita, in blocchi. 0.25 sta stretto, quasi a sfiorare la testa.
+  radius: 0.25
 
   # Altezza sopra i piedi del giocatore, in blocchi. 2.2 la mette poco sopra la testa.
   height: 2.2
