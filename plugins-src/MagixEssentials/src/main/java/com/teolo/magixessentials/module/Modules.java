@@ -29,8 +29,8 @@ import java.util.Set;
  * funzione gira.
  *
  * <h2>Un file di impostazioni per funzione</h2>
- * Le impostazioni di una funzione stanno nel file che porta il suo nome — {@code tablist.yml},
- * {@code motd.yml}, {@code nametag.yml} — e il {@code config.yml} resta per cio' che vale per il
+ * Le impostazioni di una funzione stanno nel file che porta il suo nome — {@code motd.yml},
+ * {@code nametag.yml} — e il {@code config.yml} resta per cio' che vale per il
  * plugin intero. Cosi' per sapere che cosa sta facendo il plugin si apre {@code modules.yml}, e per
  * cambiare come lo fa si apre il file di quella funzione: nessun file cresce all'infinito.
  *
@@ -49,9 +49,6 @@ public final class Modules {
 
     /** Il file, come si chiama nel jar e nella cartella dati del plugin. */
     public static final String FILE = "modules.yml";
-
-    /** Il tablist: la lista giocatori del tasto Tab. */
-    public static final String TABLIST = "tablist";
 
     /** La MOTD: le righe che si leggono nella lista server. */
     public static final String MOTD = "motd";
@@ -145,7 +142,7 @@ public final class Modules {
         return letto != null ? letto : carica(modulo + ".yml");
     }
 
-    /** Una riga per il log d'avvio: {@code "tablist: attivo"}. */
+    /** Una riga per il log d'avvio: {@code "motd: attivo"}. */
     public String riepilogo() {
         StringBuilder sb = new StringBuilder();
         for (String modulo : elenco()) {
