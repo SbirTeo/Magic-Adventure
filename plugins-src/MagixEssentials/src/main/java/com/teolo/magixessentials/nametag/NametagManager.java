@@ -25,10 +25,12 @@ import org.bukkit.scoreboard.Scoreboard;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,12 +45,18 @@ import java.util.regex.Pattern;
  * <h2>Due modi di disegnarla, e perche'</h2>
  * Il gioco ne sa fare una sola, di riga, e il nome vero che ci mette in mezzo accetta solo i 16 colori
  * storici: e' la targhetta di {@link NameTeams}, che in cambio costa quasi niente, sfuma con la
- * distanza, sparisce da sola quando uno si accuccia e — sola fra le due — puo' essere <b>diversa per
- * ogni spettatore</b> (i placeholder {@code %rel_...%}: il verde dell'alleato, il rosso del nemico).
- * Due righe, un esadecimale sul nome, una misura diversa vogliono invece delle entita' di testo
- * agganciate al giocatore: {@link DisplayLines}, che pero' e' un oggetto del mondo e come tale lo
- * vedono tutti uguale. Non c'e' un modo che vinca sempre, quindi ci sono tutti e due e il config
- * sceglie; con {@code mode: auto} sceglie da se' guardando quante righe sono state scritte.
+ * distanza e sparisce da sola quando uno si accuccia. Due righe, un esadecimale sul nome, una misura
+ * diversa vogliono invece delle entita' di testo agganciate al giocatore: {@link DisplayLines}. Non
+ * c'e' un modo che vinca sempre, quindi ci sono tutti e due e il config sceglie; con {@code mode: auto}
+ * sceglie da se' guardando quante righe sono state scritte.
+ *
+ * <p><b>Diversa per ogni spettatore</b> (i placeholder {@code %rel_...%}: il verde dell'alleato, il
+ * rosso del nemico) la sanno fare tutte e due, ma per due strade diverse. In vanilla e' una lavagna
+ * (scoreboard) per ciascuno; in display si disegna un gruppo di entita' per ogni testo diverso, montato
+ * sullo stesso giocatore, e a ognuno si nasconde quello che non e' il suo (vedi {@link #variants} e
+ * {@link DisplayLines}). Il prezzo e' diverso: in vanilla una lavagna per giocatore (e allora salta il
+ * pannello di un altro plugin, vedi {@link NameTeams}); in display piu' entita', poche finche' i colori
+ * in gioco sono pochi.</p>
  *
  * <h2>Si lavora solo sulla differenza</h2>
  * A ogni giro si ricompone il testo di ciascuno e si confronta con quello di prima: si scrive — cioe'
@@ -93,7 +101,10 @@ public final class NametagManager implements Listener {
     private List<String> lines = List.of(NAME_TOKEN);
     /** Se le righe le disegniamo noi (modalita' display) invece di lasciarle al gioco. */
     private boolean ourLines;
+    /** Lavagne per-spettatore per la targhetta del gioco (relazionale in vanilla). */
     private boolean perViewer;
+    /** Un gruppo di entita' per ogni testo diverso: il relazionale in modalita' display. */
+    private boolean displayPerViewer;
     private boolean skipEmpty = true;
     private boolean nameColor = true;
     private Set<String> offWorlds = Set.of();
@@ -169,15 +180,16 @@ public final class NametagManager implements Listener {
         for (String line : lines) {
             relational |= line.contains(RELATIONAL);
         }
-        perViewer = !ourLines && (viewers.equalsIgnoreCase("always")
-                || (!viewers.equalsIgnoreCase("never") && relational));
-        if (relational && !perViewer) {
+        // Serve una targhetta diversa per chi guarda? Poi COME la si fa dipende dalla modalita': in
+        // vanilla con una lavagna per giocatore, in display con un gruppo di entita' per ogni testo.
+        boolean wantPerViewer = viewers.equalsIgnoreCase("always")
+                || (!viewers.equalsIgnoreCase("never") && relational);
+        perViewer = wantPerViewer && !ourLines;
+        displayPerViewer = wantPerViewer && ourLines;
+        if (relational && viewers.equalsIgnoreCase("never")) {
             plugin.getLogger().warning("[Nametag] nelle righe c'e' un placeholder relazionale (" + RELATIONAL
-                    + "...), ma la targhetta e' la stessa per tutti"
-                    + (ourLines ? ": in modalita' display e' un oggetto del mondo, e un oggetto del mondo lo"
-                            + " vedono tutti uguale (serve mode: vanilla con una riga sola)"
-                            : " perche' per-viewer e' su never")
-                    + ". Quei placeholder valgono come se il giocatore guardasse se stesso.");
+                    + "...), ma per-viewer e' su never: quei placeholder valgono come se il giocatore"
+                    + " guardasse se stesso.");
         }
 
         skipEmpty = cfg.getBoolean("skip-empty-lines", true);
@@ -347,7 +359,15 @@ public final class NametagManager implements Listener {
     private void apply(Player target, List<Scoreboard> boards, Collection<? extends Player> online) {
         boolean off = offWorlds.contains(target.getWorld().getName().toLowerCase(Locale.ROOT));
         if (ourLines) {
-            displays.update(target, off || hidden(target) ? List.of() : rendered(target), opacity(target));
+            if (off || hidden(target)) {
+                displays.update(target, List.of(), opacity(target));
+            } else if (displayPerViewer) {
+                // Una variante per ogni testo diverso (il colore relazionale cambia per chi guarda),
+                // ciascuna coi suoi spettatori: DisplayLines nasconde a ognuno quelle che non sono le sue.
+                displays.updateVariants(target, variants(target, online), opacity(target));
+            } else {
+                displays.update(target, rendered(target, target), opacity(target));
+            }
             // Il nome del gioco si nasconde solo dove la targhetta la disegniamo noi: due targhette
             // sovrapposte sono peggio di una brutta. Nei mondi esclusi torna visibile.
             for (Scoreboard board : boards) {
@@ -389,19 +409,43 @@ public final class NametagManager implements Listener {
     }
 
     /**
-     * Le righe da disegnare, dall'alto verso il basso, coi placeholder risolti. Con
-     * {@code skip-empty-lines} le righe rimaste senza niente da leggere non vengono nemmeno create —
-     * tutte tranne l'ultima, che e' quella del nome e non si salta mai.
+     * Le varianti di una targhetta in modalita' display quando cambia da spettatore a spettatore: per
+     * ogni giocatore online si risolvono le sue righe (i {@code %rel_...%} dipendono da chi guarda) e si
+     * raggruppano quelli che ottengono lo <b>stesso testo</b>, cosi' due che vedono lo stesso colore
+     * condividono un gruppo solo. Con {@code hide-self} il target non e' fra gli spettatori: la propria
+     * targhetta non la vede comunque.
      */
-    private List<String> rendered(Player target) {
+    private List<DisplayLines.Variant> variants(Player target, Collection<? extends Player> online) {
+        boolean skipSelf = displays.hideSelf();
+        Map<List<String>, Set<UUID>> byText = new LinkedHashMap<>();
+        for (Player viewer : online) {
+            if (skipSelf && viewer.equals(target)) {
+                continue;
+            }
+            byText.computeIfAbsent(rendered(viewer, target), k -> new HashSet<>()).add(viewer.getUniqueId());
+        }
+        List<DisplayLines.Variant> out = new ArrayList<>(byText.size());
+        for (Map.Entry<List<String>, Set<UUID>> e : byText.entrySet()) {
+            out.add(new DisplayLines.Variant(e.getKey(), e.getValue()));
+        }
+        return out;
+    }
+
+    /**
+     * Le righe da disegnare, dall'alto verso il basso, coi placeholder risolti per lo spettatore
+     * {@code viewer} che guarda {@code target} (i due coincidono quando la targhetta e' uguale per
+     * tutti). Con {@code skip-empty-lines} le righe rimaste senza niente da leggere non vengono nemmeno
+     * create — tutte tranne l'ultima, che e' quella del nome e non si salta mai.
+     */
+    private List<String> rendered(Player viewer, Player target) {
         List<String> out = new ArrayList<>(lines.size());
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             boolean last = i == lines.size() - 1;
-            if (!last && skipEmpty && nothingLeft(target, line)) {
+            if (!last && skipEmpty && nothingLeft(viewer, target, line)) {
                 continue;
             }
-            out.add(resolve(target, target, line.replace(NAME_TOKEN, target.getName())));
+            out.add(resolve(viewer, target, line.replace(NAME_TOKEN, target.getName())));
         }
         return out;
     }
@@ -412,7 +456,7 @@ public final class NametagManager implements Listener {
      * questo controllo resterebbe appeso un {@code []}. Una riga senza placeholder — una decorazione
      * scritta a mano — non e' mai "vuota": quella l'ha voluta qualcuno.
      */
-    private boolean nothingLeft(Player target, String line) {
+    private boolean nothingLeft(Player viewer, Player target, String line) {
         Matcher m = PLACEHOLDER.matcher(line);
         StringBuilder found = new StringBuilder();
         while (m.find()) {
@@ -421,7 +465,7 @@ public final class NametagManager implements Listener {
         if (found.length() == 0) {
             return false;
         }
-        return TextFormat.plain(resolve(target, target, found.toString())).isBlank();
+        return TextFormat.plain(resolve(viewer, target, found.toString())).isBlank();
     }
 
     /**

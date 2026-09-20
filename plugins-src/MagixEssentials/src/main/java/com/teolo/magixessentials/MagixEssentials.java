@@ -403,8 +403,10 @@ public final class MagixEssentials extends JavaPlugin {
                         "Le righe **disegnate da noi** sono entita' di testo agganciate al giocatore come un "
                                 + "passeggero: piu' righe, colori esatti, sfumature anche sul nome, misura e "
                                 + "altezza regolabili. Il nome del gioco viene nascosto, altrimenti si vedrebbe "
-                                + "doppio. Il limite e' l'altra faccia della stessa medaglia: un'entita' e' un "
-                                + "**oggetto del mondo**, e un oggetto del mondo lo vedono tutti uguale.",
+                                + "doppio. Una singola entita' la vedono tutti uguale, ma per farla **diversa "
+                                + "per chi guarda** (i %rel_) se ne disegna una per ogni testo, sullo stesso "
+                                + "giocatore, nascondendo a ognuno quelle che non sono le sue — vedi la sezione "
+                                + "apposta.",
                         "Lo decide **mode**: *vanilla* la targhetta del gioco, *display* le righe nostre, *auto* "
                                 + "— quello che c'e' adesso, **{{cfg:mode}}** — sceglie da se': una riga sola la "
                                 + "fa il gioco, da due in su la disegniamo noi. Con *vanilla* e piu' righe scritte, "
@@ -423,16 +425,18 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "%rel_magixfactions_relation_color%, che e' il colore della relazione fra le due "
                                 + "fazioni ed e' configurabile in MagixFactions.",
                         "**per-viewer** decide se usarli: *auto* (ora: **{{cfg:per-viewer}}**) si accende da sola "
-                                + "se in lines c'e' almeno un %rel_, *always* sempre, *never* mai. Funziona **solo** "
-                                + "con la targhetta del gioco: le entita' della modalita' display sono oggetti del "
-                                + "mondo, e li' un %rel_ vale come se il giocatore guardasse se stesso. Se lo scrivi "
-                                + "dove non puo' funzionare, il log all'avvio te lo dice invece di lasciarti a "
-                                + "chiederti perche' sono tutti dello stesso colore.",
-                        "**Il prezzo**, detto prima di accenderla: per far vedere a due giocatori due cose diverse "
-                                + "serve dare a ciascuno una **lavagna** (scoreboard) sua, e quella e' la stessa "
-                                + "lavagna su cui un altro plugin disegnerebbe il pannello laterale. Se CMI tiene "
-                                + "ancora il suo, i due se la strappano di mano: o per-viewer su *never*, o il "
-                                + "pannello di CMI spento.")
+                                + "se in lines c'e' almeno un %rel_, *always* sempre, *never* mai. Funziona con "
+                                + "**tutte e due** le modalita', per due strade diverse — su *never* invece un %rel_ "
+                                + "vale come se il giocatore guardasse se stesso, e il log all'avvio te lo dice.",
+                        "**In vanilla** il prezzo e' una **lavagna** (scoreboard) per ciascuno, ed e' la stessa su "
+                                + "cui un altro plugin disegnerebbe il pannello laterale: se CMI tiene ancora il suo, "
+                                + "i due se la strappano di mano — o per-viewer su *never*, o il pannello di CMI "
+                                + "spento.",
+                        "**In display** niente lavagne: si disegna un gruppo di entita' di testo per ogni testo "
+                                + "diverso, tutte sullo stesso giocatore, e a ognuno si nasconde quello che non e' "
+                                + "il suo. Chi vede lo stesso colore condivide un gruppo, quindi sono pochi finche' "
+                                + "i colori in gioco sono pochi. E' cosi' che due righe possono restare relazionali "
+                                + "(tag e nome verdi per l'alleato, rossi per il nemico) senza tornare a una riga sola.")
 
                 .section("Quando la targhetta non si vede",
                         "Chi e' **invisibile** (pozione o /vanish dello staff) o chi e' in **spettatore**: in "
@@ -444,8 +448,7 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "sua. **display.sneak-opacity** decide quanto (ora: **{{cfg:display.sneak-opacity}}**"
                                 + "), da 1.0 (invariata) a 0.0 (invisibile).",
                         "**hide-self** nasconde a ciascuno la PROPRIA targhetta: in prima persona non si vedrebbe "
-                                + "comunque, ma in terza si vedrebbe da dietro le spalle. E' l'unica cosa che di un "
-                                + "oggetto del mondo si puo' rendere diversa da spettatore a spettatore.",
+                                + "comunque, ma in terza si vedrebbe da dietro le spalle.",
                         "**disabled-worlds** sono i mondi in cui il modulo non tocca niente: li' resta la targhetta "
                                 + "nuda del gioco. Serve per una lobby o un mondo-evento, dove le decorazioni danno "
                                 + "solo fastidio.",

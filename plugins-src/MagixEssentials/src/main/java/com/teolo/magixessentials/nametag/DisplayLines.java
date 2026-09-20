@@ -15,9 +15,12 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -42,24 +45,50 @@ import java.util.UUID;
  * (un {@code /reload} a caldo, o un crash) e si buttano. Una targhetta orfana che galleggia in mezzo
  * al mondo e' il difetto peggiore di questo modo di fare le cose: si paga una volta, all'avvio.
  *
- * <h2>Il limite, detto chiaro</h2>
- * Un oggetto del mondo lo vedono tutti uguale: qui una targhetta <b>diversa per spettatore</b> non e'
- * possibile — i {@code %rel_...%} vogliono la targhetta del gioco. Si puo' solo nasconderla del tutto
- * a qualcuno, ed e' cosi' che ciascuno non vede la propria.
+ * <h2>Diversa per chi guarda, anche se e' un oggetto del mondo</h2>
+ * Un'entita' del mondo la vedono tutti uguale: e' vero del singolo oggetto, non di cosa <b>mostriamo</b>.
+ * Quando le righe cambiano da spettatore a spettatore (i {@code %rel_...%}: il verde dell'alleato, il
+ * rosso del nemico) non c'e' <b>una</b> targhetta ma un gruppo per ciascun testo diverso — tutti
+ * montati sullo stesso giocatore, nello stesso punto — e a ognuno si <b>nasconde</b> quello che non e'
+ * il suo ({@link Variant}). Gli spettatori con lo stesso testo condividono un gruppo solo: quasi
+ * sempre e' uno, e diventano pochi solo quando i colori in gioco sono pochi. I passeggeri nascosti non
+ * occupano posto — il client non li conosce nemmeno — quindi ciascuno vede solo le sue righe, dove
+ * vanno. Resta un limite del mezzo, non piu' della relazione: {@code hide-self} nasconde a ciascuno la
+ * propria.
  */
 public final class DisplayLines {
 
     /** Il marchio delle nostre entita': serve a ritrovarle, anche dopo un crash. */
     private static final String TAG = "magixessentials-nametag";
 
+    /**
+     * Un testo (le righe, dall'alto verso il basso) e <b>chi lo deve vedere</b>. Un {@code viewers}
+     * nullo vuol dire "tutti" (la targhetta uguale per ogni spettatore); un insieme di UUID vuol dire
+     * solo quei giocatori — e' cosi' che il colore relazionale diventa diverso per chi guarda.
+     */
+    public record Variant(List<String> lines, Set<UUID> viewers) {
+    }
+
+    /** Un gruppo di righe montate, con l'insieme di chi le vede ({@code null} = tutti). */
+    private static final class Group {
+        final List<TextDisplay> rows;
+        Set<UUID> viewers;
+
+        Group(List<TextDisplay> rows, Set<UUID> viewers) {
+            this.rows = rows;
+            this.viewers = viewers;
+        }
+    }
+
     private final JavaPlugin plugin;
     /** Le impostazioni della modalita' display: la sezione {@code display} del nametag.yml. */
     private final ConfigurationSection cfg;
 
-    /** Le righe montate su ciascun giocatore, dall'alto verso il basso. */
-    private final Map<UUID, List<TextDisplay>> mounted = new HashMap<>();
-    /** L'ultimo testo scritto su ciascuna riga: si riscrive solo alla differenza. */
-    private final Map<UUID, List<String>> written = new HashMap<>();
+    /**
+     * Per ciascun giocatore, i gruppi montati su di lui, uno per ogni testo diverso in gioco. La
+     * chiave e' il testo (le righe): due spettatori che vedono lo stesso testo condividono il gruppo.
+     */
+    private final Map<UUID, Map<List<String>, Group>> mounted = new HashMap<>();
     /** L'ultima opacita' scritta (vedi {@link NametagManager#opacity}): si riscrive solo alla differenza. */
     private final Map<UUID, Byte> writtenOpacity = new HashMap<>();
 
@@ -78,6 +107,11 @@ public final class DisplayLines {
         this.cfg = cfg;
     }
 
+    /** Se ciascuno non deve vedere la propria targhetta. Lo legge il manager per non mettersi fra i viewer. */
+    public boolean hideSelf() {
+        return hideSelf;
+    }
+
     /** Rilegge le impostazioni e ripulisce le righe rimaste in giro da un avvio precedente. */
     public void load() {
         if (cfg != null) {
@@ -94,81 +128,169 @@ public final class DisplayLines {
     }
 
     /**
-     * Le righe di un giocatore, dall'alto verso il basso, gia' coi placeholder risolti, con
-     * l'opacita' che devono avere (piena o sfumata mentre si accuccia — vedi
-     * {@link NametagManager#opacity}). Una lista vuota le toglie: e' cosi' che sparisce la
-     * targhetta di chi e' invisibile o in spettatore.
+     * La targhetta uguale per tutti: una lista di righe sola, mostrata a ogni spettatore (tranne la
+     * propria, con {@code hide-self}). Una lista vuota la toglie.
      */
     public void update(Player target, List<String> lines, byte opacity) {
         if (lines.isEmpty()) {
             remove(target);
             return;
         }
-        List<TextDisplay> rows = mounted.get(target.getUniqueId());
-        // Si rifa' da zero quando cambia il numero delle righe, quando una e' stata portata via (un
-        // altro plugin, un chunk scaricato) o quando il giocatore ha cambiato mondo: un'entita' vive
-        // nel mondo in cui e' nata, e li' resterebbe.
-        if (rows == null || rows.size() != lines.size() || !alive(rows, target.getWorld())) {
+        apply(target, List.of(new Variant(List.copyOf(lines), null)), opacity);
+    }
+
+    /**
+     * La targhetta <b>diversa per chi guarda</b>: una variante per ogni testo, ciascuna coi suoi
+     * spettatori (vedi {@link Variant}). Una lista vuota la toglie. Ci pensa il chiamante a mettere lo
+     * stesso testo una volta sola, con l'insieme degli spettatori che lo vedono.
+     */
+    public void updateVariants(Player target, List<Variant> variants, byte opacity) {
+        if (variants.isEmpty()) {
             remove(target);
-            rows = new ArrayList<>();
+            return;
+        }
+        apply(target, variants, opacity);
+    }
+
+    /**
+     * Il cuore: porta i gruppi montati sul giocatore a coincidere con le varianti chieste. Crea i
+     * gruppi nuovi, toglie quelli che non servono piu' (o rimasti nel mondo sbagliato), e per quelli
+     * che restano aggiorna l'opacita' e chi li vede. Si rifa' da zero solo il gruppo che serve, non
+     * tutta la targhetta.
+     */
+    private void apply(Player target, List<Variant> variants, byte opacity) {
+        UUID id = target.getUniqueId();
+        World world = target.getWorld();
+        Map<List<String>, Group> groups = mounted.computeIfAbsent(id, k -> new LinkedHashMap<>());
+
+        // Il testo voluto, con chi lo vede. Se due varianti hanno lo stesso testo si fondono i loro
+        // spettatori (e "tutti" vince: se una lo vuole per tutti, e' per tutti).
+        Map<List<String>, Set<UUID>> want = new LinkedHashMap<>();
+        for (Variant v : variants) {
+            List<String> key = List.copyOf(v.lines());
+            if (want.containsKey(key)) {
+                Set<UUID> have = want.get(key);
+                if (have != null && v.viewers() != null) {
+                    have.addAll(v.viewers());
+                } else {
+                    want.put(key, null);   // uno dei due e' "tutti"
+                }
+            } else {
+                want.put(key, v.viewers() == null ? null : new java.util.HashSet<>(v.viewers()));
+            }
+        }
+
+        // Via i gruppi che non servono piu', o morti, o finiti nel mondo sbagliato (l'entita' vive nel
+        // mondo in cui e' nata: cambiato mondo, va rifatta di la').
+        Iterator<Map.Entry<List<String>, Group>> it = groups.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<List<String>, Group> e = it.next();
+            if (!want.containsKey(e.getKey()) || !alive(e.getValue().rows, world)) {
+                for (TextDisplay row : e.getValue().rows) {
+                    row.remove();
+                }
+                it.remove();
+            }
+        }
+
+        // I gruppi nuovi: si creano dal loro testo. Se una riga non nasce si annulla quel gruppo (meglio
+        // una variante in meno che una a meta'), ma gli altri gruppi restano.
+        for (Map.Entry<List<String>, Set<UUID>> e : want.entrySet()) {
+            if (groups.containsKey(e.getKey())) {
+                continue;
+            }
+            List<String> lines = e.getKey();
+            List<TextDisplay> rows = new ArrayList<>(lines.size());
+            boolean ok = true;
             for (int i = 0; i < lines.size(); i++) {
                 TextDisplay row = spawn(target, i, lines.size(), lines.get(i), opacity);
                 if (row == null) {
-                    // Non e' nata: si annulla tutto il gruppo, meglio niente targhetta che una a meta'.
-                    for (TextDisplay done : rows) {
-                        done.remove();
-                    }
-                    return;
+                    ok = false;
+                    break;
                 }
                 rows.add(row);
             }
-            mounted.put(target.getUniqueId(), rows);
-            written.put(target.getUniqueId(), new ArrayList<>(lines));
-            writtenOpacity.put(target.getUniqueId(), opacity);
-            return;
-        }
-        List<String> before = written.computeIfAbsent(target.getUniqueId(), id -> new ArrayList<>());
-        boolean opacityChanged = !Byte.valueOf(opacity).equals(writtenOpacity.get(target.getUniqueId()));
-        for (int i = 0; i < rows.size(); i++) {
-            TextDisplay row = rows.get(i);
-            if (i >= before.size() || !lines.get(i).equals(before.get(i))) {
-                row.text(TextFormat.component(lines.get(i)));
+            if (!ok) {
+                for (TextDisplay row : rows) {
+                    row.remove();
+                }
+                continue;
             }
+            groups.put(e.getKey(), new Group(rows, e.getValue()));
+        }
+
+        // Opacita' e visibilita' per i gruppi che restano.
+        boolean opacityChanged = !Byte.valueOf(opacity).equals(writtenOpacity.get(id));
+        for (Map.Entry<List<String>, Group> e : groups.entrySet()) {
+            Group g = e.getValue();
+            g.viewers = want.get(e.getKey());
+            reconcile(target, g, opacityChanged, opacity);
+        }
+        writtenOpacity.put(id, opacity);
+    }
+
+    /**
+     * Aggiorna un gruppo: riscrive l'opacita' se e' cambiata, rimonta le righe cadute (la morte, un
+     * teletrasporto, una barca buttano giu' i passeggeri) e sistema <b>chi lo vede</b>. Con
+     * {@code viewers} nullo e' di tutti (solo la propria si nasconde, se {@code hide-self}); con un
+     * insieme, si mostra a chi c'e' dentro e si nasconde a tutti gli altri. Sia {@code showEntity} sia
+     * {@code hideEntity} non fanno niente se lo stato e' gia' quello, quindi ripassarli a ogni giro non
+     * costa pacchetti: e' anche cosi' che un nuovo arrivato smette di vedere le varianti che non sono
+     * la sua.
+     */
+    private void reconcile(Player target, Group g, boolean opacityChanged, byte opacity) {
+        for (TextDisplay row : g.rows) {
             if (opacityChanged) {
                 row.setTextOpacity(opacity);
             }
-            // Il passeggero viene buttato giu' da parecchie cose (la morte, un teletrasporto, una
-            // barca): rimontarlo qui e' piu' semplice che inseguire ogni caso con un evento suo.
             if (!target.getPassengers().contains(row)) {
                 target.addPassenger(row);
             }
         }
-        written.put(target.getUniqueId(), new ArrayList<>(lines));
-        writtenOpacity.put(target.getUniqueId(), opacity);
+        if (g.viewers == null) {
+            if (hideSelf) {
+                for (TextDisplay row : g.rows) {
+                    target.hideEntity(plugin, row);
+                }
+            }
+            return;
+        }
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            boolean canSee = g.viewers.contains(p.getUniqueId());
+            for (TextDisplay row : g.rows) {
+                if (canSee) {
+                    p.showEntity(plugin, row);
+                } else {
+                    p.hideEntity(plugin, row);
+                }
+            }
+        }
     }
 
     /** Toglie le righe di un giocatore. */
     public void remove(Player target) {
-        List<TextDisplay> rows = mounted.remove(target.getUniqueId());
-        written.remove(target.getUniqueId());
+        Map<List<String>, Group> groups = mounted.remove(target.getUniqueId());
         writtenOpacity.remove(target.getUniqueId());
-        if (rows == null) {
+        if (groups == null) {
             return;
         }
-        for (TextDisplay row : rows) {
-            row.remove();
+        for (Group g : groups.values()) {
+            for (TextDisplay row : g.rows) {
+                row.remove();
+            }
         }
     }
 
     /** Toglie tutte le righe di tutti: allo spegnimento del modulo non resta niente appeso. */
     public void clear() {
-        for (List<TextDisplay> rows : mounted.values()) {
-            for (TextDisplay row : rows) {
-                row.remove();
+        for (Map<List<String>, Group> groups : mounted.values()) {
+            for (Group g : groups.values()) {
+                for (TextDisplay row : g.rows) {
+                    row.remove();
+                }
             }
         }
         mounted.clear();
-        written.clear();
         writtenOpacity.clear();
         sweep();
     }
@@ -205,7 +327,8 @@ public final class DisplayLines {
     /**
      * Crea una riga e la monta sul giocatore. {@code index} e' la posizione dall'alto (0 = la riga
      * piu' in alto), {@code total} quante sono: la piu' bassa sta a {@code height}, le altre una
-     * {@code line-spacing} sopra l'altra.
+     * {@code line-spacing} sopra l'altra. Chi la vede lo decide dopo {@link #reconcile}: qui nasce e
+     * basta.
      */
     private TextDisplay spawn(Player target, int index, int total, String line, byte opacity) {
         double y = height + (total - 1 - index) * spacing;
@@ -236,11 +359,6 @@ public final class DisplayLines {
             row.remove();
             return null;
         }
-        // La propria targhetta, in terza persona, si vedrebbe da dietro le spalle: e' l'unica cosa
-        // che di un oggetto del mondo si puo' rendere diversa da spettatore a spettatore.
-        if (hideSelf) {
-            target.hideEntity(plugin, row);
-        }
         return row;
     }
 
@@ -264,8 +382,8 @@ public final class DisplayLines {
         } catch (NumberFormatException e) {
             // Uno sfondo scritto male non deve far sparire la targhetta: resta quello del gioco, e il
             // log dice, una volta sola, quale valore non si e' capito.
-            plugin.getLogger().warning("[Nametag] display.background: non capisco \u00ab" + value
-                    + "\u00bb (vale 'default', 'none' o #AARRGGBB): tengo lo sfondo del gioco.");
+            plugin.getLogger().warning("[Nametag] display.background: non capisco «" + value
+                    + "» (vale 'default', 'none' o #AARRGGBB): tengo lo sfondo del gioco.");
             return null;
         }
     }
