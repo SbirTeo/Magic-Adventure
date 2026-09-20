@@ -2,11 +2,11 @@
 #  cornice-test.yml — banco di prova per la cornice a glifo font (vedi CLAUDE.md,
 #  "Copiare un file BINARIO nuovo sul VPS" e MagixPack/overrides-vps/).
 #
-#  TEST DIAGNOSTICO 2: il logo del tablist () si vede nel titolo di un baule — il
-#  meccanismo funziona. Ora il glifo della cornice () con height: 40 (piccolo, come il
-#  logo) invece di 256, stessa immagine nativa 976x1000: se compare (anche piccolo), il
-#  problema era il valore "height" grande; se resta un rettangolino, il problema e' la
-#  risoluzione nativa dell'immagine (troppo grande per l'atlas del font).
+#  CAUSA TROVATA (con fonte): ogni glifo bitmap di Minecraft ha un limite FISSO di 256x256
+#  pixel nativi (non il campo "height" del JSON, che riscala solo la resa a schermo — e'
+#  proprio la risoluzione del file). crystal_frame.png era 976x1000: ridotto a 250x256,
+#  dentro il limite. Titolo: solo il glifo (), senza spostamento, per vedere posizione
+#  e dimensione prima di ricalibrare.
 #
 #  NESSUN item negli slot: il client disegna le icone degli item SOPRA il testo del titolo,
 #  quindi coprirebbero il glifo.
