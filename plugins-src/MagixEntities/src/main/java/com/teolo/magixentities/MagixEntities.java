@@ -153,10 +153,10 @@ public final class MagixEntities extends JavaPlugin {
                                 + "toccare il file.",
                         "Il nome sopra la testa si può anche nascondere del tutto senza perdere il testo scelto: "
                                 + "`/mentities displayname <nome> off` lo spegne, `... on` lo riaccende — stessa "
-                                + "opzione di `/mentities set <nome> nametag`, solo più comoda da qui. Su una "
-                                + "statua (tipo player) spegne anche la targhetta vanilla del profilo che il "
-                                + "client disegna da solo mirandola da vicino, indipendente dal nome sopra la "
-                                + "testa: si toglie il nome dal profilo stesso, non solo dal cartello.",
+                                + "opzione di `/mentities set <nome> nametag`, solo più comoda da qui. Toglie "
+                                + "proprio il nome, non solo la visibilità: in Minecraft un mob con nome ma "
+                                + "\"non visibile\" lo mostra comunque mirandolo da vicino, quindi spegnerlo "
+                                + "del tutto richiede di togliere il nome stesso, non solo il cartello.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
                                 + "Si accende per singola entità.")
 

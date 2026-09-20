@@ -104,12 +104,12 @@ seguire il nome usa `/mentities displayname <nome> reset`.
 stessa opzione booleana `nametag` di `/mentities set` (vedi sotto) letta e scritta da un altro
 comando piu' comodo da ricordare quando si sta gia' lavorando sul displayname.
 
-**Solo per il tipo `player`**, `nametag off` spegne anche la targhetta VANILLA che il client
-disegna da solo (col nome del profilo/skin, non col displayname) quando ci si punta vicino: una
-seconda targhetta, indipendente dal customName, che altrimenti resterebbe visibile mirando la
-statua anche a nametag spento. Non e' un'opzione separata: il nome viene tolto dal PROFILO stesso
-(stessa skin, texture intatte, solo senza l'etichetta), quindi funziona allo stesso modo anche
-sulle skin a specchio.
+`nametag off` **toglie** il nome (`customName(null)`), non lo nasconde soltanto: in Minecraft
+`CustomNameVisible=false` non vuol dire "nome invisibile", vuol dire "visibile solo mirando
+l'entita' da vicino" (il comportamento normale di un mob rinominato col name tag) — `true` vuol
+dire "sempre visibile", come un cartello. Impostare solo la visibilita' a `false` lascerebbe
+comunque un nome sull'entita', che il client mostrerebbe ugualmente mirandola. Vale per qualunque
+tipo di entita' (statua o mob) e anche sulle skin a specchio.
 
 `mirror` e' una **parola riservata** su `displayname` e su `skin` (vedi sotto), **non** su `name`:
 il nome e' un identificativo, li' `mirror` sarebbe solo un nome come un altro.

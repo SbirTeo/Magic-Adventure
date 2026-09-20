@@ -337,9 +337,14 @@ public final class NpcManager {
         e.getPersistentDataContainer().set(key, PersistentDataType.STRING, d.id);
         e.setPersistent(true);
 
+        // CustomNameVisible=false NON vuol dire "nome invisibile": vuol dire "visibile solo
+        // mirandolo da vicino" (il comportamento vanilla di un mob rinominato col name tag).
+        // Con nametag off il nome va TOLTO (null), non solo nascosto, altrimenti mirando la
+        // statua da vicino compare comunque.
         Component name = Colors.component(d.displayText());
-        e.customName(name);
-        e.setCustomNameVisible(d.opt("nametag", true));
+        boolean showName = d.opt("nametag", true);
+        e.customName(showName ? name : null);
+        e.setCustomNameVisible(showName);
         e.setInvulnerable(d.opt("invulnerable", true));
         e.setGravity(d.opt("gravity", true));
         e.setSilent(d.opt("silent", true));
@@ -372,8 +377,9 @@ public final class NpcManager {
             // La "description" del Mannequin e' una riga disegnata sopra la testa IN AGGIUNTA al
             // customName, e solo da vicino: col displayname il nome comparirebbe due volte.
             // Deve essere null (= assente): con Component.empty() la riga viene comunque
-            // riservata e avvicinandosi il nametag "salta" su di una riga.
-            man.setDescription(plugin.getConfig().getBoolean("player.description", false)
+            // riservata e avvicinandosi il nametag "salta" su di una riga. Niente descrizione
+            // nemmeno con l'opzione attiva se nametag e' off: e' un'altra scritta col nome.
+            man.setDescription(showName && plugin.getConfig().getBoolean("player.description", false)
                     ? name : null);
             applyPose(d, man);
             if (!d.isSkinMirror()) applySkin(d, man);
@@ -390,7 +396,9 @@ public final class NpcManager {
         e.getPersistentDataContainer().set(cloneKey, PersistentDataType.STRING, d.id);
         e.setPersistent(false);
         e.setVisibleByDefault(false);
-        if (d.isDisplayMirror()) e.customName(Component.text(owner.getName()));
+        // Il nome del proprietario sostituisce quello messo da apply() SOLO se il nametag e'
+        // acceso: altrimenti apply() l'ha gia' tolto (null) e deve restare cosi'.
+        if (d.isDisplayMirror() && d.opt("nametag", true)) e.customName(Component.text(owner.getName()));
         if (d.isSkinMirror() && e instanceof Mannequin man) {
             man.setProfile(profiloSpecchio(d, owner));
         }
@@ -412,19 +420,13 @@ public final class NpcManager {
      *
      * Se il proprietario e' senza texture il profilo resta con solo nome e UUID: a quel punto
      * e' il gioco a risolverlo dal nome, che e' comunque meglio di una faccia vuota.
-     *
-     * Il nome nel profilo e' quello del proprietario SOLO se l'opzione {@code nametag} e' accesa:
-     * spenta, si toglie (vedi {@link #withLabel}) — altrimenti la targhetta vanilla che il client
-     * disegna da solo mirando l'entita' da vicino rivelerebbe comunque chi la sta guardando, anche
-     * a nametag spento.
      */
     private static ResolvableProfile profiloSpecchio(NpcDef d, Player owner) {
-        String label = d.opt("nametag", true) ? owner.getName() : "";
         return ResolvableProfile.resolvableProfile()
                 .uuid(UUID.nameUUIDFromBytes(
                         ("magixentities:copia:" + d.id + ":" + owner.getUniqueId())
                                 .getBytes(StandardCharsets.UTF_8)))
-                .name(label)
+                .name(owner.getName())
                 .addProperties(owner.getPlayerProfile().getProperties())
                 .build();
     }
@@ -478,21 +480,14 @@ public final class NpcManager {
      * Il risultato resta in cache per nick: senza cache il controllo periodico
      * (check-interval-seconds) rifarebbe una richiesta a Mojang per ogni entita' ogni pochi
      * secondi, riempiendo la console e rischiando il blocco per troppe richieste.
-     *
-     * Il nome VISIBILE nel profilo (non il nick usato per cache/risoluzione) e' quello vero solo
-     * se l'opzione {@code nametag} e' accesa: spenta, si toglie (vedi {@link #withLabel}) — altrimenti
-     * la targhetta vanilla che il client disegna da solo per un'entita' con profilo giocatore,
-     * mirandola da vicino, resterebbe visibile anche a nametag spento (e' un meccanismo diverso e
-     * indipendente da {@code setCustomNameVisible}, che spegne solo il customName "mob").
      */
     public void applySkin(NpcDef d, Mannequin man) {
         String nick = d.skinNick();
         String key = nick.toLowerCase(Locale.ROOT);
-        String label = d.opt("nametag", true) ? nick : "";
 
         PlayerProfile inCache = skinCache.get(key);
         if (inCache != null) {
-            if (!vestita(man, inCache)) man.setProfile(withLabel(inCache, label));
+            if (!vestita(man, nick)) man.setProfile(ResolvableProfile.resolvableProfile(inCache));
             return;
         }
 
@@ -501,14 +496,13 @@ public final class NpcManager {
             PlayerProfile profilo = online.getPlayerProfile();
             skinCache.put(key, profilo);
             skinRetry.remove(key);
-            man.setProfile(withLabel(profilo, label));
+            man.setProfile(ResolvableProfile.resolvableProfile(profilo));
             return;
         }
 
         try {
             // Se il nome e' gia' quello giusto non ripetiamo il setter: rimandare il profilo a
-            // ogni controllo farebbe ricaricare l'entita' ai client vicini. Qui il nick resta
-            // sempre visibile (non c'e' ancora nessuna texture, serve al server per risolverla).
+            // ogni controllo farebbe ricaricare l'entita' ai client vicini.
             if (!nick.equalsIgnoreCase(profileName(man))) {
                 man.setProfile(ResolvableProfile.resolvableProfile().name(nick).build());
             }
@@ -549,41 +543,21 @@ public final class NpcManager {
             skinCache.put(key, profile);
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Entity e = Bukkit.getEntity(entityId);
-                if (e instanceof Mannequin m) {
-                    m.setProfile(withLabel(profile, d.opt("nametag", true) ? nick : ""));
-                }
+                if (e instanceof Mannequin m) m.setProfile(ResolvableProfile.resolvableProfile(profile));
             });
         });
     }
 
-    /**
-     * true se il Mannequin ha gia' addosso le texture di questo profilo: niente da riapplicare.
-     * Il confronto e' per UUID, non per nome — il nome mostrato puo' essere vuoto a nametag
-     * spento (vedi {@link #withLabel}), quindi non basta piu' a riconoscere il profilo giusto.
-     */
-    private boolean vestita(Mannequin man, PlayerProfile expected) {
+    /** true se il Mannequin ha gia' addosso le texture di questo nick: niente da riapplicare. */
+    private boolean vestita(Mannequin man, String nick) {
         ResolvableProfile p = man.getProfile();
-        return p != null && !p.properties().isEmpty() && expected.getId() != null
-                && expected.getId().equals(p.uuid());
+        return p != null && !p.properties().isEmpty() && nick.equalsIgnoreCase(p.name());
     }
 
     /** Nome del profilo attualmente addosso all'entita' (null se non ne ha). */
     private String profileName(Mannequin man) {
         ResolvableProfile p = man.getProfile();
         return p == null ? null : p.name();
-    }
-
-    /**
-     * Lo stesso profilo (stesso UUID, stesse texture), ma col nome che deve VEDERSI: quello vero,
-     * o vuoto se l'opzione {@code nametag} e' spenta. Spegne cosi' anche la targhetta vanilla che
-     * il client disegna da solo per un'entita' con profilo giocatore, mirandola da vicino.
-     */
-    private static ResolvableProfile withLabel(PlayerProfile base, String label) {
-        return ResolvableProfile.resolvableProfile()
-                .uuid(base.getId())
-                .name(label)
-                .addProperties(base.getProperties())
-                .build();
     }
 
     /** Dimentica le skin risolte e i nick bocciati: al prossimo controllo si riparte da capo. */
