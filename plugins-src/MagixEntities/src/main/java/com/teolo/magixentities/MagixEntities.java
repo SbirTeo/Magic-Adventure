@@ -2,6 +2,7 @@ package com.teolo.magixentities;
 
 import com.teolo.magixentities.util.ConfigAlign;
 import com.teolo.magixentities.command.MeCommand;
+import com.teolo.magixentities.hook.MagixCosmeticsHook;
 import com.teolo.magixentities.lang.Messages;
 import com.teolo.magixentities.listener.NpcListener;
 import com.teolo.magixentities.manage.ActionRunner;
@@ -54,6 +55,11 @@ public final class MagixEntities extends JavaPlugin {
         npcs.load();
         getLogger().info("Entita' caricate da entities.yml: " + npcs.all().size());
 
+        // Per riflessione, non e' una dipendenza Maven (vedi hook.MagixCosmeticsHook): se
+        // MagixCosmetics manca o non e' abilitato, mirror.start() semplicemente non fa partire
+        // il task dell'aureola sui mirror. Va fatto PRIMA di mirror.start().
+        MagixCosmeticsHook.setup(this);
+
         ActionRunner actions = new ActionRunner(this);
         EquipMenu equipMenu = new EquipMenu(this, npcs, mirror, messages);
         PluginCommand cmd = getCommand("magixentities");
@@ -81,7 +87,10 @@ public final class MagixEntities extends JavaPlugin {
     public void onDisable() {
         // Le copie mirror non sono persistenti, ma vanno tolte subito: durante un reload dei
         // plugin resterebbero nel mondo senza nessuno che le gestisce.
-        if (mirror != null) mirror.clearAll();
+        if (mirror != null) {
+            mirror.clearAll();
+            mirror.stopHalo();
+        }
         if (npcs != null) npcs.save();
     }
 
@@ -127,6 +136,17 @@ public final class MagixEntities extends JavaPlugin {
                         "Una skin trovata resta in memoria: non viene richiesta di nuovo a ogni controllo. Se il "
                                 + "nome non esiste su minecraft.net il plugin lo scrive in console una volta sola e "
                                 + "riprova ogni mezz'ora (skin.retry-minutes).")
+
+                .section("Skin e nome a specchio",
+                        "Con `/mentities skin <nome> mirror` (solo tipo player) ogni giocatore vede l'entità con la "
+                                + "PROPRIA skin; con `/mentities displayname <nome> mirror` (qualsiasi tipo) ognuno "
+                                + "vede il PROPRIO nome sopra la testa. Tecnicamente l'entità vera resta nascosta e per "
+                                + "ogni giocatore vicino ne nasce una copia personalizzata, visibile solo a lui.",
+                        "Se il plugin MagixCosmetics è installato e abilitato, la copia a specchio skin di un VIP "
+                                + "riproduce sopra la testa anche la sua stessa aureola colorata — ma solo se in quel "
+                                + "momento lui ce l'ha davvero attiva (permesso, colore scelto, non spenta, non in "
+                                + "combattimento). Senza MagixCosmetics non succede nulla, senza bisogno di configurare "
+                                + "niente in più.")
 
                 .section("Aspetto, equipaggiamento e sguardo",
                         "Nome visibile, equipaggiamento e posa si cambiano dai comandi o dal menu in gioco, senza "
@@ -187,7 +207,9 @@ public final class MagixEntities extends JavaPlugin {
                         "defaults.nametag", "Mostra il nome sopra la testa delle entità appena create.",
                         "defaults.ai", "Lascia attiva l'intelligenza artificiale: se true l'entità cammina e insegue.",
                         "defaults.gravity", "Le entità appena create subiscono la gravità.",
-                        "defaults.collidable", "Le entità appena create bloccano il passaggio dei giocatori.")
+                        "defaults.collidable", "Le entità appena create bloccano il passaggio dei giocatori.",
+                        "mirror.halo.enabled", "Aureola VIP sulle copie a specchio skin (richiede MagixCosmetics installato e abilitato).",
+                        "mirror.halo.interval-ticks", "Ogni quanti tick il puntino dell'aureola sui mirror avanza lungo il cerchio.")
 
                 .never("Non modificare entities.yml mentre il server gira: al primo salvataggio del plugin le tue "
                         + "modifiche vengono sovrascritte.")

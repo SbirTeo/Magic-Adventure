@@ -125,7 +125,7 @@ public final class HaloManager {
         if (angle > Math.PI * 2) angle -= Math.PI * 2;   // niente overflow su uptime lunghi
         for (Player p : Bukkit.getOnlinePlayers()) {
             Color color = effectiveColor(p);
-            if (color != null) draw(p, new Particle.DustOptions(color, size));
+            if (color != null) drawAt(p.getLocation(), color);
         }
     }
 
@@ -146,15 +146,24 @@ public final class HaloManager {
         return name == null ? null : colors.get(name);
     }
 
-    private void draw(Player p, Particle.DustOptions dust) {
+    /**
+     * Disegna il puntino dell'aureola sopra un punto qualsiasi, con lo stesso stile e lo stesso
+     * angolo del giro in corso: oltre al proprio {@link #tick()}, lo usa anche MagixEntities per
+     * riprodurre l'aureola di un giocatore sopra la sua entita' in modalita' skin "mirror", per
+     * riflessione (nessuna dipendenza Maven fra i due plugin — vedi {@code MagixCosmeticsHook} in
+     * MagixEntities). Nessun controllo di permesso/stato qui: il chiamante decide gia' il colore
+     * con {@link #effectiveColor(Player)} ({@code null} = niente aureola, non disegnare).
+     */
+    public void drawAt(Location base, Color color) {
+        if (color == null || base.getWorld() == null) return;
         // Un solo punto, alla posizione corrente lungo il cerchio: il prossimo tick sara' poco
         // piu' avanti, e cosi' orbita. Le particelle vecchie sfumano da sole e lasciano una breve scia.
         double x = Math.cos(angle) * radius;
         double z = Math.sin(angle) * radius;
-        Location at = p.getLocation().add(x, height, z);
-        // Sul MONDO, non solo a lui: cosi' l'aureola la vedono tutti, il VIP compreso.
+        Location at = base.clone().add(x, height, z);
+        // Sul MONDO, non solo per chi guarda: cosi' l'aureola la vedono tutti.
         // Con DUST il "count" 1 e gli offset a zero mettono la particella esattamente li'.
-        p.getWorld().spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, dust);
+        base.getWorld().spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, new Particle.DustOptions(color, size));
     }
 
     // ------------------------------------------------------------- toggle personale

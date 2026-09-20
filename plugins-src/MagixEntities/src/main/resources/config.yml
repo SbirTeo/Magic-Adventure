@@ -68,6 +68,16 @@ mirror:
   # Ogni quanti tick le copie vengono allineate (20 tick = 1 secondo).
   interval-ticks: 20
 
+  halo:
+    # Se true, un'entita' in modalita' skin "mirror" mostra sopra la testa la stessa aureola VIP
+    # del giocatore che la sta guardando (richiede il plugin MagixCosmetics), ma solo se in quel
+    # momento quel giocatore ce l'ha davvero attiva (permesso, colore scelto, non spenta con
+    # /halo off, non in combattimento...). Senza MagixCosmetics installato non fa nulla.
+    enabled: true
+    # Ogni quanti tick il puntino avanza lungo il cerchio: stesso identico funzionamento di
+    # halo.update-interval-ticks in MagixCosmetics. Basso = piu' fluido, alto = piu' leggero.
+    interval-ticks: 1
+
 skin:
   # Scarica le texture della skin da Mojang (in async) quando crei un'entita' "player".
   # Se false viene usato solo il nome: il server risolve la skin da solo, ma

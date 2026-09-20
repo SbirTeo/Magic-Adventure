@@ -233,6 +233,14 @@ mostrata solo a lui (`showEntity`). Le copie:
 **Costo:** una copia per ogni giocatore nel raggio. Con molti giocatori nello stesso punto (es. spawn)
 conviene tenere `mirror.radius` basso.
 
+**Aureola VIP sulla skin a specchio:** se il plugin **MagixCosmetics** e' installato e abilitato
+(`softdepend`, nessuna dipendenza obbligatoria), la copia in modalita' skin `mirror` di un giocatore
+riproduce sopra la testa la sua stessa aureola colorata da VIP — ma solo se in quel momento
+quel giocatore ce l'ha **davvero attiva** (permesso `magixcosmetics.halo` + un permesso colore,
+non spenta con `/halo off`, non in combattimento PvP, non in spettatore/vanish/invisibile: le
+stesse condizioni della sua aureola vera). Un giocatore senza aureola attiva vede/mostra la sua
+copia senza. Si regola con `mirror.halo.enabled` e `mirror.halo.interval-ticks` nel config.
+
 ---
 
 ## Persistenza e robustezza

@@ -1,5 +1,6 @@
 package com.teolo.magixentities.manage;
 
+import com.teolo.magixentities.hook.MagixCosmeticsHook;
 import com.teolo.magixentities.model.NpcDef;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -7,6 +8,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,6 +36,7 @@ public final class MirrorManager {
     private final NpcManager npcs;
     /** id entita' -> (uuid giocatore -> uuid copia). */
     private final Map<String, Map<UUID, UUID>> clones = new HashMap<>();
+    private BukkitTask haloTask;
 
     public MirrorManager(JavaPlugin plugin, NpcManager npcs) {
         this.plugin = plugin;
@@ -43,6 +46,27 @@ public final class MirrorManager {
     public void start() {
         long interval = Math.max(5L, plugin.getConfig().getLong("mirror.interval-ticks", 20L));
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, interval, interval);
+        startHalo();
+    }
+
+    /**
+     * Aureola VIP sulle copie in modalita' skin "mirror": stesso puntino di MagixCosmetics,
+     * disegnato per riflessione (vedi {@link MagixCosmeticsHook}) sopra la copia di ogni
+     * proprietario che in quel momento ce l'ha davvero attiva. Non parte se MagixCosmetics non
+     * e' installato/abilitato o se {@code mirror.halo.enabled} e' false.
+     */
+    private void startHalo() {
+        if (!plugin.getConfig().getBoolean("mirror.halo.enabled", true)) return;
+        if (!MagixCosmeticsHook.enabled()) return;
+        long interval = Math.max(1L, plugin.getConfig().getLong("mirror.halo.interval-ticks", 1L));
+        haloTask = Bukkit.getScheduler().runTaskTimer(plugin, this::haloTick, interval, interval);
+    }
+
+    private void haloTick() {
+        for (NpcDef d : npcs.all()) {
+            if (!d.isSkinMirror()) continue;
+            forEachClone(d, (owner, clone) -> MagixCosmeticsHook.drawHaloIfActive(owner, clone.getLocation()));
+        }
     }
 
     private double radiusSq() {
@@ -124,7 +148,7 @@ public final class MirrorManager {
         }
     }
 
-    /** Elimina tutte le copie (spegnimento del plugin). */
+    /** Elimina tutte le copie (spegnimento del plugin, o /mentities reload). */
     public void clearAll() {
         for (Map<UUID, UUID> owners : clones.values()) {
             for (UUID cloneId : owners.values()) {
@@ -133,6 +157,14 @@ public final class MirrorManager {
             }
         }
         clones.clear();
+    }
+
+    /** Ferma il task dell'aureola (solo spegnimento del plugin: /mentities reload non lo tocca). */
+    public void stopHalo() {
+        if (haloTask != null) {
+            haloTask.cancel();
+            haloTask = null;
+        }
     }
 
     /** Esegue un'azione su ogni copia viva di una entita', col suo proprietario. */
