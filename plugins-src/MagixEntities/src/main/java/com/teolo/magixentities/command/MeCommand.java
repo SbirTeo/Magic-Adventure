@@ -304,7 +304,6 @@ public final class MeCommand implements TabExecutor {
         }
         String old = d.name;
         npcs.rename(d, newName);
-        npcs.syncNameTags();
         M.send(sender, "renamed", "old", old, "new", d.name);
         if (d.isPlayerType() && d.skin == null) {
             M.send(sender, "renamed-skin-hint", "skin", d.skinNick());
@@ -386,7 +385,6 @@ public final class MeCommand implements TabExecutor {
 
         String vecchio = typeLabel(d);
         npcs.changeType(d, nuovo);
-        npcs.syncNameTags();
         M.send(sender, "type-set", "name", d.name, "old", vecchio, "type", typeLabel(d));
         if (d.isPlayerType()) {
             M.send(sender, "type-player-hint", "skin", d.skinNick(), "name", d.name);
@@ -429,7 +427,6 @@ public final class MeCommand implements TabExecutor {
             applyLive(sender, d);
         }
         npcs.save();
-        npcs.syncNameTags();
         if (d.isSkinMirror()) M.send(sender, "skin-mirror", "name", d.name);
         else M.send(sender, "skin-set", "name", d.name, "skin", d.skinNick());
     }
@@ -614,7 +611,6 @@ public final class MeCommand implements TabExecutor {
             npcs.ensure(d);
             warnIfRefused(sender, d);
         }
-        npcs.syncNameTags();
     }
 
     /**

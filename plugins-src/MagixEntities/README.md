@@ -107,10 +107,9 @@ comando piu' comodo da ricordare quando si sta gia' lavorando sul displayname.
 **Solo per il tipo `player`**, `nametag off` spegne anche la targhetta VANILLA che il client
 disegna da solo (col nome del profilo/skin, non col displayname) quando ci si punta vicino: una
 seconda targhetta, indipendente dal customName, che altrimenti resterebbe visibile mirando la
-statua anche a nametag spento. **Eccezione: skin a specchio** (`isSkinMirror`) — li' il profilo
-porta il nome VERO del giocatore che sta guardando in quel momento, e nasconderlo scambierebbe
-anche la SUA targhetta personale ovunque sul server; su quelle statue, mirandole da vicino, il
-nome resta visibile anche con `nametag off`.
+statua anche a nametag spento. Non e' un'opzione separata: il nome viene tolto dal PROFILO stesso
+(stessa skin, texture intatte, solo senza l'etichetta), quindi funziona allo stesso modo anche
+sulle skin a specchio.
 
 `mirror` e' una **parola riservata** su `displayname` e su `skin` (vedi sotto), **non** su `name`:
 il nome e' un identificativo, li' `mirror` sarebbe solo un nome come un altro.

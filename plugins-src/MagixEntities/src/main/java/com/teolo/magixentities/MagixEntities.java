@@ -91,10 +91,7 @@ public final class MagixEntities extends JavaPlugin {
             mirror.clearAll();
             mirror.stopHalo();
         }
-        if (npcs != null) {
-            npcs.save();
-            npcs.clearNameTags();
-        }
+        if (npcs != null) npcs.save();
     }
 
     /** Riscrive plugins/MagixEntities/README.md ad ogni avvio (README = unica fonte, dentro il jar). */
@@ -158,10 +155,8 @@ public final class MagixEntities extends JavaPlugin {
                                 + "`/mentities displayname <nome> off` lo spegne, `... on` lo riaccende — stessa "
                                 + "opzione di `/mentities set <nome> nametag`, solo più comoda da qui. Su una "
                                 + "statua (tipo player) spegne anche la targhetta vanilla del profilo che il "
-                                + "client disegna da solo mirandola da vicino — TRANNE che su una skin a "
-                                + "specchio, dove il profilo porta il nome vero di chi guarda: lì mirandola da "
-                                + "vicino il nome resta visibile anche a nametag spento, perché nasconderlo "
-                                + "toccherebbe la targhetta personale di quel giocatore ovunque sul server.",
+                                + "client disegna da solo mirandola da vicino, indipendente dal nome sopra la "
+                                + "testa: si toglie il nome dal profilo stesso, non solo dal cartello.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
                                 + "Si accende per singola entità.")
 
