@@ -48,6 +48,7 @@ public final class NpcManager {
     private final NamespacedKey cloneKey;
     private final Map<String, NpcDef> npcs = new LinkedHashMap<>();
     private MirrorManager mirror;
+    private final EntityNameTags nameTags = new EntityNameTags();
     /** Skin gia' risolte: nick in minuscolo -> profilo completo di texture. */
     private final Map<String, PlayerProfile> skinCache = new ConcurrentHashMap<>();
     /** Nick senza texture: da quando (millis) ha senso riprovare. */
@@ -186,6 +187,21 @@ public final class NpcManager {
         npcs.remove(d.id);
         refused.remove(d.id);
         save();
+        nameTags.sync(npcs.values());
+    }
+
+    /**
+     * Ricalcola subito chi deve avere la targhetta vanilla nascosta (vedi {@link EntityNameTags}):
+     * da chiamare dopo un comando che cambia nome, skin, tipo o l'opzione {@code nametag}, cosi'
+     * l'effetto si vede subito invece di aspettare il prossimo {@link #ensureAll()}.
+     */
+    public void syncNameTags() {
+        nameTags.sync(npcs.values());
+    }
+
+    /** Toglie tutte le targhette nascoste (spegnimento del plugin). */
+    public void clearNameTags() {
+        nameTags.clear();
     }
 
     // ------------------------------------------------------------- runtime
@@ -286,6 +302,10 @@ public final class NpcManager {
             ensure(d);
             if (before == null ? d.uuid != null : !before.equals(d.uuid)) changed = true;
         }
+        // Si ricalcola per intero a ogni giro, mai inseguendo la singola modifica: cosi' una
+        // rinomina, un cambio skin o una rimozione non lasciano mai un nome dimenticato nella
+        // squadra dello scoreboard (vedi EntityNameTags).
+        nameTags.sync(npcs.values());
         if (changed) save();
     }
 
