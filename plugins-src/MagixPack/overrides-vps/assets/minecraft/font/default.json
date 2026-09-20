@@ -11,12 +11,12 @@
       "type": "bitmap",
       "file": "magicadventure:gui/crystal_frame.png",
       "ascent": 32,
-      "height": 256,
+      "height": 250,
       "chars": [""]
     },
     {
       "type": "space",
-      "advances": { "": -47 }
+      "advances": { "": -42 }
     },
     { "type": "reference", "id": "minecraft:include/space" },
     { "type": "reference", "id": "minecraft:include/default" }

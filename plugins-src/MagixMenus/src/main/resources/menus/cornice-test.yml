@@ -2,11 +2,10 @@
 #  cornice-test.yml — banco di prova per la cornice a glifo font (vedi CLAUDE.md,
 #  "Copiare un file BINARIO nuovo sul VPS" e MagixPack/overrides-vps/).
 #
-#  CAUSA TROVATA (con fonte): ogni glifo bitmap di Minecraft ha un limite FISSO di 256x256
-#  pixel nativi (non il campo "height" del JSON, che riscala solo la resa a schermo — e'
-#  proprio la risoluzione del file). crystal_frame.png era 976x1000: ridotto a 250x256,
-#  dentro il limite. Titolo: solo il glifo (), senza spostamento, per vedere posizione
-#  e dimensione prima di ricalibrare.
+#  3 righe, non 6: misurata l'apertura trasparente di crystal_frame.png (180x171 px nativi,
+#  quasi quadrata) — scalata per larghezza baule (176px) da' un'apertura alta 167px, che
+#  combacia quasi esatta con un baule a 3 righe (168px). Con 6 righe (222px) l'apertura non
+#  potrebbe mai essere abbastanza alta (limite dei 256px per glifo), coprirebbe dei slot.
 #
 #  NESSUN item negli slot: il client disegna le icone degli item SOPRA il testo del titolo,
 #  quindi coprirebbero il glifo.
@@ -14,8 +13,8 @@
 
 menu:
   type: chest
-  rows: 6
-  title: ""
+  rows: 3
+  title: ""
   update: 0
   commands: [cornicetest]
   closeable: true
