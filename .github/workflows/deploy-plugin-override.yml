@@ -1,0 +1,124 @@
+name: Copia la cartella overrides-vps di un plugin sul VPS
+
+# Manda sul VPS, dentro plugins/<Plugin>/overrides/, il contenuto di
+# plugins-src/<Plugin>/overrides-vps/ (stessa struttura di cartelle) — file
+# manuali (texture, font, lang...) che MagixPack (o un altro plugin con la
+# stessa convenzione) fonde nel proprio contenuto senza bisogno di codice, vedi
+# MagixPack/README.md. Da una sessione cloud, senza questo workflow, non c'e'
+# modo di portare un file BINARIO nuovo sul VPS (deploy-plugin.yml copia solo
+# il jar, deploy-plugin-config.yml cambia solo una riga di un file YAML gia'
+# esistente): questo workflow chiude quel buco, con gli stessi secret VPS.
+#
+# Convenzione: plugins-src/<Plugin>/overrides-vps/assets/... nel repo ->
+# plugins/<Plugin>/overrides/assets/... sul VPS. E' un'AGGIUNTA (scp -r senza
+# --delete): un file gia' sul VPS ma non piu' nella cartella del repo NON
+# viene tolto — per togliere qualcosa va fatto a mano (SSH diretto, o una
+# sessione locale). Dopo la copia, se il server e' su, manda da solo /mpack
+# reload (o il comando indicato) cosi' il pacchetto si ricostruisce e si
+# rimanda a chi e' gia' connesso.
+#
+# Solo manuale (workflow_dispatch): non parte da solo su push, perche' un
+# push a overrides-vps/ potrebbe essere ancora in lavorazione (es. una taratura
+# di ascent/height non ancora buona) e non tutti i cambi vanno spinti subito.
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "Cartella del plugin (es. MagixPack): deve avere plugins-src/<plugin>/overrides-vps/"
+        required: true
+        default: "MagixPack"
+      reload_cmd:
+        description: "Comando di reload da mandare in console dopo la copia (vuoto = nessuno)"
+        required: false
+        default: "mpack reload"
+
+concurrency:
+  group: deploy-plugin-override
+  cancel-in-progress: false
+
+jobs:
+  copy-overrides:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Scarica il codice
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - name: Controlla che la cartella overrides-vps esista
+        if: steps.check.outputs.ok == 'true'
+        id: src
+        run: |
+          set -euo pipefail
+          DIR="plugins-src/${{ inputs.plugin }}/overrides-vps"
+          if [ ! -d "$DIR" ]; then
+            echo "::error::Non esiste $DIR nel repo. Crea plugins-src/${{ inputs.plugin }}/overrides-vps/ con dentro i file da copiare."
+            exit 1
+          fi
+          N="$(find "$DIR" -type f | wc -l)"
+          if [ "$N" -eq 0 ]; then
+            echo "::error::$DIR e' vuota: niente da copiare."
+            exit 1
+          fi
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "$N file trovati in $DIR:"
+          find "$DIR" -type f
+
+      - name: Prepara la chiave SSH
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia i file in overrides/ e ricarica
+        if: steps.check.outputs.ok == 'true'
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          SRC_DIR: "${{ steps.src.outputs.dir }}"
+          IN_PLUGIN: ${{ inputs.plugin }}
+          IN_RELOAD: ${{ inputs.reload_cmd }}
+        run: |
+          set -euo pipefail
+          KEY=~/.ssh/deploy_key
+          SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
+          REMOTE_DIR="/home/ubuntu/magicadventure/plugins/$IN_PLUGIN/overrides"
+
+          $SSH "mkdir -p '$REMOTE_DIR'" </dev/null
+
+          # scp -r copia l'INTERO albero di SRC_DIR dentro REMOTE_DIR, ricreando la
+          # struttura assets/... — niente --delete: e' un'aggiunta, non uno specchio.
+          scp -i "$KEY" -o StrictHostKeyChecking=yes -r "$SRC_DIR"/. "$DEST:$REMOTE_DIR/" </dev/null
+
+          echo "Copiati in $REMOTE_DIR:"
+          $SSH "find '$REMOTE_DIR' -type f" </dev/null
+
+          if [ -n "${IN_RELOAD:-}" ]; then
+            RELOAD_B64="$(printf '%s' "$IN_RELOAD" | base64 -w0)"
+            $SSH "RELOAD_B64='$RELOAD_B64' bash -s" </dev/null <<'REMOTE'
+          set -e
+          CMD="$(printf '%s' "$RELOAD_B64" | base64 -d)"
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            screen -S mc -p 0 -X stuff "$(printf '%s\r' "$CMD")"
+            echo "Reload inviato: $CMD"
+          else
+            echo "Server non in esecuzione: gli override verranno letti al prossimo avvio."
+          fi
+          REMOTE
+          fi
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

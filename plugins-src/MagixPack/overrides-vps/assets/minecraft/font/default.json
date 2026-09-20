@@ -1,0 +1,24 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "magicadventure:gui/logo.png",
+      "ascent": -8,
+      "height": 78,
+      "chars": [""]
+    },
+    {
+      "type": "bitmap",
+      "file": "magicadventure:gui/crystal_frame.png",
+      "ascent": 60,
+      "height": 260,
+      "chars": [""]
+    },
+    {
+      "type": "space",
+      "advances": { "": -47 }
+    },
+    { "type": "reference", "id": "minecraft:include/space" },
+    { "type": "reference", "id": "minecraft:include/default" }
+  ]
+}
