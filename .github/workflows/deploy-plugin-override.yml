@@ -32,6 +32,10 @@ on:
         description: "Comando di reload da mandare in console dopo la copia (vuoto = nessuno)"
         required: false
         default: "mpack reload"
+      remove_path:
+        description: "Percorso di UN file da togliere da overrides/ PRIMA della copia (relativo a overrides/, es. assets/minecraft/textures/gui/container/inventory.png). Vuoto = non tocca niente. Serve a ripulire un file lasciato da un test precedente."
+        required: false
+        default: ""
 
 concurrency:
   group: deploy-plugin-override
@@ -90,6 +94,7 @@ jobs:
           SRC_DIR: "${{ steps.src.outputs.dir }}"
           IN_PLUGIN: ${{ inputs.plugin }}
           IN_RELOAD: ${{ inputs.reload_cmd }}
+          IN_REMOVE: ${{ inputs.remove_path }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
@@ -97,6 +102,16 @@ jobs:
           REMOTE_DIR="/home/ubuntu/magicadventure/plugins/$IN_PLUGIN/overrides"
 
           $SSH "mkdir -p '$REMOTE_DIR'" </dev/null
+
+          # Rimozione mirata OPZIONALE di un file lasciato da un test precedente, prima
+          # della copia — mai una cartella intera, un percorso alla volta e solo dentro
+          # overrides/ (niente ".." nel percorso, per sicurezza).
+          if [ -n "${IN_REMOVE:-}" ]; then
+            case "$IN_REMOVE" in
+              *..*) echo "::error::remove_path non puo' contenere '..'"; exit 1 ;;
+            esac
+            $SSH "rm -fv -- '$REMOTE_DIR/$IN_REMOVE'" </dev/null || true
+          fi
 
           # scp -r copia l'INTERO albero di SRC_DIR dentro REMOTE_DIR, ricreando la
           # struttura assets/... — niente --delete: e' un'aggiunta, non uno specchio.
