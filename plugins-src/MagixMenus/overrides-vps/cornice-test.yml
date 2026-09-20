@@ -2,19 +2,19 @@
 #  cornice-test.yml — banco di prova per la cornice a glifo font (vedi CLAUDE.md,
 #  "Copiare un file BINARIO nuovo sul VPS" e MagixPack/overrides-vps/).
 #
-#  Il titolo contiene solo il glifo (nessun testo visibile): serve a vedere DOVE cade la
-#  cornice rispetto al baule 6 righe, per tarare ascent/height nel font.json di MagixPack.
-#  Una volta calibrata, il titolo si scrive normalmente e ci si mette il glifo in coda.
+#  Titolo SENZA lo spostamento orizzontale (solo il glifo della cornice, senza il carattere
+#  "space" con advance negativo): serve a isolare una variabile alla volta. Se anche cosi' non
+#  si vede niente (o si vede solo un rettangolino, il glifo "sconosciuto" di Minecraft), il
+#  problema e' che il font non si sta risolvendo affatto, non la taratura di ascent/height.
 #
-#  NESSUN item negli slot apposta: il client disegna il testo del titolo (quindi il glifo)
-#  PRIMA delle icone degli item, che quindi lo coprirebbero del tutto — era per questo che il
-#  primo test, con lo sfondo di vetro colorato su ogni slot, sembrava non mostrare niente.
+#  NESSUN item negli slot: il client disegna le icone degli item SOPRA il testo del titolo,
+#  quindi coprirebbero il glifo.
 # ==========================================================================================
 
 menu:
   type: chest
   rows: 6
-  title: ""
+  title: ""
   update: 0
   commands: [cornicetest]
   closeable: true
