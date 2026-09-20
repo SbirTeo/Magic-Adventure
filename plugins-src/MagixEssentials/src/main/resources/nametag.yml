@@ -27,7 +27,9 @@ update-interval-ticks: 40
 #              essere DIVERSA per ogni spettatore (vedi per-viewer e i placeholder %rel_...%).
 #   display  - la disegniamo noi con delle entita' di testo agganciate al giocatore: PIU' RIGHE,
 #              colori esadecimali e sfumature anche sul nome, misura e altezza regolabili. Il nome
-#              del gioco viene nascosto, altrimenti si vedrebbe doppio. Uguale per tutti.
+#              del gioco viene nascosto, altrimenti si vedrebbe doppio. Puo' essere diversa per chi
+#              guarda (i %rel_...%): disegna un gruppo di entita' per ogni testo e nasconde a ognuno
+#              quelle che non sono le sue (vedi per-viewer).
 #   auto     - (consigliato) vanilla con una riga sola, display da due righe in su.
 mode: auto
 
@@ -78,18 +80,18 @@ style: auto
 # jar non conosce viene tolta). I segnaposto di un plugin che su questo server non c'e' restano
 # VUOTI, non scritti a schermo — quindi una voce sbagliata non riempie di %...% la testa di nessuno.
 styles:
-  # Fazioni: il tag della fazione e il nome, entrambi col colore RELAZIONALE (verde/alleato,
+  # Fazioni: il tag della fazione sopra, il nome sotto, entrambi col colore RELAZIONALE (verde/alleato,
   # rosso/nemico...) verso chi guarda — non col colore del grado (%magixweb_namecolor%), che e'
   # lo stesso per tutti e non direbbe niente sulla relazione fra le fazioni.
   #
-  # UNA riga sola, di proposito: il relazionale e' DIVERSO per ogni spettatore, e questo lo sa
-  # fare solo la targhetta del gioco (mode: vanilla), che con una riga sola e' quello che 'auto'
-  # sceglie da se'. Con due righe 'auto' passerebbe a mode: display — un'entita' del mondo, uguale
-  # per tutti — e il relazionale varrebbe come se ciascuno guardasse se stesso (sempre verde).
+  # DUE righe: 'auto' passa a mode: display, che le sa disegnare. Il colore relazionale resta diverso
+  # per chi guarda anche li' — display disegna un gruppo di entita' per ogni testo e nasconde a ognuno
+  # quelle che non sono le sue (per-viewer si accende da sola perche' c'e' un %rel_).
   - name: factions
     requires: [MagixFactions]
     lines:
-      - '&8[%rel_magixfactions_relation_color%%magixfactions_faction%&8] %rel_magixfactions_relation_color%{name}'
+      - '&8[%rel_magixfactions_relation_color%%magixfactions_faction%&8]'
+      - '%rel_magixfactions_relation_color%{name}'
   # Nessuna modalita' riconosciuta: il nome e basta, col colore del grado. Non chiede niente, quindi
   # va sempre bene: per questo sta in fondo.
   - name: plain
@@ -109,11 +111,12 @@ skip-empty-lines: true
 #   always - sempre accesa.
 #   never  - mai: la targhetta e' la stessa per tutti e i %rel_...% valgono come se il giocatore
 #            guardasse se stesso.
-# Vale SOLO in modalita' vanilla: le entita' di testo della modalita' display sono oggetti del mondo,
-# e un oggetto del mondo lo vedono tutti uguale.
-# ATTENZIONE: da accesa il plugin deve dare a ogni giocatore una lavagna (scoreboard) sua. Se un altro
-# plugin usa la propria per il pannello laterale (CMI), i due se la strappano di mano: in quel caso
-# lasciala su never, o spegni il pannello dell'altro.
+# Funziona in TUTTE E DUE le modalita', ma per strade diverse. In vanilla il plugin da' a ogni
+# giocatore una lavagna (scoreboard) sua: ATTENZIONE, e' la stessa che un altro plugin (CMI) userebbe
+# per il pannello laterale, e i due se la strappano di mano — in quel caso lasciala su never, o spegni
+# il pannello dell'altro. In display invece niente lavagne: si disegna un gruppo di entita' di testo
+# per ogni testo diverso e a ognuno si nasconde quello che non e' il suo (piu' entita' quando i colori
+# in gioco sono tanti, quasi niente quando sono pochi).
 per-viewer: auto
 
 # Mondi in cui il modulo non tocca niente: la targhetta resta quella del gioco. Vuoto = tutti.
