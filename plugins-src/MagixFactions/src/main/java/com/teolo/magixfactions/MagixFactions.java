@@ -626,6 +626,12 @@ public final class MagixFactions extends JavaPlugin {
                                 + "/f map); la scelta resta salvata anche dopo il logout.",
                         "Mappa e minimap mostrano le **STESSE** cose, perché sono alimentate dallo stesso codice: se "
                                 + "una mostra qualcosa e l'altra no, è un difetto, non una scelta.",
+                        "Sotto la minimap c'è un **pannello info** (config map.minimap.info-panel): una striscia con "
+                                + "righe di testo che decidi tu (map.minimap.info-panel.lines), placeholder di "
+                                + "PlaceholderAPI inclusi — di serie l'ora (%magixtime_mc_time%) e le coordinate. Il "
+                                + "TESTO delle righe è live (/mf reload), ma il NUMERO di righe, il colore e lo spazio "
+                                + "dalla minimap sono impressi nello shader del pack: cambiarli richiede un RIAVVIO. "
+                                + "Spegnilo con map.minimap.info-panel.enabled: false.",
                         "I giocatori in vanish e quelli con la pozione di invisibilità non compaiono su nessuna "
                                 + "delle due: sarebbe un modo troppo comodo per trovare chi non vuole essere trovato.")
 

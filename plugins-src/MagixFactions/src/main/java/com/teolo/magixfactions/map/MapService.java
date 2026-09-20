@@ -264,6 +264,21 @@ public final class MapService {
     }
 
     /**
+     * Crea una MapView "vuota" per il PANNELLO INFO (orologio/coordinate/info sotto la minimap): come
+     * {@link #createHeadless} ma SENZA alcun renderer — i suoi pixel non vengono mai calcolati da Bukkit,
+     * li spinge a mano {@code minimap.MinimapManager} via pacchetto MAP con i byte di
+     * {@link com.teolo.magixfactions.minimap.InfoPanelRenderer}. Stessa nota di costo di
+     * {@link #createHeadless}: una sola MapView per giocatore per sessione, mai ricreata a ogni refresh.
+     */
+    public MapView createPanelView(Player p) {
+        MapView view = Bukkit.createMap(p.getWorld());
+        view.setTrackingPosition(false);
+        view.setUnlimitedTracking(false);
+        for (MapRenderer r : new java.util.ArrayList<>(view.getRenderers())) view.removeRenderer(r);
+        return view;
+    }
+
+    /**
      * Calcola i 128x128 pixel (terreno + territori, stessa logica di {@link MapContentBuilder} riusata
      * anche dall'item mappa) centrati sulla posizione ATTUALE del giocatore, gia' convertiti nella
      * palette di byte di Minecraft ({@link org.bukkit.map.MapPalette#matchColor(java.awt.Color)}).
