@@ -547,9 +547,11 @@ map:
       lines:
         - "%magixtime_mc_time%"
         - "X:%player_x% Z:%player_z%"
-      # Colore di DEFAULT del testo (per le parti senza un codice colore), in esadecimale "#RRGGBB". Col
-      # fondo trasparente il testo ha un'ombra nera automatica per restare leggibile su qualunque sfondo.
+      # Colore di DEFAULT del testo (per le parti senza un codice colore), in esadecimale "#RRGGBB".
       text-color: "#FFFFFF"
+      # Ombra del testo (una copia spostata di 1px, tiene il testo leggibile sul mondo col fondo
+      # trasparente): colore in "#RRGGBB", oppure "none"/"off" per spegnerla del tutto. Live con /mf reload.
+      shadow-color: "#000000"
       # Sfondo della striscia. "transparent" (o "none") = nessun riquadro, resta solo il testo (le mappe
       # non hanno trasparenza vera: lo shader SCARTA i pixel di sfondo). In alternativa un "#RRGGBB" per un
       # riquadro pieno di quel colore. NB: e' inciso nello shader del pack -> cambiarlo richiede un RIAVVIO.

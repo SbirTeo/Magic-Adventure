@@ -70,6 +70,13 @@ public final class InfoPanelRenderer {
         return t.equalsIgnoreCase("transparent") || t.equalsIgnoreCase("none");
     }
 
+    /** L'ombra e' SPENTA? (valore vuoto / "none" / "off" / "false" nel config shadow-color). */
+    public static boolean isShadowOff(String s) {
+        if (s == null || s.isBlank()) return true;
+        String t = s.trim();
+        return t.equalsIgnoreCase("none") || t.equalsIgnoreCase("off") || t.equalsIgnoreCase("false");
+    }
+
     /**
      * Righe di texture usate dal pannello per {@code lineCount} righe di testo. DEVE combaciare col valore
      * {@code __PANEL_ROWS__} sostituito nello shader (vedi {@code ResourcePackContent}): shader e renderer
@@ -104,11 +111,15 @@ public final class InfoPanelRenderer {
      * Costruisce i 128x128 byte-palette del pannello: sfondo pieno, firma magica nei primi 3 pixel, e le
      * righe di testo (gia' risolte) disegnate col font mappa vanilla nel colore scelto.
      *
-     * @param lines     righe gia' risolte da PlaceholderAPI (i codici colore vengono tolti)
-     * @param textColor byte palette del testo
-     * @param bgColor   byte palette dello sfondo
+     * @param lines       righe gia' risolte da PlaceholderAPI
+     * @param textColor   byte palette del colore di default del testo
+     * @param bgColor     byte palette dello sfondo (ignorato se {@code transparent})
+     * @param transparent sfondo trasparente (colore-chiave scartato dallo shader) invece che pieno
+     * @param drawShadow  disegnare l'ombra del testo?
+     * @param shadowColor byte palette dell'ombra (usato solo se {@code drawShadow})
      */
-    public static byte[] render(List<String> lines, byte textColor, byte bgColor, boolean transparent) {
+    public static byte[] render(List<String> lines, byte textColor, byte bgColor, boolean transparent,
+                                boolean drawShadow, byte shadowColor) {
         byte[] out = new byte[128 * 128];
         // Sfondo: pieno del colore scelto, oppure il colore-chiave che lo shader scarta (trasparente).
         java.util.Arrays.fill(out, transparent ? transparentKeyByte() : bgColor);
@@ -118,19 +129,15 @@ public final class InfoPanelRenderer {
         out[1] = SIGN1;
         out[2] = SIGN2;
 
-        // Ombra del testo: col fondo trasparente il testo galleggia sul mondo, serve un contorno scuro per
-        // restare leggibile su qualunque sfondo. La disegniamo come una copia del testo spostata di 1px in
-        // basso a destra, in nero (byte palette del nero). Sul fondo pieno e' innocua (sparisce nel colore).
-        byte shadow = MapPalette.matchColor(java.awt.Color.BLACK);
-
         MapFont font = MinecraftFont.Font;
         int y = TOP_MARGIN;
         for (String raw : lines) {
             String text = raw == null ? "" : raw;
-            // Ombra PRIMA (sempre nera, ignora i colori del testo), poi il testo colorato sopra. I due passi
-            // consumano i codici allo stesso modo, quindi avanzano di x identico e restano allineati.
-            if (transparent) drawLine(out, font, text, LEFT_MARGIN + 1, y + 1, textColor, true, shadow);
-            drawLine(out, font, text, LEFT_MARGIN, y, textColor, false, shadow);
+            // Ombra PRIMA (tinta unica, ignora i colori del testo), poi il testo colorato sopra. I due passi
+            // consumano i codici allo stesso modo, quindi avanzano di x identico e restano allineati. L'ombra
+            // e' una copia spostata di 1px in basso a destra: tiene il testo leggibile sul mondo trasparente.
+            if (drawShadow) drawLine(out, font, text, LEFT_MARGIN + 1, y + 1, textColor, true, shadowColor);
+            drawLine(out, font, text, LEFT_MARGIN, y, textColor, false, shadowColor);
             y += FONT_HEIGHT + LINE_SPACING;
             if (y + FONT_HEIGHT > 128) break; // niente spazio per altre righe
         }
