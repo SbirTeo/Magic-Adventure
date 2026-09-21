@@ -236,8 +236,11 @@ void main() {
     // magica e vanno nascoste: si campiona da riga >= HEADER_ROWS.
     if (custom == 3) {
         gl_FragDepth = 1.0;
-        vec2 uv = vec2(uvCoord.x, max(uvCoord.y, HEADER_ROWS));
-        ivec2 tx = clamp(ivec2(uv), ivec2(0), ivec2(127));
+        // Le prime HEADER_ROWS righe portano la firma magica: si SCARTANO (discard), non si clampano. Col
+        // clamp (max(y,HEADER_ROWS)) le righe-schermo 0..HEADER_ROWS leggevano tutte la stessa riga di
+        // texture -> il bordo alto della prima riga di testo veniva duplicato e appariva "stirato".
+        if (uvCoord.y < HEADER_ROWS) discard;
+        ivec2 tx = clamp(ivec2(uvCoord), ivec2(0), ivec2(127));
         vec3 rgb = texelFetch(Sampler0, tx, 0).rgb;
         // Sfondo trasparente (scelta LIVE del renderer): i pixel del colore-CHIAVE non si disegnano ->
         // resta solo il testo con la sua ombra. Con un riquadro pieno il fondo non e' il colore-chiave e
