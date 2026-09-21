@@ -538,12 +538,14 @@ map:
       enabled: true
       # Righe del pannello. Il TESTO e' live (/mf reload), ma cambiare il NUMERO di righe richiede un
       # RIAVVIO del server: l'altezza della striscia e' impressa nello shader del pack (come screen-size).
-      # I codici colore (&x) vengono ignorati: il colore del testo e' uno solo (text-color qui sotto).
+      # Puoi COLORARE il testo con i codici Minecraft: &0-&f (i 16 classici), esadecimale &#RRGGBB, e &r
+      # per tornare al colore di default. Le formattazioni (&l grassetto, &o corsivo, ...) non si vedono
+      # (il font della mappa non le rende). Es.: "&6%magixtime_mc_time%" oppure "&bX:&f%player_x%".
       lines:
         - "%magixtime_mc_time%"
         - "X:%player_x% Z:%player_z%"
-      # Colore del testo, in esadecimale "#RRGGBB". Col fondo trasparente il testo ha un'ombra nera
-      # automatica per restare leggibile su qualunque sfondo.
+      # Colore di DEFAULT del testo (per le parti senza un codice colore), in esadecimale "#RRGGBB". Col
+      # fondo trasparente il testo ha un'ombra nera automatica per restare leggibile su qualunque sfondo.
       text-color: "#FFFFFF"
       # Sfondo della striscia. "transparent" (o "none") = nessun riquadro, resta solo il testo (le mappe
       # non hanno trasparenza vera: lo shader SCARTA i pixel di sfondo). In alternativa un "#RRGGBB" per un

@@ -126,28 +126,50 @@ public final class InfoPanelRenderer {
         MapFont font = MinecraftFont.Font;
         int y = TOP_MARGIN;
         for (String raw : lines) {
-            String text = stripCodes(raw);
-            if (transparent) drawLine(out, font, text, LEFT_MARGIN + 1, y + 1, shadow); // ombra sotto
-            drawLine(out, font, text, LEFT_MARGIN, y, textColor);                       // testo sopra
+            String text = raw == null ? "" : raw;
+            // Ombra PRIMA (sempre nera, ignora i colori del testo), poi il testo colorato sopra. I due passi
+            // consumano i codici allo stesso modo, quindi avanzano di x identico e restano allineati.
+            if (transparent) drawLine(out, font, text, LEFT_MARGIN + 1, y + 1, textColor, true, shadow);
+            drawLine(out, font, text, LEFT_MARGIN, y, textColor, false, shadow);
             y += FONT_HEIGHT + LINE_SPACING;
             if (y + FONT_HEIGHT > 128) break; // niente spazio per altre righe
         }
         return out;
     }
 
-    /** Disegna una riga di testo a partire da (left, top), saltando i glifi non presenti nel font. */
-    private static void drawLine(byte[] out, MapFont font, String text, int left, int top, byte color) {
+    /**
+     * Disegna una riga a partire da (left, top), interpretando i codici colore Minecraft: {@code &0}-{@code
+     * &f} (i 16 classici), esadecimale {@code &#RRGGBB}, {@code &r} (torna al colore di default). Le
+     * formattazioni ({@code &l}, {@code &o}, ...) vengono consumate ma ignorate (il font mappa non le rende).
+     * In {@code shadowPass} i codici si consumano UGUALE (per avanzare identici al testo) ma il colore resta
+     * quello dell'ombra. I glifi non presenti nel font si saltano lasciando uno spazio.
+     */
+    private static void drawLine(byte[] out, MapFont font, String text, int left, int top,
+                                 byte defColor, boolean shadowPass, byte shadowColor) {
         int x = left;
+        byte cur = shadowPass ? shadowColor : defColor;
         for (int i = 0; i < text.length(); i++) {
             char ch = text.charAt(i);
-            if (ch == ' ') { x += 4; continue; } // spazio: avanza senza disegnare
+            if ((ch == '&' || ch == '§') && i + 1 < text.length()) {
+                char code = Character.toLowerCase(text.charAt(i + 1));
+                if (code == '#' && i + 7 < text.length() && isHex6(text.substring(i + 2, i + 8))) {
+                    if (!shadowPass) cur = MapPalette.matchColor(parseHex(text.substring(i + 2, i + 8), Color.WHITE));
+                    i += 7; continue; // consuma &#RRGGBB
+                }
+                Byte cb = codeColorByte(code);
+                if (cb != null) { if (!shadowPass) cur = cb; i++; continue; } // &0-&f
+                if (code == 'r') { if (!shadowPass) cur = defColor; i++; continue; } // reset
+                if ("klmno".indexOf(code) >= 0) { i++; continue; } // formattazioni: ignorate
+                // codice sconosciuto: '&' resta testo normale (cade sotto al disegno del glifo)
+            }
+            if (ch == ' ') { x += 4; continue; }
             MapFont.CharacterSprite sprite;
             try {
                 sprite = font.getChar(ch);
             } catch (Throwable t) {
                 sprite = null;
             }
-            if (sprite == null) { x += 4; continue; } // glifo sconosciuto: salta lasciando uno spazio
+            if (sprite == null) { x += 4; continue; }
             int w = sprite.getWidth();
             int h = sprite.getHeight();
             if (x + w > 127) break; // fine riga: non sforare a destra
@@ -158,25 +180,31 @@ public final class InfoPanelRenderer {
                     if (!sprite.get(cy, cx)) continue;
                     int px = x + cx;
                     if (px < 0 || px >= 128) continue;
-                    out[py * 128 + px] = color;
+                    out[py * 128 + px] = cur;
                 }
             }
             x += w + 1; // spaziatura tra caratteri
         }
     }
 
-    /** Toglie i codici colore Minecraft ({@code &x} e {@code §x}): il font mappa usa un colore unico. */
-    private static String stripCodes(String s) {
-        if (s == null) return "";
-        StringBuilder sb = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if ((c == '&' || c == '§') && i + 1 < s.length()) {
-                i++; // salta anche il carattere-codice successivo
-                continue;
-            }
-            sb.append(c);
-        }
-        return sb.toString();
+    /** Vero se {@code s} sono 6 cifre esadecimali. */
+    private static boolean isHex6(String s) {
+        return s.length() == 6 && s.chars().allMatch(c -> Character.digit(c, 16) >= 0);
+    }
+
+    /** Byte palette per un codice colore Minecraft {@code 0}-{@code 9}/{@code a}-{@code f}, altrimenti null. */
+    private static Byte codeColorByte(char c) {
+        Color col = switch (c) {
+            case '0' -> new Color(0, 0, 0);        case '1' -> new Color(0, 0, 170);
+            case '2' -> new Color(0, 170, 0);      case '3' -> new Color(0, 170, 170);
+            case '4' -> new Color(170, 0, 0);      case '5' -> new Color(170, 0, 170);
+            case '6' -> new Color(255, 170, 0);    case '7' -> new Color(170, 170, 170);
+            case '8' -> new Color(85, 85, 85);     case '9' -> new Color(85, 85, 255);
+            case 'a' -> new Color(85, 255, 85);    case 'b' -> new Color(85, 255, 255);
+            case 'c' -> new Color(255, 85, 85);    case 'd' -> new Color(255, 85, 255);
+            case 'e' -> new Color(255, 255, 85);   case 'f' -> new Color(255, 255, 255);
+            default -> null;
+        };
+        return col == null ? null : MapPalette.matchColor(col);
     }
 }

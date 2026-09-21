@@ -629,9 +629,11 @@ public final class MagixFactions extends JavaPlugin {
                         "Sotto la minimap c'è un **pannello info** (config map.minimap.info-panel): una striscia con "
                                 + "righe di testo che decidi tu (map.minimap.info-panel.lines), placeholder di "
                                 + "PlaceholderAPI inclusi — di serie l'ora (%magixtime_mc_time%) e le coordinate. Il "
-                                + "TESTO delle righe è live (/mf reload), ma il NUMERO di righe, il colore e lo spazio "
-                                + "dalla minimap sono impressi nello shader del pack: cambiarli richiede un RIAVVIO. "
-                                + "Spegnilo con map.minimap.info-panel.enabled: false.",
+                                + "testo si COLORA con i codici Minecraft (&0-&f, esadecimale &#RRGGBB, &r per il "
+                                + "default); text-color è il colore di partenza. Testo e colori sono live (/mf reload); "
+                                + "il NUMERO di righe, lo sfondo (transparent o #RRGGBB) e lo spazio dalla minimap sono "
+                                + "impressi nello shader del pack e cambiano solo con un RIAVVIO. Spegnilo con "
+                                + "map.minimap.info-panel.enabled: false.",
                         "I giocatori in vanish e quelli con la pozione di invisibilità non compaiono su nessuna "
                                 + "delle due: sarebbe un modo troppo comodo per trovare chi non vuole essere trovato.")
 
