@@ -1,4 +1,4 @@
-package com.teolo.magixfactions.radio;
+package com.teolo.magixmusic.radio;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -7,9 +7,9 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Fa sentire la radio dello spawn a chi entra ({@code radio.play-on-join}). Con un po' di ritardo, cosi'
- * il client ha finito di caricarsi ed e' gia' nel mondo: senza, il pacchetto del suono arriverebbe prima
- * che il giocatore sia davvero a spawn. Il brano parte dall'inizio (Minecraft non sa riprenderlo a meta',
+ * Fa sentire la radio dello spawn a chi entra ({@code play-on-join}). Con un po' di ritardo, così il
+ * client ha finito di caricarsi ed è già nel mondo: senza, il pacchetto del suono arriverebbe prima che
+ * il giocatore sia davvero a spawn. Il brano parte dall'inizio (Minecraft non sa riprenderlo a metà,
  * vedi {@link RadioService}); al primo cambio di brano il giocatore si riallinea con tutti gli altri.
  */
 public final class RadioListener implements Listener {

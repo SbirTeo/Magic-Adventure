@@ -345,19 +345,6 @@ borders:
   enabled: "&aConfini &2accesi&a. Particelle lungo i bordi dei territori vicini: &2verde&a la tua, &dmagenta&a gli alleati, &crosso&a i nemici."
   disabled: "&aConfini &cspenti&a. Le particelle dei bordi non ti verranno piu' mostrate."
 
-# ---------------------------------------------------------------- /f radio (radio a spawn)
-# Radio musicale sincronizzata allo spawn. {volume} = volume 0-100, {track} = brano in onda.
-radio:
-  usage: "&cUso: /f radio [on|off|up|down|<0-100>]"
-  disabled-globally: "&cLa radio dello spawn e' spenta al momento."
-  status-on: "&aRadio &2accesa&a a volume &e{volume}&a. In onda: &b{track}&a. Regolala con &e/f radio up&a, &e/f radio down&a o &e/f radio off&a."
-  status-off: "&aRadio &cspenta&a per te. Riaccendila con &e/f radio on&a."
-  on: "&aRadio &2accesa&a a volume &e{volume}&a. In onda: &b{track}&a."
-  off: "&aRadio &cspenta&a per te: non sentirai piu' la musica dello spawn."
-  volume: "&aVolume radio: &e{volume}&a. In onda: &b{track}&a."
-  volume-off: "&aVolume radio a &e0&a: radio &cspenta&a per te."
-  none-playing: "silenzio"
-
 list:
   empty: "&7Non esiste ancora nessuna fazione."
   header: "&8&m---&r &6Fazioni del server &7({count}) &8&m---"
@@ -471,7 +458,6 @@ help:
         - "/f map :: la mappa dei territori intorno a te"
         - "/f borders <on|off> :: accendi/spegni i confini a particelle attorno ai territori"
         - "/f minimap <on|off> :: accendi/spegni la minimap a schermo (se disponibile)"
-        - "/f radio [on|off|up|down] :: regola o spegni la radio musicale dello spawn"
         - "/f sethome :: imposta la home (nel tuo territorio)"
         - "/f unsethome :: rimuove la home della fazione"
         - "/f home :: teletrasportati alla home"
