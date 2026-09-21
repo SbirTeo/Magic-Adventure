@@ -629,8 +629,9 @@ public final class MagixFactions extends JavaPlugin {
                         "Sotto la minimap c'è un **pannello info** (config map.minimap.info-panel): una striscia con "
                                 + "righe di testo che decidi tu (map.minimap.info-panel.lines), placeholder di "
                                 + "PlaceholderAPI inclusi — di serie l'ora (%magixtime_mc_time%) e le coordinate. Il "
-                                + "testo si COLORA con i codici Minecraft (&0-&f, esadecimale &#RRGGBB, &r per il "
-                                + "default); text-color è il colore di partenza. Testo e colori sono live (/mf reload); "
+                                + "testo si COLORA e si FORMATTA con i codici Minecraft (&0-&f, RGB &#RRGGBB / <#RRGGBB> "
+                                + "/ &x…, &l grassetto, &o corsivo, &n sottolineato, &m barrato, &r reset); text-color è "
+                                + "il colore di partenza. Testo, colori e formati sono live (/mf reload); "
                                 + "il NUMERO di righe, lo sfondo (transparent o #RRGGBB) e lo spazio dalla minimap sono "
                                 + "impressi nello shader del pack e cambiano solo con un RIAVVIO. Spegnilo con "
                                 + "map.minimap.info-panel.enabled: false.",

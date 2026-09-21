@@ -538,9 +538,12 @@ map:
       enabled: true
       # Righe del pannello. Il TESTO e' live (/mf reload), ma cambiare il NUMERO di righe richiede un
       # RIAVVIO del server: l'altezza della striscia e' impressa nello shader del pack (come screen-size).
-      # Puoi COLORARE il testo con i codici Minecraft: &0-&f (i 16 classici), esadecimale &#RRGGBB, e &r
-      # per tornare al colore di default. Le formattazioni (&l grassetto, &o corsivo, ...) non si vedono
-      # (il font della mappa non le rende). Es.: "&6%magixtime_mc_time%" oppure "&bX:&f%player_x%".
+      # Puoi COLORARE e FORMATTARE il testo con i codici Minecraft:
+      #  - colore: &0-&f (i 16 classici), &r (torna al default), RGB esadecimale in tre sintassi
+      #    (&#RRGGBB, <#RRGGBB>, legacy &x&R&R&G&G&B&B);
+      #  - formato: &l grassetto, &o corsivo, &n sottolineato, &m barrato (resi nei pixel; &k offuscato no).
+      # Come in vanilla, un codice colore azzera i formati attivi. Es.: "&6&l%magixtime_mc_time%" oppure
+      # "&bX:&f%player_x% &bZ:&f%player_z%" oppure "&#FF8800Ciao".
       lines:
         - "%magixtime_mc_time%"
         - "X:%player_x% Z:%player_z%"

@@ -138,53 +138,109 @@ public final class InfoPanelRenderer {
     }
 
     /**
-     * Disegna una riga a partire da (left, top), interpretando i codici colore Minecraft: {@code &0}-{@code
-     * &f} (i 16 classici), esadecimale {@code &#RRGGBB}, {@code &r} (torna al colore di default). Le
-     * formattazioni ({@code &l}, {@code &o}, ...) vengono consumate ma ignorate (il font mappa non le rende).
-     * In {@code shadowPass} i codici si consumano UGUALE (per avanzare identici al testo) ma il colore resta
-     * quello dell'ombra. I glifi non presenti nel font si saltano lasciando uno spazio.
+     * Disegna una riga a partire da (left, top) interpretando i codici Minecraft:
+     * <ul>
+     *   <li><b>Colore</b>: {@code &0}-{@code &f} (i 16 classici), {@code &r} (torna al default), ed RGB
+     *       esadecimale in tre sintassi — {@code &#RRGGBB}, {@code <#RRGGBB>}, legacy {@code &x&R&R&G&G&B&B}.</li>
+     *   <li><b>Formato</b>: {@code &l} grassetto, {@code &o} corsivo, {@code &n} sottolineato, {@code &m}
+     *       barrato — resi "a mano" nei pixel (il font mappa non li ha nativi). {@code &k} (offuscato) si
+     *       consuma ma non si rende. Come in vanilla, un codice colore azzera i formati attivi.</li>
+     * </ul>
+     * In {@code shadowPass} tutto viene interpretato UGUALE (per allineare l'ombra al testo) ma il colore
+     * resta quello dell'ombra. I glifi assenti dal font si saltano lasciando uno spazio.
      */
     private static void drawLine(byte[] out, MapFont font, String text, int left, int top,
                                  byte defColor, boolean shadowPass, byte shadowColor) {
         int x = left;
         byte cur = shadowPass ? shadowColor : defColor;
-        for (int i = 0; i < text.length(); i++) {
+        boolean bold = false, italic = false, under = false, strike = false;
+        int n = text.length();
+        for (int i = 0; i < n; i++) {
             char ch = text.charAt(i);
-            if ((ch == '&' || ch == '§') && i + 1 < text.length()) {
+            boolean amp = ch == '&' || ch == '§';
+
+            // RGB legacy &x&R&R&G&G&B&B
+            if (amp && i + 13 < n && Character.toLowerCase(text.charAt(i + 1)) == 'x' && isLegacyHex(text, i)) {
+                if (!shadowPass) cur = MapPalette.matchColor(parseHex("" + text.charAt(i + 3) + text.charAt(i + 5)
+                        + text.charAt(i + 7) + text.charAt(i + 9) + text.charAt(i + 11) + text.charAt(i + 13), Color.WHITE));
+                bold = italic = under = strike = false; i += 13; continue;
+            }
+            // RGB &#RRGGBB
+            if (amp && i + 7 < n && text.charAt(i + 1) == '#' && isHex6(text.substring(i + 2, i + 8))) {
+                if (!shadowPass) cur = MapPalette.matchColor(parseHex(text.substring(i + 2, i + 8), Color.WHITE));
+                bold = italic = under = strike = false; i += 7; continue;
+            }
+            // RGB <#RRGGBB>
+            if (ch == '<' && i + 8 < n && text.charAt(i + 1) == '#'
+                    && isHex6(text.substring(i + 2, i + 8)) && text.charAt(i + 8) == '>') {
+                if (!shadowPass) cur = MapPalette.matchColor(parseHex(text.substring(i + 2, i + 8), Color.WHITE));
+                bold = italic = under = strike = false; i += 8; continue;
+            }
+            // Codici a lettera singola
+            if (amp && i + 1 < n) {
                 char code = Character.toLowerCase(text.charAt(i + 1));
-                if (code == '#' && i + 7 < text.length() && isHex6(text.substring(i + 2, i + 8))) {
-                    if (!shadowPass) cur = MapPalette.matchColor(parseHex(text.substring(i + 2, i + 8), Color.WHITE));
-                    i += 7; continue; // consuma &#RRGGBB
-                }
                 Byte cb = codeColorByte(code);
-                if (cb != null) { if (!shadowPass) cur = cb; i++; continue; } // &0-&f
-                if (code == 'r') { if (!shadowPass) cur = defColor; i++; continue; } // reset
-                if ("klmno".indexOf(code) >= 0) { i++; continue; } // formattazioni: ignorate
-                // codice sconosciuto: '&' resta testo normale (cade sotto al disegno del glifo)
+                if (cb != null) { if (!shadowPass) cur = cb; bold = italic = under = strike = false; i++; continue; }
+                boolean handled = true;
+                switch (code) {
+                    case 'r' -> { if (!shadowPass) cur = defColor; bold = italic = under = strike = false; }
+                    case 'l' -> bold = true;
+                    case 'o' -> italic = true;
+                    case 'n' -> under = true;
+                    case 'm' -> strike = true;
+                    case 'k' -> { /* offuscato: non supportato, solo consumato */ }
+                    default -> handled = false; // codice sconosciuto: '&' e' testo normale
+                }
+                if (handled) { i++; continue; }
             }
-            if (ch == ' ') { x += 4; continue; }
-            MapFont.CharacterSprite sprite;
-            try {
-                sprite = font.getChar(ch);
-            } catch (Throwable t) {
-                sprite = null;
-            }
-            if (sprite == null) { x += 4; continue; }
-            int w = sprite.getWidth();
-            int h = sprite.getHeight();
-            if (x + w > 127) break; // fine riga: non sforare a destra
-            for (int cy = 0; cy < h; cy++) {
-                int py = top + cy;
-                if (py < 0 || py >= 128) continue;
-                for (int cx = 0; cx < w; cx++) {
-                    if (!sprite.get(cy, cx)) continue;
-                    int px = x + cx;
-                    if (px < 0 || px >= 128) continue;
-                    out[py * 128 + px] = cur;
+
+            // Disegno del carattere/spazio, con l'avanzamento (adv) che tiene conto del grassetto.
+            int adv;
+            if (ch == ' ') {
+                adv = 4;
+            } else {
+                MapFont.CharacterSprite sprite;
+                try { sprite = font.getChar(ch); } catch (Throwable t) { sprite = null; }
+                if (sprite == null) {
+                    adv = 4;
+                } else {
+                    int w = sprite.getWidth();
+                    int h = sprite.getHeight();
+                    int drawn = w + (bold ? 1 : 0);
+                    if (x + drawn > 127) break; // fine riga
+                    for (int cy = 0; cy < h; cy++) {
+                        int shear = italic ? (h - 1 - cy) / 3 : 0; // corsivo: righe alte spostate a destra
+                        for (int cx = 0; cx < w; cx++) {
+                            if (!sprite.get(cy, cx)) continue;
+                            putPixel(out, x + cx + shear, top + cy, cur);
+                            if (bold) putPixel(out, x + cx + 1 + shear, top + cy, cur); // grassetto: +1px
+                        }
+                    }
+                    adv = drawn + 1; // +1 di spaziatura
                 }
             }
-            x += w + 1; // spaziatura tra caratteri
+            if (under)  for (int cx = 0; cx < adv; cx++) putPixel(out, x + cx, top + FONT_HEIGHT, cur);     // sottolineato
+            if (strike) for (int cx = 0; cx < adv; cx++) putPixel(out, x + cx, top + FONT_HEIGHT / 2, cur); // barrato
+            x += adv;
+            if (x > 127) break;
         }
+    }
+
+    /** Scrive un pixel nella palette, ignorando le coordinate fuori dai 128x128. */
+    private static void putPixel(byte[] out, int px, int py, byte color) {
+        if (px < 0 || px >= 128 || py < 0 || py >= 128) return;
+        out[py * 128 + px] = color;
+    }
+
+    /** Vero se a partire da i c'e' {@code &x&R&R&G&G&B&B} (6 coppie "&"+cifra-hex dopo "&x"). */
+    private static boolean isLegacyHex(String t, int i) {
+        for (int k = 0; k < 6; k++) {
+            char sep = t.charAt(i + 2 + k * 2);
+            char hx = t.charAt(i + 3 + k * 2);
+            if (sep != '&' && sep != '§') return false;
+            if (Character.digit(hx, 16) < 0) return false;
+        }
+        return true;
     }
 
     /** Vero se {@code s} sono 6 cifre esadecimali. */
