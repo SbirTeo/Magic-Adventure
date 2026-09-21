@@ -375,10 +375,10 @@ public final class MinimapManager {
         for (String l : lines) resolved.add(Papi.resolve(viewer, l));
         byte text = InfoPanelRenderer.colorByte(
                 plugin.getConfig().getString("map.minimap.info-panel.text-color", "#FFFFFF"), java.awt.Color.WHITE);
-        byte bg = InfoPanelRenderer.colorByte(
-                plugin.getConfig().getString("map.minimap.info-panel.background-color", "#0E0E16"),
-                new java.awt.Color(0x0E, 0x0E, 0x16));
-        byte[] palette = InfoPanelRenderer.render(resolved, text, bg);
+        String bgStr = plugin.getConfig().getString("map.minimap.info-panel.background-color", "transparent");
+        boolean transparent = InfoPanelRenderer.isTransparentBg(bgStr);
+        byte bg = transparent ? 0 : InfoPanelRenderer.colorByte(bgStr, new java.awt.Color(0x0E, 0x0E, 0x16));
+        byte[] palette = InfoPanelRenderer.render(resolved, text, bg, transparent);
         pushPalette(viewer, panelView, palette, (byte) 0);
     }
 

@@ -46,6 +46,30 @@ public final class InfoPanelRenderer {
     private static final byte SIGN1 = 49; // MK2 (0x3737DC)
     private static final byte SIGN2 = 4;  // MK1 (0x597D27)
 
+    // Colore CHIAVE per lo sfondo trasparente: le mappe non hanno trasparenza, quindi lo sfondo e' per
+    // forza un colore pieno. Con lo sfondo "trasparente" lo riempiamo di questo colore-sentinella e lo
+    // shader (text.fsh, custom==3) SCARTA (discard) i pixel che gli corrispondono -> resta solo il testo
+    // "che galleggia". Deve essere un colore che non capita nel testo/ombra: magenta puro.
+    private static final Color TRANSPARENT_KEY = new Color(255, 0, 255);
+
+    /** Byte palette del colore-chiave dello sfondo trasparente. */
+    public static byte transparentKeyByte() {
+        return MapPalette.matchColor(TRANSPARENT_KEY);
+    }
+
+    /** Colore RGB EFFETTIVO reso dal byte-chiave (puo' differire dal magenta esatto: la palette mappa al
+     *  piu' vicino). Lo shader confronta con QUESTO, non col magenta teorico, cosi' il discard e' esatto. */
+    public static Color transparentKeyRendered() {
+        return MapPalette.getColor(transparentKeyByte());
+    }
+
+    /** Lo sfondo e' "trasparente"? (valore vuoto / "transparent" / "none" nel config). */
+    public static boolean isTransparentBg(String s) {
+        if (s == null || s.isBlank()) return true;
+        String t = s.trim();
+        return t.equalsIgnoreCase("transparent") || t.equalsIgnoreCase("none");
+    }
+
     /**
      * Righe di texture usate dal pannello per {@code lineCount} righe di testo. DEVE combaciare col valore
      * {@code __PANEL_ROWS__} sostituito nello shader (vedi {@code ResourcePackContent}): shader e renderer
@@ -84,28 +108,36 @@ public final class InfoPanelRenderer {
      * @param textColor byte palette del testo
      * @param bgColor   byte palette dello sfondo
      */
-    public static byte[] render(List<String> lines, byte textColor, byte bgColor) {
+    public static byte[] render(List<String> lines, byte textColor, byte bgColor, boolean transparent) {
         byte[] out = new byte[128 * 128];
-        java.util.Arrays.fill(out, bgColor);
+        // Sfondo: pieno del colore scelto, oppure il colore-chiave che lo shader scarta (trasparente).
+        java.util.Arrays.fill(out, transparent ? transparentKeyByte() : bgColor);
 
         // Firma magica (riga 0): dice allo shader "questo e' il pannello info, agganciami sotto la minimap".
         out[0] = SIGN0;
         out[1] = SIGN1;
         out[2] = SIGN2;
 
+        // Ombra del testo: col fondo trasparente il testo galleggia sul mondo, serve un contorno scuro per
+        // restare leggibile su qualunque sfondo. La disegniamo come una copia del testo spostata di 1px in
+        // basso a destra, in nero (byte palette del nero). Sul fondo pieno e' innocua (sparisce nel colore).
+        byte shadow = MapPalette.matchColor(java.awt.Color.BLACK);
+
         MapFont font = MinecraftFont.Font;
         int y = TOP_MARGIN;
         for (String raw : lines) {
-            drawLine(out, font, stripCodes(raw), y, textColor);
+            String text = stripCodes(raw);
+            if (transparent) drawLine(out, font, text, LEFT_MARGIN + 1, y + 1, shadow); // ombra sotto
+            drawLine(out, font, text, LEFT_MARGIN, y, textColor);                       // testo sopra
             y += FONT_HEIGHT + LINE_SPACING;
             if (y + FONT_HEIGHT > 128) break; // niente spazio per altre righe
         }
         return out;
     }
 
-    /** Disegna una riga di testo a partire da (LEFT_MARGIN, top), saltando i glifi non presenti nel font. */
-    private static void drawLine(byte[] out, MapFont font, String text, int top, byte color) {
-        int x = LEFT_MARGIN;
+    /** Disegna una riga di testo a partire da (left, top), saltando i glifi non presenti nel font. */
+    private static void drawLine(byte[] out, MapFont font, String text, int left, int top, byte color) {
+        int x = left;
         for (int i = 0; i < text.length(); i++) {
             char ch = text.charAt(i);
             if (ch == ' ') { x += 4; continue; } // spazio: avanza senza disegnare
