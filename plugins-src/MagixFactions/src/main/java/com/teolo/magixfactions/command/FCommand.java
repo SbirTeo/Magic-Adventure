@@ -59,6 +59,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private final com.teolo.magixfactions.minimap.MinimapManager minimap;
     private final com.teolo.magixfactions.manage.FakeDataManager fake;
     private final com.teolo.magixfactions.listener.ProtectionListener protection;
+    private final com.teolo.magixfactions.radio.RadioService radio;
 
     private final Map<UUID, Long> invites = new HashMap<>();
     private final Map<UUID, Long> unclaimAllConfirm = new HashMap<>(); // giocatore -> timestamp richiesta /f unclaimall
@@ -68,10 +69,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     com.teolo.magixfactions.manage.ScoreManager score,
                     com.teolo.magixfactions.map.MapService maps, com.teolo.magixfactions.minimap.MinimapManager minimap,
                     com.teolo.magixfactions.manage.FakeDataManager fake,
-                    com.teolo.magixfactions.listener.ProtectionListener protection) {
+                    com.teolo.magixfactions.listener.ProtectionListener protection,
+                    com.teolo.magixfactions.radio.RadioService radio) {
         this.plugin = plugin; this.fm = fm; this.ranks = ranks; this.chat = chat; this.db = db; this.M = messages;
         this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap;
-        this.fake = fake; this.protection = protection;
+        this.fake = fake; this.protection = protection; this.radio = radio;
     }
 
     /**
@@ -117,7 +119,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             M.reload();
             // Guide e tutorial riportano i valori del config: se cambia il config devono cambiare
             // anche loro, subito, senza aspettare il prossimo riavvio.
-            if (plugin instanceof com.teolo.magixfactions.MagixFactions mf) mf.riscriviGuide();
+            if (plugin instanceof com.teolo.magixfactions.MagixFactions mf) { mf.riscriviGuide(); mf.reloadRadio(); }
             msg(sender, M.get("reload"));
             return true;
         }
@@ -142,6 +144,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 case "map": return map(p);
                 case "minimap": return minimapCmd(p, args);
                 case "borders": case "border": case "confini": return bordersCmd(p, args);
+                case "radio": return radioCmd(p, args);
                 case "sethome": return sethome(p);
                 case "unsethome": return unsethome(p);
                 case "home": return home(p);
@@ -906,6 +909,62 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     /**
+     * /f radio [on|off|up|down|&lt;0-100&gt;] — regola la radio musicale dello spawn per il SINGOLO giocatore
+     * (volume 0-100, 0 = spenta), preferenza personale salvata (colonna players.radio_volume). Senza
+     * argomento mostra lo stato. La sincronia e la riproduzione le gestisce {@link com.teolo.magixfactions.radio.RadioService};
+     * qui si cambia solo il volume del giocatore e gli si da' un riscontro immediato.
+     */
+    private boolean radioCmd(Player p, String[] a) {
+        if (!p.hasPermission("magixfactions.radio")) { msg(p, M.get("errors.no-permission")); return true; }
+        if (!radio.isEnabled()) { msg(p, M.get("radio.disabled-globally")); return true; }
+        UUID u = p.getUniqueId();
+        int cur = radio.effectiveVolume(u); // 0-100 (il salvato, o il default se mai regolato)
+        if (a.length < 2) {
+            if (cur > 0) msg(p, M.get("radio.status-on", "volume", String.valueOf(cur), "track", trackNameOrNone()));
+            else msg(p, M.get("radio.status-off"));
+            return true;
+        }
+        String v = a[1].toLowerCase(Locale.ROOT);
+        boolean turningOn = false;
+        int newVol;
+        switch (v) {
+            case "on": case "si": case "sì":
+                newVol = radio.defaultVolume() > 0 ? radio.defaultVolume() : 100; turningOn = true; break;
+            case "off": case "no":
+                newVol = 0; break;
+            case "up": case "+": case "su":
+                newVol = Math.min(100, Math.max(0, cur) + radio.volumeStep()); break;
+            case "down": case "-": case "giu": case "giù":
+                newVol = Math.max(0, cur - radio.volumeStep()); break;
+            default:
+                Integer parsed = parseVolume(v);
+                if (parsed == null) { msg(p, M.get("radio.usage")); return true; }
+                newVol = Math.max(0, Math.min(100, parsed));
+        }
+        power.setRadioVolume(p, newVol);
+        if (newVol > 0) {
+            radio.refreshFor(p); // fa ripartire il brano in corso al nuovo volume: riscontro immediato
+            if (turningOn) msg(p, M.get("radio.on", "volume", String.valueOf(newVol), "track", trackNameOrNone()));
+            else msg(p, M.get("radio.volume", "volume", String.valueOf(newVol), "track", trackNameOrNone()));
+        } else {
+            radio.stopFor(p);
+            msg(p, M.get(v.equals("off") || v.equals("no") ? "radio.off" : "radio.volume-off"));
+        }
+        return true;
+    }
+
+    /** Nome del brano in onda per i messaggi, o il testo "silenzio" se la radio non sta suonando. */
+    private String trackNameOrNone() {
+        String n = radio.currentTrackName();
+        return n == null ? M.get("radio.none-playing") : n;
+    }
+
+    /** Interpreta un volume scritto a mano (0-100); null se non e' un numero. */
+    private static Integer parseVolume(String s) {
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return null; }
+    }
+
+    /**
      * /f map in modalita' CHAT: mappa testuale quadrata NxN centrata sul giocatore. La griglia copre la
      * STESSA area (in chunk) che mostrano mappa-item e minimap per il suo zoom (128 pixel / 16 blocchi
      * per chunk * bpp): un giocatore piu' zoomato-fuori vede davvero piu' territorio in chat, non solo un
@@ -1413,6 +1472,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "borders": case "border": case "confini":
                 if (args.length == 2) return filterPrefix(args[1], List.of("on", "off"));
                 break;
+            case "radio":
+                if (args.length == 2) return filterPrefix(args[1], List.of("on", "off", "up", "down"));
+                break;
             case "deposit": case "d": case "withdraw": case "w":
                 if (args.length == 2) return filterPrefix(args[1], List.of("10", "100", "1000"));
                 break;
@@ -1459,6 +1521,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         out.add("help"); out.add("list"); out.add("top"); out.add("info");
         if (s instanceof Player p) {
             out.add("map"); out.add("power"); out.add("borders"); // confini a particelle: aperto a tutti
+            if (p.hasPermission("magixfactions.radio")) out.add("radio"); // radio a spawn: aperto a tutti
             if (power.hasMinimapPermission(p)) out.add("minimap"); // interruttore HUD, solo a chi ha il permesso
 
             Faction f = fm.getFaction(p.getUniqueId());

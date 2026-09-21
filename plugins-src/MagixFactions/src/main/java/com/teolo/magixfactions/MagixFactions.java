@@ -38,6 +38,7 @@ public final class MagixFactions extends JavaPlugin {
     private com.teolo.magixfactions.manage.ScoreManager scoreManager;
     private com.teolo.magixfactions.manage.FakeDataManager fakeDataManager;
     private ChatService chatService;
+    private com.teolo.magixfactions.radio.RadioService radioService;
 
     @Override
     public void onEnable() {
@@ -233,8 +234,16 @@ public final class MagixFactions extends JavaPlugin {
         powerManager.setMinimapManager(minimap);
         Bukkit.getOnlinePlayers().forEach(powerManager::reattachMinimap); // dopo /reload
 
+        // Radio musicale sincronizzata allo spawn (config 'radio'): un "jukebox" invisibile che suona a
+        // ciclo i dischi di Minecraft ai giocatori nella zona spawn, tutti sullo stesso brano nello stesso
+        // momento. Ogni giocatore la regola/spegne per se' con /f radio (colonna players.radio_volume).
+        radioService = new com.teolo.magixfactions.radio.RadioService(this, powerManager);
+        radioService.start();
+        getServer().getPluginManager().registerEvents(
+                new com.teolo.magixfactions.radio.RadioListener(this, radioService), this);
+
         // Comando
-        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager, protection);
+        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager, protection, radioService);
         getCommand("magixfactions").setExecutor(cmd);
         getCommand("magixfactions").setTabCompleter(cmd); // suggerimenti contestuali filtrati sui permessi
 
@@ -334,6 +343,7 @@ public final class MagixFactions extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (radioService != null) radioService.shutdown();
         com.teolo.magixfactions.hook.MagixPackHook.unregisterOwnPack(this);
         if (powerManager != null) powerManager.saveAllOnline(); // accoda il salvataggio Potenza dei giocatori online
         // Ultimo campione del tempo giocato / giacenza media personale prima di chiudere.
@@ -365,6 +375,12 @@ public final class MagixFactions extends JavaPlugin {
     public void riscriviGuide() {
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeTutorial);
+    }
+
+    /** Rilegge il config della radio dello spawn e la riavvia con le nuove impostazioni. Lo chiama
+     *  {@code /mf reload}, cosi' scaletta, volume e portata cambiano a caldo senza riavviare il server. */
+    public void reloadRadio() {
+        if (radioService != null) radioService.reload();
     }
 
     /** Capitolo di MagixFactions nella guida del gestionale (plugins-src/GUIDA-STAFF.md). */
@@ -695,10 +711,34 @@ public final class MagixFactions extends JavaPlugin {
                                 + "distanza di settimane e dopo riavvii. /mf admin fake info dice quanti dati di test "
                                 + "ci sono in questo momento.")
 
+                .section("Radio musicale a spawn",
+                        "Allo spawn c'è una **RADIO**: un jukebox invisibile che suona a ciclo i dischi di "
+                                + "Minecraft ai giocatori nella zona, tutti sullo **STESSO** brano nello **STESSO** "
+                                + "momento — li sincronizza il server. Si sente solo nel mondo «{{cfg:radio.world}}» ed "
+                                + "entro {{cfg:radio.radius}} blocchi dallo spawn: il suono è ancorato allo spawn e cala "
+                                + "con la distanza, come un altoparlante. Negli altri mondi non si sente.",
+                        "Ogni giocatore la regola per sé con **/f radio** (on/off, up/down o un numero 0-100). È una "
+                                + "preferenza PERSONALE salvata: di serie parte a {{cfg:radio.default-volume}}, spegnerla "
+                                + "mette il suo volume a 0 e non tocca gli altri. È aperta a tutti (permesso "
+                                + "magixfactions.radio, di serie sì).",
+                        "**Limite di Minecraft, non un guasto**: un suono parte sempre dall'inizio, non si può "
+                                + "«riprendere» a metà. Quindi chi entra a brano già iniziato lo sente **dall'inizio** "
+                                + "(se play-on-join è attivo), non dal secondo in corso; al primo cambio di brano si "
+                                + "riallinea con tutti. Se un giocatore chiede «perché sento la canzone da capo mentre "
+                                + "gli altri sono avanti», la risposta è questa.",
+                        "Scaletta e manopole sono in config, sezione radio: playlist (brani + durata in secondi), "
+                                + "radius (portata), default-volume, volume-step, sound-category (records o music) e "
+                                + "play-on-join. Cambi a caldo con /mf reload: la radio riparte dall'inizio della "
+                                + "scaletta. Se aggiungi un brano metti la sua durata giusta in seconds, altrimenti il "
+                                + "brano dopo parte sopra al precedente o lascia un buco di silenzio.")
+
                 .detailedCommands()
                 .commands()
                 .permissions()
                 .settings(
+                        "radio.radius", "Raggio in blocchi dallo spawn entro cui si sente la radio musicale.",
+                        "radio.default-volume", "Volume iniziale della radio (0-100) per chi non l'ha ancora regolata.",
+                        "radio.playlist", "Scaletta della radio: ogni voce ha sound (id del disco) e seconds (durata).",
                         "power.max", "Tetto di Potenza di un giocatore.",
                         "power.death-loss", "Quanta Potenza si perde morendo.",
                         "power.gain-interval-seconds", "Ogni quanti secondi online si guadagna Potenza.",

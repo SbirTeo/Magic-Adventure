@@ -125,6 +125,7 @@
     <li><a href="#s10">La casa (/f home)</a></li>
     <li><a href="#s11">Perdere territori (sovraccarico)</a></li>
     <li><a href="#s12">Guardare le info</a></li>
+    <li><a href="#sRadio">La radio dello spawn</a></li>
     <li><a href="#sPvp">PvP: colpire i nemici</a></li>
     <li><a href="#sTop">La classifica del server</a></li>
     <li><a href="#s13">Tutti i comandi</a></li>
@@ -421,6 +422,24 @@
   <p class="sub">Lo <b>Stato</b> è verde se la fazione è al sicuro, rosso se è <b>raidabile</b>, bianco se non ha territori.</p>
   <p class="sub">Il <b>Punteggio</b> e la posizione in classifica li spieghiamo qui sotto.</p>
   <p><span class="cmd">/f list</span> elenca invece <b>tutte</b> le fazioni del server.</p>
+</section>
+
+<section id="sRadio">
+  <h2><span class="n">♪</span>La radio dello spawn</h2>
+  <p>Allo <b>spawn</b> c'è una <b>radio</b> che suona a ciclo i dischi musicali di Minecraft. Tutti quelli
+  nella zona sentono <b>lo stesso brano nello stesso momento</b>: è come un grande altoparlante piazzato
+  allo spawn, che si sente entro <b>{{cfg:radio.radius}} blocchi</b> e si abbassa man mano che ti allontani.
+  Negli altri mondi non si sente.</p>
+  <p>Puoi regolarla come vuoi <b>solo per te</b>, senza disturbare nessun altro:</p>
+  <ul>
+    <li><span class="cmd">/f radio</span> — vedi se è accesa, a che volume e che brano sta suonando;</li>
+    <li><span class="cmd">/f radio up</span> / <span class="cmd">/f radio down</span> — alza o abbassa il volume;</li>
+    <li><span class="cmd">/f radio off</span> — spegnila del tutto (<span class="cmd">/f radio on</span> la riaccende);</li>
+    <li><span class="cmd">/f radio &lt;numero&gt;</span> — imposta il volume esatto, da 0 a 100.</li>
+  </ul>
+  <div class="tip">La tua scelta resta <b>salvata</b> anche quando esci e rientri.</div>
+  <div class="warn">Se entri mentre un brano è già partito lo senti <b>dall'inizio</b>, non da metà: Minecraft
+  non sa far ripartire un suono a metà. Al cambio di brano ti ritrovi in sincronia con tutti gli altri.</div>
 </section>
 
 <section id="sPvp">

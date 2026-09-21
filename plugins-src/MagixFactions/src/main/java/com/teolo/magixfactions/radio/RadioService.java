@@ -1,0 +1,234 @@
+package com.teolo.magixfactions.radio;
+
+import com.teolo.magixfactions.manage.PowerManager;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.SoundCategory;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Radio musicale sincronizzata allo SPAWN: un "jukebox" invisibile che suona a ciclo i dischi di
+ * Minecraft (config {@code radio}). Il server fa da orologio comune, quindi tutti i giocatori nella zona
+ * spawn sentono lo STESSO brano nello STESSO momento; il suono e' ancorato allo spawn e cala con la
+ * distanza (come un altoparlante), cosi' negli altri mondi o lontano dallo spawn non si sente.
+ *
+ * <p>Ogni giocatore regola il proprio volume o spegne la radio per se' con {@code /f radio}: la
+ * preferenza (0-100, -1 = default, 0 = spenta) sta in {@link PowerManager} (colonna {@code radio_volume}).
+ *
+ * <p><b>Limite di Minecraft</b>: un suono parte sempre dall'inizio, non si puo' "riprendere" a meta'.
+ * Quindi chi entra a brano gia' iniziato ({@code play-on-join}) lo sente dall'inizio, non dal secondo in
+ * corso; al primo cambio di brano si riallinea con tutti (il boundary manda a tutti lo stesso stop+play).
+ */
+public final class RadioService {
+
+    /** Un brano della scaletta: id del suono e durata in secondi (per far partire il successivo in tempo). */
+    private record Track(String sound, int seconds) {}
+
+    private final JavaPlugin plugin;
+    private final PowerManager power;
+
+    // Impostazioni lette dal config (a ogni start/reload).
+    private boolean enabled;
+    private String worldName;
+    private int radius;
+    private SoundCategory category;
+    private float pitch;
+    private boolean playOnJoin;
+    private int defaultVolume;
+    private int volumeStep;
+    private final List<Track> playlist = new ArrayList<>();
+
+    // Stato di riproduzione (solo main thread).
+    private int index;
+    private String currentSound;     // brano in onda ORA, oppure null se la radio non sta suonando
+    private int taskId = -1;         // task che fara' partire il brano successivo
+
+    public RadioService(JavaPlugin plugin, PowerManager power) {
+        this.plugin = plugin;
+        this.power = power;
+    }
+
+    // ------------------------------------------------------------- ciclo di vita
+
+    /** Rilegge il config e (ri)avvia la radio dall'inizio della scaletta. Idempotente: prima ferma tutto. */
+    public void start() {
+        stopPlayback();
+        loadConfig();
+        if (!enabled || playlist.isEmpty()) return;
+        if (center() == null) {
+            plugin.getLogger().warning("[Radio] mondo '" + worldName + "' non trovato: radio inattiva finche' non e' caricato.");
+            return;
+        }
+        index = 0;
+        playCurrentAndScheduleNext();
+    }
+
+    /** Lo chiama {@code /mf reload}: stessa cosa di {@link #start()}, nome esplicito per chi legge. */
+    public void reload() { start(); }
+
+    /** Spegne la radio e taglia la musica a chi la sta sentendo (allo spegnimento del plugin o via reload). */
+    public void shutdown() {
+        if (currentSound != null) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (worldName != null && p.getWorld().getName().equals(worldName)) stopFor(p);
+            }
+        }
+        stopPlayback();
+    }
+
+    private void stopPlayback() {
+        if (taskId != -1) { Bukkit.getScheduler().cancelTask(taskId); taskId = -1; }
+        currentSound = null;
+    }
+
+    private void loadConfig() {
+        var c = plugin.getConfig();
+        enabled = c.getBoolean("radio.enabled", true);
+        worldName = c.getString("radio.world", "world");
+        radius = c.getInt("radio.radius", 80);
+        pitch = (float) c.getDouble("radio.pitch", 1.0);
+        playOnJoin = c.getBoolean("radio.play-on-join", true);
+        defaultVolume = clampVolume(c.getInt("radio.default-volume", 70));
+        volumeStep = Math.max(1, c.getInt("radio.volume-step", 10));
+        // Categoria audio Bukkit da stringa: RECORDS (jukebox) o MUSIC. valueOf per non elencare i valori
+        // nel codice (li documenta il commento del config); qualsiasi cosa strana ricade su RECORDS.
+        SoundCategory cat = SoundCategory.RECORDS;
+        try { cat = SoundCategory.valueOf(c.getString("radio.sound-category", "records").toUpperCase(Locale.ROOT)); }
+        catch (IllegalArgumentException ignored) {}
+        category = cat;
+
+        playlist.clear();
+        for (Map<?, ?> row : c.getMapList("radio.playlist")) {
+            Object sound = row.get("sound");
+            Object seconds = row.get("seconds");
+            if (sound == null || seconds == null) continue;
+            int secs;
+            try { secs = Integer.parseInt(String.valueOf(seconds).trim()); }
+            catch (NumberFormatException e) { continue; }
+            if (secs <= 0) continue;
+            playlist.add(new Track(String.valueOf(sound).trim(), secs));
+        }
+    }
+
+    // ------------------------------------------------------------- riproduzione
+
+    /** Manda il brano corrente a tutti i giocatori nella zona e programma il passaggio al successivo. */
+    private void playCurrentAndScheduleNext() {
+        Track t = playlist.get(index);
+        broadcastTrack(t.sound());
+        currentSound = t.sound();
+        taskId = Bukkit.getScheduler().runTaskLater(plugin, this::advance, 20L * t.seconds()).getTaskId();
+    }
+
+    private void advance() {
+        if (playlist.isEmpty()) { stopPlayback(); return; }
+        index = (index + 1) % playlist.size();
+        playCurrentAndScheduleNext();
+    }
+
+    /**
+     * Ferma il brano precedente e fa partire quello nuovo, nello stesso tick, per tutti i giocatori nella
+     * zona: e' cosi' che la radio resta sincronizzata (stesso brano, stesso secondo) e che l'eventuale coda
+     * di un brano partito in ritardo per un nuovo arrivato viene tagliata al boundary.
+     */
+    private void broadcastTrack(String newSound) {
+        Location center = center();
+        if (center == null) return;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!inZone(p)) continue;
+            if (currentSound != null) p.stopSound(currentSound, category);
+            if (effectiveVolume(p.getUniqueId()) > 0) playAt(p, center, newSound);
+        }
+    }
+
+    /** Suona {@code sound} per {@code p}, ancorato allo spawn, al volume personale del giocatore. */
+    private void playAt(Player p, Location center, String sound) {
+        try { p.playSound(center, sound, category, volumeFloat(p.getUniqueId()), pitch); }
+        catch (Exception ignored) {}
+    }
+
+    // ------------------------------------------------------------- API per il comando e il join
+
+    /**
+     * Fa sentire SUBITO il brano in onda a un giocatore (dall'inizio: vedi limite in classe), se e' nella
+     * zona e non ha la radio spenta. La usano {@code /f radio on|up|volume} (feedback immediato) e il
+     * listener del join. Ferma prima l'eventuale copia gia' in corso per non sovrapporla.
+     */
+    public void refreshFor(Player p) {
+        if (currentSound == null) return;
+        if (!inZone(p) || effectiveVolume(p.getUniqueId()) <= 0) return;
+        Location center = center();
+        if (center == null) return;
+        p.stopSound(currentSound, category);
+        playAt(p, center, currentSound);
+    }
+
+    /** Taglia la musica a un giocatore (quando spegne la radio con {@code /f radio off}). */
+    public void stopFor(Player p) {
+        if (currentSound != null) p.stopSound(currentSound, category);
+    }
+
+    /** true se al giocatore la radio, in questo momento, arriverebbe: usato dal listener del join. */
+    public boolean wouldPlayFor(Player p) {
+        return enabled && currentSound != null && inZone(p) && effectiveVolume(p.getUniqueId()) > 0;
+    }
+
+    public boolean isPlayOnJoin() { return playOnJoin; }
+    public boolean isEnabled() { return enabled; }
+    public int defaultVolume() { return defaultVolume; }
+    public int volumeStep() { return volumeStep; }
+
+    /** Nome "carino" del brano in onda per i messaggi (es. {@code music_disc.cat} -> {@code Cat}); null se nulla. */
+    public String currentTrackName() {
+        if (currentSound == null) return null;
+        String s = currentSound;
+        int slash = s.indexOf(':');
+        if (slash >= 0) s = s.substring(slash + 1);
+        int dot = s.lastIndexOf('.');
+        if (dot >= 0) s = s.substring(dot + 1);
+        s = s.replace('_', ' ').trim();
+        if (s.isEmpty()) return currentSound;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
+    // ------------------------------------------------------------- calcoli interni
+
+    /** Volume effettivo 0-100 del giocatore: il suo salvato, o il default del config se non l'ha mai toccato. */
+    public int effectiveVolume(UUID u) {
+        int raw = power.radioVolumeRaw(u);
+        return clampVolume(raw < 0 ? defaultVolume : raw);
+    }
+
+    /** Volume da passare a playSound: la percentuale personale scalata sulla portata, cosi' al 100% la
+     *  musica arriva fino al bordo della zona (volume Minecraft ~ 16 blocchi per unita'). */
+    private float volumeFloat(UUID u) {
+        float base = Math.max(1.0f, radius / 16.0f);
+        return effectiveVolume(u) / 100.0f * base;
+    }
+
+    private boolean inZone(Player p) {
+        if (!enabled) return false;
+        Location center = center();
+        if (center == null) return false;
+        if (!p.getWorld().getName().equals(worldName)) return false;
+        if (radius <= 0) return true;
+        double dx = p.getLocation().getX() - center.getX();
+        double dz = p.getLocation().getZ() - center.getZ();
+        return dx * dx + dz * dz <= (double) radius * radius;
+    }
+
+    private Location center() {
+        World w = Bukkit.getWorld(worldName);
+        return w == null ? null : w.getSpawnLocation();
+    }
+
+    private static int clampVolume(int v) { return Math.max(0, Math.min(100, v)); }
+}

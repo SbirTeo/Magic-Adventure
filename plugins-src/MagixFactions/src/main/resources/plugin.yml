@@ -22,6 +22,9 @@ permissions:
   magixfactions.minimap:
     description: Vedere la minimap HUD nell'angolo dello schermo (extra VIP). Senza questo permesso la minimap non viene mai montata.
     default: false
+  magixfactions.radio:
+    description: Usare /f radio per regolare o spegnere la radio musicale dello spawn (preferenza personale).
+    default: true
   # Vantaggi VIP a valore numerico. NON si dichiarano qui uno per uno (sono infiniti): il plugin legge
   # il numero scritto nella coda del permesso.
   #   magixfactions.power.powermax.<numero>      tetto di Potenza (es. ...powermax.20 -> tetto 20)
