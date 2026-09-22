@@ -113,6 +113,9 @@ public final class Database {
             addIfMissing(c, st, "players", "play_seconds", "BIGINT DEFAULT 0");
             addIfMissing(c, st, "players", "money_avg_accum", "DOUBLE DEFAULT 0");
             addIfMissing(c, st, "players", "money_seconds", "BIGINT DEFAULT 0");
+            // Giocatore NASCOSTO dalle classifiche del sito (staff col permesso magixfactions.leaderboard.hide):
+            // 1 = non compare in Top Giocatori. Lo scrive PlayerStatsManager al login/campionamento dal permesso.
+            addIfMissing(c, st, "players", "leaderboard_hidden", "INT DEFAULT 0");
             // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
             addIfMissing(c, st, "players", "minimap_hidden", "INT DEFAULT 0");
             // Interruttore personale dei confini a particelle (/f borders): 1 = acceso dal giocatore.
@@ -177,6 +180,9 @@ public final class Database {
                 // DA QUANDO la funzione è attiva) per la giacenza media personale.
                 "kills BIGINT DEFAULT 0, deaths BIGINT DEFAULT 0, play_seconds BIGINT DEFAULT 0, " +
                 "money_avg_accum DOUBLE DEFAULT 0, money_seconds BIGINT DEFAULT 0, " +
+                // Giocatore nascosto dalle classifiche del sito (staff col permesso magixfactions.leaderboard.hide):
+                // 1 = non compare in Top Giocatori. Lo scrive PlayerStatsManager dal permesso.
+                "leaderboard_hidden INT DEFAULT 0, " +
                 // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
                 // Interruttore personale dei confini a particelle (/f borders): 1 = acceso; di serie spento.
                 "minimap_hidden INT DEFAULT 0, borders_enabled INT DEFAULT 0)");
