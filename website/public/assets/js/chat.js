@@ -120,7 +120,12 @@
     // sul pulsante di eliminazione non conta: quello ha il suo lavoro.
     riga.addEventListener('click', function (e) {
       if (e.target.closest('.chat-msg-del')) return;
-      riga.classList.toggle('e-aperta');
+      var giaAperta = riga.classList.contains('e-aperta');
+      // Un solo popup alla volta: chiudi tutti gli altri, cosi' si vede solo la targhetta
+      // dell'ultimo messaggio cliccato e non si accavallano.
+      var aperti = lista.querySelectorAll('.chat-msg.e-aperta');
+      for (var i = 0; i < aperti.length; i++) aperti[i].classList.remove('e-aperta');
+      if (!giaAperta) riga.classList.add('e-aperta');
     });
 
     if (puoEliminare) {
