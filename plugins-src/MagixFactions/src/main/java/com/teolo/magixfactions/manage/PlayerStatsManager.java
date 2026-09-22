@@ -36,14 +36,23 @@ import java.util.UUID;
  */
 public final class PlayerStatsManager {
 
+    /**
+     * Permesso che NASCONDE il giocatore dalle classifiche del sito (Top Giocatori). Pensato per lo staff:
+     * di serie non ce l'ha nessuno (plugin.yml, default false), si assegna al grado mod in su via LuckPerms
+     * (i gradi superiori ereditano da mod). Chi ce l'ha viene marcato {@code leaderboard_hidden=1} sulla
+     * riga {@code players}, e il sito lo salta.
+     */
+    public static final String PERM_HIDE_LEADERBOARD = "magixfactions.leaderboard.hide";
+
     /** Stato in cache di un giocatore (rispecchia le colonne statistiche di players). */
     private static final class PS {
         long kills, deaths, playSeconds, moneySeconds;
         double moneyAvgAccum;
+        boolean hidden;       // true = nascosto dalle classifiche del sito (staff col permesso)
         long lastSampledAt;   // ultimo istante (ms) campionato mentre online; 0 = non in corso (offline)
-        PS(long kills, long deaths, long playSeconds, double moneyAvgAccum, long moneySeconds) {
+        PS(long kills, long deaths, long playSeconds, double moneyAvgAccum, long moneySeconds, boolean hidden) {
             this.kills = kills; this.deaths = deaths; this.playSeconds = playSeconds;
-            this.moneyAvgAccum = moneyAvgAccum; this.moneySeconds = moneySeconds;
+            this.moneyAvgAccum = moneyAvgAccum; this.moneySeconds = moneySeconds; this.hidden = hidden;
         }
     }
 
@@ -60,17 +69,18 @@ public final class PlayerStatsManager {
         cache.clear();
         try (Connection c = db.getConnection(); Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(
-                     "SELECT uuid, kills, deaths, play_seconds, money_avg_accum, money_seconds FROM players")) {
+                     "SELECT uuid, kills, deaths, play_seconds, money_avg_accum, money_seconds, leaderboard_hidden FROM players")) {
             while (rs.next()) {
                 UUID u = UUID.fromString(rs.getString("uuid"));
                 cache.put(u, new PS(rs.getLong("kills"), rs.getLong("deaths"), rs.getLong("play_seconds"),
-                        rs.getDouble("money_avg_accum"), rs.getLong("money_seconds")));
+                        rs.getDouble("money_avg_accum"), rs.getLong("money_seconds"),
+                        rs.getInt("leaderboard_hidden") != 0));
             }
         }
     }
 
     private PS ensure(UUID u) {
-        return cache.computeIfAbsent(u, k -> new PS(0, 0, 0, 0, 0));
+        return cache.computeIfAbsent(u, k -> new PS(0, 0, 0, 0, 0, false));
     }
 
     /** Tempo di gioco TOTALE del giocatore in secondi, dalla statistica vanilla (0 se non disponibile). */
@@ -141,10 +151,12 @@ public final class PlayerStatsManager {
     /** Registra una morte PvP VALIDA per la vittima (accoppiata a {@link #recordKill}). */
     public void recordDeath(UUID victim) { ensure(victim).deaths++; save(victim); }
 
-    /** Ingresso: allinea subito il tempo totale (vanilla) e apre la finestra della giacenza media. */
+    /** Ingresso: allinea subito il tempo totale (vanilla), la visibilita' in classifica e apre la finestra
+     *  della giacenza media. */
     public void onJoin(Player p) {
         PS ps = ensure(p.getUniqueId());
         ps.playSeconds = vanillaPlaySeconds(p);
+        ps.hidden = p.hasPermission(PERM_HIDE_LEADERBOARD);   // staff: fuori dalle classifiche del sito
         ps.lastSampledAt = System.currentTimeMillis();   // l'offline non conta per la giacenza media
         save(p.getUniqueId());
     }
@@ -176,6 +188,9 @@ public final class PlayerStatsManager {
         boolean changed = false;
         long vt = vanillaPlaySeconds(p);
         if (vt > 0 && vt != ps.playSeconds) { ps.playSeconds = vt; changed = true; }
+        // Visibilita' in classifica dal permesso: segue i cambi di grado dello staff senza bisogno di rientrare.
+        boolean hide = p.hasPermission(PERM_HIDE_LEADERBOARD);
+        if (hide != ps.hidden) { ps.hidden = hide; changed = true; }
         long now = System.currentTimeMillis();
         if (ps.lastSampledAt <= 0) {
             ps.lastSampledAt = now;   // prima volta: apri la finestra e basta
@@ -197,12 +212,13 @@ public final class PlayerStatsManager {
         final String us = u.toString();
         final long kills = ps.kills, deaths = ps.deaths, playSeconds = ps.playSeconds, moneySeconds = ps.moneySeconds;
         final double moneyAcc = ps.moneyAvgAccum;
+        final int hidden = ps.hidden ? 1 : 0;
         dbExec.submit(() -> {
             try (Connection c = db.getConnection();
                  PreparedStatement psq = c.prepareStatement(
-                         "UPDATE players SET kills=?, deaths=?, play_seconds=?, money_avg_accum=?, money_seconds=? WHERE uuid=?")) {
+                         "UPDATE players SET kills=?, deaths=?, play_seconds=?, money_avg_accum=?, money_seconds=?, leaderboard_hidden=? WHERE uuid=?")) {
                 psq.setLong(1, kills); psq.setLong(2, deaths); psq.setLong(3, playSeconds);
-                psq.setDouble(4, moneyAcc); psq.setLong(5, moneySeconds); psq.setString(6, us);
+                psq.setDouble(4, moneyAcc); psq.setLong(5, moneySeconds); psq.setInt(6, hidden); psq.setString(7, us);
                 psq.executeUpdate();
             } catch (SQLException e) { plugin.getLogger().warning("[Stats] salvataggio: " + e.getMessage()); }
         });
