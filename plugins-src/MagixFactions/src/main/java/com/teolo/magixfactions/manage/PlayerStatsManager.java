@@ -119,6 +119,8 @@ public final class PlayerStatsManager {
         if (ps == null || ps.hidden == hidden) return;
         ps.hidden = hidden;
         save(u);
+        plugin.getLogger().info("[Classifiche] " + u + (hidden ? " nascosto" : " di nuovo visibile")
+                + " nelle classifiche (permesso magixfactions.leaderboard.hide).");
     }
 
     /** Riallinea il flag di un giocatore ONLINE dal suo permesso (main thread). */
@@ -147,9 +149,16 @@ public final class PlayerStatsManager {
                 Map<String, Boolean> perms = luckPerms.permissions(u);
                 if (perms != null) read.put(u, perms.getOrDefault(PERM_HIDE_LEADERBOARD, Boolean.FALSE));
             }
-            Bukkit.getScheduler().runTask(plugin, () -> read.forEach((u, hidden) -> {
-                if (Bukkit.getPlayer(u) == null) applyHidden(u, hidden);   // rientrato: ci pensa onJoin
-            }));
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                int hiddenCount = 0;
+                for (Map.Entry<UUID, Boolean> e : read.entrySet()) {
+                    if (Bukkit.getPlayer(e.getKey()) != null) continue;   // rientrato: ci pensa onJoin
+                    if (Boolean.TRUE.equals(e.getValue())) hiddenCount++;
+                    applyHidden(e.getKey(), e.getValue());
+                }
+                plugin.getLogger().info("[Classifiche] Visibilita' staff riletta da LuckPerms: " + hiddenCount
+                        + " nascosti su " + read.size() + " giocatori offline controllati.");
+            });
         });
     }
 
