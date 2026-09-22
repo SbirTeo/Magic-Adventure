@@ -8,7 +8,7 @@ description: Radio musicale sincronizzata allo spawn, regolabile e spegnibile da
 commands:
   magixmusic:
     aliases: [radio, music]
-    description: Radio musicale dello spawn: stato, volume, on/off.
+    description: "Radio musicale dello spawn: stato, volume, on/off."
     usage: /radio
 
 permissions:
