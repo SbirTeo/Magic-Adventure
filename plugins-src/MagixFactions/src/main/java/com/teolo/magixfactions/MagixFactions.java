@@ -159,6 +159,12 @@ public final class MagixFactions extends JavaPlugin {
         powerManager.setLuckPerms(luckPerms);
         long offlineInterval = 20L * 60L * powerManager.offlineRefreshMinutes();
         Bukkit.getScheduler().runTaskTimer(this, powerManager::tickOffline, 20L * 30L, offlineInterval);
+        // Visibilita' dello staff nelle classifiche anche da OFFLINE: lo stesso LuckPerms legge il permesso
+        // magixfactions.leaderboard.hide di chi non e' collegato. Un batch periodico (gemello di
+        // tickOffline) riallinea i flag, e l'evento di ricalcolo li aggiorna all'istante. Vedi PlayerStatsManager.
+        playerStatsManager.setLuckPerms(luckPerms);
+        playerStatsManager.watchPermissions();
+        Bukkit.getScheduler().runTaskTimer(this, playerStatsManager::refreshHiddenOffline, 20L * 35L, offlineInterval);
         // Applica ai giocatori gia' online (es. dopo /reload)
         Bukkit.getOnlinePlayers().forEach(powerManager::onJoin);
 
