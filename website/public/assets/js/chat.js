@@ -158,6 +158,15 @@
     if (seguiva) lista.scrollTop = lista.scrollHeight;
   }
 
+  // Click in qualsiasi punto fuori da un messaggio della chat: chiude il popup aperto.
+  // Il click SU un messaggio non arriva qui a chiuderlo perche' lo gestisce gia' la riga
+  // (toggle), e qui saltiamo i target dentro .chat-msg.
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.chat-msg')) return;
+    var aperti = lista.querySelectorAll('.chat-msg.e-aperta');
+    for (var i = 0; i < aperti.length; i++) aperti[i].classList.remove('e-aperta');
+  });
+
   /** Toglie tutto dall'elenco. L'avviso "ancora nessun messaggio" lo rimette carica(). */
   function ripulisciElenco() {
     lista.innerHTML = '';
