@@ -98,8 +98,9 @@ public final class Database {
             addIfMissing(c, st, "factions", "score", "DOUBLE DEFAULT 0");
             // Dettaglio del punteggio in JSON: lo legge il sito per il tooltip "come si arriva a questo valore".
             addIfMissing(c, st, "factions", "score_detail", "TEXT");
-            // Fazione "in classifica" o oscurata perche' INATTIVA (tutti i membri assenti): lo calcola il
-            // campionatore (ScoreManager) e lo legge il sito per non mostrare le fazioni morte.
+            // Fazione "in classifica" o oscurata perche' INATTIVA (tutti i membri assenti) oppure perche'
+            // ha un membro dello STAFF (permesso magixfactions.leaderboard.hide): lo calcola il campionatore
+            // (ScoreManager.countsInLeaderboard) e lo legge il sito per non mostrare le fazioni da nascondere.
             addIfMissing(c, st, "factions", "ranked", "INT DEFAULT 1");
             // Ultimo cambio nome (/f rename): serve al cooldown fra un cambio e il successivo.
             addIfMissing(c, st, "factions", "renamed_at", "BIGINT DEFAULT 0");

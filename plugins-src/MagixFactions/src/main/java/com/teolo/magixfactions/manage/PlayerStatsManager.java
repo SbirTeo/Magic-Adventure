@@ -93,6 +93,11 @@ public final class PlayerStatsManager {
     }
 
     // ------------------------------ QUERY --------------------------------
+    /** Il giocatore e' marcato come NASCOSTO dalle classifiche (staff col permesso)? Il flag e' persistito,
+     *  quindi vale anche da OFFLINE: cosi' la sua fazione resta nascosta finche' lui ne fa parte, non solo
+     *  mentre e' collegato. */
+    public boolean isHidden(UUID u) { PS ps = cache.get(u); return ps != null && ps.hidden; }
+
     public long getKills(UUID u) { PS ps = cache.get(u); return ps == null ? 0 : ps.kills; }
     public long getDeaths(UUID u) { PS ps = cache.get(u); return ps == null ? 0 : ps.deaths; }
     public long getPlaySeconds(UUID u) { PS ps = cache.get(u); return ps == null ? 0 : ps.playSeconds; }
