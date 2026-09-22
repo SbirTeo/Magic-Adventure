@@ -1,5 +1,10 @@
+# menu-version: 2
 # ==========================================================================================
 #  musica.yml — menu grafico della RADIO dello spawn (plugin MagixMusic)
+#
+#  La riga "menu-version" qui sopra la usa MagixMusic per capire quando il menu è cambiato: se il
+#  numero nel jar è diverso da quello del file sul VPS, MagixMusic aggiorna il file (facendone prima
+#  una copia .bak-<data>). Finché il numero è lo stesso, NON tocca il file: le tue modifiche restano.
 #
 #  Aprilo in gioco con /musica (o /radiomenu). Da qui il giocatore accende/spegne la radio,
 #  alza o abbassa il volume e sceglie un preset, vedendo il livello in diretta con una barra.
@@ -61,6 +66,38 @@ items:
       - "sound: BLOCK_NOTE_BLOCK_PLING|0.7|1.2"
       - "refresh"
 
+  # ─── Riascolta il brano dall'inizio (solo per chi clicca) ───
+  replay:
+    slot: 11
+    id: MUSIC_DISC_CAT
+    display_name: "&#C046E8Riascolta dall'inizio"
+    lore:
+      - "&#9A8CA8Fa ripartire il brano in onda da capo,"
+      - "&#9A8CA8solo per te. Utile se sei appena entrato."
+    actions:
+      - "command: radio replay"
+      - "sound: UI_BUTTON_CLICK|1|1"
+      - "refresh"
+
+  # ─── Salta al brano successivo — solo staff, vale per tutti ───
+  brano_successivo:
+    slot: 15
+    id: SPECTRAL_ARROW
+    display_name: "&#FFD166Salta brano &8(staff)"
+    lore:
+      - "&#9A8CA8Passa al brano successivo per &fTUTTI&#9A8CA8."
+      - "&#9A8CA8Riservato allo staff."
+    show_requirements:
+      requirements:
+        staff:
+          type: PERMISSION
+          key: magixmusic.admin
+          match: true
+    actions:
+      - "command: radio next"
+      - "sound: UI_BUTTON_CLICK|1|1.4"
+      - "refresh"
+
   # ─── Abbassa il volume ───
   volume_giu:
     slot: 12
@@ -73,7 +110,7 @@ items:
       - "sound: UI_BUTTON_CLICK|1|0.8"
       - "refresh"
 
-  # ─── Display centrale: volume, barra, stato e brano in diretta ───
+  # ─── Display centrale: volume, barra, avanzamento, brano e prossimo, in diretta ───
   display:
     slot: 13
     id: JUKEBOX
@@ -82,8 +119,10 @@ items:
     lore:
       - "&#A8DC2C%magixmusic_bar%"
       - ""
-      - "&#9A8CA8Stato: &f%magixmusic_state%"
       - "&#9A8CA8In onda: &f%magixmusic_track%"
+      - "&#9A8CA8%magixmusic_time%  &7%magixmusic_progress%"
+      - "&#9A8CA8Poi: &f%magixmusic_next%"
+      - "&#9A8CA8Brano &f%magixmusic_index%&#9A8CA8/&f%magixmusic_count%"
       - ""
       - "&#9A8CA8Usa &f−&#9A8CA8 e &f+&#9A8CA8, o i preset qui sotto."
 

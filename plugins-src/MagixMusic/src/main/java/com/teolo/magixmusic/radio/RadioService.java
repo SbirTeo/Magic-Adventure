@@ -49,6 +49,8 @@ public final class RadioService {
     private int index;
     private String currentSound;     // brano in onda ORA, oppure null se la radio non sta suonando
     private int taskId = -1;         // task che farà partire il brano successivo
+    private long currentStartMillis; // quando è partito il brano corrente (per tempo trascorso/rimanente)
+    private int currentDurationSeconds; // durata del brano corrente in secondi
 
     public RadioService(JavaPlugin plugin, VolumeStore volumes) {
         this.plugin = plugin;
@@ -124,11 +126,24 @@ public final class RadioService {
         Track t = playlist.get(index);
         broadcastTrack(t.sound());
         currentSound = t.sound();
+        currentStartMillis = System.currentTimeMillis();
+        currentDurationSeconds = t.seconds();
         taskId = Bukkit.getScheduler().runTaskLater(plugin, this::advance, 20L * t.seconds()).getTaskId();
     }
 
     private void advance() {
         if (playlist.isEmpty()) { stopPlayback(); return; }
+        index = (index + 1) % playlist.size();
+        playCurrentAndScheduleNext();
+    }
+
+    /**
+     * Salta al brano successivo SUBITO, per tutti (è una radio unica). Azione globale: il comando la
+     * riserva allo staff. Non fa nulla se la radio è spenta o senza scaletta.
+     */
+    public void skip() {
+        if (!enabled || playlist.isEmpty()) return;
+        if (taskId != -1) { Bukkit.getScheduler().cancelTask(taskId); taskId = -1; }
         index = (index + 1) % playlist.size();
         playCurrentAndScheduleNext();
     }
@@ -187,14 +202,41 @@ public final class RadioService {
 
     /** Nome "carino" del brano in onda per i messaggi (es. {@code music_disc.cat} -> {@code Cat}); null se nulla. */
     public String currentTrackName() {
-        if (currentSound == null) return null;
-        String s = currentSound;
+        return prettyName(currentSound);
+    }
+
+    /** Nome "carino" del brano che verrà dopo quello in onda; null se la radio non sta suonando. */
+    public String nextTrackName() {
+        if (currentSound == null || playlist.isEmpty()) return null;
+        return prettyName(playlist.get((index + 1) % playlist.size()).sound());
+    }
+
+    /** Secondi trascorsi del brano in onda (0 se non suona), limitati alla durata del brano. */
+    public int elapsedSeconds() {
+        if (currentSound == null) return 0;
+        long e = (System.currentTimeMillis() - currentStartMillis) / 1000L;
+        return (int) Math.max(0, Math.min(currentDurationSeconds, e));
+    }
+
+    /** Durata del brano in onda in secondi (0 se non suona). */
+    public int durationSeconds() { return currentSound == null ? 0 : currentDurationSeconds; }
+
+    /** Quanti brani ha la scaletta. */
+    public int trackCount() { return playlist.size(); }
+
+    /** Posizione del brano in onda nella scaletta, da 1; 0 se non suona. */
+    public int currentIndex() { return currentSound == null || playlist.isEmpty() ? 0 : index + 1; }
+
+    /** Da {@code music_disc.cat} (o {@code minecraft:music_disc.cat}) a {@code Cat}. */
+    private static String prettyName(String sound) {
+        if (sound == null) return null;
+        String s = sound;
         int colon = s.indexOf(':');
         if (colon >= 0) s = s.substring(colon + 1);
         int dot = s.lastIndexOf('.');
         if (dot >= 0) s = s.substring(dot + 1);
         s = s.replace('_', ' ').trim();
-        if (s.isEmpty()) return currentSound;
+        if (s.isEmpty()) return sound;
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 

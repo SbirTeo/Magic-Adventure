@@ -24,6 +24,8 @@ turned-on: "&aRadio &2accesa&a a volume &e{volume}&a. In onda: &b{track}&a."
 turned-off: "&aRadio &cspenta&a per te: non sentirai piu' la musica dello spawn."
 volume: "&aVolume radio: &e{volume}&a. In onda: &b{track}&a."
 volume-off: "&aVolume radio a &e0&a: radio &cspenta&a per te."
+skipped: "&aBrano saltato. Ora in onda: &b{track}&a."
+replayed: "&aFai ripartire il brano dall'inizio: &b{track}&a."
 none-playing: "silenzio"
 
 # Aiuto sfogliabile (/radio help). Ogni voce: "comando :: descrizione".
@@ -39,7 +41,10 @@ help:
         - "/radio off :: spegni la radio (solo per te)"
         - "/radio on :: riaccendi la radio"
         - "/radio <0-100> :: imposta il volume esatto"
+        - "/radio replay :: fai ripartire il brano dall'inizio (per te)"
+        - "/musica :: apri il menu grafico della radio"
     admin:
       title: "Staff"
       entries:
+        - "/radio next :: salta al brano successivo (per tutti)"
         - "/radio reload :: ricarica il config (scaletta, portata, volume)"

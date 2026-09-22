@@ -56,6 +56,14 @@ public final class MagixMusicCommand implements CommandExecutor, TabCompleter {
             msg.send(sender, "reloaded");
             return true;
         }
+        // Salta al brano successivo: azione GLOBALE (una radio sola), riservata allo staff.
+        if (sub.equals("next") || sub.equals("skip")) {
+            if (!sender.hasPermission(ADMIN)) { msg.send(sender, "no-permission"); return true; }
+            if (!radio.isEnabled()) { msg.send(sender, "disabled-globally"); return true; }
+            radio.skip();
+            msg.send(sender, "skipped", "track", trackName());
+            return true;
+        }
 
         if (!(sender instanceof Player p)) { msg.send(sender, "players-only"); return true; }
         if (!radio.isEnabled()) { msg.send(sender, "disabled-globally"); return true; }
@@ -64,6 +72,13 @@ public final class MagixMusicCommand implements CommandExecutor, TabCompleter {
         if (sub.isEmpty()) {
             if (cur > 0) msg.send(sender, "status-on", "volume", String.valueOf(cur), "track", trackName());
             else msg.send(sender, "status-off");
+            return true;
+        }
+        // Riascolta il brano in onda dall'inizio, solo per chi lo chiede (utile a chi è appena entrato).
+        if (sub.equals("replay") || sub.equals("riascolta")) {
+            if (cur <= 0) { msg.send(sender, "status-off"); return true; }
+            radio.refreshFor(p);
+            msg.send(sender, "replayed", "track", trackName());
             return true;
         }
 
@@ -120,8 +135,8 @@ public final class MagixMusicCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> base = new ArrayList<>(List.of("on", "off", "up", "down", "help"));
-            if (sender.hasPermission(ADMIN)) base.add("reload");
+            List<String> base = new ArrayList<>(List.of("on", "off", "up", "down", "replay", "help"));
+            if (sender.hasPermission(ADMIN)) { base.add("next"); base.add("reload"); }
             return filter(base, args[0]);
         }
         return Collections.emptyList();

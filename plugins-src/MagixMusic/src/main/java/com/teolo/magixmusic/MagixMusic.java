@@ -86,19 +86,43 @@ public final class MagixMusic extends JavaPlugin {
                 getLogger().warning("Non riesco a creare " + dir.getPath() + ": menu /musica non installato.");
                 return;
             }
-            java.io.File target = new java.io.File(dir, "musica.yml");
-            if (target.exists()) return; // già presente: rispetto le eventuali modifiche dello staff
+            byte[] bundledBytes;
             try (java.io.InputStream in = getResource("menus/musica.yml")) {
                 if (in == null) { getLogger().warning("menus/musica.yml non incluso nel jar."); return; }
-                java.nio.file.Files.copy(in, target.toPath());
+                bundledBytes = in.readAllBytes();
             }
-            getLogger().info("MagixMenus rilevato: installato il menu /musica, ricarico i menu.");
-            // Ricarica i menu di MagixMenus così /musica si registra subito, senza aspettare un riavvio.
+            String bundled = new String(bundledBytes, java.nio.charset.StandardCharsets.UTF_8);
+            String bundledVer = menuVersion(bundled);
+
+            java.io.File target = new java.io.File(dir, "musica.yml");
+            String reason;
+            if (!target.exists()) {
+                reason = "installato";
+            } else {
+                String existingVer = menuVersion(java.nio.file.Files.readString(target.toPath()));
+                // Stessa versione: non tocco il file, così le modifiche dello staff restano.
+                if (bundledVer == null || bundledVer.equals(existingVer)) return;
+                // Versione diversa: copia di sicurezza col timestamp, poi aggiorno.
+                String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+                java.nio.file.Files.copy(target.toPath(),
+                        new java.io.File(dir, "musica.yml.bak-" + stamp).toPath());
+                reason = "aggiornato (vecchio salvato come .bak-" + stamp + ")";
+            }
+            java.nio.file.Files.write(target.toPath(), bundledBytes);
+            getLogger().info("MagixMenus rilevato: menu /musica " + reason + ", ricarico i menu.");
+            // Ricarica i menu di MagixMenus così /musica si registra/aggiorna subito, senza riavvio.
             Bukkit.getScheduler().runTask(this, () ->
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "menus reload"));
         } catch (Exception e) {
             getLogger().warning("Installazione del menu /musica fallita: " + e.getMessage());
         }
+    }
+
+    /** Legge la riga "# menu-version: N" dal testo di un menu; null se non c'è. */
+    private static String menuVersion(String yaml) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("(?m)^#\\s*menu-version:\\s*(\\S+)").matcher(yaml);
+        return m.find() ? m.group(1) : null;
     }
 
     @Override
@@ -155,12 +179,21 @@ public final class MagixMusic extends JavaPlugin {
                                 + "installato**: in quel caso MagixMusic lo installa da solo all'avvio (copia il file in "
                                 + "plugins/MagixMenus/menus/musica.yml se manca e ricarica i menu), senza passi manuali. "
                                 + "Senza MagixMenus restano solo i comandi /radio. Il file lo puoi modificare come "
-                                + "qualunque menu: MagixMusic non lo sovrascrive più una volta creato.",
+                                + "qualunque menu: MagixMusic lo riscrive solo quando cambia la versione del menu (la riga "
+                                + "menu-version nel file), facendone prima una copia .bak; finché la versione è la stessa, "
+                                + "le tue modifiche restano.",
+                        "Dal menu (e dai comandi) si fa un po' tutto: accendere/spegnere, alzare/abbassare, i "
+                                + "preset di volume, **riascoltare** il brano dall'inizio (/radio replay, utile a chi è "
+                                + "appena entrato) e, per lo staff, **saltare** al brano successivo per tutti (/radio "
+                                + "next). Il pulsante «Salta brano» nel menu compare solo a chi ha magixmusic.admin.",
                         "Per mostrare i valori in diretta MagixMusic espone dei placeholder PlaceholderAPI, usabili "
                                 + "anche in tablist, scoreboard o sul sito: %magixmusic_volume% (0-100), %magixmusic_bar% "
-                                + "(la barra), %magixmusic_state% (Accesa/Spenta), %magixmusic_track% (brano in onda) e "
-                                + "%magixmusic_enabled% (1/0, radio accesa in generale). Se PlaceholderAPI non è "
-                                + "installato la radio funziona lo stesso, ma il menu non vede i valori live.")
+                                + "(barra volume), %magixmusic_state% (Accesa/Spenta), %magixmusic_track% (brano in onda), "
+                                + "%magixmusic_next% (brano successivo), %magixmusic_time% (trascorso/durata), "
+                                + "%magixmusic_progress% (barra avanzamento), %magixmusic_elapsed%, %magixmusic_remaining%, "
+                                + "%magixmusic_duration%, %magixmusic_index%, %magixmusic_count% e %magixmusic_enabled% "
+                                + "(1/0). Se PlaceholderAPI non è installato la radio funziona lo stesso, ma il menu non "
+                                + "vede i valori live.")
 
                 .detailedCommands()
                 .commands()
