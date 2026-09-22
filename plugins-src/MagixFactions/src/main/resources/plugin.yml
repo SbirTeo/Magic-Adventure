@@ -34,5 +34,5 @@ permissions:
     description: In chat pubblica non mostra il tag fazione del mittente (usa public-format-no-faction anche se e' in una fazione).
     default: op
   magixfactions.leaderboard.hide:
-    description: Chi ha questo permesso NON compare nelle classifiche giocatori del sito (tempo, ricchezza, uccisioni). Pensato per lo staff, da assegnare al grado mod in su via LuckPerms.
+    description: Chi ha questo permesso NON compare nelle classifiche giocatori del sito (tempo, ricchezza, uccisioni) e OSCURA la propria fazione dalla Top Fazioni finche' ne fa parte. Pensato per lo staff, da assegnare al grado mod in su via LuckPerms.
     default: false

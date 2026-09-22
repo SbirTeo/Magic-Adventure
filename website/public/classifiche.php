@@ -12,6 +12,9 @@ require __DIR__ . '/../includes/header.php';
 // Le colonne di contorno (territori, membri, potenza) sono conteggi diretti, per far capire da cosa
 // nasce la posizione. Se la colonna 'score' non c'e' ancora (plugin non ancora riavviato dopo
 // l'aggiornamento), la pagina degrada con un avviso invece di rompersi.
+// NB: si mostrano solo le fazioni con ranked=1. Il plugin (ScoreManager) mette ranked=0 sia alle fazioni
+// inattive sia a quelle con un membro dello STAFF (permesso magixfactions.leaderboard.hide): appena lo
+// staff esce dalla fazione, al campione successivo torna ranked=1 e ricompare.
 $factions = [];
 $score_ready = true;
 try {
