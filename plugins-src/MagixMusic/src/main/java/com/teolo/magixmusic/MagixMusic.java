@@ -65,7 +65,40 @@ public final class MagixMusic extends JavaPlugin {
             }
         }
 
+        // Se c'e' MagixMenus, installa da solo il menu grafico /musica (vedi installMenu).
+        installMenu();
+
         getLogger().info("MagixMusic avviato.");
+    }
+
+    /**
+     * Installa il menu grafico {@code /musica} SOLO se MagixMenus è presente: copia la risorsa
+     * {@code menus/musica.yml} del jar nella cartella menu di MagixMenus (se non c'è già) e ricarica i
+     * menu, così il comando si registra senza riavvio. Senza MagixMenus non fa nulla — restano i comandi
+     * {@code /radio}. Non sovrascrive un file già presente: le modifiche dello staff al menu restano.
+     */
+    private void installMenu() {
+        org.bukkit.plugin.Plugin menus = Bukkit.getPluginManager().getPlugin("MagixMenus");
+        if (menus == null) return; // MagixMenus non c'è: niente menu, solo i comandi /radio
+        try {
+            java.io.File dir = new java.io.File(menus.getDataFolder(), "menus");
+            if (!dir.exists() && !dir.mkdirs()) {
+                getLogger().warning("Non riesco a creare " + dir.getPath() + ": menu /musica non installato.");
+                return;
+            }
+            java.io.File target = new java.io.File(dir, "musica.yml");
+            if (target.exists()) return; // già presente: rispetto le eventuali modifiche dello staff
+            try (java.io.InputStream in = getResource("menus/musica.yml")) {
+                if (in == null) { getLogger().warning("menus/musica.yml non incluso nel jar."); return; }
+                java.nio.file.Files.copy(in, target.toPath());
+            }
+            getLogger().info("MagixMenus rilevato: installato il menu /musica, ricarico i menu.");
+            // Ricarica i menu di MagixMenus così /musica si registra subito, senza aspettare un riavvio.
+            Bukkit.getScheduler().runTask(this, () ->
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "menus reload"));
+        } catch (Exception e) {
+            getLogger().warning("Installazione del menu /musica fallita: " + e.getMessage());
+        }
     }
 
     @Override
@@ -116,11 +149,13 @@ public final class MagixMusic extends JavaPlugin {
                                 + "questa: è un limite del gioco, non del plugin.")
 
                 .section("Il menu grafico e i placeholder",
-                        "Oltre al comando c'è un menu grafico (MagixMenus): /musica (o /radiomenu) apre una "
-                                + "finestra con i pulsanti per alzare, abbassare, accendere o spegnere la radio, i "
-                                + "preset di volume e la barra che mostra il livello in diretta. Il menu è un file di "
-                                + "MagixMenus (plugins/MagixMenus/menus/musica.yml): si modifica come qualunque altro "
-                                + "menu, senza toccare questo plugin.",
+                        "Oltre al comando c'è un menu grafico: /musica (o /radiomenu) apre una finestra con i "
+                                + "pulsanti per alzare, abbassare, accendere o spegnere la radio, i preset di volume e "
+                                + "la barra che mostra il livello in diretta. Il menu compare **solo se MagixMenus è "
+                                + "installato**: in quel caso MagixMusic lo installa da solo all'avvio (copia il file in "
+                                + "plugins/MagixMenus/menus/musica.yml se manca e ricarica i menu), senza passi manuali. "
+                                + "Senza MagixMenus restano solo i comandi /radio. Il file lo puoi modificare come "
+                                + "qualunque menu: MagixMusic non lo sovrascrive più una volta creato.",
                         "Per mostrare i valori in diretta MagixMusic espone dei placeholder PlaceholderAPI, usabili "
                                 + "anche in tablist, scoreboard o sul sito: %magixmusic_volume% (0-100), %magixmusic_bar% "
                                 + "(la barra), %magixmusic_state% (Accesa/Spenta), %magixmusic_track% (brano in onda) e "

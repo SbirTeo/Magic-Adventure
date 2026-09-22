@@ -9,7 +9,10 @@
 #  %magixmusic_...% esposti da MagixMusic via PlaceholderAPI. "update: 10" ridisegna due volte al
 #  secondo, e ogni pulsante fa anche "refresh" per aggiornare subito dopo il clic.
 #
-#  Questo file vive in plugins/MagixMenus/menus/ sul VPS. Modificalo e poi /menus reload.
+#  Da dove arriva: NON si copia a mano. È MagixMusic a installarlo: all'avvio, se rileva MagixMenus,
+#  copia questo file (se manca) in plugins/MagixMenus/menus/ e ricarica i menu. Senza MagixMenus il
+#  menu non esiste e restano solo i comandi /radio. Una volta sul VPS puoi modificarlo liberamente:
+#  MagixMusic non lo sovrascrive (rispetta le tue modifiche); poi /menus reload.
 # ==========================================================================================
 
 menu:
