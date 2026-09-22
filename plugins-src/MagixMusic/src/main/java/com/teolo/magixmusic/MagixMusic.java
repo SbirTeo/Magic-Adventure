@@ -53,6 +53,18 @@ public final class MagixMusic extends JavaPlugin {
             cmd.setTabCompleter(executor);
         }
 
+        // Placeholder %magixmusic_...% (volume, barra, brano, stato): li usa il menu di MagixMenus per
+        // mostrare la radio in diretta. Softdepend: se PlaceholderAPI non c'e', la radio funziona lo
+        // stesso, solo il menu non vede i valori live.
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            try {
+                new com.teolo.magixmusic.hook.Placeholders(this, radio).register();
+                getLogger().info("Placeholder %magixmusic_...% registrati su PlaceholderAPI.");
+            } catch (Throwable t) {
+                getLogger().warning("Registrazione dei placeholder fallita: " + t.getMessage());
+            }
+        }
+
         getLogger().info("MagixMusic avviato.");
     }
 
@@ -102,6 +114,18 @@ public final class MagixMusic extends JavaPlugin {
                                 + "secondo in corso; al primo cambio di brano si riallinea con tutti. Se un giocatore "
                                 + "chiede «perché sento la canzone da capo mentre gli altri sono avanti», la risposta è "
                                 + "questa: è un limite del gioco, non del plugin.")
+
+                .section("Il menu grafico e i placeholder",
+                        "Oltre al comando c'è un menu grafico (MagixMenus): /musica (o /radiomenu) apre una "
+                                + "finestra con i pulsanti per alzare, abbassare, accendere o spegnere la radio, i "
+                                + "preset di volume e la barra che mostra il livello in diretta. Il menu è un file di "
+                                + "MagixMenus (plugins/MagixMenus/menus/musica.yml): si modifica come qualunque altro "
+                                + "menu, senza toccare questo plugin.",
+                        "Per mostrare i valori in diretta MagixMusic espone dei placeholder PlaceholderAPI, usabili "
+                                + "anche in tablist, scoreboard o sul sito: %magixmusic_volume% (0-100), %magixmusic_bar% "
+                                + "(la barra), %magixmusic_state% (Accesa/Spenta), %magixmusic_track% (brano in onda) e "
+                                + "%magixmusic_enabled% (1/0, radio accesa in generale). Se PlaceholderAPI non è "
+                                + "installato la radio funziona lo stesso, ma il menu non vede i valori live.")
 
                 .detailedCommands()
                 .commands()

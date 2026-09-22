@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixMusic</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
     <packaging>jar</packaging>
 
     <name>MagixMusic</name>
@@ -23,6 +23,10 @@
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -31,6 +35,14 @@
             <artifactId>paper-api</artifactId>
             <!-- Stesso build del server (log: "Paper version 26.1.2-72-ver/26.1.2"). -->
             <version>26.1.2.build.72-stable</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Opzionale a runtime (softdepend): serve per esporre i placeholder %magixmusic_...%
+             che il menu di MagixMenus usa per mostrare volume, barra e brano in diretta. -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

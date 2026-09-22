@@ -4,6 +4,7 @@ main: com.teolo.magixmusic.MagixMusic
 api-version: '26.1'
 author: teolo
 description: Radio musicale sincronizzata allo spawn, regolabile e spegnibile da ogni giocatore.
+softdepend: [PlaceholderAPI]
 
 commands:
   magixmusic:
