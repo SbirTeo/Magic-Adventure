@@ -6,6 +6,7 @@ import com.teolo.magixauth.crypt.Password;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.gate.OtpPolicy;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.model.Account;
 import com.teolo.magixauth.util.Help;
 import com.teolo.magixauth.util.Texts;
@@ -37,14 +38,16 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
     private final AuthDao dao;
     private final OtpPolicy policy;
     private final AuthGate gate;
+    private final Messages messages;
 
     public MauthCommand(MagixAuth plugin, AuthConfig config, AuthDao dao,
-                        OtpPolicy policy, AuthGate gate) {
+                        OtpPolicy policy, AuthGate gate, Messages messages) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
         this.policy = policy;
         this.gate = gate;
+        this.messages = messages;
     }
 
     @Override
@@ -214,8 +217,7 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
                 Player online = Bukkit.getPlayer(account.uuid);
                 if (online != null) {
                     Bukkit.getScheduler().runTask(plugin, () ->
-                            online.kick(Texts.c("&eLa tua password e' stata azzerata&r\n\n"
-                                    + "&7Rientra e scegline una nuova.")));
+                            online.kick(Texts.c(messages.get(online, "admin.password-reset-kick"))));
                 }
             } catch (SQLException e) {
                 reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
@@ -233,9 +235,9 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * gli darebbe comunque al primo ingresso, cosi' quando entrera' si ritrovera' il suo.
      */
     private void register(CommandSender sender, String name, String password) {
-        String no = Password.whyNot(password, name, config.minPasswordLength);
+        Password.Rejection no = Password.whyNot(password, name, config.minPasswordLength);
         if (no != null) {
-            reply(sender, "&c" + no);
+            reply(sender, "&c" + messages.get(no.key(), no.kv()));
             return;
         }
         plugin.async(() -> {

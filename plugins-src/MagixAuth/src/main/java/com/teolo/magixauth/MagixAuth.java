@@ -14,6 +14,7 @@ import com.teolo.magixauth.gate.ConnectionListener;
 import com.teolo.magixauth.gate.FreezeListener;
 import com.teolo.magixauth.gate.OtpPolicy;
 import com.teolo.magixauth.gate.Visibility;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.premium.MojangLookup;
 import com.teolo.magixauth.util.StaffGuide;
 import org.bukkit.Bukkit;
@@ -38,6 +39,7 @@ public final class MagixAuth extends JavaPlugin {
     private AuthDao dao;
     private OtpPolicy policy;
     private AuthGate gate;
+    private Messages messages;
 
     @Override
     public void onEnable() {
@@ -49,6 +51,7 @@ public final class MagixAuth extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         config = new AuthConfig(getConfig());
+        messages = new Messages(this);
 
         database = new Database(config);
         if (!database.raggiungibile()) {
@@ -86,7 +89,7 @@ public final class MagixAuth extends JavaPlugin {
         if (config.skinFromMojang) {
             getServer().getScheduler().runTaskAsynchronously(this, mojang::warmUp);
         }
-        gate = new AuthGate(this, config, dao, policy, visibility, mojang);
+        gate = new AuthGate(this, config, dao, policy, visibility, mojang, messages);
 
         // "Chiudi la sessione di gioco" premuto sul sito: si guarda spesso, perche' chi
         // preme quel pulsante ha fretta — sospetta che qualcun altro sia dentro col suo
@@ -98,15 +101,15 @@ public final class MagixAuth extends JavaPlugin {
                 new ConnectionListener(config, gate, visibility), this);
         getServer().getPluginManager().registerEvents(new FreezeListener(config, gate), this);
 
-        MauthCommand mauth = new MauthCommand(this, config, dao, policy, gate);
+        MauthCommand mauth = new MauthCommand(this, config, dao, policy, gate, messages);
         getCommand("magixauth").setExecutor(mauth);
         getCommand("magixauth").setTabCompleter(mauth);
-        getCommand("login").setExecutor(new LoginCommand(config, gate));
-        getCommand("register").setExecutor(new RegisterCommand(config, gate));
-        getCommand("otp").setExecutor(new OtpCommand(config, gate));
-        getCommand("logout").setExecutor(new LogoutCommand(this, config, dao, gate));
+        getCommand("login").setExecutor(new LoginCommand(config, gate, messages));
+        getCommand("register").setExecutor(new RegisterCommand(config, gate, messages));
+        getCommand("otp").setExecutor(new OtpCommand(config, gate, messages));
+        getCommand("logout").setExecutor(new LogoutCommand(this, config, dao, gate, messages));
         getCommand("changepassword").setExecutor(
-                new ChangePasswordCommand(this, config, dao, gate));
+                new ChangePasswordCommand(this, config, dao, gate, messages));
 
         async(() -> {
             try {
@@ -286,6 +289,7 @@ public final class MagixAuth extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         config = new AuthConfig(getConfig());
+        messages.reload();
         policy.refreshGroups();
         Readme.rigenera(this, config);
     }
@@ -315,7 +319,7 @@ public final class MagixAuth extends JavaPlugin {
                 }
                 getLogger().info("MagixAuth: sessione di gioco chiusa dal sito per "
                         + p.getName() + ", verifica richiesta di nuovo.");
-                gate.refreeze(p, "La sessione di gioco e' stata chiusa dal sito: verificati di nuovo.");
+                gate.refreeze(p, "gate.refreeze-reason");
             }
         } catch (SQLException e) {
             getLogger().warning("MagixAuth: revoche non raccolte (" + e.getMessage() + ").");

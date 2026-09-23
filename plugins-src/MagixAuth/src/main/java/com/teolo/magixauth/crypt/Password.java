@@ -53,6 +53,9 @@ public final class Password {
         }
     }
 
+    /** Il rifiuto di una password: la chiave del messaggio da mostrare, con i suoi placeholder. */
+    public record Rejection(String key, String... kv) {}
+
     /**
      * La password e' accettabile?
      *
@@ -60,16 +63,20 @@ public final class Password {
      * Le regole barocche (una maiuscola, un simbolo, una cifra) non rendono le password
      * piu' difficili da indovinare, rendono piu' probabile che vengano scritte su un
      * foglietto — o, qui, nella chat pubblica.
+     *
+     * @return null se va bene, altrimenti la chiave del messaggio da mostrare (vedi
+     *         {@code Messages.get}) invece del testo gia' pronto: cosi' chi chiama puo'
+     *         tradurlo per il giocatore che ha sbagliato.
      */
-    public static String whyNot(String inChiaro, String playerName, int minima) {
+    public static Rejection whyNot(String inChiaro, String playerName, int minima) {
         if (inChiaro == null || inChiaro.length() < minima) {
-            return "La password deve essere lunga almeno " + minima + " caratteri.";
+            return new Rejection("password.too-short", "min", String.valueOf(minima));
         }
         if (inChiaro.length() > 64) {
-            return "La password non puo' superare i 64 caratteri.";
+            return new Rejection("password.too-long");
         }
         if (playerName != null && inChiaro.equalsIgnoreCase(playerName)) {
-            return "La password non puo' essere uguale al tuo nome.";
+            return new Rejection("password.same-as-name");
         }
         return null;
     }

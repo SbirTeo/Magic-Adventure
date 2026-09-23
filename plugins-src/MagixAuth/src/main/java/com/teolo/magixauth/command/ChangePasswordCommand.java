@@ -6,6 +6,7 @@ import com.teolo.magixauth.crypt.OtpCodes;
 import com.teolo.magixauth.crypt.Password;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.gate.AuthGate;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.model.Account;
 import com.teolo.magixauth.util.Texts;
 import com.teolo.magixauth.util.DurationText;
@@ -32,18 +33,20 @@ public final class ChangePasswordCommand implements CommandExecutor {
     private final AuthConfig config;
     private final AuthDao dao;
     private final AuthGate gate;
+    private final Messages messages;
 
-    public ChangePasswordCommand(MagixAuth plugin, AuthConfig config, AuthDao dao, AuthGate gate) {
+    public ChangePasswordCommand(MagixAuth plugin, AuthConfig config, AuthDao dao, AuthGate gate, Messages messages) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
         this.gate = gate;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage("Solo un giocatore puo' cambiare la propria password.");
+            sender.sendMessage(messages.get("change-password-command.players-only"));
             return true;
         }
         // Non dovrebbe passare di qui — al cancello i comandi sono filtrati — ma un
@@ -52,8 +55,7 @@ public final class ChangePasswordCommand implements CommandExecutor {
             return true;
         }
         if (args.length < 3 || args.length > 4) {
-            p.sendMessage(Texts.c(config.prefix,
-                    "&7Uso: &f/changepassword <vecchia> <nuova> <ripeti nuova> [codice]"));
+            p.sendMessage(Texts.c(config.prefix, messages.get(p, "change-password-command.usage")));
             return true;
         }
 
@@ -63,17 +65,16 @@ public final class ChangePasswordCommand implements CommandExecutor {
         String code = args.length == 4 ? args[3] : null;
 
         if (!nuova.equals(conferma)) {
-            p.sendMessage(Texts.c(config.prefix, Texts.NON_COINCIDONO));
+            p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.password-mismatch")));
             return true;
         }
-        String no = Password.whyNot(nuova, p.getName(), config.minPasswordLength);
+        Password.Rejection no = Password.whyNot(nuova, p.getName(), config.minPasswordLength);
         if (no != null) {
-            p.sendMessage(Texts.c(config.prefix, "&c" + no));
+            p.sendMessage(Texts.c(config.prefix, "&c" + messages.get(p, no.key(), no.kv())));
             return true;
         }
         if (nuova.equals(vecchia)) {
-            p.sendMessage(Texts.c(config.prefix,
-                    "&cLa password nuova deve essere diversa da quella di adesso."));
+            p.sendMessage(Texts.c(config.prefix, messages.get(p, "password.same-as-old")));
             return true;
         }
 
@@ -87,11 +88,11 @@ public final class ChangePasswordCommand implements CommandExecutor {
         try {
             Account account = dao.byUuid(p.getUniqueId());
             if (account == null || !account.registered()) {
-                message(p, "&cNon risulti registrato.");
+                message(p, "change-password-command.not-registered");
                 return;
             }
             if (!Password.matchesHash(vecchia, account.passwordHash)) {
-                message(p, "&cLa password attuale non e' corretta.");
+                message(p, "change-password-command.wrong-current");
                 return;
             }
 
@@ -99,12 +100,11 @@ public final class ChangePasswordCommand implements CommandExecutor {
             // rubato verrebbe chiuso per sempre al legittimo proprietario.
             if (account.haOtp()) {
                 if (code == null) {
-                    message(p, "&7Hai la verifica in due passaggi: aggiungi il codice in fondo.\n"
-                            + "&7Uso: &f/changepassword <vecchia> <nuova> <ripeti> <codice>");
+                    message(p, "change-password-command.needs-otp-code");
                     return;
                 }
                 if (account.otpLocked()) {
-                    message(p, Texts.otpLocked(DurationText.until(account.totpLockedUntil)));
+                    message(p, "gate.otp-locked", "time", DurationText.until(account.totpLockedUntil));
                     return;
                 }
                 String secret = OtpCodes.decryptSecret(account.totpSecretCifrato, config.otpKeyBase64);
@@ -112,7 +112,7 @@ public final class ChangePasswordCommand implements CommandExecutor {
                         : OtpCodes.checkPassword(OtpCodes.base32Decode(secret), code, account.totpLastStep);
                 if (step < 0) {
                     dao.otpFailed(account.siteId, config.maxAttempts, config.lockoutMinutes);
-                    message(p, Texts.OTP_NO);
+                    message(p, "gate.otp-invalid");
                     return;
                 }
                 dao.otpStepSpent(account.siteId, step);
@@ -121,19 +121,19 @@ public final class ChangePasswordCommand implements CommandExecutor {
             dao.changePassword(account.siteId, Password.fingerprint(nuova));
             // Tutti gli altri dispositivi ripassano dalla password: era il senso del cambio.
             dao.revokeSessions(p.getUniqueId());
-            message(p, "&aPassword cambiata.&r &7Vale anche su &fmagicadventure.it&7.");
+            message(p, "change-password-command.saved");
 
         } catch (SQLException e) {
             plugin.getLogger().warning("MagixAuth: cambio password di " + p.getName()
                     + " fallito (" + e.getMessage() + ").");
-            message(p, "&cNon sono riuscito a salvare la password nuova. Riprova.");
+            message(p, "change-password-command.save-failed");
         }
     }
 
-    private void message(Player p, String text) {
+    private void message(Player p, String key, String... kv) {
         org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
             if (p.isOnline()) {
-                p.sendMessage(Texts.c(config.prefix, text));
+                p.sendMessage(Texts.c(config.prefix, messages.get(p, key, kv)));
             }
         });
     }
