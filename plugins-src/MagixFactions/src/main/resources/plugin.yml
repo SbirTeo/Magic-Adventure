@@ -4,7 +4,7 @@ main: com.teolo.magixfactions.MagixFactions
 api-version: '26.1'
 author: teolo
 description: Plugin tipo Factions - fazioni, gradi, leader/successione, chat, storage SQLite/MariaDB.
-softdepend: [MagixPack, Vault, PlaceholderAPI, CMI, ProtocolLib, LuckPerms]
+softdepend: [MagixPack, Vault, PlaceholderAPI, CMI, ProtocolLib, LuckPerms, MagixLanguage]
 
 commands:
   magixfactions:
