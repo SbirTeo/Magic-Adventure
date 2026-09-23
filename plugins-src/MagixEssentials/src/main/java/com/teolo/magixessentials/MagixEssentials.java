@@ -414,9 +414,15 @@ public final class MagixEssentials extends JavaPlugin {
                         "Le righe nostre si regolano nella sezione **display**: **height** quanto stanno in alto, "
                                 + "**line-spacing** quanto sono distanti fra loro, **scale** quanto sono grandi, "
                                 + "**background** lo sfondo dietro il testo (*default* il rettangolo scuro del "
-                                + "gioco, *none* niente, oppure un #AARRGGBB), **see-through** se si vedono "
-                                + "attraverso i muri, **view-range** da quanto lontano. Altezza e distanza si "
-                                + "regolano guardando in gioco: sono blocchi, non pixel.")
+                                + "gioco, *none* niente, oppure un #AARRGGBB), **view-range** da quanto lontano. "
+                                + "Altezza e distanza si regolano guardando in gioco: sono blocchi, non pixel.",
+                        "**see-through** decide i muri davanti, e di fabbrica e' **vanilla**: come la targhetta del "
+                                + "gioco, cioe' ATTRAVERSO i muri da fermo e OCCLUSA dai blocchi appena il giocatore "
+                                + "si accuccia (insieme alla sfumatura). Da fermo l'attraversamento evita anche un "
+                                + "difetto delle entita' di testo: con l'occlusione accesa, dietro a vetri, acqua o "
+                                + "lava il testo \"sparirebbe\" per via del test di profondita'. *true* le tiene "
+                                + "sempre attraverso i muri, *false* sempre occluse (anche da fermo, col rischio "
+                                + "detto dietro i blocchi trasparenti).")
 
                 .section("Targhetta diversa per chi guarda",
                         "Il verde dell'alleato e il rosso del nemico non sono una proprieta' del giocatore "
