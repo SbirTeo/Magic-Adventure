@@ -96,8 +96,8 @@ Ogni notte il server si riavvia da solo, con preavviso ai giocatori: 5 minuti, 1
 secondi) e infine un semplice `stop`.
 
 Non serve systemd ne' un cron esterno: `server/start.sh` (`while true; do java ...; done`)
-gia' riavvia da solo il processo qualche secondo dopo QUALSIASI stop, backup di AutoBackup
-compreso — mandare "stop" da un plugin di gioco basta e avanza. Il countdown vive quindi
+gia' riavvia da solo il processo qualche secondo dopo QUALSIASI stop — mandare "stop" da un
+plugin di gioco basta e avanza. Il countdown vive quindi
 interamente in `plugins/CMI/Settings/Schedules.yml` come una voce dello scheduler di CMI
 (`PerformOn`, con `delay!` tra un avviso e l'altro — stesso meccanismo dell'esempio
 `StopServer` gia' presente di default in quel file), aggiunta/corretta con gli stessi

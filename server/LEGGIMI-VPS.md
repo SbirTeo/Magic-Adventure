@@ -51,15 +51,18 @@ Su VPS con pannello, apri la porta anche nel firewall del provider.
 `server-port=25565`, `online-mode=true` (account premium).
 
 ## 6. Backup
-`start.sh`, a server spento, se trova `backup.flag` (creato dal plugin **AutoBackup**)
-esegue `./backup.sh` se presente ed eseguibile. Lo script `backup.sh` per Linux
-(ZIP + upload) **non è ancora incluso**: chiedimelo e lo creo per il tuo metodo di upload.
+Il plugin **AutoBackup** è stato tolto dal server (vedi sotto): al momento **non c'è nessun
+backup automatico schedulato**. `start.sh` ha ancora il controllo del file-segnale `backup.flag`
+a server spento (esegue `./backup.sh` se presente ed eseguibile) — è innocuo lasciarlo: senza
+un plugin che crea quel file, semplicemente non scatta mai. Se serve di nuovo un backup
+schedulato, va reintrodotto un plugin (o un cron) che lasci quel segnale, oppure affidarsi a uno
+snapshot del provider VPS.
 
 ## Plugin custom inclusi
 - **MagixFactions** — fazioni, gradi, relazioni alleati/nemici, chat.
 - **MagixEssentials** — utilita' di base: tablist e **MOTD** della lista server.
-- **AutoBackup** — backup schedulati con preavviso e spegnimento.
 
-Il vecchio **CustomMOTD** e' stato tolto: la MOTD la fa il modulo `motd` di MagixEssentials. Il suo
-jar non e' cancellato, sta in `plugins/.rimossi/` (vedi il workflow `rimuovi-plugin.yml`).
+Il vecchio **CustomMOTD** e' stato tolto: la MOTD la fa il modulo `motd` di MagixEssentials.
+Anche **AutoBackup** e' stato tolto (nessun sostituto per i backup automatici, vedi sopra). I
+loro jar non sono cancellati, stanno in `plugins/.rimossi/` (vedi il workflow `rimuovi-plugin.yml`).
 Più CMI, LuckPerms, Vault, PlaceholderAPI.
