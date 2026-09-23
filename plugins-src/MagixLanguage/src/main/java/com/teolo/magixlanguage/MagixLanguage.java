@@ -142,6 +142,31 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
     @Override
     public String translate(String pluginName, String lang, String key, Map<String, String> placeholders) {
+        Object value = resolve(pluginName, lang, key);
+        return value instanceof String s ? apply(s, placeholders) : null;
+    }
+
+    @Override
+    public List<String> translateList(String pluginName, Player player, String key, Map<String, String> placeholders) {
+        return translateList(pluginName, language(player), key, placeholders);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<String> translateList(String pluginName, String lang, String key, Map<String, String> placeholders) {
+        Object value = resolve(pluginName, lang, key);
+        if (!(value instanceof List<?> list)) {
+            return null;
+        }
+        List<String> out = new java.util.ArrayList<>(list.size());
+        for (Object line : list) {
+            out.add(apply(String.valueOf(line), placeholders));
+        }
+        return out;
+    }
+
+    /** Il valore grezzo (String o List) della chiave, con ripiego sulla lingua di default. Null se manca ovunque. */
+    private Object resolve(String pluginName, String lang, String key) {
         Object value = catalog(pluginName, lang).get(key);
         if (value == null) {
             String defaultLanguage = getConfig().getString("default-language", "it");
@@ -149,8 +174,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 value = catalog(pluginName, defaultLanguage).get(key);
             }
         }
-        String text = value instanceof String s ? s : value != null ? String.valueOf(value) : key;
-        return apply(text, placeholders);
+        return value;
     }
 
     private Map<String, Object> catalog(String pluginName, String lang) {

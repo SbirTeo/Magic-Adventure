@@ -6,7 +6,7 @@ author: teolo
 # Fra virgolette per forza: senza, i due punti dopo "YAML" farebbero leggere la riga come
 # una mappa e il server rifiuterebbe l'intero plugin con "Invalid plugin.yml".
 description: "Menu interattivi scritti in YAML: inventari, finestre di dialogo, requisiti e azioni al clic."
-softdepend: [PlaceholderAPI, Vault]
+softdepend: [PlaceholderAPI, Vault, MagixLanguage]
 
 # I comandi che aprono i menu NON stanno qui: nascono dai file dei menu e vengono registrati
 # all'avvio e a ogni reload (vedi command/ComandoMenu). Qui c'e' solo il comando di servizio.

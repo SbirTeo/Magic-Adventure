@@ -80,6 +80,17 @@ jobs:
           printf '%s\n' "$LIST" > "$RUNNER_TEMP/plugin_list"
           if [ -n "$LIST" ]; then echo "any=true" >> "$GITHUB_OUTPUT"; else echo "any=false" >> "$GITHUB_OUTPUT"; fi
 
+      - name: Installa MagixLanguage nel repo Maven locale
+        # Gli altri plugin compilano contro MagixLanguageAPI con una dipendenza Maven
+        # 'provided' (com.teolo:MagixLanguage): non e' su nessun repository pubblico, quindi
+        # va installata qui, PRIMA di compilare qualunque altro plugin di questo lancio,
+        # cambiata o no lei stessa in questo push. 'install' (non solo 'package') la mette nel
+        # repo Maven locale del runner, da cui gli altri 'mvn package' di questo stesso job la
+        # risolvono. A runtime non cambia nulla: resta un softdepend vero, gestito dal codice
+        # (vedi lang/Messages.java di ogni plugin), non da questa dipendenza di compilazione.
+        if: steps.check.outputs.ok == 'true' && steps.plugins.outputs.any == 'true'
+        run: mvn -q -B -f plugins-src/MagixLanguage/pom.xml install -DskipTests
+
       - name: Compila i plugin
         if: steps.check.outputs.ok == 'true' && steps.plugins.outputs.any == 'true'
         run: |

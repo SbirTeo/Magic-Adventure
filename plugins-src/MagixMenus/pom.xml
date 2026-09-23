@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixMenus</artifactId>
-    <version>0.1.12</version>
+    <version>0.1.13</version>
     <packaging>jar</packaging>
 
     <name>MagixMenus</name>
@@ -68,6 +68,16 @@
                     <artifactId>bukkit</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!-- Solo per compilare contro MagixLanguageAPI (softdepend, mai imbustato nel jar): il
+             workflow di deploy installa MagixLanguage nel repo Maven locale prima di questo
+             plugin (vedi .github/workflows/deploy-plugin.yml). A runtime, se MagixLanguage non
+             e' installato sul server, il codice non tocca mai questa classe (vedi lang/Messages). -->
+        <dependency>
+            <groupId>com.teolo</groupId>
+            <artifactId>MagixLanguage</artifactId>
+            <version>0.1.1</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

@@ -3,6 +3,7 @@ package com.teolo.magixlanguage.api;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -42,8 +43,11 @@ public interface MagixLanguageAPI {
      * Il testo tradotto per il giocatore, cercando la chiave nel catalogo del plugin indicato
      * (quello sincronizzato in {@code plugins/MagixLanguage/translations/<pluginName>/}).
      *
-     * <p>Ripiego se manca: la lingua di default, poi la chiave stessa (mai null, mai un'eccezione:
-     * un messaggio non tradotto non deve mai impedire a un plugin di rispondere a un giocatore).
+     * <p>Ripiego se manca: la lingua di default. Se anche li' la chiave non c'e' — catalogo mai
+     * sincronizzato, chiave nuova non ancora arrivata li' — restituisce {@code null}: <b>non</b> la
+     * chiave stessa, apposta, cosi' chi chiama puo' ricadere sul proprio testo italiano locale
+     * (sempre presente e sempre corretto) invece di mostrare un nome di chiave grezzo al giocatore.
+     * Non lancia mai un'eccezione.
      *
      * @param pluginName    nome della cartella dati dell'altro plugin (es. "MagixTime")
      * @param key           percorso della chiave cosi' com'e' nel suo messages.yml (es. "info-paused")
@@ -53,4 +57,14 @@ public interface MagixLanguageAPI {
 
     /** Come {@link #translate(String, Player, String, Map)}, ma per una lingua scelta a mano. */
     String translate(String pluginName, String lang, String key, Map<String, String> placeholders);
+
+    /**
+     * Come {@link #translate(String, Player, String, Map)}, ma per una chiave il cui valore e' una
+     * LISTA di righe (es. un pannello tipo {@code info}), non una singola stringa. {@code null} se
+     * la chiave manca ovunque o non e' una lista.
+     */
+    List<String> translateList(String pluginName, Player player, String key, Map<String, String> placeholders);
+
+    /** Come {@link #translateList(String, Player, String, Map)}, ma per una lingua scelta a mano. */
+    List<String> translateList(String pluginName, String lang, String key, Map<String, String> placeholders);
 }
