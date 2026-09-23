@@ -4,7 +4,7 @@ main: com.teolo.magixentities.MagixEntities
 api-version: '26.1'
 author: teolo
 description: Crea e gestisce entita'/NPC statiche da comando (stile Citizens), incluse entita' con skin di un giocatore.
-softdepend: [MagixCosmetics]
+softdepend: [MagixCosmetics, MagixLanguage]
 
 commands:
   magixentities:
