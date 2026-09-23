@@ -49,7 +49,14 @@ jobs:
         if: steps.check.outputs.ok == 'true'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2   # serve HEAD^ per capire quali plugin sono cambiati in un push
+          # Storia intera: serve a risalire fino a github.event.before (il commit su cui stava
+          # main PRIMA di questo push), non solo a HEAD^. Con un push che e' un MERGE COMMIT
+          # (due sessioni che pushano su main quasi insieme: capita davvero, vedi sotto) HEAD^ e'
+          # solo il primo genitore, e un diff HEAD^..HEAD perde tutte le modifiche portate dal
+          # SECONDO genitore — cioe' esattamente i plugin che l'altra sessione aveva appena
+          # cambiato: sono spariti dall'elenco "da compilare" senza nessun errore, e sul VPS
+          # restava il jar vecchio con la build verde. Successo davvero il 2026-09-23.
+          fetch-depth: 0
 
       - name: Java 25 + Maven
         if: steps.check.outputs.ok == 'true'
@@ -72,9 +79,22 @@ jobs:
               LIST="$INPUT"
             fi
           else
-            # push: solo le cartelle di primo livello cambiate sotto plugins-src/
-            LIST="$(git diff --name-only HEAD^ HEAD -- plugins-src/ \
-                    | sed -n 's#^plugins-src/\([^/]*\)/.*#\1#p' | sort -u)"
+            # push: solo le cartelle di primo livello cambiate sotto plugins-src/, confrontando
+            # con COM'ERA main PRIMA di questo push (github.event.before), non con HEAD^ — che
+            # per un merge commit e' solo il primo genitore e perderebbe le modifiche del secondo
+            # (vedi il commento sopra su fetch-depth). Se "before" non e' utilizzabile (primo
+            # push di un branch nuovo, oppure storia riscritta e commit non piu' raggiungibile) si
+            # compilano TUTTI i plugin per sicurezza, invece di rischiare di saltarne uno in
+            # silenzio: costa qualche minuto di build in piu', non un deploy a meta'.
+            BEFORE="${{ github.event.before }}"
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+                && git cat-file -e "$BEFORE" 2>/dev/null; then
+              LIST="$(git diff --name-only "$BEFORE" HEAD -- plugins-src/ \
+                      | sed -n 's#^plugins-src/\([^/]*\)/.*#\1#p' | sort -u)"
+            else
+              echo "::warning::github.event.before non utilizzabile: compilo tutti i plugin per sicurezza."
+              LIST="$(ls -1 plugins-src)"
+            fi
           fi
           echo "Plugin da compilare:"; echo "${LIST:-(nessuno)}"
           printf '%s\n' "$LIST" > "$RUNNER_TEMP/plugin_list"
