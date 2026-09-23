@@ -35,6 +35,16 @@ import org.bukkit.event.Listener;
  * giocatore solo in test non vedeva NULLA dei propri messaggi, prova che non esiste un "eco locale"
  * automatico del client — l'unica riga vanilla vista finora era sempre e solo quella di CMI).
  * <b>CMI non va toccato</b> (richiesta esplicita dell'utente) — questo fix agisce solo sul NOSTRO lato.
+ *
+ * <p><b>Conseguenza (2026-09-23): i link in chat non erano piu' cliccabili.</b> Con l'evento
+ * sempre cancellato prima di CMI, {@code ClickHoverMessages} non vede piu' NESSUN messaggio
+ * pubblico — e siccome tutte le righe (pubblica, fazione/alleati, sito) le mandiamo noi via
+ * {@link org.bukkit.entity.Player#sendMessage(net.kyori.adventure.text.Component)} come
+ * messaggio di sistema, senza mai aggiungere un {@code ClickEvent}, un link scritto da un
+ * giocatore restava testo semplice per chiunque. Rimesso a posto in {@link ChatService}: chi ha
+ * il permesso {@link ChatService#PERM_CLICKABLE_LINKS} manda link cliccabili (apertura URL +
+ * suggerimento col link), chi non ce l'ha li manda come testo — CMI resta comunque fuori dai
+ * giochi, come richiesto.
  */
 public final class ChatListener implements Listener {
 

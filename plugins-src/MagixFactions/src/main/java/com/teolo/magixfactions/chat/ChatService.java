@@ -158,8 +158,9 @@ public final class ChatService {
      * per ciascun destinatario con il SUO colore di relazione verso il mittente.
      */
     public void broadcastWeb(UUID senderUuid, String senderName, String message, String prefix) {
+        Player senderOnline = Bukkit.getPlayer(senderUuid);
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            viewer.sendMessage(withSuggestion(formatWebFor(viewer, senderUuid, senderName, message, prefix), true));
+            viewer.sendMessage(withSuggestion(formatWebFor(viewer, senderUuid, senderName, message, prefix), true, senderOnline));
         }
         // Console: se chi ha scritto e' anche in partita si usa il suo punto di vista, altrimenti
         // nessuno (viewer null) — la riga resta comunque quella vera, fazione e grado compresi.
@@ -169,9 +170,35 @@ public final class ChatService {
 
     public void broadcastPublic(Player sender, String message) {
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            viewer.sendMessage(withSuggestion(formatPublicFor(viewer, sender, message), false));
+            viewer.sendMessage(withSuggestion(formatPublicFor(viewer, sender, message), false, sender));
         }
         Bukkit.getConsoleSender().sendMessage(formatPublicFor(sender, sender, message));
+    }
+
+    /** Chi ha questo permesso manda link cliccabili (apribili al click) in chat; senza, un link resta testo semplice — CMI non li rende piu' cliccabili lui (vedi {@link ChatListener}), quindi qui e' l'unico posto che puo' farlo. */
+    public static final String PERM_CLICKABLE_LINKS = "magixfactions.chat.links";
+
+    private static final java.util.regex.Pattern URL_PATTERN = java.util.regex.Pattern.compile(
+            "(?:https?://)?(?:www\\.)?[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+(?:/[-a-zA-Z0-9@:%._+~#=?&/]*)?");
+
+    /**
+     * Rende cliccabili (apertura URL nel browser, col link stesso come suggerimento al passaggio
+     * del mouse) gli indirizzi trovati nel testo di {@code row}, SENZA toccare il resto della riga
+     * (prefisso, nome, tag fazione restano come sono — colore e stile compresi, ereditati dal punto
+     * in cui il link compare).
+     */
+    private net.kyori.adventure.text.Component linkify(net.kyori.adventure.text.Component row) {
+        return row.replaceText(net.kyori.adventure.text.TextReplacementConfig.builder()
+                .match(URL_PATTERN)
+                .replacement((matchResult, builder) -> {
+                    String url = matchResult.group();
+                    String target = url.toLowerCase(java.util.Locale.ROOT).startsWith("http") ? url : "https://" + url;
+                    return builder
+                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(target))
+                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                    net.kyori.adventure.text.Component.text(url)));
+                })
+                .build());
     }
 
     /**
@@ -186,12 +213,18 @@ public final class ChatService {
      * ({@code chat.hover-format}, {@code chat.hover-gioco}, {@code chat.hover-web}).
      *
      * @param legacy riga gia' formattata e tradotta (con i codici sezione)
-     * @param dalSito true se il messaggio arriva dalla chat del sito
+     * @param fromSite true se il messaggio arriva dalla chat del sito
+     * @param sender chi ha scritto il messaggio (per {@link #PERM_CLICKABLE_LINKS}); null se non e'
+     *               in partita (es. scrive dal sito ed e' offline) — in quel caso niente link cliccabili,
+     *               non c'e' un giocatore online su cui controllare il permesso
      */
-    private net.kyori.adventure.text.Component withSuggestion(String legacy, boolean fromSite) {
+    private net.kyori.adventure.text.Component withSuggestion(String legacy, boolean fromSite, Player sender) {
         net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer serializer =
                 net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection();
         net.kyori.adventure.text.Component row = serializer.deserialize(legacy);
+        if (sender != null && sender.hasPermission(PERM_CLICKABLE_LINKS)) {
+            row = linkify(row);
+        }
         if (!plugin.getConfig().getBoolean("chat.hover-info", true)) return row;
 
         String ora = java.time.LocalTime.now()
@@ -250,7 +283,7 @@ public final class ChatService {
             // Nome della fazione del mittente colorato con la relazione del DESTINATARIO che legge.
             String facName = fm.relationColor(fm.getFaction(u), f) + f.getName();
             String prefix = Papi.resolve(sender, M.get(prefixKey, "faction", facName));
-            p.sendMessage(withSuggestion(prefix + body, false));
+            p.sendMessage(withSuggestion(prefix + body, false, sender));
         }
         return true;
     }

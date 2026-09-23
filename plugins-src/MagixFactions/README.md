@@ -255,6 +255,13 @@ Permessi Bukkit: `magixfactions.use` (default: tutti), `magixfactions.admin` (de
 
 Senza argomento, il comando **cicla** tra i canali; oppure `/f chat faction` ecc.
 
+**Link cliccabili**: CMI aggiunge normalmente click/hover ai messaggi di chat, ma per come è
+integrata la chat qui (formato relazionale per fazione/alleati/nemici, vedi sopra) i nostri
+messaggi non passano più da CMI, quindi di serie un link scritto in chat resta testo semplice.
+Chi ha il permesso `magixfactions.chat.links` (di serie: **op**) lo manda invece cliccabile
+(si apre nel browser al click, col link come suggerimento al passaggio del mouse) — su
+qualunque canale, e anche scrivendo dal sito.
+
 ---
 
 ## Relazioni (alleati / nemici)
