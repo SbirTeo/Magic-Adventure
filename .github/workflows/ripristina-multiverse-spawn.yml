@@ -1,0 +1,122 @@
+name: Ripristina Multiverse-Core e ricollega il mondo spawn
+
+# UNA TANTUM: recupero del mondo 'spawn' dopo che Multiverse-Core e' stato rimosso a mano
+# dal VPS (jar + cartella dati, NON tramite rimuovi-plugin.yml, quindi senza backup in
+# plugins/.rimossi/). I dati del mondo sono pero' ancora su disco, intatti, in
+# world/dimensions/minecraft/spawn (confermato in sessione il 2026-09-23): rimuovere il
+# plugin ha cancellato solo la sua config (worlds.yml), non il salvataggio del mondo.
+#
+# Sequenza FISSA, non parametrizzabile da chi lancia il workflow (nessun input libero,
+# per non aprire un varco di esecuzione comandi arbitrari sul server di produzione):
+#   1) scarica multiverse-core-5.8.0.jar (stessa versione che girava prima, compatibile
+#      con Paper 26.2 - verificato su Modrinth) in plugins/ sul VPS
+#   2) riavvia il server con preavviso in chat (stesso schema di deploy-plugin.yml)
+#   3) aspetta che il boot sia completo (riga "Done (" nel log)
+#   4) manda "/mv import spawn normal" in console; se fallisce perche' Multiverse cerca
+#      la cartella in un punto diverso da dove Paper la tiene davvero (il nostro spawn e'
+#      annidato in world/dimensions/minecraft/spawn, non in una cartella "spawn/" di primo
+#      livello), riprova con --skip-folder-check
+#   5) stampa la coda del log cosi' il risultato si legge dai log del run, senza bisogno
+#      di un altro giro di diagnostica-vps.yml
+#
+# Stessi secret VPS_HOST / VPS_USER / VPS_SSH_KEY degli altri workflow.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-plugin       # stesso gruppo del deploy: mai un riavvio dentro l'altro
+  cancel-in-progress: false
+
+jobs:
+  ripristina:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Scarica il jar, riavvia, importa spawn
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -e
+          BASE=/home/ubuntu/magicadventure
+          PLUGDIR="$BASE/plugins"
+          LOG="$BASE/logs/latest.log"
+          URL="https://cdn.modrinth.com/data/3wmN97b8/versions/bzFXz39N/multiverse-core-5.8.0.jar"
+
+          echo "=== 1) Scarico Multiverse-Core 5.8.0 ==="
+          rm -f "$PLUGDIR"/Multiverse-Core-*.jar
+          curl -fsSL -o "$PLUGDIR/.__new_mv.jar" "$URL"
+          # controllo minimo di integrita': deve essere uno zip (jar) vero, non una pagina di errore
+          if [ "$(head -c2 "$PLUGDIR/.__new_mv.jar")" != "PK" ] || [ "$(stat -c%s "$PLUGDIR/.__new_mv.jar")" -lt 100000 ]; then
+            echo "::error::Il download non sembra un jar valido"; rm -f "$PLUGDIR/.__new_mv.jar"; exit 1
+          fi
+          mv "$PLUGDIR/.__new_mv.jar" "$PLUGDIR/Multiverse-Core-5.8.0.jar"
+          echo "OK: $(ls -la "$PLUGDIR/Multiverse-Core-5.8.0.jar")"
+
+          dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          annuncia() { dì "say $1"; }
+
+          echo "=== 2) Riavvio con preavviso ==="
+          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            echo "::error::Server non in esecuzione (screen mc non attivo): impossibile procedere."
+            exit 1
+          fi
+          annuncia "[Manutenzione] Il server si riavvia tra 60 secondi per ripristinare Multiverse-Core..."
+          sleep 40
+          annuncia "[Manutenzione] Riavvio tra 20 secondi..."
+          sleep 15
+          annuncia "[Manutenzione] Riavvio tra 5 secondi!"
+          sleep 5
+          dì "save-all"
+          sleep 3
+          sudo systemctl restart magicadventure.service
+          echo "Riavvio richiesto, aspetto il boot..."
+
+          echo "=== 3) Aspetto il boot completo ==="
+          for i in $(seq 1 60); do
+            sleep 5
+            if grep -q "Done (" "$LOG" 2>/dev/null; then
+              echo "Server pronto dopo ~$((i*5))s."
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "::error::Il server non ha finito il boot in 5 minuti, mi fermo qui."
+              exit 1
+            fi
+          done
+          sleep 5   # margine perche' tutti i plugin finiscano l'enable
+
+          echo "=== 4) Import del mondo spawn ==="
+          dì "mv import spawn normal"
+          sleep 6
+          CODA="$(tail -n 30 "$LOG")"
+          echo "$CODA"
+          if printf '%s' "$CODA" | grep -qiE "not (a valid|find|exist)|no such|could not import"; then
+            echo "--- Primo tentativo fallito (cartella non trovata dove Multiverse se l'aspetta), riprovo con --skip-folder-check ---"
+            dì "mv import spawn normal --skip-folder-check"
+            sleep 6
+            tail -n 30 "$LOG"
+          fi
+
+          echo "=== 5) Coda log finale ==="
+          tail -n 50 "$LOG"
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
