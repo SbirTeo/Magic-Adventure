@@ -1,0 +1,82 @@
+# MagixAuth - tutti i testi mostrati ai giocatori (cancello, comandi di accesso).
+# Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+# \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
+# Il prefisso del plugin sta in config.yml (messages.prefix), non qui.
+# Placeholder disponibili indicati riga per riga.
+
+# ---------------------------------------------------------------- il cancello
+gate:
+  welcome-new: "&bBenvenuto su MAGICADVENTURE!&r\n&7Scegli una password: ti servira' per rientrare e per accedere\n&7al sito &fmagicadventure.it&7 con lo stesso nome."
+  welcome-back: "&bBentornato!&r &7Accedi con la tua password."
+  otp-required: "&eVerifica in due passaggi.&r &7Serve il codice della tua app."
+  otp-hint: "&7Scrivi &f/otp <codice a sei cifre>"
+  register-hint: "&7Scrivi &f/register <password> <ripeti password>"
+  login-hint: "&7Scrivi &f/login <password>"
+  wrong-password: "&cPassword non corretta.&r &7Riprova."
+  password-mismatch: "&cLe due password non coincidono.&r &7Ricominciamo."
+  login-success: "&aAccesso effettuato.&r &7Buon gioco!"
+  register-success: "&aRegistrazione completata.&r\n&7Da adesso puoi entrare anche su &fmagicadventure.it&7 con lo stesso\n&7nome e la stessa password."
+  otp-invalid: "&cCodice non valido.&r &7Controlla l'app e riprova."
+  # {time} quanto manca, gia' in un formato leggibile (es. "3 minuti")
+  otp-locked: "&cTroppi codici sbagliati.&r &7Riprova fra &f{time}&7."
+  kick-timeout: "&cTempo scaduto&r\n\n&7Non hai completato l'accesso in tempo.\n&7Rientra pure e riprova."
+  kick-database: "&cAccesso non disponibile&r\n\n&7Non riusciamo a verificare il tuo account in questo momento.\n&7Riprova fra qualche minuto: e' un problema nostro, non tuo."
+  kick-name-taken: "&cNome gia' in uso&r\n\n&7Qualcuno sta gia' giocando con questo nome."
+  # {time} quanto manca, gia' in un formato leggibile
+  # NOTA: questo e gli altri due "kick-*"/rifiuti del pre-login vengono decisi PRIMA che
+  # MagixLanguage abbia gia' rilevato la lingua per questo esatto ingresso (il cancello deve
+  # girare per primo, a priorita' LOWEST, vedi ConnectionListener): escono quindi nella lingua
+  # di default finche' quel giocatore non ha gia' fatto un ingresso completo in precedenza.
+  kick-too-many-attempts: "&cTroppi tentativi&r\n\n&7Questo indirizzo e' bloccato: riprova fra &f{time}&7.\n&7Se hai dimenticato la password, puoi reimpostarla su\n&fmagicadventure.it&7.\n\n&8Il blocco vale per la connessione, non per il tuo nome."
+  refreeze-reason: "La sessione di gioco e' stata chiusa dal sito: verificati di nuovo."
+
+# ---------------------------------------------------------------- validazione password
+password:
+  # {min} lunghezza minima richiesta
+  too-short: "La password deve essere lunga almeno {min} caratteri."
+  too-long: "La password non puo' superare i 64 caratteri."
+  same-as-name: "La password non puo' essere uguale al tuo nome."
+  same-as-old: "&cLa password nuova deve essere diversa da quella di adesso."
+
+# ---------------------------------------------------------------- /login
+login-command:
+  players-only: "Solo un giocatore puo' accedere."
+  already-in: "&7Sei gia' dentro."
+  no-account: "&7Non hai ancora un account: usa &f/register <password> <password>&7."
+  needs-otp: "&7Manca solo il codice: usa &f/otp <codice>&7."
+  usage: "&7Uso: &f/login <password>"
+  all-commands: "&7Tutti i comandi: &f/mauth"
+
+# ---------------------------------------------------------------- /register
+register-command:
+  players-only: "Solo un giocatore puo' registrarsi."
+  already-in: "&7Sei gia' dentro."
+  already-registered: "&7Hai gia' un account: usa &f/login <password>&7."
+  usage: "&7Uso: &f/register <password> <ripeti password>"
+
+# ---------------------------------------------------------------- /otp
+otp-command:
+  players-only: "Solo un giocatore puo' verificarsi."
+  not-requested: "&7Non ti sta venendo chiesto nessun codice."
+  usage: "&7Uso: &f/otp <codice a sei cifre>"
+
+# ---------------------------------------------------------------- /logout
+logout-command:
+  players-only: "Solo un giocatore puo' chiudere il proprio accesso."
+  kick-with-otp: "&aAccesso chiuso&r\n\n&7Sei stato disconnesso dal gioco e dal sito.\n&7Al prossimo ingresso ti verranno chiesti di nuovo\n&7la password e il codice di verifica."
+  kick-without-otp: "&aAccesso chiuso&r\n\n&7Sei stato disconnesso dal gioco e dal sito.\n&7Al prossimo ingresso ti verranno chiesti di nuovo\n&7la password."
+  failed: "&cNon sono riuscito a chiudere l'accesso adesso. Riprova."
+
+# ---------------------------------------------------------------- /changepassword
+change-password-command:
+  players-only: "Solo un giocatore puo' cambiare la propria password."
+  usage: "&7Uso: &f/changepassword <vecchia> <nuova> <ripeti nuova> [codice]"
+  not-registered: "&cNon risulti registrato."
+  wrong-current: "&cLa password attuale non e' corretta."
+  needs-otp-code: "&7Hai la verifica in due passaggi: aggiungi il codice in fondo.\n&7Uso: &f/changepassword <vecchia> <nuova> <ripeti> <codice>"
+  saved: "&aPassword cambiata.&r &7Vale anche su &fmagicadventure.it&7."
+  save-failed: "&cNon sono riuscito a salvare la password nuova. Riprova."
+
+# ---------------------------------------------------------------- azioni dello staff (/mauth)
+admin:
+  password-reset-kick: "&eLa tua password e' stata azzerata&r\n\n&7Rientra e scegline una nuova."

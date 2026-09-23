@@ -2,6 +2,7 @@ package com.teolo.magixauth.command;
 
 import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.gate.AuthGate;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.model.Phase;
 import com.teolo.magixauth.gate.EntryState;
 import com.teolo.magixauth.util.Texts;
@@ -21,36 +22,36 @@ public final class LoginCommand implements CommandExecutor {
 
     private final AuthConfig config;
     private final AuthGate gate;
+    private final Messages messages;
 
-    public LoginCommand(AuthConfig config, AuthGate gate) {
+    public LoginCommand(AuthConfig config, AuthGate gate, Messages messages) {
         this.config = config;
         this.gate = gate;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage("Solo un giocatore puo' accedere.");
+            sender.sendMessage(messages.get("login-command.players-only"));
             return true;
         }
         EntryState state = gate.state(p);
         if (state == null) {
-            p.sendMessage(Texts.c(config.prefix, "&7Sei gia' dentro."));
+            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.already-in")));
             return true;
         }
         if (state.phase == Phase.REGISTRAZIONE) {
-            p.sendMessage(Texts.c(config.prefix,
-                    "&7Non hai ancora un account: usa &f/register <password> <password>&7."));
+            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.no-account")));
             return true;
         }
         if (state.phase == Phase.OTP) {
-            p.sendMessage(Texts.c(config.prefix,
-                    "&7Manca solo il codice: usa &f/otp <codice>&7."));
+            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.needs-otp")));
             return true;
         }
         if (args.length != 1) {
-            p.sendMessage(Texts.c(config.prefix, "&7Uso: &f/login <password>"));
-            p.sendMessage(Texts.c("&7Tutti i comandi: &f/mauth"));
+            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.usage")));
+            p.sendMessage(Texts.c(messages.get(p, "login-command.all-commands")));
             return true;
         }
         gate.tryPassword(p, args[0]);
