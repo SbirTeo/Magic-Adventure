@@ -570,7 +570,7 @@ public final class PowerManager {
         int lost = before - pp.power; // effettivo: vicino al minimo puo' essere < death-loss (anche 0)
         save(p.getUniqueId());
         if (lost > 0 && messages != null && plugin.getConfig().getBoolean("power.death-message", true)) {
-            p.sendMessage(messages.prefix() + messages.get("power.death-loss",
+            p.sendMessage(messages.prefix() + messages.get(p, "power.death-loss",
                     "lost", String.valueOf(lost),
                     "power", String.valueOf(pp.power),
                     "maxpower", String.valueOf(pp.maxPower)));
