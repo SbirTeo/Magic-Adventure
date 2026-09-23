@@ -146,15 +146,16 @@ public final class MagixMusic extends JavaPlugin {
         StaffGuide.create(this, "MagixMusic — radio musicale a spawn", 70)
                 // Numeri presi dal config vero: cambiando una chiave, questo capitolo cambia da solo.
                 .values(new ConfigValues(this))
-                .intro("Allo spawn c'è una radio che suona a ciclo i dischi di Minecraft. Tutti quelli nella "
-                        + "zona sentono lo stesso brano nello stesso momento; ognuno può alzarla, abbassarla o "
-                        + "spegnerla per sé con /radio.")
+                .intro("Nel mondo spawn c'è una radio che suona a ciclo i dischi di Minecraft. Tutti quelli nel "
+                        + "mondo sentono lo stesso brano nello stesso momento, allo stesso volume ovunque; ognuno può "
+                        + "alzarla, abbassarla o spegnerla per sé con /radio.")
 
                 .section("Come funziona",
-                        "Il server fa da orologio comune: a ogni brano manda a tutti i giocatori nella zona lo "
-                                + "stesso stop+play, quindi sono sincronizzati al secondo. Il suono è ancorato allo "
-                                + "spawn del mondo «{{cfg:world}}» e cala con la distanza, come un altoparlante: si "
-                                + "sente entro {{cfg:radius}} blocchi, fuori dalla zona e negli altri mondi no.",
+                        "Il server fa da orologio comune: a ogni brano manda a tutti i giocatori del mondo lo "
+                                + "stesso stop+play, quindi sono sincronizzati al secondo. Il suono è NON posizionale "
+                                + "(emesso dal giocatore stesso): si sente in TUTTO il mondo «{{cfg:world}}», allo stesso "
+                                + "volume ovunque, e segue il giocatore mentre cammina — niente raggio, niente calo con la "
+                                + "distanza. Negli altri mondi non si sente.",
                         "La scaletta gira all'infinito: finito un brano parte il successivo dopo i suoi seconds. Il "
                                 + "ciclo totale è la somma delle durate. Cambi a caldo con /radio reload: la radio "
                                 + "riparte dall'inizio della scaletta.")
@@ -199,8 +200,7 @@ public final class MagixMusic extends JavaPlugin {
                 .commands()
                 .permissions()
                 .settings(
-                        "world", "Mondo in cui si sente la radio (di norma quello dello spawn).",
-                        "radius", "Raggio in blocchi dallo spawn entro cui si sente la radio.",
+                        "world", "Mondo in cui si sente la radio: si sente in TUTTO il mondo, allo stesso volume.",
                         "default-volume", "Volume iniziale (0-100) per chi non l'ha ancora regolato con /radio.",
                         "sound-category", "Canale audio del suono: records (jukebox) o music (slider Musica).",
                         "play-on-join", "Se chi entra sente subito il brano in corso (dall'inizio, non sincronizzato).",
@@ -209,16 +209,16 @@ public final class MagixMusic extends JavaPlugin {
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso. Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Un giocatore dice che «non sente la radio»",
-                        "Controlla che sia nel mondo giusto e dentro il raggio dallo spawn, che non l'abbia spenta "
-                                + "lui (/radio mostra il suo stato) e che la radio non sia spenta in generale (config "
-                                + "enabled). Ricorda che la sente solo attorno allo spawn.")
+                        "Controlla che sia nel mondo giusto (config world), che non l'abbia spenta lui (/radio mostra "
+                                + "il suo stato, o /musica) e che la radio non sia spenta in generale (config enabled). "
+                                + "Nel mondo giusto la sente ovunque, allo stesso volume.")
                 .issue("La musica si accavalla o parte da capo per chi entra",
                         "È il limite del \"da capo\": Minecraft non riprende un suono a metà. Al cambio di brano tutti "
                                 + "si riallineano. Se le durate in playlist non sono giuste, un brano può partire sopra "
                                 + "al precedente: correggi il valore seconds del brano.")
 
-                .never("Non mettere un raggio enorme pensando di coprire tutto il mondo: la radio è pensata per la "
-                        + "zona spawn, un raggio troppo grande fa sentire la musica anche a chi è lontano.")
+                .never("Non mettere come world un mondo enorme di sopravvivenza se non vuoi la musica ovunque lì: la "
+                        + "radio si sente in TUTTO il mondo indicato. Metti il mondo dove vuoi davvero la musica.")
                 .never("Non aggiungere un brano senza mettere la sua durata giusta in seconds: il ciclo si sfasa.")
                 .write();
     }

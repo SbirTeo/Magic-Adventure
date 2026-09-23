@@ -1,9 +1,9 @@
 package com.teolo.magixmusic.radio;
 
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.sound.Sound;
+import net.kyori.adventure.sound.SoundStop;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.SoundCategory;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -14,13 +14,15 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Radio musicale sincronizzata allo SPAWN: un "jukebox" invisibile che suona a ciclo i dischi di
- * Minecraft (config di MagixMusic). Il server fa da orologio comune, quindi tutti i giocatori nella zona
- * spawn sentono lo STESSO brano nello STESSO momento; il suono è ancorato allo spawn e cala con la
- * distanza (come un altoparlante), così negli altri mondi o lontano dallo spawn non si sente.
+ * Radio musicale sincronizzata del mondo spawn: un "jukebox" invisibile che suona a ciclo i dischi di
+ * Minecraft (config di MagixMusic). Il server fa da orologio comune, quindi tutti i giocatori del mondo
+ * sentono lo STESSO brano nello STESSO momento.
  *
- * <p>Ogni giocatore regola il proprio volume o spegne la radio per sé con {@code /radio}: la preferenza
- * (0-100, assente = default, 0 = spenta) sta in {@link VolumeStore}.
+ * <p>Il suono è NON posizionale (emesso dal giocatore stesso, {@link Sound.Emitter#self()}): si sente
+ * uguale in TUTTO il mondo, allo stesso volume, e segue il giocatore mentre cammina — non cala con la
+ * distanza da un punto e non ha un raggio. Negli altri mondi non si sente. Ogni giocatore regola il
+ * proprio volume o spegne la radio per sé con {@code /radio} (preferenza in {@link VolumeStore}: 0-100,
+ * assente = default, 0 = spenta).
  *
  * <p><b>Limite di Minecraft</b>: un suono parte sempre dall'inizio, non si può "riprendere" a metà.
  * Quindi chi entra a brano già iniziato ({@code play-on-join}) lo sente dall'inizio, non dal secondo in
@@ -37,8 +39,7 @@ public final class RadioService {
     // Impostazioni lette dal config (a ogni start/reload).
     private boolean enabled;
     private String worldName;
-    private int radius;
-    private SoundCategory category;
+    private Sound.Source source;
     private float pitch;
     private boolean playOnJoin;
     private int defaultVolume;
@@ -64,9 +65,8 @@ public final class RadioService {
         stopPlayback();
         loadConfig();
         if (!enabled || playlist.isEmpty()) return;
-        if (center() == null) {
-            plugin.getLogger().warning("[Radio] mondo '" + worldName + "' non trovato: radio inattiva finché non è caricato.");
-            return;
+        if (Bukkit.getWorld(worldName) == null) {
+            plugin.getLogger().warning("[Radio] mondo '" + worldName + "' non ancora caricato: la radio partirà quando c'è.");
         }
         index = 0;
         playCurrentAndScheduleNext();
@@ -94,17 +94,14 @@ public final class RadioService {
         var c = plugin.getConfig();
         enabled = c.getBoolean("enabled", true);
         worldName = c.getString("world", "world");
-        radius = c.getInt("radius", 80);
         pitch = (float) c.getDouble("pitch", 1.0);
         playOnJoin = c.getBoolean("play-on-join", true);
         defaultVolume = clampVolume(c.getInt("default-volume", 70));
         volumeStep = Math.max(1, c.getInt("volume-step", 10));
-        // Categoria audio Bukkit da stringa: RECORDS (jukebox) o MUSIC. valueOf per non elencare i valori
-        // nel codice (li documenta il commento del config); qualsiasi cosa strana ricade su RECORDS.
-        SoundCategory cat = SoundCategory.RECORDS;
-        try { cat = SoundCategory.valueOf(c.getString("sound-category", "records").toUpperCase(Locale.ROOT)); }
-        catch (IllegalArgumentException ignored) {}
-        category = cat;
+        // Canale audio del suono: records (come un jukebox) o music (slider "Musica"). Qualsiasi altra
+        // cosa ricade su records.
+        source = "music".equals(c.getString("sound-category", "records").toLowerCase(Locale.ROOT))
+                ? Sound.Source.MUSIC : Sound.Source.RECORD;
 
         playlist.clear();
         for (Map<?, ?> row : c.getMapList("playlist")) {
@@ -121,7 +118,7 @@ public final class RadioService {
 
     // ------------------------------------------------------------- riproduzione
 
-    /** Manda il brano corrente a tutti i giocatori nella zona e programma il passaggio al successivo. */
+    /** Manda il brano corrente a tutti i giocatori del mondo e programma il passaggio al successivo. */
     private void playCurrentAndScheduleNext() {
         Track t = playlist.get(index);
         broadcastTrack(t.sound());
@@ -149,50 +146,51 @@ public final class RadioService {
     }
 
     /**
-     * Ferma il brano precedente e fa partire quello nuovo, nello stesso tick, per tutti i giocatori nella
-     * zona: è così che la radio resta sincronizzata (stesso brano, stesso secondo) e che l'eventuale coda
+     * Ferma il brano precedente e fa partire quello nuovo, nello stesso tick, per tutti i giocatori del
+     * mondo: è così che la radio resta sincronizzata (stesso brano, stesso secondo) e che l'eventuale coda
      * di un brano partito in ritardo per un nuovo arrivato viene tagliata al boundary.
      */
     private void broadcastTrack(String newSound) {
-        Location center = center();
-        if (center == null) return;
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!inZone(p)) continue;
-            if (currentSound != null) p.stopSound(currentSound, category);
-            if (effectiveVolume(p.getUniqueId()) > 0) playAt(p, center, newSound);
+            if (!inWorld(p)) continue;
+            if (currentSound != null) p.stopSound(SoundStop.named(soundKey(currentSound)));
+            if (effectiveVolume(p.getUniqueId()) > 0) playFor(p, newSound);
         }
     }
 
-    /** Suona {@code sound} per {@code p}, ancorato allo spawn, al volume personale del giocatore. */
-    private void playAt(Player p, Location center, String sound) {
-        try { p.playSound(center, sound, category, volumeFloat(p.getUniqueId()), pitch); }
-        catch (Exception ignored) {}
+    /** Suona {@code sound} per {@code p} in modo NON posizionale (emesso dal giocatore stesso): stesso
+     *  volume ovunque nel mondo, e segue il giocatore. Volume = percentuale personale (0-1). */
+    private void playFor(Player p, String sound) {
+        try {
+            Sound s = Sound.sound(soundKey(sound), source, effectiveVolume(p.getUniqueId()) / 100.0f, pitch);
+            p.playSound(s, Sound.Emitter.self());
+        } catch (Exception ignored) {}
     }
+
+    private static Key soundKey(String sound) { return Key.key(sound); }
 
     // ------------------------------------------------------------- API per il comando e il join
 
     /**
-     * Fa sentire SUBITO il brano in onda a un giocatore (dall'inizio: vedi limite in classe), se è nella
-     * zona e non ha la radio spenta. La usano {@code /radio on|up|volume} (feedback immediato) e il
+     * Fa sentire SUBITO il brano in onda a un giocatore (dall'inizio: vedi limite in classe), se è nel
+     * mondo e non ha la radio spenta. La usano {@code /radio on|up|volume|replay} (feedback immediato) e il
      * listener del join. Ferma prima l'eventuale copia già in corso per non sovrapporla.
      */
     public void refreshFor(Player p) {
         if (currentSound == null) return;
-        if (!inZone(p) || effectiveVolume(p.getUniqueId()) <= 0) return;
-        Location center = center();
-        if (center == null) return;
-        p.stopSound(currentSound, category);
-        playAt(p, center, currentSound);
+        if (!inWorld(p) || effectiveVolume(p.getUniqueId()) <= 0) return;
+        p.stopSound(SoundStop.named(soundKey(currentSound)));
+        playFor(p, currentSound);
     }
 
     /** Taglia la musica a un giocatore (quando spegne la radio con {@code /radio off}). */
     public void stopFor(Player p) {
-        if (currentSound != null) p.stopSound(currentSound, category);
+        if (currentSound != null) p.stopSound(SoundStop.named(soundKey(currentSound)));
     }
 
     /** true se al giocatore la radio, in questo momento, arriverebbe: usato dal listener del join. */
     public boolean wouldPlayFor(Player p) {
-        return enabled && currentSound != null && inZone(p) && effectiveVolume(p.getUniqueId()) > 0;
+        return enabled && currentSound != null && inWorld(p) && effectiveVolume(p.getUniqueId()) > 0;
     }
 
     public boolean isPlayOnJoin() { return playOnJoin; }
@@ -248,27 +246,9 @@ public final class RadioService {
         return clampVolume(saved == null ? defaultVolume : saved);
     }
 
-    /** Volume da passare a playSound: la percentuale personale scalata sulla portata, così al 100% la
-     *  musica arriva fino al bordo della zona (volume Minecraft ~ 16 blocchi per unità). */
-    private float volumeFloat(UUID u) {
-        float base = Math.max(1.0f, radius / 16.0f);
-        return effectiveVolume(u) / 100.0f * base;
-    }
-
-    private boolean inZone(Player p) {
-        if (!enabled) return false;
-        Location center = center();
-        if (center == null) return false;
-        if (!p.getWorld().getName().equals(worldName)) return false;
-        if (radius <= 0) return true;
-        double dx = p.getLocation().getX() - center.getX();
-        double dz = p.getLocation().getZ() - center.getZ();
-        return dx * dx + dz * dz <= (double) radius * radius;
-    }
-
-    private Location center() {
-        World w = Bukkit.getWorld(worldName);
-        return w == null ? null : w.getSpawnLocation();
+    /** Il giocatore è nel mondo della radio e la radio è accesa in generale. */
+    private boolean inWorld(Player p) {
+        return enabled && p.getWorld().getName().equals(worldName);
     }
 
     private static int clampVolume(int v) { return Math.max(0, Math.min(100, v)); }
