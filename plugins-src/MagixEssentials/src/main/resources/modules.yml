@@ -20,3 +20,9 @@ motd: true
 # la targhetta torna quella di CMI (o, se anche il suo modulo e' spento, il nome nudo del gioco).
 # Si regola in nametag.yml.
 nametag: true
+
+# Filtro dell'autocompletamento: quando un giocatore scrive "/" e preme TAB, toglie dall'elenco i
+# comandi di ogni plugin per cui non ha il permesso (restano quelli che puo' davvero usare).
+# Spento, il client torna a suggerire tutti i comandi registrati sul server, permesso o no. Non ha
+# un file di impostazioni suo: non c'e' niente da regolare.
+tabcomplete: true

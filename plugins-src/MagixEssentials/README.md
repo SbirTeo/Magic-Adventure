@@ -1,10 +1,11 @@
 # MagixEssentials
 
 Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base** del server: quelle
-cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa due — la
-**MOTD** e il **nametag** — e a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
+cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — la
+**MOTD**, il **nametag** e il **filtro dell'autocompletamento** — e a lungo andare dovrebbe
+assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.14**
+Versione: **0.8.16**
 
 ---
 
@@ -19,6 +20,9 @@ file diversi:
 | `motd.yml` | Come e' fatta la MOTD: le varianti e come ruotano, la tendina, il conto dei giocatori, le icone. |
 | `nametag.yml` | Com'e' fatta la targhetta sopra la testa: le righe, chi la disegna, altezze, quando sparisce. |
 | `config.yml` | Solo cio' che vale per il **plugin intero**. Per ora niente, e lo dice. |
+
+Il filtro dell'autocompletamento non ha un file suo: l'interruttore `tabcomplete` in `modules.yml`
+e' tutto quello che c'e' da regolare — vedi sotto.
 
 Una funzione spenta non parte affatto: niente task, niente aggancio agli eventi. Il suo file resta
 dov'e', intatto, e torna in uso appena la si riaccende — spegnere non e' buttare via la
@@ -227,6 +231,24 @@ aggiunto alla lista in `nametag/NametagManager`.
 | `nametag/NameTeams` | La targhetta **del gioco**: le squadre dello scoreboard, su tutte le lavagne che i giocatori hanno davvero |
 | `nametag/DisplayLines` | Le righe **nostre**: le entita' di testo agganciate al giocatore |
 | `util/CmiModules` | L'unico punto che sa dove CMI tiene i suoi interruttori e come si spengono |
+
+---
+
+## Filtro dell'autocompletamento
+
+Digitando `/` e premendo **TAB**, il client mostra un elenco di comandi da completare. Di suo il
+server lo compila da **tutti** i comandi registrati da **ogni** plugin, permesso o no: senza
+questo filtro, uno staff member vedrebbe (e potrebbe completare col TAB) anche i comandi di staff
+di ogni altro plugin del server, pur non potendoli eseguire.
+
+Il modulo `tabcomplete` ascolta `PlayerCommandSendEvent` — l'evento con cui il server compila
+quell'elenco per ciascun giocatore — e toglie i comandi per cui il giocatore non ha il permesso,
+di qualunque plugin, non solo dei Magix. L'esecuzione vera e propria non cambia: qui si pulisce
+solo il suggerimento. Un comando senza `permission` dichiarato (o con `default: true`) resta
+visibile a chiunque, com'e' giusto che sia.
+
+Il client tiene in memoria l'elenco ricevuto al login: un permesso tolto o dato a caldo (LuckPerms,
+`/pex`) si vede nel TAB solo dopo un ri-login.
 
 ---
 

@@ -3,6 +3,7 @@ package com.teolo.magixessentials;
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.nametag.NametagManager;
+import com.teolo.magixessentials.tabcomplete.TabCompleteFilter;
 import com.teolo.magixessentials.util.ConfigAlign;
 import com.teolo.magixessentials.util.ConfigValues;
 import com.teolo.magixessentials.util.StaffGuide;
@@ -13,22 +14,25 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * MagixEssentials: raccoglie le utilita' "di base" del server — oggi la <b>MOTD</b> (le righe che
- * si leggono nella lista server) e il <b>nametag</b> (la targhetta sopra la testa dei giocatori);
- * l'idea a lungo termine e' che assorba cio' che oggi fa CMI.
+ * MagixEssentials: raccoglie le utilita' "di base" del server — la <b>MOTD</b> (le righe che si
+ * leggono nella lista server), il <b>nametag</b> (la targhetta sopra la testa dei giocatori) e il
+ * <b>filtro dell'autocompletamento</b> (toglie dal TAB i comandi senza permesso); l'idea a lungo
+ * termine e' che assorba cio' che oggi fa CMI.
  *
  * <p>Ogni funzione si accende e si spegne dal {@code modules.yml}, come nel Modules.yml di CMI, e
- * si regola nel file che porta il suo nome ({@code motd.yml}, {@code nametag.yml}); il
- * {@code config.yml} tiene solo cio' che vale per il plugin intero. Vedi {@link Modules}.
+ * si regola nel file che porta il suo nome ({@code motd.yml}, {@code nametag.yml}) quando ne ha
+ * uno; il {@code config.yml} tiene solo cio' che vale per il plugin intero. Vedi {@link Modules}.
  *
- * <p>Ogni funzione sta per conto suo ({@link MotdListener}, {@link NametagManager}): questa classe
- * si limita ad accenderle e spegnerle e a offrire {@code /magixessentials reload}.
+ * <p>Ogni funzione sta per conto suo ({@link MotdListener}, {@link NametagManager},
+ * {@link TabCompleteFilter}): questa classe si limita ad accenderle e spegnerle e a offrire
+ * {@code /magixessentials reload}.
  */
 public final class MagixEssentials extends JavaPlugin {
 
     private Modules modules;
     private MotdListener motd;
     private NametagManager nametag;
+    private TabCompleteFilter tabComplete;
 
     @Override
     public void onEnable() {
@@ -96,12 +100,17 @@ public final class MagixEssentials extends JavaPlugin {
             nametag = new NametagManager(this, modules.configurazioneDi(Modules.NAMETAG));
             nametag.start();
         }
+        if (modules.attivo(Modules.TABCOMPLETE)) {
+            tabComplete = new TabCompleteFilter(this);
+            tabComplete.start();
+        }
     }
 
     /** Spegne tutto: al reload si riparte da zero, allo spegnimento non si lascia niente appeso. */
     private void spegniModuli() {
         if (motd != null) { motd.stop(); motd = null; }
         if (nametag != null) { nametag.stop(); nametag = null; }
+        if (tabComplete != null) { tabComplete.stop(); tabComplete = null; }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -123,10 +132,11 @@ public final class MagixEssentials extends JavaPlugin {
                         .extra("NAMETAG_STILE", nametag == null
                                 ? "il modulo e' spento, quindi nessuno"
                                 : nametag.describe()))
-                .intro("Raccoglie le utilita' di base del server. Oggi ne fa due: la **MOTD**, le "
-                        + "righe che si leggono nella lista server prima di entrare, e il **nametag**, "
-                        + "la targhetta sopra la testa dei giocatori. A lungo "
-                        + "andare dovrebbe assorbire cio' che oggi fa CMI.")
+                .intro("Raccoglie le utilita' di base del server. Oggi ne fa tre: la **MOTD**, le "
+                        + "righe che si leggono nella lista server prima di entrare, il **nametag**, "
+                        + "la targhetta sopra la testa dei giocatori, e il **filtro "
+                        + "dell'autocompletamento**, che pulisce l'elenco dei comandi che il client "
+                        + "suggerisce col TAB. A lungo andare dovrebbe assorbire cio' che oggi fa CMI.")
 
                 .section("I moduli: cosa e' acceso e cosa no",
                         "Come in CMI, ogni funzione ha il suo interruttore in un file a parte: "
@@ -147,6 +157,19 @@ public final class MagixEssentials extends JavaPlugin {
                         "Una funzione nuova, aggiunta da un aggiornamento, compare qui da sola col suo valore di "
                                 + "partenza, e col suo file di impostazioni accanto: ai file sul server ci pensa il "
                                 + "plugin a ogni avvio.")
+
+                .section("Il filtro dell'autocompletamento (tabcomplete)",
+                        "Digitando **/** e premendo **TAB**, il client mostra un elenco di comandi da "
+                                + "completare. Di suo il server lo compila con TUTTI i comandi registrati da OGNI "
+                                + "plugin, permesso o no: uno staff member vede i propri comandi di sanzione, ma "
+                                + "senza questo filtro li vedrebbe (e potrebbe completarli col TAB) anche chi non "
+                                + "ha alcun permesso su di loro — non li potrebbe eseguire lo stesso, ma "
+                                + "comparirebbero come se ci fossero.",
+                        "Il modulo toglie dall'elenco, per ciascun giocatore, i comandi per cui non ha il "
+                                + "permesso, di qualunque plugin del server (non solo dei Magix): l'esecuzione "
+                                + "vera e propria non cambia in nulla, qui si pulisce solo il suggerimento. Non ha "
+                                + "un file di impostazioni suo: l'interruttore in modules.yml e' tutto quello che "
+                                + "c'e' da regolare.")
 
                 .section("La targhetta sopra la testa (nametag)",
                         "E' quella che si legge **sopra la testa** dei giocatori, in gioco: non il tablist "
@@ -362,7 +385,8 @@ public final class MagixEssentials extends JavaPlugin {
                 // server. Il config.yml non compare finche' non ha chiavi: sarebbe una tabella vuota.
                 .settingsFrom(modules.configurazione(), "Moduli (modules.yml)",
                         "motd", "Le righe della lista server. Spento, vale la riga 'motd' di server.properties.",
-                        "nametag", "La targhetta sopra la testa. Spento, resta quella di CMI (o il nome nudo del gioco).")
+                        "nametag", "La targhetta sopra la testa. Spento, resta quella di CMI (o il nome nudo del gioco).",
+                        "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.")
 
                 .settingsFrom(modules.configurazioneDi(Modules.MOTD), "Impostazioni della MOTD (motd.yml)",
                         "selection", "Quale MOTD si vede: random (a caso), ordered (una dopo l'altra), fixed (sempre la prima).",
@@ -475,6 +499,13 @@ public final class MagixEssentials extends JavaPlugin {
                 .issue("Nella MOTD o nel nametag si legge %magixfactions_faction% invece della fazione",
                         "Manca PlaceholderAPI, oppure manca l'espansione di quel plugin: controlla che PAPI sia "
                                 + "avviato e che il plugin che fornisce quel placeholder sia acceso.")
+                .issue("Un giocatore continua a vedere col TAB un comando per cui non ha il permesso",
+                        "Il client tiene in memoria l'elenco dei comandi ricevuto al login: un permesso tolto a "
+                                + "caldo (plugin di permessi, /pex, LuckPerms) non lo aggiorna da solo. Un "
+                                + "ri-login lo rifa' pulito. Se invece manca anche dopo un ri-login, controlla che "
+                                + "il modulo tabcomplete sia acceso in modules.yml e che il comando abbia davvero "
+                                + "un permesso dichiarato: un comando senza permission (o con default: true) e' "
+                                + "visibile a chiunque, com'e' giusto che sia.")
 
                 .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
                         + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "

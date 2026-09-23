@@ -56,6 +56,9 @@ public final class Modules {
     /** Il nametag: la targhetta sopra la testa dei giocatori, in gioco. */
     public static final String NAMETAG = "nametag";
 
+    /** Il filtro dell'autocompletamento: toglie dal TAB i comandi senza permesso. */
+    public static final String TABCOMPLETE = "tabcomplete";
+
     private final JavaPlugin plugin;
     /** {@code modules.yml}: l'elenco delle funzioni, accese o spente. */
     private volatile YamlConfiguration file;
