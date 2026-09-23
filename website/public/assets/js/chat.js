@@ -120,7 +120,12 @@
     // sul pulsante di eliminazione non conta: quello ha il suo lavoro.
     riga.addEventListener('click', function (e) {
       if (e.target.closest('.chat-msg-del')) return;
-      riga.classList.toggle('e-aperta');
+      var giaAperta = riga.classList.contains('e-aperta');
+      // Un solo popup alla volta: chiudi tutti gli altri, cosi' si vede solo la targhetta
+      // dell'ultimo messaggio cliccato e non si accavallano.
+      var aperti = lista.querySelectorAll('.chat-msg.e-aperta');
+      for (var i = 0; i < aperti.length; i++) aperti[i].classList.remove('e-aperta');
+      if (!giaAperta) riga.classList.add('e-aperta');
     });
 
     if (puoEliminare) {
@@ -152,6 +157,15 @@
     while (lista.children.length > 120) lista.removeChild(lista.firstChild);
     if (seguiva) lista.scrollTop = lista.scrollHeight;
   }
+
+  // Click in qualsiasi punto fuori da un messaggio della chat: chiude il popup aperto.
+  // Il click SU un messaggio non arriva qui a chiuderlo perche' lo gestisce gia' la riga
+  // (toggle), e qui saltiamo i target dentro .chat-msg.
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.chat-msg')) return;
+    var aperti = lista.querySelectorAll('.chat-msg.e-aperta');
+    for (var i = 0; i < aperti.length; i++) aperti[i].classList.remove('e-aperta');
+  });
 
   /** Toglie tutto dall'elenco. L'avviso "ancora nessun messaggio" lo rimette carica(). */
   function ripulisciElenco() {
