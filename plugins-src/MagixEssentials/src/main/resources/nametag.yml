@@ -145,8 +145,14 @@ display:
   line-spacing: 0.29
   # Ingrandimento del testo: 1.0 e' la misura di una targhetta normale.
   scale: 1.0
-  # Se true si vede anche attraverso i muri, come la targhetta del gioco da vicino.
-  see-through: false
+  # Se le righe si vedono attraverso i muri. Tre valori:
+  #   vanilla - (consigliato) come la targhetta del gioco: ATTRAVERSO i muri da fermo, OCCLUSA dai
+  #             blocchi appena il giocatore si accuccia (insieme alla sfumatura di sneak-opacity).
+  #             Da fermo evita anche il difetto delle entita' di testo con l'occlusione accesa, che
+  #             dietro a vetri, acqua o lava "sparirebbero" per via del test di profondita'.
+  #   true    - sempre attraverso i muri.
+  #   false   - sempre occlusa dai blocchi (anche da fermo; puo' sballare dietro acqua/lava/vetro).
+  see-through: vanilla
   # L'ombra sotto le lettere. Con lo sfondo acceso non serve, e sporca.
   text-shadow: false
   # Lo sfondo dietro il testo. Tre modi: 'default' il rettangolo scuro del gioco, 'none' niente

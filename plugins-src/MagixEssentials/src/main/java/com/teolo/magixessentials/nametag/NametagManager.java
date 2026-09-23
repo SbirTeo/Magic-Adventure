@@ -110,6 +110,12 @@ public final class NametagManager implements Listener {
     private Set<String> offWorlds = Set.of();
     /** Quanto resta visibile la targhetta di chi si accuccia: 1.0 = invariata, 0.0 = invisibile. */
     private float sneakOpacity = 0.3f;
+    /**
+     * Se le righe (modalita' display) si vedono attraverso i muri. {@code vanilla} come la targhetta
+     * del gioco: attraverso i muri da fermo, occluse da accucciato. {@code always}/{@code never}
+     * forzano sempre acceso o sempre spento.
+     */
+    private SeeThrough seeThrough = SeeThrough.VANILLA;
     private boolean hideInvisible = true;
     private boolean hideSpectator = true;
     /** Una riga senza {name} e' un errore di configurazione: si dice una volta, non a ogni giro. */
@@ -121,6 +127,16 @@ public final class NametagManager implements Listener {
      * Lo legge anche la guida per lo staff, da un altro thread: da qui il volatile.
      */
     private volatile String style = "";
+
+    /** Come le righe della modalita' display si comportano coi muri davanti. */
+    private enum SeeThrough {
+        /** Come il gioco: attraverso i muri da fermo, occluse (e sfumate) da accucciato. */
+        VANILLA,
+        /** Sempre attraverso i muri. */
+        ALWAYS,
+        /** Sempre occluse dai blocchi. */
+        NEVER
+    }
 
     public NametagManager(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
@@ -200,6 +216,7 @@ public final class NametagManager implements Listener {
         }
         offWorlds = Set.copyOf(worlds);
         sneakOpacity = clamp01((float) cfg.getDouble("display.sneak-opacity", 0.3));
+        seeThrough = readSeeThrough(cfg.getString("display.see-through", "vanilla"));
         hideInvisible = cfg.getBoolean("display.hide-when-invisible", true);
         hideSpectator = cfg.getBoolean("display.hide-in-spectator", true);
         // Una riga nel log che risponde da sola alla domanda "perche' sopra la testa vedo questo?".
@@ -360,13 +377,13 @@ public final class NametagManager implements Listener {
         boolean off = offWorlds.contains(target.getWorld().getName().toLowerCase(Locale.ROOT));
         if (ourLines) {
             if (off || hidden(target)) {
-                displays.update(target, List.of(), opacity(target));
+                displays.update(target, List.of(), opacity(target), seeThrough(target));
             } else if (displayPerViewer) {
                 // Una variante per ogni testo diverso (il colore relazionale cambia per chi guarda),
                 // ciascuna coi suoi spettatori: DisplayLines nasconde a ognuno quelle che non sono le sue.
-                displays.updateVariants(target, variants(target, online), opacity(target));
+                displays.updateVariants(target, variants(target, online), opacity(target), seeThrough(target));
             } else {
-                displays.update(target, rendered(target, target), opacity(target));
+                displays.update(target, rendered(target, target), opacity(target), seeThrough(target));
             }
             // Il nome del gioco si nasconde solo dove la targhetta la disegniamo noi: due targhette
             // sovrapposte sono peggio di una brutta. Nei mondi esclusi torna visibile.
@@ -559,6 +576,30 @@ public final class NametagManager implements Listener {
             return (byte) -1;
         }
         return (byte) Math.round(sneakOpacity * 255f);
+    }
+
+    /**
+     * Se le righe disegnate da noi si vedono attraverso i muri. Con {@link SeeThrough#VANILLA} si fa
+     * come la targhetta del gioco: attraverso i muri da fermo (cosi' non "sparisce dietro" a vetri,
+     * acqua o lava, che col see-through spento sballano il test di profondita' delle entita' di testo),
+     * occlusa dai blocchi appena il giocatore si accuccia — insieme alla sfumatura di {@link #opacity}.
+     */
+    private boolean seeThrough(Player p) {
+        return switch (seeThrough) {
+            case ALWAYS -> true;
+            case NEVER -> false;
+            case VANILLA -> !p.isSneaking();
+        };
+    }
+
+    /** Legge {@code display.see-through}: {@code vanilla} (default), {@code true} o {@code false}. */
+    private SeeThrough readSeeThrough(String value) {
+        String text = value == null ? "vanilla" : value.trim().toLowerCase(Locale.ROOT);
+        return switch (text) {
+            case "true" -> SeeThrough.ALWAYS;
+            case "false" -> SeeThrough.NEVER;
+            default -> SeeThrough.VANILLA;
+        };
     }
 
     /**

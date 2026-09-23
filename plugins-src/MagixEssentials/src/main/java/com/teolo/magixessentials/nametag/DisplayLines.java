@@ -91,11 +91,15 @@ public final class DisplayLines {
     private final Map<UUID, Map<List<String>, Group>> mounted = new HashMap<>();
     /** L'ultima opacita' scritta (vedi {@link NametagManager#opacity}): si riscrive solo alla differenza. */
     private final Map<UUID, Byte> writtenOpacity = new HashMap<>();
+    /**
+     * L'ultimo "attraversa i muri" scritto (vedi {@link NametagManager#seeThrough}): si riscrive solo
+     * alla differenza. Come vanilla cambia quando il giocatore si accuccia, quindi va aggiornato a caldo.
+     */
+    private final Map<UUID, Boolean> writtenSeeThrough = new HashMap<>();
 
     private double height = 0.8;
     private double spacing = 0.29;
     private double scale = 1.0;
-    private boolean seeThrough;
     private boolean shadow;
     /** Lo sfondo: {@code null} = quello del gioco, altrimenti il colore scelto (trasparente compreso). */
     private Color background;
@@ -118,7 +122,6 @@ public final class DisplayLines {
             height = cfg.getDouble("height", 0.8);
             spacing = cfg.getDouble("line-spacing", 0.29);
             scale = cfg.getDouble("scale", 1.0);
-            seeThrough = cfg.getBoolean("see-through", false);
             shadow = cfg.getBoolean("text-shadow", false);
             background = readBackground(cfg.getString("background", "default"));
             viewRange = (float) cfg.getDouble("view-range", 1.0);
@@ -131,12 +134,12 @@ public final class DisplayLines {
      * La targhetta uguale per tutti: una lista di righe sola, mostrata a ogni spettatore (tranne la
      * propria, con {@code hide-self}). Una lista vuota la toglie.
      */
-    public void update(Player target, List<String> lines, byte opacity) {
+    public void update(Player target, List<String> lines, byte opacity, boolean seeThrough) {
         if (lines.isEmpty()) {
             remove(target);
             return;
         }
-        apply(target, List.of(new Variant(List.copyOf(lines), null)), opacity);
+        apply(target, List.of(new Variant(List.copyOf(lines), null)), opacity, seeThrough);
     }
 
     /**
@@ -144,12 +147,12 @@ public final class DisplayLines {
      * spettatori (vedi {@link Variant}). Una lista vuota la toglie. Ci pensa il chiamante a mettere lo
      * stesso testo una volta sola, con l'insieme degli spettatori che lo vedono.
      */
-    public void updateVariants(Player target, List<Variant> variants, byte opacity) {
+    public void updateVariants(Player target, List<Variant> variants, byte opacity, boolean seeThrough) {
         if (variants.isEmpty()) {
             remove(target);
             return;
         }
-        apply(target, variants, opacity);
+        apply(target, variants, opacity, seeThrough);
     }
 
     /**
@@ -158,7 +161,7 @@ public final class DisplayLines {
      * che restano aggiorna l'opacita' e chi li vede. Si rifa' da zero solo il gruppo che serve, non
      * tutta la targhetta.
      */
-    private void apply(Player target, List<Variant> variants, byte opacity) {
+    private void apply(Player target, List<Variant> variants, byte opacity, boolean seeThrough) {
         UUID id = target.getUniqueId();
         World world = target.getWorld();
         Map<List<String>, Group> groups = mounted.computeIfAbsent(id, k -> new LinkedHashMap<>());
@@ -203,7 +206,7 @@ public final class DisplayLines {
             List<TextDisplay> rows = new ArrayList<>(lines.size());
             boolean ok = true;
             for (int i = 0; i < lines.size(); i++) {
-                TextDisplay row = spawn(target, i, lines.size(), lines.get(i), opacity);
+                TextDisplay row = spawn(target, i, lines.size(), lines.get(i), opacity, seeThrough);
                 if (row == null) {
                     ok = false;
                     break;
@@ -219,14 +222,16 @@ public final class DisplayLines {
             groups.put(e.getKey(), new Group(rows, e.getValue()));
         }
 
-        // Opacita' e visibilita' per i gruppi che restano.
+        // Opacita', "attraversa i muri" e visibilita' per i gruppi che restano.
         boolean opacityChanged = !Byte.valueOf(opacity).equals(writtenOpacity.get(id));
+        boolean seeThroughChanged = !Boolean.valueOf(seeThrough).equals(writtenSeeThrough.get(id));
         for (Map.Entry<List<String>, Group> e : groups.entrySet()) {
             Group g = e.getValue();
             g.viewers = want.get(e.getKey());
-            reconcile(target, g, opacityChanged, opacity);
+            reconcile(target, g, opacityChanged, opacity, seeThroughChanged, seeThrough);
         }
         writtenOpacity.put(id, opacity);
+        writtenSeeThrough.put(id, seeThrough);
     }
 
     /**
@@ -238,10 +243,14 @@ public final class DisplayLines {
      * costa pacchetti: e' anche cosi' che un nuovo arrivato smette di vedere le varianti che non sono
      * la sua.
      */
-    private void reconcile(Player target, Group g, boolean opacityChanged, byte opacity) {
+    private void reconcile(Player target, Group g, boolean opacityChanged, byte opacity,
+                           boolean seeThroughChanged, boolean seeThrough) {
         for (TextDisplay row : g.rows) {
             if (opacityChanged) {
                 row.setTextOpacity(opacity);
+            }
+            if (seeThroughChanged) {
+                row.setSeeThrough(seeThrough);
             }
             if (!target.getPassengers().contains(row)) {
                 target.addPassenger(row);
@@ -271,6 +280,7 @@ public final class DisplayLines {
     public void remove(Player target) {
         Map<List<String>, Group> groups = mounted.remove(target.getUniqueId());
         writtenOpacity.remove(target.getUniqueId());
+        writtenSeeThrough.remove(target.getUniqueId());
         if (groups == null) {
             return;
         }
@@ -292,6 +302,7 @@ public final class DisplayLines {
         }
         mounted.clear();
         writtenOpacity.clear();
+        writtenSeeThrough.clear();
         sweep();
     }
 
@@ -330,7 +341,8 @@ public final class DisplayLines {
      * {@code line-spacing} sopra l'altra. Chi la vede lo decide dopo {@link #reconcile}: qui nasce e
      * basta.
      */
-    private TextDisplay spawn(Player target, int index, int total, String line, byte opacity) {
+    private TextDisplay spawn(Player target, int index, int total, String line, byte opacity,
+                             boolean seeThrough) {
         double y = height + (total - 1 - index) * spacing;
         TextDisplay row = target.getWorld().spawn(target.getLocation(), TextDisplay.class, e -> {
             e.addScoreboardTag(TAG);
