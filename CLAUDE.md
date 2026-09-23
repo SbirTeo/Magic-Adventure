@@ -3,6 +3,13 @@
 Questo file viene caricato in **ogni** sessione (locale o cloud). Le regole qui valgono
 sempre, per tutte le sessioni correnti e future.
 
+## LINGUA DELLA CHAT: SEMPRE ITALIANO
+
+In ogni sessione (locale o cloud), le risposte in chat all'utente sono **sempre in italiano**,
+qualunque sia la lingua del messaggio ricevuto o del contenuto tecnico coinvolto (log, codice,
+nomi in inglese per struttura come da regola sotto). Non chiedere conferma su questo: è la lingua
+di default e basta.
+
 ## IL DEPLOY È SEMPRE AUTOMATICO (regola prioritaria)
 
 A ogni modifica completata, **porta SEMPRE il lavoro fino in fondo e in automatico**, senza
