@@ -1,0 +1,54 @@
+name: Chiedi a CMI l'help di /cmi world (sola lettura)
+
+# UNA tantum, per il recupero del mondo 'spawn' dopo la rimozione di Multiverse-Core
+# (vedi sessione del 2026-09-23). Manda in console DUE comandi FISSI, scritti qui nel
+# file (non parametrizzabili da chi lancia il workflow): "/cmi world" e "/cmi help world".
+# Non cambiano nessuno stato del server, chiedono solo a CMI stesso quali sotto-comandi
+# accetta (create/load/unload/...), perche' la documentazione online per questa versione
+# (9.8.8.2) e' incompleta. Il risultato si legge con diagnostica-vps.yml.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: comando-console-vps
+  cancel-in-progress: false
+
+jobs:
+  chiedi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Manda i due comandi di help (fissi, non modificabili da input)
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -e
+          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            echo "::error::Server non in esecuzione (screen mc non attivo)."
+            exit 1
+          fi
+          screen -S mc -p 0 -X stuff "$(printf '/cmi world\r')"
+          sleep 1
+          screen -S mc -p 0 -X stuff "$(printf '/cmi help world\r')"
+          echo "Comandi di help mandati."
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
