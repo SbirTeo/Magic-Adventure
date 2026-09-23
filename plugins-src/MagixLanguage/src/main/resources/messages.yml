@@ -1,0 +1,54 @@
+# MagixLanguage - tutti i testi mostrati ai giocatori.
+# Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+# \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
+# Placeholder disponibili indicati riga per riga.
+#
+# PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
+#   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
+#   verde  &#A8DC2C  l'ADVENTURE del logo: comandi, conferme, cose cliccabili
+#   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
+#   errore &#FF6B6B  |  avviso &#FFD166
+
+prefix: "&#C046E8&lMagixLanguage &8» &r"
+
+# ---------------------------------------------------------------- generici
+no-permission: "&cNon hai il permesso per questo comando."
+players-only: "&cQuesto comando va eseguito da un giocatore."
+unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/language help&c."
+player-not-found: "&cGiocatore &e{player}&c non trovato (deve essere online almeno una volta)."
+reloaded: "&aConfigurazione ricaricata."
+
+# {lang} lingua attuale - {source} auto (da GeoIP) o manuale - {country} paese rilevato (- se nessuno)
+info:
+  - "&8&m                                                  "
+  - "&#C046E8&lMagixLanguage &7v{version}"
+  - "&7Lingua attuale: &f{lang} &8({source})"
+  - "&7Paese rilevato: &f{country}"
+  - "&7Cambiarla: &e/language set <it|en|es|de>"
+  - "&8&m                                                  "
+
+# {list} elenco delle lingue supportate, separate da virgola
+set-invalid: "&cLingua sconosciuta. Lingue supportate: &e{list}&c."
+set-self: "&aLingua impostata su &e{lang}&a."
+set-other: "&aLingua di &e{player}&a impostata su &e{lang}&a."
+
+# {added} chiavi nuove copiate - {plugins} numero di plugin scansionati - {pending} traduzioni ancora da fare
+sync-done: "&aSincronizzazione completata: &e{added}&a chiavi nuove da &e{plugins}&a plugin, &e{pending}&a in attesa di traduzione."
+sync-running: "&eSincronizzazione in corso, un momento..."
+
+help:
+  title: "MagixLanguage"
+  sections:
+    generale:
+      title: "Lingua"
+      staff: false
+      entries:
+        - "/language :: mostra la lingua che stai usando adesso"
+        - "/language set <it|en|es|de> :: cambia la tua lingua"
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/language set <it|en|es|de> <giocatore> :: cambia la lingua di un altro giocatore"
+        - "/language sync :: ricopia i messaggi degli altri plugin da tradurre"
+        - "/language reload :: ricarica config.yml e messages.yml"

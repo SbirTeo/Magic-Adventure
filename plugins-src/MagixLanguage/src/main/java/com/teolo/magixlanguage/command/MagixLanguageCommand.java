@@ -1,0 +1,162 @@
+package com.teolo.magixlanguage.command;
+
+import com.teolo.magixlanguage.MagixLanguage;
+import com.teolo.magixlanguage.lang.Messages;
+import com.teolo.magixlanguage.translate.PlayerLocales;
+import com.teolo.magixlanguage.translate.TranslationSync;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
+/** /magixlanguage (alias /language, /lang): lingua propria, lingua di altri, sincronizzazione dei cataloghi. */
+public final class MagixLanguageCommand implements CommandExecutor, TabCompleter {
+
+    private static final String ADMIN = "magixlanguage.admin";
+
+    private final MagixLanguage plugin;
+    private final Messages msg;
+
+    public MagixLanguageCommand(MagixLanguage plugin, Messages msg) {
+        this.plugin = plugin;
+        this.msg = msg;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission("magixlanguage.use") && !sender.hasPermission(ADMIN)) {
+            msg.send(sender, "no-permission");
+            return true;
+        }
+        String sub = args.length == 0 ? "info" : args[0].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "info" -> info(sender);
+            case "set" -> set(sender, args);
+            case "sync" -> sync(sender);
+            case "reload" -> reload(sender);
+            case "help", "?" -> help(sender);
+            default -> msg.send(sender, "unknown-subcommand");
+        }
+        return true;
+    }
+
+    private void info(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            msg.send(sender, "players-only");
+            return;
+        }
+        PlayerLocales.Entry entry = plugin.locales().get(player.getUniqueId());
+        String lang = entry != null ? entry.lang() : plugin.getConfig().getString("default-language", "it");
+        String source = entry != null && entry.source() == PlayerLocales.Source.MANUAL ? "manuale" : "auto";
+        String country = entry != null && entry.country() != null ? entry.country() : "-";
+        msg.sendList(sender, "info",
+                "version", plugin.getPluginMeta().getVersion(),
+                "lang", lang,
+                "source", source,
+                "country", country);
+    }
+
+    private void set(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            msg.send(sender, "unknown-subcommand");
+            return;
+        }
+        String lang = args[1].toLowerCase(Locale.ROOT);
+        List<String> supported = plugin.getConfig().getStringList("supported-languages");
+        if (!supported.contains(lang)) {
+            msg.send(sender, "set-invalid", "list", String.join(", ", supported));
+            return;
+        }
+        if (args.length >= 3) {
+            if (!sender.hasPermission(ADMIN)) {
+                msg.send(sender, "no-permission");
+                return;
+            }
+            OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                msg.send(sender, "player-not-found", "player", args[2]);
+                return;
+            }
+            plugin.locales().setManual(target.getUniqueId(), lang);
+            msg.send(sender, "set-other", "player", target.getName() != null ? target.getName() : args[2], "lang", lang);
+            return;
+        }
+        if (!(sender instanceof Player player)) {
+            msg.send(sender, "players-only");
+            return;
+        }
+        plugin.locales().setManual(player.getUniqueId(), lang);
+        msg.send(sender, "set-self", "lang", lang);
+    }
+
+    private void sync(CommandSender sender) {
+        if (!sender.hasPermission(ADMIN)) {
+            msg.send(sender, "no-permission");
+            return;
+        }
+        msg.send(sender, "sync-running");
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            TranslationSync.Result result = new TranslationSync(plugin).run();
+            Bukkit.getScheduler().runTask(plugin, () -> msg.send(sender, "sync-done",
+                    "added", String.valueOf(result.keysAdded()),
+                    "plugins", String.valueOf(result.pluginsScanned()),
+                    "pending", String.valueOf(result.pendingTranslations())));
+        });
+    }
+
+    private void reload(CommandSender sender) {
+        if (!sender.hasPermission(ADMIN)) {
+            msg.send(sender, "no-permission");
+            return;
+        }
+        plugin.reloadEverything();
+        msg.send(sender, "reloaded");
+    }
+
+    private void help(CommandSender sender) {
+        boolean admin = sender.hasPermission(ADMIN);
+        org.bukkit.configuration.ConfigurationSection sections = msg.section("help.sections");
+        if (sections == null) {
+            return;
+        }
+        for (String key : sections.getKeys(false)) {
+            org.bukkit.configuration.ConfigurationSection s = sections.getConfigurationSection(key);
+            if (s == null || (s.getBoolean("staff", false) && !admin)) {
+                continue;
+            }
+            sender.sendMessage(msg.prefix() + "&#C046E8&l" + s.getString("title", key));
+            for (String line : s.getStringList("entries")) {
+                sender.sendMessage("&7" + line);
+            }
+        }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        boolean admin = sender.hasPermission(ADMIN);
+        if (args.length == 1) {
+            List<String> base = new ArrayList<>(List.of("info", "set", "help"));
+            if (admin) base.addAll(List.of("sync", "reload"));
+            return filter(base, args[0]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
+            return filter(plugin.getConfig().getStringList("supported-languages"), args[1]);
+        }
+        return Collections.emptyList();
+    }
+
+    private static List<String> filter(List<String> options, String prefix) {
+        String p = prefix.toLowerCase(Locale.ROOT);
+        List<String> out = new ArrayList<>();
+        for (String o : options) if (o.toLowerCase(Locale.ROOT).startsWith(p)) out.add(o);
+        return out;
+    }
+}

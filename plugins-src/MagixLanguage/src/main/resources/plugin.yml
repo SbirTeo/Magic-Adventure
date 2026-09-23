@@ -1,0 +1,21 @@
+name: MagixLanguage
+version: '${project.version}'
+main: com.teolo.magixlanguage.MagixLanguage
+api-version: '26.1'
+author: teolo
+description: Rileva la lingua di chi entra dal paese di provenienza e traduce i messaggi degli altri plugin Magix.
+softdepend: [PlaceholderAPI]
+
+commands:
+  magixlanguage:
+    aliases: [language, lang]
+    description: Lingua del server e traduzione dei messaggi degli altri plugin.
+    usage: /language help
+
+permissions:
+  magixlanguage.use:
+    description: Vedere e cambiare la propria lingua (/language, /language set).
+    default: true
+  magixlanguage.admin:
+    description: Comandi amministrativi (sync, reload, set sulla lingua di un altro giocatore).
+    default: op

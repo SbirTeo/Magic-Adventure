@@ -1,0 +1,110 @@
+# ============================================================================
+#  MagixLanguage - configurazione
+#  Rileva la lingua di chi entra dal paese di provenienza (IP) e la usa per
+#  tradurre i messaggi degli altri plugin Magix (vedi sezione "translations").
+#  Documentazione completa: plugins/MagixLanguage/README.md
+# ============================================================================
+
+# Lingua usata quando non si riesce a rilevarne una (paese sconosciuto, IP privato,
+# GeoIP disattivato o non raggiungibile). Valori supportati: it, en, es, de.
+default-language: "it"
+
+# Le lingue che il plugin sa gestire davvero: catalogo delle traduzioni e comando
+# /language set accettano solo queste. Aggiungerne una nuova non basta da sola: va
+# anche creato/tradotto il file translations/<Plugin>/<lingua>.yml per ogni plugin.
+supported-languages:
+  - "it"
+  - "en"
+  - "es"
+  - "de"
+
+# ----------------------------------------------------------------------------
+# RILEVAZIONE DAL PAESE (GeoIP)
+# ----------------------------------------------------------------------------
+geoip:
+  # Se false nessuna richiesta esce dal server: tutti partono con default-language,
+  # e /language set resta l'unico modo di cambiarla.
+  enabled: true
+
+  # Servizio usato per risalire dall'IP al paese: {ip} viene sostituito con l'indirizzo
+  # di chi si sta collegando. Il servizio di serie (ip-api.com) è gratuito e non
+  # richiede una chiave, con un limite di 45 richieste al minuto DAL SERVER (non per
+  # giocatore): con la cache sotto è più che sufficiente per un server come questo.
+  # L'indirizzo IP di chi entra viene mandato a questo servizio: è lo stesso IP che il
+  # server vede già per far entrare il giocatore, ma è comunque un dato personale che
+  # esce verso un servizio esterno. Disattivare "enabled" sopra se non lo si vuole fare.
+  provider-url: "http://ip-api.com/json/{ip}?fields=status,countryCode"
+
+  # Quanto aspettare la risposta prima di rinunciare e usare default-language.
+  timeout-ms: 1500
+
+  # Per quanti giorni tenere a memoria il paese già trovato per un IP, per non
+  # richiederlo ad ogni ingresso (i giocatori tendono a riconnettersi dallo stesso IP).
+  cache-days: 30
+
+# Da codice paese (ISO 3166-1 alpha-2, quello che risponde il servizio GeoIP) a lingua.
+# Mappatura approssimata per i paesi multilingua (es. Svizzera): si assegna la lingua
+# più parlata. Un paese non elencato usa default-language.
+country-language:
+  IT: "it"
+  SM: "it"
+  VA: "it"
+  DE: "de"
+  AT: "de"
+  CH: "de"
+  LI: "de"
+  ES: "es"
+  MX: "es"
+  AR: "es"
+  CO: "es"
+  CL: "es"
+  PE: "es"
+  VE: "es"
+  EC: "es"
+  GT: "es"
+  CU: "es"
+  BO: "es"
+  DO: "es"
+  HN: "es"
+  PY: "es"
+  SV: "es"
+  NI: "es"
+  CR: "es"
+  PA: "es"
+  UY: "es"
+  US: "en"
+  GB: "en"
+  IE: "en"
+  AU: "en"
+  NZ: "en"
+  CA: "en"
+  ZA: "en"
+
+# ----------------------------------------------------------------------------
+# TRADUZIONE DEI MESSAGGI DEGLI ALTRI PLUGIN
+# ----------------------------------------------------------------------------
+translations:
+  # All'avvio e ad ogni /language sync, per ogni plugin in "plugins" copia le chiavi di
+  # testo dei file in "files" dentro translations/<Plugin>/<lingua>.yml. Se false va
+  # lanciato a mano con /language sync.
+  sync-on-start: true
+
+  # Plugin la cui cartella dati (plugins/<Nome>/) viene scandita in cerca di testo da
+  # tradurre. Un plugin qui elencato ma non installato viene saltato senza errori.
+  plugins:
+    - "MagixAuth"
+    - "MagixCosmetics"
+    - "MagixEntities"
+    - "MagixEssentials"
+    - "MagixFactions"
+    - "MagixGuard"
+    - "MagixMenus"
+    - "MagixMusic"
+    - "MagixPack"
+    - "MagixTime"
+    - "MagixWeb"
+
+  # Nomi dei file, relativi alla cartella dati di ciascun plugin, che contengono testo
+  # visibile ai giocatori. Lo stesso elenco vale per tutti i plugin sopra.
+  files:
+    - "messages.yml"
