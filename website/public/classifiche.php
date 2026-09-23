@@ -12,6 +12,9 @@ require __DIR__ . '/../includes/header.php';
 // Le colonne di contorno (territori, membri, potenza) sono conteggi diretti, per far capire da cosa
 // nasce la posizione. Se la colonna 'score' non c'e' ancora (plugin non ancora riavviato dopo
 // l'aggiornamento), la pagina degrada con un avviso invece di rompersi.
+// NB: si mostrano solo le fazioni con ranked=1. Il plugin (ScoreManager) mette ranked=0 sia alle fazioni
+// inattive sia a quelle con un membro dello STAFF (permesso magixfactions.leaderboard.hide): appena lo
+// staff esce dalla fazione, al campione successivo torna ranked=1 e ricompare.
 $factions = [];
 $score_ready = true;
 try {
@@ -584,6 +587,8 @@ function format_playtime(int $seconds): string {
 // - Ricchezza media: giacenza MEDIA personale = money_avg_accum / money_seconds (media sul solo tempo
 //   online da quando la feature è attiva — play_seconds NON è il denominatore, è il totale storico).
 // - Uccisioni / K-D: uccisioni PvP valide (l'anti fake-kill e' nel plugin), col K/D a fianco.
+// Lo STAFF non compare: il plugin marca leaderboard_hidden=1 sulle righe di chi ha il permesso
+// magixfactions.leaderboard.hide (grado mod in su), e qui si tengono fuori dalle tre classifiche.
 $top_time = $top_money = $top_kills = [];
 $players_ready = true;
 try {
@@ -597,7 +602,7 @@ try {
                   WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
                 (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
-          WHERE p.play_seconds > 0 AND p.name IS NOT NULL
+          WHERE p.play_seconds > 0 AND p.name IS NOT NULL AND COALESCE(p.leaderboard_hidden, 0) = 0
           ORDER BY p.play_seconds DESC, p.name ASC LIMIT 50'
     )->fetchAll();
     $top_money = db()->query(
@@ -609,7 +614,7 @@ try {
                   WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
                 (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
-          WHERE p.money_seconds > 0 AND p.name IS NOT NULL
+          WHERE p.money_seconds > 0 AND p.name IS NOT NULL AND COALESCE(p.leaderboard_hidden, 0) = 0
           ORDER BY avg_money DESC, p.name ASC LIMIT 50'
     )->fetchAll();
     $top_kills = db()->query(
@@ -621,7 +626,7 @@ try {
                   WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
                 (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
            FROM factions_magixfactions.players p
-          WHERE p.kills > 0 AND p.name IS NOT NULL
+          WHERE p.kills > 0 AND p.name IS NOT NULL AND COALESCE(p.leaderboard_hidden, 0) = 0
           ORDER BY p.kills DESC, p.deaths ASC, p.name ASC LIMIT 50'
     )->fetchAll();
 } catch (PDOException $e) {

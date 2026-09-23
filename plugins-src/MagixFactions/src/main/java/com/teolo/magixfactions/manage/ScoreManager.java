@@ -101,6 +101,24 @@ public final class ScoreManager {
         return false;
     }
 
+    /**
+     * La fazione COMPARE nelle classifiche (sito e /f top)? Solo se e' {@link #isActive attiva} <b>e</b> non
+     * contiene nessun membro dello staff. Basta un membro col permesso {@code magixfactions.leaderboard.hide}
+     * per oscurare l'INTERA fazione: e' la stessa idea del singolo giocatore nascosto, estesa al gruppo. Il
+     * flag del membro e' persistito ({@link PlayerStatsManager#isHidden}), quindi vale anche se lo staff e'
+     * offline; appena quel membro ESCE dalla fazione la condizione decade e, al campione successivo, la
+     * fazione torna visibile.
+     */
+    public boolean countsInLeaderboard(Faction f) {
+        return isActive(f) && !hasHiddenMember(f);
+    }
+
+    /** Almeno un membro e' staff nascosto dalle classifiche (flag persistito, vale anche da offline). */
+    private boolean hasHiddenMember(Faction f) {
+        for (UUID u : f.getMembers().keySet()) if (stats.isHidden(u)) return true;
+        return false;
+    }
+
     /** Almeno un membro e' collegato ADESSO. La giacenza media della banca avanza solo in questi momenti
      *  (conta i soldi tenuti MENTRE si gioca); la potenza invece si media sul tempo reale. */
     private boolean anyMemberOnline(Faction f) {
@@ -293,7 +311,7 @@ public final class ScoreManager {
         Map<String, MaxInfo> max = new LinkedHashMap<>();
         for (String k : activeKeys()) max.put(k, new MaxInfo());
         for (Faction f : fm.all()) {
-            if (!isActive(f)) continue;
+            if (!countsInLeaderboard(f)) continue;
             for (Map.Entry<String, MaxInfo> e : max.entrySet()) {
                 double v = Math.max(0, valueOf(e.getKey(), f));   // i negativi (Potenza) non contano
                 MaxInfo mi = e.getValue();
@@ -418,7 +436,7 @@ public final class ScoreManager {
     public List<Entry> ranking() {
         Map<String, MaxInfo> maxes = computeMaxes();   // una volta sola per tutta la classifica
         List<Entry> list = new ArrayList<>();
-        for (Faction f : fm.all()) if (isActive(f)) list.add(new Entry(f, score(f, maxes)));
+        for (Faction f : fm.all()) if (countsInLeaderboard(f)) list.add(new Entry(f, score(f, maxes)));
         list.sort(Comparator.comparingDouble((Entry e) -> e.score).reversed()
                 .thenComparing(e -> e.faction.getName(), String.CASE_INSENSITIVE_ORDER));
         return list;
@@ -449,7 +467,7 @@ public final class ScoreManager {
             double sc = 0; for (Component c : parts) sc += c.contribution();
             f.setScore(sc);
             f.setScoreDetail(detailJsonOf(parts));
-            f.setRanked(isActive(f));   // fazione inattiva -> oscurata dalla classifica (sito)
+            f.setRanked(countsInLeaderboard(f));   // inattiva o con un membro staff -> oscurata (sito e /f top)
             fm.saveScoreSample(f);
         }
     }

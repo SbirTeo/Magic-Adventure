@@ -5,16 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.teolo</groupId>
-    <artifactId>MagixEssentials</artifactId>
-    <version>0.8.15</version>
+    <artifactId>MagixMusic</artifactId>
+    <version>0.1.5</version>
     <packaging>jar</packaging>
 
-    <name>MagixEssentials</name>
-    <description>Utilita' del server (MOTD, nametag e, in futuro, il resto che oggi fa CMI)</description>
+    <name>MagixMusic</name>
+    <description>Radio musicale sincronizzata allo spawn: un jukebox invisibile che suona a ciclo i dischi di Minecraft, regolabile e spegnibile da ogni giocatore.</description>
 
     <properties>
-        <!-- paper-api 26.1.2 e' compilata per Java 25 (class file 69.0): serve JDK 25 per buildare.
-             Sul PC di sviluppo sta in C:\Users\teolo\.jdks\jdk-25.0.3+9. -->
+        <!-- paper-api 26.1.2 e' compilata per Java 25 (class file 69.0): serve JDK 25 per buildare. -->
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -38,22 +37,12 @@
             <version>26.1.2.build.72-stable</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Placeholder nei nametag (%magixfactions_*%, %magixweb_*%, %rel_*%, ...). Opzionale
-             a runtime (softdepend): se non c'e', i placeholder restano grezzi ma il plugin funziona. -->
+        <!-- Opzionale a runtime (softdepend): serve per esporre i placeholder %magixmusic_...%
+             che il menu di MagixMenus usa per mostrare volume, barra e brano in diretta. -->
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.6</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- Serve al nametag in modalita' display (entita' di testo agganciate al giocatore).
-             Stessa dipendenza di MagixFactions (minimap), plugin reale gia' installato sul server
-             (log: ProtocolLib v5.5.0-SNAPSHOT) quindi 'provided', non shadato. GroupId reale
-             net.dmulloy2, su Maven Central. -->
-        <dependency>
-            <groupId>net.dmulloy2</groupId>
-            <artifactId>ProtocolLib</artifactId>
-            <version>5.4.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

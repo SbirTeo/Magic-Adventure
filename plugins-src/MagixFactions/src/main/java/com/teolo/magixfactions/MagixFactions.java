@@ -159,6 +159,12 @@ public final class MagixFactions extends JavaPlugin {
         powerManager.setLuckPerms(luckPerms);
         long offlineInterval = 20L * 60L * powerManager.offlineRefreshMinutes();
         Bukkit.getScheduler().runTaskTimer(this, powerManager::tickOffline, 20L * 30L, offlineInterval);
+        // Visibilita' dello staff nelle classifiche anche da OFFLINE: lo stesso LuckPerms legge il permesso
+        // magixfactions.leaderboard.hide di chi non e' collegato. Un batch periodico (gemello di
+        // tickOffline) riallinea i flag, e l'evento di ricalcolo li aggiorna all'istante. Vedi PlayerStatsManager.
+        playerStatsManager.setLuckPerms(luckPerms);
+        playerStatsManager.watchPermissions();
+        Bukkit.getScheduler().runTaskTimer(this, playerStatsManager::refreshHiddenOffline, 20L * 35L, offlineInterval);
         // Applica ai giocatori gia' online (es. dopo /reload)
         Bukkit.getOnlinePlayers().forEach(powerManager::onJoin);
 
@@ -626,6 +632,16 @@ public final class MagixFactions extends JavaPlugin {
                                 + "/f map); la scelta resta salvata anche dopo il logout.",
                         "Mappa e minimap mostrano le **STESSE** cose, perché sono alimentate dallo stesso codice: se "
                                 + "una mostra qualcosa e l'altra no, è un difetto, non una scelta.",
+                        "Sotto la minimap c'è un **pannello info** (config map.minimap.info-panel): una striscia con "
+                                + "righe di testo che decidi tu (map.minimap.info-panel.lines), placeholder di "
+                                + "PlaceholderAPI inclusi — di serie l'ora (%magixtime_mc_time%) e le coordinate. Il "
+                                + "testo si COLORA e si FORMATTA con i codici Minecraft (&0-&f, RGB &#RRGGBB / <#RRGGBB> "
+                                + "/ &x…, &l grassetto, &o corsivo, &n sottolineato, &m barrato, &r reset); text-color è "
+                                + "il colore di partenza, shadow-color l'ombra (#RRGGBB o none per spegnerla). Testo, "
+                                + "colori, formati e ombra sono live (/mf reload); "
+                                + "il NUMERO di righe, lo sfondo (transparent o #RRGGBB) e lo spazio dalla minimap sono "
+                                + "impressi nello shader del pack e cambiano solo con un RIAVVIO. Spegnilo con "
+                                + "map.minimap.info-panel.enabled: false.",
                         "I giocatori in vanish e quelli con la pozione di invisibilità non compaiono su nessuna "
                                 + "delle due: sarebbe un modo troppo comodo per trovare chi non vuole essere trovato.")
 

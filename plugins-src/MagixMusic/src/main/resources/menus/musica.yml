@@ -1,0 +1,204 @@
+# menu-version: 2
+# ==========================================================================================
+#  musica.yml — menu grafico della RADIO dello spawn (plugin MagixMusic)
+#
+#  La riga "menu-version" qui sopra la usa MagixMusic per capire quando il menu è cambiato: se il
+#  numero nel jar è diverso da quello del file sul VPS, MagixMusic aggiorna il file (facendone prima
+#  una copia .bak-<data>). Finché il numero è lo stesso, NON tocca il file: le tue modifiche restano.
+#
+#  Aprilo in gioco con /musica (o /radiomenu). Da qui il giocatore accende/spegne la radio,
+#  alza o abbassa il volume e sceglie un preset, vedendo il livello in diretta con una barra.
+#
+#  Come funziona: i pulsanti eseguono i comandi /radio (up, down, on, off, <numero>) del plugin
+#  MagixMusic; i valori in diretta (volume, barra, brano, stato) arrivano dai placeholder
+#  %magixmusic_...% esposti da MagixMusic via PlaceholderAPI. "update: 10" ridisegna due volte al
+#  secondo, e ogni pulsante fa anche "refresh" per aggiornare subito dopo il clic.
+#
+#  Da dove arriva: NON si copia a mano. È MagixMusic a installarlo: all'avvio, se rileva MagixMenus,
+#  copia questo file (se manca) in plugins/MagixMenus/menus/ e ricarica i menu. Senza MagixMenus il
+#  menu non esiste e restano solo i comandi /radio. Una volta sul VPS puoi modificarlo liberamente:
+#  MagixMusic non lo sovrascrive (rispetta le tue modifiche); poi /menus reload.
+# ==========================================================================================
+
+menu:
+  type: chest
+  rows: 3
+  title: "&#C046E8&lRadio &8» &7Musica dello spawn"
+  update: 10
+  commands: [musica, radiomenu]
+  open_actions:
+    - "sound: BLOCK_NOTE_BLOCK_BELL|0.5|1.4"
+
+items:
+
+  # ─── Interruttore ACCESA/SPENTA: due facce sulla stessa casella. Vince la prima con le
+  #     condizioni soddisfatte, quindi la faccia "accesa" (volume > 0) va scritta per prima. ───
+  toggle_on:
+    slot: 10
+    id: NOTE_BLOCK
+    glow: true
+    display_name: "&#A8DC2C&lRadio accesa"
+    lore:
+      - "&#9A8CA8Volume: &f%magixmusic_volume%&#9A8CA8/100"
+      - "&#9A8CA8In onda: &f%magixmusic_track%"
+      - ""
+      - "&#A8DC2CClic &#9A8CA8per spegnerla (solo per te)"
+    show_requirements:
+      requirements:
+        accesa:
+          type: EQUATION
+          key: "%magixmusic_volume% > 0"
+    actions:
+      - "command: radio off"
+      - "sound: BLOCK_NOTE_BLOCK_HAT|0.7|1"
+      - "refresh"
+
+  toggle_off:
+    slot: 10
+    id: GRAY_DYE
+    display_name: "&#9A8CA8&lRadio spenta"
+    lore:
+      - "&#9A8CA8Non stai sentendo la musica dello spawn."
+      - ""
+      - "&#A8DC2CClic &#9A8CA8per accenderla"
+    actions:
+      - "command: radio on"
+      - "sound: BLOCK_NOTE_BLOCK_PLING|0.7|1.2"
+      - "refresh"
+
+  # ─── Riascolta il brano dall'inizio (solo per chi clicca) ───
+  replay:
+    slot: 11
+    id: MUSIC_DISC_CAT
+    display_name: "&#C046E8Riascolta dall'inizio"
+    lore:
+      - "&#9A8CA8Fa ripartire il brano in onda da capo,"
+      - "&#9A8CA8solo per te. Utile se sei appena entrato."
+    actions:
+      - "command: radio replay"
+      - "sound: UI_BUTTON_CLICK|1|1"
+      - "refresh"
+
+  # ─── Salta al brano successivo — solo staff, vale per tutti ───
+  brano_successivo:
+    slot: 15
+    id: SPECTRAL_ARROW
+    display_name: "&#FFD166Salta brano &8(staff)"
+    lore:
+      - "&#9A8CA8Passa al brano successivo per &fTUTTI&#9A8CA8."
+      - "&#9A8CA8Riservato allo staff."
+    show_requirements:
+      requirements:
+        staff:
+          type: PERMISSION
+          key: magixmusic.admin
+          match: true
+    actions:
+      - "command: radio next"
+      - "sound: UI_BUTTON_CLICK|1|1.4"
+      - "refresh"
+
+  # ─── Abbassa il volume ───
+  volume_giu:
+    slot: 12
+    id: RED_STAINED_GLASS
+    display_name: "&#FF6B6B&l−  Abbassa"
+    lore:
+      - "&#9A8CA8Abbassa il volume di un passo."
+    actions:
+      - "command: radio down"
+      - "sound: UI_BUTTON_CLICK|1|0.8"
+      - "refresh"
+
+  # ─── Display centrale: volume, barra, avanzamento, brano e prossimo, in diretta ───
+  display:
+    slot: 13
+    id: JUKEBOX
+    glow: true
+    display_name: "&#C046E8&lVolume &f%magixmusic_volume%&8/&f100"
+    lore:
+      - "&#A8DC2C%magixmusic_bar%"
+      - ""
+      - "&#9A8CA8In onda: &f%magixmusic_track%"
+      - "&#9A8CA8%magixmusic_time%  &7%magixmusic_progress%"
+      - "&#9A8CA8Poi: &f%magixmusic_next%"
+      - "&#9A8CA8Brano &f%magixmusic_index%&#9A8CA8/&f%magixmusic_count%"
+      - ""
+      - "&#9A8CA8Usa &f−&#9A8CA8 e &f+&#9A8CA8, o i preset qui sotto."
+
+  # ─── Alza il volume ───
+  volume_su:
+    slot: 14
+    id: LIME_STAINED_GLASS
+    display_name: "&#A8DC2C&l+  Alza"
+    lore:
+      - "&#9A8CA8Alza il volume di un passo."
+    actions:
+      - "command: radio up"
+      - "sound: UI_BUTTON_CLICK|1|1.2"
+      - "refresh"
+
+  # ─── Chiudi ───
+  chiudi:
+    slot: 16
+    id: BARRIER
+    display_name: "&#FF6B6BChiudi"
+    actions:
+      - "close"
+
+  # ─── Preset di volume (gradiente da muto a massimo) ───
+  preset_0:
+    slot: 20
+    id: GRAY_CONCRETE
+    display_name: "&#9A8CA8Muto &8(0%)"
+    actions:
+      - "command: radio 0"
+      - "sound: UI_BUTTON_CLICK"
+      - "refresh"
+
+  preset_25:
+    slot: 21
+    id: LIGHT_BLUE_CONCRETE
+    display_name: "&#7EC8FFVolume &f25%"
+    actions:
+      - "command: radio 25"
+      - "sound: UI_BUTTON_CLICK|1|0.9"
+      - "refresh"
+
+  preset_50:
+    slot: 22
+    id: CYAN_CONCRETE
+    display_name: "&#7EC8FFVolume &f50%"
+    actions:
+      - "command: radio 50"
+      - "sound: UI_BUTTON_CLICK|1|1"
+      - "refresh"
+
+  preset_75:
+    slot: 23
+    id: GREEN_CONCRETE
+    display_name: "&#A8DC2CVolume &f75%"
+    actions:
+      - "command: radio 75"
+      - "sound: UI_BUTTON_CLICK|1|1.1"
+      - "refresh"
+
+  preset_100:
+    slot: 24
+    id: LIME_CONCRETE
+    display_name: "&#A8DC2CVolume &f100%"
+    actions:
+      - "command: radio 100"
+      - "sound: UI_BUTTON_CLICK|1|1.3"
+      - "refresh"
+
+  # ─── Cornice e sfondo: per ULTIMI, riempiono solo le caselle rimaste ───
+  cornice:
+    slot: border
+    id: PURPLE_STAINED_GLASS_PANE
+    display_name: " "
+
+  sfondo:
+    slot: all
+    id: GRAY_STAINED_GLASS_PANE
+    display_name: " "
