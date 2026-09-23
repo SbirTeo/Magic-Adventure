@@ -62,7 +62,7 @@ function mc_body_url(?string $uuid, int $size = 160): string {
 /**
  * La TEXTURE grezza della skin (il PNG 64x64 di Minecraft), non un ritratto gia' composto.
  * Serve a chi si costruisce il personaggio pezzo per pezzo ritagliando la texture: la
- * visuale 3D del profilo e il corridore del conto alla rovescia in home.
+ * visuale 3D del profilo.
  *
  * Senza UUID torna la skin predefinita: minotar serve Steve per i nomi che non conosce.
  */

@@ -4,7 +4,6 @@ require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/store_card.php';
 require_once __DIR__ . '/../includes/vip_banner.php';
 require_once __DIR__ . '/../includes/obiettivo.php';
-require_once __DIR__ . '/../includes/countdown.php';
 require_once __DIR__ . '/../includes/immagini.php';   // misure vere del logo, vedi piu' sotto
 
 /**
@@ -153,11 +152,6 @@ require __DIR__ . '/../includes/header.php';
 
 <div class="section-divider" aria-hidden="true"></div>
 </div>
-
-<?php /* Conto alla rovescia per l'apertura: sta fra il logo e gli articoli, a tutta
-         larghezza, perche' e' la cosa che deve vedere per prima chi arriva. Markup e
-         testi in includes/countdown.php, tutto regolabile da Aspetto. */ ?>
-<?php countdown_sezione(); ?>
 
 <div class="content-with-sidebar">
   <?php /* Posto dove la chat va a stare quando la si ingrandisce: e' una riga a tutta
