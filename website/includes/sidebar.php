@@ -108,7 +108,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
         $colore = player_name_color($p);
         $style = $colore !== null ? ' style="' . rank_color_style($colore) . '"' : '';
         $avatar = avatar_top(
-            '<img src="' . h(mc_avatar_url($p['mc_uuid'], 64)) . '" alt="' . h($p['mc_username']) . '" '
+            '<img src="' . h(mc_avatar_url($p['mc_uuid'], 64, $p['premium_uuid'] ?? null)) . '" alt="' . h($p['mc_username']) . '" '
             . 'width="48" height="48" loading="lazy">', $p['mc_uuid'], 48);
         $card = '<span class="online-card">' . $avatar
             . '<span class="online-card-name colore-grado"' . $style . '>' . h($p['mc_username']) . '</span></span>';
@@ -173,7 +173,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
     <?php if ($me): ?>
       <div class="player-avatar-wrap">
         <?= avatar_top(
-              '<img src="' . h(mc_avatar_url($me['mc_uuid'], 88)) . '" alt="" class="player-avatar"'
+              '<img src="' . h(mc_avatar_url($me['mc_uuid'], 88, $me['premium_uuid'] ?? null)) . '" alt="" class="player-avatar"'
               . ' width="72" height="72" decoding="async">',
               $me['mc_uuid'], 72) ?>
       </div>
@@ -240,7 +240,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
             foreach ($sulSito as $p) {
                 echo '<li class="online-voce">'
                     . avatar_top(
-                        '<img class="online-avatar" src="' . h(mc_avatar_url($p['mc_uuid'], 32)) . '" alt="" '
+                        '<img class="online-avatar" src="' . h(mc_avatar_url($p['mc_uuid'], 32, $p['premium_uuid'] ?? null)) . '" alt="" '
                         . 'width="22" height="22" loading="lazy">',
                         $p['mc_uuid'], 22)
                     . $nameOnline($p) . '</li>';

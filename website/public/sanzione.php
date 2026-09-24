@@ -28,7 +28,9 @@ if ($id <= 0 || !sanctions_ready()) {
     return;
 }
 
-$stmt = db()->prepare('SELECT * FROM punishments WHERE id = ?');
+$stmt = db()->prepare(
+    'SELECT s.*, u.premium_uuid FROM punishments s LEFT JOIN users u ON u.mc_uuid = s.mc_uuid WHERE s.id = ?'
+);
 $stmt->execute([$id]);
 $s = $stmt->fetch();
 
@@ -86,7 +88,7 @@ require __DIR__ . '/../includes/header.php';
 <div class="panel sanzione-scheda" style="--accento:<?= h(sanction_color($s['type'])) ?>">
   <div class="sanzione-scheda-testa">
     <?= avatar_top(
-          '<img src="' . h(mc_avatar_url($s['mc_uuid'], 64)) . '" alt="" width="48" height="48" class="forum-faccia">',
+          '<img src="' . h(mc_avatar_url($s['mc_uuid'], 64, $s['premium_uuid'] ?? null)) . '" alt="" width="48" height="48" class="forum-faccia">',
           $s['mc_uuid'], 48) ?>
     <div>
       <h1 class="page-title" style="margin:0 0 4px;">

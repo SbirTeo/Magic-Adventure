@@ -15,7 +15,7 @@ $nome = trim((string) ($_GET['nome'] ?? ''));
 $utente = null;
 if ($nome !== '') {
     $q = db()->prepare(
-        'SELECT u.id, u.mc_uuid, u.mc_username, u.is_admin, u.created_at, u.last_seen, u.last_login, '
+        'SELECT u.id, u.mc_uuid, u.premium_uuid, u.mc_username, u.is_admin, u.created_at, u.last_seen, u.last_login, '
         . RANK_SELECT_SQL . ', r.weight, r.first_join'
         . ' FROM users u' . rank_join_sql()
         . ' WHERE u.mc_username = ? LIMIT 1'
@@ -104,9 +104,9 @@ require __DIR__ . '/../includes/header.php';
            L'immagine ferma resta come ripiego se il 3D non parte (niente WebGL, script
            bloccato, ecc.). */ ?>
   <div class="profilo-avatar" id="avatar3d"
-       data-skin="<?= h('https://minotar.net/skin/' . rawurlencode(str_replace('-', '', (string) $utente['mc_uuid']))) ?>">
+       data-skin="<?= h(mc_skin_url($utente['mc_uuid'], $utente['premium_uuid'] ?? null)) ?>">
     <canvas hidden></canvas>
-    <img class="profilo-skin" src="<?= h(mc_body_url($utente['mc_uuid'], 160)) ?>" alt="Skin di <?= h($utente['mc_username']) ?>"
+    <img class="profilo-skin" src="<?= h(mc_body_url($utente['mc_uuid'], 160, $utente['premium_uuid'] ?? null)) ?>" alt="Skin di <?= h($utente['mc_username']) ?>"
          width="90" height="200" loading="lazy">
     <span class="profilo-avatar-nota">Trascina per girarlo</span>
   </div>

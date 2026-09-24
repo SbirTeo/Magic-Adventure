@@ -90,7 +90,7 @@ if ($metodo === 'GET') {
 
     // La JOIN con users serve solo alla presenza sul sito (pallino accanto al nome): chi
     // scrive dal gioco puo' non avere un account sul sito, e allora last_seen resta NULL.
-    $sql = 'SELECT c.id, c.source, c.mc_uuid, c.mc_username, c.message, c.created_at, '
+    $sql = 'SELECT c.id, c.source, c.mc_uuid, us.premium_uuid, c.mc_username, c.message, c.created_at, '
         . RANK_SELECT_SQL . ', f.id AS faction_id, f.name AS faction_name, fm.rank AS faction_rank, us.last_seen'
         . ' FROM web_chat c'
         . ' LEFT JOIN users us ON us.mc_uuid = c.mc_uuid COLLATE utf8mb4_unicode_ci'
@@ -130,7 +130,7 @@ if ($metodo === 'GET') {
             // costruisse il browser, quella regola andrebbe copiata anche in JavaScript e
             // prima o poi le due copie direbbero cose diverse.
             'faccia' => avatar_top(
-                '<img class="chat-msg-faccia" src="' . h(mc_avatar_url($r['mc_uuid'], 64))
+                '<img class="chat-msg-faccia" src="' . h(mc_avatar_url($r['mc_uuid'], 64, $r['premium_uuid'] ?? null))
                 . '" alt="" width="34" height="34" loading="lazy">',
                 $r['mc_uuid'], 34
             ),
