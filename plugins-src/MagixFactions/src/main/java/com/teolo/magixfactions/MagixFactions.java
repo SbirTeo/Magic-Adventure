@@ -492,6 +492,10 @@ public final class MagixFactions extends JavaPlugin {
                                 + "{{secondi:home-warmup.seconds}} (config home-warmup.seconds), altrimenti il teletrasporto "
                                 + "si annulla e va ripetuto il comando. Serve a impedire di usarlo come fuga istantanea "
                                 + "in combattimento.",
+                        "**Entrare in PvP annulla il warmup come muoversi**: dare o subire un colpo da un altro "
+                                + "giocatore (anche con un proiettile) lo interrompe, per chi attacca e per chi lo "
+                                + "subisce. Il fuoco amico già bloccato da CombatListener non conta come combattimento: "
+                                + "un colpo respinto fra compagni/alleati non annulla nulla.",
                         "La durata si può personalizzare **PER GIOCATORE** col permesso VIP "
                                 + "magixfactions.warmup.home.<secondi> (es. ...home.2 = 2 secondi di attesa, "
                                 + "**...home.0 = istantaneo**, senza attesa). Fra più permessi di questo tipo posseduti "

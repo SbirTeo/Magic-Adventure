@@ -3,12 +3,16 @@ package com.teolo.magixfactions.listener;
 import com.teolo.magixfactions.hook.Papi;
 import com.teolo.magixfactions.lang.Messages;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Map;
@@ -23,6 +27,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * permessi di questo tipo posseduti vince il piu' BASSO (il piu' favorevole), stesso principio dei
  * permessi numerici di {@link com.teolo.magixfactions.manage.PowerManager}. Chi ha
  * {@code magixfactions.admin} salta il warmup a prescindere: e' lo staff, non ha senso farlo aspettare.
+ * Entrare in PvP (dare o subire danno da un altro giocatore, anche con un proiettile) annulla il
+ * teletrasporto in corso, come muoversi: non deve diventare una via di fuga dal combattimento. Il
+ * fuoco amico gia' bloccato da {@link CombatListener} (priorita' LOW, prima di questo listener) non
+ * conta: un colpo annullato non e' un vero ingresso in combattimento.
  */
 public final class HomeWarmupListener implements Listener {
 
@@ -93,6 +101,35 @@ public final class HomeWarmupListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         cancel(e.getPlayer().getUniqueId());
+    }
+
+    /**
+     * Entrare in combattimento annulla il warmup, sia per chi subisce che per chi da' il colpo:
+     * {@code ignoreCancelled} salta il fuoco amico gia' bloccato da {@link CombatListener}.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onCombat(EntityDamageByEntityEvent e) {
+        if (!(e.getEntity() instanceof Player victim)) return;
+        Player attacker = resolvePlayer(e.getDamager());
+        if (attacker == null || attacker.getUniqueId().equals(victim.getUniqueId())) return;
+        cancelForCombat(attacker);
+        cancelForCombat(victim);
+    }
+
+    /** Il giocatore responsabile del danno: diretto, o il tiratore di un proiettile. */
+    private static Player resolvePlayer(Entity damager) {
+        if (damager instanceof Player p) return p;
+        if (damager instanceof Projectile proj) {
+            ProjectileSource src = proj.getShooter();
+            if (src instanceof Player p) return p;
+        }
+        return null;
+    }
+
+    private void cancelForCombat(Player p) {
+        if (!pending.containsKey(p.getUniqueId())) return;
+        cancel(p.getUniqueId());
+        msgKey(p, "home.warmup-cancelled-pvp");
     }
 
     private static boolean sameBlock(Location a, Location b) {
