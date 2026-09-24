@@ -17,7 +17,7 @@ permissions:
     description: Usare i comandi base di MagixFactions.
     default: true
   magixfactions.admin:
-    description: Gestione amministrativa (database, migrazione, setpower, setmap...).
+    description: Gestione amministrativa (database, migrazione, setpower, setmap...). Salta anche il warmup di /f home, sempre istantaneo per chi ce l'ha.
     default: op
   magixfactions.minimap:
     description: Vedere la minimap HUD nell'angolo dello schermo (extra VIP). Senza questo permesso la minimap non viene mai montata.

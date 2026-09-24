@@ -21,7 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Un giocatore puo' avere la sua attesa personale col permesso VIP
  * {@code magixfactions.warmup.home.<secondi>} (es. {@code ...home.0} = istantaneo): fra piu'
  * permessi di questo tipo posseduti vince il piu' BASSO (il piu' favorevole), stesso principio dei
- * permessi numerici di {@link com.teolo.magixfactions.manage.PowerManager}.
+ * permessi numerici di {@link com.teolo.magixfactions.manage.PowerManager}. Chi ha
+ * {@code magixfactions.admin} salta il warmup a prescindere: e' lo staff, non ha senso farlo aspettare.
  */
 public final class HomeWarmupListener implements Listener {
 
@@ -42,8 +43,12 @@ public final class HomeWarmupListener implements Listener {
         p.sendMessage(M.prefix() + Papi.resolve(p, M.get(p, path, kv)));
     }
 
-    /** Attesa in secondi per QUEL giocatore: il suo permesso piu' favorevole, o il valore di config. */
+    /**
+     * Attesa in secondi per QUEL giocatore: 0 per lo staff ({@code magixfactions.admin}), altrimenti
+     * il suo permesso VIP piu' favorevole, o il valore di config.
+     */
     private int warmupSeconds(Player p) {
+        if (p.hasPermission("magixfactions.admin")) return 0;
         Integer perm = null;
         for (org.bukkit.permissions.PermissionAttachmentInfo pi : p.getEffectivePermissions()) {
             if (!pi.getValue()) continue;
