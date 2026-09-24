@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixWeb</artifactId>
-    <version>0.12.7</version>
+    <version>0.12.8</version>
     <packaging>jar</packaging>
 
     <name>MagixWeb</name>
@@ -51,6 +51,12 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.teolo</groupId>
+            <artifactId>MagixLanguage</artifactId>
+            <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
