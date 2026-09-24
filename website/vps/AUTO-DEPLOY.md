@@ -66,11 +66,11 @@ sudo o chiave non autorizzata).
 Il workflow `.github/workflows/deploy-plugin.yml` fa lo stesso per i **plugin**: a ogni push
 su `main` che tocca `plugins-src/`, compila i plugin cambiati (Maven/JDK 21), copia il jar
 sul VPS in `/home/ubuntu/magicadventure/plugins/` (togliendo la versione vecchia) e **riavvia
-il server** per caricarli, con un **preavviso in chat** ai giocatori online (say a -60s, -20s,
--5s). Lo **stop** si fa con il comando CMI `stopserverfast` (salva e chiude pulito, regola in
-`CLAUDE.md`): `server/start.sh` (`while true; do java ...; done` nello screen `mc`) rilancia poi
-il server da solo, come per il riavvio notturno. `systemctl restart` si usa solo se il server
-è spento (nessuno screen `mc`).
+il server** per caricarli. Lo **stop** si fa con il comando CMI `stopserverfast` (salva e chiude
+pulito, regola in `CLAUDE.md`): il **preavviso in chat** ai giocatori e il conto alla rovescia
+sono già dentro quel comando (CMI), quindi il workflow non li ripete. Poi `server/start.sh`
+(`while true; do java ...; done` nello screen `mc`) rilancia il server da solo, come per il
+riavvio notturno. `systemctl restart` si usa solo se il server è spento (nessuno screen `mc`).
 
 Usa gli **stessi tre secret** del deploy sito. In piu' serve un permesso sudo lato VPS,
 perche' il riavvio usa systemd (come il pulsante "Riavvia" del gestionale):

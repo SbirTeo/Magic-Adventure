@@ -182,30 +182,21 @@ jobs:
           done < "$RUNNER_TEMP/manifest"
           echo "Tutti i $ATTESI jar sono sul VPS."
 
-          # 2) Preavviso ai giocatori (se il server e' su) e stop pulito via CMI stopserverfast
-          #    (start.sh rilancia da solo); systemd solo se il server e' spento.
+          # 2) Riavvio: stop pulito via CMI `stopserverfast`; systemd solo se il server e' spento.
           $SSH 'bash -s' <<'REMOTE'
           set -e
-          # dì manda un COMANDO in console; annuncia manda un MESSAGGIO ai giocatori.
-          # Senza "say" davanti, il preavviso finiva in console come comando inesistente
-          # ("Unknown or incomplete command") e in chat non arrivava niente: il server si
-          # riavviava sotto i piedi di chi stava giocando, senza un avviso.
+          # dì manda un COMANDO nella console del server (screen mc).
           dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
-          annuncia() { dì "say $1"; }
           if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
-            annuncia "[Aggiornamento] Il server si riavvia tra 60 secondi per aggiornare i plugin..."
-            sleep 40
-            annuncia "[Aggiornamento] Riavvio tra 20 secondi..."
-            sleep 15
-            annuncia "[Aggiornamento] Riavvio tra 5 secondi!"
-            sleep 5
-            # REGOLA (CLAUDE.md): lo STOP si fa con il comando CMI `stopserverfast` in console, che
-            # salva tutto e chiude pulito -- NON con un systemctl restart "secco" (SIGTERM). Come per
-            # il riavvio notturno (che manda solo `stop`), lo screen `mc` esegue server/start.sh
-            # (while true; do java ...; done): quando java esce, start.sh rilancia da solo il server
-            # qualche secondo dopo, e i jar nuovi (gia' copiati sopra) vengono caricati.
+            # REGOLA (CLAUDE.md): lo STOP si fa con il comando CMI `stopserverfast`, che salva tutto e
+            # chiude pulito -- NON con un systemctl restart "secco" (SIGTERM). Gli AVVISI ai giocatori
+            # e il conto alla rovescia sono gia' configurati DENTRO il comando stopserverfast (CMI),
+            # quindi qui NON li ripetiamo (altrimenti i giocatori vedono due countdown sovrapposti).
+            # Poi lo screen `mc` esegue server/start.sh (while true; do java ...; done): quando java
+            # esce, start.sh rilancia da solo il server, coi jar nuovi (gia' copiati sopra), come per
+            # il riavvio notturno (che manda solo `stop`).
             dì "stopserverfast"
-            echo "Inviato stopserverfast: start.sh rilancera' il server con i plugin aggiornati."
+            echo "Inviato stopserverfast (avvisi ai giocatori gestiti da CMI); start.sh rilancera' il server."
           else
             # Server non in esecuzione (nessuno screen 'mc'): niente da fermare con stopserverfast,
             # lo si avvia via systemd (il sudoers consente systemctl restart senza password).

@@ -106,6 +106,11 @@ screen `mc`: non c'è nulla da fermare con `stopserverfast`, lo si avvia via sys
 implementato in `deploy-plugin.yml`; qualsiasi nuovo meccanismo di riavvio deve seguire la stessa
 regola.
 
+Gli **avvisi ai giocatori e il conto alla rovescia** sono già configurati **dentro** il comando
+CMI `stopserverfast`: l'automazione **non** deve aggiungere un proprio preavviso (`say`/countdown),
+altrimenti i giocatori vedono due countdown sovrapposti. Manda solo `stopserverfast` e lascia fare
+a CMI.
+
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
 L'auto-deploy dei plugin copia **solo il jar**: i file di config già presenti nella cartella
