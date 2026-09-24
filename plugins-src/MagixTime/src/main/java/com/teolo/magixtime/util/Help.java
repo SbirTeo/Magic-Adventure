@@ -26,9 +26,28 @@ import java.util.List;
  * motivo per cui /mauth, /f, /mentities e /mtime mostrano lo stesso aiuto. Se la si modifica qui,
  * va riportata anche negli altri — vedi plugins-src/STILE-MAGIX.md.
  *
+ * Ogni frase che il giocatore legge (titoli di sezione, spiegazioni, il testo di cornice come
+ * "Clicca per scriverlo") passa da {@link Text}/{@link Lines}, tradotta nella sua lingua se
+ * MagixLanguage c'e' ed e' installato: niente testo scritto a mano qui dentro (vedi CLAUDE.md,
+ * "OGNI TESTO CHE UN GIOCATORE LEGGE VA IN messages.yml"). Le due interfacce esistono apposta
+ * perche' questa classe non puo' importare la classe Messages di UN plugin specifico (altrimenti
+ * non sarebbe piu' lo STESSO file negli altri): chi chiama passa un riferimento a un suo metodo
+ * (es. {@code messages::forPlayer}). Le chiavi di cornice sono sotto help.chrome.* in ciascun
+ * messages.yml.
+ *
  * I colori vengono dal logo del server: il viola di MAGIC e il verde di ADVENTURE.
  */
 public final class Help {
+
+    /** Il testo tradotto per "path" per questo destinatario (di solito Messages.forPlayer). */
+    public interface Text {
+        String get(CommandSender to, String path, String... kv);
+    }
+
+    /** Come {@link Text}, per una chiave il cui valore e' una lista di righe. */
+    public interface Lines {
+        List<String> get(CommandSender to, String path);
+    }
 
     /** Il viola di "MAGIC": il nome del plugin, i titoli, le cose da staff. */
     public static final TextColor PURPLE = TextColor.color(0xC0, 0x46, 0xE8);
@@ -53,8 +72,8 @@ public final class Help {
      *
      * @param comando     il comando, es. "/f claim"
      * @param argomenti   quello che ci va dietro, es. "&lt;nome&gt;"
-     * @param spiegazione a cosa serve, in una riga
-     * @param sezione     il gruppo sotto cui compare (vuoto = nessun titolo)
+     * @param spiegazione a cosa serve, in una riga (gia' tradotta)
+     * @param sezione     il gruppo sotto cui compare, gia' tradotto (vuoto = nessun titolo)
      * @param soloStaff   se la riga si vede solo con il permesso di amministrazione
      */
     public record Entry(String command, String arguments, String explanation,
@@ -80,13 +99,15 @@ public final class Help {
     /**
      * Mostra una pagina dell'elenco.
      *
+     * @param a      chi legge: decide anche in che lingua, tramite text/lines
+     * @param text   il testo di cornice tradotto per un destinatario (di solito messages::forPlayer)
      * @param titolo il nome del plugin, come compare in cima
      * @param radice il comando da cui si sfoglia (per le frecce), es. "/f help"
      * @param voci   tutte le voci; quelle da staff si tolgono a chi non ha il permesso
      * @param pagina la pagina chiesta, a partire da 1
      * @param staff  se chi legge puo' vedere anche i comandi di amministrazione
      */
-    public static void show(CommandSender a, String title, String root,
+    public static void show(CommandSender a, Text text, String title, String root,
                               List<Entry> entries, int page, boolean staff) {
         List<Entry> visible = new ArrayList<>();
         for (Entry v : entries) {
@@ -95,22 +116,22 @@ public final class Help {
             }
         }
         if (visible.isEmpty()) {
-            a.sendMessage(Component.text("Nessun comando disponibile.", GREY));
+            a.sendMessage(Component.text(text.get(a, "help.chrome.no-commands"), GREY));
             return;
         }
 
-        List<List<Component>> pages = paginate(visible);
+        List<List<Component>> pages = paginate(visible, a, text);
         int p = Math.max(1, Math.min(page, pages.size()));
 
         a.sendMessage(header(title, p, pages.size()));
         for (Component row : pages.get(p - 1)) {
             a.sendMessage(row);
         }
-        a.sendMessage(footer(root, p, pages.size()));
+        a.sendMessage(footer(root, p, pages.size(), a, text));
     }
 
     /**
-     * Legge le voci da messages.yml.
+     * Legge le voci da messages.yml, gia' tradotte per chi le vedra'.
      *
      * Il formato di una riga e' "/f claim &lt;nome&gt; :: conquista il territorio": davanti al
      * "::" il comando com'e' da scrivere, dietro la spiegazione. Il primo pezzo e' il comando
@@ -127,7 +148,8 @@ public final class Help {
      *         - "/f claim :: conquista il territorio in cui ti trovi"
      * </pre>
      */
-    public static List<Entry> fromConfig(ConfigurationSection sections) {
+    public static List<Entry> fromConfig(ConfigurationSection sections, CommandSender viewer,
+                                          Text text, Lines lines) {
         List<Entry> entries = new ArrayList<>();
         if (sections == null) {
             return entries;
@@ -137,9 +159,9 @@ public final class Help {
             if (s == null) {
                 continue;
             }
-            String title = s.getString("title", "");
+            String title = text.get(viewer, "help.sections." + key + ".title");
             boolean staffOnly = s.getBoolean("staff", false);
-            for (String row : s.getStringList("entries")) {
+            for (String row : lines.get(viewer, "help.sections." + key + ".entries")) {
                 Entry v = entry(row, title, staffOnly);
                 if (v != null) {
                     entries.add(v);
@@ -149,7 +171,7 @@ public final class Help {
         return entries;
     }
 
-    /** Una riga "comando <args> :: spiegazione" letta da messages.yml. */
+    /** Una riga "comando <args> :: spiegazione" gia' tradotta. */
     private static Entry entry(String row, String section, boolean staffOnly) {
         if (row == null || row.isBlank()) {
             return null;
@@ -189,7 +211,7 @@ public final class Help {
      * niente a nessuno, quindi in quel caso la pagina si chiude prima e il titolo scende insieme
      * alle sue voci. Se una sezione prosegue nella pagina dopo, il titolo si ripete.
      */
-    private static List<List<Component>> paginate(List<Entry> entries) {
+    private static List<List<Component>> paginate(List<Entry> entries, CommandSender a, Text text) {
         List<List<Component>> pages = new ArrayList<>();
         List<Component> current = new ArrayList<>();
         String printedSection = null;
@@ -209,7 +231,7 @@ public final class Help {
                 current.add(sectionTitle(v.section()));
                 printedSection = v.section();
             }
-            current.add(row(v));
+            current.add(row(v, a, text));
         }
         if (!current.isEmpty()) {
             pages.add(current);
@@ -228,7 +250,7 @@ public final class Help {
         return Component.empty().append(rule).append(name).append(counter).append(rule);
     }
 
-    /** Il titolo di un gruppo di comandi. */
+    /** Il titolo di un gruppo di comandi (gia' tradotto). */
     private static Component sectionTitle(String title) {
         return Component.empty()
                 .append(Component.text(" ▸ ", FAINT))
@@ -242,47 +264,51 @@ public final class Help {
      * quasi tutti vogliono un argomento, e mandarli in esecuzione a vuoto produrrebbe solo un
      * messaggio d'errore.
      */
-    private static Component row(Entry v) {
-        Component text = Component.text("  " + v.command(), v.staffOnly() ? PURPLE : GREEN);
+    private static Component row(Entry v, CommandSender a, Text text) {
+        Component component = Component.text("  " + v.command(), v.staffOnly() ? PURPLE : GREEN);
         if (!v.arguments().isEmpty()) {
-            text = text.append(Component.text(" " + v.arguments(), GREY));
+            component = component.append(Component.text(" " + v.arguments(), GREY));
         }
         if (!v.explanation().isEmpty()) {
-            text = text.append(Component.text("  " + v.explanation(), GREY));
+            component = component.append(Component.text("  " + v.explanation(), GREY));
         }
 
-        Component suggestion = Component.text("Clicca per scriverlo", NamedTextColor.WHITE)
+        Component suggestion = Component.text(text.get(a, "help.chrome.click-to-write"), NamedTextColor.WHITE)
                 .append(Component.newline())
                 .append(Component.text(v.command()
                         + (v.arguments().isEmpty() ? "" : " " + v.arguments()), GREEN));
         if (v.staffOnly()) {
             suggestion = suggestion.append(Component.newline())
-                    .append(Component.text("Riservato allo staff", PURPLE));
+                    .append(Component.text(text.get(a, "help.chrome.staff-only"), PURPLE));
         }
 
-        return text
+        return component
                 .clickEvent(ClickEvent.suggestCommand(v.command() + " "))
                 .hoverEvent(HoverEvent.showText(suggestion));
     }
 
     /** Le frecce per sfogliare (spente dove non c'e' nulla) e il promemoria del clic. */
-    private static Component footer(String root, int page, int pages) {
-        Component note = Component.text("clicca un comando per scriverlo", FAINT);
+    private static Component footer(String root, int page, int pages, CommandSender a, Text text) {
+        Component note = Component.text(text.get(a, "help.chrome.click-hint"), FAINT);
         if (pages <= 1) {
             return Component.text("  ").append(note);
         }
 
+        String backLabel = text.get(a, "help.chrome.back");
+        String forwardLabel = text.get(a, "help.chrome.forward");
         Component back = page > 1
-                ? Component.text(" ‹ indietro ", GREEN)
+                ? Component.text(backLabel, GREEN)
                         .clickEvent(ClickEvent.runCommand(root + " " + (page - 1)))
-                        .hoverEvent(HoverEvent.showText(Component.text("Pagina " + (page - 1), GREY)))
-                : Component.text(" ‹ indietro ", FAINT);
+                        .hoverEvent(HoverEvent.showText(Component.text(
+                                text.get(a, "help.chrome.page", "numero", String.valueOf(page - 1)), GREY)))
+                : Component.text(backLabel, FAINT);
 
         Component forward = page < pages
-                ? Component.text(" avanti › ", GREEN)
+                ? Component.text(forwardLabel, GREEN)
                         .clickEvent(ClickEvent.runCommand(root + " " + (page + 1)))
-                        .hoverEvent(HoverEvent.showText(Component.text("Pagina " + (page + 1), GREY)))
-                : Component.text(" avanti › ", FAINT);
+                        .hoverEvent(HoverEvent.showText(Component.text(
+                                text.get(a, "help.chrome.page", "numero", String.valueOf(page + 1)), GREY)))
+                : Component.text(forwardLabel, FAINT);
 
         return Component.empty()
                 .append(Component.text("  "))

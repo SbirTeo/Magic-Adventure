@@ -270,6 +270,39 @@ questi viene promosso a tipo top-level o a file suo, la regola scatta.
 Gira come **git pre-commit** (`.githooks/pre-commit`): un nome italiano nella struttura **blocca
 il commit**. Non aggirarlo: si rinomina.
 
+## OGNI TESTO CHE UN GIOCATORE LEGGE VA IN messages.yml (obbligatorio)
+
+Nessun testo che un giocatore può vedere in chat, in un pannello, in un titolo/action bar o in un
+messaggio di kick va scritto a mano dentro il `.java`: vive in `messages.yml` (o nel file di
+funzione competente, es. `tablist.yml`), con una chiave, e il codice lo legge da lì. Questo vale
+per **tutti** i plugin Magix, non solo per quelli già collegati a MagixLanguageAPI: una stringa
+hardcoded in Java non è mai traducibile, quindi resta per sempre in italiano anche se il giocatore
+ha scelto un'altra lingua — è esattamente il tipo di buco che MagixLanguage non può chiudere da
+solo, per quanto sia fatto bene.
+
+Non è solo una preferenza di stile: è la premessa perché la traduzione automatica funzioni. Una
+chiave in `messages.yml` la sincronizza da sola `TranslationSync` verso `en.yml`/`es.yml`/`de.yml`
+(vedi il capitolo di MagixLanguage); una stringa dentro `sender.sendMessage("...")` non la vede
+nessuno, e resta un buco silenzioso finché qualcuno non lo nota giocando in un'altra lingua (è
+successo davvero con l'elenco comandi di MagixAuth: sembrava tradotto, non lo era per niente).
+
+**Cosa NON è testo del giocatore** (resta pure nel codice): nodi di permesso, nomi di comando,
+chiavi di config, log di console, nomi tecnici (materiali, suoni, permessi) — tutto quello che la
+regola "codice in inglese" qui sopra già copre.
+
+**La classe condivisa `util/Help.java`** (identica in ogni plugin che ce l'ha, vedi
+`plugins-src/STILE-MAGIX.md` §3) fa eccezione alla regola "una chiave per stringa": le sue frasi
+di cornice (`Nessun comando disponibile.`, `Clicca per scriverlo`, `Riservato allo staff`,
+`indietro`/`avanti`...) vivono sotto una manciata di chiavi fisse `help.chrome.*` in ogni
+`messages.yml`, lette e tradotte da `Help` stesso tramite MagixLanguageAPI (softdepend, come ogni
+altro plugin) — non serve toccare `Help.java` per aggiungerne una nuova, la classe le legge per
+nome. Le voci dei comandi (`help.sections.<nome>.entries`) sono liste, tradotte con
+`translateList`, non con `translate`.
+
+Quando si trova una stringa hardcoded in un plugin già "migrato", non è un'eccezione da lasciar
+stare: è lo stesso buco di MagixAuth, e si tratta allo stesso modo — chiave nuova in
+`messages.yml`, lettura tramite MagixLanguageAPI, mai testo diretto nel `.java`.
+
 ## GUIDA E TUTORIAL SEMPRE AGGIORNATI (obbligatorio a ogni modifica)
 
 Ogni modifica che cambia **comportamento, comandi, permessi, regole o chiavi di config** va

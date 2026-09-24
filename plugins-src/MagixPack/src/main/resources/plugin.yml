@@ -4,6 +4,7 @@ main: com.teolo.magixpack.MagixPack
 api-version: '26.1'
 author: teolo
 description: Server unico del resource pack del server, con API generica di registrazione per gli altri plugin Magix.
+softdepend: [MagixLanguage]
 
 commands:
   magixpack:

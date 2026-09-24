@@ -1,0 +1,4 @@
+# Testo che il giocatore (in questo caso lo staff, l'unico che usa /mpack) legge in chat.
+# Tradotto in automatico da MagixLanguage se installato (vedi lang/Messages.java).
+reloaded: "&aMagixPack ricaricato."
+usage: "&eUso: &a/mpack reload"
