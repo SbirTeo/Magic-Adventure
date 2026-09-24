@@ -105,11 +105,14 @@ public final class MagixMusic extends JavaPlugin {
                 // Versione diversa: copia di sicurezza col timestamp, poi aggiorno. Va in .bak/,
                 // fuori da plugins/ sul server, come fa util/ConfigAlign per i suoi file.
                 String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
-                java.io.File pluginsDir = menus.getDataFolder().getParentFile();
+                // Assoluto PRIMA di risalire i genitori: getDataFolder() e' quasi sempre relativo
+                // ("plugins/<Plugin>") su un server vero, e getParentFile() su un singolo segmento
+                // come "plugins" da' null - senza questo il backup finiva sempre accanto al file.
+                java.io.File pluginsDir = menus.getDataFolder().getAbsoluteFile().getParentFile();
                 java.io.File serverRoot = pluginsDir == null ? null : pluginsDir.getParentFile();
                 java.io.File bakDir = serverRoot == null ? dir
                         : new java.io.File(new java.io.File(serverRoot, ".bak"),
-                                pluginsDir.toPath().relativize(dir.toPath()).toString());
+                                pluginsDir.toPath().relativize(dir.getAbsoluteFile().toPath()).toString());
                 if (!bakDir.exists()) bakDir.mkdirs();
                 java.nio.file.Files.copy(target.toPath(),
                         new java.io.File(bakDir, "musica.yml.bak-" + stamp).toPath());

@@ -146,10 +146,13 @@ public final class CmiModules {
      * Modules.yml} -> {@code .bak/CMI/Settings/}) — la stessa struttura che usa {@link ConfigAlign}.
      */
     private static File bakDir(JavaPlugin plugin, File file) {
-        File pluginsDir = plugin.getDataFolder().getParentFile();
+        // Assoluto PRIMA di risalire i genitori: su un server vero getDataFolder() e' quasi sempre
+        // relativo ("plugins/<Plugin>"), e getParentFile() su un singolo segmento come "plugins" da'
+        // null - il ramo di ripiego (copia accanto al file) scattava quindi sempre, anche live.
+        File pluginsDir = plugin.getDataFolder().getAbsoluteFile().getParentFile();
         File serverRoot = pluginsDir == null ? null : pluginsDir.getParentFile();
         if (serverRoot == null) return file.getParentFile();
-        String relative = pluginsDir.toPath().relativize(file.getParentFile().toPath()).toString();
+        String relative = pluginsDir.toPath().relativize(file.getAbsoluteFile().getParentFile().toPath()).toString();
         return relative.isEmpty() ? new File(serverRoot, ".bak") : new File(new File(serverRoot, ".bak"), relative);
     }
 
