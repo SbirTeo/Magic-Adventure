@@ -57,6 +57,11 @@ public final class MagixGuard extends JavaPlugin {
     // profilazione. Gli IP restano di qua, i provvedimenti pubblici di la'.
     private SiteDb siteDb;
     private SanctionsService sanctions;
+    // Letto dal dossier: e' un campo, non una variabile locale di startSanctions(), perche'
+    // wire() (che costruisce il DossierBuilder) gira PRIMA di startSanctions() al primo avvio.
+    // Il dossier lo legge tramite un supplier, cosi' vede il valore vero anche se al momento
+    // in cui e' stato costruito era ancora null.
+    private ViolationsDao violationsDao;
 
     @Override
     public void onEnable() {
@@ -153,6 +158,7 @@ public final class MagixGuard extends JavaPlugin {
             getLogger().warning("Tabella delle violazioni non pronta: " + e.getMessage()
                     + ". I punti non verranno registrati.");
         }
+        this.violationsDao = violations;
         PointsLog log = new PointsLog(violations, cfg);
         Policy policy = new Policy(cfg);
         sanctions = new SanctionsService(this, cfg, dao, log, policy, violations);
@@ -217,7 +223,7 @@ public final class MagixGuard extends JavaPlugin {
         CorrelationEngine engine = new CorrelationEngine(dao, config, scorer, alerts);
         CookieService cookies = new CookieService(this, config.cookieKey, config.cookieEnabled);
         DossierBuilder dossier = new DossierBuilder(dao, config, scorer, getDataFolder(),
-                getPluginMeta().getVersion());
+                getPluginMeta().getVersion(), () -> violationsDao);
 
         collector = new SignalCollector(this, config, dao, dbExecutor, hashing, engine, cookies);
         getServer().getPluginManager().registerEvents(collector, this);
