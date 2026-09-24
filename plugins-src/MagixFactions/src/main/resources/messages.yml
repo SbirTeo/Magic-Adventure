@@ -427,6 +427,17 @@ reload: "&aConfigurazione e messaggi ricaricati."
 #   - staff: true su una sezione = la vede solo chi ha magixfactions.admin.
 help:
   title: "MagixFactions"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
+  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " ‹ indietro "
+    forward: " avanti › "
+    page: "Pagina {numero}"
   sections:
     faction:
       title: "Fazione"

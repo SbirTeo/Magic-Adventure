@@ -1378,7 +1378,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * il comando in chat. I comandi di /mf li vede solo chi ha magixfactions.admin.
      */
     private void help(CommandSender s, int page) {
-        List<Help.Entry> entries = Help.fromConfig(M.section("help.sections"));
+        List<Help.Entry> entries = Help.fromConfig(M.section("help.sections"), s, M::get, M::getList);
         if (entries.isEmpty()) {
             // messages.yml di una versione precedente (elenco piatto): meglio quello che niente.
             for (String line : M.getList(s, "help")) panel(s, line);
@@ -1387,7 +1387,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         }
         ConfigurationSection h = M.section("help");
         String title = h != null ? h.getString("title", "MagixFactions") : "MagixFactions";
-        Help.show(s, title, "/f help", entries, page, s.hasPermission("magixfactions.admin"));
+        Help.show(s, M::get, title, "/f help", entries, page, s.hasPermission("magixfactions.admin"));
     }
 
     // ---- TAB COMPLETION -----------------------------------------------------------------------------
