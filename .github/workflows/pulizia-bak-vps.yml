@@ -1,10 +1,11 @@
 name: Pulizia file .bak sul VPS
 
-# Sposta (NON cancella) tutte le copie di scorta ".bak-<data>" che ConfigAlign (e CmiModules)
-# mettono accanto a un file PRIMA di ogni scrittura — vedi CLAUDE.md, sezione "I CONFIG SUL VPS
-# SONO SEMPRE ALLINEATI AL SORGENTE". Normalmente si autolimitano da sole a 10 copie per file, ma
-# con tanti plugin e tanti riavvii la cartella del server si riempie lo stesso di file che nessuno
-# legge piu'. Non tocca NESSUN file vivo: solo quelli con ".bak-" nel nome.
+# RETE DI SICUREZZA: da quando ConfigAlign, CmiModules e MagixMusic scrivono le copie di scorta
+# gia' dentro magicadventure/.bak/... (vedi CLAUDE.md, sezione "I CONFIG SUL VPS SONO SEMPRE
+# ALLINEATI AL SORGENTE"), questo workflow normalmente non trova piu' niente da spostare: serve
+# solo per i ".bak-<data>" che un altro script (o una versione precedente di quel meccanismo)
+# lascia ancora accanto a un file invece che in .bak/. Non tocca NESSUN file vivo: solo quelli
+# con ".bak-" nel nome.
 #
 # Cerca in TUTTA la cartella principale del server (/home/ubuntu/magicadventure), non solo dentro
 # plugins/: un .bak-... lasciato li' per sbaglio (o da un altro script) rientra comunque.

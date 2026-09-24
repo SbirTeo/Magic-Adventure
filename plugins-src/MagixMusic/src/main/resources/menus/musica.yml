@@ -4,7 +4,8 @@
 #
 #  La riga "menu-version" qui sopra la usa MagixMusic per capire quando il menu è cambiato: se il
 #  numero nel jar è diverso da quello del file sul VPS, MagixMusic aggiorna il file (facendone prima
-#  una copia .bak-<data>). Finché il numero è lo stesso, NON tocca il file: le tue modifiche restano.
+#  una copia in .bak/, fuori da plugins/ sul server). Finché il numero è lo stesso, NON tocca il
+#  file: le tue modifiche restano.
 #
 #  Aprilo in gioco con /musica (o /radiomenu). Da qui il giocatore accende/spegne la radio,
 #  alza o abbassa il volume e sceglie un preset, vedendo il livello in diretta con una barra.
