@@ -366,8 +366,8 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
     private void help(CommandSender sender, int page) {
         org.bukkit.configuration.ConfigurationSection h = messages.section("help");
         String title = h != null ? h.getString("title", "MagixGuard") : "MagixGuard";
-        Help.show(sender, messages::forPlayer, title, "/mg help",
-                Help.fromConfig(messages.section("help.sections"), sender, messages::forPlayer, messages::listForPlayer),
+        Help.show(sender, messages::get, title, "/mg help",
+                Help.fromConfig(messages.section("help.sections"), sender, messages::get, messages::getList),
                 page, sender.hasPermission("magixguard.admin"));
     }
 

@@ -487,6 +487,21 @@ public final class MagixFactions extends JavaPlugin {
                                 + "quindi il primo tentativo mostra solo un avviso rosso con suono di pericolo: per "
                                 + "farlo davvero il comando va ripetuto entro pochi secondi.")
 
+                .section("Attesa di /f home (warmup)",
+                        "/f home non teletrasporta più all'istante: il giocatore deve restare **FERMO** per "
+                                + "{{secondi:home-warmup.seconds}} (config home-warmup.seconds), altrimenti il teletrasporto "
+                                + "si annulla e va ripetuto il comando. Serve a impedire di usarlo come fuga istantanea "
+                                + "in combattimento.",
+                        "La durata si può personalizzare **PER GIOCATORE** col permesso VIP "
+                                + "magixfactions.warmup.home.<secondi> (es. ...home.2 = 2 secondi di attesa, "
+                                + "**...home.0 = istantaneo**, senza attesa). Fra più permessi di questo tipo posseduti "
+                                + "vince il più **BASSO** (il più favorevole); senza nessuno di questi permessi vale il "
+                                + "valore di config. Il teletrasporto amministrativo /mf admin home non ha mai attesa, "
+                                + "warmup o permesso: è uno strumento di staff.",
+                        "**Chi ha magixfactions.admin (di serie lo staff, permesso OP) salta sempre il warmup**, a "
+                                + "prescindere dal config o da un eventuale permesso VIP: /f home resta istantaneo anche "
+                                + "per loro, senza bisogno di aggiungere il permesso VIP a parte.")
+
                 .section("Decadimento: il terreno che si perde da solo",
                         "Da non confondere con la conquista, e i giocatori le confondono. Il **DECADIMENTO** è quando "
                                 + "una fazione tiene più terreno di quanto la sua Potenza regga — succede tipicamente "

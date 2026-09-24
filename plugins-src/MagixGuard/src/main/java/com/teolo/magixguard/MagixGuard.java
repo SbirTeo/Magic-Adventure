@@ -1,6 +1,7 @@
 package com.teolo.magixguard;
 
 import com.teolo.magixguard.util.ConfigAlign;
+import com.teolo.magixguard.lang.Messages;
 import com.teolo.magixguard.alert.AlertService;
 import com.teolo.magixguard.analyze.CorrelationEngine;
 import com.teolo.magixguard.analyze.LinkScorer;
@@ -27,7 +28,6 @@ import com.teolo.magixguard.sanctions.SanctionsListener;
 import com.teolo.magixguard.sanctions.SanctionsService;
 import com.teolo.magixguard.sanctions.SiteSync;
 import com.teolo.magixguard.sanctions.SiteDb;
-import com.teolo.magixguard.lang.Messages;
 import com.teolo.magixguard.util.StaffGuide;
 import com.teolo.magixguard.dossier.DossierBuilder;
 import com.teolo.magixguard.util.Hashing;
@@ -164,7 +164,7 @@ public final class MagixGuard extends JavaPlugin {
         this.violationsDao = violations;
         PointsLog log = new PointsLog(violations, cfg);
         Policy policy = new Policy(cfg);
-        sanctions = new SanctionsService(this, cfg, dao, log, policy, violations);
+        sanctions = new SanctionsService(this, cfg, dao, log, policy, violations, messages);
 
         // Il registro delle violazioni: TUTTO quello che il server nota passa di qui, e da qui
         // escono i punti. I rilevatori qui sotto non sanno niente di soglie e provvedimenti.
@@ -172,9 +172,9 @@ public final class MagixGuard extends JavaPlugin {
         startDetectors(cfg, detector, dao);
 
         getServer().getPluginManager().registerEvents(
-                new SanctionsListener(this, cfg, sanctions, dao), this);
+                new SanctionsListener(this, cfg, sanctions, dao, messages), this);
 
-        SanctionCommands commands = new SanctionCommands(this, cfg, sanctions, dao);
+        SanctionCommands commands = new SanctionCommands(this, cfg, sanctions, dao, messages);
         String[] names = { "ban", "tempban", "mute", "tempmute", "kick", "warn",
                           "unban", "unmute", "history", "sanctions" };
         for (String name : names) {
@@ -187,7 +187,7 @@ public final class MagixGuard extends JavaPlugin {
         // /report lo usano i giocatori, non lo staff: sta a parte anche nel codice.
         org.bukkit.command.PluginCommand cmdReport = getCommand("report");
         if (cmdReport != null) {
-            ReportCommand report = new ReportCommand(this, cfg, sanctions, dao);
+            ReportCommand report = new ReportCommand(this, cfg, sanctions, dao, messages);
             cmdReport.setExecutor(report);
             cmdReport.setTabCompleter(report);
         }
@@ -279,7 +279,7 @@ public final class MagixGuard extends JavaPlugin {
 
         org.bukkit.configuration.ConfigurationSection sezChat = conf.getConfigurationSection("chat");
         if (sezChat == null || sezChat.getBoolean("attivo", true)) {
-            getServer().getPluginManager().registerEvents(new ChatFilter(detector, sezChat), this);
+            getServer().getPluginManager().registerEvents(new ChatFilter(detector, sezChat, messages), this);
             getLogger().info("Filtro chat attivo (spam, insulti, pubblicita', dati personali).");
         }
 
@@ -292,7 +292,7 @@ public final class MagixGuard extends JavaPlugin {
 
         org.bukkit.configuration.ConfigurationSection sezAfk = conf.getConfigurationSection("afk");
         if (sezAfk == null || sezAfk.getBoolean("attivo", true)) {
-            AfkGuard afk = new AfkGuard(this, detector, sezAfk);
+            AfkGuard afk = new AfkGuard(this, detector, sezAfk, messages);
             getServer().getPluginManager().registerEvents(afk, this);
             afk.start();
             getLogger().info("Anti-AFK attivo (niente guadagni da fermo + caccia ai dispositivi).");
@@ -300,7 +300,7 @@ public final class MagixGuard extends JavaPlugin {
 
         org.bukkit.command.PluginCommand cmd = getCommand("mgviolation");
         if (cmd != null) {
-            cmd.setExecutor(new ViolationCommand(this, detector, dao));
+            cmd.setExecutor(new ViolationCommand(this, detector, dao, messages));
         }
     }
 
