@@ -1,0 +1,132 @@
+# ============================================================================
+#  MagixScoreboard - configurazione
+#  Scoreboard laterale con placeholder PlaceholderAPI (compresi quelli degli
+#  altri plugin Magix) e condizioni di permesso/mondo/regione WorldGuard, con
+#  un peso a decidere quale mostrare quando piu' di una corrisponde.
+#  Documentazione completa: plugins/MagixScoreboard/README.md
+# ============================================================================
+
+# Interruttore generale: a false nessuno vede nessuna scoreboard (utile per
+# disattivare il plugin senza disinstallarlo).
+enabled: true
+
+# Ogni quanti tick (20 = 1 secondo) il plugin ricalcola la scoreboard giusta per
+# ogni giocatore online e fa avanzare le animazioni. Gli "interval-ticks" di
+# titolo e righe (piu' sotto) sono multipli di questo: metterli piu' bassi di
+# questo valore non li rende piu' fluidi, perche' l'avanzamento avviene solo a
+# ogni giro di questo orologio. Un valore piu' basso qui aggiorna tutto con piu'
+# precisione ma ricalcola le condizioni (permesso/mondo/regione) piu' spesso.
+update-interval-ticks: 10
+
+# In caso di PARITA' di peso fra piu' scoreboard che corrispondono allo stesso
+# giocatore, decide quale vince: l'elenco va dal piu' specifico al meno
+# specifico. Valori ammessi (uno o piu', in qualunque ordine):
+#   region     -> ha una condizione "regions" (si trova in una di quelle regioni WorldGuard)
+#   permission -> ha una condizione "permission" (ha quel permesso)
+#   world      -> ha una condizione "worlds" (si trova in uno di quei mondi)
+# Di serie una regione batte un permesso, che batte un mondo. Una scoreboard che
+# unisce piu' condizioni somma i punti di ciascuna, quindi vince comunque su chi
+# ne ha una sola piu' in basso in questo elenco. A parita' anche di questo, vince
+# la prima scoreboard definita qui sotto.
+priority-order:
+  - region
+  - permission
+  - world
+
+# ----------------------------------------------------------------------------
+# LE SCOREBOARD
+# ----------------------------------------------------------------------------
+# Una voce per scoreboard, con una chiave libera (qui "default", "vip", "spawn"):
+#
+#   enabled    : true/false, per disattivarne una senza cancellarla
+#   weight     : il peso; a parita' di condizioni soddisfatte vince quella col
+#                valore PIU' ALTO. Una scoreboard senza nessuna condizione
+#                (permission/worlds/regions tutti vuoti) fa da riserva per chi
+#                non rientra in nessun'altra: dalle un peso basso.
+#   permission : nodo di permesso richiesto ("" = nessuno)
+#   worlds     : elenco di mondi richiesti (vuoto = qualunque mondo)
+#   regions    : elenco di ID di regioni WorldGuard richieste — basta trovarsi in
+#                UNA delle regioni elencate (vuoto = qualunque posizione; con
+#                WorldGuard non installato queste condizioni non corrispondono mai)
+#   title      : il titolo, con interval-ticks + frames (vedi sotto)
+#   lines      : le righe, dall'alto verso il basso (max 15, il limite di
+#                Minecraft), ognuna con interval-ticks + frames
+#
+# "frames" e' l'elenco dei testi che si alternano in quello slot (titolo o riga):
+# con un solo elemento lo slot e' fisso (i placeholder si aggiornano comunque a
+# ogni update-interval-ticks), con piu' elementi il plugin li alterna IN ORDINE
+# ogni "interval-ticks" tick, tornando al primo dopo l'ultimo — sia per una
+# scritta che "respira" (frame quasi identici, es. un puntino che si sposta) sia
+# per righe del tutto diverse che si alternano nello stesso posto (es. saldo e
+# ping a turno). Il conteggio dei tick e' lo stesso per tutti i giocatori: due
+# che vedono la stessa animazione la vedono sincronizzata, non ognuno per conto
+# suo. I placeholder sono quelli di PlaceholderAPI: sia quelli standard
+# (%player_name%, %server_online%...) sia quelli degli altri plugin Magix, che
+# si espongono ognuno come propria expansion (%magixfactions_...%,
+# %magixtime_...%, %magixweb_...%...) senza bisogno di configurarli qui.
+scoreboards:
+  default:
+    enabled: true
+    weight: 0
+    permission: ""
+    worlds: []
+    regions: []
+    title:
+      interval-ticks: 20
+      frames:
+        - "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE"
+    lines:
+      - interval-ticks: 20
+        frames:
+          - "&7Giocatore: &f%player_name%"
+      - interval-ticks: 20
+        frames:
+          - "&7Online: &f%server_online%&7/&f%server_max_players%"
+      - interval-ticks: 60
+        frames:
+          - "&8&m                     "
+          - "&7magicadventure.it"
+
+  vip:
+    enabled: true
+    # Peso piu' alto del default: chi ha il permesso vede questa al posto della
+    # scoreboard di riserva.
+    weight: 10
+    permission: "magixscoreboard.board.vip"
+    worlds: []
+    regions: []
+    title:
+      interval-ticks: 20
+      frames:
+        - "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7VIP"
+    lines:
+      - interval-ticks: 20
+        frames:
+          - "&7Saldo: &a%vault_eco_balance_formatted%"
+      # Due frame diversi che si alternano nello stesso posto ogni 40 tick (2s).
+      - interval-ticks: 40
+        frames:
+          - "&7Uccisioni: &c%statistic_player_kills%"
+          - "&7Morti: &c%statistic_deaths%"
+
+  spawn:
+    enabled: true
+    # Stesso peso di "vip": a parita' di peso decide priority-order, e "region"
+    # viene prima di "permission", quindi chi e' allo spawn vede questa anche se
+    # ha anche il permesso della VIP.
+    weight: 10
+    permission: ""
+    worlds: []
+    regions:
+      - "spawn"
+    title:
+      interval-ticks: 20
+      frames:
+        - "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7Spawn"
+    lines:
+      - interval-ticks: 20
+        frames:
+          - "&7Benvenuto su MagicAdventure!"
+      - interval-ticks: 20
+        frames:
+          - "&7Online: &f%server_online%&7/&f%server_max_players%"
