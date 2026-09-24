@@ -105,9 +105,12 @@ public final class ItemBuilder {
         }
 
         if (def.title() != null) {
-            meta.displayName(senzaCorsivo(Colors.component(Text.apply(p, variabili, def.title()))));
+            meta.displayName(senzaCorsivo(Colors.component(Text.apply(p, variabili, Text.translated(p, def.title())))));
         }
-        List<String> description = new ArrayList<>(def.description());
+        List<String> description = new ArrayList<>();
+        for (String line : def.description()) {
+            description.add(Text.translated(p, line));
+        }
         if (perIlMenu && def.articolo()
                 && plugin.getConfig().getBoolean("price-in-lore", true)) {
             // Il prezzo si scrive da solo in fondo alla descrizione: scritto a mano finirebbe in

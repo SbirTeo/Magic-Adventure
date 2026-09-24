@@ -5,7 +5,7 @@ provenienza (GeoIP sull'IP di ingresso) e tiene sincronizzata una traduzione dei
 altri plugin Magix, cosi' chi lo desidera puo' rispondere gia' nella lingua giusta invece di
 sempre e solo in italiano.
 
-Versione: **0.2.3** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
+Versione: **0.3.0** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
 avvio del server.
 
 ---
@@ -48,6 +48,21 @@ Le chiavi che la traduzione automatica non riesce a tradurre (rete, quota giorna
 esaurita) restano temporaneamente in italiano e finiscono in
 `translations/TRANSLATION-FAILED-<lingua>.txt`, rigenerato ad ogni sincronizzazione: si riprova da
 sola al giro successivo, senza bisogno di intervenire.
+
+**Il testo dei MENU (MagixMenus).** `messages.yml` copre i comandi di un plugin, ma i menu vivono
+in file YAML liberi (`plugins/MagixMenus/menus/*.yml`) senza chiavi stabili: il nome di un item e'
+un identificatore tecnico, non una frase. Per questo il testo dei menu si traduce per **FRASE**
+invece che per chiave: ogni riga italiana (titolo del menu, nome/descrizione di un item, corpo e
+bottoni di una finestra di dialogo, il testo dentro `message:`/`broadcast:`/`title:`/`actionbar:`)
+diventa la propria chiave, e chi la mostra manda la stessa frase italiana alla ricerca — se c'e' una
+traduzione la usa, altrimenti resta in italiano. Materiali, permessi, equazioni, suoni, nomi di menu
+e comandi non vengono mai toccati. I file (per plugin, per lingua) sono
+`translations/<Plugin>/menu-phrases-<lingua>.yml` (generato) e
+`translations/<Plugin>/menu-phrases-<lingua>-overrides.yml` (le correzioni dello staff: qui la
+chiave e' la frase italiana esatta, non un percorso — funziona anche per una frase che la scansione
+automatica non ha trovato da sola, es. dentro un blocco `if/then/else` di un'azione). Le chiavi
+tradotte/mancanti dei menu sono gia' incluse nei numeri di `/language status` e nel log di
+sincronizzazione, insieme a quelle di `messages.yml`.
 
 **Nessuna traduzione automatica dei messaggi in gioco.** MagixLanguage non intercetta i messaggi
 degli altri plugin da solo: mette a disposizione i cataloghi tradotti tramite `MagixLanguageAPI`

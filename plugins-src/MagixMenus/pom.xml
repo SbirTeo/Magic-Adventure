@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixMenus</artifactId>
-    <version>0.1.13</version>
+    <version>0.1.14</version>
     <packaging>jar</packaging>
 
     <name>MagixMenus</name>
@@ -76,7 +76,7 @@
         <dependency>
             <groupId>com.teolo</groupId>
             <artifactId>MagixLanguage</artifactId>
-            <version>0.2.3</version>
+            <version>0.3.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

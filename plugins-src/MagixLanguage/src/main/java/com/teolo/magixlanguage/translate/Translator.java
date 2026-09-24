@@ -34,9 +34,13 @@ public final class Translator {
 
     private static final String ENDPOINT = "https://api.mymemory.translated.net/get";
 
-    /** {chiave}, &#RRGGBB, &<colore>, \n letterale (due caratteri, gestito da Colors.translate). */
+    /** {chiave}, %chiave% (PlaceholderAPI, usato nei menu di MagixMenus), &#RRGGBB, &<colore>,
+     *  \n letterale (due caratteri, gestito da Colors.translate), | (separatore, es. nei titoli
+     *  "Grande|piccolo" di MagixMenus: senza protezione un servizio di traduzione puo' spostarlo
+     *  o toglierlo). */
     private static final Pattern TOKEN = Pattern.compile(
-            "\\{[a-zA-Z0-9_]+}" + "|&#[0-9a-fA-F]{6}" + "|&[0-9a-fk-orA-FK-OR]" + "|\\\\n");
+            "\\{[a-zA-Z0-9_]+}" + "|%[a-zA-Z0-9_]+%" + "|&#[0-9a-fA-F]{6}" + "|&[0-9a-fk-orA-FK-OR]"
+                    + "|\\\\n" + "|\\|");
 
     private static final Pattern TRANSLATED_TEXT = Pattern.compile("\"translatedText\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
     private static final Pattern RESPONSE_STATUS = Pattern.compile("\"responseStatus\"\\s*:\\s*\"?(\\d+)\"?");

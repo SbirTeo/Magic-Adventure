@@ -215,6 +215,21 @@ public final class MagixMenus extends JavaPlugin {
                                 + "spenta nel config e va lasciata spenta: quasi sempre console: fa la stessa "
                                 + "cosa senza dare niente a nessuno.")
 
+                .section("Il testo dei menu si traduce da solo (con MagixLanguage installato)",
+                        "Titolo del menu, nome e descrizione di ogni item, corpo/bottoni/campi delle finestre "
+                                + "di dialogo, e il testo scritto dentro message:/broadcast:/title:/actionbar: "
+                                + "(comprese le versioni negate di show_requirements/click_requirements/"
+                                + "open_requirements) vengono tradotti in automatico per chi gioca in un'altra "
+                                + "lingua — senza scrivere niente in piu' nel file del menu.",
+                        "A differenza di messages.yml qui non c'e' una chiave: la ricerca avviene sulla "
+                                + "FRASE italiana esatta (placeholder %tipo_questo% compresi). Per correggere "
+                                + "una traduzione, o per tradurre a mano una frase che l'automatismo non trova da "
+                                + "solo (es. dentro un blocco if/then/else di un'azione), si aggiunge la frase "
+                                + "italiana esatta in plugins/MagixLanguage/translations/MagixMenus/"
+                                + "menu-phrases-<lingua>-overrides.yml.",
+                        "Materiali, permessi, equazioni, nomi di suono, di menu e di comando NON vengono mai "
+                                + "toccati: solo il testo che un giocatore legge davvero passa dalla traduzione.")
+
                 .detailedCommands()
                 .commands()
                 .permissions()
@@ -245,6 +260,15 @@ public final class MagixMenus extends JavaPlugin {
                 .issue("Nel menu si legge %qualcosa% invece di un valore",
                         "Quel placeholder non esiste o PlaceholderAPI non ha l'espansione che lo fornisce. "
                                 + "Verifica con /papi parse me %quel_placeholder%.")
+                .issue("Un giocatore straniero vede ancora il menu in italiano",
+                        "MagixLanguage deve essere installato e quel testo gia' tradotto: la prima volta puo' "
+                                + "volerci fino al prossimo /language sync o riavvio. Con /language status si vede "
+                                + "quante frasi di questo plugin sono ancora mancanti.")
+                .issue("Una traduzione di un menu non convince",
+                        "Si corregge SENZA toccare i file del menu: si aggiunge la STESSA frase italiana (esatta, "
+                                + "placeholder compresi) in plugins/MagixLanguage/translations/MagixMenus/"
+                                + "menu-phrases-<lingua>-overrides.yml. Vince sempre lei, anche se il testo "
+                                + "italiano del menu cambia di nuovo in seguito.")
                 .issue("Un articolo del negozio non fa niente quando lo clicco",
                         "Guarda in chat: il plugin dice sempre perche' (soldi insufficienti, inventario "
                                 + "pieno, niente economia sul server). Se non dice niente, l'item non ha "

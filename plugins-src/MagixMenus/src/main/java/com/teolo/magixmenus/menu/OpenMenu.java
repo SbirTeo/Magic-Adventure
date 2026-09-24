@@ -77,7 +77,7 @@ public final class OpenMenu implements InventoryHolder, Context {
 
     void open() {
         net.kyori.adventure.text.Component title =
-                Colors.component(Text.raw(player, variabili, def.title()));
+                Colors.component(Text.raw(player, variabili, Text.translated(player, def.title())));
         try {
             inventario = def.type().customRows()
                     ? Bukkit.createInventory(this, def.dimensione(), title)
@@ -223,7 +223,7 @@ public final class OpenMenu implements InventoryHolder, Context {
         if (player.getOpenInventory().getTopInventory() != inventario) {
             return;
         }
-        String nuovo = Colors.translate(Text.raw(player, variabili, def.title()));
+        String nuovo = Colors.translate(Text.raw(player, variabili, Text.translated(player, def.title())));
         try {
             if (!nuovo.equals(player.getOpenInventory().getTitle())) {
                 player.getOpenInventory().setTitle(nuovo);
