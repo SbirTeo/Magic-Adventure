@@ -160,7 +160,7 @@ function current_user(): ?array {
     static $user = false; // false = non ancora calcolato
     if ($user === false) {
         if (!empty($_SESSION['user_id'])) {
-            $stmt = db()->prepare('SELECT u.*, ' . RANK_SELECT_SQL . ', r.groups_json, r.mc_username AS nome_gioco FROM users u' . rank_join_sql() . ' WHERE u.id = ?');
+            $stmt = db()->prepare('SELECT u.*, ' . RANK_SELECT_SQL . ', r.groups_json, r.mc_username AS nome_gioco, r.language FROM users u' . rank_join_sql() . ' WHERE u.id = ?');
             $stmt->execute([$_SESSION['user_id']]);
             $user = $stmt->fetch() ?: null;
 

@@ -82,4 +82,25 @@ public interface MagixLanguageAPI {
      * @param italianText il testo italiano esatto, cosi' com'e' scritto nel file del menu
      */
     String translatePhrase(String pluginName, Player player, String italianText);
+
+    /**
+     * Traduce un LOTTO di frasi qualsiasi (non del catalogo di un plugin, non passate da un
+     * giocatore) verso una lingua target — pensato per il sito, che accoda frasi in
+     * {@code site_translations} e chiede a MagixLanguage di smaltirle un tanto alla volta, con
+     * lo stesso servizio (MyMemory) e la stessa configurazione ({@code translations.auto-translate})
+     * gia' usata per i plugin.
+     *
+     * <p>Una sola chiamata per tutto il lotto condivide un solo {@link
+     * com.teolo.magixlanguage.translate.Translator}, quindi un solo "circuit breaker": se il
+     * servizio comincia a rifiutare le richieste (quota finita, rete giu') ci si ferma per il
+     * resto del lotto invece di ritentare una volta per frase.
+     *
+     * @param italianTexts  le frasi italiane da tradurre, cosi' come sono (nessun placeholder da
+     *                      preservare: sono testo del sito, non messaggi di gioco)
+     * @param targetLanguage lingua di destinazione (es. "en"); "it" o un valore vuoto/non
+     *                       supportato restituiscono una mappa vuota senza chiamare il servizio
+     * @return  frase italiana -> traduzione, presente SOLO per le frasi tradotte con successo;
+     *          chi chiama ricade sul testo italiano per quelle mancanti
+     */
+    Map<String, String> translateRawBatch(List<String> italianTexts, String targetLanguage);
 }
