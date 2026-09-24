@@ -42,10 +42,18 @@ public final class Translator {
     private static final Pattern RESPONSE_STATUS = Pattern.compile("\"responseStatus\"\\s*:\\s*\"?(\\d+)\"?");
     private static final Pattern QUOTA_FINISHED = Pattern.compile("\"quotaFinished\"\\s*:\\s*(true|false)");
 
+    /** Dopo tante chiamate fallite DI FILA (429, quota, rete) si smette di provare per il resto
+     *  di questa sincronizzazione, invece di martellare il servizio senza pause fra un fallimento
+     *  e l'altro (il delay configurato scatta solo intorno a un tentativo vero): si riprova tutto
+     *  da capo alla sincronizzazione successiva, quando l'istanza sara' un'altra. */
+    private static final int MAX_CONSECUTIVE_FAILURES = 3;
+
     private final HttpClient client;
     private final int timeoutMillis;
     private final Logger log;
     private final String contactEmail;
+    private int consecutiveFailures;
+    private boolean circuitOpen;
 
     public Translator(int timeoutMillis, Logger log) {
         this(timeoutMillis, log, null);
@@ -68,15 +76,35 @@ public final class Translator {
 
     /**
      * Il testo tradotto verso {@code targetLang} (es. "en", "es", "de"), o {@code null} se il
-     * servizio non ha risposto in tempo o ha risposto in un modo che non sappiamo leggere.
+     * servizio non ha risposto in tempo, ha risposto in un modo che non sappiamo leggere, o si
+     * e' smesso di provare per questa sincronizzazione (vedi {@link #isAvailable()}).
      */
     public String translate(String italianText, String targetLang) {
         if (italianText == null || italianText.isBlank()) {
             return italianText;
         }
+        if (circuitOpen) {
+            return null;
+        }
         Protected protectedText = protect(italianText);
-        String translated = call(protectedText.text, targetLang);
-        return translated == null ? null : restore(translated, protectedText.tokens);
+        String raw = call(protectedText.text, targetLang);
+        if (raw == null) {
+            if (++consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+                circuitOpen = true;
+                log.warning("MagixLanguage: " + MAX_CONSECUTIVE_FAILURES + " traduzioni di fila fallite "
+                        + "(probabile limite del servizio raggiunto): interrotta la traduzione automatica per "
+                        + "il resto di questa sincronizzazione, le chiavi restanti restano in italiano e si "
+                        + "riprova dal prossimo /language sync o riavvio.");
+            }
+            return null;
+        }
+        consecutiveFailures = 0;
+        return restore(raw, protectedText.tokens);
+    }
+
+    /** Se false, {@link #translate} non prova nemmeno piu' la rete: vedi {@link #MAX_CONSECUTIVE_FAILURES}. */
+    public boolean isAvailable() {
+        return !circuitOpen;
     }
 
     private String call(String text, String targetLang) {

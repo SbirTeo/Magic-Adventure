@@ -154,7 +154,15 @@ public final class TranslationSync {
                 result.put(key, italianValue); // traduzione spenta di proposito: non e' un fallimento da segnalare
                 continue;
             }
+            if (!translator.isAvailable()) {
+                // troppi fallimenti di fila in questa sincronizzazione (vedi Translator): niente altre
+                // chiamate di rete ne' attese inutili, si riprova tutto dal prossimo giro.
+                result.put(key, italianValue);
+                failuresForLang.add(pluginName + ": " + key);
+                continue;
+            }
             Object translated = translateValue(translator, italianValue, lang);
+            if (delayMs > 0) sleepQuietly(delayMs); // sempre, dopo un vero tentativo di rete: successo o fallimento
             if (translated == null) {
                 result.put(key, italianValue); // ripiego: italiano, si riprova al prossimo giro (non va in cache)
                 failuresForLang.add(pluginName + ": " + key);
@@ -163,7 +171,6 @@ public final class TranslationSync {
                 newCacheSource.put(key, italianValue);
                 newCacheTranslated.put(key, translated);
                 totals.translated++;
-                if (delayMs > 0) sleepQuietly(delayMs);
             }
         }
 
