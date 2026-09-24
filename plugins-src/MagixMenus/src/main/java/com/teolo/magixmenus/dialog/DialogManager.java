@@ -82,7 +82,7 @@ public final class DialogManager {
 
         List<DialogBody> body = new ArrayList<>();
         for (String row : dlg.body()) {
-            body.add(DialogBody.plainMessage(Colors.component(Text.raw(p, variabili, row)), 300));
+            body.add(DialogBody.plainMessage(Colors.component(Text.raw(p, variabili, Text.translated(p, row))), 300));
         }
 
         List<DialogInput> fields = new ArrayList<>();
@@ -101,7 +101,7 @@ public final class DialogManager {
             bottoni.add(bottone(p, variabili, b, context));
         }
 
-        DialogBase base = DialogBase.builder(Colors.component(Text.raw(p, variabili, def.title())))
+        DialogBase base = DialogBase.builder(Colors.component(Text.raw(p, variabili, Text.translated(p, def.title()))))
                 .canCloseWithEscape(def.freeClose())
                 .pause(dlg.pauseUpdates())
                 .body(body)
@@ -121,7 +121,7 @@ public final class DialogManager {
     // ------------------------------------------------------------------- pezzi
 
     private DialogInput field(Player p, Map<String, String> variabili, MenuDialog.Field c) {
-        String label = Text.raw(p, variabili, c.label());
+        String label = Text.raw(p, variabili, Text.translated(p, c.label()));
         switch (c.type()) {
             case TEXT -> {
                 TextDialogInput.Builder b = DialogInput.text(c.key(), Colors.component(label))
@@ -151,9 +151,15 @@ public final class DialogManager {
             case CHOICE -> {
                 List<SingleOptionDialogInput.OptionEntry> entries = new ArrayList<>();
                 for (int i = 0; i < c.opzioni().size(); i++) {
-                    String o = Text.raw(p, variabili, c.opzioni().get(i));
-                    entries.add(SingleOptionDialogInput.OptionEntry.create(o, Colors.component(o),
-                            i == 0 || o.equalsIgnoreCase(c.iniziale())));
+                    // Il VALORE resta quello italiano scritto nel file (e' quello che finisce in
+                    // %field_x% e quello con cui si confronta il default): solo il testo che si
+                    // vede nel bottone cambia lingua, altrimenti un default o un'azione che
+                    // confronta "%field_colore% == verde" smetterebbe di funzionare per chi
+                    // gioca in un'altra lingua.
+                    String value = Text.raw(p, variabili, c.opzioni().get(i));
+                    String shown = Text.raw(p, variabili, Text.translated(p, c.opzioni().get(i)));
+                    entries.add(SingleOptionDialogInput.OptionEntry.create(value, Colors.component(shown),
+                            i == 0 || value.equalsIgnoreCase(c.iniziale())));
                 }
                 return DialogInput.singleOption(c.key(), Colors.component(label), entries)
                         .width(larghezza(c.larghezza()))
@@ -178,10 +184,10 @@ public final class DialogManager {
     private ActionButton bottone(Player p, Map<String, String> variabili, MenuDialog.Bottone b,
                                  Context context) {
         ActionButton.Builder builder = ActionButton
-                .builder(Colors.component(Text.raw(p, variabili, b.label())))
+                .builder(Colors.component(Text.raw(p, variabili, Text.translated(p, b.label()))))
                 .width(Math.max(1, Math.min(1024, b.larghezza())));
         if (b.suggestion() != null && !b.suggestion().isBlank()) {
-            builder.tooltip(Colors.component(Text.raw(p, variabili, b.suggestion())));
+            builder.tooltip(Colors.component(Text.raw(p, variabili, Text.translated(p, b.suggestion()))));
         }
 
         ClickCallback.Options opzioni = ClickCallback.Options.builder()

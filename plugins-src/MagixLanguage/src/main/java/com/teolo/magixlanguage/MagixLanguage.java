@@ -6,6 +6,7 @@ import com.teolo.magixlanguage.geo.GeoLookup;
 import com.teolo.magixlanguage.hook.MagixLanguagePlaceholders;
 import com.teolo.magixlanguage.lang.Messages;
 import com.teolo.magixlanguage.listener.LoginListener;
+import com.teolo.magixlanguage.translate.MenuPhraseSync;
 import com.teolo.magixlanguage.translate.PlayerLocales;
 import com.teolo.magixlanguage.translate.TranslationSync;
 import com.teolo.magixlanguage.util.ConfigAlign;
@@ -49,6 +50,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
     /** pluginName -> lingua -> chiave.puntata -> testo. Svuotata a ogni reload/sync: si ricarica da sola. */
     private final Map<String, Map<String, Map<String, Object>>> catalogCache = new ConcurrentHashMap<>();
+
+    /** pluginName -> lingua -> hash della frase -> testo tradotto. Vedi {@link #translatePhrase}. */
+    private final Map<String, Map<String, Map<String, String>>> menuPhraseCache = new ConcurrentHashMap<>();
 
     @Override
     public void onEnable() {
@@ -97,6 +101,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         messages.reload();
         geo = buildGeoLookup();
         catalogCache.clear();
+        menuPhraseCache.clear();
         getLogger().info("Configurazione ricaricata.");
     }
 
@@ -196,6 +201,43 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         new File(getDataFolder(), "translations/" + pluginName + "/" + l + ".yml")));
     }
 
+    @Override
+    public String translatePhrase(String pluginName, Player player, String italianText) {
+        if (italianText == null || italianText.isBlank()) {
+            return null;
+        }
+        String lang = language(player);
+        if (lang.equals("it")) {
+            return null; // niente da tradurre verso l'italiano stesso
+        }
+        Map<String, String> catalog = menuPhraseCatalog(pluginName, lang);
+        return catalog.get(MenuPhraseSync.hash(italianText));
+    }
+
+    private Map<String, String> menuPhraseCatalog(String pluginName, String lang) {
+        return menuPhraseCache
+                .computeIfAbsent(pluginName, k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(lang, l -> loadMenuPhraseCatalog(
+                        new File(getDataFolder(), "translations/" + pluginName + "/menu-phrases-" + l + ".yml")));
+    }
+
+    /** hash -> testo tradotto. Il testo sorgente e' li' solo per uso umano, qui non serve. */
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> loadMenuPhraseCatalog(File f) {
+        if (!f.isFile()) {
+            return Map.of();
+        }
+        Map<String, Object> raw = TranslationSync.loadFlatCatalog(f);
+        Map<String, String> out = new java.util.HashMap<>();
+        for (Map.Entry<String, Object> e : raw.entrySet()) {
+            if (e.getKey().endsWith(".translated") && e.getValue() instanceof String s) {
+                String hash = e.getKey().substring(0, e.getKey().length() - ".translated".length());
+                out.put(hash, s);
+            }
+        }
+        return out;
+    }
+
     private static String apply(String text, Map<String, String> placeholders) {
         if (placeholders == null || placeholders.isEmpty()) {
             return text;
@@ -254,6 +296,21 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "con MagixLanguageAPI.translate(nomePlugin, giocatore, chiave, segnaposti): senza "
                                 + "quella chiamata, quel plugin continua a parlare solo in italiano come sempre — "
                                 + "MagixLanguage non intercetta i messaggi di nessuno da solo.")
+
+                .section("I menu di MagixMenus: traduzione per FRASE, non per chiave",
+                        "plugins/MagixMenus/menus/*.yml non ha chiavi stabili come messages.yml (il nome di "
+                                + "un item e' un identificatore tecnico, non una frase): il titolo del menu, il "
+                                + "nome/descrizione di ogni item, il corpo e i bottoni delle finestre di dialogo, "
+                                + "e il testo dentro message:/broadcast:/title:/actionbar: vengono scanditi e "
+                                + "tradotti per il TESTO stesso, non per un percorso. MagixLanguageAPI.translatePhrase "
+                                + "riceve la stessa frase italiana e la cerca. Materiali, permessi, equazioni, "
+                                + "suoni e nomi di comando non vengono mai toccati.",
+                        "I file sono translations/<Plugin>/menu-phrases-<lingua>.yml (generato) e "
+                                + "menu-phrases-<lingua>-overrides.yml (correzioni: qui la chiave e' la frase "
+                                + "italiana esatta, non un percorso — funziona anche per una frase che la scansione "
+                                + "non trova da sola, es. dentro un blocco if/then/else). Le azioni condizionali "
+                                + "non vengono scandite in automatico per non dover ricostruire qui la logica di "
+                                + "lettura di MagixMenus: si aggiunge la frase a mano nel file overrides se serve.")
 
                 .detailedCommands()
                 .commands()

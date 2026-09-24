@@ -92,6 +92,7 @@ public final class TranslationSync {
         for (String lang : targetLanguages) failures.put(lang, new ArrayList<>());
         Map<String, PluginStats> perPlugin = new LinkedHashMap<>();
 
+        MenuPhraseSync menuPhraseSync = new MenuPhraseSync(plugin, log);
         for (String pluginName : pluginNames) {
             Map<String, Object> source = readSourceText(pluginsFolder, pluginName, fileNames);
             if (source.isEmpty()) {
@@ -108,14 +109,22 @@ public final class TranslationSync {
                 syncLanguage(catalogDir, pluginName, lang, source, translator, delayMs,
                         autoTranslateEnabled, pluginTotals, failures.get(lang));
             }
-            totals.translated += pluginTotals.translated;
-            totals.reused += pluginTotals.reused;
-            totals.failed += pluginTotals.failed;
-            perPlugin.put(pluginName, new PluginStats(source.size(), pluginTotals.translated,
-                    pluginTotals.reused, pluginTotals.failed));
-            log.info("MagixLanguage: " + pluginName + " (" + source.size() + " chiavi in italiano): "
-                    + pluginTotals.translated + " tradotte ora, " + pluginTotals.reused + " gia' in cache, "
-                    + pluginTotals.failed + " ancora mancanti (su " + targetLanguages.size() + " lingue).");
+            MenuPhraseSync.Stats menuStats = menuPhraseSync.sync(pluginName, targetLanguages, translator,
+                    delayMs, autoTranslateEnabled, failures);
+
+            totals.translated += pluginTotals.translated + menuStats.translated();
+            totals.reused += pluginTotals.reused + menuStats.reused();
+            totals.failed += pluginTotals.failed + menuStats.missing();
+            perPlugin.put(pluginName, new PluginStats(source.size() + menuStats.totalPhrases(),
+                    pluginTotals.translated + menuStats.translated(),
+                    pluginTotals.reused + menuStats.reused(),
+                    pluginTotals.failed + menuStats.missing()));
+            log.info("MagixLanguage: " + pluginName + " (" + source.size() + " chiavi in italiano"
+                    + (menuStats.totalPhrases() > 0 ? " + " + menuStats.totalPhrases() + " frasi di menu" : "")
+                    + "): " + (pluginTotals.translated + menuStats.translated()) + " tradotte ora, "
+                    + (pluginTotals.reused + menuStats.reused()) + " gia' in cache, "
+                    + (pluginTotals.failed + menuStats.missing()) + " ancora mancanti (su "
+                    + targetLanguages.size() + " lingue).");
         }
 
         int failureTotal = writeFailureReports(translationsRoot, failures);

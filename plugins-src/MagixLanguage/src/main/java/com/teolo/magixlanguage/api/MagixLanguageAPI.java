@@ -67,4 +67,19 @@ public interface MagixLanguageAPI {
 
     /** Come {@link #translateList(String, Player, String, Map)}, ma per una lingua scelta a mano. */
     List<String> translateList(String pluginName, String lang, String key, Map<String, String> placeholders);
+
+    /**
+     * Come {@link #translate}, ma per contenuto SENZA una chiave stabile — i menu di MagixMenus,
+     * dove il testo (nome di un item, una riga di lore, un messaggio scritto dentro un'azione)
+     * vive dentro un file YAML libero, non un catalogo chiave-valore come messages.yml.
+     *
+     * <p>La ricerca avviene sul TESTO ITALIANO stesso (placeholder come {@code %player_name%}
+     * compresi, non ancora sostituiti): chi chiama traduce PRIMA di sostituire i placeholder,
+     * esattamente come con {@link #translate}. {@code null} se il catalogo non ha ancora quella
+     * frase (mai vista, o non ancora tradotta): chi chiama ricade sul proprio testo italiano.
+     *
+     * @param pluginName  nome della cartella dati dell'altro plugin (es. "MagixMenus")
+     * @param italianText il testo italiano esatto, cosi' com'e' scritto nel file del menu
+     */
+    String translatePhrase(String pluginName, Player player, String italianText);
 }
