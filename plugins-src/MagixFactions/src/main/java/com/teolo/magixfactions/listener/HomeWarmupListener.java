@@ -18,8 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Attesa immobile prima del teletrasporto di {@code /f home} (config {@code home-warmup.seconds}):
  * muoversi (cambiare blocco, non solo direzione dello sguardo) annulla il teletrasporto in corso.
+ * Un giocatore puo' avere la sua attesa personale col permesso VIP
+ * {@code magixfactions.warmup.home.<secondi>} (es. {@code ...home.0} = istantaneo): fra piu'
+ * permessi di questo tipo posseduti vince il piu' BASSO (il piu' favorevole), stesso principio dei
+ * permessi numerici di {@link com.teolo.magixfactions.manage.PowerManager}.
  */
 public final class HomeWarmupListener implements Listener {
+
+    private static final String PERM_WARMUP = "magixfactions.warmup.home.";
 
     private record Warmup(BukkitTask task, Location from) {}
 
@@ -36,13 +42,28 @@ public final class HomeWarmupListener implements Listener {
         p.sendMessage(M.prefix() + Papi.resolve(p, M.get(p, path, kv)));
     }
 
+    /** Attesa in secondi per QUEL giocatore: il suo permesso piu' favorevole, o il valore di config. */
+    private int warmupSeconds(Player p) {
+        Integer perm = null;
+        for (org.bukkit.permissions.PermissionAttachmentInfo pi : p.getEffectivePermissions()) {
+            if (!pi.getValue()) continue;
+            String n = pi.getPermission();
+            if (!n.startsWith(PERM_WARMUP)) continue;
+            try {
+                int v = Integer.parseInt(n.substring(PERM_WARMUP.length()));
+                if (v >= 0) perm = (perm == null ? v : Math.min(perm, v));
+            } catch (NumberFormatException ignored) {}
+        }
+        return perm != null ? perm : Math.max(0, plugin.getConfig().getInt("home-warmup.seconds", 5));
+    }
+
     /**
-     * Avvia il warmup per il giocatore {@code p}: se {@code home-warmup.seconds} e' 0 (o meno)
-     * esegue {@code onComplete} subito, senza attesa. Un warmup gia' in corso per lo stesso
-     * giocatore viene rimpiazzato (si riparte da capo).
+     * Avvia il warmup per il giocatore {@code p}: se la sua attesa (config o permesso, vedi
+     * {@link #warmupSeconds(Player)}) e' 0 esegue {@code onComplete} subito, senza attesa. Un
+     * warmup gia' in corso per lo stesso giocatore viene rimpiazzato (si riparte da capo).
      */
     public void start(Player p, Runnable onComplete) {
-        int seconds = Math.max(0, plugin.getConfig().getInt("home-warmup.seconds", 5));
+        int seconds = warmupSeconds(p);
         cancel(p.getUniqueId());
         if (seconds <= 0) { onComplete.run(); return; }
         msgKey(p, "home.warmup-start", "seconds", String.valueOf(seconds));

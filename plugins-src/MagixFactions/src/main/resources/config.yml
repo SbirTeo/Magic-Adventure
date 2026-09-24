@@ -238,7 +238,9 @@ sethome-cost:
 # ----------------------- WARMUP /f home ---------------------------
 # Prima del teletrasporto con /f home il giocatore deve restare fermo per questi secondi:
 # muoversi anche di un blocco annulla il teletrasporto (va ripetuto il comando). 0 = teletrasporto
-# istantaneo, senza attesa.
+# istantaneo, senza attesa. Personalizzabile PER GIOCATORE col permesso VIP
+# magixfactions.warmup.home.<secondi> (...home.0 = istantaneo): fra piu' permessi di questo tipo
+# posseduti vince il piu' basso, senza nessuno vale questo valore (vedi plugin.yml).
 home-warmup:
   seconds: 5
 

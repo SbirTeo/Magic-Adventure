@@ -28,8 +28,9 @@ permissions:
   #   magixfactions.power.speed.<percentuale>    velocita' di RECUPERO online (es. ...speed.200 -> doppia)
   #   magixfactions.power.speed.loss.<perc.>     velocita' di PERDITA da offline (...loss.50 -> meta')
   #   magixfactions.members.<numero>             limite membri della fazione (conta quello del LEADER)
+  #   magixfactions.warmup.home.<secondi>        attesa personale di /f home (...home.0 -> istantaneo)
   # Fra piu' permessi dello stesso tipo vince il piu' FAVOREVOLE al giocatore: il numero piu' alto per
-  # tetto/recupero/membri, il piu' BASSO per la perdita. Dettagli e esempi in config.yml, sezione power.
+  # tetto/recupero/membri, il piu' BASSO per la perdita/l'attesa. Dettagli e esempi in config.yml, sezione power.
   magixfactions.chat.hidefactions:
     description: In chat pubblica non mostra il tag fazione del mittente (usa public-format-no-faction anche se e' in una fazione).
     default: op
