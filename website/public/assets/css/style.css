@@ -260,6 +260,13 @@ body.pagina-store {
   letter-spacing: .02em;
 }
 .cambia-lingua > summary::-webkit-details-marker { display: none; }
+.cambia-lingua > summary::marker { display: none; }
+@media (max-width: 900px) {
+  /* Stessa riduzione del pulsante del tema qui affianco: un quadrato fisso invece del
+     pulsante largo, altrimenti sulla barra stretta del telefono spingeva il resto fuori
+     e faceva comparire lo scorrimento orizzontale (era successo davvero: vedi issue). */
+  .cambia-lingua > summary { padding: 0; width: 34px; height: 34px; justify-content: center; font-size: 11.5px; }
+}
 .cambia-lingua-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -268,6 +275,10 @@ body.pagina-store {
   display: flex;
   flex-direction: column;
   min-width: 90px;
+  /* Non deve MAI spingere la pagina piu' larga della finestra: e' assoluto quindi non conta
+     per la larghezza della riga, ma su un telefono strettissimo max-content potrebbe comunque
+     sforare a sinistra del bordo se il pulsante e' vicino al bordo destro. */
+  max-width: calc(100vw - 24px);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -342,7 +353,17 @@ a.who-link {
   .main-nav a { padding: 10px 2px; border-bottom: 1px solid var(--border); }
   .main-nav a.active { border-bottom-color: var(--purple); }
   .btn-nav { align-self: flex-start; margin: 6px 0 0; }
-  .auth-box { margin-left: auto; gap: 8px; font-size: 13px; }
+  .auth-box {
+    margin-left: auto;
+    gap: 8px;
+    font-size: 13px;
+    /* Rete di sicurezza: se un giorno la somma dei pulsanti (nome lungo, piu' lingue...) non
+       ci sta comunque su una riga, va a capo invece di spingere la pagina piu' larga dello
+       schermo (era successo davvero col selettore di lingua: vedi issue). */
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+  }
   .auth-box .btn { padding: 7px 12px; font-size: 12.5px; }
   /* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
   .auth-box .who-link { padding: 3px 12px 3px 3px; }
