@@ -239,8 +239,14 @@ public final class MagixFactions extends JavaPlugin {
         powerManager.setMinimapManager(minimap);
         Bukkit.getOnlinePlayers().forEach(powerManager::reattachMinimap); // dopo /reload
 
+        // Attesa immobile prima del teletrasporto di /f home (config home-warmup.seconds): muoversi
+        // annulla il teletrasporto in corso. Vedi HomeWarmupListener.
+        com.teolo.magixfactions.listener.HomeWarmupListener homeWarmup =
+                new com.teolo.magixfactions.listener.HomeWarmupListener(this, messages);
+        getServer().getPluginManager().registerEvents(homeWarmup, this);
+
         // Comando
-        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager, protection);
+        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager, protection, homeWarmup);
         getCommand("magixfactions").setExecutor(cmd);
         getCommand("magixfactions").setTabCompleter(cmd); // suggerimenti contestuali filtrati sui permessi
 

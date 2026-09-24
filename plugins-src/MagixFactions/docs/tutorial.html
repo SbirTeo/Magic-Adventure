@@ -368,7 +368,9 @@
   <h2><span class="n">10</span>La casa della fazione — <span class="cmd" style="font-size:15px">/f home</span></h2>
   <ol class="steps">
     <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.</li>
-    <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione.</li>
+    <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione dopo
+      <b>{{secondi:home-warmup.seconds}}</b> di attesa immobile: se ti muovi (anche di un blocco) il teletrasporto
+      si annulla e va ripetuto il comando.</li>
     <li><span class="cmd">/f unsethome</span> toglie la casa: la fazione resta senza, e <span class="cmd">/f home</span>
       non porta più da nessuna parte finché non ne imposti un'altra.</li>
   </ol>

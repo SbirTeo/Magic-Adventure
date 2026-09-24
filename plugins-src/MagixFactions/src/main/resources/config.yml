@@ -235,6 +235,13 @@ sethome-cost:
   placeholders: []
   permission: ""
 
+# ----------------------- WARMUP /f home ---------------------------
+# Prima del teletrasporto con /f home il giocatore deve restare fermo per questi secondi:
+# muoversi anche di un blocco annulla il teletrasporto (va ripetuto il comando). 0 = teletrasporto
+# istantaneo, senza attesa.
+home-warmup:
+  seconds: 5
+
 # ----------------------- RINOMINA FAZIONE ------------------------
 # /f rename <nuovonome>: SOLO il leader cambia il nome della fazione. Valgono le stesse regole del nome
 # in creazione (lunghezza, caratteri, cifre, parole vietate, unicita'). Il nuovo nome compare da solo
