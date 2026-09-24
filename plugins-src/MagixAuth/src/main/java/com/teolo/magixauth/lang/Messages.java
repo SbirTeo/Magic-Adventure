@@ -2,6 +2,8 @@ package com.teolo.magixauth.lang;
 
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -12,7 +14,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -72,6 +76,33 @@ public final class Messages {
         return translated != null ? translated : get(path, kv);
     }
 
+    /** Come {@link #get(String, String...)}, tradotto per questo destinatario (usato dai comandi,
+     *  dove esiste sempre un CommandSender; la console resta in italiano, non ha una lingua). */
+    public String get(CommandSender to, String path, String... kv) {
+        return to instanceof Player player ? get(player, path, kv) : get(path, kv);
+    }
+
+    /** Lista di righe, sempre in italiano, con sostituzione placeholder {chiave}. */
+    public List<String> getList(String path, String... kv) {
+        List<String> out = new ArrayList<>();
+        for (String s : cfg.getStringList(path)) {
+            out.add(apply(s, kv));
+        }
+        return out;
+    }
+
+    /** Come {@link #getList(String, String...)}, ma tradotta per questo destinatario (es. l'aiuto). */
+    public List<String> getList(CommandSender to, String path, String... kv) {
+        List<String> translated = to instanceof Player player
+                ? translatedList(player.getUniqueId(), path, kv) : null;
+        return translated != null ? translated : getList(path, kv);
+    }
+
+    /** Sezione grezza di messages.yml (la usa l'aiuto, che e' strutturato a sezioni). */
+    public ConfigurationSection section(String path) {
+        return cfg.getConfigurationSection(path);
+    }
+
     private static String apply(String s, String... kv) {
         for (int i = 0; i + 1 < kv.length; i += 2) s = s.replace("{" + kv[i] + "}", kv[i + 1]);
         return s;
@@ -87,6 +118,18 @@ public final class Messages {
         if ("it".equals(lang)) return null;
         try {
             return api.translate(PLUGIN_NAME, lang, path, toMap(kv));
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private List<String> translatedList(UUID recipient, String path, String... kv) {
+        MagixLanguageAPI api = magixLanguage();
+        if (api == null) return null;
+        String lang = api.language(recipient);
+        if ("it".equals(lang)) return null;
+        try {
+            return api.translateList(PLUGIN_NAME, lang, path, toMap(kv));
         } catch (Throwable t) {
             return null;
         }

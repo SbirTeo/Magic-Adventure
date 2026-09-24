@@ -90,6 +90,16 @@ public final class Messages {
         return Colors.component(get(path, kv));
     }
 
+    /** Il testo di "path" per questo destinatario, SENZA prefisso: per i pannelli come l'aiuto. */
+    public String forPlayer(CommandSender to, String path, String... kv) {
+        return textFor(to, path, kv);
+    }
+
+    /** Come {@link #forPlayer}, ma per una chiave il cui valore e' una lista di righe. */
+    public List<String> listForPlayer(CommandSender to, String path, String... kv) {
+        return linesFor(to, path, kv);
+    }
+
     private static String apply(String s, String... kv) {
         for (int i = 0; i + 1 < kv.length; i += 2) s = s.replace("{" + kv[i] + "}", kv[i + 1]);
         return s;

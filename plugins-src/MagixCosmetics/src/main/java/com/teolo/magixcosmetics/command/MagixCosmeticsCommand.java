@@ -65,7 +65,8 @@ public final class MagixCosmeticsCommand implements CommandExecutor, TabComplete
     private void help(CommandSender sender, int page) {
         org.bukkit.configuration.ConfigurationSection h = msg.section("help");
         String title = h != null ? h.getString("title", "MagixCosmetics") : "MagixCosmetics";
-        Help.show(sender, title, "/cosmetics help", Help.fromConfig(msg.section("help.sections")),
+        Help.show(sender, msg::forPlayer, title, "/cosmetics help",
+                Help.fromConfig(msg.section("help.sections"), sender, msg::forPlayer, msg::listForPlayer),
                 page, sender.hasPermission(ADMIN));
     }
 

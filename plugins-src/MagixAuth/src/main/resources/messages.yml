@@ -77,6 +77,99 @@ change-password-command:
   saved: "&aPassword cambiata.&r &7Vale anche su &fmagicadventure.it&7."
   save-failed: "&cNon sono riuscito a salvare la password nuova. Riprova."
 
+# ---------------------------------------------------------------- /mauth help
+help:
+  title: "MagixAuth"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
+  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " ‹ indietro "
+    forward: " avanti › "
+    page: "Pagina {numero}"
+  sections:
+    account:
+      title: "Il tuo account"
+      entries:
+        - "/login <password> :: entra con la tua password"
+        - "/register <password> <ripeti> :: registrati al primo ingresso"
+        - "/otp <codice> :: il codice della verifica in due passaggi"
+        - "/changepassword <vecchia> <nuova> <ripeti> [codice] :: cambia la password (vale anche sul sito)"
+        - "/logout :: chiude l'accesso in gioco e sul sito"
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/mauth info :: stato del plugin e della verifica"
+        - "/mauth setspawn :: fissa il cancello di login dove sei (es. sullo spawn di CMI)"
+        - "/mauth register <giocatore> <password> :: registra un giocatore o gli riscrive la password"
+        - "/mauth reset <giocatore> :: azzera la password di chi l'ha dimenticata"
+        - "/mauth unlock <giocatore|indirizzo> :: toglie l'attesa a chi ha sbagliato troppe volte"
+        - "/mauth sessions <giocatore> :: dimentica i suoi accessi ricordati"
+        - "/mauth reload :: rilegge la configurazione"
+
 # ---------------------------------------------------------------- azioni dello staff (/mauth)
 admin:
   password-reset-kick: "&eLa tua password e' stata azzerata&r\n\n&7Rientra e scegline una nuova."
+  reload-done: "&aConfigurazione ricaricata."
+  # {errore} il messaggio dell'eccezione SQL, tecnico: resta cosi' com'e' in ogni lingua
+  db-error: "&cNon riesco a scrivere nel database: {errore}"
+  no-account: "&cNessun account con questo nome."
+  no-permission:
+    setspawn: "&cNon hai il permesso di spostare il cancello di login."
+    reset: "&cNon hai il permesso di azzerare le password."
+    register: "&cNon hai il permesso di registrare giocatori."
+    unlock: "&cNon hai il permesso di togliere i blocchi."
+  usage:
+    reset: "&7Uso: &f/mauth reset <giocatore>"
+    register: "&7Uso: &f/mauth register <giocatore> <password>"
+    unlock: "&7Uso: &f/mauth unlock <giocatore|indirizzo>"
+    sessions: "&7Uso: &f/mauth sessions <giocatore>"
+  info:
+    shared-account: "&7Account condiviso con &fmagicadventure.it&7 (tabella users)."
+    # {stato} uno fra otp-ready/otp-missing qui sotto, gia' risolto
+    otp-key: "&7Chiave OTP: {stato}"
+    otp-ready: "&apronta"
+    otp-missing: "&cmancante o non valida"
+    # {stato} uno fra luckperms-connected/luckperms-absent qui sotto, gia' risolto
+    luckperms: "&7LuckPerms: {stato}"
+    # {track} nome del track di config.yml, {numero} quanti gruppi staff contiene
+    luckperms-connected: "&acollegato&7, track \"&f{track}&7\" con &f{numero}&7 gruppi"
+    luckperms-absent: "&eassente&7 (verifica obbligatoria solo per i web-admin)"
+    # {ore} durata della sessione ricordata, da config.yml
+    session-hours: "&7Sessione dispositivo: &f{ore}&7 ore"
+    # {numero} giocatori online fermi al cancello adesso
+    frozen: "&7Fermi al cancello adesso: &f{numero}"
+  setspawn:
+    console-only: "&cDallo in gioco, stando dove vuoi il cancello di login."
+    # {mondo}/{x}/{y}/{z} coordinate del punto appena fissato
+    done: "&aCancello di login fissato qui: &f{mondo} {x}/{y}/{z}&7, guardando dove guardi adesso."
+    hint: "&7Da ora chi deve fare il login compare esattamente qui, in qualunque mondo si fosse disconnesso."
+  reset:
+    # {nome} il giocatore appena azzerato
+    done: "&aPassword di &f{nome}&a azzerata. &7Al prossimo ingresso ne sceglie una nuova."
+  register:
+    create-failed: "&cNon sono riuscito a creare l'account."
+    # {nome} il giocatore appena creato/aggiornato
+    created: "&aAccount &f{nome}&a creato."
+    password-set: "&aPassword di &f{nome}&a impostata."
+    tell-them: "&7Comunicagliela a voce, e digli di cambiarla con &f/changepassword&7 appena entra."
+  unlock:
+    # {indirizzo} l'indirizzo appena sbloccato
+    address-done: "&aIndirizzo &f{indirizzo}&a sbloccato."
+    no-account-no-block: "&eNessun account con questo nome e nessun blocco a suo carico."
+    # {nome} il giocatore cercato
+    not-blocked: "&e{nome} non risulta bloccato: puo' gia' entrare."
+    hint-address: "&7Se il blocco resta, passami l'indirizzo: &f/mauth unlock <indirizzo>&7."
+    # {nome} il giocatore, {numero} quanti indirizzi, {elenco} l'elenco separato da virgole
+    done-one: "&aSbloccato &f{nome}&a: {numero} indirizzo &7({elenco}&7)"
+    done-many: "&aSbloccato &f{nome}&a: {numero} indirizzi &7({elenco}&7)"
+    otp-cleared: "&aTolto anche il blocco del codice in due passaggi."
+    can-return: "&7Puo' rientrare adesso."
+  sessions:
+    # {nome} il giocatore i cui dispositivi sono stati dimenticati
+    forgotten: "&aDispositivi di &f{nome}&a dimenticati."
