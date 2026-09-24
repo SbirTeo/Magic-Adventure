@@ -5,6 +5,11 @@ name: Deploy plugin sul server Minecraft
 # /home/ubuntu/magicadventure/plugins/ (togliendo la versione vecchia) e il server viene
 # riavviato PER CARICARLI, con un preavviso in chat ai giocatori online.
 #
+# REGOLA (CLAUDE.md): lo STOP del server si fa con il comando CMI `stopserverfast` in console
+# (salva tutto e chiude pulito), NON con un systemctl restart "secco". systemctl restart si usa
+# solo per riportare su il server dopo lo stop (se systemd non lo rilancia da solo) e come
+# fallback se stopserverfast non lo ferma in tempo -- cosi' non si resta mai offline.
+#
 # Usa gli stessi secret del deploy sito: VPS_HOST, VPS_USER, VPS_SSH_KEY.
 # Serve inoltre, lato VPS, che l'utente possa riavviare il servizio senza password:
 #   ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart magicadventure.service
@@ -146,7 +151,8 @@ jobs:
           done < "$RUNNER_TEMP/manifest"
           echo "Tutti i $ATTESI jar sono sul VPS."
 
-          # 2) Preavviso ai giocatori (se il server e' su) e riavvio pulito via systemd.
+          # 2) Preavviso ai giocatori (se il server e' su) e stop pulito via CMI stopserverfast
+          #    (start.sh rilancia da solo); systemd solo se il server e' spento.
           $SSH 'bash -s' <<'REMOTE'
           set -e
           # dì manda un COMANDO in console; annuncia manda un MESSAGGIO ai giocatori.
@@ -162,11 +168,20 @@ jobs:
             sleep 15
             annuncia "[Aggiornamento] Riavvio tra 5 secondi!"
             sleep 5
-            dì "save-all"
-            sleep 3
+            # REGOLA (CLAUDE.md): lo STOP si fa con il comando CMI `stopserverfast` in console, che
+            # salva tutto e chiude pulito -- NON con un systemctl restart "secco" (SIGTERM). Come per
+            # il riavvio notturno (che manda solo `stop`), lo screen `mc` esegue server/start.sh
+            # (while true; do java ...; done): quando java esce, start.sh rilancia da solo il server
+            # qualche secondo dopo, e i jar nuovi (gia' copiati sopra) vengono caricati.
+            dì "stopserverfast"
+            echo "Inviato stopserverfast: start.sh rilancera' il server con i plugin aggiornati."
+          else
+            # Server non in esecuzione (nessuno screen 'mc'): niente da fermare con stopserverfast,
+            # lo si avvia via systemd (il sudoers consente systemctl restart senza password).
+            sudo systemctl restart magicadventure.service
+            echo "Server non attivo: avviato via systemd."
           fi
-          sudo systemctl restart magicadventure.service
-          echo "Riavvio richiesto."
+          echo "Riavvio completato."
           REMOTE
 
       - name: Rimuovi la chiave dal runner
