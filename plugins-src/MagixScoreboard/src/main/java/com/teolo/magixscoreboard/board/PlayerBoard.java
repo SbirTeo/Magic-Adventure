@@ -61,6 +61,19 @@ final class PlayerBoard {
 
     String currentBoardId() { return currentBoardId; }
 
+    /**
+     * Riafferma la nostra scoreboard sul giocatore se qualcun altro gliene ha assegnata un'altra nel
+     * frattempo (es. un plugin di colori in tablist che riapplica la SUA scoreboard a intervalli): un
+     * giocatore puo' avere una sola scoreboard attiva alla volta, quindi senza questo controllo ad
+     * ogni refresh basterebbe che un altro plugin la sovrascriva UNA volta per far sparire la sidebar
+     * per sempre, senza errori da nessuna parte.
+     */
+    void ensureAttached(Player player) {
+        if (player.getScoreboard() != scoreboard) {
+            player.setScoreboard(scoreboard);
+        }
+    }
+
     void setVisible(boolean visible) {
         if (this.visible == visible) return;
         this.visible = visible;

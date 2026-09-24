@@ -154,6 +154,7 @@ public final class BoardManager {
 
     private void refresh(Player player) {
         PlayerBoard board = boards.computeIfAbsent(player.getUniqueId(), id -> new PlayerBoard(player));
+        board.ensureAttached(player);
 
         if (!enabled || hiddenPlayers.isHidden(player.getUniqueId())) {
             board.setVisible(false);
