@@ -70,6 +70,9 @@ public class Database {
             // First time they joined the server, shown on their profile page. RankSync fills it
             // on join, and backfills it at startup for players who were already around.
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS first_join DATETIME NULL");
+            // The player's language (it/en/es/de), mirrored from MagixLanguage the same way as
+            // the rank above: LanguageSync fills it on join and on every /language set.
+            st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS language CHAR(2) NULL");
 
             // The game's groups, mirrored for the site's permissions panel.
             st.execute("CREATE TABLE IF NOT EXISTS web_groups (" +

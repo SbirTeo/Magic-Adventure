@@ -5,6 +5,7 @@ import com.teolo.magixweb.chat.ChatBridge;
 import com.teolo.magixweb.db.Database;
 import com.teolo.magixweb.guide.GuideSync;
 import com.teolo.magixweb.util.StaffGuide;
+import com.teolo.magixweb.language.LanguageSync;
 import com.teolo.magixweb.rank.RankPlaceholders;
 import com.teolo.magixweb.store.StoreDelivery;
 import com.teolo.magixweb.rank.RankSync;
@@ -32,6 +33,7 @@ public class MagixWeb extends JavaPlugin {
         // /link in particular must NOT come back: on an offline-mode server, walking in under
         // someone else's name was enough to take over their account on the site.
         setupRankSync();
+        setupLanguageSync();
         setupStoreDelivery();
         setupChatBridge();
         setupGuideSync();
@@ -74,6 +76,14 @@ public class MagixWeb extends JavaPlugin {
                         "Sul sito arrivano gruppo, prefisso completo con i colori, peso e colore del nome: sono "
                                 + "quelli che fanno comparire il tag accanto al nickname nelle pagine e nella chat.")
 
+                .section("La lingua",
+                        "Ogni cambio di lingua (rilevazione GeoIP al primo ingresso, o /language set) arriva subito "
+                                + "sul sito: MagixLanguage lancia un evento e MagixWeb lo scrive nella stessa riga "
+                                + "mc_ranks del grado. Se MagixLanguage manca, la colonna resta vuota e il sito "
+                                + "parla nella lingua di chi lo visita, non in quella del giocatore.",
+                        "Come per i gradi, chi e' gia' online quando MagixWeb riparte non genera un nuovo ingresso: "
+                                + "un giro dopo l'avvio sincronizza anche loro.")
+
                 .section("La chat live",
                         "La chat **PUBBLICA** del gioco si vede nella home, e quello che si scrive nella home "
                                 + "ricompare in partita. Le chat di fazione e alleati non escono mai dal gioco: "
@@ -109,6 +119,10 @@ public class MagixWeb extends JavaPlugin {
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                .issue("Sul sito la lingua di un giocatore e' vecchia o mancante",
+                        "Controlla che MagixLanguage sia installato e attivo: senza, MagixWeb lo scrive nel log "
+                                + "all'avvio e non tenta nessuna sincronizzazione. Con MagixLanguage presente, un "
+                                + "/language set o un nuovo ingresso in gioco aggiornano la colonna subito.")
                 .issue("Sul sito i gradi sono vecchi",
                         "Il giro periodico li rimette in pari da solo. Se non succede, il database del sito non è "
                                 + "raggiungibile: il log lo dice all'avvio.")
@@ -201,6 +215,19 @@ public class MagixWeb extends JavaPlugin {
             new RankPlaceholders(rankSync, getPluginMeta().getVersion()).register();
             getLogger().info("MagixWeb: placeholder %magixweb_namecolor% registrato.");
         }
+    }
+
+    /** La lingua di ogni giocatore sul sito: stesso schema di setupRankSync, per MagixLanguage. */
+    private void setupLanguageSync() {
+        LanguageSync languageSync = new LanguageSync(this, database);
+        if (!languageSync.hook()) {
+            return;
+        }
+        Bukkit.getPluginManager().registerEvents(languageSync, this);
+
+        // After a plugin reload the players are already online, so no PlayerJoinEvent is coming.
+        Bukkit.getScheduler().runTaskLater(this, languageSync::syncOnlinePlayers, 100L);
+        getLogger().info("MagixWeb: sincronizzazione lingua giocatori attiva.");
     }
 
     @Override

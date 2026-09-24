@@ -1,5 +1,7 @@
 package com.teolo.magixlanguage.translate;
 
+import com.teolo.magixlanguage.api.PlayerLanguageChangeEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -40,6 +42,7 @@ public final class PlayerLocales {
     public void setDetected(UUID playerId, String lang, String country) {
         byPlayer.put(playerId, new Entry(lang, Source.GEOIP, country));
         save();
+        Bukkit.getPluginManager().callEvent(new PlayerLanguageChangeEvent(playerId, lang, false));
     }
 
     /** Impostata a mano (comando o API di un altro plugin): da qui in poi il GeoIP non la tocca piu'. */
@@ -47,6 +50,7 @@ public final class PlayerLocales {
         Entry existing = byPlayer.get(playerId);
         byPlayer.put(playerId, new Entry(lang, Source.MANUAL, existing != null ? existing.country() : null));
         save();
+        Bukkit.getPluginManager().callEvent(new PlayerLanguageChangeEvent(playerId, lang, true));
     }
 
     private void load() {
