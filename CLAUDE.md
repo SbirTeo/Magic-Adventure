@@ -92,6 +92,20 @@ copia il jar sul VPS in `/home/ubuntu/magicadventure/plugins/` e **riavvia il se
 `mc`, servizio `magicadventure.service`) con preavviso in chat ai giocatori. Stessi secret del
 sito + un sudoers per `systemctl restart magicadventure.service`. Setup: `website/vps/AUTO-DEPLOY.md`.
 
+## IL RIAVVIO DEL SERVER SI FA SEMPRE CON `stopserverfast` DI CMI (obbligatorio)
+
+Ogni volta che un riavvio del server Minecraft viene innescato — dall'auto-deploy dei plugin o
+da **qualunque** altra automazione, presente o futura — lo **STOP** si fa mandando in console
+il comando CMI **`stopserverfast`** (salva tutto e chiude pulito), **non** con un
+`systemctl restart` "secco" (che manderebbe un SIGTERM al processo). Non serve fare altro per
+riportarlo su: lo screen `mc` esegue `server/start.sh` (`while true; do java ...; done`), che
+**rilancia da solo** il server qualche secondo dopo qualsiasi stop (è lo stesso meccanismo del
+riavvio notturno, che manda solo `stop`) — e i jar nuovi, già copiati, vengono caricati.
+`systemctl restart magicadventure.service` si usa **solo** quando il server è **spento** (nessuno
+screen `mc`: non c'è nulla da fermare con `stopserverfast`, lo si avvia via systemd). Questo è
+implementato in `deploy-plugin.yml`; qualsiasi nuovo meccanismo di riavvio deve seguire la stessa
+regola.
+
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
 L'auto-deploy dei plugin copia **solo il jar**: i file di config già presenti nella cartella
