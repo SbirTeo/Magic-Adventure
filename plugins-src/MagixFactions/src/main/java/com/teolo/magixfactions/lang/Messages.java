@@ -71,11 +71,6 @@ public final class Messages {
         return translated != null ? Colors.translate(translated) : get(path, kv);
     }
 
-    /** Il prefisso del plugin, gia' colorato: &#C046E8&lMagixFactions &8» &r */
-    public String prefix() {
-        return Colors.translate(cfg.getString("prefix", ""));
-    }
-
     /** Sezione grezza di messages.yml (la usa l'aiuto, che e' strutturato a sezioni). */
     public ConfigurationSection section(String path) {
         return cfg.getConfigurationSection(path);

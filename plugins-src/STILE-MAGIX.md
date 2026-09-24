@@ -2,8 +2,7 @@
 
 I plugin scritti per MAGICADVENTURE (MagixAuth, MagixFactions, MagixEntities, MagixTime,
 MagixGuard, MagixWeb) parlano in chat con la **stessa voce**: stessi colori, stesso
-cartellino davanti alle risposte, stesso elenco dei comandi. Chi gioca non deve accorgersi
-che dietro ci sono plugin diversi.
+elenco dei comandi. Chi gioca non deve accorgersi che dietro ci sono plugin diversi.
 
 Questo documento e' la fonte: se si cambia qualcosa qui, va cambiato in tutti i plugin.
 
@@ -33,24 +32,16 @@ li stamperebbe a schermo per esteso.
 
 ---
 
-## 2. Il prefisso
+## 2. Niente cartellino davanti ai messaggi
 
-```
-prefix: "&#C046E8&lMagixNome &8» &r"
-```
+I plugin Magix **non** mettono piu' un prefisso tipo `&#C046E8&lMagixNome &8» &r` davanti
+alle risposte dei comandi: e' obsoleto e non si usa piu'. Il nome del plugin resta visibile
+**solo** nella pagina dell'aiuto (il titolo mostrato da `Help`, vedi §3) — non c'e' nessuna
+chiave `prefix` in `messages.yml` da riempire.
 
-Nome del plugin in viola grassetto, doppia freccia grigio scuro, poi il messaggio.
-Sta in `messages.yml`, cosi' si cambia senza ricompilare.
-
-**Dove va e dove non va:**
-
-- **si'** sulle risposte ai comandi, sugli avvisi e sulle notifiche a un giocatore;
-- **no** dentro i pannelli (l'aiuto, `/f info`, `/f list`, `/f map`, `/mtime info`): una
-  cornice ha senso attorno a una risposta, non ripetuta dodici volte dentro una scheda;
-- **no** su titoli a schermo, action bar e messaggi di kick, che hanno una forma loro.
-
-Nel codice questo si traduce in due metodi distinti: `msg(...)` mette il prefisso,
-`panel(...)` no.
+Nel codice questo vuol dire: niente `prefix()`/`prefisso` da nessuna parte, e i metodi che
+un tempo lo aggiungevano (`msg(...)`, `send(...)`) mandano il testo cosi' com'e', esattamente
+come `panel(...)`.
 
 ---
 
@@ -129,6 +120,7 @@ solo** (`/f 3`): e' quello che mandano le frecce.
 | MagixMenus | `/menus help [pagina]` | `/menus help` |
 | MagixCosmetics | `/cosmetics help [pagina]` | `/cosmetics help` |
 | MagixMusic | `/radio help [pagina]` | `/radio help` |
+| MagixGuard | `/mg help [pagina]` | `/mg help` |
 
 `Help.java` e' presente anche in MagixPack, ma inutilizzato (nessun comando lo chiama).
 
@@ -145,7 +137,6 @@ Sempre gli stessi, cosi' si riconoscono a colpo d'occhio:
 | `▸` | uso del comando / titolo di sezione |
 | `‹ ›` | sfogliare le pagine |
 | `│` `└` | righe di un elenco |
-| `»` | il prefisso |
 | `─────` | la cornice dell'intestazione |
 
 ---

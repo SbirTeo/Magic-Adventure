@@ -176,7 +176,7 @@ public final class DecayManager {
     private void broadcast(Faction f, String path, String... kv) {
         for (UUID u : f.getMembers().keySet()) {
             Player p = Bukkit.getPlayer(u);
-            if (p != null) p.sendMessage(M.prefix() + M.get(p, path, kv));
+            if (p != null) p.sendMessage(M.get(p, path, kv));
         }
     }
 

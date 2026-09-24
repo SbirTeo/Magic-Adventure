@@ -153,6 +153,14 @@ jobs:
           def indent_of(s):
               return len(s) - len(s.lstrip(' \t'))
 
+          def backup_path():
+              # Stessa convenzione di ConfigAlign.bakDir(): fuori da plugins/, in
+              # .bak/<Plugin>/<eventuali sottocartelle>/, mai accanto al file originale.
+              server_root, rest = path.split('/plugins/', 1)
+              bak_dir = os.path.join(server_root, '.bak', os.path.dirname(rest))
+              os.makedirs(bak_dir, exist_ok=True)
+              return os.path.join(bak_dir, os.path.basename(path) + '.bak-' + time.strftime('%Y%m%d-%H%M%S'))
+
           if mode == 'append-block':
               # Blocco NUOVO di primo livello (piu' righe): non cambia un valore che c'e' gia',
               # aggiunge in fondo al file una voce che prima non c'era (es. una nuova voce di
@@ -162,7 +170,7 @@ jobs:
               for l in lines:
                   if top_pat.match(l.rstrip('\n').rstrip('\r')):
                       print('NO-OP: blocco "%s" gia\' presente in %s' % (keyraw, path)); sys.exit(0)
-              bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+              bak = backup_path()
               shutil.copy2(path, bak)
               testo = val if val.endswith('\n') else val + '\n'
               with open(path, 'a', encoding='utf-8') as f:
@@ -192,7 +200,7 @@ jobs:
                   if r.strip() and indent_of(r) == 0:
                       break
                   fine += 1
-              bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+              bak = backup_path()
               shutil.copy2(path, bak)
               testo = val if val.endswith('\n') else val + '\n'
               lines[start:fine] = [testo]
@@ -230,7 +238,7 @@ jobs:
                   i = fine
               if not tolte:
                   print('NO-OP: nessun blocco duplicato in', path); sys.exit(0)
-              bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+              bak = backup_path()
               shutil.copy2(path, bak)
               with open(path, 'w', encoding='utf-8') as f:
                   f.writelines(tenute)
@@ -290,7 +298,7 @@ jobs:
           else:
               newline = head + val
 
-          bak = path + '.bak-' + time.strftime('%Y%m%d-%H%M%S')
+          bak = backup_path()
           shutil.copy2(path, bak)
           lines[target] = newline.rstrip('\n') + '\n'
           with open(path, 'w', encoding='utf-8') as f:

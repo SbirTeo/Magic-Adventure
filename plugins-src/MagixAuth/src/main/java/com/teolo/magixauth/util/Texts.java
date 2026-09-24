@@ -19,9 +19,4 @@ public final class Texts {
     public static Component c(String text) {
         return AMPERSAND.deserialize(text);
     }
-
-    /** Prefisso + testo, colorati insieme (i due pezzi si attaccano senza spazi in mezzo). */
-    public static Component c(String prefix, String text) {
-        return AMPERSAND.deserialize(prefix + text);
-    }
 }

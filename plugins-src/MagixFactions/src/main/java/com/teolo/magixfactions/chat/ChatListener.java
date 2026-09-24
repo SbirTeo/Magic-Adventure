@@ -81,7 +81,7 @@ public final class ChatListener implements Listener {
         boolean ok = chat.route(sender, ch, plainMessage);
         if (!ok) {
             chat.set(sender.getUniqueId(), ChatChannel.PUBLIC);
-            sender.sendMessage(M.prefix() + Papi.resolve(sender, M.get(sender, "chat.no-faction-public")));
+            sender.sendMessage(Papi.resolve(sender, M.get(sender, "chat.no-faction-public")));
         }
     }
 }

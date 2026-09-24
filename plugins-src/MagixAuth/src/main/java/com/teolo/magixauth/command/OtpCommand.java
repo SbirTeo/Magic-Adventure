@@ -37,11 +37,11 @@ public final class OtpCommand implements CommandExecutor {
         }
         EntryState state = gate.state(p);
         if (state == null || !state.awaitsCode()) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "otp-command.not-requested")));
+            p.sendMessage(Texts.c(messages.get(p, "otp-command.not-requested")));
             return true;
         }
         if (args.length != 1) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "otp-command.usage")));
+            p.sendMessage(Texts.c(messages.get(p, "otp-command.usage")));
             return true;
         }
         gate.tryCode(p, args[0]);

@@ -427,14 +427,16 @@ public final class TranslationSync {
     private boolean backup(File file) {
         try {
             String stamp = LocalDateTime.now().format(STAMP);
-            File copy = new File(file.getParentFile(), file.getName() + ".bak-" + stamp);
+            File dir = bakDir(file);
+            Files.createDirectories(dir.toPath());
+            File copy = new File(dir, file.getName() + ".bak-" + stamp);
             // La marca e' al secondo: due scritture dello stesso file nello stesso secondo (due
             // sincronizzazioni ravvicinate) userebbero lo stesso nome. Una copia con quel nome
             // gia' presente vuol dire che il contenuto di un attimo fa e' gia' al sicuro: si
             // procede con la scrittura invece di bloccarla per una collisione innocua.
             if (!copy.exists()) {
                 Files.copy(file.toPath(), copy.toPath());
-                pruneBackups(file);
+                pruneBackups(file, dir);
             }
             return true;
         } catch (IOException e) {
@@ -443,8 +445,23 @@ public final class TranslationSync {
         }
     }
 
-    private void pruneBackups(File original) {
-        File dir = original.getParentFile();
+    /**
+     * La cartella dove va la copia di scorta di {@code file}: la cartella {@code plugins/} viene
+     * sostituita con {@code .bak/}, il resto del percorso resta lo stesso — la stessa struttura che
+     * usa {@code util/ConfigAlign} in ogni plugin. Assoluto PRIMA di risalire i genitori: su un
+     * server vero {@code getDataFolder()} e' quasi sempre relativo ("plugins/MagixLanguage"), e
+     * {@code getParentFile()} su un singolo segmento come "plugins" da' null - senza questo il
+     * backup finiva sempre accanto al file, dentro plugins/MagixLanguage/translations/....
+     */
+    private File bakDir(File file) {
+        File pluginsDir = plugin.getDataFolder().getAbsoluteFile().getParentFile();
+        File serverRoot = pluginsDir == null ? null : pluginsDir.getParentFile();
+        if (serverRoot == null) return file.getParentFile();
+        String relative = pluginsDir.toPath().relativize(file.getAbsoluteFile().getParentFile().toPath()).toString();
+        return relative.isEmpty() ? new File(serverRoot, ".bak") : new File(new File(serverRoot, ".bak"), relative);
+    }
+
+    private void pruneBackups(File original, File dir) {
         File[] backups = dir == null ? null : dir.listFiles((d, n) -> n.startsWith(original.getName() + ".bak-"));
         if (backups == null || backups.length <= MAX_BACKUPS) {
             return;

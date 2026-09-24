@@ -1,6 +1,8 @@
 package com.teolo.magixguard.sanctions;
 
+import com.teolo.magixguard.lang.Messages;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -27,6 +29,7 @@ public final class SanctionsService {
     private final PointsLog log;
     private final Policy policy;
     private final ViolationsDao violations;
+    private final Messages messages;
 
     /**
      * I silenziati in memoria: la chat non puo' aspettare una query a ogni messaggio.
@@ -35,13 +38,14 @@ public final class SanctionsService {
     private final Map<UUID, Sanction> muti = new ConcurrentHashMap<>();
 
     public SanctionsService(JavaPlugin plugin, SanctionsConfig cfg, SanctionsDao dao,
-                            PointsLog log, Policy policy, ViolationsDao violations) {
+                            PointsLog log, Policy policy, ViolationsDao violations, Messages messages) {
         this.plugin = plugin;
         this.cfg = cfg;
         this.dao = dao;
         this.log = log;
         this.policy = policy;
         this.violations = violations;
+        this.messages = messages;
     }
 
     public SanctionsDao dao() {
@@ -71,9 +75,9 @@ public final class SanctionsService {
         try {
             if (!outcome.apply()) {
                 dao.proponi(s, duration, fonte, dettaglio);
-                notifyStaff("&#FFD166Proposta in attesa: &f" + s.name() + " &7— "
-                        + s.type().label().toLowerCase() + ", " + outcome.proposedReason()
-                        + ". &7Aperta nel gestionale.");
+                notifyStaff("service.proposal-pending", to -> new String[] {
+                        "nome", s.name(), "tipo", messages.typeLabel(to, s.type()).toLowerCase(),
+                        "motivo", outcome.proposedReason() });
                 return 0;
             }
 
@@ -81,13 +85,13 @@ public final class SanctionsService {
             Sanction applicata = s.conId(id);
             Bukkit.getScheduler().runTask(plugin, () -> faiValere(applicata));
 
-            notifyStaff("&#A8DC2C" + s.type().label() + "&f " + s.name() + " &7— "
-                    + s.reason() + " &8(" + applicata.readableDuration() + ", da " + s.autore() + ")");
+            notifyStaff("service.applied", to -> new String[] {
+                    "tipo", messages.typeLabel(to, s.type()), "nome", s.name(), "motivo", s.reason(),
+                    "durata", applicata.readableDuration(), "autore", s.autore() });
             return id;
         } catch (SQLException e) {
             plugin.getLogger().severe("Sanzione non registrata (" + s.name() + "): " + e.getMessage());
-            notifyStaff("&#FF6B6BSanzione NON registrata per &f" + s.name()
-                    + "&#FF6B6B: il database del sito non risponde. Riprova.");
+            notifyStaff("service.not-registered", to -> new String[] { "nome", s.name() });
             return 0;
         }
     }
@@ -113,13 +117,13 @@ public final class SanctionsService {
             case MUTE -> {
                 muti.put(s.uuid(), s);
                 if (p != null) {
-                    p.sendMessage(Text.msg("&#FF6B6BSei stato silenziato: &f" + s.reason()
-                            + " &7(" + s.readableDuration() + ")"));
+                    p.sendMessage(Text.msg(messages.get(p, "service.muted",
+                            "motivo", s.reason(), "durata", s.readableDuration())));
                 }
             }
             case WARN -> {
                 if (p != null) {
-                    p.sendMessage(Text.msg("&#FFD166Richiamo: &f" + s.reason()));
+                    p.sendMessage(Text.msg(messages.get(p, "service.warned", "motivo", s.reason())));
                 }
             }
         }
@@ -157,7 +161,7 @@ public final class SanctionsService {
             muti.remove(s.uuid());
             Player p = Bukkit.getPlayer(s.uuid());
             if (p != null) {
-                p.sendMessage(Text.msg("&#A8DC2CPuoi di nuovo scrivere in chat."));
+                p.sendMessage(Text.msg(messages.get(p, "service.unmuted")));
             }
         }
         // Per il ban non c'e' niente da fare in partita: il controllo avviene all'ingresso,
@@ -200,13 +204,29 @@ public final class SanctionsService {
 
     // ------------------------------------------------------------------ staff
 
-    /** Un messaggio a chi ha il permesso di ricevere gli avvisi. */
-    public void notifyStaff(String text) {
+    /** Un messaggio a chi ha il permesso di ricevere gli avvisi, senza segnaposto. */
+    public void notifyStaff(String key) {
+        notifyStaff(key, to -> new String[0]);
+    }
+
+    /** Come sopra, con segnaposto uguali per tutti. */
+    public void notifyStaff(String key, String... kv) {
+        notifyStaff(key, to -> kv);
+    }
+
+    /**
+     * Un messaggio a chi ha il permesso di ricevere gli avvisi, tradotto per ognuno per conto
+     * proprio (uno staff straniero e uno italiano leggono lingue diverse dello stesso avviso).
+     * I segnaposto si ricalcolano per destinatario: serve per quelli che dipendono dalla sua
+     * lingua, come il nome del provvedimento.
+     */
+    public void notifyStaff(String key, java.util.function.Function<CommandSender, String[]> kv) {
         Bukkit.getScheduler().runTask(plugin, () -> {
-            Bukkit.getConsoleSender().sendMessage(Text.msg(text));
+            CommandSender console = Bukkit.getConsoleSender();
+            console.sendMessage(Text.msg(messages.get(console, key, kv.apply(console))));
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.hasPermission("magixguard.alerts")) {
-                    p.sendMessage(Text.msg(text));
+                    p.sendMessage(Text.msg(messages.get(p, key, kv.apply(p))));
                 }
             }
         });

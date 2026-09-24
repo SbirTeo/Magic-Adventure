@@ -93,7 +93,7 @@ public final class LogoutCommand implements CommandExecutor {
                     + " fallito (" + e.getMessage() + ").");
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (p.isOnline()) {
-                    p.sendMessage(Texts.c(config.prefix, messages.get(p, "logout-command.failed")));
+                    p.sendMessage(Texts.c(messages.get(p, "logout-command.failed")));
                 }
             });
         }

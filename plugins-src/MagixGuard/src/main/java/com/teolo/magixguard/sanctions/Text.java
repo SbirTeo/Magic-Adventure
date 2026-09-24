@@ -9,9 +9,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
  */
 public final class Text {
 
-    /** Il cartellino davanti alle risposte. Non va nei pannelli, solo sui messaggi. */
-    public static final String PREFISSO = "&#C046E8&lMagixGuard &8» &r";
-
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder()
             .character('&')
             .hexColors()
@@ -25,12 +22,12 @@ public final class Text {
         return LEGACY.deserialize(s == null ? "" : s);
     }
 
-    /** Messaggio con il cartellino davanti. */
+    /** Messaggio, risposta a un comando. Il cartellino del plugin non c'e' piu' (vedi CLAUDE.md). */
     public static Component msg(String s) {
-        return c(PREFISSO + s);
+        return c(s);
     }
 
-    /** Riga di un pannello: nessun cartellino, altrimenti si ripete dodici volte in una scheda. */
+    /** Riga di un pannello. */
     public static Component panel(String s) {
         return c(s);
     }

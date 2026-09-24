@@ -1,7 +1,6 @@
 # MagixAuth - tutti i testi mostrati ai giocatori (cancello, comandi di accesso).
 # Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
 # \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
-# Il prefisso del plugin sta in config.yml (messages.prefix), non qui.
 # Placeholder disponibili indicati riga per riga.
 
 # ---------------------------------------------------------------- il cancello

@@ -378,13 +378,13 @@ public final class AuthGate {
      */
     private void instructions(Player p, EntryState state) {
         if (state.awaitsCode()) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.otp-required")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.otp-required")));
             p.sendMessage(Texts.c(messages.get(p, "gate.otp-hint")));
         } else if (state.inRegistration()) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.welcome-new")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.welcome-new")));
             p.sendMessage(Texts.c(messages.get(p, "gate.register-hint")));
         } else {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.welcome-back")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.welcome-back")));
             p.sendMessage(Texts.c(messages.get(p, "gate.login-hint")));
         }
     }
@@ -512,7 +512,7 @@ public final class AuthGate {
         if (needsCode) {
             state.phase = Phase.OTP;
             onMain(() -> {
-                p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.otp-required")));
+                p.sendMessage(Texts.c(messages.get(p, "gate.otp-required")));
                 p.sendMessage(Texts.c(messages.get(p, "gate.otp-hint")));
             });
             return;
@@ -539,7 +539,7 @@ public final class AuthGate {
                 Account account = state.account;
                 if (account.otpLocked()) {
                     String remaining = DurationText.until(account.totpLockedUntil);
-                    onMain(() -> p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.otp-locked", "time", remaining))));
+                    onMain(() -> p.sendMessage(Texts.c(messages.get(p, "gate.otp-locked", "time", remaining))));
                     return;
                 }
                 String secret = OtpCodes.decryptSecret(account.totpSecretCifrato, config.otpKeyBase64);
@@ -559,7 +559,7 @@ public final class AuthGate {
                     } catch (SQLException ignored) {
                         // Il conteggio e' un di piu': il codice resta comunque rifiutato.
                     }
-                    onMain(() -> p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.otp-invalid"))));
+                    onMain(() -> p.sendMessage(Texts.c(messages.get(p, "gate.otp-invalid"))));
                     return;
                 }
 
@@ -577,7 +577,7 @@ public final class AuthGate {
     }
 
     private void reprompt(Player p, String key, String... kv) {
-        onMain(() -> p.sendMessage(Texts.c(config.prefix, messages.get(p, key, kv))));
+        onMain(() -> p.sendMessage(Texts.c(messages.get(p, key, kv))));
     }
 
     // =================================================================================
@@ -603,7 +603,7 @@ public final class AuthGate {
         sendBackToPlace(p, state);
 
         if (announce) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.login-success")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.login-success")));
         }
         // Solo adesso il server dice che e' arrivato: prima sarebbe stato l'annuncio di un
         // tentativo, non di un ingresso.
@@ -705,7 +705,7 @@ public final class AuthGate {
                     frozen.put(p.getUniqueId(), state);
                     visibility.hide(p);
                     startTimer(p, state);
-                    p.sendMessage(Texts.c(config.prefix, "&e" + messages.get(p, reasonKey)));
+                    p.sendMessage(Texts.c("&e" + messages.get(p, reasonKey)));
                     p.sendMessage(Texts.c(messages.get(p, "gate.otp-hint")));
                 });
             } catch (SQLException e) {

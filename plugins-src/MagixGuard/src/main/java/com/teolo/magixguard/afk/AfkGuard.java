@@ -1,5 +1,6 @@
 package com.teolo.magixguard.afk;
 
+import com.teolo.magixguard.lang.Messages;
 import com.teolo.magixguard.sanctions.Detector;
 import com.teolo.magixguard.sanctions.Text;
 import org.bukkit.Bukkit;
@@ -60,6 +61,7 @@ public final class AfkGuard implements Listener {
 
     private final JavaPlugin plugin;
     private final Detector detector;
+    private final Messages messages;
 
     private final boolean active;
     private final long inattivoDopo;
@@ -72,9 +74,10 @@ public final class AfkGuard implements Listener {
 
     private final Map<UUID, Stato> stati = new ConcurrentHashMap<>();
 
-    public AfkGuard(JavaPlugin plugin, Detector detector, ConfigurationSection cfg) {
+    public AfkGuard(JavaPlugin plugin, Detector detector, ConfigurationSection cfg, Messages messages) {
         this.plugin = plugin;
         this.detector = detector;
+        this.messages = messages;
         this.active = cfg == null || cfg.getBoolean("attivo", true);
         this.inattivoDopo = (cfg == null ? 10 : Math.max(1, cfg.getInt("minuti-inattivo", 10))) * 60_000L;
         this.nienteGuadagni = cfg == null || cfg.getBoolean("niente-guadagni", true);
@@ -289,7 +292,7 @@ public final class AfkGuard implements Listener {
         s.ultimoInput = System.currentTimeMillis();
         if (s.afk) {
             s.afk = false;
-            p.sendMessage(Text.msg("&#A8DC2CBentornato. &7Da adesso il gioco riprende a contare."));
+            p.sendMessage(Text.msg(messages.get(p, "afk.returned")));
         }
     }
 
@@ -302,8 +305,7 @@ public final class AfkGuard implements Listener {
                 s.afk = true;
                 s.afkDa = now;
                 if (nienteGuadagni) {
-                    p.sendMessage(Text.msg("&7Sei fermo da un po': &fda ora il gioco non produce piu' "
-                            + "nulla intorno a te&7. Muoviti per riprendere."));
+                    p.sendMessage(Text.msg(messages.get(p, "afk.idle")));
                 }
             }
         }

@@ -42,8 +42,6 @@ public final class AuthConfig {
     public final boolean noteUuidPremium;
     public final int premiumTimeoutMillis;
 
-    public final String prefix;
-
     public AuthConfig(FileConfiguration c) {
         this.dbHost = c.getString("database.host", "localhost");
         this.dbPort = c.getInt("database.port", 3306);
@@ -78,8 +76,6 @@ public final class AuthConfig {
         this.skinCacheMinutes = c.getInt("premium.skin_cache_minutes", 30);
         this.noteUuidPremium = c.getBoolean("premium.note_uuid", true);
         this.premiumTimeoutMillis = c.getInt("premium.timeout_millis", 3000);
-
-        this.prefix = c.getString("messages.prefix", "&#C046E8&lMagixAuth &8» &r");
     }
 
     /** Senza questa il segreto OTP resta nella sua busta e nessun codice si puo' verificare. */

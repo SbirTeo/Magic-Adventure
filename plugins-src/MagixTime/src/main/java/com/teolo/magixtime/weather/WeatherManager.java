@@ -147,7 +147,7 @@ public final class WeatherManager {
                 case STORM -> "announce-storm";
                 case CLEAR -> "announce-clear";
             };
-            Bukkit.broadcast(Colors.component(plugin.messages().prefix() + plugin.messages().get(key)));
+            Bukkit.broadcast(Colors.component(plugin.messages().get(key)));
         }
     }
 

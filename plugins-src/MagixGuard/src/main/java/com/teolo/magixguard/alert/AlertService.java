@@ -4,6 +4,8 @@ import com.teolo.magixguard.GuardConfig;
 import com.teolo.magixguard.analyze.LinkScorer;
 import com.teolo.magixguard.db.GuardDao;
 import com.teolo.magixguard.model.PlayerRef;
+import com.teolo.magixguard.sanctions.Text;
+import com.teolo.magixguard.util.Help;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -74,11 +76,7 @@ public final class AlertService {
     }
 
     private void broadcastToStaff(String nameA, String nameB, double score, LinkScorer.Result result) {
-        Component header = Component.text("[MagixGuard] ", NamedTextColor.DARK_AQUA)
-                .append(Component.text("possibile multi-account: ", NamedTextColor.GRAY))
-                .append(Component.text(nameA, NamedTextColor.WHITE))
-                .append(Component.text(" <-> ", NamedTextColor.GRAY))
-                .append(Component.text(nameB, NamedTextColor.WHITE))
+        Component header = Text.msg("&7possibile multi-account: &f" + nameA + " &7<-> &f" + nameB)
                 .append(Component.text("  " + Math.round(score) + "/100", scoreColor(score))
                         .decorate(TextDecoration.BOLD));
 
@@ -91,7 +89,7 @@ public final class AlertService {
         hover.append("\nClicca per aprire il dossier completo.");
 
         Component message = header
-                .hoverEvent(HoverEvent.showText(Component.text(hover.toString().trim(), NamedTextColor.GRAY)))
+                .hoverEvent(HoverEvent.showText(Component.text(hover.toString().trim(), Help.GREY)))
                 .clickEvent(ClickEvent.runCommand("/mg alts " + nameA));
 
         for (Player p : Bukkit.getOnlinePlayers()) {

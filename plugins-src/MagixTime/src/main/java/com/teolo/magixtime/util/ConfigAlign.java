@@ -283,11 +283,16 @@ public final class ConfigAlign {
      * al file: meglio quello che niente.
      */
     private static File bakDir(JavaPlugin plugin, File file) {
-        File dataFolder = plugin.getDataFolder();
+        // getAbsoluteFile() PRIMA di risalire i genitori: su un server vero plugin.getDataFolder()
+        // e' quasi sempre un percorso RELATIVO ("plugins/<Plugin>", costruito da Bukkit a partire
+        // da "plugins"), e File.getParentFile() su un singolo segmento relativo come "plugins" da'
+        // null - si finiva quindi sempre nel ramo di ripiego (copia accanto al file) anche su un
+        // server vero. Con l'assoluto la catena dei genitori e' sempre completa.
+        File dataFolder = plugin.getDataFolder().getAbsoluteFile();
         File pluginsDir = dataFolder.getParentFile();
         File serverRoot = pluginsDir == null ? null : pluginsDir.getParentFile();
         if (serverRoot == null) return file.getParentFile();
-        String relative = pluginsDir.toPath().relativize(file.getParentFile().toPath()).toString();
+        String relative = pluginsDir.toPath().relativize(file.getAbsoluteFile().getParentFile().toPath()).toString();
         return relative.isEmpty() ? new File(serverRoot, ".bak") : new File(new File(serverRoot, ".bak"), relative);
     }
 

@@ -50,16 +50,12 @@ public final class Messages {
         return Colors.translate(apply(s, kv));
     }
 
-    public String prefix() {
-        return Colors.translate(cfg.getString("prefix", ""));
-    }
-
-    /** Invia il messaggio con il prefisso del plugin. */
+    /** Invia il messaggio. */
     public void send(CommandSender to, String path, String... kv) {
-        to.sendMessage(prefix() + get(path, kv));
+        to.sendMessage(get(path, kv));
     }
 
-    /** Invia una lista di righe SENZA prefisso (pannelli tipo /language). */
+    /** Invia una lista di righe (pannelli tipo /language). */
     public void sendList(CommandSender to, String path, String... kv) {
         for (String line : getList(path, kv)) to.sendMessage(line);
     }
