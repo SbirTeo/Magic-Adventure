@@ -78,6 +78,27 @@ function og_locale(string $lang): string {
     };
 }
 
+/**
+ * Bandierina come SVG inline, stesso riquadro (24x16) per tutte. Non un'emoji: Windows non ha i
+ * disegni delle bandiere nel suo font di sistema e mostra al loro posto le due lettere del
+ * codice paese (IT, GB...) — che sembrano di nuovo delle sigle, il problema che dovevano
+ * risolvere. Un SVG nostro si vede identico su qualunque sistema.
+ */
+function language_flag_svg(string $lang): string {
+    $bandiere = [
+        'it' => '<rect width="24" height="16" fill="#009246"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#ce2b37"/>',
+        'en' => '<rect width="24" height="16" fill="#00247d"/>'
+            . '<path d="M0,0 L24,16 M24,0 L0,16" stroke="#fff" stroke-width="3.2"/>'
+            . '<path d="M0,0 L24,16 M24,0 L0,16" stroke="#cf142b" stroke-width="1.1"/>'
+            . '<path d="M12,0 V16 M0,8 H24" stroke="#fff" stroke-width="5.4"/>'
+            . '<path d="M12,0 V16 M0,8 H24" stroke="#cf142b" stroke-width="3.2"/>',
+        'es' => '<rect width="24" height="16" fill="#c60b1e"/><rect y="4" width="24" height="8" fill="#ffc400"/>',
+        'de' => '<rect width="24" height="16" fill="#000"/><rect y="5.33" width="24" height="5.34" fill="#d00"/><rect y="10.67" width="24" height="5.33" fill="#ffce00"/>',
+    ];
+    $contenuto = $bandiere[$lang] ?? $bandiere['it'];
+    return '<svg viewBox="0 0 24 16" class="bandiera-lingua" aria-hidden="true">' . $contenuto . '</svg>';
+}
+
 function browser_language(): ?string {
     $header = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
     foreach (explode(',', $header) as $parte) {

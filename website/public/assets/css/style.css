@@ -231,12 +231,14 @@ body.pagina-store {
 .auth-box { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 /* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata. */
 .cambia-tema {
+  /* Stessa altezza di Gestione/Esci: "stretch" (come su a.who-link piu' sotto) lo allunga
+     fino alla riga piu' alta di .auth-box invece di fermarsi al contenuto suo (un'icona e una
+     parola sono piu' corte della riga di testo degli altri pulsanti, restava piu' basso). */
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 12px;
-  line-height: 1;
   flex: 0 0 auto;
+  align-self: stretch;
   text-transform: capitalize;
 }
 .cambia-tema-icona { font-size: 15px; }
@@ -246,16 +248,27 @@ body.pagina-store {
   .cambia-tema-testo { display: none; }
 }
 
+/* Bandiera come SVG (vedi includes/language.php, language_flag_svg): niente emoji, Windows
+   non ha i disegni delle bandiere nel suo font di sistema e mostrerebbe le due lettere del
+   codice paese al loro posto — visto succedere davvero, era il problema da risolvere. */
+.bandiera-lingua { width: 20px; height: 14px; border-radius: 2px; display: block; flex-shrink: 0; }
+
 /* Selettore di lingua: <details> nativo, niente JavaScript (funziona anche disattivato). */
-.cambia-lingua { position: relative; flex: 0 0 auto; }
+.cambia-lingua {
+  position: relative;
+  flex: 0 0 auto;
+  /* Anche qui "stretch" come su .cambia-tema: la bandiera da sola e' piu' bassa di una riga
+     di testo, e senza questo il pulsante restava piu' basso di Gestione/Esci. */
+  display: flex;
+  align-self: stretch;
+}
 .cambia-lingua > summary {
+  /* Stesso padding di Gestione/Esci (arrivano da .btn, qui non si tocca). */
   list-style: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  padding: 7px 12px;
-  line-height: 1;
-  font-size: 17px;
+  align-self: stretch;
 }
 .cambia-lingua > summary::-webkit-details-marker { display: none; }
 .cambia-lingua > summary::marker { display: none; }
@@ -292,7 +305,6 @@ body.pagina-store {
   color: var(--text);
   text-decoration: none;
 }
-.cambia-lingua-bandiera { font-size: 16px; line-height: 1; }
 .cambia-lingua-menu a:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
 .cambia-lingua-menu a.active { color: var(--purple); font-weight: 700; }
 
@@ -320,9 +332,9 @@ body.pagina-store {
     border-radius: 50%;
     background: var(--bg-elevated);
     border: 2px solid transparent;
-    font-size: 22px;
   }
   .lingua-mobile a.active { border-color: var(--purple); }
+  .lingua-mobile .bandiera-lingua { width: 26px; height: 18px; border-radius: 3px; }
 }
 
 /* Scelta del tema nel profilo: tre pulsanti, quello attivo in evidenza */
