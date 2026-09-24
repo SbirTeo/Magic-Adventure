@@ -53,11 +53,15 @@
     collapse.classList.remove('open');
     toggle.classList.remove('is-active');
     toggle.setAttribute('aria-expanded', 'false');
+    // Su telefono il menu copre tutto lo schermo: senza questo la pagina sotto restava
+    // scorribile col dito, invisibile ma viva, e si scorreva "alla cieca" col menu aperto.
+    document.body.classList.remove('menu-aperto');
   }
   toggle.addEventListener('click', function () {
     var isOpen = collapse.classList.toggle('open');
     toggle.classList.toggle('is-active', isOpen);
     toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    document.body.classList.toggle('menu-aperto', isOpen);
   });
   collapse.querySelectorAll('a').forEach(function (a) {
     a.addEventListener('click', close);
