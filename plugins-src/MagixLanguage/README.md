@@ -5,7 +5,7 @@ provenienza (GeoIP sull'IP di ingresso) e tiene sincronizzata una traduzione dei
 altri plugin Magix, cosi' chi lo desidera puo' rispondere gia' nella lingua giusta invece di
 sempre e solo in italiano.
 
-Versione: **0.2.1** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
+Versione: **0.2.2** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
 avvio del server.
 
 ---
@@ -30,6 +30,13 @@ testo italiano e' cambiato (un colore, una formattazione...) viene tradotta **da
 l'API gratuita di MyMemory, e scritta in `en.yml`/`es.yml`/`de.yml`: non serve alcun intervento
 per avere subito un testo in ogni lingua. Una cache (`.cache-<lingua>.yml`, per uso interno) evita
 di ritradurre le chiavi rimaste invariate.
+
+**Quante chiavi mancano ancora.** Ad ogni sincronizzazione (avvio o `/language sync`) il log del
+server stampa una riga per ogni plugin scandito, con quante chiavi ha in italiano, quante sono
+state tradotte in questo giro, quante gia' in cache e quante restano ancora mancanti. Lo stesso
+dato, sempre dell'ultima sincronizzazione, si vede in gioco con `/language status` — utile quando
+il servizio di traduzione ha un limite giornaliero (vedi sotto) e conviene sapere a che punto e'
+rimasto, senza dover leggere il log della console.
 
 **Correzioni dello staff.** Se una traduzione automatica non convince, la si corregge mettendo la
 STESSA chiave in `translations/<Plugin>/<lingua>-overrides.yml`: quel file non viene mai letto ne'
@@ -59,6 +66,7 @@ Comando principale: `/magixlanguage` — alias: `/language`, `/lang`.
 | `/language set <it\|en\|es\|de>` | Cambia la propria lingua | `magixlanguage.use` |
 | `/language set <it\|en\|es\|de> <giocatore>` | Cambia la lingua di un altro giocatore | `magixlanguage.admin` |
 | `/language sync` | Ricopia i messaggi degli altri plugin da tradurre | `magixlanguage.admin` |
+| `/language status` | Quante chiavi sono tradotte/in cache/mancanti, plugin per plugin (ultima sincronizzazione) | `magixlanguage.admin` |
 | `/language reload` | Ricarica `config.yml` e `messages.yml` a caldo | `magixlanguage.admin` |
 | `/language help` | Elenco dei comandi | `magixlanguage.use` |
 

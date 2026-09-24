@@ -36,6 +36,14 @@ set-other: "&aLingua di &e{player}&a impostata su &e{lang}&a."
 sync-done: "&aSincronizzazione completata: &e{plugins}&a plugin, &e{translated}&a chiavi tradotte, &e{reused}&a gia' in cache, &e{failed}&a fallite."
 sync-running: "&eSincronizzazione in corso: puo' volerci un po' se ci sono molte chiavi nuove da tradurre..."
 
+# /language status: stato dell'ultima sincronizzazione (avvio o /language sync), plugin per plugin.
+status-none: "&eNessuna sincronizzazione ancora eseguita in questa sessione. Aspetta l'avvio automatico o lancia &e/language sync&e."
+status-header: "&#C046E8&lMagixLanguage &7- stato traduzioni (ultima sincronizzazione)"
+# {plugin} nome del plugin - {total} chiavi in italiano - {translated} tradotte in questo giro - {reused} gia' in cache dai giri precedenti - {missing} ancora in italiano (in almeno una lingua)
+status-line: "&7{plugin} &8(&f{total}&8 chiavi): &a{reused}&7 in cache, &e{translated}&7 tradotte ora, &c{missing}&7 mancanti"
+# {plugins} plugin scansionati - {translated}/{reused}/{failed} come sopra, sommati su tutti i plugin
+status-footer: "&7Totale: &a{plugins}&7 plugin, &e{translated}&7 tradotte ora, &a{reused}&7 in cache, &c{failed}&7 mancanti."
+
 help:
   title: "MagixLanguage"
   sections:
@@ -51,4 +59,5 @@ help:
       entries:
         - "/language set <it|en|es|de> <giocatore> :: cambia la lingua di un altro giocatore"
         - "/language sync :: ricopia i messaggi degli altri plugin da tradurre"
+        - "/language status :: quante chiavi sono tradotte/mancanti, plugin per plugin"
         - "/language reload :: ricarica config.yml e messages.yml"

@@ -44,6 +44,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     private PlayerLocales locales;
     private GeoLookup geo;
 
+    /** Risultato dell'ultima sincronizzazione (avvio o /language sync), per /language status. */
+    private volatile TranslationSync.Result lastSyncResult;
+
     /** pluginName -> lingua -> chiave.puntata -> testo. Svuotata a ogni reload/sync: si ricarica da sola. */
     private final Map<String, Map<String, Map<String, Object>>> catalogCache = new ConcurrentHashMap<>();
 
@@ -75,7 +78,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         // Puro I/O su file: non deve bloccare il tick di avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         if (getConfig().getBoolean("translations.sync-on-start", true)) {
-            Bukkit.getScheduler().runTaskAsynchronously(this, () -> new TranslationSync(this).run());
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> lastSyncResult = new TranslationSync(this).run());
         }
 
         getLogger().info("Avviato: lingua di default " + getConfig().getString("default-language", "it")
@@ -117,6 +120,15 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
     public PlayerLocales locales() {
         return locales;
+    }
+
+    /** L'esito dell'ultima sincronizzazione (avvio o /language sync), o null se non e' mai girata. */
+    public TranslationSync.Result lastSyncResult() {
+        return lastSyncResult;
+    }
+
+    public void setLastSyncResult(TranslationSync.Result result) {
+        this.lastSyncResult = result;
     }
 
     // ------------------------------------------------------------- MagixLanguageAPI
@@ -232,6 +244,12 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "quota giornaliera esaurita) restano temporaneamente in italiano e finiscono in "
                                 + "translations/TRANSLATION-FAILED-&lt;lingua&gt;.txt, rigenerato ad ogni "
                                 + "sincronizzazione: si riprova da sola al giro successivo.",
+                        "Ad ogni sincronizzazione il log stampa una riga PER PLUGIN (quante chiavi in italiano, "
+                                + "quante tradotte in questo giro, quante gia' in cache, quante ancora mancanti), "
+                                + "oltre alla riga di riepilogo finale. Lo stesso dato dell'ultima sincronizzazione "
+                                + "si vede in gioco con /language status, senza dover leggere la console — utile "
+                                + "per sapere a che punto e' rimasto il servizio di traduzione quando ha un limite "
+                                + "giornaliero (vedi issue sotto).",
                         "Un altro plugin (softdepend, tramite ServicesManager) chiede il testo gia' tradotto "
                                 + "con MagixLanguageAPI.translate(nomePlugin, giocatore, chiave, segnaposti): senza "
                                 + "quella chiamata, quel plugin continua a parlare solo in italiano come sempre — "
@@ -267,6 +285,13 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "sincronizzazione: eventuali commenti aggiunti a mano non sopravvivono. Per una "
                                 + "correzione che resti, va usato il file -overrides.yml (vedi sopra), non "
                                 + "&lt;lingua&gt;.yml direttamente.")
+                .issue("Tante chiavi restano in italiano dopo una sincronizzazione",
+                        "Probabile limite giornaliero del servizio di traduzione (MyMemory, gratuito): con "
+                                + "/language status si vede subito quante ne mancano per ogni plugin, e nel log "
+                                + "compare 'rifiutata (risposta HTTP 429)' o 'interrotta la traduzione automatica'. "
+                                + "Non serve intervenire: si riprova da sola ai prossimi riavvii/sync, quando la "
+                                + "quota si libera. Per alzare il limite (5000 -> 10000 parole/giorno) si puo' "
+                                + "impostare translations.auto-translate.contact-email nel config.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")
