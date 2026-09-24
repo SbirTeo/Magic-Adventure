@@ -41,6 +41,7 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
             case "info" -> info(sender);
             case "set" -> set(sender, args);
             case "sync" -> sync(sender);
+            case "status" -> status(sender);
             case "reload" -> reload(sender);
             case "help", "?" -> help(sender);
             default -> msg.send(sender, "unknown-subcommand");
@@ -105,12 +106,40 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         msg.send(sender, "sync-running");
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             TranslationSync.Result result = new TranslationSync(plugin).run();
+            plugin.setLastSyncResult(result);
             Bukkit.getScheduler().runTask(plugin, () -> msg.send(sender, "sync-done",
                     "plugins", String.valueOf(result.pluginsScanned()),
                     "translated", String.valueOf(result.keysTranslated()),
                     "reused", String.valueOf(result.keysReused()),
                     "failed", String.valueOf(result.translationFailures())));
         });
+    }
+
+    private void status(CommandSender sender) {
+        if (!sender.hasPermission(ADMIN)) {
+            msg.send(sender, "no-permission");
+            return;
+        }
+        TranslationSync.Result result = plugin.lastSyncResult();
+        if (result == null) {
+            msg.send(sender, "status-none");
+            return;
+        }
+        msg.send(sender, "status-header");
+        for (java.util.Map.Entry<String, TranslationSync.PluginStats> e : result.perPlugin().entrySet()) {
+            TranslationSync.PluginStats s = e.getValue();
+            sender.sendMessage(msg.get("status-line",
+                    "plugin", e.getKey(),
+                    "total", String.valueOf(s.totalKeys()),
+                    "translated", String.valueOf(s.translated()),
+                    "reused", String.valueOf(s.reused()),
+                    "missing", String.valueOf(s.missing())));
+        }
+        msg.send(sender, "status-footer",
+                "plugins", String.valueOf(result.pluginsScanned()),
+                "translated", String.valueOf(result.keysTranslated()),
+                "reused", String.valueOf(result.keysReused()),
+                "failed", String.valueOf(result.translationFailures()));
     }
 
     private void reload(CommandSender sender) {
@@ -145,7 +174,7 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         boolean admin = sender.hasPermission(ADMIN);
         if (args.length == 1) {
             List<String> base = new ArrayList<>(List.of("info", "set", "help"));
-            if (admin) base.addAll(List.of("sync", "reload"));
+            if (admin) base.addAll(List.of("sync", "status", "reload"));
             return filter(base, args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("set")) {

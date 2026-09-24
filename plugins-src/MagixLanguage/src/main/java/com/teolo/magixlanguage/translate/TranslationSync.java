@@ -63,7 +63,11 @@ public final class TranslationSync {
         this.log = plugin.getLogger();
     }
 
-    public record Result(int pluginsScanned, int keysTranslated, int keysReused, int translationFailures) {}
+    public record Result(int pluginsScanned, int keysTranslated, int keysReused, int translationFailures,
+                          Map<String, PluginStats> perPlugin) {}
+
+    /** Un plugin, sommato su tutte le lingue: quante chiavi ha in italiano, e come stanno le altre lingue. */
+    public record PluginStats(int totalKeys, int translated, int reused, int missing) {}
 
     /** Va chiamato fuori dal thread principale: puo' fare centinaia di chiamate di rete. */
     public Result run() {
@@ -85,6 +89,7 @@ public final class TranslationSync {
         Counters totals = new Counters();
         Map<String, List<String>> failures = new LinkedHashMap<>();
         for (String lang : targetLanguages) failures.put(lang, new ArrayList<>());
+        Map<String, PluginStats> perPlugin = new LinkedHashMap<>();
 
         for (String pluginName : pluginNames) {
             Map<String, Object> source = readSourceText(pluginsFolder, pluginName, fileNames);
@@ -97,21 +102,31 @@ public final class TranslationSync {
 
             writeMirror(new File(catalogDir, SOURCE_LANGUAGE + ".yml"), source);
 
+            Counters pluginTotals = new Counters();
             for (String lang : targetLanguages) {
                 syncLanguage(catalogDir, pluginName, lang, source, translator, delayMs,
-                        autoTranslateEnabled, totals, failures.get(lang));
+                        autoTranslateEnabled, pluginTotals, failures.get(lang));
             }
+            totals.translated += pluginTotals.translated;
+            totals.reused += pluginTotals.reused;
+            totals.failed += pluginTotals.failed;
+            perPlugin.put(pluginName, new PluginStats(source.size(), pluginTotals.translated,
+                    pluginTotals.reused, pluginTotals.failed));
+            log.info("MagixLanguage: " + pluginName + " (" + source.size() + " chiavi in italiano): "
+                    + pluginTotals.translated + " tradotte ora, " + pluginTotals.reused + " gia' in cache, "
+                    + pluginTotals.failed + " ancora mancanti (su " + targetLanguages.size() + " lingue).");
         }
 
         int failureTotal = writeFailureReports(translationsRoot, failures);
         log.info("MagixLanguage: sincronizzazione completata (" + scanned + " plugin, " + totals.translated
                 + " chiavi tradotte, " + totals.reused + " gia' in cache, " + failureTotal + " fallite).");
-        return new Result(scanned, totals.translated, totals.reused, failureTotal);
+        return new Result(scanned, totals.translated, totals.reused, failureTotal, perPlugin);
     }
 
     private static final class Counters {
         int translated;
         int reused;
+        int failed;
     }
 
     // ------------------------------------------------------------- una lingua di un plugin
@@ -159,6 +174,7 @@ public final class TranslationSync {
                 // chiamate di rete ne' attese inutili, si riprova tutto dal prossimo giro.
                 result.put(key, italianValue);
                 failuresForLang.add(pluginName + ": " + key);
+                totals.failed++;
                 continue;
             }
             Object translated = translateValue(translator, italianValue, lang);
@@ -166,6 +182,7 @@ public final class TranslationSync {
             if (translated == null) {
                 result.put(key, italianValue); // ripiego: italiano, si riprova al prossimo giro (non va in cache)
                 failuresForLang.add(pluginName + ": " + key);
+                totals.failed++;
             } else {
                 result.put(key, translated);
                 newCacheSource.put(key, italianValue);
