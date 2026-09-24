@@ -19,3 +19,10 @@ $__chatVer = @filemtime(__DIR__ . '/../public/assets/js/chat.js') ?: time();
 <script src="/assets/js/chat.js?v=<?= $__chatVer ?>"></script>
 </body>
 </html>
+<?php
+// Chiude il buffer aperto in header.php e traduce tutta la pagina in un colpo solo (vedi
+// translate_html): un'unica passata su tutto l'HTML, invece di una traduzione sparsa dentro
+// ogni singola pagina, cosi' nessuna pagina puo' dimenticarsi di farlo.
+if (ob_get_level() > 0) {
+    echo translate_html(ob_get_clean(), $GLOBALS['__siteLang'] ?? 'it');
+}

@@ -4,6 +4,16 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/sidebar.php';
 require_once __DIR__ . '/seo.php';
 require_once __DIR__ . '/immagini.php';   // misure del logo nella barra
+require_once __DIR__ . '/language.php';
+require_once __DIR__ . '/translate.php';
+
+// Da qui in poi TUTTO l'output della pagina (fino al footer) viene bufferizzato: footer.php lo
+// traduce in un colpo solo prima di mandarlo al browser (vedi translate_html). Bufferizzare
+// prima di qualunque HTML e' anche cio' che permette a header()/setcookie() di funzionare
+// sempre, anche dopo che una pagina ha gia' scritto qualcosa: niente viene davvero inviato
+// finche' il buffer non si svuota.
+ob_start();
+$GLOBALS['__siteLang'] = site_language();
 
 $__siteName = site_setting('site_name', 'MAGICADVENTURE');
 $__logo = site_setting('logo_url', '/assets/img/logo.png');
@@ -159,7 +169,7 @@ align_mc_names();
 $__navItems = db()->query('SELECT * FROM nav_items WHERE enabled = 1 ORDER BY sort_order, id')->fetchAll();
 $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 ?><!DOCTYPE html>
-<html lang="it" data-tema="<?= h(tema_scelto()) ?>">
+<html lang="<?= h($GLOBALS['__siteLang']) ?>" data-tema="<?= h(tema_scelto()) ?>">
 <head>
 <meta charset="UTF-8">
 <script>
@@ -209,7 +219,7 @@ $__verificaGoogle = trim(site_setting('google_site_verification', ''));
 <?php /* Anteprima quando il link viene incollato su Discord, WhatsApp, Telegram, X... */ ?>
 <meta property="og:type" content="<?= h($__ogType) ?>">
 <meta property="og:site_name" content="<?= h($__siteName) ?>">
-<meta property="og:locale" content="it_IT">
+<meta property="og:locale" content="<?= h(og_locale($GLOBALS['__siteLang'])) ?>">
 <meta property="og:title" content="<?= h($__title) ?>">
 <?php if ($__description !== ''): ?>
 <meta property="og:description" content="<?= h($__description) ?>">
@@ -515,6 +525,24 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         <?php /* La parola sparisce su schermo stretto: resta la sola icona. */ ?>
         <span class="cambia-tema-testo"><?= h(str_replace('Tema ', '', $__nomeTema[$__temaOra])) ?></span>
       </button>
+      <?php
+        // Selettore di lingua: un link per lingua verso la stessa pagina con ?lingua=xx, che
+        // language.php legge e rende sticky (sessione + cookie). Niente JavaScript necessario:
+        // funziona anche con JS disattivato, come il resto della navigazione del sito.
+        $__nomeLingua = ['it' => 'IT', 'en' => 'EN', 'es' => 'ES', 'de' => 'DE'];
+      ?>
+      <details class="cambia-lingua">
+        <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
+          <?= h($__nomeLingua[$GLOBALS['__siteLang']] ?? 'IT') ?>
+        </summary>
+        <div class="cambia-lingua-menu">
+          <?php foreach (SITE_LANGUAGES as $__lang): ?>
+            <a href="<?= h(language_switch_url($__lang)) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+              <?= h($__nomeLingua[$__lang]) ?>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </details>
       <?php if ($__u): ?>
         <?php
         // Qui i tag dei gradi NON si mostrano (la barra deve restare pulita): del grado resta

@@ -33,6 +33,10 @@ $percorso = __DIR__ . $fileGuida;
 $esiste = is_file($percorso);
 // La data di modifica serve anche come "cache buster": cambia il file, cambia l'indirizzo.
 $versione = $esiste ? filemtime($percorso) : 0;
+// La guida passa da guida-embed.php (non dal percorso statico sopra) cosi' viene tradotta
+// come il resto del sito: nginx continua a servire anche l'originale, sempre in italiano,
+// per chi ci arriva con un indirizzo diretto.
+$guidaEmbedUrl = '/guida-embed.php?file=magixfactions&v=' . $versione;
 
 // --- Regolamento (testo dal gestionale + tabella sanzioni dal server) ----------------
 $stmtReg = db()->prepare('SELECT title, body FROM site_pages WHERE slug = ?');
@@ -84,7 +88,7 @@ require __DIR__ . '/../includes/header.php';
     <p class="guida-intro">
       <?= nl2br(h(guide_intro())) ?>
       <?php if ($esiste): ?>
-        <a href="<?= h($fileGuida) ?>?v=<?= $versione ?>" target="_blank" rel="noopener">Aprila a schermo intero →</a>
+        <a href="<?= h($guidaEmbedUrl) ?>" target="_blank" rel="noopener">Aprila a schermo intero →</a>
       <?php endif; ?>
     </p>
   </div>
@@ -125,7 +129,7 @@ require __DIR__ . '/../includes/header.php';
     <div class="guida-riquadro">
       <?php /* Niente loading="lazy": e' il contenuto della pagina, e caricandosi in ritardo
                l'aggancio del copione poteva arrivare dopo l'evento di caricamento. */ ?>
-      <iframe id="guidaFrame" src="<?= h($fileGuida) ?>?v=<?= $versione ?>"
+      <iframe id="guidaFrame" src="<?= h($guidaEmbedUrl) ?>"
               title="Guida per i nuovi giocatori"></iframe>
     </div>
   <?php endif; ?>

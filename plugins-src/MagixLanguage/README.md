@@ -139,6 +139,12 @@ if (rsp != null) {
 Senza quella chiamata un plugin continua a parlare solo in italiano, come sempre: MagixLanguage non
 cambia da solo il comportamento di nessun altro plugin.
 
+C'e' anche `translateRawBatch(List<String> testiItaliani, String lingua)`, per chi (oggi solo
+MagixWeb) deve tradurre testo SENZA una chiave stabile ne' un catalogo di plugin — il sito, che
+accoda le frasi delle sue pagine in un database e chiede a MagixLanguage di smaltirle un lotto
+alla volta. Una sola chiamata per tutto il lotto condivide un solo `Translator` (un solo circuit
+breaker), e usa la stessa `translations.auto-translate` (quota, contatto, ritmo) dei plugin.
+
 ---
 
 ## Note

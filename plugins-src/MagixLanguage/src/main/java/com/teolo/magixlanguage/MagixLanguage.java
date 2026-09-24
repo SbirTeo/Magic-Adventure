@@ -214,6 +214,44 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         return catalog.get(MenuPhraseSync.hash(italianText));
     }
 
+    @Override
+    public Map<String, String> translateRawBatch(List<String> italianTexts, String targetLanguage) {
+        Map<String, String> out = new java.util.HashMap<>();
+        if (italianTexts == null || italianTexts.isEmpty() || targetLanguage == null
+                || !getConfig().getStringList("supported-languages").contains(targetLanguage)
+                || targetLanguage.equals("it")
+                || !getConfig().getBoolean("translations.auto-translate.enabled", true)) {
+            return out;
+        }
+        int timeoutMs = getConfig().getInt("translations.auto-translate.timeout-ms", 4000);
+        int delayMs = getConfig().getInt("translations.auto-translate.delay-ms", 150);
+        String contactEmail = getConfig().getString("translations.auto-translate.contact-email", "");
+        com.teolo.magixlanguage.translate.Translator translator =
+                new com.teolo.magixlanguage.translate.Translator(timeoutMs, getLogger(), contactEmail);
+        for (String text : italianTexts) {
+            if (!translator.isAvailable()) {
+                break; // circuito aperto: il resto del lotto resta per il prossimo giro
+            }
+            String translated = translator.translate(text, targetLanguage);
+            if (translated != null) {
+                out.put(text, translated);
+            }
+            sleepQuietly(delayMs);
+        }
+        return out;
+    }
+
+    private static void sleepQuietly(int millis) {
+        if (millis <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private Map<String, String> menuPhraseCatalog(String pluginName, String lang) {
         return menuPhraseCache
                 .computeIfAbsent(pluginName, k -> new ConcurrentHashMap<>())
@@ -311,6 +349,20 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "non trova da sola, es. dentro un blocco if/then/else). Le azioni condizionali "
                                 + "non vengono scandite in automatico per non dover ricostruire qui la logica di "
                                 + "lettura di MagixMenus: si aggiunge la frase a mano nel file overrides se serve.")
+
+                .section("Il sito parla anche lui: MagixWeb ne condivide la quota",
+                        "magicadventure.it traduce le proprie pagine (testo, guide comprese) con lo stesso "
+                                + "servizio: MagixWeb accoda in un database le frasi che incontra e non ha ancora, "
+                                + "e chiede a MagixLanguageAPI.translateRawBatch(...) di tradurle un lotto alla "
+                                + "volta (vedi MagixWeb/language/SiteTranslationWorker). E' la STESSA "
+                                + "translations.auto-translate.contact-email e la stessa quota giornaliera di "
+                                + "MyMemory usata qui sopra per i plugin: se il sito traduce molto in un giorno, "
+                                + "resta meno margine per le chiavi dei plugin, e viceversa.",
+                        "Chi decide la lingua del visitatore e' il sito (includes/language.php): un giocatore "
+                                + "collegato con l'account del sito parte dalla lingua scelta in gioco (sincronizzata "
+                                + "in mc_ranks.language ad ogni /language set o rilevazione GeoIP, come il grado), "
+                                + "un visitatore senza account sceglie da solo col selettore in pagina o riceve il "
+                                + "tentativo migliore dal browser.")
 
                 .detailedCommands()
                 .commands()
