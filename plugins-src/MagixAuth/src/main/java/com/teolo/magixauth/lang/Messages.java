@@ -21,9 +21,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Carica e fornisce i testi del cancello da messages.yml (modificabile dall'utente). Il prefisso
- * del plugin resta in config.yml (messages.prefix, letto da AuthConfig): qui ci sono solo i
- * testi veri e propri, gia' colorati con {@code &}, pronti per {@code Texts.c(...)}.
+ * Carica e fornisce i testi del cancello da messages.yml (modificabile dall'utente), gia'
+ * colorati con {@code &}, pronti per {@code Texts.c(...)}.
  */
 public final class Messages {
 

@@ -101,7 +101,7 @@ public final class CombatListener implements Listener {
         Long last = lastDenyMsg.get(p.getUniqueId());
         if (last != null && now - last < 1500) return;      // anti-spam
         lastDenyMsg.put(p.getUniqueId(), now);
-        p.sendMessage(M.prefix() + M.get(p, "combat.friendly-fire"));
+        p.sendMessage(M.get(p, "combat.friendly-fire"));
     }
 
     // ----------------------- UCCISIONI / MORTI ---------------------------

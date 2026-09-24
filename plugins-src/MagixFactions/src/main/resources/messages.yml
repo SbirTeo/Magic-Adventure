@@ -13,10 +13,6 @@
 #    errore &#FF6B6B  |  avviso &#FFD166
 # ============================================================
 
-# Il cartellino davanti alle risposte dei comandi. Stesso stile negli altri
-# plugin Magix: nome in viola grassetto, doppia freccia, poi il messaggio.
-prefix: "&#C046E8&lMagixFactions &8» &r"
-
 filter:
   blocked: "&cIl testo contiene una parola non consentita. Scegline un'altra."
 

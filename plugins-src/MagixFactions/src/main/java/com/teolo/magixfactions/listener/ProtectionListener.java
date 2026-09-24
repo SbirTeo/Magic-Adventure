@@ -118,14 +118,14 @@ public final class ProtectionListener implements Listener {
 
     private void deny(Player p, Faction owner) {
         if (throttled(p)) return;                               // anti-spam
-        p.sendMessage(M.prefix() + M.get(p, "protection.denied", "name", owner != null ? owner.getName() : "?"));
+        p.sendMessage(M.get(p, "protection.denied", "name", owner != null ? owner.getName() : "?"));
     }
 
     /** Rifiuto specifico: la land ha un PROPRIETARIO (/f owner) e chi agisce non e' lui ne' il leader. */
     private void denyOwner(Player p, UUID ownerUuid) {
         if (throttled(p)) return;
         String name = Bukkit.getOfflinePlayer(ownerUuid).getName();
-        p.sendMessage(M.prefix() + M.get(p, "protection.owner-denied", "owner", name != null ? name : "?"));
+        p.sendMessage(M.get(p, "protection.owner-denied", "owner", name != null ? name : "?"));
     }
 
     /** true se il messaggio di rifiuto e' gia' stato mostrato da meno di 1,5s (tenere premuto non spamma). */

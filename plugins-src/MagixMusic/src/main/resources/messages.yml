@@ -9,9 +9,6 @@
 #    errore &#FF6B6B  |  avviso &#FFD166
 # ============================================================
 
-# Il cartellino davanti alle risposte dei comandi.
-prefix: "&#C046E8&lMagixMusic &8» &r"
-
 no-permission: "&cNon hai il permesso."
 players-only: "&cSolo un giocatore puo' regolare la radio (ha un volume personale)."
 unknown-subcommand: "&cComando sconosciuto. Usa /radio help."

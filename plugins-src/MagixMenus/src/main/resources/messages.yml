@@ -14,8 +14,6 @@
 #    giallo &#FFD166  attenzione
 # ==========================================================================================
 
-prefix: "&#C046E8&lMagixMenus &8» &r"
-
 players-only: "&#FF6B6BQuesto comando lo puo' usare solo chi sta giocando."
 no-permission: "&#FF6B6BNon hai il permesso per farlo."
 player-required: "&#FF6B6BDalla console serve dire a chi: /menus open <menu> <giocatore>"

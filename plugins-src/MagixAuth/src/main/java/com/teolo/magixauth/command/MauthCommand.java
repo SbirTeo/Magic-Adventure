@@ -351,7 +351,7 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
     }
 
     private void reply(CommandSender sender, String text) {
-        sender.sendMessage(Texts.c(config.prefix, text));
+        sender.sendMessage(Texts.c(text));
     }
 
     @Override

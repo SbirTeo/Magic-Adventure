@@ -27,7 +27,7 @@ import com.teolo.magixguard.sanctions.SanctionsListener;
 import com.teolo.magixguard.sanctions.SanctionsService;
 import com.teolo.magixguard.sanctions.SiteSync;
 import com.teolo.magixguard.sanctions.SiteDb;
-import com.teolo.magixguard.sanctions.Text;
+import com.teolo.magixguard.lang.Messages;
 import com.teolo.magixguard.util.StaffGuide;
 import com.teolo.magixguard.dossier.DossierBuilder;
 import com.teolo.magixguard.util.Hashing;
@@ -53,6 +53,7 @@ public final class MagixGuard extends JavaPlugin {
     private Database database;
     private DbExecutor dbExecutor;
     private SignalCollector collector;
+    private Messages messages;
 
     // Modulo sanzioni (0.2.0): vive sul database del SITO, separato da quello della
     // profilazione. Gli IP restano di qua, i provvedimenti pubblici di la'.
@@ -74,9 +75,7 @@ public final class MagixGuard extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         getDataFolder().mkdirs();
-        // Cartellino e palette dei messaggi in chat (vedi plugins-src/STILE-MAGIX.md): si
-        // rileggono da messages.yml, cosi' si cambiano sul server senza ricompilare.
-        Text.load(this);
+        messages = new Messages(this);
         // Solo I/O su file: fuori dal tick di avvio (stessa convenzione degli altri plugin Magix).
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
         // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
@@ -232,7 +231,7 @@ public final class MagixGuard extends JavaPlugin {
         collector = new SignalCollector(this, config, dao, dbExecutor, hashing, engine, cookies);
         getServer().getPluginManager().registerEvents(collector, this);
 
-        GuardCommand command = new GuardCommand(this, config, dao, dbExecutor, scorer, dossier);
+        GuardCommand command = new GuardCommand(this, config, dao, dbExecutor, scorer, dossier, messages);
         var registered = getCommand("magixguard");
         if (registered != null) {
             registered.setExecutor(command);
@@ -249,7 +248,7 @@ public final class MagixGuard extends JavaPlugin {
         // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
         ConfigAlign.alignAll(this);
         reloadConfig();
-        Text.load(this);
+        messages.reload();
         if (collector != null) {
             collector.closeAllOpenSessions();
             HandlerList.unregisterAll(collector);

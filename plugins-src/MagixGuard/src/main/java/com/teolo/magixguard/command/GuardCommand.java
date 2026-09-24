@@ -6,6 +6,7 @@ import com.teolo.magixguard.analyze.LinkScorer;
 import com.teolo.magixguard.db.DbExecutor;
 import com.teolo.magixguard.db.GuardDao;
 import com.teolo.magixguard.dossier.DossierBuilder;
+import com.teolo.magixguard.lang.Messages;
 import com.teolo.magixguard.model.PlayerRef;
 import com.teolo.magixguard.model.Rows;
 import com.teolo.magixguard.sanctions.Text;
@@ -21,12 +22,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,21 +45,17 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
     private final DbExecutor executor;
     private final LinkScorer scorer;
     private final DossierBuilder dossier;
-    private final FileConfiguration messagesConfig;
+    private final Messages messages;
 
     public GuardCommand(MagixGuard plugin, GuardConfig config, GuardDao dao, DbExecutor executor,
-                        LinkScorer scorer, DossierBuilder dossier) {
+                        LinkScorer scorer, DossierBuilder dossier, Messages messages) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
         this.executor = executor;
         this.scorer = scorer;
         this.dossier = dossier;
-        this.messagesConfig = loadMessages();
-    }
-
-    private FileConfiguration loadMessages() {
-        return YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "messages.yml"));
+        this.messages = messages;
     }
 
     @Override
@@ -371,9 +364,10 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
      * magixguard.admin.
      */
     private void help(CommandSender sender, int page) {
-        ConfigurationSection h = messagesConfig.getConfigurationSection("help");
+        org.bukkit.configuration.ConfigurationSection h = messages.section("help");
         String title = h != null ? h.getString("title", "MagixGuard") : "MagixGuard";
-        Help.show(sender, title, "/mg help", Help.fromConfig(messagesConfig.getConfigurationSection("help.sections")),
+        Help.show(sender, messages::forPlayer, title, "/mg help",
+                Help.fromConfig(messages.section("help.sections"), sender, messages::forPlayer, messages::listForPlayer),
                 page, sender.hasPermission("magixguard.admin"));
     }
 

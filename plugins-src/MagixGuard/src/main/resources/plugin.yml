@@ -4,7 +4,7 @@ main: com.teolo.magixguard.MagixGuard
 api-version: '26.1'
 author: teolo
 description: Profilazione silenziosa, rilevamento multi-account e unico sistema sanzionatorio del server
-softdepend: [PlaceholderAPI, MagixFactions, LuckPerms, MagixWeb]
+softdepend: [PlaceholderAPI, MagixFactions, LuckPerms, MagixWeb, MagixLanguage]
 
 commands:
   magixguard:

@@ -55,7 +55,7 @@ public final class ChangePasswordCommand implements CommandExecutor {
             return true;
         }
         if (args.length < 3 || args.length > 4) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "change-password-command.usage")));
+            p.sendMessage(Texts.c(messages.get(p, "change-password-command.usage")));
             return true;
         }
 
@@ -65,16 +65,16 @@ public final class ChangePasswordCommand implements CommandExecutor {
         String code = args.length == 4 ? args[3] : null;
 
         if (!nuova.equals(conferma)) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.password-mismatch")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.password-mismatch")));
             return true;
         }
         Password.Rejection no = Password.whyNot(nuova, p.getName(), config.minPasswordLength);
         if (no != null) {
-            p.sendMessage(Texts.c(config.prefix, "&c" + messages.get(p, no.key(), no.kv())));
+            p.sendMessage(Texts.c("&c" + messages.get(p, no.key(), no.kv())));
             return true;
         }
         if (nuova.equals(vecchia)) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "password.same-as-old")));
+            p.sendMessage(Texts.c(messages.get(p, "password.same-as-old")));
             return true;
         }
 
@@ -133,7 +133,7 @@ public final class ChangePasswordCommand implements CommandExecutor {
     private void message(Player p, String key, String... kv) {
         org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
             if (p.isOnline()) {
-                p.sendMessage(Texts.c(config.prefix, messages.get(p, key, kv)));
+                p.sendMessage(Texts.c(messages.get(p, key, kv)));
             }
         });
     }

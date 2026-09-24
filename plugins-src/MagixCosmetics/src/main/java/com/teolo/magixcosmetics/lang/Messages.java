@@ -59,16 +59,12 @@ public final class Messages {
         return Colors.translate(apply(s, kv));
     }
 
-    public String prefix() {
-        return Colors.translate(cfg.getString("prefix", ""));
-    }
-
-    /** Invia il messaggio con il prefisso del plugin, tradotto nella lingua del destinatario se e' un giocatore. */
+    /** Invia il messaggio, tradotto nella lingua del destinatario se e' un giocatore. */
     public void send(CommandSender to, String path, String... kv) {
-        to.sendMessage(prefix() + textFor(to, path, kv));
+        to.sendMessage(textFor(to, path, kv));
     }
 
-    /** Invia una lista di righe SENZA prefisso (pannelli tipo /cosmetics info). */
+    /** Invia una lista di righe (pannelli tipo /cosmetics info). */
     public void sendList(CommandSender to, String path, String... kv) {
         for (String line : linesFor(to, path, kv)) to.sendMessage(line);
     }
@@ -96,7 +92,7 @@ public final class Messages {
         return Colors.component(get(path, kv));
     }
 
-    /** Il testo di "path" per questo destinatario, SENZA prefisso: per i pannelli come l'aiuto. */
+    /** Il testo di "path" per questo destinatario: per i pannelli come l'aiuto. */
     public String forPlayer(CommandSender to, String path, String... kv) {
         return textFor(to, path, kv);
     }

@@ -38,19 +38,19 @@ public final class RegisterCommand implements CommandExecutor {
         }
         EntryState state = gate.state(p);
         if (state == null) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "register-command.already-in")));
+            p.sendMessage(Texts.c(messages.get(p, "register-command.already-in")));
             return true;
         }
         if (state.phase != Phase.REGISTRAZIONE) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "register-command.already-registered")));
+            p.sendMessage(Texts.c(messages.get(p, "register-command.already-registered")));
             return true;
         }
         if (args.length != 2) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "register-command.usage")));
+            p.sendMessage(Texts.c(messages.get(p, "register-command.usage")));
             return true;
         }
         if (!args[0].equals(args[1])) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "gate.password-mismatch")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.password-mismatch")));
             return true;
         }
         gate.register(p, args[0]);

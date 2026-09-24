@@ -9,8 +9,6 @@
 #   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
 #   errore &#FF6B6B  |  avviso &#FFD166
 
-prefix: "&#C046E8&lMagixLanguage &8» &r"
-
 # ---------------------------------------------------------------- generici
 no-permission: "&cNon hai il permesso per questo comando."
 players-only: "&cQuesto comando va eseguito da un giocatore."

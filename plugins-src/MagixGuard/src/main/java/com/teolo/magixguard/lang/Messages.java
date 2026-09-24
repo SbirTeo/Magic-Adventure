@@ -1,6 +1,6 @@
-package com.teolo.magixtime.lang;
+package com.teolo.magixguard.lang;
 
-import com.teolo.magixtime.util.Colors;
+import com.teolo.magixguard.util.Colors;
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -26,7 +26,7 @@ import java.util.Map;
 public final class Messages {
 
     /** Nome con cui MagixLanguage riconosce questo plugin nei suoi cataloghi tradotti. */
-    private static final String PLUGIN_NAME = "MagixTime";
+    private static final String PLUGIN_NAME = "MagixGuard";
 
     private final JavaPlugin plugin;
     private FileConfiguration cfg;
@@ -64,11 +64,6 @@ public final class Messages {
         to.sendMessage(textFor(to, path, kv));
     }
 
-    /** Invia una lista di righe (pannelli tipo /mtime info). */
-    public void sendList(CommandSender to, String path, String... kv) {
-        for (String line : linesFor(to, path, kv)) to.sendMessage(line);
-    }
-
     /** Lista di righe colorate, con sostituzione placeholder {chiave}. */
     public List<String> getList(String path, String... kv) {
         List<String> out = new ArrayList<>();
@@ -81,7 +76,7 @@ public final class Messages {
         return cfg.getConfigurationSection(path);
     }
 
-    /** Componente Adventure gia' colorato: serve per titoli e action bar. */
+    /** Componente Adventure gia' colorato. */
     public Component component(String path, String... kv) {
         return Colors.component(get(path, kv));
     }

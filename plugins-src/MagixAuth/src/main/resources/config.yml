@@ -125,8 +125,3 @@ premium:
   # Quanto si aspetta la risposta di Mojang prima di lasciar perdere. Tenerlo basso: se Mojang e'
   # lento, il giocatore non deve restare fermo al cancello per colpa di un dato accessorio.
   timeout_millis: 3000
-
-messages:
-  # Il viola e' quello di MAGIC nel logo; la freccia e la sfumatura seguono lo stile
-  # gia' usato da MagixEntities, cosi' i plugin del server si somigliano.
-  prefix: "&#C046E8&lMagixAuth &8» &r"

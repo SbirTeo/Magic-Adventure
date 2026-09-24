@@ -38,19 +38,19 @@ public final class LoginCommand implements CommandExecutor {
         }
         EntryState state = gate.state(p);
         if (state == null) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.already-in")));
+            p.sendMessage(Texts.c(messages.get(p, "login-command.already-in")));
             return true;
         }
         if (state.phase == Phase.REGISTRAZIONE) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.no-account")));
+            p.sendMessage(Texts.c(messages.get(p, "login-command.no-account")));
             return true;
         }
         if (state.phase == Phase.OTP) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.needs-otp")));
+            p.sendMessage(Texts.c(messages.get(p, "login-command.needs-otp")));
             return true;
         }
         if (args.length != 1) {
-            p.sendMessage(Texts.c(config.prefix, messages.get(p, "login-command.usage")));
+            p.sendMessage(Texts.c(messages.get(p, "login-command.usage")));
             p.sendMessage(Texts.c(messages.get(p, "login-command.all-commands")));
             return true;
         }

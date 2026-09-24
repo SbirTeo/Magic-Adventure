@@ -162,7 +162,7 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
             if (s == null || (s.getBoolean("staff", false) && !admin)) {
                 continue;
             }
-            sender.sendMessage(msg.prefix() + "&#C046E8&l" + s.getString("title", key));
+            sender.sendMessage("&#C046E8&l" + s.getString("title", key));
             for (String line : s.getStringList("entries")) {
                 sender.sendMessage("&7" + line);
             }

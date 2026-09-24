@@ -76,16 +76,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         this.fake = fake; this.protection = protection; this.homeWarmup = homeWarmup;
     }
 
-    /**
-     * La risposta a un comando: il cartellino del plugin davanti, poi il messaggio.
-     *
-     * Il prefisso sta qui e non davanti a ogni riga di messages.yml perche' i pannelli
-     * (l'aiuto, /f info, /f list, /f map) devono restarne fuori: una cornice ha senso attorno a
-     * una risposta, non ripetuta dodici volte dentro una scheda. Quelli passano da {@link #panel}.
-     */
+    /** La risposta a un comando. */
     private void msg(CommandSender s, String m) {
         if (s instanceof Player p) m = Papi.resolve(p, m); // risolve i %placeholder% per il giocatore
-        s.sendMessage(M.prefix() + m);
+        s.sendMessage(m);
     }
 
     /**
@@ -1824,13 +1818,13 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     /**
-     * Annuncio a TUTTO il server (col prefisso del plugin): fondazione e scioglimento fazioni.
+     * Annuncio a TUTTO il server: fondazione e scioglimento fazioni.
      * Tradotto per ognuno nella propria lingua: il testo va ricalcolato per ogni giocatore, non
      * costruito una volta sola come prima di MagixLanguage.
      */
     private void broadcastAll(String path, String... kv) {
         for (Player pl : Bukkit.getOnlinePlayers()) {
-            pl.sendMessage(M.prefix() + Papi.resolve(pl, M.get(pl, path, kv)));
+            pl.sendMessage(Papi.resolve(pl, M.get(pl, path, kv)));
         }
     }
 }

@@ -33,7 +33,7 @@ public final class HomeWarmupListener implements Listener {
     }
 
     private void msgKey(Player p, String path, String... kv) {
-        p.sendMessage(M.prefix() + Papi.resolve(p, M.get(p, path, kv)));
+        p.sendMessage(Papi.resolve(p, M.get(p, path, kv)));
     }
 
     /**
