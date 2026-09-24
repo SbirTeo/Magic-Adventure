@@ -32,9 +32,9 @@ set-invalid: "&cLingua sconosciuta. Lingue supportate: &e{list}&c."
 set-self: "&aLingua impostata su &e{lang}&a."
 set-other: "&aLingua di &e{player}&a impostata su &e{lang}&a."
 
-# {added} chiavi nuove copiate - {plugins} numero di plugin scansionati - {pending} traduzioni ancora da fare
-sync-done: "&aSincronizzazione completata: &e{added}&a chiavi nuove da &e{plugins}&a plugin, &e{pending}&a in attesa di traduzione."
-sync-running: "&eSincronizzazione in corso, un momento..."
+# {plugins} plugin scansionati - {translated} chiavi tradotte adesso - {reused} gia' in cache - {failed} fallite (restano in italiano)
+sync-done: "&aSincronizzazione completata: &e{plugins}&a plugin, &e{translated}&a chiavi tradotte, &e{reused}&a gia' in cache, &e{failed}&a fallite."
+sync-running: "&eSincronizzazione in corso: puo' volerci un po' se ci sono molte chiavi nuove da tradurre..."
 
 help:
   title: "MagixLanguage"

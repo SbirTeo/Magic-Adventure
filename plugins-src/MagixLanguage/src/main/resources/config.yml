@@ -108,3 +108,28 @@ translations:
   # visibile ai giocatori. Lo stesso elenco vale per tutti i plugin sopra.
   files:
     - "messages.yml"
+
+  # Traduzione automatica di ogni chiave nuova o cambiata, tramite l'API gratuita di
+  # MyMemory (vedi translate/Translator.java): senza questo, translations/<Plugin>/<lingua>.yml
+  # avrebbe solo il testo italiano da tradurre a mano.
+  auto-translate:
+    # Se false nessuna chiave esce verso il servizio di traduzione: le lingue diverse
+    # dall'italiano restano col testo italiano finche' non lo corregge lo staff (vedi
+    # <lingua>-overrides.yml dentro ogni cartella di translations/<Plugin>/).
+    enabled: true
+
+    # Quanto aspettare la risposta del servizio di traduzione prima di rinunciare per
+    # quella chiave (resta in italiano fino al prossimo giro, si riprova da sola).
+    timeout-ms: 4000
+
+    # Pausa fra una richiesta di traduzione e la successiva: il servizio e' gratuito e
+    # senza chiave, quindi va usato con garbo per non farsi bloccare temporaneamente.
+    # Con molte chiavi nuove insieme (es. un plugin aggiunto oggi) la prima
+    # sincronizzazione puo' volerci qualche minuto: gira fuori dal thread principale,
+    # quindi non blocca il gioco nel frattempo.
+    delay-ms: 150
+
+    # Indirizzo email da segnalare a MyMemory (parametro "de" della loro API): alza il
+    # limite giornaliero da 5000 a 10000 parole tradotte per questo server. Facoltativo,
+    # lasciare vuoto per restare anonimi (limite piu' basso ma nessun dato in piu' inviato).
+    contact-email: ""

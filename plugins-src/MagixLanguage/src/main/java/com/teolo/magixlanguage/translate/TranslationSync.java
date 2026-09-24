@@ -12,18 +12,17 @@ import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
 /**
  * Copia il testo che i giocatori vedono in gioco — {@code messages.yml} e gli altri file elencati
  * in {@code translations.files} — dalla cartella dati di ciascun plugin elencato in
- * {@code translations.plugins} dentro {@code plugins/MagixLanguage/translations/<Plugin>/}, un
- * file per lingua ({@code it.yml}, {@code en.yml}, {@code es.yml}, {@code de.yml}...).
+ * {@code translations.plugins} dentro {@code plugins/MagixLanguage/translations/<Plugin>/}, e lo
+ * TRADUCE in automatico (vedi {@link Translator}) in ciascuna delle altre lingue supportate.
  *
  * <h2>Perche' l'italiano e' la lingua SORGENTE</h2>
  * Per regola di progetto ogni {@code messages.yml} del server e' scritto in italiano (i VALORI, non
@@ -32,16 +31,21 @@ import java.util.logging.Logger;
  * Chi vuole cambiare un testo in italiano lo cambia nel {@code messages.yml} del plugin originale,
  * non qui: questo file si limiterebbe a ricopiarlo alla sincronizzazione successiva.
  *
- * <h2>Come si comportano gli altri file lingua</h2>
- * {@code en.yml}, {@code es.yml}, {@code de.yml} sono lavoro dello STAFF: una chiave nuova (presente
- * in {@code it.yml} ma non ancora nel file lingua) viene aggiunta con il valore italiano come
- * segnaposto, cosi' chi traduce parte da un testo vero e non da una chiave vuota. Una chiave gia'
- * tradotta — cioe' il cui valore e' DIVERSO da quello italiano corrispondente — non viene mai
- * toccata. Le chiavi sparite dal sorgente vengono tolte (con una copia di sicurezza prima), perche'
- * un file di traduzione che il codice non legge piu' e' solo un residuo.
+ * <h2>Come funzionano le altre lingue: automatico + correzioni</h2>
+ * {@code en.yml}, {@code es.yml}, {@code de.yml} sono interamente AUTOMATICI: rigenerati per intero
+ * a ogni sincronizzazione, ritraducendo da capo ogni chiave il cui testo italiano e' cambiato dalla
+ * volta prima (una cache tiene traccia di cosa e' stato tradotto e da quale testo, cosi' le chiavi
+ * INVARIATE non vengono ritradotte ad ogni riavvio). Un cambio di colore o di formattazione nel
+ * {@code messages.yml} originale arriva quindi da solo nella lingua tradotta, nella stessa forma.
+ * <p>
+ * Chi vuole CORREGGERE una traduzione a mano, senza che la sincronizzazione successiva la
+ * sovrascriva, la mette in {@code <lingua>-overrides.yml} (stessa cartella, stessa chiave): quel
+ * file non viene mai letto ne' modificato dalla traduzione automatica, solo COPIATO sopra di essa —
+ * una chiave li' vince sempre, e resta li' finche' qualcuno non la toglie.
  *
- * <p>Non lancia mai: un plugin non installato, un file mancante o un file illeggibile vengono
- * saltati e finiscono nel log, non in un'eccezione che blocchi l'avvio del server.</p>
+ * <p>Non lancia mai: un plugin non installato, un file mancante, una traduzione fallita (rete,
+ * limite del servizio) — tutto finisce nel log e nel testo italiano di ripiego, mai in
+ * un'eccezione che blocchi l'avvio del server.</p>
  */
 public final class TranslationSync {
 
@@ -59,22 +63,28 @@ public final class TranslationSync {
         this.log = plugin.getLogger();
     }
 
-    public record Result(int pluginsScanned, int keysAdded, int keysRemoved, int pendingTranslations) {}
+    public record Result(int pluginsScanned, int keysTranslated, int keysReused, int translationFailures) {}
 
-    /** Va chiamato fuori dal thread principale: legge e scrive parecchi piccoli file. */
+    /** Va chiamato fuori dal thread principale: puo' fare centinaia di chiamate di rete. */
     public Result run() {
         List<String> pluginNames = plugin.getConfig().getStringList("translations.plugins");
         List<String> fileNames = plugin.getConfig().getStringList("translations.files");
         List<String> targetLanguages = new ArrayList<>(plugin.getConfig().getStringList("supported-languages"));
         targetLanguages.remove(SOURCE_LANGUAGE);
 
+        boolean autoTranslateEnabled = plugin.getConfig().getBoolean("translations.auto-translate.enabled", true);
+        int timeoutMs = plugin.getConfig().getInt("translations.auto-translate.timeout-ms", 4000);
+        int delayMs = plugin.getConfig().getInt("translations.auto-translate.delay-ms", 150);
+        String contactEmail = plugin.getConfig().getString("translations.auto-translate.contact-email", "");
+        Translator translator = autoTranslateEnabled ? new Translator(timeoutMs, log, contactEmail) : null;
+
         File pluginsFolder = plugin.getDataFolder().getParentFile();
         File translationsRoot = new File(plugin.getDataFolder(), "translations");
 
-        int scanned = 0, added = 0, removed = 0;
-        // lingua -> righe "Plugin: chiave" ancora identiche al testo italiano, quindi non tradotte.
-        Map<String, List<String>> pending = new LinkedHashMap<>();
-        for (String lang : targetLanguages) pending.put(lang, new ArrayList<>());
+        int scanned = 0;
+        Counters totals = new Counters();
+        Map<String, List<String>> failures = new LinkedHashMap<>();
+        for (String lang : targetLanguages) failures.put(lang, new ArrayList<>());
 
         for (String pluginName : pluginNames) {
             Map<String, Object> source = readSourceText(pluginsFolder, pluginName, fileNames);
@@ -88,24 +98,103 @@ public final class TranslationSync {
             writeMirror(new File(catalogDir, SOURCE_LANGUAGE + ".yml"), source);
 
             for (String lang : targetLanguages) {
-                File target = new File(catalogDir, lang + ".yml");
-                Map<String, Object> existing = target.isFile() ? flattenFile(target) : new LinkedHashMap<>();
-                SyncOutcome outcome = merge(source, existing);
-                if (outcome.changed()) {
-                    writeCatalog(target, outcome.result, pluginName, lang);
-                }
-                added += outcome.added;
-                removed += outcome.removed;
-                for (String key : outcome.stillUntranslated) {
-                    pending.get(lang).add(pluginName + ": " + key);
-                }
+                syncLanguage(catalogDir, pluginName, lang, source, translator, delayMs,
+                        autoTranslateEnabled, totals, failures.get(lang));
             }
         }
 
-        int pendingTotal = writePendingReports(translationsRoot, pending);
-        log.info("MagixLanguage: sincronizzazione completata (" + scanned + " plugin, " + added
-                + " chiavi nuove, " + removed + " rimosse, " + pendingTotal + " in attesa di traduzione).");
-        return new Result(scanned, added, removed, pendingTotal);
+        int failureTotal = writeFailureReports(translationsRoot, failures);
+        log.info("MagixLanguage: sincronizzazione completata (" + scanned + " plugin, " + totals.translated
+                + " chiavi tradotte, " + totals.reused + " gia' in cache, " + failureTotal + " fallite).");
+        return new Result(scanned, totals.translated, totals.reused, failureTotal);
+    }
+
+    private static final class Counters {
+        int translated;
+        int reused;
+    }
+
+    // ------------------------------------------------------------- una lingua di un plugin
+
+    private void syncLanguage(File catalogDir, String pluginName, String lang, Map<String, Object> source,
+                              Translator translator, int delayMs, boolean autoTranslateEnabled,
+                              Counters totals, List<String> failuresForLang) {
+        File target = new File(catalogDir, lang + ".yml");
+        File overridesFile = new File(catalogDir, lang + "-overrides.yml");
+        File cacheFile = new File(catalogDir, ".cache-" + lang + ".yml");
+
+        ensureOverridesStub(overridesFile, lang);
+        Map<String, Object> overrides = overridesFile.isFile() ? flattenFile(overridesFile) : Map.of();
+        Cache cache = loadCache(cacheFile);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> newCacheSource = new LinkedHashMap<>();
+        Map<String, Object> newCacheTranslated = new LinkedHashMap<>();
+
+        for (Map.Entry<String, Object> e : source.entrySet()) {
+            String key = e.getKey();
+            Object italianValue = e.getValue();
+
+            if (overrides.containsKey(key)) {
+                result.put(key, overrides.get(key)); // lo staff vince sempre: niente cache, niente traduzione
+                continue;
+            }
+
+            Object cachedSource = cache.source().get(key);
+            Object cachedTranslated = cache.translated().get(key);
+            if (cachedTranslated != null && Objects.equals(cachedSource, italianValue)) {
+                result.put(key, cachedTranslated);
+                newCacheSource.put(key, italianValue);
+                newCacheTranslated.put(key, cachedTranslated);
+                totals.reused++;
+                continue;
+            }
+
+            if (!autoTranslateEnabled) {
+                result.put(key, italianValue); // traduzione spenta di proposito: non e' un fallimento da segnalare
+                continue;
+            }
+            Object translated = translateValue(translator, italianValue, lang);
+            if (translated == null) {
+                result.put(key, italianValue); // ripiego: italiano, si riprova al prossimo giro (non va in cache)
+                failuresForLang.add(pluginName + ": " + key);
+            } else {
+                result.put(key, translated);
+                newCacheSource.put(key, italianValue);
+                newCacheTranslated.put(key, translated);
+                totals.translated++;
+                if (delayMs > 0) sleepQuietly(delayMs);
+            }
+        }
+
+        writeCatalog(target, result, pluginName, lang);
+        saveCache(cacheFile, newCacheSource, newCacheTranslated);
+    }
+
+    private static Object translateValue(Translator translator, Object italianValue, String lang) {
+        if (italianValue instanceof String s) {
+            return translator.translate(s, lang);
+        }
+        if (italianValue instanceof List<?> list) {
+            List<String> out = new ArrayList<>(list.size());
+            for (Object line : list) {
+                String translated = translator.translate(String.valueOf(line), lang);
+                if (translated == null) {
+                    return null; // una riga sola non tradotta: si riprova tutta la lista al prossimo giro
+                }
+                out.add(translated);
+            }
+            return out;
+        }
+        return null;
+    }
+
+    private static void sleepQuietly(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     // ------------------------------------------------------------- lettura del sorgente
@@ -166,34 +255,67 @@ public final class TranslationSync {
         }
     }
 
-    // ------------------------------------------------------------- unione
+    // ------------------------------------------------------------- cache delle traduzioni
 
-    private record SyncOutcome(Map<String, Object> result, int added, int removed, List<String> stillUntranslated) {
-        boolean changed() { return added > 0 || removed > 0; }
+    /** Cosa si e' tradotto l'ultima volta (source) e con che risultato (translated), chiave per chiave. */
+    private record Cache(Map<String, Object> source, Map<String, Object> translated) {}
+
+    private static Cache loadCache(File file) {
+        if (!file.isFile()) {
+            return new Cache(Map.of(), Map.of());
+        }
+        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+        Map<String, Object> source = new LinkedHashMap<>();
+        Map<String, Object> translated = new LinkedHashMap<>();
+        ConfigurationSection sourceSection = cfg.getConfigurationSection("source");
+        if (sourceSection != null) flattenSection(sourceSection, "", source);
+        ConfigurationSection translatedSection = cfg.getConfigurationSection("translated");
+        if (translatedSection != null) flattenSection(translatedSection, "", translated);
+        return new Cache(source, translated);
     }
 
-    private static SyncOutcome merge(Map<String, Object> source, Map<String, Object> existing) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        List<String> stillUntranslated = new ArrayList<>();
-        int added = 0;
-        for (Map.Entry<String, Object> e : source.entrySet()) {
-            String key = e.getKey();
-            Object sourceValue = e.getValue();
-            if (existing.containsKey(key)) {
-                Object currentValue = existing.get(key);
-                result.put(key, currentValue);
-                if (currentValue.equals(sourceValue)) {
-                    stillUntranslated.add(key); // presente ma mai stato toccato da chi traduce
-                }
-            } else {
-                result.put(key, sourceValue); // segnaposto: parte gia' dal testo italiano
-                stillUntranslated.add(key);
-                added++;
-            }
+    private void saveCache(File file, Map<String, Object> source, Map<String, Object> translated) {
+        YamlConfiguration yaml = new YamlConfiguration();
+        for (Map.Entry<String, Object> e : new TreeMap<>(source).entrySet()) {
+            yaml.set("source." + e.getKey(), e.getValue());
         }
-        Set<String> stale = new LinkedHashSet<>(existing.keySet());
-        stale.removeAll(source.keySet());
-        return new SyncOutcome(result, added, stale.size(), stillUntranslated);
+        for (Map.Entry<String, Object> e : new TreeMap<>(translated).entrySet()) {
+            yaml.set("translated." + e.getKey(), e.getValue());
+        }
+        try {
+            File dir = file.getParentFile();
+            if (dir != null) dir.mkdirs();
+            Files.writeString(file.toPath(),
+                    "# Cache delle traduzioni automatiche: non si modifica a mano, e non serve leggerla.\n"
+                            + yaml.saveToString(),
+                    StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.warning("MagixLanguage: impossibile salvare " + file + " (" + e + ").");
+        }
+    }
+
+    // ------------------------------------------------------------- correzioni dello staff
+
+    /** Crea il file delle correzioni vuoto, con le istruzioni, se non esiste gia'. Non lo tocca mai altrimenti. */
+    private void ensureOverridesStub(File file, String lang) {
+        if (file.isFile()) {
+            return;
+        }
+        String header = "# Le TUE correzioni per la lingua \"" + lang + "\": una chiave messa qui vince sempre "
+                + "sulla traduzione automatica in " + lang + ".yml (nella stessa cartella), e questo file non "
+                + "viene MAI toccato dalla sincronizzazione - ne' letto per tradurre, ne' riscritto.\n"
+                + "# Usa lo stesso percorso di chiave di " + lang + ".yml, in forma annidata YAML, solo per le "
+                + "chiavi che vuoi correggere (le altre restano tradotte in automatico). Esempio:\n"
+                + "#\n"
+                + "# gate:\n"
+                + "#   otp-required: \"Testo scelto da te, in " + lang + ".\"\n";
+        try {
+            File dir = file.getParentFile();
+            if (dir != null) dir.mkdirs();
+            Files.writeString(file.toPath(), header, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.warning("MagixLanguage: impossibile creare " + file + " (" + e + ").");
+        }
     }
 
     // ------------------------------------------------------------- scrittura
@@ -208,11 +330,12 @@ public final class TranslationSync {
 
     private void writeCatalog(File file, Map<String, Object> result, String pluginName, String lang) {
         String body = toYaml(result);
-        String header = "# Traduzione (" + lang + ") dei messaggi di " + pluginName + ". Le chiavi nuove arrivano "
-                + "qui col testo italiano come segnaposto: cercale in translations/PENDING-" + lang + ".txt e "
-                + "sostituisci il VALORE (mai il nome della chiave a sinistra dei due punti). Questo file viene "
-                + "riscritto ad ogni sincronizzazione: solo i VALORI sono al sicuro, eventuali commenti aggiunti "
-                + "a mano vengono persi.\n";
+        String header = "# Traduzione (" + lang + ") dei messaggi di " + pluginName + ", AUTOMATICA: rigenerata "
+                + "per intero a ogni sincronizzazione, anche nei valori gia' presenti se il testo italiano e' "
+                + "cambiato nel frattempo (un colore, una formattazione...). NON si modifica QUI: le modifiche "
+                + "sparirebbero al prossimo riavvio.\n"
+                + "# Per correggere una traduzione senza che la sincronizzazione la sovrascriva piu': metti la "
+                + "STESSA chiave in " + lang + "-overrides.yml, nella stessa cartella. Vince sempre lei.\n";
         writeIfChanged(file, header + body);
     }
 
@@ -250,8 +373,14 @@ public final class TranslationSync {
         try {
             String stamp = LocalDateTime.now().format(STAMP);
             File copy = new File(file.getParentFile(), file.getName() + ".bak-" + stamp);
-            Files.copy(file.toPath(), copy.toPath());
-            pruneBackups(file);
+            // La marca e' al secondo: due scritture dello stesso file nello stesso secondo (due
+            // sincronizzazioni ravvicinate) userebbero lo stesso nome. Una copia con quel nome
+            // gia' presente vuol dire che il contenuto di un attimo fa e' gia' al sicuro: si
+            // procede con la scrittura invece di bloccarla per una collisione innocua.
+            if (!copy.exists()) {
+                Files.copy(file.toPath(), copy.toPath());
+                pruneBackups(file);
+            }
             return true;
         } catch (IOException e) {
             log.warning("MagixLanguage: copia di sicurezza di " + file + " fallita (" + e + "): file NON toccato.");
@@ -274,19 +403,22 @@ public final class TranslationSync {
     // ------------------------------------------------------------- rapporto per lo staff
 
     /** Un file per lingua, rigenerato per intero ad ogni sincronizzazione: sempre lo stato vero, mai accumulo. */
-    private int writePendingReports(File translationsRoot, Map<String, List<String>> pendingByLang) {
+    private int writeFailureReports(File translationsRoot, Map<String, List<String>> failuresByLang) {
         int total = 0;
-        for (Map.Entry<String, List<String>> e : pendingByLang.entrySet()) {
+        for (Map.Entry<String, List<String>> e : failuresByLang.entrySet()) {
             List<String> lines = e.getValue();
             total += lines.size();
-            File report = new File(translationsRoot, "PENDING-" + e.getKey() + ".txt");
+            File report = new File(translationsRoot, "TRANSLATION-FAILED-" + e.getKey() + ".txt");
             try {
                 if (lines.isEmpty()) {
                     Files.deleteIfExists(report.toPath());
                     continue;
                 }
-                String text = "# Chiavi ancora col testo italiano come segnaposto, lingua " + e.getKey() + ".\n"
-                        + "# Rigenerato ad ogni /language sync: non si modifica a mano.\n"
+                String text = "# Chiavi che la traduzione automatica (" + e.getKey() + ") non e' riuscita a "
+                        + "tradurre nell'ultima sincronizzazione (restano in italiano nel frattempo): si riprova "
+                        + "da sola al prossimo /language sync o riavvio. Se un servizio esterno e' irraggiungibile "
+                        + "per un problema di rete del VPS, resta qui finche' non torna disponibile.\n"
+                        + "# Rigenerato ad ogni sincronizzazione: non si modifica a mano.\n"
                         + String.join("\n", lines) + "\n";
                 Files.writeString(report.toPath(), text, StandardCharsets.UTF_8);
             } catch (IOException ex) {
