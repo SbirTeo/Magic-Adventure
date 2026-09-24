@@ -132,4 +132,4 @@ translations:
     # Indirizzo email da segnalare a MyMemory (parametro "de" della loro API): alza il
     # limite giornaliero da 5000 a 10000 parole tradotte per questo server. Facoltativo,
     # lasciare vuoto per restare anonimi (limite piu' basso ma nessun dato in piu' inviato).
-    contact-email: ""
+    contact-email: "admin@magicadventure.it"
