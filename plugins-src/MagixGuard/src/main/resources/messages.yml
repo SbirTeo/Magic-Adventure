@@ -1,0 +1,39 @@
+# MagixGuard - messaggi.
+# Colori: codici & classici (&a &c &l ...) ed esadecimali &#RRGGBB.
+#
+# PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
+#   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
+#   verde  &#A8DC2C  l'ADVENTURE del logo: comandi, conferme, cose cliccabili
+#   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
+#   errore &#FF6B6B  |  avviso &#FFD166
+
+prefix: "&#C046E8&lMagixGuard &8» &r"
+
+# -------------------------------------------------------------------- help
+# L'aiuto lo impagina la classe Help (la stessa in tutti i plugin Magix): una
+# sezione per volta, frecce per sfogliare, ogni riga cliccabile per scriversi il
+# comando in chat.
+# Formato di una riga:  "<comando> [argomenti] :: spiegazione"
+#   - il comando (le parole semplici iniziali) e' quello che il clic scrive;
+#   - gli argomenti fra <> o [] restano da riempire a mano;
+#   - staff: true su una sezione = la vede solo chi ha magixguard.admin.
+help:
+  title: "MagixGuard"
+  sections:
+    indagini:
+      title: "Indagini"
+      entries:
+        - "/mg alts <nick> :: account collegati, con il dettaglio degli indizi"
+        - "/mg dossier <nick> [nick2] [pubblico] :: genera il documento completo"
+        - "/mg sessions <nick> [n] :: ultimi accessi con i dati tecnici"
+        - "/mg alerts [n] :: ultime segnalazioni"
+        - "/mg verify :: verifica che il registro non sia stato manomesso"
+        - "/mg stats :: numeri generali"
+    amministrazione:
+      title: "Amministrazione"
+      staff: true
+      entries:
+        - "/mg link <a> <b> [motivo] :: collega due account a mano"
+        - "/mg unlink <a> <b> [motivo] :: dichiara la coppia legittima (fratelli, coinquilini)"
+        - "/mg exempt <nick> <on|off> :: esclude un account dall'analisi"
+        - "/mg reload :: ricarica la configurazione"

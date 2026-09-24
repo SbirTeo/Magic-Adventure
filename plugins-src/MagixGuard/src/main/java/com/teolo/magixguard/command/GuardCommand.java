@@ -8,19 +8,25 @@ import com.teolo.magixguard.db.GuardDao;
 import com.teolo.magixguard.dossier.DossierBuilder;
 import com.teolo.magixguard.model.PlayerRef;
 import com.teolo.magixguard.model.Rows;
+import com.teolo.magixguard.sanctions.Text;
 import com.teolo.magixguard.util.Fmt;
+import com.teolo.magixguard.util.Help;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -33,8 +39,7 @@ import java.util.Optional;
  */
 public final class GuardCommand implements CommandExecutor, TabCompleter {
 
-    private static final NamedTextColor MAIN = NamedTextColor.DARK_AQUA;
-    private static final NamedTextColor TEXT = NamedTextColor.GRAY;
+    private static final TextColor TEXT = Help.GREY;
     private static final NamedTextColor HIGHLIGHT = NamedTextColor.WHITE;
 
     private final MagixGuard plugin;
@@ -43,6 +48,7 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
     private final DbExecutor executor;
     private final LinkScorer scorer;
     private final DossierBuilder dossier;
+    private final FileConfiguration messagesConfig;
 
     public GuardCommand(MagixGuard plugin, GuardConfig config, GuardDao dao, DbExecutor executor,
                         LinkScorer scorer, DossierBuilder dossier) {
@@ -52,12 +58,23 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
         this.executor = executor;
         this.scorer = scorer;
         this.dossier = dossier;
+        this.messagesConfig = loadMessages();
+    }
+
+    private FileConfiguration loadMessages() {
+        return YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "messages.yml"));
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 0) {
-            help(sender);
+        // "?" e il numero da solo sfogliano l'aiuto, come negli altri plugin Magix: e' quello
+        // che mandano le frecce in fondo all'elenco (vedi plugins-src/STILE-MAGIX.md).
+        if (args.length == 0 || args[0].equalsIgnoreCase("help") || args[0].equals("?")) {
+            help(sender, args.length >= 2 ? page(args[1]) : 1);
+            return true;
+        }
+        if (args[0].chars().allMatch(Character::isDigit)) {
+            help(sender, page(args[0]));
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
@@ -72,9 +89,14 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             case "stats" -> stats(sender);
             case "exempt", "escludi" -> exempt(sender, args);
             case "reload" -> reload(sender);
-            default -> help(sender);
+            default -> help(sender, 1);
         }
         return true;
+    }
+
+    /** Il numero di pagina scritto dall'utente; qualsiasi cosa strana vale 1. */
+    private static int page(String s) {
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 1; }
     }
 
     // ============================== sottocomandi ==============================
@@ -249,8 +271,8 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             long now = System.currentTimeMillis();
             dao.setLinkManual(a.id(), b.id(), true, 100, now);
             dao.appendAudit(sender.getName(), "LINK_MANUALE", a.name() + " <-> " + b.name(), reason, now);
-            reply(sender, Component.text("Collegamento forzato fra " + a.name() + " e " + b.name()
-                    + ". Resta registrato nel registro firmato.", NamedTextColor.GREEN));
+            reply(sender, Text.msg("&#A8DC2CCollegamento forzato fra &f" + a.name() + " &7e &f" + b.name()
+                    + "&7. Resta registrato nel registro firmato."));
         });
     }
 
@@ -269,9 +291,8 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             long now = System.currentTimeMillis();
             dao.addWhitelist(a.id(), b.id(), sender.getName(), reason, now);
             dao.appendAudit(sender.getName(), "WHITELIST", a.name() + " <-> " + b.name(), reason, now);
-            reply(sender, Component.text(a.name() + " e " + b.name()
-                            + " sono ora dichiarati legittimi: niente piu' segnalazioni per questa coppia.",
-                    NamedTextColor.GREEN));
+            reply(sender, Text.msg("&#A8DC2C&f" + a.name() + " &7e &f" + b.name()
+                    + " &7sono ora dichiarati legittimi: niente piu' segnalazioni per questa coppia."));
         });
     }
 
@@ -281,7 +302,7 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             if (check.ok()) {
                 reply(sender, List.of(
                         title("Registro integro"),
-                        Component.text(check.rows() + " righe verificate: nessuna manomissione.", NamedTextColor.GREEN),
+                        Component.text(check.rows() + " righe verificate: nessuna manomissione.", Help.GREEN),
                         Component.text("Ultima impronta: " + (check.lastHash() == null ? "-"
                                 : check.lastHash().substring(0, 16) + "..."), TEXT)));
             } else {
@@ -326,9 +347,9 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             dao.setExempt(target.get().id(), on);
             dao.appendAudit(sender.getName(), on ? "ESCLUSO" : "REINCLUSO", target.get().name(),
                     "profilazione " + (on ? "disattivata" : "riattivata"), System.currentTimeMillis());
-            reply(sender, Component.text(target.get().name() + (on
-                    ? " non verra' piu' analizzato."
-                    : " torna sotto analisi."), NamedTextColor.GREEN));
+            reply(sender, Text.msg("&#A8DC2C&f" + target.get().name() + (on
+                    ? " &7non verra' piu' analizzato."
+                    : " &7torna sotto analisi.")));
         });
     }
 
@@ -338,22 +359,22 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             return;
         }
         plugin.reloadGuard();
-        reply(sender, Component.text("Configurazione ricaricata.", NamedTextColor.GREEN));
+        reply(sender, Text.msg("&#A8DC2CConfigurazione ricaricata."));
     }
 
-    private void help(CommandSender sender) {
-        reply(sender, List.of(
-                title("MagixGuard - comandi"),
-                cmd("/mg alts <nick>", "account collegati, con il dettaglio degli indizi"),
-                cmd("/mg dossier <nick> [nick2] [pubblico]", "genera il documento completo"),
-                cmd("/mg sessions <nick> [n]", "ultimi accessi con i dati tecnici"),
-                cmd("/mg alerts [n]", "ultime segnalazioni"),
-                cmd("/mg link <a> <b> [motivo]", "collega due account a mano"),
-                cmd("/mg unlink <a> <b> [motivo]", "dichiara la coppia legittima (fratelli, coinquilini)"),
-                cmd("/mg exempt <nick> <on|off>", "esclude un account dall'analisi"),
-                cmd("/mg verify", "verifica che il registro non sia stato manomesso"),
-                cmd("/mg stats", "numeri generali"),
-                cmd("/mg reload", "ricarica la configurazione")));
+    /**
+     * /mg help [pagina] - l'elenco dei comandi.
+     *
+     * Le voci stanno in messages.yml (help.sections) e le impagina {@link Help}, la stessa
+     * classe degli altri plugin Magix: sezioni, frecce per sfogliare, ogni riga cliccabile per
+     * scriversi il comando in chat. La sezione di amministrazione la vede solo chi ha
+     * magixguard.admin.
+     */
+    private void help(CommandSender sender, int page) {
+        ConfigurationSection h = messagesConfig.getConfigurationSection("help");
+        String title = h != null ? h.getString("title", "MagixGuard") : "MagixGuard";
+        Help.show(sender, title, "/mg help", Help.fromConfig(messagesConfig.getConfigurationSection("help.sections")),
+                page, sender.hasPermission("magixguard.admin"));
     }
 
     // ============================== utilita' ==============================
@@ -376,16 +397,14 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
         });
     }
 
+    /** Intestazione di un pannello: niente cartellino davanti, si ripeterebbe in ogni riga. */
     private static Component title(String text) {
-        return Component.text("[MagixGuard] ", MAIN).append(Component.text(text, HIGHLIGHT).decorate(TextDecoration.BOLD));
+        return Text.panel("&#C046E8&l" + text);
     }
 
-    private static Component cmd(String usage, String description) {
-        return Component.text(usage, HIGHLIGHT).append(Component.text("  " + description, TEXT));
-    }
-
+    /** Risposta d'errore a un comando: col cartellino davanti, come negli altri plugin Magix. */
     private static Component error(String text) {
-        return Component.text("[MagixGuard] ", MAIN).append(Component.text(text, NamedTextColor.RED));
+        return Text.msg("&#FF6B6B" + text);
     }
 
     private static NamedTextColor scoreColor(double score) {
@@ -416,10 +435,10 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(List.of("alts", "dossier", "sessions", "alerts", "link", "unlink",
+            return filter(List.of("help", "alts", "dossier", "sessions", "alerts", "link", "unlink",
                     "exempt", "verify", "stats", "reload"), args[0]);
         }
-        if (args.length == 2 && !args[0].equalsIgnoreCase("alerts")) {
+        if (args.length == 2 && !args[0].equalsIgnoreCase("alerts") && !args[0].equalsIgnoreCase("help")) {
             List<String> names = new ArrayList<>();
             for (Player p : Bukkit.getOnlinePlayers()) names.add(p.getName());
             return filter(names, args[1]);

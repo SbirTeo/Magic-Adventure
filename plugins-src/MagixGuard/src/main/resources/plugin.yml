@@ -10,7 +10,7 @@ commands:
   magixguard:
     description: Strumenti staff anti multi-account
     aliases: [mg, guard, alts]
-    usage: /mg <alts|dossier|sessions|alerts|link|unlink|verify|stats|reload>
+    usage: /mg <help|alts|dossier|sessions|alerts|link|unlink|verify|stats|reload>
     permission: magixguard.staff
 
   # --- moderazione ---------------------------------------------------

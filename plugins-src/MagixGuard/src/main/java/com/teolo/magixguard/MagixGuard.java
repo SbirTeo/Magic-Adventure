@@ -27,6 +27,7 @@ import com.teolo.magixguard.sanctions.SanctionsListener;
 import com.teolo.magixguard.sanctions.SanctionsService;
 import com.teolo.magixguard.sanctions.SiteSync;
 import com.teolo.magixguard.sanctions.SiteDb;
+import com.teolo.magixguard.sanctions.Text;
 import com.teolo.magixguard.util.StaffGuide;
 import com.teolo.magixguard.dossier.DossierBuilder;
 import com.teolo.magixguard.util.Hashing;
@@ -73,6 +74,9 @@ public final class MagixGuard extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         getDataFolder().mkdirs();
+        // Cartellino e palette dei messaggi in chat (vedi plugins-src/STILE-MAGIX.md): si
+        // rileggono da messages.yml, cosi' si cambiano sul server senza ricompilare.
+        Text.load(this);
         // Solo I/O su file: fuori dal tick di avvio (stessa convenzione degli altri plugin Magix).
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
         // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
@@ -245,6 +249,7 @@ public final class MagixGuard extends JavaPlugin {
         // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
         ConfigAlign.alignAll(this);
         reloadConfig();
+        Text.load(this);
         if (collector != null) {
             collector.closeAllOpenSessions();
             HandlerList.unregisterAll(collector);
@@ -595,6 +600,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "il documento esisteva già in quella forma **prima** della decisione.")
 
                 .subcommands("I comandi delle indagini (/mg, /guard, /alts)",
+                        "/mg help [pagina]", "L'elenco dei comandi, a pagine e cliccabile.",
                         "/mg alts <nome>", "Gli account collegati a quel giocatore, col dettaglio degli indizi.",
                         "/mg dossier <nome> [nome2] [pubblico]", "Genera il documento completo. Con «pubblico» gli indirizzi sono mascherati: è quello da allegare al ricorso.",
                         "/mg sessions <nome> [n]", "Gli ultimi accessi con tutti i dati tecnici.",

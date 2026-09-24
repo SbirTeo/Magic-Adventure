@@ -96,6 +96,7 @@ solo** (`/f 3`): e' quello che mandano le frecce.
 | MagixFactions | `/f help [pagina]` | `/f help` |
 | MagixEntities | `/mentities help [pagina]` | `/mentities help` |
 | MagixTime | `/mtime help [pagina]` | `/mtime help` |
+| MagixGuard | `/mg help [pagina]` | `/mg help` |
 
 ---
 
