@@ -1,0 +1,122 @@
+# MagixGuard - tutti i testi mostrati ai giocatori (sanzioni, filtro chat, anti-afk).
+# Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+# Placeholder disponibili indicati riga per riga.
+# I messaggi di ban/kick/mute (con il motivo) restano in sanzioni.yml: sono template che lo
+# staff personalizza per il proprio server, non testo fisso del plugin.
+
+# ---------------------------------------------------------------- come si dice un provvedimento
+types:
+  warn: "Richiamo"
+  mute: "Silenziato"
+  kick: "Espulso"
+  ban: "Bandito"
+
+# ---------------------------------------------------------------- applicare (SanctionsService)
+service:
+  # {nome} chi lo riceve, {tipo} il provvedimento (types.*), {motivo} perche'
+  proposal-pending: "&#FFD166Proposta in attesa: &f{nome} &7— {tipo}, {motivo}. &7Aperta nel gestionale."
+  # {tipo} il provvedimento, {nome} chi lo riceve, {motivo} perche', {durata} quanto dura, {autore} chi l'ha dato
+  applied: "&#A8DC2C{tipo}&f {nome} &7— {motivo} &8({durata}, da {autore})"
+  # {nome} chi doveva riceverla
+  not-registered: "&#FF6B6BSanzione NON registrata per &f{nome}&#FF6B6B: il database del sito non risponde. Riprova."
+  # {motivo}, {durata}
+  muted: "&#FF6B6BSei stato silenziato: &f{motivo} &7({durata})"
+  # {motivo}
+  warned: "&#FFD166Richiamo: &f{motivo}"
+  unmuted: "&#A8DC2CPuoi di nuovo scrivere in chat."
+  mute-expiry-never: "non scade"
+
+# ---------------------------------------------------------------- /mgviolation (ViolationCommand)
+violation-command:
+  usage: "&#FFD166Uso: &f/mgviolation <giocatore> <categoria> [dettaglio]"
+  usage-hint: "&7Lo chiama l'anticheat, non una persona. Categorie: cheat.movimento, cheat.combat, cheat.xray, afk.elusione."
+
+# ---------------------------------------------------------------- /ban /mute /kick /warn /unban /unmute /history /sanctions
+commands:
+  # {comando} il nome del comando digitato, {argomenti} quello che si aspetta
+  usage: "&#FFD166Uso: &f/{comando} {argomenti}"
+  # {comando} il comando permanente (ban/mute): il temporaneo e' /temp davanti
+  usage-hint-permanent: "&7(permanente; a tempo: /temp{comando})"
+  usage-hint-duration-example: "&7(es. 30m, 6h, 3d)"
+  duration-required: "&#FF6B6BQui la durata serve davvero. &7Per il permanente usa &f/{comando}&7."
+  duration-invalid: "&#FF6B6BDurata non riconosciuta. &7Scrivila come 30m, 6h, 3d, 2w."
+  # {comando} il comando permanente digitato, {comando-tempo} il suo equivalente a tempo
+  permanent-no-duration: "&#FFD166&f/{comando} &#FFD166e' permanente e non vuole una durata. &7Per una sanzione a tempo usa &f/{comando-tempo} <giocatore> <durata> <motivo>&7."
+  reason-required: "&#FF6B6BIl motivo non e' facoltativo: &7lo legge il giocatore, e finisce nell'elenco pubblico."
+  unknown-player: "&#FF6B6BNon conosco nessuno con quel nome. &7Deve essere entrato almeno una volta, o avere un account sul sito."
+  # {nome}, {tipo}, {durata} ("immediata" o una durata scritta), {id} numero del provvedimento
+  applied: "&#A8DC2CFatto. &f{nome} &7— {tipo}, {durata}. &7Provvedimento n. {id}."
+  duration-immediate: "immediata"
+  # {motivo} la proposta gia' pronta da leggere
+  proposed: "&#FFD166Proposta inviata: &7{motivo}. &7La trovi nel gestionale, con le prove gia' allegate."
+
+  remove-usage: "&#FFD166Uso: &f/{comando} <giocatore> [motivo]"
+  remove-unknown-player: "&#FF6B6BNon conosco nessuno con quel nome."
+  # {tipo}, {nome}
+  remove-nothing-active: "&7Non c'e' nessun {tipo} attivo per &f{nome}&7."
+  # {id} numero del provvedimento revocato
+  revoked: "&#A8DC2CRevocato. &7Provvedimento n. {id}."
+  revoke-failed: "&#FF6B6BRevoca non riuscita: il database del sito non risponde."
+  # per lo staff: {nome}, {tipo}, {autore}
+  revoke-broadcast: "&#A8DC2CRevoca&f {nome} &7— {tipo}, da {autore}"
+
+  history-usage: "&#FFD166Uso: &f/history <giocatore>"
+  # {nome}, {punti} punti attuali
+  history-header: "&#C046E8&lStorico di &f{nome} &8(&f{punti}&8 punti attuali)"
+  history-empty: "&7Nessun provvedimento. "
+  # {tipo}, {durata}, {motivo}, {stato} ("in corso"/"conclusa"), {id}
+  history-row: "&8- &f{tipo} &7{durata} &8| &7{motivo} &8| {stato} &8| &7n.{id}"
+  history-status-active: "&#FF6B6Bin corso"
+  history-status-closed: "&7conclusa"
+  history-error: "&#FF6B6BArchivio non raggiungibile."
+
+  sanctions-staff-only: "&#FF6B6BPuoi vedere solo le tue."
+  sanctions-usage: "&#FFD166Uso: &f/sanctions <giocatore>"
+  sanctions-header: "&#C046E8&lSanzioni di &f{nome}"
+  sanctions-none: "&#A8DC2CNessun provvedimento in corso."
+  # {tipo}, {motivo}, {scadenza} ("non scade" o "finisce fra ...")
+  sanctions-row: "&8- &f{tipo} &7{motivo} &8| &7{scadenza}"
+  sanctions-expiry-never: "non scade"
+  # {tempo} quanto manca
+  sanctions-expiry-in: "finisce fra {tempo}"
+  # {punti}, {mancano} quanti punti mancano al prossimo provvedimento (vuoto se non applicabile)
+  sanctions-points: "&7Punti: &f{punti}{mancano}"
+  # {numero} quanti punti mancano
+  sanctions-points-remaining: " &8(&7ne mancano {numero} al prossimo provvedimento&8)"
+  # {giorni} ogni quanti giorni dimezzano
+  sanctions-halflife: "&8I punti dimezzano ogni {giorni} giorni."
+  archive-unreachable: "&#FF6B6BArchivio non raggiungibile."
+
+# ---------------------------------------------------------------- /report
+report:
+  disabled: "&7Le segnalazioni sono disattivate su questo server."
+  console-only: "&7Le segnalazioni le mandano i giocatori. &7I casi aperti si leggono nel gestionale del sito, in Sanzioni."
+  usage: "&#FFD166Uso: &f/report <giocatore> <motivo>"
+  usage-hint: "&7Scrivi cosa e' successo, non solo l'accusa: chi controllera' non era li'."
+  self: "&#FF6B6BNon puoi segnalare te stesso."
+  # {minimo} caratteri minimi richiesti
+  reason-too-short: "&#FF6B6BSpiega meglio: &7servono almeno {minimo} caratteri. Cosa ha fatto, dove, quando."
+  # {secondi} quanti mancano
+  cooldown: "&7Aspetta ancora &f{secondi} secondi&7 prima di segnalare di nuovo."
+  unknown-player: "&#FF6B6BNon conosco nessuno con quel nome. &7Controlla come si scrive."
+  # {numero} segnalazioni gia' aperte
+  too-many-open: "&7Hai gia' &f{numero}&7 segnalazioni in attesa di risposta. Aspetta che lo staff le guardi."
+  sent: "&#A8DC2CSegnalazione inviata. &7Lo staff la trova nel gestionale con la tua posizione e l'ora. Grazie."
+  # per lo staff: {mittente}, {target}, {motivo}
+  staff-broadcast: "&#FFD166Segnalazione&f {mittente} &7ha segnalato &f{target} &7— {motivo}"
+  send-failed: "&#FF6B6BSegnalazione non inviata: riprova fra poco."
+
+# ---------------------------------------------------------------- filtro chat
+chat:
+  advertising: "&#FF6B6BNon si pubblicizzano altri server."
+  personal-data: "&#FFD166Non scrivere dati personali in chat pubblica. &7E' per la tua sicurezza."
+  # {motivo} perche' e' stato rallentato (gia' minuscolo)
+  spam: "&7Rallenta: &f{motivo}&7."
+  spam-reason-too-many: "Troppi messaggi in pochi secondi"
+  spam-reason-repeated: "Messaggio ripetuto"
+  spam-reason-caps: "Troppe maiuscole"
+
+# ---------------------------------------------------------------- anti-afk
+afk:
+  returned: "&#A8DC2CBentornato. &7Da adesso il gioco riprende a contare."
+  idle: "&7Sei fermo da un po': &fda ora il gioco non produce piu' nulla intorno a te&7. Muoviti per riprendere."

@@ -1,5 +1,6 @@
 package com.teolo.magixguard.chat;
 
+import com.teolo.magixguard.lang.Messages;
 import com.teolo.magixguard.sanctions.Detector;
 import com.teolo.magixguard.sanctions.Text;
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -54,6 +55,7 @@ public final class ChatFilter implements Listener {
     private static final Pattern EMAIL = Pattern.compile("\\b[a-z0-9._%-]+@[a-z0-9.-]+\\.[a-z]{2,}\\b");
 
     private final Detector detector;
+    private final Messages messages;
     private final ChatMemory memory;
 
     private final boolean active;
@@ -70,8 +72,9 @@ public final class ChatFilter implements Listener {
     private final List<String> dominiConsentiti = new ArrayList<>();
     private final List<String> frasiAdescamento = new ArrayList<>();
 
-    public ChatFilter(Detector detector, ConfigurationSection cfg) {
+    public ChatFilter(Detector detector, ConfigurationSection cfg, Messages messages) {
         this.detector = detector;
+        this.messages = messages;
         this.active = cfg == null || cfg.getBoolean("attivo", true);
         this.memory = new ChatMemory(cfg == null ? 6 : cfg.getInt("contesto-righe", 6));
 
@@ -125,7 +128,7 @@ public final class ChatFilter implements Listener {
             String found = searchAds(aParole, compatta);
             if (found != null) {
                 e.setCancelled(true);
-                p.sendMessage(Text.msg("&#FF6B6BNon si pubblicizzano altri server."));
+                p.sendMessage(Text.msg(messages.get(p, "chat.advertising")));
                 report(p, "chat.pubblicita", originale, "Riconosciuto: " + found, context);
                 return;
             }
@@ -136,8 +139,7 @@ public final class ChatFilter implements Listener {
             String found = searchPersonalData(originale, aParole);
             if (found != null) {
                 e.setCancelled(true);
-                p.sendMessage(Text.msg("&#FFD166Non scrivere dati personali in chat pubblica. "
-                        + "&7E' per la tua sicurezza."));
+                p.sendMessage(Text.msg(messages.get(p, "chat.personal-data")));
                 report(p, "chat.dati-personali", originale, "Riconosciuto: " + found, context);
                 return;
             }
@@ -147,8 +149,9 @@ public final class ChatFilter implements Listener {
         String spam = searchSpam(p, originale, aParole);
         if (spam != null) {
             e.setCancelled(true);
-            p.sendMessage(Text.msg("&7Rallenta: &f" + spam.toLowerCase() + "&7."));
-            report(p, "chat.spam", originale, "Riconosciuto: " + spam, context);
+            String reasonKey = "chat.spam-reason-" + spam;
+            p.sendMessage(Text.msg(messages.get(p, "chat.spam", "motivo", messages.get(p, reasonKey).toLowerCase())));
+            report(p, "chat.spam", originale, "Riconosciuto: " + messages.get(reasonKey), context);
             memory.add(p.getUniqueId(), p.getName(), originale);
             return;
         }
@@ -221,19 +224,19 @@ public final class ChatFilter implements Listener {
         return null;
     }
 
-    /** Ritorna il tipo di spam riconosciuto, o null. */
+    /** Ritorna il codice del tipo di spam riconosciuto (chiave di chat.spam-reason-*), o null. */
     private String searchSpam(Player p, String originale, String aParole) {
         int recenti = memory.quantiNegliUltimi(p.getUniqueId(), spamFinestraSecondi * 1000L);
         if (recenti >= maxSpam) {
-            return "Troppi messaggi in pochi secondi";
+            return "too-many";
         }
         String ultimo = memory.ultimoDi(p.getUniqueId());
         if (ultimo != null && Normalizer.somiglianza(Normalizer.aParole(ultimo), aParole) >= spamSomiglianza) {
-            return "Messaggio ripetuto";
+            return "repeated";
         }
         if (originale.length() >= maiuscoleLunghezzaMinima
                 && Normalizer.percentualeMaiuscole(originale) >= maiuscolePercento) {
-            return "Troppe maiuscole";
+            return "caps";
         }
         return null;
     }

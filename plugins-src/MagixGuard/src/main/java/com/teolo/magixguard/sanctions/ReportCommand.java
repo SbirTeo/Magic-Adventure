@@ -1,5 +1,6 @@
 package com.teolo.magixguard.sanctions;
 
+import com.teolo.magixguard.lang.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -36,31 +37,33 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
     private final SanctionsConfig cfg;
     private final SanctionsService service;
     private final SanctionsDao dao;
+    private final Messages messages;
 
     /** Ultima segnalazione di ognuno, per far rispettare la pausa. */
     private final Map<UUID, Long> ultima = new ConcurrentHashMap<>();
 
-    public ReportCommand(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service, SanctionsDao dao) {
+    public ReportCommand(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service, SanctionsDao dao,
+                          Messages messages) {
         this.plugin = plugin;
         this.cfg = cfg;
         this.service = service;
         this.dao = dao;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender chi, Command command, String label, String[] args) {
         if (!cfg.reportActive) {
-            chi.sendMessage(Text.msg("&7Le segnalazioni sono disattivate su questo server."));
+            chi.sendMessage(Text.msg(messages.get(chi, "report.disabled")));
             return true;
         }
         if (!(chi instanceof Player mittente)) {
-            chi.sendMessage(Text.msg("&7Le segnalazioni le mandano i giocatori. &7I casi aperti si leggono nel gestionale del sito, in Sanzioni."));
+            chi.sendMessage(Text.msg(messages.get(chi, "report.console-only")));
             return true;
         }
         if (args.length < 2) {
-            chi.sendMessage(Text.msg("&#FFD166Uso: &f/report <giocatore> <motivo>"));
-            chi.sendMessage(Text.panel("&7Scrivi cosa e' successo, non solo l'accusa: chi controllera' "
-                    + "non era li'."));
+            chi.sendMessage(Text.msg(messages.get(chi, "report.usage")));
+            chi.sendMessage(Text.panel(messages.get(chi, "report.usage-hint")));
             return true;
         }
 
@@ -68,12 +71,12 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
         String reason = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)).trim();
 
         if (target.equalsIgnoreCase(mittente.getName())) {
-            chi.sendMessage(Text.msg("&#FF6B6BNon puoi segnalare te stesso."));
+            chi.sendMessage(Text.msg(messages.get(chi, "report.self")));
             return true;
         }
         if (reason.length() < cfg.reportMinReason) {
-            chi.sendMessage(Text.msg("&#FF6B6BSpiega meglio: &7servono almeno "
-                    + cfg.reportMinReason + " caratteri. Cosa ha fatto, dove, quando."));
+            chi.sendMessage(Text.msg(messages.get(chi, "report.reason-too-short",
+                    "minimo", String.valueOf(cfg.reportMinReason))));
             return true;
         }
 
@@ -82,7 +85,7 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
         long pause = cfg.reportCooldownSeconds * 1000L;
         if (now - precedente < pause) {
             long restano = (pause - (now - precedente)) / 1000;
-            chi.sendMessage(Text.msg("&7Aspetta ancora &f" + restano + " secondi&7 prima di segnalare di nuovo."));
+            chi.sendMessage(Text.msg(messages.get(chi, "report.cooldown", "secondi", String.valueOf(restano))));
             return true;
         }
 
@@ -93,14 +96,14 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             UUID uuid = risolvi(target, targetOnline);
             if (uuid == null) {
-                chi.sendMessage(Text.msg("&#FF6B6BNon conosco nessuno con quel nome. &7Controlla come si scrive."));
+                chi.sendMessage(Text.msg(messages.get(chi, "report.unknown-player")));
                 return;
             }
             try {
                 int aperti = dao.reportApertiDi(mittente.getUniqueId().toString());
                 if (aperti >= cfg.reportMaxOpen) {
-                    chi.sendMessage(Text.msg("&7Hai gia' &f" + aperti + "&7 segnalazioni in attesa di risposta. "
-                            + "Aspetta che lo staff le guardi."));
+                    chi.sendMessage(Text.msg(messages.get(chi, "report.too-many-open",
+                            "numero", String.valueOf(aperti))));
                     return;
                 }
 
@@ -113,13 +116,12 @@ public final class ReportCommand implements CommandExecutor, TabCompleter {
                 dao.proponi(caso, 0L, "report", dettaglio);
                 ultima.put(mittente.getUniqueId(), now);
 
-                chi.sendMessage(Text.msg("&#A8DC2CSegnalazione inviata. &7Lo staff la trova nel gestionale "
-                        + "con la tua posizione e l'ora. Grazie."));
+                chi.sendMessage(Text.msg(messages.get(chi, "report.sent")));
 
-                service.notifyStaff("&#FFD166Segnalazione&f " + mittente.getName() + " &7ha segnalato &f"
-                        + target + " &7— " + reason);
+                service.notifyStaff("report.staff-broadcast",
+                        "mittente", mittente.getName(), "target", target, "motivo", reason);
             } catch (SQLException e) {
-                chi.sendMessage(Text.msg("&#FF6B6BSegnalazione non inviata: riprova fra poco."));
+                chi.sendMessage(Text.msg(messages.get(chi, "report.send-failed")));
                 plugin.getLogger().warning("Segnalazione non registrata: " + e.getMessage());
             }
         });

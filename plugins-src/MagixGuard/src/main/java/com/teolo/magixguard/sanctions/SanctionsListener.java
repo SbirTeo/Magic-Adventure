@@ -1,5 +1,6 @@
 package com.teolo.magixguard.sanctions;
 
+import com.teolo.magixguard.lang.Messages;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -27,12 +28,15 @@ public final class SanctionsListener implements Listener {
     private final SanctionsConfig cfg;
     private final SanctionsService service;
     private final SanctionsDao dao;
+    private final Messages messages;
 
-    public SanctionsListener(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service, SanctionsDao dao) {
+    public SanctionsListener(JavaPlugin plugin, SanctionsConfig cfg, SanctionsService service, SanctionsDao dao,
+                              Messages messages) {
         this.plugin = plugin;
         this.cfg = cfg;
         this.service = service;
         this.dao = dao;
+        this.messages = messages;
     }
 
     /** Chi ha un ban attivo non entra. */
@@ -75,7 +79,8 @@ public final class SanctionsListener implements Listener {
             return;
         }
         e.setCancelled(true);
-        String scadenza = s.fine() == Duration.PERMANENTE ? "non scade" : Duration.mancante(s.fine());
+        String scadenza = s.fine() == Duration.PERMANENTE
+                ? messages.get(e.getPlayer(), "service.mute-expiry-never") : Duration.mancante(s.fine());
         e.getPlayer().sendMessage(Text.msg(Text.replace(
                 cfg.muteMessage, "{motivo}", s.reason(), "{scadenza}", scadenza)));
     }
