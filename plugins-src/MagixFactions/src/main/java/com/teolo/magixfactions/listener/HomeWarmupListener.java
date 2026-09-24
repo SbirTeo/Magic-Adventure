@@ -9,6 +9,7 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,10 +28,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * permessi di questo tipo posseduti vince il piu' BASSO (il piu' favorevole), stesso principio dei
  * permessi numerici di {@link com.teolo.magixfactions.manage.PowerManager}. Chi ha
  * {@code magixfactions.admin} salta il warmup a prescindere: e' lo staff, non ha senso farlo aspettare.
- * Entrare in PvP (dare o subire danno da un altro giocatore, anche con un proiettile) annulla il
- * teletrasporto in corso, come muoversi: non deve diventare una via di fuga dal combattimento. Il
- * fuoco amico gia' bloccato da {@link CombatListener} (priorita' LOW, prima di questo listener) non
- * conta: un colpo annullato non e' un vero ingresso in combattimento.
+ * Subire QUALSIASI danno (mob, caduta, fuoco, PvP...) annulla il teletrasporto in corso per chi lo
+ * subisce, come muoversi: non deve diventare una via di fuga. Attaccare un altro giocatore annulla il
+ * PROPRIO warmup anche per l'attaccante, pur senza subire danno. Il fuoco amico gia' bloccato da
+ * {@link CombatListener} (priorita' LOW, prima di questo listener) non conta: un colpo annullato non
+ * e' un vero danno subito. Un solo handler su {@code EntityDamageEvent} basta per tutti i casi:
+ * {@code EntityDamageByEntityEvent} (mob, giocatori, proiettili) non ha una sua HandlerList separata
+ * in Bukkit, condivide quella della superclasse.
  */
 public final class HomeWarmupListener implements Listener {
 
@@ -104,16 +108,21 @@ public final class HomeWarmupListener implements Listener {
     }
 
     /**
-     * Entrare in combattimento annulla il warmup, sia per chi subisce che per chi da' il colpo:
-     * {@code ignoreCancelled} salta il fuoco amico gia' bloccato da {@link CombatListener}.
+     * Qualsiasi danno subito (mob, caduta, fuoco, PvP...) annulla il warmup di chi lo subisce; se il
+     * danno viene da un altro giocatore, annulla anche il warmup DI CHI ATTACCA. {@code ignoreCancelled}
+     * salta il fuoco amico gia' bloccato da {@link CombatListener}.
      */
     @EventHandler(ignoreCancelled = true)
-    public void onCombat(EntityDamageByEntityEvent e) {
-        if (!(e.getEntity() instanceof Player victim)) return;
-        Player attacker = resolvePlayer(e.getDamager());
-        if (attacker == null || attacker.getUniqueId().equals(victim.getUniqueId())) return;
-        cancelForCombat(attacker);
-        cancelForCombat(victim);
+    public void onDamage(EntityDamageEvent e) {
+        if (e.getEntity() instanceof Player victim) {
+            cancelForReason(victim, "home.warmup-cancelled-damage");
+        }
+        if (e instanceof EntityDamageByEntityEvent ee) {
+            Player attacker = resolvePlayer(ee.getDamager());
+            if (attacker != null && !attacker.equals(e.getEntity())) {
+                cancelForReason(attacker, "home.warmup-cancelled-pvp");
+            }
+        }
     }
 
     /** Il giocatore responsabile del danno: diretto, o il tiratore di un proiettile. */
@@ -126,10 +135,10 @@ public final class HomeWarmupListener implements Listener {
         return null;
     }
 
-    private void cancelForCombat(Player p) {
+    private void cancelForReason(Player p, String messageKey) {
         if (!pending.containsKey(p.getUniqueId())) return;
         cancel(p.getUniqueId());
-        msgKey(p, "home.warmup-cancelled-pvp");
+        msgKey(p, messageKey);
     }
 
     private static boolean sameBlock(Location a, Location b) {
