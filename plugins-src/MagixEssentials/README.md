@@ -31,7 +31,8 @@ configurazione.
 I file sul server si tengono aggiornati da soli (`util/ConfigAlign`): a ogni avvio e a ogni
 `/magixessentials reload` le chiavi nuove compaiono al loro posto col loro commento, le rinomine
 dichiarate si applicano portandosi dietro il valore scelto, e le righe che il codice non legge piu'
-spariscono — con una copia di scorta `.bak-<data>` accanto, prima di ogni scrittura.
+spariscono — con una copia di scorta in `.bak/MagixEssentials/` (fuori da `plugins/` sul server),
+prima di ogni scrittura.
 
 **Per aggiungere una funzione**: una riga in `modules.yml`, un `<funzione>.yml` accanto, e la classe
 che la gestisce riceve quel file nel costruttore. Non c'e' nessun elenco da aggiornare a mano: i
@@ -216,7 +217,8 @@ quante erano.
 
 **CMI.** Anche la targhetta ce l'ha chi scrive per ultimo. Qui non ci
 limitiamo ad avvisare: con `cmi.disable-module` acceso spegniamo noi il suo modulo dei nametag nel suo
-`Settings/Modules.yml`, cambiando quella riga sola e lasciando una copia di scorta del file accanto.
+`Settings/Modules.yml`, cambiando quella riga sola e lasciando una copia di scorta del file in
+`.bak/CMI/Settings/` (fuori da `plugins/` sul server).
 CMI quel file lo legge all'avvio, quindi **serve un riavvio** perche' smetta di scrivere anche lui.
 
 Da lui quella riga si chiama **`namePlates`** — «name plates», non «nametag»: il plugin ne cerca
