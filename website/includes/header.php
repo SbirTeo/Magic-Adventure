@@ -508,6 +508,22 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <a href="<?= h($item['url']) ?>" class="<?= h(implode(' ', $__classi)) ?>"><?= h($item['label']) ?></a>
         <?php endforeach; ?>
       </nav>
+      <?php
+        // Selettore di lingua: un link per lingua verso la stessa pagina con ?lingua=xx, che
+        // language.php legge e rende sticky (sessione + cookie). Niente JavaScript necessario:
+        // funziona anche con JS disattivato, come il resto della navigazione del sito.
+        // Ripetuto qui (riga semplice, sempre visibile) SOLO per il menu ad hamburger: sotto
+        // l'hamburger .auth-box non ha piu' spazio per il pulsante di sotto (vedi CSS), quindi
+        // qui c'e' l'unica copia raggiungibile da telefono.
+        $__nomeLingua = ['it' => 'IT', 'en' => 'EN', 'es' => 'ES', 'de' => 'DE'];
+      ?>
+      <div class="lingua-mobile">
+        <?php foreach (SITE_LANGUAGES as $__lang): ?>
+          <a href="<?= h(language_switch_url($__lang)) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+            <?= h($__nomeLingua[$__lang]) ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
     </div>
     <div class="auth-box">
       <?php
@@ -525,12 +541,6 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         <?php /* La parola sparisce su schermo stretto: resta la sola icona. */ ?>
         <span class="cambia-tema-testo"><?= h(str_replace('Tema ', '', $__nomeTema[$__temaOra])) ?></span>
       </button>
-      <?php
-        // Selettore di lingua: un link per lingua verso la stessa pagina con ?lingua=xx, che
-        // language.php legge e rende sticky (sessione + cookie). Niente JavaScript necessario:
-        // funziona anche con JS disattivato, come il resto della navigazione del sito.
-        $__nomeLingua = ['it' => 'IT', 'en' => 'EN', 'es' => 'ES', 'de' => 'DE'];
-      ?>
       <details class="cambia-lingua">
         <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
           <?= h($__nomeLingua[$GLOBALS['__siteLang']] ?? 'IT') ?>

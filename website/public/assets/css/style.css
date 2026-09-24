@@ -294,6 +294,33 @@ body.pagina-store {
 .cambia-lingua-menu a:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
 .cambia-lingua-menu a.active { color: var(--purple); font-weight: 700; }
 
+/* Riga di lingua dentro il menu ad hamburger (vedi .auth-box .cambia-lingua sopra): sotto
+   l'hamburger non c'e' spazio per un altro pulsante nella barra in alto, ma dentro il menu
+   aperto lo spazio verticale non manca, quindi qui le lingue stanno una accanto all'altra,
+   senza un'altra tendina da aprire dentro quella gia' aperta. */
+.lingua-mobile { display: none; }
+@media (max-width: 768px) {
+  .lingua-mobile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .lingua-mobile a {
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+  .lingua-mobile a.active { color: var(--purple); border-color: var(--purple); }
+}
+
 /* Scelta del tema nel profilo: tre pulsanti, quello attivo in evidenza */
 .tema-scelte { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .tema-scelte .btn.is-attivo {
@@ -353,21 +380,15 @@ a.who-link {
   .main-nav a { padding: 10px 2px; border-bottom: 1px solid var(--border); }
   .main-nav a.active { border-bottom-color: var(--purple); }
   .btn-nav { align-self: flex-start; margin: 6px 0 0; }
-  .auth-box {
-    margin-left: auto;
-    gap: 8px;
-    font-size: 13px;
-    /* Rete di sicurezza: se un giorno la somma dei pulsanti (nome lungo, piu' lingue...) non
-       ci sta comunque su una riga, va a capo invece di spingere la pagina piu' larga dello
-       schermo (era successo davvero col selettore di lingua: vedi issue). */
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    row-gap: 6px;
-  }
+  .auth-box { margin-left: auto; gap: 8px; font-size: 13px; }
   .auth-box .btn { padding: 7px 12px; font-size: 12.5px; }
   /* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
   .auth-box .who-link { padding: 3px 12px 3px 3px; }
   .who-avatar { width: 24px; height: 24px; }
+  /* Sotto l'hamburger il selettore di lingua della barra sparisce: non c'e' spazio per
+     aggiungerne uno in piu' senza spingere "Esci" a capo (provato dal vivo, veniva brutto).
+     Riappare come riga semplice dentro il menu ad hamburger, vedi .lingua-mobile. */
+  .auth-box .cambia-lingua { display: none; }
 }
 
 .btn {
