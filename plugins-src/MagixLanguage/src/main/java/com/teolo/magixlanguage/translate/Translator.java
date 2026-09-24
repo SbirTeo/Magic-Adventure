@@ -99,7 +99,17 @@ public final class Translator {
             return null;
         }
         consecutiveFailures = 0;
-        return restore(raw, protectedText.tokens);
+        String restored = restore(raw, protectedText.tokens);
+        if (LEFTOVER_TOKEN.matcher(restored).find()) {
+            // Il servizio ha alterato un segnaposto (es. tolto una lettera) al punto che non lo
+            // si e' piu' riconosciuto per rimetterlo a posto: meglio niente traduzione che un
+            // messaggio con un pezzo rotto in mezzo (visto succedere davvero: "&7" sparito e
+            // rimasto un residuo tipo "[2]" al suo posto). Conta come fallimento, si riprova dopo.
+            log.warning("MagixLanguage: traduzione verso " + targetLang + " scartata: un segnaposto non e' "
+                    + "tornato al suo posto (testo: " + restored + ").");
+            return null;
+        }
+        return restored;
     }
 
     /** Se false, {@link #translate} non prova nemmeno piu' la rete: vedi {@link #MAX_CONSECUTIVE_FAILURES}. */
@@ -191,6 +201,20 @@ public final class Translator {
 
     // ------------------------------------------------------------- placeholder e colori
 
+    /**
+     * Segnaposto per numero N durante la chiamata al servizio: una parola alfanumerica senza
+     * parentesi ne' altra punteggiatura, cosi' un traduttore automatico non ha niente da
+     * "correggere" (visto succedere davvero con {@code [[N]]}: un servizio l'ha scambiato per un
+     * riferimento a nota a pie' di pagina e ha tolto una coppia di parentesi, lasciando {@code
+     * [N]} visibile nel testo finale invece del colore o del placeholder che doveva sostituire).
+     */
+    private static final String TOKEN_PREFIX = "qx";
+    private static final String TOKEN_SUFFIX = "xq";
+
+    /** Un segnaposto rimasto non riconosciuto dopo restore(): la traduzione non e' affidabile. */
+    private static final Pattern LEFTOVER_TOKEN = Pattern.compile(
+            "(?i)" + TOKEN_PREFIX + "[\\s\\-_]*\\d+[\\s\\-_]*" + TOKEN_SUFFIX);
+
     private record Protected(String text, List<String> tokens) {}
 
     private static Protected protect(String text) {
@@ -200,7 +224,7 @@ public final class Translator {
         int last = 0;
         while (m.find()) {
             sb.append(text, last, m.start());
-            sb.append("[[").append(tokens.size()).append("]]");
+            sb.append(TOKEN_PREFIX).append(tokens.size()).append(TOKEN_SUFFIX);
             tokens.add(m.group());
             last = m.end();
         }
@@ -211,8 +235,10 @@ public final class Translator {
     private static String restore(String translated, List<String> tokens) {
         String out = translated;
         for (int i = 0; i < tokens.size(); i++) {
-            // Il servizio a volte cambia gli spazi intorno al segnaposto: si cerca senza badarci.
-            out = out.replaceAll("\\[\\[\\s*" + i + "\\s*]]", Matcher.quoteReplacement(tokens.get(i)));
+            // Il servizio a volte cambia il maiuscolo/minuscolo o gli spazi intorno al segnaposto
+            // (es. lo maiuscolizza a inizio frase): si cerca senza badarci ne' all'uno ne' agli altri.
+            out = out.replaceAll("(?i)" + TOKEN_PREFIX + "[\\s\\-_]*" + i + "[\\s\\-_]*" + TOKEN_SUFFIX,
+                    Matcher.quoteReplacement(tokens.get(i)));
         }
         return out;
     }
