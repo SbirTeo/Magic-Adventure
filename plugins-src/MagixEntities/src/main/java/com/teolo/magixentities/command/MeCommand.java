@@ -102,7 +102,8 @@ public final class MeCommand implements TabExecutor {
     private void help(CommandSender sender, int page) {
         ConfigurationSection h = M.section("help");
         String title = h != null ? h.getString("title", "MagixEntities") : "MagixEntities";
-        Help.show(sender, title, "/mentities help", Help.fromConfig(M.section("help.sections")),
+        Help.show(sender, M::forPlayer, title, "/mentities help",
+                Help.fromConfig(M.section("help.sections"), sender, M::forPlayer, M::listForPlayer),
                 page, sender.hasPermission("magixentities.admin"));
     }
 

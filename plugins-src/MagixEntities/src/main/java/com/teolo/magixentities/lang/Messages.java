@@ -94,6 +94,16 @@ public final class Messages {
         return cfg.getConfigurationSection(path);
     }
 
+    /** Il testo di "path" per questo destinatario, SENZA prefisso: per i pannelli come l'aiuto. */
+    public String forPlayer(CommandSender to, String path, String... kv) {
+        return textFor(to, path, kv);
+    }
+
+    /** Come {@link #forPlayer}, ma per una chiave il cui valore e' una lista di righe. */
+    public List<String> listForPlayer(CommandSender to, String path, String... kv) {
+        return linesFor(to, path, kv);
+    }
+
     /** Righe grezze (non colorate): usate dove il testo va spezzato prima di colorarlo. */
     public List<String> rawList(String path) {
         return cfg.getStringList(path);
@@ -108,12 +118,31 @@ public final class Messages {
         return translated != null ? Colors.translate(translated) : get(path, kv);
     }
 
+    /** Come {@link #textFor}, ma per una chiave il cui valore e' una lista di righe. */
+    private List<String> linesFor(CommandSender to, String path, String... kv) {
+        List<String> translated = to instanceof Player player ? translatedList(player, path, kv) : null;
+        if (translated == null) return getList(path, kv);
+        List<String> out = new ArrayList<>(translated.size());
+        for (String s : translated) out.add(Colors.translate(s));
+        return out;
+    }
+
     /** Null se MagixLanguage non c'e', il giocatore parla gia' italiano, o la chiave non e' (ancora) tradotta. */
     private String translated(Player player, String path, String... kv) {
         MagixLanguageAPI api = magixLanguage();
         if (api == null || "it".equals(api.language(player))) return null;
         try {
             return api.translate(PLUGIN_NAME, player, path, toMap(kv));
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private List<String> translatedList(Player player, String path, String... kv) {
+        MagixLanguageAPI api = magixLanguage();
+        if (api == null || "it".equals(api.language(player))) return null;
+        try {
+            return api.translateList(PLUGIN_NAME, player, path, toMap(kv));
         } catch (Throwable t) {
             return null;
         }

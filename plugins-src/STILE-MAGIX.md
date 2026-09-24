@@ -58,7 +58,7 @@ Nel codice questo si traduce in due metodi distinti: `msg(...)` mette il prefiss
 
 La classe `Help` e' lo **stesso file** in ogni plugin (cambia solo il `package`):
 `src/main/java/com/teolo/<plugin>/util/Help.java`. Modificandola in uno, va riportata
-negli altri.
+negli altri — la copia identica e' verificata da `check_config.py` (`COMMON_CLASSES`).
 
 Cosa fa:
 
@@ -70,11 +70,37 @@ Cosa fa:
 - in fondo le **frecce** `‹ indietro · avanti ›`, spente dove non c'e' nulla;
 - le voci marcate `staff` le vede solo chi ha il permesso di amministrazione.
 
+Ogni testo che il giocatore legge qui (titoli, spiegazioni, la cornice "clicca per
+scriverlo"/le frecce) e' **tradotto** tramite MagixLanguage, come qualunque altro testo
+(vedi CLAUDE.md, "OGNI TESTO CHE UN GIOCATORE LEGGE VA IN messages.yml"). Ma `Help.java`
+non puo' importare la classe `Messages` di UN plugin specifico — altrimenti non sarebbe
+piu' lo stesso file negli altri — quindi legge tutto tramite due piccole interfacce
+dichiarate al suo interno:
+
+```java
+public interface Text  { String get(CommandSender to, String path, String... kv); }
+public interface Lines { List<String> get(CommandSender to, String path); }
+```
+
+Chi chiama passa un riferimento al proprio metodo (es. `messages::get` o
+`messages::forPlayer`, a seconda di come si chiama nel plugin), senza che `Help.java` sappia
+nulla della classe `Messages` dietro. Il testo di cornice vive sotto `help.chrome.*` in
+ciascun `messages.yml` (stesse sette chiavi ovunque: `no-commands`, `click-to-write`,
+`staff-only`, `click-hint`, `back`, `forward`, `page`).
+
 Le voci si scrivono in `messages.yml`:
 
 ```yaml
 help:
   title: "MagixFactions"
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " ‹ indietro "
+    forward: " avanti › "
+    page: "Pagina {numero}"
   sections:
     territorio:
       title: "Territorio"
@@ -87,15 +113,24 @@ Formato di una riga: `comando [argomenti] :: spiegazione`. Il **comando** e' la 
 iniziale fatta di parole semplici (`/f claim`, `/mentities cmd`), ed e' quella che il clic
 scrive; tutto cio' che comincia con `<` o `[` resta da riempire a mano e va in grigio.
 
+Il comando le legge con `Help.fromConfig(messages.section("help.sections"), sender,
+messages::get, messages::getList)` e le mostra con `Help.show(sender, messages::get, title,
+"/plugin help", entries, page, staff)`.
+
 Ogni plugin espone `help [pagina]`, accetta `?` come sinonimo e accetta **il numero da
 solo** (`/f 3`): e' quello che mandano le frecce.
 
 | Plugin | Comando | Radice per le frecce |
 |---|---|---|
-| MagixAuth | `/mauth` | `/mauth` (voci definite nel codice) |
+| MagixAuth | `/mauth [pagina]` | `/mauth help` |
 | MagixFactions | `/f help [pagina]` | `/f help` |
 | MagixEntities | `/mentities help [pagina]` | `/mentities help` |
 | MagixTime | `/mtime help [pagina]` | `/mtime help` |
+| MagixMenus | `/menus help [pagina]` | `/menus help` |
+| MagixCosmetics | `/cosmetics help [pagina]` | `/cosmetics help` |
+| MagixMusic | `/radio help [pagina]` | `/radio help` |
+
+`Help.java` e' presente anche in MagixPack, ma inutilizzato (nessun comando lo chiama).
 
 ---
 

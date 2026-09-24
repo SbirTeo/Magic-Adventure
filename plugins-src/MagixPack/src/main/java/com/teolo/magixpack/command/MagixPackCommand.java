@@ -1,7 +1,7 @@
 package com.teolo.magixpack.command;
 
 import com.teolo.magixpack.MagixPack;
-import com.teolo.magixpack.util.Colors;
+import com.teolo.magixpack.lang.Messages;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,19 +11,21 @@ import org.bukkit.command.CommandSender;
 public final class MagixPackCommand implements CommandExecutor {
 
     private final MagixPack plugin;
+    private final Messages messages;
 
-    public MagixPackCommand(MagixPack plugin) {
+    public MagixPackCommand(MagixPack plugin, Messages messages) {
         this.plugin = plugin;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             plugin.reload();
-            sender.sendMessage(Colors.translate("&aMagixPack ricaricato."));
+            sender.sendMessage(messages.get(sender, "reloaded"));
             return true;
         }
-        sender.sendMessage(Colors.translate("&eUso: &a/mpack reload"));
+        sender.sendMessage(messages.get(sender, "usage"));
         return true;
     }
 }
