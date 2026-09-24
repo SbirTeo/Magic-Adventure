@@ -80,7 +80,7 @@ if (sanctions_ready()) {
     // L'offset non puo' essere un parametro legato: MariaDB non accetta i placeholder
     // in LIMIT/OFFSET con le prepared statement vere (EMULATE_PREPARES e' spento).
     $q = db()->prepare(
-        "SELECT s.*, u.id AS user_id, r.status AS ricorso_stato, r.outcome_public
+        "SELECT s.*, u.id AS user_id, u.premium_uuid, r.status AS ricorso_stato, r.outcome_public
            FROM punishments s
            LEFT JOIN users u ON u.mc_uuid = s.mc_uuid
            LEFT JOIN punishment_appeals r ON r.punishment_id = s.id
@@ -218,7 +218,7 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="sanzione-chi">
           <?= avatar_top(
-                '<img class="forum-faccia" src="' . h(mc_avatar_url($s['mc_uuid'], 40)) . '" alt="" width="34" height="34" loading="lazy">',
+                '<img class="forum-faccia" src="' . h(mc_avatar_url($s['mc_uuid'], 40, $s['premium_uuid'] ?? null)) . '" alt="" width="34" height="34" loading="lazy">',
                 $s['mc_uuid'], 34) ?>
           <div class="sanzione-chi-testo">
             <span class="sanzione-nome"><?= h($s['mc_username']) ?></span>

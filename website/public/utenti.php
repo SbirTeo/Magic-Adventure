@@ -36,7 +36,7 @@ $gruppiStaff = $gruppiDa('utenti_gruppi_staff', 'admin,amministratore,mod,modera
 $gruppiVip = $gruppiDa('utenti_gruppi_vip', 'vip,vip+,mvp,sostenitore');
 
 $utenti = db()->query(
-    'SELECT u.id, u.mc_uuid, u.mc_username, u.is_admin, u.last_seen, u.last_login, u.created_at, '
+    'SELECT u.id, u.mc_uuid, u.premium_uuid, u.mc_username, u.is_admin, u.last_seen, u.last_login, u.created_at, '
     . RANK_SELECT_SQL . ', r.weight, r.first_join'
     . ' FROM users u' . rank_join_sql()
     . ' ORDER BY u.mc_username ASC'
@@ -173,7 +173,7 @@ require __DIR__ . '/../includes/header.php';
        data-gruppi="<?= h(implode(' ', $u['gruppi'])) ?>"
        <?= $baffo !== '' ? 'style="' . $baffo . '"' : '' ?>>
       <?= avatar_top(
-            '<img class="utente-card-faccia" src="' . h(mc_avatar_url($u['mc_uuid'], 64)) . '" alt="" loading="lazy">',
+            '<img class="utente-card-faccia" src="' . h(mc_avatar_url($u['mc_uuid'], 64, $u['premium_uuid'] ?? null)) . '" alt="" loading="lazy">',
             $u['mc_uuid'], 44) ?>
 
       <span class="utente-card-testo">

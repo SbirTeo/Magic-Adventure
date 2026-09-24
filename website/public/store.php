@@ -84,7 +84,7 @@ if ($sidebarAttiva) {
 
     if ($quantiRecenti > 0) {
         $q = db()->prepare(
-            'SELECT o.mc_uuid, o.mc_username, r.mc_username AS nome_vivo, o.package_name, o.price, o.currency, o.paid_at, us.last_seen, '
+            'SELECT o.mc_uuid, us.premium_uuid, o.mc_username, r.mc_username AS nome_vivo, o.package_name, o.price, o.currency, o.paid_at, us.last_seen, '
             . RANK_SELECT_SQL
             . ' FROM store_orders o LEFT JOIN mc_ranks r ON r.mc_uuid = o.mc_uuid COLLATE utf8mb4_unicode_ci'
             . ' LEFT JOIN users us ON us.mc_uuid = o.mc_uuid COLLATE utf8mb4_unicode_ci'
@@ -103,7 +103,7 @@ if ($sidebarAttiva) {
         $q = db()->query(
             // I campi del grado sono uno solo per giocatore (mc_ranks ha l'uuid come chiave):
             // il MAX() serve solo a soddisfare il GROUP BY, non sceglie davvero fra piu' valori.
-            'SELECT o.mc_uuid, MAX(o.mc_username) AS mc_username, MAX(r.mc_username) AS nome_vivo,
+            'SELECT o.mc_uuid, MAX(us.premium_uuid) AS premium_uuid, MAX(o.mc_username) AS mc_username, MAX(r.mc_username) AS nome_vivo,
                     SUM(o.price) AS totale,
                     COUNT(*) AS acquisti, MAX(o.currency) AS currency,
                     MAX(r.group_name) AS group_name, MAX(r.group_display) AS group_display,
@@ -244,7 +244,7 @@ require __DIR__ . '/../includes/header.php';
                        in tutto il sito, ovunque compaia la faccia di qualcuno. */ ?>
               <?= avatar_top(
                     '<img class="store-skin store-skin-grande" src="'
-                    . h(mc_avatar_url($topDonatore['mc_uuid'], 72)) . '" alt="">',
+                    . h(mc_avatar_url($topDonatore['mc_uuid'], 72, $topDonatore['premium_uuid'] ?? null)) . '" alt="">',
                     $topDonatore['mc_uuid'], 56) ?>
 
               <div class="store-top-dati">
@@ -277,7 +277,7 @@ require __DIR__ . '/../includes/header.php';
               <?php foreach ($ultimiAcquisti as $a): ?>
                 <li>
                   <?= avatar_top(
-                        '<img class="store-skin" src="' . h(mc_avatar_url($a['mc_uuid'], 32)) . '" alt=""'
+                        '<img class="store-skin" src="' . h(mc_avatar_url($a['mc_uuid'], 32, $a['premium_uuid'] ?? null)) . '" alt=""'
                         . ' width="32" height="32" loading="lazy" decoding="async">',
                         $a['mc_uuid'], 32) ?>
                   <div class="store-acquisto-dati">
