@@ -512,19 +512,20 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         // Selettore di lingua: un link per lingua verso la stessa pagina con ?lingua=xx, che
         // language.php legge e rende sticky (sessione + cookie). Niente JavaScript necessario:
         // funziona anche con JS disattivato, come il resto della navigazione del sito.
-        // La bandiera sta per la lingua (convenzione comune: UK per l'inglese, non gli USA),
-        // title/aria-label portano il nome vero per chi non la riconosce o usa uno screen reader.
+        // La bandiera sta per la lingua (convenzione comune: UK per l'inglese, non gli USA), come
+        // SVG e non come emoji: Windows non ha i disegni delle bandiere e mostrerebbe di nuovo
+        // due lettere al loro posto (vedi language_flag_svg). title/aria-label portano il nome
+        // vero per chi non la riconosce o usa uno screen reader.
         // Ripetuto qui (riga semplice, sempre visibile) SOLO per il menu ad hamburger: sotto
         // l'hamburger .auth-box non ha piu' spazio per il pulsante di sotto (vedi CSS), quindi
         // qui c'e' l'unica copia raggiungibile da telefono.
-        $__bandieraLingua = ['it' => '🇮🇹', 'en' => '🇬🇧', 'es' => '🇪🇸', 'de' => '🇩🇪'];
         $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
       ?>
       <div class="lingua-mobile">
         <?php foreach (SITE_LANGUAGES as $__lang): ?>
           <a href="<?= h(language_switch_url($__lang)) ?>" title="<?= h($__nomeLingua[$__lang]) ?>"
              aria-label="<?= h($__nomeLingua[$__lang]) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
-            <?= $__bandieraLingua[$__lang] ?>
+            <?= language_flag_svg($__lang) ?>
           </a>
         <?php endforeach; ?>
       </div>
@@ -547,12 +548,12 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
       </button>
       <details class="cambia-lingua">
         <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
-          <?= $__bandieraLingua[$GLOBALS['__siteLang']] ?? '🇮🇹' ?>
+          <?= language_flag_svg($GLOBALS['__siteLang']) ?>
         </summary>
         <div class="cambia-lingua-menu">
           <?php foreach (SITE_LANGUAGES as $__lang): ?>
             <a href="<?= h(language_switch_url($__lang)) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
-              <span class="cambia-lingua-bandiera"><?= $__bandieraLingua[$__lang] ?></span>
+              <?= language_flag_svg($__lang) ?>
               <?= h($__nomeLingua[$__lang]) ?>
             </a>
           <?php endforeach; ?>

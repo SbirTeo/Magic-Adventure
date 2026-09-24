@@ -68,6 +68,17 @@
   });
 })();
 
+// Selettore di lingua (<details> nativo): da solo un <details> resta aperto finche' non si
+// clicca di nuovo sul suo <summary>, un clic altrove sulla pagina non lo chiude. Qui si chiude
+// anche cosi', come ci si aspetta da un menu a tendina qualsiasi.
+document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
+  document.addEventListener('click', function (ev) {
+    if (dettagli.hasAttribute('open') && !dettagli.contains(ev.target)) {
+      dettagli.removeAttribute('open');
+    }
+  });
+});
+
 document.querySelectorAll('.ip-copy').forEach(function (btn) {
   btn.addEventListener('click', function () {
     var ip = btn.getAttribute('data-ip');
