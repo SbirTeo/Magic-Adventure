@@ -218,11 +218,20 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "plugin elencato in translations.plugins e ne copia il testo in "
                                 + "plugins/MagixLanguage/translations/&lt;Plugin&gt;/it.yml — uno SPECCHIO, non "
                                 + "un originale: si cambia nel messages.yml del plugin, mai qui.",
-                        "Per ogni altra lingua supportata, le chiavi NUOVE arrivano nel file "
-                                + "corrispondente (en.yml, es.yml, de.yml...) con il testo italiano come "
-                                + "segnaposto: e' li' che lo staff traduce, cambiando solo il VALORE. Le chiavi "
-                                + "ancora identiche all'italiano finiscono in translations/PENDING-&lt;lingua&gt;.txt, "
-                                + "rigenerato ad ogni sincronizzazione.",
+                        "Per ogni altra lingua supportata, ogni chiave NUOVA o il cui testo italiano e' "
+                                + "CAMBIATO (anche solo un colore) viene tradotta da SOLA, tramite l'API gratuita "
+                                + "di MyMemory (se translations.auto-translate.enabled e' acceso), e scritta in "
+                                + "en.yml/es.yml/de.yml: non serve alcun intervento dello staff per avere subito "
+                                + "un testo in ogni lingua. Le chiavi rimaste invariate NON vengono ritradotte "
+                                + "(una cache interna se ne ricorda).",
+                        "Se una traduzione automatica non convince, si corregge mettendo la STESSA chiave in "
+                                + "translations/&lt;Plugin&gt;/&lt;lingua&gt;-overrides.yml (creato gia' vuoto, con le "
+                                + "istruzioni, al primo avvio): quel file non viene MAI letto ne' toccato dalla "
+                                + "sincronizzazione, e vince sempre — anche se il testo italiano cambia di nuovo "
+                                + "in seguito. Le chiavi che la traduzione automatica non riesce a tradurre (rete, "
+                                + "quota giornaliera esaurita) restano temporaneamente in italiano e finiscono in "
+                                + "translations/TRANSLATION-FAILED-&lt;lingua&gt;.txt, rigenerato ad ogni "
+                                + "sincronizzazione: si riprova da sola al giro successivo.",
                         "Un altro plugin (softdepend, tramite ServicesManager) chiede il testo gia' tradotto "
                                 + "con MagixLanguageAPI.translate(nomePlugin, giocatore, chiave, segnaposti): senza "
                                 + "quella chiamata, quel plugin continua a parlare solo in italiano come sempre — "
@@ -237,7 +246,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         "geoip.provider-url", "Servizio interrogato per risalire dall'IP al paese; {ip} e' sostituito con l'indirizzo vero.",
                         "geoip.cache-days", "Per quanto un IP gia' interrogato non viene richiesto di nuovo.",
                         "translations.plugins", "I plugin la cui cartella dati viene scandita in cerca di testo da tradurre.",
-                        "translations.files", "I nomi dei file, dentro ciascuna di quelle cartelle, che contengono testo per i giocatori.")
+                        "translations.files", "I nomi dei file, dentro ciascuna di quelle cartelle, che contengono testo per i giocatori.",
+                        "translations.auto-translate.enabled", "Se spento, le lingue diverse dall'italiano restano col testo italiano finche' non lo corregge lo staff con un file -overrides.yml.",
+                        "translations.auto-translate.contact-email", "Email facoltativa mandata a MyMemory per una quota giornaliera di traduzioni piu' alta.")
 
                 .issue("Un giocatore ha la lingua sbagliata",
                         "Se il paese rilevato dal GeoIP non e' quello vero (VPN, IP aziendale condiviso...) si "
@@ -247,10 +258,15 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         "Serve /language sync (o aspettare il prossimo riavvio, se translations.sync-on-start "
                                 + "e' acceso): la sincronizzazione non e' automatica ad ogni modifica, solo "
                                 + "all'avvio e a comando.")
+                .issue("Una traduzione automatica non mi convince",
+                        "Si corregge SENZA toccare &lt;lingua&gt;.yml (verrebbe riscritto al prossimo sync): la "
+                                + "stessa chiave va messa in translations/&lt;Plugin&gt;/&lt;lingua&gt;-overrides.yml, "
+                                + "che vince sempre e non viene mai toccato dalla sincronizzazione.")
                 .issue("Le traduzioni sparite dopo aver aggiunto un commento al file lingua",
-                        "I file in translations/ sono riscritti per intero ad ogni sincronizzazione: solo i "
-                                + "VALORI sopravvivono, i commenti aggiunti a mano no. E' scritto in cima ad ogni "
-                                + "file generato.")
+                        "I file &lt;lingua&gt;.yml in translations/ sono riscritti per intero ad ogni "
+                                + "sincronizzazione: eventuali commenti aggiunti a mano non sopravvivono. Per una "
+                                + "correzione che resti, va usato il file -overrides.yml (vedi sopra), non "
+                                + "&lt;lingua&gt;.yml direttamente.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")

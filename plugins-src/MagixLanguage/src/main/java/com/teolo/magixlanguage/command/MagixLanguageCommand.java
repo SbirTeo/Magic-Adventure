@@ -106,9 +106,10 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             TranslationSync.Result result = new TranslationSync(plugin).run();
             Bukkit.getScheduler().runTask(plugin, () -> msg.send(sender, "sync-done",
-                    "added", String.valueOf(result.keysAdded()),
                     "plugins", String.valueOf(result.pluginsScanned()),
-                    "pending", String.valueOf(result.pendingTranslations())));
+                    "translated", String.valueOf(result.keysTranslated()),
+                    "reused", String.valueOf(result.keysReused()),
+                    "failed", String.valueOf(result.translationFailures())));
         });
     }
 

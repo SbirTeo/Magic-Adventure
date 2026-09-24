@@ -5,7 +5,7 @@ provenienza (GeoIP sull'IP di ingresso) e tiene sincronizzata una traduzione dei
 altri plugin Magix, cosi' chi lo desidera puo' rispondere gia' nella lingua giusta invece di
 sempre e solo in italiano.
 
-Versione: **0.1.0** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
+Versione: **0.2.0** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
 avvio del server.
 
 ---
@@ -22,13 +22,25 @@ un tunnel di sviluppo), un servizio non raggiunto entro il timeout, o un paese n
 piu' da solo. Si corregge con `/language set <it|en|es|de>` (per se stessi) o, con il permesso da
 staff, per un altro giocatore.
 
-**Traduzione dei messaggi degli altri plugin.** Ad ogni avvio (e a comando) il plugin legge
-`messages.yml` di ogni plugin Magix elencato nel config e ne copia il testo in
+**Traduzione automatica dei messaggi degli altri plugin.** Ad ogni avvio (e a comando) il plugin
+legge `messages.yml` di ogni plugin Magix elencato nel config e ne copia il testo in
 `plugins/MagixLanguage/translations/<Plugin>/it.yml` — uno **specchio** di quello che il plugin sta
-davvero usando, non una traduzione. Per ciascuna delle altre lingue, le chiavi nuove arrivano nel
-file corrispondente (`en.yml`, `es.yml`, `de.yml`) con il testo italiano come segnaposto, pronte
-perche' lo staff le traduca cambiando solo il valore. Le chiavi ancora da tradurre finiscono in
-`translations/PENDING-<lingua>.txt`, rigenerato ad ogni sincronizzazione.
+davvero usando, non una traduzione. Per ciascuna delle altre lingue, ogni chiave nuova o il cui
+testo italiano e' cambiato (un colore, una formattazione...) viene tradotta **da sola**, tramite
+l'API gratuita di MyMemory, e scritta in `en.yml`/`es.yml`/`de.yml`: non serve alcun intervento
+per avere subito un testo in ogni lingua. Una cache (`.cache-<lingua>.yml`, per uso interno) evita
+di ritradurre le chiavi rimaste invariate.
+
+**Correzioni dello staff.** Se una traduzione automatica non convince, la si corregge mettendo la
+STESSA chiave in `translations/<Plugin>/<lingua>-overrides.yml`: quel file non viene mai letto ne'
+toccato dalla sincronizzazione, e vince sempre su quanto tradotto in automatico — anche se il testo
+italiano cambia di nuovo in seguito. Un file overrides vuoto (con le istruzioni) viene creato da
+solo la prima volta per ogni plugin/lingua.
+
+Le chiavi che la traduzione automatica non riesce a tradurre (rete, quota giornaliera del servizio
+esaurita) restano temporaneamente in italiano e finiscono in
+`translations/TRANSLATION-FAILED-<lingua>.txt`, rigenerato ad ogni sincronizzazione: si riprova da
+sola al giro successivo, senza bisogno di intervenire.
 
 **Nessuna traduzione automatica dei messaggi in gioco.** MagixLanguage non intercetta i messaggi
 degli altri plugin da solo: mette a disposizione i cataloghi tradotti tramite `MagixLanguageAPI`
@@ -64,22 +76,28 @@ Comando principale: `/magixlanguage` — alias: `/language`, `/lang`.
 Tutto in `config.yml`: `default-language`, `supported-languages`, la sezione `geoip` (servizio
 usato, timeout, durata della cache) e la mappa `country-language` (paese ISO 3166-1 alpha-2 ->
 lingua). La sezione `translations` elenca i plugin da scandire (`translations.plugins`) e i nomi
-dei file da cercare nella loro cartella dati (`translations.files`, di serie solo `messages.yml`).
+dei file da cercare nella loro cartella dati (`translations.files`, di serie solo `messages.yml`),
+oltre a `translations.auto-translate` (`enabled`, `timeout-ms`, `delay-ms`, `contact-email`).
 
 I testi mostrati ai giocatori (`/language ...`) sono in `messages.yml`, come in ogni plugin Magix.
 
-### Come si traduce una chiave nuova
+### Come si corregge una traduzione automatica
 
-1. Lancia `/language sync` (o aspetta il prossimo riavvio).
-2. Apri `plugins/MagixLanguage/translations/PENDING-<lingua>.txt`: elenca ogni chiave ancora
-   identica al testo italiano, per plugin.
-3. Apri `plugins/MagixLanguage/translations/<Plugin>/<lingua>.yml` e cambia il **valore** delle
-   chiavi elencate (mai il nome a sinistra dei due punti).
-4. Questi file vengono riscritti per intero ad ogni sincronizzazione: solo i valori sono al
-   sicuro, eventuali commenti aggiunti a mano vengono persi.
+1. Apri `plugins/MagixLanguage/translations/<Plugin>/<lingua>.yml` per vedere cosa e' stato
+   tradotto in automatico (NON si modifica qui: viene riscritto per intero a ogni
+   sincronizzazione).
+2. Copia la chiave che non convince, con lo stesso percorso annidato, in
+   `plugins/MagixLanguage/translations/<Plugin>/<lingua>-overrides.yml` (creato gia' vuoto, con le
+   istruzioni, al primo avvio) e scrivi li' il testo corretto.
+3. Lancia `/language sync` (o aspetta il prossimo riavvio): quella chiave da quel momento viene
+   presa SEMPRE da `<lingua>-overrides.yml`, mai piu' dalla traduzione automatica — anche se il
+   testo italiano cambia di nuovo in seguito.
+4. Per tornare alla traduzione automatica basta togliere la chiave da `<lingua>-overrides.yml`.
 
 `translations/<Plugin>/it.yml` non si modifica mai a mano: e' uno specchio del `messages.yml`
-vero, che si cambia nella cartella del plugin originale.
+vero, che si cambia nella cartella del plugin originale — cambiarlo li' (compreso un semplice
+colore) fa ripartire da sola la traduzione automatica di quella chiave in tutte le lingue non
+corrette a mano.
 
 ---
 
