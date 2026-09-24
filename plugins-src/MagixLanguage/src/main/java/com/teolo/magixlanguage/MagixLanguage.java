@@ -292,6 +292,13 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "Non serve intervenire: si riprova da sola ai prossimi riavvii/sync, quando la "
                                 + "quota si libera. Per alzare il limite (5000 -> 10000 parole/giorno) si puo' "
                                 + "impostare translations.auto-translate.contact-email nel config.")
+                .issue("Un colore o un placeholder e' sparito da un messaggio tradotto",
+                        "Il servizio di traduzione puo' alterare un segnaposto interno (successo davvero: ha "
+                                + "tolto una coppia di parentesi da uno, lasciando un residuo tipo &quot;[2]&quot; al "
+                                + "posto di un colore). MagixLanguage se ne accorge da solo — scarta quella "
+                                + "traduzione invece di mostrarla rotta, e alla sincronizzazione successiva scarta "
+                                + "anche una vecchia traduzione gia' in cache che avesse lo stesso problema, "
+                                + "ritraducendola — ma serve un nuovo /language sync o riavvio perche' succeda.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")

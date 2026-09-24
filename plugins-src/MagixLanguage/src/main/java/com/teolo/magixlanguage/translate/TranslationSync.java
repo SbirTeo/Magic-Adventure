@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Copia il testo che i giocatori vedono in gioco — {@code messages.yml} e gli altri file elencati
@@ -157,7 +158,7 @@ public final class TranslationSync {
 
             Object cachedSource = cache.source().get(key);
             Object cachedTranslated = cache.translated().get(key);
-            if (cachedTranslated != null && Objects.equals(cachedSource, italianValue)) {
+            if (cachedTranslated != null && Objects.equals(cachedSource, italianValue) && !looksCorrupted(cachedTranslated)) {
                 result.put(key, cachedTranslated);
                 newCacheSource.put(key, italianValue);
                 newCacheTranslated.put(key, cachedTranslated);
@@ -193,6 +194,27 @@ public final class TranslationSync {
 
         writeCatalog(target, result, pluginName, lang);
         saveCache(cacheFile, newCacheSource, newCacheTranslated);
+    }
+
+    /**
+     * Residui di un vecchio segnaposto non ripristinato (visto succedere davvero: il servizio di
+     * traduzione ha alterato {@code [[N]]} in {@code [N]}, lasciando quel residuo al posto di un
+     * colore o di un placeholder). Una cache con un valore cosi' non si riusa: si ritraduce.
+     */
+    private static final Pattern SUSPECT_LEFTOVER = Pattern.compile("(?i)qx\\s*\\d+\\s*xq|\\[\\d+]");
+
+    private static boolean looksCorrupted(Object value) {
+        if (value instanceof String s) {
+            return SUSPECT_LEFTOVER.matcher(s).find();
+        }
+        if (value instanceof List<?> list) {
+            for (Object line : list) {
+                if (line != null && SUSPECT_LEFTOVER.matcher(String.valueOf(line)).find()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static Object translateValue(Translator translator, Object italianValue, String lang) {

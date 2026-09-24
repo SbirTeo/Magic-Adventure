@@ -5,7 +5,7 @@ provenienza (GeoIP sull'IP di ingresso) e tiene sincronizzata una traduzione dei
 altri plugin Magix, cosi' chi lo desidera puo' rispondere gia' nella lingua giusta invece di
 sempre e solo in italiano.
 
-Versione: **0.2.2** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
+Versione: **0.2.3** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
 avvio del server.
 
 ---
