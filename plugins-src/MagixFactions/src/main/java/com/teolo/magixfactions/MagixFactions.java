@@ -239,8 +239,14 @@ public final class MagixFactions extends JavaPlugin {
         powerManager.setMinimapManager(minimap);
         Bukkit.getOnlinePlayers().forEach(powerManager::reattachMinimap); // dopo /reload
 
+        // Attesa immobile prima del teletrasporto di /f home (config home-warmup.seconds): muoversi
+        // annulla il teletrasporto in corso. Vedi HomeWarmupListener.
+        com.teolo.magixfactions.listener.HomeWarmupListener homeWarmup =
+                new com.teolo.magixfactions.listener.HomeWarmupListener(this, messages);
+        getServer().getPluginManager().registerEvents(homeWarmup, this);
+
         // Comando
-        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager, protection);
+        FCommand cmd = new FCommand(this, factionManager, ranks, chat, database, messages, powerManager, claimManager, scoreManager, mapService, minimap, fakeDataManager, protection, homeWarmup);
         getCommand("magixfactions").setExecutor(cmd);
         getCommand("magixfactions").setTabCompleter(cmd); // suggerimenti contestuali filtrati sui permessi
 
@@ -725,7 +731,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«Non riesco a fare claim»",
                         "Quasi sempre è Potenza insufficiente o tetto raggiunto, non un guasto. /f info sulla sua "
                                 + "fazione mostra territori, Potenza e stato: se la riga è rossa la fazione è "

@@ -102,10 +102,17 @@ public final class MagixMusic extends JavaPlugin {
                 String existingVer = menuVersion(java.nio.file.Files.readString(target.toPath()));
                 // Stessa versione: non tocco il file, così le modifiche dello staff restano.
                 if (bundledVer == null || bundledVer.equals(existingVer)) return;
-                // Versione diversa: copia di sicurezza col timestamp, poi aggiorno.
+                // Versione diversa: copia di sicurezza col timestamp, poi aggiorno. Va in .bak/,
+                // fuori da plugins/ sul server, come fa util/ConfigAlign per i suoi file.
                 String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+                java.io.File pluginsDir = menus.getDataFolder().getParentFile();
+                java.io.File serverRoot = pluginsDir == null ? null : pluginsDir.getParentFile();
+                java.io.File bakDir = serverRoot == null ? dir
+                        : new java.io.File(new java.io.File(serverRoot, ".bak"),
+                                pluginsDir.toPath().relativize(dir.toPath()).toString());
+                if (!bakDir.exists()) bakDir.mkdirs();
                 java.nio.file.Files.copy(target.toPath(),
-                        new java.io.File(dir, "musica.yml.bak-" + stamp).toPath());
+                        new java.io.File(bakDir, "musica.yml.bak-" + stamp).toPath());
                 reason = "aggiornato (vecchio salvato come .bak-" + stamp + ")";
             }
             java.nio.file.Files.write(target.toPath(), bundledBytes);
@@ -181,8 +188,8 @@ public final class MagixMusic extends JavaPlugin {
                                 + "plugins/MagixMenus/menus/musica.yml se manca e ricarica i menu), senza passi manuali. "
                                 + "Senza MagixMenus restano solo i comandi /radio. Il file lo puoi modificare come "
                                 + "qualunque menu: MagixMusic lo riscrive solo quando cambia la versione del menu (la riga "
-                                + "menu-version nel file), facendone prima una copia .bak; finché la versione è la stessa, "
-                                + "le tue modifiche restano.",
+                                + "menu-version nel file), facendone prima una copia in .bak/ (fuori da plugins/ sul "
+                                + "server); finché la versione è la stessa, le tue modifiche restano.",
                         "Dal menu (e dai comandi) si fa un po' tutto: accendere/spegnere, alzare/abbassare, i "
                                 + "preset di volume, **riascoltare** il brano dall'inizio (/radio replay, utile a chi è "
                                 + "appena entrato) e, per lo staff, **saltare** al brano successivo per tutti (/radio "
@@ -207,7 +214,7 @@ public final class MagixMusic extends JavaPlugin {
                         "playlist", "Scaletta dei brani: ogni voce ha sound (id del disco) e seconds (durata).")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso. Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso. Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Un giocatore dice che «non sente la radio»",
                         "Controlla che sia nel mondo giusto (config world), che non l'abbia spenta lui (/radio mostra "
                                 + "il suo stato, o /musica) e che la radio non sia spenta in generale (config enabled). "

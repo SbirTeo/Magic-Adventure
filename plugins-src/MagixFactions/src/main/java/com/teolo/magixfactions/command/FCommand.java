@@ -59,6 +59,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private final com.teolo.magixfactions.minimap.MinimapManager minimap;
     private final com.teolo.magixfactions.manage.FakeDataManager fake;
     private final com.teolo.magixfactions.listener.ProtectionListener protection;
+    private final com.teolo.magixfactions.listener.HomeWarmupListener homeWarmup;
 
     private final Map<UUID, Long> invites = new HashMap<>();
     private final Map<UUID, Long> unclaimAllConfirm = new HashMap<>(); // giocatore -> timestamp richiesta /f unclaimall
@@ -68,10 +69,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     com.teolo.magixfactions.manage.ScoreManager score,
                     com.teolo.magixfactions.map.MapService maps, com.teolo.magixfactions.minimap.MinimapManager minimap,
                     com.teolo.magixfactions.manage.FakeDataManager fake,
-                    com.teolo.magixfactions.listener.ProtectionListener protection) {
+                    com.teolo.magixfactions.listener.ProtectionListener protection,
+                    com.teolo.magixfactions.listener.HomeWarmupListener homeWarmup) {
         this.plugin = plugin; this.fm = fm; this.ranks = ranks; this.chat = chat; this.db = db; this.M = messages;
         this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap;
-        this.fake = fake; this.protection = protection;
+        this.fake = fake; this.protection = protection; this.homeWarmup = homeWarmup;
     }
 
     /**
@@ -573,7 +575,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (h == null) { msgKey(p, "home.not-set"); return true; }
         org.bukkit.Location loc = h.toLocation();
         if (loc == null) { msgKey(p, "home.world-missing"); return true; }
-        teleportHome(p, loc, true);
+        homeWarmup.start(p, () -> teleportHome(p, loc, true));
         return true;
     }
 

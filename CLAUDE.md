@@ -219,9 +219,13 @@ Cosa fa, in ordine, a ogni avvio e a ogni reload:
 
 Regole che ne discendono:
 
-- **Prima di ogni scrittura** il file viene copiato accanto a se' con la data nel nome
-  (`config.yml.bak-20260915-041200`). Se la copia non riesce, il file **non** si tocca. Si
-  tengono le ultime 10 copie per file.
+- **Prima di ogni scrittura** il file viene copiato nella cartella `.bak/<Plugin>/...` — la
+  cartella `plugins/` sostituita con `.bak/`, fuori da `plugins/` sul server — con la data nel
+  nome (es. `.bak/MagixFactions/config.yml.bak-20260915-041200`). E' la stessa cartella che usa
+  il workflow manuale `pulizia-bak-vps.yml` (`.github/workflows/pulizia-bak-vps.yml`): i backup
+  nascono gia' li', quel workflow serve solo come rete di sicurezza per eventuali `.bak-*`
+  lasciati in giro da altri script (o da versioni precedenti di questo meccanismo). Se la copia
+  non riesce, il file **non** si tocca. Si tengono le ultime 10 copie per file.
 - **Ogni plugin nuovo** chiama `ConfigAlign.alignAll(this)` subito dopo `saveDefaultConfig()` e
   nel suo comando di reload. Non serve elencare i file: li trova da se' dentro il jar.
 - `ConfigAlign` e' una **classe comune**: le copie nei vari plugin devono restare identiche

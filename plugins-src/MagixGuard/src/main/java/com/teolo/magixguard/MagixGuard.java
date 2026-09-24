@@ -57,6 +57,11 @@ public final class MagixGuard extends JavaPlugin {
     // profilazione. Gli IP restano di qua, i provvedimenti pubblici di la'.
     private SiteDb siteDb;
     private SanctionsService sanctions;
+    // Letto dal dossier: e' un campo, non una variabile locale di startSanctions(), perche'
+    // wire() (che costruisce il DossierBuilder) gira PRIMA di startSanctions() al primo avvio.
+    // Il dossier lo legge tramite un supplier, cosi' vede il valore vero anche se al momento
+    // in cui e' stato costruito era ancora null.
+    private ViolationsDao violationsDao;
 
     @Override
     public void onEnable() {
@@ -153,6 +158,7 @@ public final class MagixGuard extends JavaPlugin {
             getLogger().warning("Tabella delle violazioni non pronta: " + e.getMessage()
                     + ". I punti non verranno registrati.");
         }
+        this.violationsDao = violations;
         PointsLog log = new PointsLog(violations, cfg);
         Policy policy = new Policy(cfg);
         sanctions = new SanctionsService(this, cfg, dao, log, policy, violations);
@@ -217,7 +223,7 @@ public final class MagixGuard extends JavaPlugin {
         CorrelationEngine engine = new CorrelationEngine(dao, config, scorer, alerts);
         CookieService cookies = new CookieService(this, config.cookieKey, config.cookieEnabled);
         DossierBuilder dossier = new DossierBuilder(dao, config, scorer, getDataFolder(),
-                getPluginMeta().getVersion());
+                getPluginMeta().getVersion(), () -> violationsDao);
 
         collector = new SignalCollector(this, config, dao, dbExecutor, hashing, engine, cookies);
         getServer().getPluginManager().registerEvents(collector, this);
@@ -624,7 +630,7 @@ public final class MagixGuard extends JavaPlugin {
                         "privacy.session-retention-days", "Per quanti giorni si tengono gli indirizzi in chiaro.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«Ho bannato ma il giocatore è ancora dentro»",
                         "Il ban vale all'ingresso: se era già collegato viene espulso subito, ma solo se "
                                 + "l'ambito comprende il gioco. Un provvedimento con ambito «sito» in "

@@ -6,6 +6,8 @@ import com.teolo.magixguard.analyze.LinkScorer;
 import com.teolo.magixguard.db.GuardDao;
 import com.teolo.magixguard.model.PlayerRef;
 import com.teolo.magixguard.model.Rows;
+import com.teolo.magixguard.sanctions.Violation;
+import com.teolo.magixguard.sanctions.ViolationsDao;
 import com.teolo.magixguard.util.Fmt;
 import com.teolo.magixguard.util.Hashing;
 
@@ -17,6 +19,8 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Genera il dossier: il documento che lo staff consulta e, se serve, allega alla risposta a
@@ -42,13 +46,16 @@ public final class DossierBuilder {
     private final LinkScorer scorer;
     private final File dataFolder;
     private final String pluginVersion;
+    private final Supplier<ViolationsDao> violationsSupplier;
 
-    public DossierBuilder(GuardDao dao, GuardConfig config, LinkScorer scorer, File dataFolder, String pluginVersion) {
+    public DossierBuilder(GuardDao dao, GuardConfig config, LinkScorer scorer, File dataFolder, String pluginVersion,
+                           Supplier<ViolationsDao> violationsSupplier) {
         this.dao = dao;
         this.config = config;
         this.scorer = scorer;
         this.dataFolder = dataFolder;
         this.pluginVersion = pluginVersion;
+        this.violationsSupplier = violationsSupplier;
     }
 
     /** Documento generato: testo completo, impronta e file su disco. */
@@ -161,6 +168,8 @@ public final class DossierBuilder {
             sb.append('\n');
         }
 
+        appendViolations(sb, target.uuid(), now);
+
         sb.append("## Cronologia accessi\n\n");
         appendSessions(sb, target, publicVersion);
         appendMethodology(sb);
@@ -204,6 +213,56 @@ public final class DossierBuilder {
                     .append(" |\n");
         }
         sb.append('\n');
+    }
+
+    /**
+     * Le violazioni registrate dal modulo sanzioni (chat, xray, AFK, anticheat...): dati diversi
+     * da quelli di collegamento account, ma che appartengono allo stesso dossier perche' e' li'
+     * che lo staff va a leggere "che tipo di giocatore e' questo".
+     */
+    private void appendViolations(StringBuilder sb, UUID targetId, long now) throws SQLException {
+        sb.append("## Sanzioni e violazioni (chat, xray, AFK, anticheat)\n\n");
+        ViolationsDao violations = violationsSupplier.get();
+        if (violations == null) {
+            sb.append("Modulo sanzioni non attivo su questo server: nessun dato disponibile.\n\n");
+            return;
+        }
+        List<Violation> ultime = violations.ultime(targetId, 30);
+
+        long rilevazioniXray = ultime.stream().filter(v -> "cheat.xray".equals(v.category())).count();
+        if (rilevazioniXray > 0) {
+            long ultimaXray = ultime.stream().filter(v -> "cheat.xray".equals(v.category()))
+                    .mapToLong(Violation::quando).max().orElse(0);
+            sb.append("> **Rilevazioni xray: ").append(rilevazioniXray)
+                    .append("** - l'ultima il ").append(Fmt.dateTime(ultimaXray))
+                    .append(". Dettaglio nella tabella sotto e nel log del server.\n\n");
+        } else {
+            sb.append("Nessuna rilevazione xray registrata dal modulo anti-xray statistico.\n\n");
+        }
+
+        if (ultime.isEmpty()) {
+            sb.append("Nessuna violazione registrata.\n\n");
+            return;
+        }
+        sb.append("| Quando | Categoria | Punti | Fonte | Dettaglio |\n|---|---|---|---|---|\n");
+        for (Violation v : ultime) {
+            sb.append("| ").append(Fmt.shortDateTime(v.quando()))
+                    .append(" | ").append(v.category())
+                    .append(" | ").append(v.points())
+                    .append(" | ").append(v.fonte())
+                    .append(" | ").append(firstLine(v.dettaglio()))
+                    .append(" |\n");
+        }
+        sb.append("\nElenca le ultime ").append(ultime.size())
+                .append(" violazioni (comprese quelle eventualmente revocate in appello); ")
+                .append("il dettaglio completo di ognuna resta nel registro del modulo sanzioni.\n\n");
+    }
+
+    private static String firstLine(String detail) {
+        if (detail == null || detail.isBlank()) return "-";
+        int nl = detail.indexOf('\n');
+        String row = nl < 0 ? detail : detail.substring(0, nl);
+        return row.length() > 100 ? row.substring(0, 100) + "..." : row;
     }
 
     private void appendSessions(StringBuilder sb, PlayerRef player, boolean publicVersion) throws SQLException {
