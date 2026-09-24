@@ -279,7 +279,7 @@ body.pagina-store {
   max-width: calc(100vw - 24px);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0,0,0,.35);
 }
@@ -413,7 +413,7 @@ a.who-link {
     justify-content: center;
     text-align: center;
     min-height: 68px;
-    border-radius: 18px;
+    border-radius: var(--radius);
     font-family: var(--font-heading);
     font-weight: 700;
     font-size: 14px;
