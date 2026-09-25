@@ -219,18 +219,22 @@ public final class HaloManager {
      */
     public Color statueColor(String playerName) {
         if (!enabled || playerName == null || playerName.isBlank()) return null;
-        UUID id;
         Player online = Bukkit.getPlayerExact(playerName);
-        if (online != null) {
-            remember(online);
-            id = online.getUniqueId();
-        } else {
-            // Solo dalla cache del server (usercache): niente richieste a Mojang a ogni tick.
-            OfflinePlayer off = Bukkit.getOfflinePlayerIfCached(playerName);
-            if (off == null) return null;
-            id = off.getUniqueId();
-            refreshOffline(id);
-        }
+        if (online != null) return statueColor(online.getUniqueId());
+        // Solo dalla cache del server (usercache): niente richieste a Mojang a ogni tick.
+        OfflinePlayer off = Bukkit.getOfflinePlayerIfCached(playerName);
+        return off == null ? null : statueColor(off.getUniqueId());
+    }
+
+    /**
+     * Come {@link #statueColor(String)}, per UUID: stessa regola (permesso, colore, /halo off, anche
+     * da offline). La usa anche MagixWeb, per riflessione, per mostrare l'aureola sul sito.
+     */
+    public Color statueColor(UUID id) {
+        if (!enabled || id == null) return null;
+        Player online = Bukkit.getPlayer(id);
+        if (online != null) remember(online);
+        else refreshOffline(id);
         if (disabled.contains(id)) return null;
         String name = entitledColor.get(id);
         return name == null ? null : colors.get(name);

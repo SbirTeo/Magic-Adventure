@@ -988,11 +988,48 @@ function corona_top(bool $conCuori = true): string {
 }
 
 /**
- * REGOLA DEL SITO: dove c'e' la faccia del MIGLIOR SOSTENITORE, ci va la corona.
+ * Colore dell'aureola VIP di ogni giocatore che ne ha una: uuid in minuscolo -> "#RRGGBB".
  *
- * Si passa l'HTML dell'immagine gia' pronto e l'uuid di chi rappresenta: se non e' lui,
- * torna indietro identico (nessun elemento in piu' nella pagina). La misura serve solo a
- * dimensionare corona e cuori in proporzione alla faccia (--av).
+ * Lo scrive il server (MagixWeb, colonna mc_ranks.halo_color) con la stessa regola dell'aureola
+ * in gioco e sulle statue: permesso, colore scelto, /halo off, anche da offline. Si legge una
+ * volta per richiesta, come store_top_uuid(). Colonna non ancora creata (il server non e'
+ * ripartito con la versione che la aggiunge): nessuna aureola, nessun errore.
+ */
+function halo_colors(): array {
+    static $colors = null;
+    if ($colors !== null) {
+        return $colors;
+    }
+    $colors = [];
+    try {
+        $q = db()->query("SELECT mc_uuid, halo_color FROM mc_ranks WHERE halo_color IS NOT NULL");
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            if (preg_match('/^#[0-9A-Fa-f]{6}$/', (string) $r['halo_color'])) {
+                $colors[strtolower((string) $r['mc_uuid'])] = $r['halo_color'];
+            }
+        }
+    } catch (PDOException $e) {
+        // colonna o tabella mancante: nessuna aureola
+    }
+    return $colors;
+}
+
+/**
+ * L'aureola: un anello del colore del giocatore sopra la testa, con un puntino che ci gira
+ * intorno come in gioco. Da mettere DENTRO il contenitore di avatar_top() (misure in --av).
+ */
+function halo_badge(string $color): string {
+    return '<span class="avatar-halo" style="--halo:' . h($color) . '" aria-hidden="true" title="Aureola VIP">'
+        . '<span class="avatar-halo-x"><span class="avatar-halo-dot"></span></span></span>';
+}
+
+/**
+ * REGOLA DEL SITO: dove c'e' una faccia, sopra ci vanno i segni che quel giocatore ha in gioco:
+ * la CORONA se e' il miglior sostenitore, l'AUREOLA se e' un VIP che ce l'ha (vedi halo_colors()).
+ *
+ * Si passa l'HTML dell'immagine gia' pronto e l'uuid di chi rappresenta: se non ha nessuno dei
+ * due, torna indietro identico (nessun elemento in piu' nella pagina). La misura serve solo a
+ * dimensionare corona, cuori e aureola in proporzione alla faccia (--av).
  *
  * Chi aggiunge un punto nuovo del sito in cui compare un avatar deve passare da qui.
  *
@@ -1004,10 +1041,19 @@ function corona_top(bool $conCuori = true): string {
  *        faccia, quindi non danno piu' fastidio da nessuna parte.
  */
 function avatar_top(string $imgHtml, ?string $uuid, int $dim = 40, bool $conCuori = true): string {
-    $top = store_top_uuid();
-    if ($uuid === null || $top === null || strcasecmp($uuid, $top) !== 0) {
+    if ($uuid === null || $uuid === '') {
         return $imgHtml;
     }
-    return '<span class="avatar-top" style="--av:' . max(16, $dim) . 'px">'
-        . $imgHtml . corona_top($conCuori) . '</span>';
+    $top = store_top_uuid();
+    $isTop = $top !== null && strcasecmp($uuid, $top) === 0;
+    $halo = halo_colors()[strtolower($uuid)] ?? null;
+    if (!$isTop && $halo === null) {
+        return $imgHtml;
+    }
+    // Con la corona l'aureola sale sopra di lei (classe con-corona), invece di attraversarla.
+    return '<span class="avatar-top' . ($isTop ? ' con-corona' : '') . '" style="--av:' . max(16, $dim) . 'px">'
+        . $imgHtml
+        . ($halo !== null ? halo_badge($halo) : '')
+        . ($isTop ? corona_top($conCuori) : '')
+        . '</span>';
 }

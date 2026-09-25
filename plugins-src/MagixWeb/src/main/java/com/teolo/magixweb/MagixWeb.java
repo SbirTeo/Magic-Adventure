@@ -2,6 +2,7 @@ package com.teolo.magixweb;
 
 import com.teolo.magixweb.util.ConfigAlign;
 import com.teolo.magixweb.chat.ChatBridge;
+import com.teolo.magixweb.cosmetics.HaloSync;
 import com.teolo.magixweb.db.Database;
 import com.teolo.magixweb.guide.GuideSync;
 import com.teolo.magixweb.util.StaffGuide;
@@ -39,6 +40,7 @@ public class MagixWeb extends JavaPlugin {
         setupStoreDelivery();
         setupChatBridge();
         setupGuideSync();
+        setupHaloSync();
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         getLogger().info("MagixWeb abilitato.");
@@ -60,6 +62,22 @@ public class MagixWeb extends JavaPlugin {
         getLogger().info("MagixWeb: guida per amministratori attiva (controllo ogni " + minutes + " min).");
     }
 
+
+    /** The VIP halo (MagixCosmetics) on the site's faces, like the top supporter's crown. */
+    private void setupHaloSync() {
+        int minutes = getConfig().getInt("halo.sync-interval-minutes", 2);
+        if (minutes <= 0) {
+            return;
+        }
+        HaloSync halo = new HaloSync(this, database);
+        if (!halo.hook()) {
+            return;
+        }
+        Bukkit.getPluginManager().registerEvents(halo, this);
+        // First pass after the other plugins are up (players already online get covered too).
+        Bukkit.getScheduler().runTaskTimer(this, halo::syncAll, 200L, minutes * 60L * 20L);
+        getLogger().info("MagixWeb: aureola sul sito attiva (giro ogni " + minutes + " min).");
+    }
 
     /** MagixWeb's own chapter in the admin panel's guide (plugins-src/GUIDA-STAFF.md). */
     private void writeStaffGuide() {
@@ -85,6 +103,16 @@ public class MagixWeb extends JavaPlugin {
                                 + "parla nella lingua di chi lo visita, non in quella del giocatore.",
                         "Come per i gradi, chi e' gia' online quando MagixWeb riparte non genera un nuovo ingresso: "
                                 + "un giro dopo l'avvio sincronizza anche loro.")
+
+                .section("L'aureola sul sito",
+                        "L'aureola VIP di MagixCosmetics compare anche sul sito, sopra la faccia del giocatore "
+                                + "ovunque ci sia (forum, chat, classifiche, elenco utenti...), come la corona del "
+                                + "miglior sostenitore. Stessa regola della statua in gioco: permesso, colore scelto, "
+                                + "/halo off, anche per chi è offline (i permessi si leggono da LuckPerms).",
+                        "Chi entra in gioco si aggiorna subito; per tutti gli altri c'è un giro ogni "
+                                + "{{cfg:halo.sync-interval-minutes}} minuti, che scrive nel database solo chi ha "
+                                + "ottenuto, perso o cambiato l'aureola. Il colore sta nella colonna halo_color di "
+                                + "mc_ranks.")
 
                 .section("La traduzione del sito",
                         "Il sito traduce da solo tutte le sue pagine, guide comprese, nella lingua di chi le "
