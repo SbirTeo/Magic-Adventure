@@ -158,7 +158,7 @@ help:
         - "/mentities name <nome> <nuovoNome> :: rinomina (per il tipo player la skin segue)"
         - "/mentities displayname <nome> <testo|mirror|reset|off|on> :: scritta sopra la testa"
         - "/mentities skin <nome> <nick|mirror> :: skin della statua (solo tipo player)"
-        - "/mentities pose <nome> <posa> :: posa della statua (solo tipo player)"
+        - "/mentities pose <nome> <posa> :: posa della statua (solo tipo player, include sitting)"
         - "/mentities scale <nome> <valore|reset> :: ingrandisce o rimpicciolisce l'entita' (1 = normale, qualsiasi tipo)"
         - "/mentities equip <nome> :: menu per vestirla (armatura e mani)"
         - "/mentities set <nome> <opzione> <on|off> :: invulnerable, nametag, ai, gravity, glowing... (tab per l'elenco)"

@@ -57,6 +57,10 @@ public final class NpcStore {
             if (u != null && !u.isBlank()) {
                 try { d.uuid = UUID.fromString(u); } catch (IllegalArgumentException ignored) {}
             }
+            String su = s.getString("seat-uuid");
+            if (su != null && !su.isBlank()) {
+                try { d.seatUuid = UUID.fromString(su); } catch (IllegalArgumentException ignored) {}
+            }
             d.commands.addAll(s.getStringList("commands"));
             ConfigurationSection eq = s.getConfigurationSection("equipment");
             if (eq != null) {
@@ -91,6 +95,7 @@ public final class NpcStore {
             cfg.set(base + "pose", d.pose);
             cfg.set(base + "scale", d.scale);
             cfg.set(base + "uuid", d.uuid == null ? null : d.uuid.toString());
+            cfg.set(base + "seat-uuid", d.seatUuid == null ? null : d.seatUuid.toString());
             cfg.set(base + "commands", d.commands.isEmpty() ? null : d.commands);
             for (String slot : NpcDef.EQUIPMENT) {
                 cfg.set(base + "equipment." + slot, d.equipment.get(slot));

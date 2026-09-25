@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.9.14** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.15** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -168,6 +168,25 @@ per un movimento piu' fluido.
 
 Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). Sulle entita' a specchio ogni
 copia segue il **proprio** proprietario, quindi ciascuno si vede guardato dalla sua.
+
+## Seduta (`sitting`)
+
+```
+/mentities pose <nome> sitting
+```
+
+`sitting` NON e' una Pose vanilla del Mannequin (quelle vere sono `sleeping`, `swimming`,
+`sneaking`, `fall_flying`, `standing`: il tab-completion in gioco le mostra tutte). La seduta si
+ottiene con un trucco diverso, lo stesso che fa apparire seduto un giocatore vero su una barca o
+un cavallo: il modello del giocatore piega le gambe da solo ogni volta che l'entita' e' un
+**passeggero**, qualunque sia il veicolo. Il plugin crea un piccolo `ArmorStand` invisibile
+(sedile), ci monta sopra la statua e lo gestisce da solo — respawn compreso, come per il resto
+dell'entita'.
+
+Se l'altezza del sedile non torna su questa versione del gioco, si aggiusta `player.seat-y-offset`
+in `config.yml` (nessuna modifica al codice serve). **Limite noto**: sulle statue con skin o nome
+a specchio (`mirror`) le copie personalizzate non hanno un proprio sedile e restano in piedi anche
+con posa `sitting` — l'entita' vera, non a specchio, si siede regolarmente.
 
 ## Scala (`scale`)
 

@@ -49,6 +49,7 @@ public final class NpcManager {
     private final NpcStore store;
     private final NamespacedKey key;
     private final NamespacedKey cloneKey;
+    private final NamespacedKey seatKey;
     private final Map<String, NpcDef> npcs = new LinkedHashMap<>();
     private MirrorManager mirror;
     /** Skin gia' risolte: nick in minuscolo -> profilo completo di texture. */
@@ -80,6 +81,7 @@ public final class NpcManager {
         this.store = new NpcStore(plugin);
         this.key = new NamespacedKey(plugin, "npc");
         this.cloneKey = new NamespacedKey(plugin, "clone");
+        this.seatKey = new NamespacedKey(plugin, "seat");
     }
 
     /** Iniettato dopo la costruzione (MirrorManager ha bisogno di NpcManager). */
@@ -242,6 +244,10 @@ public final class NpcManager {
         }
         refused.remove(d.id);
         d.uuid = e.getUniqueId();
+        // apply() e' girato dentro il consumer PRE-spawn: a quel punto e.isInWorld() e' ancora
+        // false (e' cosi' per design, vedi il commento su applySeat), quindi il sedile invisibile
+        // non e' stato ancora creato/montato. Qui l'entita' e' gia' nel mondo per davvero.
+        applySeat(d, e);
         return e;
     }
 
@@ -264,11 +270,12 @@ public final class NpcManager {
                 + " al controllo successivo (o subito con /mentities respawn " + d.name + ").";
     }
 
-    /** Rimuove dal mondo l'entita' associata, se presente e caricata. */
+    /** Rimuove dal mondo l'entita' associata (e il suo eventuale sedile), se presente e caricata. */
     public void despawn(NpcDef d) {
         Entity e = d.uuid == null ? null : Bukkit.getEntity(d.uuid);
         if (e != null) e.remove();
         d.uuid = null;
+        removeSeat(d);
     }
 
     /**
@@ -403,6 +410,13 @@ public final class NpcManager {
             applyPose(d, man);
             if (!d.isSkinMirror()) applySkin(d, man);
         }
+        // Auto-guarigione: se l'entita' e' gia' nel mondo (ensure/onChunkLoad/un comando che
+        // aggiorna un'entita' viva), risistema anche il sedile se serve o se e' stato ucciso.
+        // Durante il consumer PRE-spawn (vedi spawn()) e.isInWorld() e' ancora false: qui non fa
+        // nulla, ci pensa spawn() subito dopo. Le copie mirror passano SEMPRE e SOLO dal consumer
+        // pre-spawn di applyClone (mai riapplicate mentre gia' nel mondo): per questo non hanno
+        // mai un sedile proprio, e restano in piedi anche con pose "sitting" — limite noto.
+        applySeat(d, e);
     }
 
     /**
@@ -489,19 +503,95 @@ public final class NpcManager {
         if (inst != null) inst.setBaseValue(d.scale);
     }
 
+    /** Valore riservato di {@link NpcDef#pose}: non e' una Pose vera, vedi {@link #applySeat}. */
+    private static final String SITTING = "sitting";
+
     private void applyPose(NpcDef d, Mannequin man) {
-        if (d.pose == null || d.pose.isBlank()) return;
+        if (d.pose == null || d.pose.isBlank() || SITTING.equalsIgnoreCase(d.pose)) return;
         try {
             Pose p = Pose.valueOf(d.pose.toUpperCase(Locale.ROOT));
             if (Mannequin.validPoses().contains(p)) man.setPose(p, true);
         } catch (IllegalArgumentException ignored) {}
     }
 
-    /** Pose accettate dalle entita' di tipo player, in minuscolo. */
+    /**
+     * Pose accettate dalle entita' di tipo player, in minuscolo. "sitting" NON e' fra le Pose
+     * vere del Mannequin ({@code Mannequin.validPoses()} non la contiene su questa versione:
+     * quella e' per gatti/pappagalli/lupi) — e' aggiunta a mano perche' e' comunque un valore
+     * valido per /mentities pose: {@link #applySeat} la ottiene con un sedile invisibile, lo
+     * stesso trucco che piega le gambe a un giocatore vero seduto su una barca o un cavallo.
+     */
     public List<String> validPoses() {
         List<String> out = new ArrayList<>();
+        out.add(SITTING);
         for (Pose p : Mannequin.validPoses()) out.add(p.name().toLowerCase(Locale.ROOT));
         return out;
+    }
+
+    /**
+     * La "seduta" di un Mannequin non e' una Pose vanilla: si ottiene facendo cavalcare
+     * all'entita' un sedile invisibile ({@code ArmorStand} marker), esattamente come un
+     * giocatore vero appare seduto su una barca o un cavallo — il modello del giocatore piega
+     * le gambe da solo ogni volta che e' un passeggero, indipendentemente dal veicolo.
+     *
+     * Se la posa non e' "sitting" (piu') il sedile va tolto, non solo lasciato li' vuoto.
+     */
+    private void applySeat(NpcDef d, Entity e) {
+        // Durante il consumer pre-spawn l'entita' non e' ancora nel mondo: spawn() richiama
+        // questo metodo di nuovo appena lo e' davvero (vedi il commento li').
+        if (!e.isInWorld()) return;
+        boolean wantsSeat = d.isPlayerType() && SITTING.equalsIgnoreCase(d.pose);
+        if (!wantsSeat) {
+            removeSeat(d);
+            return;
+        }
+        Entity seat = d.seatUuid == null ? null : Bukkit.getEntity(d.seatUuid);
+        if (seat == null || seat.isDead() || !seat.isValid()) {
+            seat = spawnSeat(e.getLocation());
+            if (seat == null) return; // nascita del sedile rifiutata da un altro plugin: si riprova al prossimo giro
+            d.seatUuid = seat.getUniqueId();
+        }
+        if (!seat.equals(e.getVehicle())) {
+            e.leaveVehicle();
+            seat.addPassenger(e);
+        }
+    }
+
+    /**
+     * Il sedile: un ArmorStand piccolo, invisibile, senza hitbox (marker) e senza gravita',
+     * spostato di {@code player.seat-y-offset} (config, default sotto terra di poco) per
+     * compensare il punto di aggancio del passeggero, che su un ArmorStand piccolo non
+     * coincide con la base. Se il risultato visivo non torna su questa versione del client,
+     * e' quella la chiave da ritoccare — nessun'altra modifica al codice serve.
+     */
+    private Entity spawnSeat(Location loc) {
+        double offset = plugin.getConfig().getDouble("player.seat-y-offset", -0.6);
+        Location seatLoc = loc.clone().add(0, offset, 0);
+        try {
+            org.bukkit.entity.ArmorStand seat = seatLoc.getWorld().spawn(seatLoc, org.bukkit.entity.ArmorStand.class, s -> {
+                s.setMarker(true);
+                s.setSmall(true);
+                s.setInvisible(true);
+                s.setInvulnerable(true);
+                s.setGravity(false);
+                s.setSilent(true);
+                s.setCanTick(false);
+                s.setPersistent(true);
+                s.getPersistentDataContainer().set(seatKey, PersistentDataType.STRING, "seat");
+            }, CreatureSpawnEvent.SpawnReason.CUSTOM);
+            return seat.isInWorld() ? seat : null;
+        } catch (RuntimeException ex) {
+            plugin.getLogger().warning("Sedile invisibile non creato: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    /** Toglie il sedile (se c'e') e dimentica il suo UUID. */
+    private void removeSeat(NpcDef d) {
+        if (d.seatUuid == null) return;
+        Entity seat = Bukkit.getEntity(d.seatUuid);
+        if (seat != null) seat.remove();
+        d.seatUuid = null;
     }
 
     /**
