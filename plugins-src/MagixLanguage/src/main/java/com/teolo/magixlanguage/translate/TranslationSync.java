@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -56,6 +57,9 @@ public final class TranslationSync {
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final int MAX_BACKUPS = 10;
 
+    /** Un tentativo di traduzione al giorno, qualunque cosa succeda: vedi {@link #alreadyAttemptedToday()}. */
+    private static final String LAST_ATTEMPT_FILE = "last-translation-attempt.txt";
+
     private final JavaPlugin plugin;
     private final Logger log;
 
@@ -82,6 +86,22 @@ public final class TranslationSync {
         int delayMs = plugin.getConfig().getInt("translations.auto-translate.delay-ms", 150);
         String contactEmail = plugin.getConfig().getString("translations.auto-translate.contact-email", "");
         Translator translator = autoTranslateEnabled ? new Translator(timeoutMs, log, contactEmail) : null;
+
+        // Un solo tentativo di traduzione al giorno, a prescindere da quanti riavvii o /language
+        // sync capitano nel frattempo: MyMemory non ha solo una quota giornaliera di parole, ha
+        // anche un limite di frequenza (HTTP 429) che un IP puo' far scattare ripetendo il
+        // tentativo a ogni riavvio, e quel blocco puo' restare attivo ben oltre un giorno. Lo
+        // specchio it.yml e le chiavi gia' in cache continuano comunque a funzionare: solo le
+        // chiamate di rete vere e proprie si fermano finche' non cambia la data.
+        boolean throttledToday = false;
+        if (translator != null) {
+            if (alreadyAttemptedToday()) {
+                translator.forceUnavailable();
+                throttledToday = true;
+            } else {
+                markAttemptedToday();
+            }
+        }
 
         File pluginsFolder = plugin.getDataFolder().getParentFile();
         File translationsRoot = new File(plugin.getDataFolder(), "translations");
@@ -129,8 +149,35 @@ public final class TranslationSync {
 
         int failureTotal = writeFailureReports(translationsRoot, failures);
         log.info("MagixLanguage: sincronizzazione completata (" + scanned + " plugin, " + totals.translated
-                + " chiavi tradotte, " + totals.reused + " gia' in cache, " + failureTotal + " fallite).");
+                + " chiavi tradotte, " + totals.reused + " gia' in cache, " + failureTotal + " fallite)."
+                + (throttledToday ? " Tentativo di traduzione di oggi gia' usato: nessuna nuova chiamata"
+                    + " a MyMemory fino a domani (o a un /language sync di un altro giorno)." : ""));
         return new Result(scanned, totals.translated, totals.reused, failureTotal, perPlugin);
+    }
+
+    /** Se oggi si e' gia' tentata una traduzione vera (anche se fallita subito): vedi {@link #run()}. */
+    private boolean alreadyAttemptedToday() {
+        File f = new File(plugin.getDataFolder(), LAST_ATTEMPT_FILE);
+        if (!f.isFile()) {
+            return false;
+        }
+        try {
+            String saved = Files.readString(f.toPath(), StandardCharsets.UTF_8).trim();
+            return LocalDate.now().toString().equals(saved);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /** Segna il tentativo di oggi come usato, PRIMA di sapere se andra' a buon fine: e' il punto,
+     *  altrimenti un tentativo fallito subito (HTTP 429) non risparmierebbe i riavvii successivi. */
+    private void markAttemptedToday() {
+        try {
+            Files.writeString(new File(plugin.getDataFolder(), LAST_ATTEMPT_FILE).toPath(),
+                    LocalDate.now().toString(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.warning("MagixLanguage: impossibile salvare la data dell'ultimo tentativo di traduzione (" + e + ").");
+        }
     }
 
     private static final class Counters {
