@@ -57,13 +57,17 @@ jobs:
             echo "::error::Server non in esecuzione (screen mc non attivo)."
             exit 1
           fi
-          # "spawn" e' un mondo AGGIUNTIVO creato da Multiverse, non uno dei tre nativi
-          # (overworld/the_nether/the_end): la sua chiave per /execute in e' "bukkit:spawn",
-          # non "minecraft:spawn" (quel namespace e' riservato alle tre dimensioni vanilla -
-          # un primo tentativo con "minecraft:spawn" e' infatti fallito con "Uso: /gamerule").
-          screen -S mc -p 0 -X stuff "$(printf '/execute in bukkit:spawn run gamerule spawnRadius 0\r')"
+          # "spawn" e' un mondo AGGIUNTIVO creato da Multiverse: non e' una delle tre
+          # dimensioni vanilla vere (overworld/the_nether/the_end), quindi /execute in non lo
+          # accetta affatto (ne' "minecraft:spawn" ne' "bukkit:spawn": "Unknown dimension" in
+          # entrambi i casi, gia' provato). Prima di tentare alla cieca una terza sintassi,
+          # si chiede a Multiverse stesso quale sia (come chiedi-help-cmi-world.yml): il
+          # comando "/mv gamerule" senza argomenti stampa il suo usage se esiste, o "Unknown
+          # command" se non esiste proprio in questa versione - in nessuno dei due casi
+          # cambia nulla sul server.
+          screen -S mc -p 0 -X stuff "$(printf '/mv gamerule\r')"
           sleep 2
-          screen -S mc -p 0 -X stuff "$(printf '/execute in bukkit:spawn run gamerule spawnRadius\r')"
+          screen -S mc -p 0 -X stuff "$(printf '/mv help gamerule\r')"
           sleep 2
           echo "=== Coda del log (conferma del valore applicato) ==="
           tail -n 15 "$LOG"
