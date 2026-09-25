@@ -165,7 +165,7 @@ jobs:
               echo "(download da 127.0.0.1:${PORT}/pack.zip fallito: il servizio HTTP non risponde)"
             else
               echo "Scaricato $(stat -c%s /tmp/diag-pack.zip 2>/dev/null || echo '?') byte da 127.0.0.1:${PORT}/pack.zip"
-              python3 -c "import zipfile; z = zipfile.ZipFile('/tmp/diag-pack.zip'); names = z.namelist(); mp = sorted(n for n in names if n.startswith('assets/magixpack/')); print(f'{len(names)} file nello zip, {len(mp)} sotto assets/magixpack/ (oggetti/icone custom di MagixPack):'); [print('  ' + n, '(' + str(len(z.read(n))) + ' byte)') for n in mp]; print(); print('--- contenuto dei .json (per controllare che siano scritti davvero cosi) ---'); [print(n + ':', z.read(n).decode('utf-8', 'replace')) for n in mp if n.endswith('.json')]"
+              python3 -c "import zipfile; z = zipfile.ZipFile('/tmp/diag-pack.zip'); names = z.namelist(); mp = sorted(n for n in names if n.startswith('assets/magixpack/')); legacy = sorted(n for n in names if n.startswith('assets/minecraft/models/item/') and b'magixpack' in z.read(n)); print(f'{len(names)} file nello zip, {len(mp)} sotto assets/magixpack/ (oggetti/icone custom di MagixPack), {len(legacy)} override legacy su modelli vanilla (CustomModelData):'); [print('  ' + n, '(' + str(len(z.read(n))) + ' byte)') for n in mp + legacy]; print(); print('--- contenuto dei .json (per controllare che siano scritti davvero cosi) ---'); [print(n + ':', z.read(n).decode('utf-8', 'replace')) for n in mp + legacy if n.endswith('.json')]"
               rm -f /tmp/diag-pack.zip
             fi
           fi
