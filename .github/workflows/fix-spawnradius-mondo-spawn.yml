@@ -26,10 +26,14 @@ name: Azzera spawnRadius nel mondo spawn
 #      quel contesto quando arriva dalla console (nessun giocatore, nessuna posizione): la
 #      console qui non puo' fisicamente eseguirlo, a prescindere dalla sintassi.
 #
+# Attenzione al NOME: "spawnRadius" non esiste piu' su questo server (26.2). Da Minecraft
+# 1.21.11 i gamerule sono in snake_case e questo si chiama "respawn_radius" (verificato dal
+# proprietario in game: "/gamerule spawnRadius ..." da' errore). Il fallimento del tentativo 1
+# qui sopra puo' dipendere anche da questo, non solo dalla dimensione.
+#
 # Conclusione: questa gamerule va cambiata da un GIOCATORE, fisicamente nel mondo spawn, con
-# "/gamerule spawnRadius 0" (o "/mv gamerule set spawnRadius 0" se quell'alias esiste - da
-# verificare in game, mai piu' da console). Un comando, nessun riavvio, reversibile in
-# qualunque momento con lo stesso comando e un valore diverso da 0.
+# "/gamerule respawn_radius 0" (conferma il nome col completamento automatico di "/gamerule ").
+# Un comando, nessun riavvio, reversibile in qualunque momento con un valore diverso da 0.
 #
 # Stessi secret VPS_HOST / VPS_USER / VPS_SSH_KEY degli altri workflow.
 
