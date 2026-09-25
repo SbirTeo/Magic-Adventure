@@ -71,9 +71,10 @@ list-header:
 
 # Una riga per scoreboard. {id} chiave - {state} "attiva"/"nascosta" (enabled nel
 # config) - {weight} peso - {permission} permesso richiesto o "-" - {worlds}
-# mondi richiesti o "*" - {regions} regioni richieste o "*"
+# mondi richiesti o "*" - {regions} regioni richieste o "*" - {placeholders}
+# condizioni sui placeholder richieste o "-"
 list-line:
-  - "&7- &f{id} &8| {state} &8| peso &f{weight} &8| perm &f{permission} &8| mondi &f{worlds} &8| regioni &f{regions}"
+  - "&7- &f{id} &8| {state} &8| peso &f{weight} &8| perm &f{permission} &8| mondi &f{worlds} &8| regioni &f{regions} &8| placeholder &f{placeholders}"
 
 # ---------------------------------------------------------------- /mscoreboard debug
 # {player} nome del giocatore - {world} il suo mondo attuale - {selected} id della

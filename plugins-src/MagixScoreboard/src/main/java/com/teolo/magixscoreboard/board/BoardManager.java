@@ -34,7 +34,7 @@ public final class BoardManager {
     private final HiddenPlayers hiddenPlayers;
 
     private List<BoardDefinition> definitions = List.of();
-    private List<String> priorityOrder = List.of("region", "permission", "world");
+    private List<String> priorityOrder = List.of("region", "permission", "world", "placeholder");
     private int updateIntervalTicks = 10;
     private boolean enabled = true;
     private boolean warnedRegionsWithoutWorldGuard = false;
@@ -61,7 +61,7 @@ public final class BoardManager {
         enabled = cfg.getBoolean("enabled", true);
         updateIntervalTicks = Math.max(1, cfg.getInt("update-interval-ticks", 10));
         List<String> order = cfg.getStringList("priority-order");
-        priorityOrder = order.isEmpty() ? List.of("region", "permission", "world") : List.copyOf(order);
+        priorityOrder = order.isEmpty() ? List.of("region", "permission", "world", "placeholder") : List.copyOf(order);
 
         List<BoardDefinition> out = new ArrayList<>();
         ConfigurationSection root = cfg.getConfigurationSection("scoreboards");
@@ -90,6 +90,7 @@ public final class BoardManager {
         String permission = section.getString("permission", "");
         Set<String> worlds = lowercaseSet(section.getStringList("worlds"));
         Set<String> regions = lowercaseSet(section.getStringList("regions"));
+        List<String> placeholders = section.getStringList("placeholders");
         BoardLine title = readLine(section.getConfigurationSection("title"));
         List<BoardLine> lines = new ArrayList<>();
         List<?> raw = section.getList("lines");
@@ -98,7 +99,7 @@ public final class BoardManager {
                 if (o instanceof Map<?, ?> m) lines.add(readLine(m));
             }
         }
-        return new BoardDefinition(id, sectionEnabled, weight, permission, worlds, regions, title, lines);
+        return new BoardDefinition(id, sectionEnabled, weight, permission, worlds, regions, placeholders, title, lines);
     }
 
     private static BoardLine readLine(ConfigurationSection section) {
