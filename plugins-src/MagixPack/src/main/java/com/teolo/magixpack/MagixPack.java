@@ -1,6 +1,7 @@
 package com.teolo.magixpack;
 
 import com.teolo.magixpack.command.MagixPackCommand;
+import com.teolo.magixpack.furniture.FurnitureListener;
 import com.teolo.magixpack.glyph.GlyphCatalog;
 import com.teolo.magixpack.item.ItemCatalog;
 import com.teolo.magixpack.lang.Messages;
@@ -76,6 +77,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
         loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new PackListener(this, packService), this);
+        getServer().getPluginManager().registerEvents(new FurnitureListener(this, itemCatalog), this);
 
         MagixPackCommand cmd = new MagixPackCommand(this, messages);
         getCommand("magixpack").setExecutor(cmd);
@@ -288,8 +290,11 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "base di Minecraft che decide solo le meccaniche (danno, durabilita', "
                                 + "impilabilita'...), mai l'aspetto. Basta un file in plugins/MagixPack/items/"
                                 + "<id>.png + una voce in items.yml (material, name, lore) + /mpack reload: il "
-                                + "plugin genera da solo il JSON del modello, non serve scriverlo a mano. Limite "
-                                + "attuale: solo icone 2D piatte, niente modelli 3D ne' piu' layer.")
+                                + "plugin genera da solo il JSON del modello, non serve scriverlo a mano. Per un "
+                                + "modello 3D vero basta items/<id>-model.json. Con furniture: true l'oggetto si "
+                                + "puo' anche piazzare per terra (shift + tasto destro su un blocco, si rompe "
+                                + "attaccandolo) col suo aspetto vero; furniture-solid: true gli da' collisione "
+                                + "vera. Vedi il README per i dettagli.")
 
                 .section("Icone custom via font (glyphs.yml)",
                         "Per simboli dentro un messaggio di chat o nel tablist, MAI per gli oggetti (quelli "

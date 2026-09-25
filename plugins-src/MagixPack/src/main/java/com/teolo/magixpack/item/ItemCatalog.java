@@ -6,6 +6,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -51,6 +52,12 @@ public final class ItemCatalog {
      *  un valore che un altro plugin/comando avesse gia' scelto per lo stesso material. */
     private static final int FIRST_CUSTOM_MODEL_DATA = 3_100_000;
 
+    /** Chiave PDC scritta su ogni {@link ItemStack} costruito da {@link #build}: l'id del
+     *  catalogo, cosi' {@code furniture.FurnitureListener} puo' risalire alla voce di items.yml
+     *  (e quindi al flag {@code furniture}) da un ItemStack in mano, senza dover confrontare
+     *  material/nome/lore (fragile: due oggetti diversi possono condividere lo stesso material). */
+    public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(NAMESPACE, "item-id");
+
     private final JavaPlugin plugin;
     private final Map<String, ItemEntry> entries = new LinkedHashMap<>();
 
@@ -84,7 +91,10 @@ public final class ItemCatalog {
             }
             String name = sec.getString("name", id);
             List<String> lore = sec.getStringList("lore");
-            entries.put(id, new ItemEntry(id, materialName, name, lore, nextCustomModelData));
+            boolean furniture = sec.getBoolean("furniture", false);
+            boolean furnitureSolid = sec.getBoolean("furniture-solid", false);
+            entries.put(id, new ItemEntry(id, materialName, name, lore, nextCustomModelData,
+                    furniture, furnitureSolid));
             nextCustomModelData++;
         }
         if (!entries.isEmpty()) {
@@ -113,6 +123,11 @@ public final class ItemCatalog {
         return new ArrayList<>(new TreeMap<>(entries).keySet());
     }
 
+    /** La voce del catalogo per {@code id} (flag furniture inclusi), o null se non c'e'. */
+    public ItemEntry entry(String id) {
+        return entries.get(id);
+    }
+
     /** L'oggetto vero, pronto da dare: null se l'id non esiste nel catalogo. */
     public ItemStack build(String id) {
         ItemEntry e = entries.get(id);
@@ -132,6 +147,9 @@ public final class ItemCatalog {
             // vanilla, vedi packFiles()): tenerli insieme copre entrambe le strade con cui il
             // client potrebbe risolvere l'aspetto dell'oggetto, come raccomanda Oraxen stesso.
             meta.setCustomModelData(e.customModelData());
+            // Cosi' furniture.FurnitureListener sa quale voce di items.yml corrisponde a questo
+            // ItemStack (id del catalogo, non material/nome: due oggetti possono condividerli).
+            meta.getPersistentDataContainer().set(ITEM_ID_KEY, PersistentDataType.STRING, id);
             if (e.name() != null && !e.name().isBlank()) {
                 meta.displayName(com.teolo.magixpack.util.Colors.component(e.name())
                         .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));

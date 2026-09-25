@@ -124,6 +124,34 @@ automatica (stesso principio di Oraxen, `generate_model: false, model: ...`). La
 Da un altro plugin: `MagixPack.customItem(String id)` (via riflessione, come `registerPack`)
 restituisce l'`ItemStack` pronto, o null se l'id non e' nel catalogo.
 
+### Piazzarlo per terra (furniture)
+
+Un oggetto custom puo' anche diventare una "furniture": non solo in mano/inventario, ma piazzato
+nel mondo col suo aspetto vero (texture/modello, non un blocco vanilla travestito). Nel catalogo:
+
+```yaml
+flaming_sword:
+  material: DIAMOND_SWORD
+  name: "&cSpada Ardente"
+  furniture: true
+  furniture-solid: true
+```
+
+- `furniture: true` (default `false`) — lo rende piazzabile: **shift + tasto destro** su un
+  blocco lo mette sulla faccia cliccata. Chiunque lo tenga in mano lo puo' piazzare, nessun
+  permesso a parte — la protezione (chi puo' piazzare/rompere dove) la fa la regione/claim gia'
+  presente sul server, esattamente come per un blocco normale messo li'.
+- `furniture-solid: true` (default `false`) — aggiunge collisione vera (un blocco invisibile,
+  blocca il passaggio); `false` lo lascia attraversabile. Scelta per oggetto, non globale.
+- Si rompe **attaccando** l'entita' piazzata (niente tasto/comando a parte): torna nell'inventario
+  di chi l'ha colpita (o cade a terra se non c'e' posto).
+
+Sotto il cofano: una coppia `ItemDisplay` (l'aspetto) + `Interaction` (l'entita' invisibile su cui
+si clicca/attacca davvero — un `ItemDisplay` da solo non e' interagibile), vedi
+`furniture.FurnitureListener`. **Limite noto**: un plugin di protezione claim/regione pensato per
+i BLOCCHI potrebbe non coprire da solo queste entita' — e' un rischio accettato, non un bug di
+MagixPack.
+
 ## Icone custom via font (per chat/tablist, non per gli oggetti)
 
 `glyphs.yml` (creata vuota gia' al primo avvio) e' il catalogo delle icone via font — per simboli
