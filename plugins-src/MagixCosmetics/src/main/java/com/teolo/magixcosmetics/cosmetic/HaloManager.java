@@ -1,5 +1,6 @@
 package com.teolo.magixcosmetics.cosmetic;
 
+import com.destroystokyo.paper.ParticleBuilder;
 import com.teolo.magixcosmetics.MagixCosmetics;
 import com.teolo.magixcosmetics.hook.LuckPermsHook;
 import org.bukkit.Bukkit;
@@ -65,6 +66,8 @@ public final class HaloManager {
     private double radius;
     private double height;
     private float size;
+    /** Da quanti blocchi si vede (particella "a lunga distanza": oltre 32 serve, massimo 512). */
+    private double viewDistance;
     private long interval;
     private double spinSpeed;
     private boolean hideWhenVanished;
@@ -120,6 +123,7 @@ public final class HaloManager {
         radius = c.getDouble("halo.radius", 0.4);
         height = c.getDouble("halo.height", 2.2);
         size = (float) c.getDouble("halo.particle-size", 0.8);
+        viewDistance = Math.max(1, Math.min(512, c.getDouble("halo.view-distance", 96)));
         interval = Math.max(1L, c.getLong("halo.update-interval-ticks", 1));
         spinSpeed = c.getDouble("halo.spin-speed", 0.25);
         hideWhenVanished = c.getBoolean("halo.hide-when-vanished", true);
@@ -286,9 +290,20 @@ public final class HaloManager {
         Location at = base.clone().add(x, height * s, z);
         // DUST accetta al massimo 4.0 di grandezza.
         Particle.DustOptions dust = new Particle.DustOptions(color, (float) Math.min(4.0, size * s));
+        // force(true) = particella "a lunga distanza": senza, il server la manda solo entro 32
+        // blocchi e l'aureola di una statua gigante sparisce molto prima della statua. Chi la
+        // riceve lo decidiamo noi, entro halo.view-distance.
         // Con DUST il "count" 1 e gli offset a zero mettono la particella esattamente li'.
-        if (onlyFor != null) onlyFor.spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, dust);
-        else base.getWorld().spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, dust);
+        ParticleBuilder particle = new ParticleBuilder(Particle.DUST)
+                .location(at).count(1).offset(0, 0, 0).extra(0).data(dust).force(true);
+        if (onlyFor != null) {
+            if (!onlyFor.getWorld().equals(at.getWorld())
+                    || onlyFor.getLocation().distanceSquared(at) > viewDistance * viewDistance) return;
+            particle.receivers(onlyFor);
+        } else {
+            particle.receivers(at.getNearbyPlayers(viewDistance));
+        }
+        particle.spawn();
     }
 
     // ------------------------------------------------------------- toggle personale
