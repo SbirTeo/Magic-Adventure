@@ -567,9 +567,17 @@ public final class NpcManager {
             removeSeat(d);
             return;
         }
+        Location seatLoc = seatLocation(d);
+        if (seatLoc == null) return;
         Entity seat = d.seatUuid == null ? null : Bukkit.getEntity(d.seatUuid);
+        // Sedile fuori posto (scarto cambiato nel config, entita' spostata): si rifa'. Un veicolo
+        // con passeggero non si teletrasporta senza smontarlo, quindi rifarlo e' la via semplice.
+        if (seat != null && seat.isValid() && seat.getLocation().distanceSquared(seatLoc) > 0.0001) {
+            seat.remove();
+            seat = null;
+        }
         if (seat == null || seat.isDead() || !seat.isValid()) {
-            seat = spawnSeat(e.getLocation(), SEAT_REAL);
+            seat = spawnSeat(seatLoc, SEAT_REAL);
             if (seat == null) return; // nascita del sedile rifiutata da un altro plugin: si riprova al prossimo giro
             d.seatUuid = seat.getUniqueId();
         }
@@ -588,8 +596,9 @@ public final class NpcManager {
      * @return il sedile, o null se la posa non e' "sitting" o se non e' nato
      */
     public Entity mountCloneSeat(NpcDef d, Entity clone) {
-        if (!wantsSeat(d) || !clone.isInWorld()) return null;
-        Entity seat = spawnSeat(clone.getLocation(), SEAT_CLONE);
+        Location seatLoc = seatLocation(d);
+        if (!wantsSeat(d) || !clone.isInWorld() || seatLoc == null) return null;
+        Entity seat = spawnSeat(seatLoc, SEAT_CLONE);
         if (seat == null) return null;
         mount(d, seat, clone);
         return seat;
@@ -627,15 +636,23 @@ public final class NpcManager {
     }
 
     /**
-     * Il sedile: un ArmorStand piccolo, invisibile, senza hitbox (marker) e senza gravita',
-     * spostato di {@code player.seat-y-offset} (config, default sotto terra di poco) per
-     * compensare il punto di aggancio del passeggero, che su un ArmorStand piccolo non
-     * coincide con la base. Se il risultato visivo non torna su questa versione del client,
-     * e' quella la chiave da ritoccare — nessun'altra modifica al codice serve.
+     * Dove sta il sedile: nella posizione SALVATA dell'entita', mai in quella attuale. Un'entita'
+     * gia' seduta sta piu' in basso (il gioco aggancia il passeggero per il bacino), e partire da
+     * li' la farebbe sprofondare a ogni sedile rifatto.
+     *
+     * Il sedile e' un ArmorStand marker, che ha altezza zero: il gioco mette il bacino del
+     * passeggero esattamente all'altezza del sedile. Quindi con scarto 0 la statua si siede sulla
+     * superficie su cui starebbe in piedi, a qualunque scala (l'aggancio cresce col modello).
+     * {@code player.seat-y-offset} serve solo per sedie con la seduta piu' bassa del blocco.
      */
-    private Entity spawnSeat(Location loc, String kind) {
-        double offset = plugin.getConfig().getDouble("player.seat-y-offset", -0.6);
-        Location seatLoc = loc.clone().add(0, offset, 0);
+    private Location seatLocation(NpcDef d) {
+        Location loc = d.location();
+        if (loc == null) return null;
+        return loc.add(0, plugin.getConfig().getDouble("player.seat-y-offset", 0.0), 0);
+    }
+
+    /** Il sedile: ArmorStand invisibile, senza hitbox (marker) e senza gravita', in {@code seatLoc}. */
+    private Entity spawnSeat(Location seatLoc, String kind) {
         try {
             org.bukkit.entity.ArmorStand seat = seatLoc.getWorld().spawn(seatLoc, org.bukkit.entity.ArmorStand.class, s -> {
                 s.setMarker(true);

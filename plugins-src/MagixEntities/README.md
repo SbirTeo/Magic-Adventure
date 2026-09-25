@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.9.17** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.18** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 

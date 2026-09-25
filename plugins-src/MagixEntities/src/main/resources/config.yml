@@ -59,13 +59,11 @@ player:
   # nametag e visibile solo da vicino. Se lo attivi il displayname compare DUE volte (e il
   # nametag "salta" su di una riga quando ti avvicini). Tienilo false.
   description: false
-  # La posa "sitting" (/mentities pose <nome> sitting) non e' una Pose vera del Mannequin: si
-  # ottiene facendo cavalcare all'entita' un sedile invisibile (ArmorStand). Questo scarto in
-  # blocchi sposta il sedile rispetto al punto dell'entita', per compensare l'altezza a cui un
-  # ArmorStand piccolo aggancia il passeggero. Se la statua seduta appare troppo alta o bassa
-  # su questa versione del gioco, e' questa la chiave da ritoccare (numero negativo = piu' in
-  # basso), nessun'altra modifica serve.
-  seat-y-offset: -0.6
+  # La posa "sitting" (/mentities pose <nome> sitting) si ottiene facendo cavalcare all'entita' un
+  # sedile invisibile. Con 0 la statua si siede sulla superficie su cui starebbe in piedi, a
+  # qualunque scala. Un numero negativo la abbassa (es. -0.5 per una seduta a mezzo blocco), uno
+  # positivo la alza. Per spostare UNA statua sola usa invece /mentities editor (Posizione).
+  seat-y-offset: 0.0
 
 mirror:
   # Skin "mirror" (/mentities skin <nome> mirror): ogni giocatore vede l'entita' con la PROPRIA
