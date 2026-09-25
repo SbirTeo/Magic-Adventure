@@ -430,6 +430,16 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "le vecchie traduzioni in cache con lo spazio mangiato — anche qui serve un nuovo "
                                 + "/language sync o riavvio (o /language sync force, per non aspettare) perche' "
                                 + "vengano rifatte.")
+                .issue("Le frecce «indietro»/«avanti» sono sparite o le scritte sono attaccate al separatore",
+                        "help.chrome.back e help.chrome.forward in italiano hanno degli spazi voluti a inizio/fine "
+                                + "riga (es. &quot; « indietro &quot;) per staccare la scritta dal punto separatore "
+                                + "nel piede dell'aiuto a pagine: un servizio di traduzione tende a togliere gli "
+                                + "spazi ai bordi del testo (successo davvero, lasciando &quot;Back·Next&quot; "
+                                + "attaccato). Translator ora protegge « e » come un colore, e rimette a posto gli "
+                                + "spazi ai bordi da solo dopo aver tradotto il resto; il rilevamento delle cache "
+                                + "corrotte confronta anche gli spazi a inizio/fine fra originale e tradotto, quindi "
+                                + "una vecchia traduzione senza quel padding viene scartata e rifatta da sola (nuovo "
+                                + "/language sync, riavvio, o /language sync force per non aspettare).")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")
