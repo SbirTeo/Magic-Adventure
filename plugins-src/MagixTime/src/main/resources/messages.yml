@@ -59,8 +59,8 @@ help:
     click-to-write: "Clicca per scriverlo"
     staff-only: "Riservato allo staff"
     click-hint: "clicca un comando per scriverlo"
-    back: " ‹ indietro "
-    forward: " avanti › "
+    back: " « indietro "
+    forward: " avanti » "
     page: "Pagina {numero}"
   sections:
     orologio:

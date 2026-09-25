@@ -37,13 +37,15 @@ public final class Translator {
     /** {chiave}, %chiave% (PlaceholderAPI, usato nei menu di MagixMenus), &#RRGGBB, &<colore>,
      *  \n letterale (due caratteri, gestito da Colors.translate), | (separatore, es. nei titoli
      *  "Grande|piccolo" di MagixMenus: senza protezione un servizio di traduzione puo' spostarlo
-     *  o toglierlo), e &lt;argomento&gt; (es. "/login &lt;password&gt;" nelle righe di uso e di
+     *  o toglierlo), &lt;argomento&gt; (es. "/login &lt;password&gt;" nelle righe di uso e di
      *  aiuto: senza protezione MyMemory lo scambia per un tag HTML e mangia lo spazio prima o dopo
-     *  - visto succedere davvero, "/login&lt;password&gt;" attaccato). Un livello di annidamento
-     *  (es. "&lt;info|migrate &lt;sqlite|mariadb&gt;&gt;") e' incluso apposta. */
+     *  - visto succedere davvero, "/login&lt;password&gt;" attaccato; un livello di annidamento,
+     *  es. "&lt;info|migrate &lt;sqlite|mariadb&gt;&gt;", e' incluso apposta), e « » (le frecce di
+     *  "&lt;&lt; indietro"/"avanti &gt;&gt;" nell'aiuto a pagine, e il separatore "&gt;" di alcuni
+     *  prefissi di MagixFactions: senza protezione un servizio di traduzione puo' toglierle). */
     private static final Pattern TOKEN = Pattern.compile(
             "\\{[a-zA-Z0-9_]+}" + "|%[a-zA-Z0-9_]+%" + "|&#[0-9a-fA-F]{6}" + "|&[0-9a-fk-orA-FK-OR]"
-                    + "|\\\\n" + "|\\|" + "|<(?:[^<>]|<[^<>]*>)*>");
+                    + "|\\\\n" + "|\\|" + "|<(?:[^<>]|<[^<>]*>)*>" + "|«" + "|»");
 
     private static final Pattern TRANSLATED_TEXT = Pattern.compile("\"translatedText\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
     private static final Pattern RESPONSE_STATUS = Pattern.compile("\"responseStatus\"\\s*:\\s*\"?(\\d+)\"?");
@@ -93,7 +95,19 @@ public final class Translator {
         if (circuitOpen) {
             return null;
         }
-        Protected protectedText = protect(italianText);
+        // Uno spazio a inizio o fine testo e' spesso un padding voluto (es. " ‹ indietro " per
+        // staccare la scritta dai bordi cliccabili nel piede dell'aiuto a pagine): MyMemory tende
+        // a mangiarlo, come qualunque servizio di traduzione che ripulisce i bordi del testo prima
+        // di restituirlo. Si toglie prima di mandare il testo e si rimette al suo posto dopo,
+        // senza nemmeno passare dalla rete se il risultato sarebbe comunque tutto spazi.
+        int start = 0, end = italianText.length();
+        while (start < end && Character.isWhitespace(italianText.charAt(start))) start++;
+        while (end > start && Character.isWhitespace(italianText.charAt(end - 1))) end--;
+        String leading = italianText.substring(0, start);
+        String trailing = italianText.substring(end);
+        String core = italianText.substring(start, end);
+
+        Protected protectedText = protect(core);
         String raw = call(protectedText.text, targetLang);
         if (raw == null) {
             if (++consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
@@ -116,7 +130,7 @@ public final class Translator {
                     + "tornato al suo posto (testo: " + restored + ").");
             return null;
         }
-        return restored;
+        return leading + restored + trailing;
     }
 
     /** Se false, {@link #translate} non prova nemmeno piu' la rete: vedi {@link #MAX_CONSECUTIVE_FAILURES}. */
