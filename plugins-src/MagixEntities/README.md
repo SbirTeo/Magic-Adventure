@@ -315,8 +315,8 @@ conviene tenere `mirror.radius` basso.
 (`softdepend`, nessuna dipendenza obbligatoria), ogni statua di tipo `player` mostra un'aureola:
 
 - **skin fissa** (es. `/mentities skin Statua SbirTeo`): l'aureola del giocatore della skin, nel
-  **suo** colore, visibile a tutti — anche se lui e' offline (MagixCosmetics ricorda a quale colore
-  aveva diritto l'ultima volta che era online). Conta `/halo off`; combattimento, vanish e
+  **suo** colore, visibile a tutti — anche se lui e' offline (MagixCosmetics legge i suoi permessi da
+  LuckPerms e li rilegge ogni 10 minuti). Conta `/halo off`; combattimento, vanish e
   invisibilita' no, perche' riguardano il giocatore, non la statua;
 - **skin `mirror`**: l'aureola di chi guarda sopra la sua copia, **visibile solo a lui** (le copie
   stanno tutte nello stesso punto), e solo se in quel momento ce l'ha davvero attiva, con le stesse

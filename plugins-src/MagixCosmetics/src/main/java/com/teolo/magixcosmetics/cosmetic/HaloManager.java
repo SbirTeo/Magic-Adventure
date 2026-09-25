@@ -1,6 +1,7 @@
 package com.teolo.magixcosmetics.cosmetic;
 
 import com.teolo.magixcosmetics.MagixCosmetics;
+import com.teolo.magixcosmetics.hook.LuckPermsHook;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.GameMode;
@@ -89,9 +90,20 @@ public final class HaloManager {
     /** Posizione del puntino lungo il cerchio: avanza di spinSpeed a ogni giro, cosi' orbita. */
     private double angle;
 
+    /** Permessi dei giocatori offline, per l'aureola sulla loro statua. */
+    private final LuckPermsHook luckPerms;
+    /** Quando (ms) e' stato letto da LuckPerms l'ultima volta il diritto di un giocatore offline. */
+    private final Map<UUID, Long> offlineCheckedAt = new HashMap<>();
+    /** Letture offline gia' in corso: una per giocatore alla volta. */
+    private final Set<UUID> offlinePending = new HashSet<>();
+    /** Ogni quanto si rilegge un giocatore offline: un permesso tolto da offline si vede entro questo tempo. */
+    private static final long OFFLINE_REFRESH_MS = 10 * 60_000L;
+
     public HaloManager(MagixCosmetics plugin) {
         this.plugin = plugin;
         this.store = new HaloStore(plugin);
+        this.luckPerms = new LuckPermsHook(plugin);
+        luckPerms.setup();
     }
 
     /** Rilegge i valori dal config.yml e le scelte personali salvate su players.yml. */
@@ -116,6 +128,7 @@ public final class HaloManager {
         combatCooldownMs = Math.max(0, c.getLong("halo.combat.cooldown-after-combat-seconds", 30)) * 1000L;
 
         store.load(chosenColor, disabled, entitledColor);
+        offlineCheckedAt.clear(); // dopo un reload i giocatori offline si rileggono da capo
     }
 
     /** Fa ripartire il task col nuovo intervallo (o non parte affatto se l'aureola e' spenta). */
@@ -144,8 +157,10 @@ public final class HaloManager {
 
     /** Aggiorna il colore a cui ha diritto: su disco solo quando cambia (permesso dato o tolto, setcolor). */
     private void remember(Player p) {
-        String name = p.hasPermission(HALO_PERMISSION) ? activeColorName(p) : null;
-        UUID id = p.getUniqueId();
+        setEntitled(p.getUniqueId(), p.hasPermission(HALO_PERMISSION) ? activeColorName(p) : null);
+    }
+
+    private void setEntitled(UUID id, String name) {
         if (Objects.equals(name, entitledColor.get(id))) return;
         if (name == null) entitledColor.remove(id);
         else entitledColor.put(id, name);
@@ -153,10 +168,52 @@ public final class HaloManager {
     }
 
     /**
+     * Rilegge da LuckPerms, su un altro thread, a quale colore ha diritto un giocatore OFFLINE: la
+     * prima volta che la sua statua lo chiede e poi ogni {@link #OFFLINE_REFRESH_MS}. Stesse regole
+     * di {@link #activeColorName}: il colore scelto se ne ha ancora il permesso, altrimenti il primo
+     * della tavolozza. Senza LuckPerms resta il colore ricordato da quando era online.
+     */
+    private void refreshOffline(UUID id) {
+        if (!luckPerms.available() || offlinePending.contains(id)) return;
+        Long at = offlineCheckedAt.get(id);
+        if (at != null && System.currentTimeMillis() - at < OFFLINE_REFRESH_MS) return;
+        offlinePending.add(id);
+        List<String> names = new ArrayList<>(colors.keySet());
+        String chosen = chosenColor.get(id);
+        List<String> nodes = new ArrayList<>();
+        nodes.add(HALO_PERMISSION);
+        for (String n : names) nodes.add(colorPermission(n));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            Map<String, Boolean> perms = luckPerms.check(id, nodes);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                offlinePending.remove(id);
+                offlineCheckedAt.put(id, System.currentTimeMillis());
+                // Lettura fallita: resta quello che si sapeva. Rientrato nel frattempo: ci pensa remember().
+                if (perms == null || Bukkit.getPlayer(id) != null) return;
+                String entitled = null;
+                if (perms.getOrDefault(HALO_PERMISSION, false)) {
+                    if (chosen != null && names.contains(chosen)
+                            && perms.getOrDefault(colorPermission(chosen), false)) {
+                        entitled = chosen;
+                    } else {
+                        for (String n : names) {
+                            if (perms.getOrDefault(colorPermission(n), false)) {
+                                entitled = n;
+                                break;
+                            }
+                        }
+                    }
+                }
+                setEntitled(id, entitled);
+            });
+        });
+    }
+
+    /**
      * Il colore dell'aureola da mostrare sulla STATUA di un giocatore (un'entita' di MagixEntities
-     * con la sua skin), o {@code null} se non ne ha una. Vale anche da offline: si usa il colore a
-     * cui aveva diritto l'ultima volta che era online (permessi cambiati da offline si vedono al suo
-     * prossimo ingresso). Contano il permesso, il colore e /halo off; NON contano combattimento,
+     * con la sua skin), o {@code null} se non ne ha una. Vale anche da offline: i permessi si
+     * leggono da LuckPerms (vedi {@link #refreshOffline}); finche' la lettura non torna vale il
+     * colore ricordato. Contano il permesso, il colore e /halo off; NON contano combattimento,
      * vanish, invisibilita' e spettatore, che riguardano il corpo del giocatore, non la sua statua.
      * Lo chiama MagixEntities per riflessione.
      */
@@ -172,6 +229,7 @@ public final class HaloManager {
             OfflinePlayer off = Bukkit.getOfflinePlayerIfCached(playerName);
             if (off == null) return null;
             id = off.getUniqueId();
+            refreshOffline(id);
         }
         if (disabled.contains(id)) return null;
         String name = entitledColor.get(id);
