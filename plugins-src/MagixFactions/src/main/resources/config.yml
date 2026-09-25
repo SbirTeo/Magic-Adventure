@@ -451,7 +451,7 @@ map:
   # aree piatte pulite + rilievo). Metti true solo se preferisci le sfumature al pulito. /mf reload.
   dither: false
   # Opacita' % della tinta della fazione sopra il terreno (0 = invisibile, 100 = pieno). CONDIVISA.
-  opacity: 10
+  opacity: 30
   # Opacita' % del bordo dei territori (di solito piu' marcato dell'interno). CONDIVISA.
   opacity-borders: 100
   # Frequenza di refresh di ENTRAMBE le mappe: ogni quanti tick (1 tick = 1/20 s) si ricentrano e
