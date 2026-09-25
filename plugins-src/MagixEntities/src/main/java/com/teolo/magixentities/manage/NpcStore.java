@@ -53,6 +53,7 @@ public final class NpcStore {
             d.pitch = (float) s.getDouble("pitch");
             d.pose = s.getString("pose");
             d.scale = s.getDouble("scale", 1.0);
+            if (s.contains("follow-radius")) d.followRadius = s.getDouble("follow-radius");
             String u = s.getString("uuid");
             if (u != null && !u.isBlank()) {
                 try { d.uuid = UUID.fromString(u); } catch (IllegalArgumentException ignored) {}
@@ -94,6 +95,7 @@ public final class NpcStore {
             cfg.set(base + "pitch", d.pitch);
             cfg.set(base + "pose", d.pose);
             cfg.set(base + "scale", d.scale);
+            cfg.set(base + "follow-radius", d.followRadius);
             cfg.set(base + "uuid", d.uuid == null ? null : d.uuid.toString());
             cfg.set(base + "seat-uuid", d.seatUuid == null ? null : d.seatUuid.toString());
             cfg.set(base + "commands", d.commands.isEmpty() ? null : d.commands);

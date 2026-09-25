@@ -173,7 +173,9 @@ public final class MagixEntities extends JavaPlugin {
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
                                 + "Si accende per singola entità, e ognuno la vede girata verso di sé, non verso il "
                                 + "giocatore più vicino: ogni giocatore entro follow.radius ha una sua copia "
-                                + "personale che guarda lui, e da più lontano si vede l'entità vera, ferma.",
+                                + "personale che guarda lui, e da più lontano si vede l'entità vera, ferma. Il raggio "
+                                + "si può dare per singola entità con `/mentities followradius <nome> <blocchi>` "
+                                + "(`reset` torna a follow.radius), o dal cannocchiale nell'editor.",
                         "La scala si cambia con `/mentities scale <nome> <valore>` (1 = normale, `reset` torna a "
                                 + "1): usa l'attributo vanilla dell'entità, quindi ingrandisce o rimpicciolisce tutto "
                                 + "— skin, equipaggiamento, hitbox — insieme. Vale per qualunque tipo, non solo per "

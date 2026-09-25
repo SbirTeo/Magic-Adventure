@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.9.19** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.20** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -48,6 +48,7 @@ Comando principale: `/magixentities` — alias: `/mentities`, `/mentity`, `/ment
 | `/mentities skin <nome> mirror` | Specchio: **ognuno la vede con la propria skin** |
 | `/mentities editor <nome>` | **Pannello** con tutti i comandi dell'entita', sezione Posizione compresa (vedi sotto) |
 | `/mentities position <nome> <x\|y\|z> <blocchi>` | Sposta l'entita' di pochi blocchi su un asse, tenendo la rotazione (max 16) |
+| `/mentities followradius <nome> <blocchi\|reset>` | Raggio del follow di questa entita' (1-64; `reset` = `follow.radius`) |
 | `/mentities pose <nome> <posa>` | Posa della statua (solo tipo `player`) |
 | `/mentities scale <nome> <valore\|reset>` | Ingrandisce/rimpicciolisce l'entita' (1 = normale, qualunque tipo) |
 | `/mentities set <nome> <opzione> <on\|off>` | Modifica un'opzione (sotto) |
@@ -170,8 +171,12 @@ raggio ha una sua **copia personale**, visibile solo a lui, che guarda lui. Da p
 l'entita' vera, ferma nella rotazione salvata (una statua gigante resta visibile anche da lontano).
 L'aggiornamento avviene ogni `follow.interval-ticks` (default 5 tick = 4 volte al secondo).
 
+Il raggio si puo' dare **per singola entita'**: `/mentities followradius <nome> <blocchi>` (da 1 a
+64; `reset` torna a `follow.radius`), o col cannocchiale nell'editor. Una statua gigante vista da
+lontano vuole un raggio grande, un NPC in un corridoio uno piccolo.
+
 Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). **Costo:** una copia per ogni
-giocatore entro `follow.radius`. Come per lo specchio, un plugin che lega l'azione del clic
+giocatore entro il raggio. Come per lo specchio, un plugin che lega l'azione del clic
 all'UUID dell'entita' (es. `cmi:interactivecommand`) non vede le copie: usa i comandi al clic di
 MagixEntities.
 

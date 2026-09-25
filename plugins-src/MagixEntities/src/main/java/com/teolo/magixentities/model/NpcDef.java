@@ -44,6 +44,8 @@ public final class NpcDef {
     public String pose;
     /** Scala dell'entita' (1.0 = normale). Vale per qualunque tipo, non solo player. */
     public double scale = 1.0;
+    /** Raggio del follow di QUESTA entita', in blocchi; null = quello del config (follow.radius). */
+    public Double followRadius;
     /**
      * UUID del sedile invisibile usato dalla posa "sitting" (vedi NpcManager#applySeat); null se
      * non serve. Solo per l'entita' vera, mai per le copie mirror (vedi il commento in apply()).
@@ -111,6 +113,11 @@ public final class NpcDef {
      * (non il giocatore piu' vicino: una testa sola non puo' guardare due persone). Da lontano si vede
      * l'entita' vera, nascosta solo a chi ha la sua copia.
      */
+    /** Il raggio del follow di questa entita': il suo, o {@code fallback} (follow.radius) se non ne ha uno. */
+    public double followRadiusOr(double fallback) {
+        return followRadius != null ? followRadius : fallback;
+    }
+
     public boolean isFollowPersonal() {
         return opt("follow", false) && !hidesReal();
     }

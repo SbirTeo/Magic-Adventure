@@ -83,13 +83,14 @@ public final class MirrorManager {
 
     /**
      * Raggio entro cui un giocatore ha la sua copia. Con lo specchio e' mirror.radius (fuori non si
-     * vede niente, l'entita' vera e' nascosta a tutti); col solo follow e' follow.radius: oltre, la
-     * copia non guarderebbe comunque nessuno, e si vede l'entita' vera.
+     * vede niente, l'entita' vera e' nascosta a tutti); col solo follow e' il raggio del follow di
+     * quell'entita' (o follow.radius): oltre, la copia non guarderebbe comunque nessuno, e si vede
+     * l'entita' vera.
      */
     private double radiusSq(NpcDef d) {
         double r = d.hidesReal()
                 ? plugin.getConfig().getDouble("mirror.radius", 48.0)
-                : plugin.getConfig().getDouble("follow.radius", 12.0);
+                : d.followRadiusOr(plugin.getConfig().getDouble("follow.radius", 12.0));
         return r * r;
     }
 

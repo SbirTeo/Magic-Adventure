@@ -32,11 +32,12 @@ public final class LookManager {
     }
 
     private void tick() {
-        double radius = plugin.getConfig().getDouble("follow.radius", 12.0);
-        double maxSq = radius * radius;
+        double defaultRadius = plugin.getConfig().getDouble("follow.radius", 12.0);
 
         for (NpcDef d : npcs.all()) {
             if (!d.opt("follow", false)) continue;
+            double radius = d.followRadiusOr(defaultRadius);
+            double maxSq = radius * radius;
             Location loc = d.location();
             if (loc == null || !d.chunkLoaded()) continue;
 

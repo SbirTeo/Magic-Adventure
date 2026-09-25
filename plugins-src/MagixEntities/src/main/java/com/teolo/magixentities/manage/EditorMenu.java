@@ -45,7 +45,7 @@ public final class EditorMenu implements Listener {
     private static final double[] STEPS = {0.05, 0.1, 0.25, 0.5, 1.0};
     private static final int DEFAULT_STEP = 1;
     private static final double SCALE_STEP = 0.25;
-    /** Slot delle opzioni on/off, nell'ordine di {@link NpcDef#OPTIONS}. */
+    /** Slot delle opzioni on/off, nell'ordine di {@link NpcDef#OPTIONS} (il 33 e' il raggio del follow). */
     private static final int[] OPTION_SLOTS = {19, 20, 21, 22, 23, 24, 25, 30, 31, 32};
 
     private enum View { MAIN, POSITION }
@@ -141,6 +141,15 @@ public final class EditorMenu implements Listener {
                                     "state", text(p, on ? "editor-option-on" : "editor-option-off"))),
                     (pl, c) -> run(pl, "set " + n + " " + o + " " + (on ? "off" : "on")));
         }
+
+        // --- raggio del follow di questa entita'
+        double defRadius = plugin.getConfig().getDouble("follow.radius", 12.0);
+        double radius = d.followRadiusOr(defRadius);
+        put(h, 33, item(Material.SPYGLASS, text(p, "editor-radius-name"),
+                        lines(p, "editor-radius-lore", "radius", num(radius),
+                                "source", text(p, d.followRadius == null ? "editor-radius-default" : "editor-radius-own"),
+                                "default", num(defRadius))),
+                (pl, c) -> run(pl, "followradius " + n + " " + radiusAfter(radius, c)));
 
         // --- posizione e azioni
         put(h, 37, item(Material.COMPASS, text(p, "editor-position-name"),
@@ -275,6 +284,15 @@ public final class EditorMenu implements Listener {
         double delta = c.isShiftClick() ? 1.0 : SCALE_STEP;
         double v = d.scale + (c.isRightClick() ? -delta : delta);
         return num(Math.round(v * 100) / 100.0);
+    }
+
+    /** Sinistro +2, destro -2, shift = di 8, Q = torna al default; sempre dentro i limiti del comando. */
+    private static String radiusAfter(double radius, ClickType c) {
+        if (c == ClickType.DROP || c == ClickType.CONTROL_DROP) return "reset";
+        double delta = c.isShiftClick() ? 8 : 2;
+        double v = radius + (c.isRightClick() ? -delta : delta);
+        v = Math.max(MeCommand.MIN_FOLLOW_RADIUS, Math.min(MeCommand.MAX_FOLLOW_RADIUS, v));
+        return num(v);
     }
 
     // ------------------------------------------------------------------ utilita'
