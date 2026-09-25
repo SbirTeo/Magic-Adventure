@@ -500,7 +500,7 @@ public final class NpcManager {
 
         PlayerProfile inCache = skinCache.get(key);
         if (inCache != null) {
-            if (!vestita(man, inCache)) man.setProfile(withLabel(inCache, label));
+            if (!vestita(man, inCache, label)) man.setProfile(withLabel(inCache, label));
             return;
         }
 
@@ -565,14 +565,18 @@ public final class NpcManager {
     }
 
     /**
-     * true se il Mannequin ha gia' addosso le texture di questo profilo: niente da riapplicare.
-     * Il confronto e' per UUID, non per nome — il nome mostrato puo' essere vuoto a nametag
-     * spento (vedi {@link #withLabel}), quindi non basta piu' a riconoscere il profilo giusto.
+     * true se il Mannequin ha gia' addosso le texture di questo profilo CON l'etichetta giusta:
+     * niente da riapplicare. Il confronto e' per UUID (non per nick: il nome mostrato puo' essere
+     * vuoto a nametag spento, vedi {@link #withLabel}) MA anche per l'etichetta attuale — altrimenti
+     * accendere/spegnere nametag su una statua gia' vestita non riapplica mai un profilo nuovo (le
+     * texture ci sono gia'), e il nome vero resta nel profilo: la targhetta vanilla mirandola da
+     * vicino continua a mostrarlo, sparendo solo con la distanza come per un giocatore vero.
      */
-    private boolean vestita(Mannequin man, PlayerProfile expected) {
+    private boolean vestita(Mannequin man, PlayerProfile expected, String label) {
         ResolvableProfile p = man.getProfile();
         return p != null && !p.properties().isEmpty() && expected.getId() != null
-                && expected.getId().equals(p.uuid());
+                && expected.getId().equals(p.uuid())
+                && label.equals(p.name() == null ? "" : p.name());
     }
 
     /** Nome del profilo attualmente addosso all'entita' (null se non ne ha). */

@@ -102,7 +102,8 @@ public final class MagixScoreboardCommand implements CommandExecutor, TabComplet
                     "weight", String.valueOf(def.weight()),
                     "permission", def.permission().isEmpty() ? "-" : def.permission(),
                     "worlds", def.worlds().isEmpty() ? "*" : String.join(",", def.worlds()),
-                    "regions", def.regions().isEmpty() ? "*" : String.join(",", def.regions()));
+                    "regions", def.regions().isEmpty() ? "*" : String.join(",", def.regions()),
+                    "placeholders", def.placeholderConditions().isEmpty() ? "-" : String.join(" && ", def.placeholderConditions()));
         }
     }
 

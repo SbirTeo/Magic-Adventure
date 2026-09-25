@@ -97,14 +97,19 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                         + "quelli degli altri plugin Magix) gia' risolti.")
 
                 .section("Come si sceglie la scoreboard",
-                        "Ogni scoreboard ha condizioni facoltative (permesso, mondi, regioni WorldGuard) e un "
-                                + "peso (weight). Fra tutte quelle che corrispondono al giocatore vince quella col "
-                                + "peso piu' alto.",
+                        "Ogni scoreboard ha condizioni facoltative (permesso, mondi, regioni WorldGuard, "
+                                + "confronti su placeholder di PlaceholderAPI) e un peso (weight). Fra tutte "
+                                + "quelle che corrispondono al giocatore vince quella col peso piu' alto.",
                         "A parita' di peso decide l'ordine di priorita' del config (priority-order): una "
                                 + "scoreboard con una condizione piu' in alto in quell'elenco batte una che ne ha "
                                 + "solo una piu' in basso — di serie una regione batte un permesso, che batte un "
-                                + "mondo. /mscoreboard debug <giocatore> mostra il punteggio di ognuna, utile "
-                                + "quando il risultato non torna.")
+                                + "mondo, che batte un confronto su placeholder. /mscoreboard debug <giocatore> "
+                                + "mostra il punteggio di ognuna, utile quando il risultato non torna.",
+                        "Le condizioni sui placeholder (chiave \"placeholders\") sono nella forma "
+                                + "\"%placeholder% OP valore\" (OP fra >= <= == != > <), TUTTE richieste se ce ne "
+                                + "sono piu' di una — es. \"%magixfactions_faction% != \" mostra una scoreboard "
+                                + "solo a chi ha una fazione. Con due lati numerici il confronto e' numerico, "
+                                + "altrimenti testuale (senza distinguere maiuscole/minuscole).")
 
                 .section("Titolo, righe, animazioni",
                         "Titolo e ogni riga hanno una lista di \"frames\" (uno o piu' testi) e un "
