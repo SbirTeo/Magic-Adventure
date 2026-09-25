@@ -11,10 +11,12 @@
 #   3. /mpack reload. Il modello (un semplice layer0, come le icone 2D
 #      vanilla) lo genera il plugin da solo: non serve scrivere JSON a mano.
 #
-#  In gioco: /mpack item give <id> [giocatore].
+#  Per un modello 3D vero (non la semplice icona piatta): metti anche
+#  items/<id>-model.json (un vero modello Minecraft con "elements"/"faces",
+#  export da Blockbench o scritto a mano) - viene usato cosi' com'e' al
+#  posto del layer0 generato.
 #
-#  Limite attuale: solo icone 2D piatte (parent item/generated), niente
-#  modelli 3D o piu' layer.
+#  In gioco: /mpack item give <id> [giocatore].
 # =====================================================================
 
 # Oggetto di PROVA, per verificare che texture/modello/comando funzionino davvero end-to-end:
@@ -25,6 +27,14 @@ test_gem:
   lore:
     - "&7Oggetto di prova per MagixPack"
     - "&7(texture generata, non vanilla)"
+
+# Oggetto di PROVA per il modello 3D (items/test_cube-model.json): togli pure appena non serve piu'.
+test_cube:
+  material: PAPER
+  name: "&6Cubetto di Prova"
+  lore:
+    - "&7Oggetto di prova per il modello 3D"
+    - "&7(non la semplice icona piatta)"
 
 # Esempio (rimuovi il commento e metti items/flaming_sword.png per provarlo):
 # flaming_sword:

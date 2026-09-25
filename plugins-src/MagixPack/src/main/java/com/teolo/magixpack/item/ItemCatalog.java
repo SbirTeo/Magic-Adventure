@@ -30,6 +30,14 @@ import java.util.TreeMap;
  *
  * <p>Un oggetto senza la sua texture in {@code items/<id>.png} viene ignorato (con un avviso nel
  * log): niente modello rotto nel pacchetto, niente item fantasma da poter dare.
+ *
+ * <h2>Modelli 3D</h2>
+ * Il layer0 2D generato e' solo il caso semplice/predefinito. Mettendo un vero modello Minecraft
+ * (con {@code "elements"}/{@code "faces"}, tipico export da Blockbench o scritto a mano) in
+ * {@code items/<id>-model.json}, quel file viene usato COSI' COM'E' al posto della generazione
+ * automatica — stesso principio di Oraxen ({@code generate_model: false, model: ...}). La texture
+ * in {@code items/<id>.png} resta comunque obbligatoria (referenziata dal modello tramite
+ * {@code magixpack:item/<id>}).
  */
 public final class ItemCatalog {
 
@@ -88,6 +96,15 @@ public final class ItemCatalog {
         return new File(new File(plugin.getDataFolder(), "items"), id + ".png");
     }
 
+    /** Modello 3D "grezzo" facoltativo: se lo staff (o chi carica la texture) mette
+     *  {@code items/<id>-model.json} — un vero file di modello Minecraft, con "elements" e
+     *  "faces", tipico export da Blockbench o scritto a mano — viene usato COSI' COM'E' al posto
+     *  del semplice layer0 2D generato di default. Stesso principio di Oraxen ("generate_model:
+     *  false, model: ..."): l'auto-generazione resta solo per il caso semplice (icona piatta). */
+    private File customModelFile(String id) {
+        return new File(new File(plugin.getDataFolder(), "items"), id + "-model.json");
+    }
+
     public boolean has(String id) {
         return entries.containsKey(id);
     }
@@ -137,8 +154,10 @@ public final class ItemCatalog {
      * {@value #NAMESPACE}:
      * <ul>
      *   <li>la texture, letta da {@code items/<id>.png};</li>
-     *   <li>il MODELLO generato (un semplice layer0, come le icone 2D vanilla — {@code parent:
-     *       item/generated}), {@code assets/magixpack/models/item/<id>.json};</li>
+     *   <li>il MODELLO, {@code assets/magixpack/models/item/<id>.json} — un semplice layer0
+     *       generato (come le icone 2D vanilla, {@code parent: item/generated}), OPPURE, se esiste
+     *       {@code items/<id>-model.json}, quel file preso cosi' com'e' (modello 3D vero, vedi la
+     *       Javadoc della classe);</li>
      *   <li>la DEFINIZIONE dell'oggetto, {@code assets/magixpack/items/<id>.json} — il file che
      *       {@link ItemStack#getItemMeta()}'s {@code setItemModel(NamespacedKey)} (il componente
      *       {@code item_model}, non il vecchio {@code CustomModelData}) va davvero a risolvere: da
@@ -163,10 +182,12 @@ public final class ItemCatalog {
             try {
                 byte[] texture = Files.readAllBytes(textureFile(e.id()).toPath());
                 out.put("assets/" + NAMESPACE + "/textures/item/" + e.id() + ".png", texture);
-                String model = "{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\""
-                        + NAMESPACE + ":item/" + e.id() + "\"}}";
-                out.put("assets/" + NAMESPACE + "/models/item/" + e.id() + ".json",
-                        model.getBytes(StandardCharsets.UTF_8));
+                File customModel = customModelFile(e.id());
+                byte[] model = customModel.isFile()
+                        ? Files.readAllBytes(customModel.toPath())
+                        : ("{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\""
+                                + NAMESPACE + ":item/" + e.id() + "\"}}").getBytes(StandardCharsets.UTF_8);
+                out.put("assets/" + NAMESPACE + "/models/item/" + e.id() + ".json", model);
                 String definition = "{\"model\":{\"type\":\"minecraft:model\",\"model\":\""
                         + NAMESPACE + ":item/" + e.id() + "\"}}";
                 out.put("assets/" + NAMESPACE + "/items/" + e.id() + ".json",

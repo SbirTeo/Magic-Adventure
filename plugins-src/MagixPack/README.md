@@ -112,9 +112,14 @@ In gioco: `/mpack item give <id> [giocatore]` (permesso `magixpack.item.give`), 
 per vedere il catalogo caricato. Niente crafting/shop qui dentro: quello si fa con altri strumenti
 gia' presenti sul server (es. CMI).
 
-**Limite attuale**: solo icone 2D piatte (un solo layer, `parent: item/generated`), niente modelli
-3D ne' piu' layer — se in futuro serve, e' un'estensione di `item/ItemCatalog.java`, non una
-riscrittura.
+### Modelli 3D veri (non la semplice icona piatta)
+
+Il layer0 2D e' solo il caso automatico/predefinito. Per un modello 3D vero — un export da
+Blockbench, o un JSON scritto a mano con `"elements"`/`"faces"` — metti il file in
+`plugins/MagixPack/items/<id>-model.json`: viene usato COSI' COM'E' al posto della generazione
+automatica (stesso principio di Oraxen, `generate_model: false, model: ...`). La texture in
+`items/<id>.png` resta comunque obbligatoria, referenziata dal modello come `magixpack:item/<id>`.
+`/mpack reload` come sempre per vederlo in gioco.
 
 Da un altro plugin: `MagixPack.customItem(String id)` (via riflessione, come `registerPack`)
 restituisce l'`ItemStack` pronto, o null se l'id non e' nel catalogo.
