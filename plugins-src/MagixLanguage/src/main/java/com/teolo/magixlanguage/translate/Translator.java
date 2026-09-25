@@ -37,10 +37,13 @@ public final class Translator {
     /** {chiave}, %chiave% (PlaceholderAPI, usato nei menu di MagixMenus), &#RRGGBB, &<colore>,
      *  \n letterale (due caratteri, gestito da Colors.translate), | (separatore, es. nei titoli
      *  "Grande|piccolo" di MagixMenus: senza protezione un servizio di traduzione puo' spostarlo
-     *  o toglierlo). */
+     *  o toglierlo), e &lt;argomento&gt; (es. "/login &lt;password&gt;" nelle righe di uso e di
+     *  aiuto: senza protezione MyMemory lo scambia per un tag HTML e mangia lo spazio prima o dopo
+     *  - visto succedere davvero, "/login&lt;password&gt;" attaccato). Un livello di annidamento
+     *  (es. "&lt;info|migrate &lt;sqlite|mariadb&gt;&gt;") e' incluso apposta. */
     private static final Pattern TOKEN = Pattern.compile(
             "\\{[a-zA-Z0-9_]+}" + "|%[a-zA-Z0-9_]+%" + "|&#[0-9a-fA-F]{6}" + "|&[0-9a-fk-orA-FK-OR]"
-                    + "|\\\\n" + "|\\|");
+                    + "|\\\\n" + "|\\|" + "|<(?:[^<>]|<[^<>]*>)*>");
 
     private static final Pattern TRANSLATED_TEXT = Pattern.compile("\"translatedText\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
     private static final Pattern RESPONSE_STATUS = Pattern.compile("\"responseStatus\"\\s*:\\s*\"?(\\d+)\"?");

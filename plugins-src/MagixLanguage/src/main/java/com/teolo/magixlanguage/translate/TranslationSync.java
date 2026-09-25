@@ -270,14 +270,26 @@ public final class TranslationSync {
      */
     private static final Pattern SUSPECT_LEFTOVER = Pattern.compile("(?i)qx\\s*\\d+\\s*xq|\\[\\d+]");
 
+    /**
+     * Uno spazio mangiato intorno a un argomento tra &lt; &gt; (visto succedere davvero: MyMemory
+     * lo scambiava per un tag HTML prima che {@link Translator} lo proteggesse, lasciando
+     * "/login&lt;password&gt;" invece di "/login &lt;password&gt;"). In un testo corretto una
+     * lettera o una cifra non tocca mai direttamente "&lt;" o "&gt;": una cache con un valore cosi'
+     * viene dalle traduzioni fatte prima di quella protezione e va rifatta.
+     */
+    private static final Pattern GLUED_BRACKET = Pattern.compile("[\\p{L}\\p{N}]<|>[\\p{L}\\p{N}]");
+
     private static boolean looksCorrupted(Object value) {
         if (value instanceof String s) {
-            return SUSPECT_LEFTOVER.matcher(s).find();
+            return SUSPECT_LEFTOVER.matcher(s).find() || GLUED_BRACKET.matcher(s).find();
         }
         if (value instanceof List<?> list) {
             for (Object line : list) {
-                if (line != null && SUSPECT_LEFTOVER.matcher(String.valueOf(line)).find()) {
-                    return true;
+                if (line != null) {
+                    String s = String.valueOf(line);
+                    if (SUSPECT_LEFTOVER.matcher(s).find() || GLUED_BRACKET.matcher(s).find()) {
+                        return true;
+                    }
                 }
             }
         }

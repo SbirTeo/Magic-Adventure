@@ -422,6 +422,14 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "traduzione invece di mostrarla rotta, e alla sincronizzazione successiva scarta "
                                 + "anche una vecchia traduzione gia' in cache che avesse lo stesso problema, "
                                 + "ritraducendola — ma serve un nuovo /language sync o riavvio perche' succeda.")
+                .issue("Uno spazio manca vicino a &lt;argomento&gt; in una riga tradotta (es. &quot;/login&lt;password&gt;&quot; attaccato)",
+                        "MyMemory scambiava &lt;password&gt; per un tag HTML e ne mangiava lo spazio intorno: "
+                                + "successo davvero nell'aiuto (/help) di piu' plugin. Da quando Translator protegge "
+                                + "anche questi argomenti (come gia' faceva per {player} e i colori) non ricapita "
+                                + "nelle traduzioni nuove, e lo stesso rilevamento del problema sopra scarta da solo "
+                                + "le vecchie traduzioni in cache con lo spazio mangiato — anche qui serve un nuovo "
+                                + "/language sync o riavvio (o /language sync force, per non aspettare) perche' "
+                                + "vengano rifatte.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")
