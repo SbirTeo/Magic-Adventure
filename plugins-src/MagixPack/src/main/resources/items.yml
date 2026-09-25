@@ -18,12 +18,16 @@
 #
 #  In gioco: /mpack item give <id> [giocatore].
 #
-#  Per poterlo piazzare per terra (shift + tasto destro su un blocco, si
-#  rompe attaccandolo): furniture: true. Chiunque tenga l'oggetto in mano
-#  lo puo' piazzare, nessun permesso a parte; la protezione la fa la
+#  Per poterlo piazzare per terra (tasto destro su un blocco, si rompe
+#  attaccandolo): furniture: true. Chiunque tenga l'oggetto in mano lo
+#  puo' piazzare, nessun permesso a parte; la protezione la fa la
 #  regione/claim gia' presente sul server, come per un blocco normale.
 #  furniture-solid: true aggiunge collisione vera (blocca il passaggio),
 #  false (default) lo lascia attraversabile - scelta per oggetto.
+#  furniture-shift-required: false toglie l'obbligo di tenere premuto
+#  shift per piazzarlo (true di default, per non entrare in conflitto
+#  col click normale sul blocco cliccato, es. un baule) - scelta per
+#  oggetto.
 # =====================================================================
 
 # Oggetto di PROVA, per verificare che texture/modello/comando funzionino davvero end-to-end:

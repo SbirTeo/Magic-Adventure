@@ -292,9 +292,10 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "<id>.png + una voce in items.yml (material, name, lore) + /mpack reload: il "
                                 + "plugin genera da solo il JSON del modello, non serve scriverlo a mano. Per un "
                                 + "modello 3D vero basta items/<id>-model.json. Con furniture: true l'oggetto si "
-                                + "puo' anche piazzare per terra (shift + tasto destro su un blocco, si rompe "
-                                + "attaccandolo) col suo aspetto vero; furniture-solid: true gli da' collisione "
-                                + "vera. Vedi il README per i dettagli.")
+                                + "puo' anche piazzare per terra (tasto destro su un blocco, shift richiesto per "
+                                + "default - furniture-shift-required: false lo toglie - si rompe attaccandolo) "
+                                + "col suo aspetto vero; furniture-solid: true gli da' collisione vera. Vedi il "
+                                + "README per i dettagli.")
 
                 .section("Icone custom via font (glyphs.yml)",
                         "Per simboli dentro un messaggio di chat o nel tablist, MAI per gli oggetti (quelli "

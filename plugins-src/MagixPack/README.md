@@ -135,14 +135,18 @@ flaming_sword:
   name: "&cSpada Ardente"
   furniture: true
   furniture-solid: true
+  furniture-shift-required: false
 ```
 
-- `furniture: true` (default `false`) — lo rende piazzabile: **shift + tasto destro** su un
-  blocco lo mette sulla faccia cliccata. Chiunque lo tenga in mano lo puo' piazzare, nessun
-  permesso a parte — la protezione (chi puo' piazzare/rompere dove) la fa la regione/claim gia'
-  presente sul server, esattamente come per un blocco normale messo li'.
+- `furniture: true` (default `false`) — lo rende piazzabile: **tasto destro** su un blocco lo
+  mette sulla faccia cliccata. Chiunque lo tenga in mano lo puo' piazzare, nessun permesso a
+  parte — la protezione (chi puo' piazzare/rompere dove) la fa la regione/claim gia' presente sul
+  server, esattamente come per un blocco normale messo li'.
 - `furniture-solid: true` (default `false`) — aggiunge collisione vera (un blocco invisibile,
   blocca il passaggio); `false` lo lascia attraversabile. Scelta per oggetto, non globale.
+- `furniture-shift-required` (default `true`) — se serve tenere premuto **shift** durante il
+  tasto destro per piazzarlo. Di default si', per non entrare in conflitto con l'uso normale del
+  blocco cliccato (es. aprire un baule); `false` toglie l'obbligo. Scelta per oggetto.
 - Si rompe **attaccando** l'entita' piazzata (niente tasto/comando a parte): torna nell'inventario
   di chi l'ha colpita (o cade a terra se non c'e' posto).
 

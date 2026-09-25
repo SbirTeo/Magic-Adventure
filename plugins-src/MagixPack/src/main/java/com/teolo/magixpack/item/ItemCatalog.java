@@ -93,8 +93,9 @@ public final class ItemCatalog {
             List<String> lore = sec.getStringList("lore");
             boolean furniture = sec.getBoolean("furniture", false);
             boolean furnitureSolid = sec.getBoolean("furniture-solid", false);
+            boolean furnitureShiftRequired = sec.getBoolean("furniture-shift-required", true);
             entries.put(id, new ItemEntry(id, materialName, name, lore, nextCustomModelData,
-                    furniture, furnitureSolid));
+                    furniture, furnitureSolid, furnitureShiftRequired));
             nextCustomModelData++;
         }
         if (!entries.isEmpty()) {

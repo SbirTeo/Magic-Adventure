@@ -75,15 +75,15 @@ public final class FurnitureListener implements Listener {
         this.blockKey = new NamespacedKey(ItemCatalog.NAMESPACE, "furniture-block");
     }
 
-    /** Shift + tasto destro su un blocco, con in mano un oggetto {@code furniture: true}: lo
-     *  piazza sulla faccia cliccata, invece del normale utilizzo dell'oggetto/blocco (shift e'
-     *  voluto: evita conflitti con l'interazione normale, es. aprire un baule cliccato). */
+    /** Tasto destro su un blocco, con in mano un oggetto {@code furniture: true}: lo piazza sulla
+     *  faccia cliccata, invece del normale utilizzo dell'oggetto/blocco. Per default serve anche
+     *  shift (evita conflitti con l'interazione normale, es. aprire un baule cliccato), ma e'
+     *  configurabile per oggetto con {@code furniture-shift-required: false} in items.yml. */
     @EventHandler(ignoreCancelled = true)
     public void onPlace(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND) return;
         if (e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = e.getPlayer();
-        if (!player.isSneaking()) return;
 
         ItemStack hand = e.getItem();
         if (hand == null || hand.getItemMeta() == null) return;
@@ -92,6 +92,7 @@ public final class FurnitureListener implements Listener {
         if (id == null) return;
         ItemEntry entry = itemCatalog.entry(id);
         if (entry == null || !entry.furniture()) return;
+        if (entry.furnitureShiftRequired() && !player.isSneaking()) return;
 
         Block clicked = e.getClickedBlock();
         BlockFace face = e.getBlockFace();
