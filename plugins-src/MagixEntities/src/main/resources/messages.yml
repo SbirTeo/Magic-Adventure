@@ -197,7 +197,7 @@ editor-option-desc-glowing: "Contorno luminoso"
 editor-option-desc-collidable: "I giocatori la spingono e la urtano"
 editor-option-desc-immovable: "Statua bloccata del tutto"
 editor-option-desc-interact: "Il clic arriva anche agli altri plugin (CMI...)"
-editor-option-desc-follow: "Segue con lo sguardo il giocatore piu' vicino"
+editor-option-desc-follow: "Ognuno vicino la vede girata verso di se'"
 editor-position-name: "&fPosizione"
 editor-position-lore:
   - "&7{world} &8· &f{x} {y} {z}"

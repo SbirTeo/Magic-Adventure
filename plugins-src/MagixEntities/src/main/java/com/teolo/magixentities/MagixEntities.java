@@ -145,11 +145,12 @@ public final class MagixEntities extends JavaPlugin {
                                 + "PROPRIA skin; con `/mentities displayname <nome> mirror` (qualsiasi tipo) ognuno "
                                 + "vede il PROPRIO nome sopra la testa. Tecnicamente l'entità vera resta nascosta e per "
                                 + "ogni giocatore vicino ne nasce una copia personalizzata, visibile solo a lui.",
-                        "Se il plugin MagixCosmetics è installato e abilitato, la copia a specchio skin di un VIP "
-                                + "riproduce sopra la testa anche la sua stessa aureola colorata — ma solo se in quel "
-                                + "momento lui ce l'ha davvero attiva (permesso, colore scelto, non spenta, non in "
-                                + "combattimento). Senza MagixCosmetics non succede nulla, senza bisogno di configurare "
-                                + "niente in più.")
+                        "Se il plugin MagixCosmetics è installato e abilitato, le statue mostrano l'aureola VIP. "
+                                + "Con una skin fissa è quella del giocatore della skin, nel suo colore, per tutti e "
+                                + "anche se è offline (conta /halo off, non il combattimento). Con la skin a specchio è "
+                                + "quella di chi guarda, visibile solo a lui, e solo se in quel momento ce l'ha davvero "
+                                + "attiva. Su una statua ingrandita cresce con lei. Senza MagixCosmetics non succede "
+                                + "nulla, senza bisogno di configurare niente in più.")
 
                 .section("Aspetto, equipaggiamento e sguardo",
                         "Nome visibile, equipaggiamento e posa si cambiano dai comandi o dal menu in gioco, senza "
@@ -170,7 +171,9 @@ public final class MagixEntities extends JavaPlugin {
                                 + "client disegna da solo mirandola da vicino, indipendente dal nome sopra la "
                                 + "testa: si toglie il nome dal profilo stesso, non solo dal cartello.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
-                                + "Si accende per singola entità.",
+                                + "Si accende per singola entità, e ognuno la vede girata verso di sé, non verso il "
+                                + "giocatore più vicino: ogni giocatore entro follow.radius ha una sua copia "
+                                + "personale che guarda lui, e da più lontano si vede l'entità vera, ferma.",
                         "La scala si cambia con `/mentities scale <nome> <valore>` (1 = normale, `reset` torna a "
                                 + "1): usa l'attributo vanilla dell'entità, quindi ingrandisce o rimpicciolisce tutto "
                                 + "— skin, equipaggiamento, hitbox — insieme. Vale per qualunque tipo, non solo per "
@@ -239,8 +242,8 @@ public final class MagixEntities extends JavaPlugin {
                         "defaults.ai", "Lascia attiva l'intelligenza artificiale: se true l'entità cammina e insegue.",
                         "defaults.gravity", "Le entità appena create subiscono la gravità.",
                         "defaults.collidable", "Le entità appena create bloccano il passaggio dei giocatori.",
-                        "mirror.halo.enabled", "Aureola VIP sulle copie a specchio skin (richiede MagixCosmetics installato e abilitato).",
-                        "mirror.halo.interval-ticks", "Ogni quanti tick il puntino dell'aureola sui mirror avanza lungo il cerchio.")
+                        "mirror.halo.enabled", "Aureola VIP sulle statue di tipo player, a specchio e no (richiede MagixCosmetics installato e abilitato).",
+                        "mirror.halo.interval-ticks", "Ogni quanti tick il puntino dell'aureola sulle statue avanza lungo il cerchio.")
 
                 .never("Non modificare entities.yml mentre il server gira: al primo salvataggio del plugin le tue "
                         + "modifiche vengono sovrascritte.")

@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.9.18** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.19** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -145,7 +145,7 @@ il nome e' un identificativo, li' `mirror` sarebbe solo un nome come un altro.
 | `collidable` | off | Se `on` i giocatori la spingono/urtano |
 | `immovable` | on | Solo `player`: blocca completamente la statua |
 | `interact` | off | Se `on` il clic destro **non** viene annullato: lo vedono anche gli altri plugin |
-| `follow` | off | L'entita' **gira verso il giocatore piu' vicino** (raggio in `config.yml`) |
+| `follow` | off | Ognuno vicino vede l'entita' **girata verso di se'** (raggio in `config.yml`) |
 
 I default delle nuove entita' si cambiano nella sezione `defaults` di `config.yml`.
 
@@ -163,13 +163,17 @@ I default delle nuove entita' si cambiano nella sezione `defaults` di `config.ym
 /mentities set <nome> follow on
 ```
 
-L'entita' gira verso il giocatore piu' vicino entro `follow.radius` (default 12 blocchi) e torna
-all'orientamento salvato quando non c'e' piu' nessuno. L'aggiornamento avviene ogni
-`follow.interval-ticks` (default 5 tick = 4 volte al secondo): alzalo se vuoi meno lavoro, abbassalo
-per un movimento piu' fluido.
+Ognuno, entro `follow.radius` (default 12 blocchi), vede l'entita' girata verso **di se'** — non
+verso il giocatore piu' vicino: due persone davanti alla stessa statua si vedono guardate entrambe.
+Una testa sola non puo' guardare due persone, quindi funziona come lo specchio: ogni giocatore nel
+raggio ha una sua **copia personale**, visibile solo a lui, che guarda lui. Da piu' lontano si vede
+l'entita' vera, ferma nella rotazione salvata (una statua gigante resta visibile anche da lontano).
+L'aggiornamento avviene ogni `follow.interval-ticks` (default 5 tick = 4 volte al secondo).
 
-Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). Sulle entita' a specchio ogni
-copia segue il **proprio** proprietario, quindi ciascuno si vede guardato dalla sua.
+Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). **Costo:** una copia per ogni
+giocatore entro `follow.radius`. Come per lo specchio, un plugin che lega l'azione del clic
+all'UUID dell'entita' (es. `cmi:interactivecommand`) non vede le copie: usa i comandi al clic di
+MagixEntities.
 
 ## Editor (`/mentities editor <nome>`)
 
@@ -307,13 +311,19 @@ mostrata solo a lui (`showEntity`). Le copie:
 **Costo:** una copia per ogni giocatore nel raggio. Con molti giocatori nello stesso punto (es. spawn)
 conviene tenere `mirror.radius` basso.
 
-**Aureola VIP sulla skin a specchio:** se il plugin **MagixCosmetics** e' installato e abilitato
-(`softdepend`, nessuna dipendenza obbligatoria), la copia in modalita' skin `mirror` di un giocatore
-riproduce sopra la testa la sua stessa aureola colorata da VIP — ma solo se in quel momento
-quel giocatore ce l'ha **davvero attiva** (permesso `magixcosmetics.halo` + un permesso colore,
-non spenta con `/halo off`, non in combattimento PvP, non in spettatore/vanish/invisibile: le
-stesse condizioni della sua aureola vera). Un giocatore senza aureola attiva vede/mostra la sua
-copia senza. Si regola con `mirror.halo.enabled` e `mirror.halo.interval-ticks` nel config.
+**Aureola VIP sulle statue:** se il plugin **MagixCosmetics** e' installato e abilitato
+(`softdepend`, nessuna dipendenza obbligatoria), ogni statua di tipo `player` mostra un'aureola:
+
+- **skin fissa** (es. `/mentities skin Statua SbirTeo`): l'aureola del giocatore della skin, nel
+  **suo** colore, visibile a tutti — anche se lui e' offline (MagixCosmetics ricorda a quale colore
+  aveva diritto l'ultima volta che era online). Conta `/halo off`; combattimento, vanish e
+  invisibilita' no, perche' riguardano il giocatore, non la statua;
+- **skin `mirror`**: l'aureola di chi guarda sopra la sua copia, **visibile solo a lui** (le copie
+  stanno tutte nello stesso punto), e solo se in quel momento ce l'ha davvero attiva, con le stesse
+  condizioni della sua aureola vera.
+
+Su una statua ingrandita (`scale`) l'aureola cresce con lei. Si regola con `mirror.halo.enabled` e
+`mirror.halo.interval-ticks` nel config (la sezione si chiama `mirror` per ragioni storiche).
 
 ---
 

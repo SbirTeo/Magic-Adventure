@@ -95,7 +95,24 @@ public final class NpcDef {
 
     /** true se l'entita' va mostrata come copia personalizzata per ogni giocatore. */
     public boolean needsClones() {
+        return hidesReal() || isFollowPersonal();
+    }
+
+    /**
+     * true se l'entita' vera va nascosta a TUTTI: skin o nome a specchio, dove l'entita' vera non ha
+     * nulla di giusto da mostrare a nessuno.
+     */
+    public boolean hidesReal() {
         return isSkinMirror() || isDisplayMirror();
+    }
+
+    /**
+     * Opzione "follow" su un'entita' senza specchio: ognuno vicino vede una sua copia che guarda LUI
+     * (non il giocatore piu' vicino: una testa sola non puo' guardare due persone). Da lontano si vede
+     * l'entita' vera, nascosta solo a chi ha la sua copia.
+     */
+    public boolean isFollowPersonal() {
+        return opt("follow", false) && !hidesReal();
     }
 
     /** Nick usato per la skin (solo tipo player). */

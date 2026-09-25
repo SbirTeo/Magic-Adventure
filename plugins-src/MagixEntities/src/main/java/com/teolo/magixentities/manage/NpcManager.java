@@ -414,7 +414,7 @@ public final class NpcManager {
         }
         // In modalita' specchio (skin o displayname) l'entita' vera resta nascosta a tutti:
         // quello che i giocatori vedono sono le copie create da MirrorManager.
-        e.setVisibleByDefault(!d.needsClones());
+        e.setVisibleByDefault(!d.hidesReal());
 
         if (e instanceof Mannequin man) {
             man.setImmovable(d.opt("immovable", true));

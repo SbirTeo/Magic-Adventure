@@ -409,12 +409,12 @@ public final class MeCommand implements TabExecutor {
             return;
         }
         boolean reset = text.equalsIgnoreCase("reset");
-        boolean hadClones = d.needsClones();
+        boolean wasHidden = d.hidesReal();
         d.display = reset ? null : text;
         mirror.clear(d);
         // Entrare/uscire dalla modalita' specchio cambia la visibilita' dell'entita' vera:
         // nasconderla a caldo non la toglie a chi la sta gia' vedendo, quindi la ricreiamo.
-        if (hadClones != d.needsClones() && d.chunkLoaded()) npcs.spawn(d);
+        if (wasHidden != d.hidesReal() && d.chunkLoaded()) npcs.spawn(d);
         else applyLive(sender, d);
         npcs.save();
         if (d.isDisplayMirror()) M.send(sender, "display-mirror", "name", d.name);
@@ -483,13 +483,13 @@ public final class MeCommand implements TabExecutor {
             M.send(sender, "skin-not-player", "name", d.name);
             return;
         }
-        boolean hadClones = d.needsClones();
+        boolean wasHidden = d.hidesReal();
         d.skin = value;
         // La skin nuova va richiesta subito, anche se quella vecchia era gia' stata bocciata.
         npcs.forgetSkins();
         // Le copie mirror vanno buttate: o non servono piu', o vanno rifatte sulla nuova entita'.
         mirror.clear(d);
-        if (hadClones != d.needsClones() && d.chunkLoaded()) {
+        if (wasHidden != d.hidesReal() && d.chunkLoaded()) {
             // Entrando/uscendo da mirror cambia la visibilita' dell'entita' vera: nasconderla al
             // volo non la toglie a chi la sta gia' vedendo, quindi la ricreiamo da zero.
             npcs.spawn(d);

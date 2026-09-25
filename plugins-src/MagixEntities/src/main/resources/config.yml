@@ -26,12 +26,13 @@ defaults:
   # Se true il clic destro NON viene annullato, cosi' altri plugin (CMI e simili) possono
   # agganciarsi all'interazione. Da tenere off se usi i comandi al clic di MagixEntities.
   interact: false
-  # Se true l'entita' segue con lo sguardo il giocatore piu' vicino (vedi sezione follow).
+  # Se true ognuno vicino vede l'entita' girata verso di se' (vedi sezione follow).
   follow: false
 
 follow:
-  # Opzione "follow" (/mentities set <nome> follow on): l'entita' gira verso il giocatore piu'
-  # vicino entro questo raggio, e torna dritta quando non c'e' nessuno.
+  # Opzione "follow" (/mentities set <nome> follow on): ogni giocatore entro questo raggio ha una sua
+  # copia dell'entita', visibile solo a lui, che guarda lui; oltre il raggio si vede l'entita' vera,
+  # ferma. Piu' e' grande, piu' copie esistono insieme (una per giocatore nel raggio).
   radius: 12
   # Ogni quanti tick viene aggiornato l'orientamento (5 = 4 volte al secondo).
   interval-ticks: 5
@@ -74,10 +75,11 @@ mirror:
   interval-ticks: 20
 
   halo:
-    # Se true, un'entita' in modalita' skin "mirror" mostra sopra la testa la stessa aureola VIP
-    # del giocatore che la sta guardando (richiede il plugin MagixCosmetics), ma solo se in quel
-    # momento quel giocatore ce l'ha davvero attiva (permesso, colore scelto, non spenta con
-    # /halo off, non in combattimento...). Senza MagixCosmetics installato non fa nulla.
+    # Se true, le statue (tipo player) mostrano l'aureola VIP di MagixCosmetics: con una skin fissa
+    # quella del giocatore della skin, nel suo colore, per tutti e anche se e' offline (conta
+    # /halo off, non il combattimento); con skin "mirror" quella di chi guarda, solo per lui e solo
+    # se in quel momento ce l'ha davvero attiva. Senza MagixCosmetics installato non fa nulla.
+    # (Sta sotto mirror per ragioni storiche: vale per tutte le statue.)
     enabled: true
     # Ogni quanti tick il puntino avanza lungo il cerchio: stesso identico funzionamento di
     # halo.update-interval-ticks in MagixCosmetics. Basso = piu' fluido, alto = piu' leggero.

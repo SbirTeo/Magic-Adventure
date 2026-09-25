@@ -25,10 +25,11 @@ final class HaloStore {
         this.file = new File(plugin.getDataFolder(), "players.yml");
     }
 
-    /** Rilegge le scelte salvate, sovrascrivendo le due mappe passate. */
-    void load(Map<UUID, String> chosenColor, Set<UUID> disabled) {
+    /** Rilegge le scelte salvate, sovrascrivendo le mappe passate. */
+    void load(Map<UUID, String> chosenColor, Set<UUID> disabled, Map<UUID, String> entitledColor) {
         chosenColor.clear();
         disabled.clear();
+        entitledColor.clear();
         if (!file.exists()) return;
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
         ConfigurationSection root = cfg.getConfigurationSection("halo");
@@ -45,19 +46,24 @@ final class HaloStore {
             String color = s.getString("color");
             if (color != null) chosenColor.put(id, color);
             if (s.getBoolean("disabled", false)) disabled.add(id);
+            String entitled = s.getString("entitled");
+            if (entitled != null) entitledColor.put(id, entitled);
         }
     }
 
-    /** Scrive lo stato attuale delle due mappe su file. */
-    void save(Map<UUID, String> chosenColor, Set<UUID> disabled) {
+    /** Scrive lo stato attuale delle mappe su file. */
+    void save(Map<UUID, String> chosenColor, Set<UUID> disabled, Map<UUID, String> entitledColor) {
         YamlConfiguration cfg = new YamlConfiguration();
         Set<UUID> all = new HashSet<>(chosenColor.keySet());
         all.addAll(disabled);
+        all.addAll(entitledColor.keySet());
         for (UUID id : all) {
             String base = "halo." + id + ".";
             String color = chosenColor.get(id);
             if (color != null) cfg.set(base + "color", color);
             if (disabled.contains(id)) cfg.set(base + "disabled", true);
+            String entitled = entitledColor.get(id);
+            if (entitled != null) cfg.set(base + "entitled", entitled);
         }
         try {
             plugin.getDataFolder().mkdirs();

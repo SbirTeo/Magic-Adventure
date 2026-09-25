@@ -27,7 +27,7 @@ import java.lang.reflect.Method;
 public final class MagixCosmeticsHook {
 
     private static Object haloManager;
-    private static Method mEffectiveColor, mDrawAt;
+    private static Method mEffectiveColor, mStatueColor, mDrawAt;
 
     private MagixCosmeticsHook() {}
 
@@ -39,11 +39,12 @@ public final class MagixCosmeticsHook {
             Method mHalo = mc.getClass().getMethod("halo");
             Object halo = mHalo.invoke(mc);
             mEffectiveColor = halo.getClass().getMethod("effectiveColor", Player.class);
-            mDrawAt = halo.getClass().getMethod("drawAt", Location.class, Color.class);
+            mStatueColor = halo.getClass().getMethod("statueColor", String.class);
+            mDrawAt = halo.getClass().getMethod("drawAt", Location.class, Color.class, double.class, Player.class);
             haloManager = halo;
         } catch (ReflectiveOperationException e) {
             owner.getLogger().warning("MagixCosmetics trovato ma con un'API diversa da quella attesa ("
-                    + e.getMessage() + "): niente aureola sui mirror. Aggiorna entrambi i plugin insieme.");
+                    + e.getMessage() + "): niente aureola sulle statue. Aggiorna entrambi i plugin insieme.");
         }
     }
 
@@ -51,15 +52,32 @@ public final class MagixCosmeticsHook {
         return haloManager != null;
     }
 
-    /** Disegna in {@code base} l'aureola di {@code viewer}, solo se in questo momento ce l'ha davvero attiva. */
-    public static void drawHaloIfActive(Player viewer, Location base) {
+    /**
+     * Copia "mirror": l'aureola di chi la guarda ({@code viewer}), solo se in questo momento ce l'ha
+     * davvero attiva, e visibile SOLO a lui — le copie di tutti stanno nello stesso punto.
+     */
+    public static void drawViewerHalo(Player viewer, Location base, double scale) {
         if (haloManager == null) return;
         try {
             Object color = mEffectiveColor.invoke(haloManager, viewer);
-            if (color != null) mDrawAt.invoke(haloManager, base, color);
+            if (color != null) mDrawAt.invoke(haloManager, base, color, scale, viewer);
         } catch (ReflectiveOperationException ignored) {
             // MagixCosmetics ha cambiato API a caldo (jar diverso senza riavvio): si ignora finche'
-            // non arriva un vero riavvio, niente aureola sui mirror nel frattempo.
+            // non arriva un vero riavvio, niente aureola nel frattempo.
+        }
+    }
+
+    /**
+     * Statua con la skin di un giocatore: la SUA aureola, nel suo colore, anche se e' offline (vedi
+     * {@code HaloManager#statueColor} in MagixCosmetics). {@code onlyFor} null = la vedono tutti.
+     */
+    public static void drawOwnerHalo(String skinOwner, Location base, double scale, Player onlyFor) {
+        if (haloManager == null) return;
+        try {
+            Object color = mStatueColor.invoke(haloManager, skinOwner);
+            if (color != null) mDrawAt.invoke(haloManager, base, color, scale, onlyFor);
+        } catch (ReflectiveOperationException ignored) {
+            // come sopra
         }
     }
 }
