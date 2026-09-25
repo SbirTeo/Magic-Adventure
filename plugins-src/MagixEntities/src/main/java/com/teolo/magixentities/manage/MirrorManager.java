@@ -87,12 +87,18 @@ public final class MirrorManager {
      * quell'entita' (o follow.radius): oltre, la copia non guarderebbe comunque nessuno, e si vede
      * l'entita' vera.
      */
-    private double radiusSq(NpcDef d) {
-        double r = d.hidesReal()
+    private double radius(NpcDef d) {
+        return d.hidesReal()
                 ? plugin.getConfig().getDouble("mirror.radius", 48.0)
                 : d.followRadiusOr(plugin.getConfig().getDouble("follow.radius", 12.0));
-        return r * r;
     }
+
+    /**
+     * Margine (blocchi) oltre il raggio prima che una copia venga tolta. Senza, chi sta sul bordo
+     * vede la statua scattare di continuo fra la sua copia e l'entita' vera (o sparire, con lo
+     * specchio) a ogni mezzo passo: la copia nasce entro il raggio e sparisce solo oltre il margine.
+     */
+    public static final double KEEP_MARGIN = 3.0;
 
     /** Allinea le copie: ne crea una per ogni giocatore vicino, elimina quelle non piu' valide. */
     public void tick() {
@@ -107,7 +113,9 @@ public final class MirrorManager {
                 continue;
             }
             Map<UUID, UUID> owners = clones.computeIfAbsent(d.id, k -> new HashMap<>());
-            double maxSq = radiusSq(d);
+            double r = radius(d);
+            double maxSq = r * r;
+            double keepSq = (r + KEEP_MARGIN) * (r + KEEP_MARGIN);
 
             Iterator<Map.Entry<UUID, UUID>> it = owners.entrySet().iterator();
             while (it.hasNext()) {
@@ -116,7 +124,7 @@ public final class MirrorManager {
                 Entity clone = Bukkit.getEntity(entry.getValue());
                 boolean near = owner != null && owner.isOnline()
                         && owner.getWorld().equals(loc.getWorld())
-                        && owner.getLocation().distanceSquared(loc) <= maxSq;
+                        && owner.getLocation().distanceSquared(loc) <= keepSq;
                 if (!near) {
                     removeClone(d, entry.getKey(), entry.getValue());
                     it.remove();

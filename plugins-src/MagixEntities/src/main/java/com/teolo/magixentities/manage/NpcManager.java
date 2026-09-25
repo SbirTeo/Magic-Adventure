@@ -60,6 +60,8 @@ public final class NpcManager {
     private final Set<String> skinPending = ConcurrentHashMap.newKeySet();
     /** Entita' a cui il mondo ha detto di no: serve a non ripetere l'avviso ad ogni controllo. */
     private final Set<String> refused = ConcurrentHashMap.newKeySet();
+    /** Ultimo profilo messo da noi su ogni Mannequin (uuid entita' -> "uuid profilo|etichetta"). */
+    private final Map<UUID, String> appliedProfile = new ConcurrentHashMap<>();
     /**
      * L'attributo vanilla "scale" (introdotto per ingrandire/rimpicciolire un'entita' vivente
      * intera, skin compresa): si risolve dal registro, non da una costante statica, cosi' il
@@ -319,6 +321,8 @@ public final class NpcManager {
 
     /** Controlla tutte le entita' (chiamato periodicamente e all'avvio). */
     public void ensureAll() {
+        // Profili ricordati di entita' che non ci sono piu' (copie mirror tolte, entita' rifatte).
+        appliedProfile.keySet().removeIf(id -> Bukkit.getEntity(id) == null);
         boolean changed = false;
         for (NpcDef d : new ArrayList<>(npcs.values())) {
             UUID before = d.uuid;
@@ -414,7 +418,8 @@ public final class NpcManager {
         }
         // In modalita' specchio (skin o displayname) l'entita' vera resta nascosta a tutti:
         // quello che i giocatori vedono sono le copie create da MirrorManager.
-        e.setVisibleByDefault(!d.hidesReal());
+        // Solo se cambia: rimettere la visibilita' fa rimandare l'entita' a tutti i client.
+        if (e.isVisibleByDefault() == d.hidesReal()) e.setVisibleByDefault(!d.hidesReal());
 
         if (e instanceof Mannequin man) {
             man.setImmovable(d.opt("immovable", true));
@@ -572,7 +577,9 @@ public final class NpcManager {
         Entity seat = d.seatUuid == null ? null : Bukkit.getEntity(d.seatUuid);
         // Sedile fuori posto (scarto cambiato nel config, entita' spostata): si rifa'. Un veicolo
         // con passeggero non si teletrasporta senza smontarlo, quindi rifarlo e' la via semplice.
-        if (seat != null && seat.isValid() && seat.getLocation().distanceSquared(seatLoc) > 0.0001) {
+        // Tolleranza di 0.1 blocchi: il sedile si rifa' solo se e' davvero fuori posto (scarto
+        // cambiato, entita' spostata), mai per un arrotondamento — rifarlo fa alzare e risedere la statua.
+        if (seat != null && seat.isValid() && seat.getLocation().distanceSquared(seatLoc) > 0.01) {
             seat.remove();
             seat = null;
         }
@@ -702,7 +709,7 @@ public final class NpcManager {
 
         PlayerProfile inCache = skinCache.get(key);
         if (inCache != null) {
-            if (!vestita(man, inCache, label)) man.setProfile(withLabel(inCache, label));
+            setProfileOnce(man, inCache, label);
             return;
         }
 
@@ -711,7 +718,7 @@ public final class NpcManager {
             PlayerProfile profilo = online.getPlayerProfile();
             skinCache.put(key, profilo);
             skinRetry.remove(key);
-            man.setProfile(withLabel(profilo, label));
+            setProfileOnce(man, profilo, label);
             return;
         }
 
@@ -760,10 +767,27 @@ public final class NpcManager {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Entity e = Bukkit.getEntity(entityId);
                 if (e instanceof Mannequin m) {
-                    m.setProfile(withLabel(profile, d.opt("nametag", true) ? nick : ""));
+                    setProfileOnce(m, profile, d.opt("nametag", true) ? nick : "");
                 }
             });
         });
+    }
+
+    /**
+     * Mette il profilo (skin + etichetta) solo se non l'abbiamo GIA' messo noi, uguale, su questa
+     * entita'. Ogni setProfile fa ricaricare la statua a tutti i client vicini: rimandato a ogni
+     * controllo periodico (check-interval-seconds) la statua sembra rinascere ogni 20 secondi.
+     *
+     * <p>Non basta chiedere all'entita' che profilo ha ({@link #vestita}): il server "risolve" da solo
+     * un profilo con l'etichetta vuota (nametag off) e ci rimette il nome vero, quindi il confronto
+     * falliva sempre e il profilo ripartiva a ogni giro. Conta quello che abbiamo messo noi.</p>
+     */
+    private void setProfileOnce(Mannequin man, PlayerProfile profile, String label) {
+        String signature = profile.getId() + "|" + label;
+        if (signature.equals(appliedProfile.get(man.getUniqueId()))) return;
+        // Entita' appena caricata dal mondo (dopo un riavvio) che ha gia' il profilo giusto: nessun invio.
+        if (!vestita(man, profile, label)) man.setProfile(withLabel(profile, label));
+        appliedProfile.put(man.getUniqueId(), signature);
     }
 
     /**

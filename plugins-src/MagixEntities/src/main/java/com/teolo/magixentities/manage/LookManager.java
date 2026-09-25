@@ -36,7 +36,9 @@ public final class LookManager {
 
         for (NpcDef d : npcs.all()) {
             if (!d.opt("follow", false)) continue;
-            double radius = d.followRadiusOr(defaultRadius);
+            // Stesso margine con cui MirrorManager tiene in vita le copie: finche' la tua copia esiste
+            // continua a guardarti, invece di voltarsi di colpo appena fuori dal raggio.
+            double radius = d.followRadiusOr(defaultRadius) + MirrorManager.KEEP_MARGIN;
             double maxSq = radius * radius;
             Location loc = d.location();
             if (loc == null || !d.chunkLoaded()) continue;
