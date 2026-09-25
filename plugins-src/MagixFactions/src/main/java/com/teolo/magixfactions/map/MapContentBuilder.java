@@ -45,17 +45,12 @@ final class MapContentBuilder {
     static void paint(MapCanvas canvas, Player player, FactionManager fm, ClaimManager claims,
                        TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin, int centerX, int centerZ,
                        int supersampling, AvatarCache avatars, boolean[] completeOut) {
-        boolean ready = MapColorUtil.isReady();
-        boolean ditherTerrain = plugin.getConfig().getBoolean("map.dither", false) && ready;
-        // Il RIEMPIMENTO dei territori va SEMPRE ditherato (vedi computeColors): la tinta fusa col terreno
-        // spesso non ha un colore vicino nella palette mappa (poche tinte per famiglia di colore lontane dal
-        // verde/marrone del terreno, es. il rosso nemico) e senza dithering l'errore di quantizzazione la
-        // appiattisce su un colore spento/grigiastro invece che restare una tinta leggibile e trasparente.
-        // Percio' si passa SEMPRE dalla tabella {@link MapColorUtil}, non solo quando map.dither e' attivo
-        // (quello resta un'opzione SEPARATA, solo per il terreno "nudo").
-        boolean[][] protect = ready ? new boolean[128][128] : null;
-        Color[][] pixels = computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, protect, completeOut, ditherTerrain);
-        if (ready) {
+        boolean dither = plugin.getConfig().getBoolean("map.dither", false) && MapColorUtil.isReady();
+        boolean[][] protect = dither ? new boolean[128][128] : null;
+        Color[][] pixels = computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, protect, completeOut);
+        if (dither) {
+            // Dithering: colori piu' ricchi SOLO sul terreno (marcatori/territori restano netti). setPixel
+            // scrive direttamente il byte-palette gia' scelto.
             byte[] d = MapColorUtil.dither(pixels, protect);
             for (int x = 0; x < 128; x++)
                 for (int y = 0; y < 128; y++)
@@ -80,20 +75,6 @@ final class MapContentBuilder {
                                     TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin,
                                     int centerX, int centerZ, int supersampling, AvatarCache avatars,
                                     boolean[][] protectOut, boolean[] completeOut) {
-        return computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ,
-                supersampling, avatars, protectOut, completeOut, false);
-    }
-
-    /** Come sopra, con {@code ditherTerrain} a decidere se il dithering (quando {@code protectOut != null})
-     *  copre anche il terreno "nudo" (config {@code map.dither}) oltre al riempimento dei territori, che va
-     *  SEMPRE ditherato indipendentemente da questa opzione (vedi {@link #paint}). */
-    static Color[][] computeColors(Player player, FactionManager fm, ClaimManager claims,
-                                    TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin,
-                                    int centerX, int centerZ, int supersampling, AvatarCache avatars,
-                                    boolean[][] protectOut, boolean[] completeOut, boolean ditherTerrain) {
-        if (protectOut != null && !ditherTerrain) {
-            for (boolean[] col : protectOut) java.util.Arrays.fill(col, true);
-        }
         World w = player.getWorld();
         String world = w.getName();
         Faction own = fm.getFaction(player.getUniqueId());
@@ -201,18 +182,10 @@ final class MapContentBuilder {
                 }
                 String rel = relKey(fm, own, o);
                 Color base = terr != null ? terr : unknown;
-                boolean border = isBorder(owner, x, y, o);
-                out[x][y] = border
+                out[x][y] = isBorder(owner, x, y, o)
                         ? blend(base, relColor(plugin, rel, "border"), borderAlpha)
                         : blend(base, relColor(plugin, rel, "fill"), alpha);
-                // Il BORDO resta netto (mai ditherato): e' la cornice che separa i territori, deve restare
-                // leggibile. Il RIEMPIMENTO invece va SEMPRE ditherato (protectOut[x][y] = false), anche a
-                // dither del terreno spento: fuso a bassa opacita' spesso non ha un colore vicino nella
-                // palette mappa (es. rosso nemico su terreno verde) e senza diffondere l'errore sui pixel
-                // vicini l'arrotondamento lo appiattisce su un grigio/marrone spento invece che restare una
-                // tinta leggibile e semitrasparente come il verde (che invece azzecca sempre un colore
-                // vicino, essendo gia' nella stessa famiglia del terreno).
-                if (protectOut != null) protectOut[x][y] = border;
+                if (protectOut != null) protectOut[x][y] = true; // overlay territorio: niente dithering (resta netto)
             }
         }
         // Snapshot del frame PRIMA dei marcatori: cosi' i pixel che marcatori/cardinali cambieranno vengono
@@ -538,13 +511,27 @@ final class MapContentBuilder {
         };
     }
 
+    /** Fonde {@code over} sopra {@code base} interpolando in HSB (tonalita'/saturazione/luminosita'),
+     *  NON sommando i canali RGB: un blend RGB fra colori di tonalita' lontane (es. rosso nemico su terreno
+     *  verde) e' una somma di complementari, che desatura verso un grigio/marrone spento a QUALSIASI
+     *  percentuale — non e' un problema di palette ne' di opacita', e' la matematica dell'RGB additivo (il
+     *  verde, gia' nella stessa famiglia del terreno, non lo mostrava perche' la sua tonalita' non si
+     *  sposta granche'). Interpolando la tonalita' lungo l'arco piu' corto della ruota colore invece si
+     *  passa per le tinte intermedie vere (verde -> giallo-verde -> arancio -> rosso), restando leggibile e
+     *  trasparente a bassa percentuale (si avvicina alla tonalita' del terreno) e diventando la tinta piena
+     *  a 100% (bordo), esattamente come "0 = invisibile, 100 = pieno" promette il config. */
     private static Color blend(Color base, Color over, int alphaPct) {
         if (base == null) return over;
-        int a = alphaPct, ia = 100 - a;
-        return new Color(
-                (base.getRed()   * ia + over.getRed()   * a) / 100,
-                (base.getGreen() * ia + over.getGreen() * a) / 100,
-                (base.getBlue()  * ia + over.getBlue()  * a) / 100);
+        float a = alphaPct / 100f;
+        float[] hb = Color.RGBtoHSB(base.getRed(), base.getGreen(), base.getBlue(), null);
+        float[] ho = Color.RGBtoHSB(over.getRed(), over.getGreen(), over.getBlue(), null);
+        float dh = ho[0] - hb[0];
+        if (dh > 0.5f) dh -= 1f; else if (dh < -0.5f) dh += 1f; // arco piu' corto sulla ruota colore
+        float h = hb[0] + dh * a;
+        if (h < 0f) h += 1f; else if (h >= 1f) h -= 1f;
+        float s = hb[1] + (ho[1] - hb[1]) * a;
+        float br = hb[2] + (ho[2] - hb[2]) * a;
+        return new Color(Color.HSBtoRGB(h, s, br));
     }
 
     /** Converte l'ultimo codice colore '&X' della stringa nel corrispondente RGB di Minecraft. */

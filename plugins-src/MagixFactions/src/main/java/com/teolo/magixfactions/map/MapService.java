@@ -287,6 +287,25 @@ public final class MapService {
      * perche' l'item e' fittizio e Bukkit non lo renderizzerebbe mai da solo (nessun vero
      * giocatore lo "tiene" secondo Bukkit).
      */
+    // Cache RGB->byte-palette: MapPalette.matchColor fa una ricerca del colore piu' vicino su ~140 voci,
+    // e veniva chiamata 16384 volte per render (una per pixel) — grosso costo, era buona parte dei ~28ms
+    // del render. I colori distinti su una mappa sono pochi (palette terreno + tinte fazione + marcatori),
+    // quindi memorizzarli rende quasi tutte le conversioni un lookup O(1). Solo main thread (render), HashMap ok.
+    private final java.util.HashMap<Integer, Byte> colorCache = new java.util.HashMap<>();
+
+    private byte matchColorCached(Color c) {
+        int rgb = c.getRGB();
+        Byte b = colorCache.get(rgb);
+        if (b == null) {
+            // Con il supersampling i colori medi sono molti e distinti: cap per non far crescere la cache
+            // all'infinito (svuota e riparte; i colori tornano subito in cache al primo uso).
+            if (colorCache.size() > 60000) colorCache.clear();
+            b = org.bukkit.map.MapPalette.matchColor(c);
+            colorCache.put(rgb, b);
+        }
+        return b;
+    }
+
     // --- Memoizzazione del layer BASE della minimap (terreno+territori+cardinali+home) ---------------
     // Il base cambia SOLO quando: il centro attraversa un confine di pixel, cambia lo zoom/mondo, cambia
     // il terreno (TerrainCache.version) o i territori (ClaimManager.version). Tutto il resto (nomi dei
@@ -296,9 +315,7 @@ public final class MapService {
     // cache-ati e riusati, mai ricalcolati senza motivo).
     private static final class BaseMemo {
         int cX, cZ; double bpp; String world; int tVer, cVer; long ms; boolean complete;
-        byte[] bytes; // gia' ditherato (vedi renderPalette): il riempimento dei territori lo richiede
-                       // SEMPRE (vedi MapContentBuilder#paint), quindi conviene farlo una volta sola qui
-                       // invece che per-pixel a ogni tick con matchColorCached.
+        Color[][] base;
     }
 
     private final java.util.HashMap<UUID, BaseMemo> minimapMemo = new java.util.HashMap<>();
@@ -314,7 +331,15 @@ public final class MapService {
     public byte[] renderPalette(Player p, double blocksPerPixel) {
         int cX = quantCenter(p.getLocation().getBlockX(), blocksPerPixel);
         int cZ = quantCenter(p.getLocation().getBlockZ(), blocksPerPixel);
-        boolean ditherTerrain = plugin.getConfig().getBoolean("map.dither", false) && MapColorUtil.isReady();
+        boolean dither = plugin.getConfig().getBoolean("map.dither", false) && MapColorUtil.isReady();
+        if (dither) {
+            // Percorso dithering (opt-in): senza memo, non vale la complessita' di memoizzare per una
+            // modalita' disattivata di default.
+            boolean[][] protect = new boolean[128][128];
+            Color[][] colors = MapContentBuilder.computeColors(p, fm, claims, terrain, blocksPerPixel,
+                    plugin, cX, cZ, 1, avatars, protect, null);
+            return MapColorUtil.dither(colors, protect);
+        }
 
         UUID uuid = p.getUniqueId();
         long now = System.currentTimeMillis();
@@ -325,26 +350,24 @@ public final class MapService {
                 && now - m.ms < (m.complete ? 2000 : 500); // tetto: cambi rari (relazioni/reload) entro 2s
         if (!valid) {
             boolean[] complete = {true};
-            // protect SEMPRE popolato (non solo con map.dither attivo): il riempimento dei territori va
-            // SEMPRE ditherato, altrimenti la tinta fusa col terreno rischia di appiattirsi su un colore
-            // spento/grigiastro quando non ha un buon corrispondente nella palette mappa (vedi
-            // MapContentBuilder#paint). ditherTerrain decide solo se il dithering copre ANCHE il terreno
-            // nudo (config map.dither) oltre al riempimento, che lo richiede comunque.
-            boolean[][] protect = new boolean[128][128];
             Color[][] base = MapContentBuilder.computeColors(p, fm, claims, terrain, blocksPerPixel,
-                    plugin, cX, cZ, 1, avatars, protect, complete, ditherTerrain);
+                    plugin, cX, cZ, 1, avatars, null, complete);
             if (minimapMemo.size() > 100) minimapMemo.clear(); // igiene: mai piu' di ~1 voce per giocatore attivo
             m = new BaseMemo();
             m.cX = cX; m.cZ = cZ; m.bpp = blocksPerPixel; m.world = p.getWorld().getName();
             m.tVer = terrain.version(); m.cVer = claims.version(); m.ms = now;
-            m.complete = complete[0]; m.bytes = MapColorUtil.dither(base, protect);
+            m.complete = complete[0]; m.base = base;
             minimapMemo.put(uuid, m);
         }
         // Il frame (terreno + territori + cardinali + home) resta identico finche' il memo e' valido: le
-        // frecce-giocatore le disegna lo shader dall'header, non sono cotte nei pixel. Clone perche'
-        // renderPaletteWithHeader scrive l'header sui primi byte del risultato: senza clone corromperebbe
-        // il frame in cache per i prossimi tick.
-        return m.bytes.clone();
+        // frecce-giocatore le disegna lo shader dall'header, non sono cotte nei pixel.
+        byte[] out = new byte[128 * 128];
+        for (int x = 0; x < 128; x++) {
+            for (int y = 0; y < 128; y++) {
+                out[y * 128 + x] = matchColorCached(m.base[x][y]);
+            }
+        }
+        return out;
     }
 
     // --- Header frecce minimap ------------------------------------------------------------------------
