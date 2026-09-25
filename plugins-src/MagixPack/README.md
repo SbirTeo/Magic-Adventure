@@ -94,15 +94,19 @@ propri — non un glifo: un vero modello 2D generato, come le icone vanilla. Per
    ```
    `material` e' l'item base di Minecraft: decide le meccaniche (danno, durabilita',
    impilabilita'...), MAI l'aspetto — quello viene sempre dalla texture.
-3. `/mpack reload`. Il plugin genera da solo TRE file, non serve scrivere JSON a mano: il modello
-   (`assets/magixpack/models/item/<id>.json`, `parent: item/generated`, `layer0` sulla texture
-   appena messa), e la DEFINIZIONE dell'oggetto (`assets/magixpack/items/<id>.json`, che richiama
-   il modello) — quest'ultima e' quella che il componente `item_model` (impostato da
-   `ItemMeta#setItemModel`, non il vecchio `CustomModelData`) va davvero a risolvere da quando i
-   modelli degli item sono passati al sistema a componenti: senza, il client mostra la texture
-   "mancante" (il pattern viola/nero a scacchi) anche se model.json e texture sono gia' nel
-   pacchetto e si scaricano bene. Un oggetto senza la sua texture viene ignorato con un avviso in
-   console.
+3. `/mpack reload`. Il plugin genera da solo tutto il JSON, non serve scriverlo a mano:
+   - il modello (`assets/magixpack/models/item/<id>.json`, `parent: item/generated`, `layer0`
+     sulla texture appena messa);
+   - la DEFINIZIONE dell'oggetto (`assets/magixpack/items/<id>.json`, che richiama il modello) —
+     quella che il componente `item_model` (impostato da `ItemMeta#setItemModel`) va a risolvere
+     da quando i modelli degli item sono passati al sistema a componenti;
+   - PER COMPATIBILITA', anche il meccanismo "vecchio" (`CustomModelData` + un predicate override
+     sul modello vanilla dell'item base, es. `assets/minecraft/models/item/paper.json`) — la
+     stessa doppia strada che raccomanda Oraxen (item_properties + model_data_ids) quando non e'
+     certo quale dei due il client risolve davvero. Il file vanilla viene ricostruito per intero:
+     sicuro solo per material semplici a icona piatta (vedi il limite sotto).
+
+   Un oggetto senza la sua texture viene ignorato con un avviso in console.
 
 In gioco: `/mpack item give <id> [giocatore]` (permesso `magixpack.item.give`), `/mpack item list`
 per vedere il catalogo caricato. Niente crafting/shop qui dentro: quello si fa con altri strumenti
