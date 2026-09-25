@@ -114,9 +114,20 @@ public final class ItemCatalog {
     }
 
     /**
-     * Contenuto da registrare nel pacchetto: per ogni oggetto valido, il modello generato (un
-     * semplice layer0, come le icone 2D vanilla — {@code parent: item/generated}) e la texture
-     * letta da {@code items/<id>.png}, entrambi sotto il namespace proprio {@value #NAMESPACE}.
+     * Contenuto da registrare nel pacchetto, per ogni oggetto valido, sotto il namespace proprio
+     * {@value #NAMESPACE}:
+     * <ul>
+     *   <li>la texture, letta da {@code items/<id>.png};</li>
+     *   <li>il MODELLO generato (un semplice layer0, come le icone 2D vanilla — {@code parent:
+     *       item/generated}), {@code assets/magixpack/models/item/<id>.json};</li>
+     *   <li>la DEFINIZIONE dell'oggetto, {@code assets/magixpack/items/<id>.json} — il file che
+     *       {@link ItemStack#getItemMeta()}'s {@code setItemModel(NamespacedKey)} (il componente
+     *       {@code item_model}, non il vecchio {@code CustomModelData}) va davvero a risolvere: da
+     *       quando i modelli item sono passati al sistema a componenti, il model.json da solo non
+     *       basta piu', ci vuole questo secondo file che lo richiama. Senza, il client mostra la
+     *       texture "mancante" (il pattern viola/nero a scacchi) anche se model e texture sono nel
+     *       pacchetto e si scaricano bene — e' esattamente il sintomo con cui e' stato scoperto.</li>
+     * </ul>
      */
     public Map<String, byte[]> packFiles() {
         Map<String, byte[]> out = new LinkedHashMap<>();
@@ -128,6 +139,10 @@ public final class ItemCatalog {
                         + NAMESPACE + ":item/" + e.id() + "\"}}";
                 out.put("assets/" + NAMESPACE + "/models/item/" + e.id() + ".json",
                         model.getBytes(StandardCharsets.UTF_8));
+                String definition = "{\"model\":{\"type\":\"minecraft:model\",\"model\":\""
+                        + NAMESPACE + ":item/" + e.id() + "\"}}";
+                out.put("assets/" + NAMESPACE + "/items/" + e.id() + ".json",
+                        definition.getBytes(StandardCharsets.UTF_8));
             } catch (IOException ex) {
                 plugin.getLogger().warning("[Items] Impossibile leggere items/" + e.id() + ".png ("
                         + ex.getMessage() + "): oggetto escluso da questo pacchetto.");
