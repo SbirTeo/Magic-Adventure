@@ -265,7 +265,23 @@ public final class TranslationSync {
 
     private static boolean lineCorrupted(String source, String translated) {
         return SUSPECT_LEFTOVER.matcher(translated).find() || GLUED_BRACKET.matcher(translated).find()
-                || (source != null && edgeWhitespaceMismatch(source, translated));
+                || (source != null && edgeWhitespaceMismatch(source, translated))
+                || (source != null && missingProtectedToken(source, translated));
+    }
+
+    /**
+     * Un colore o un placeholder che il testo italiano richiede ma che non compare piu' nel
+     * testo tradotto in cache (visto succedere davvero: due codici colore protetti come "qx0xq"/
+     * "qx1xq" ridotti dal servizio di traduzione al solo numero nudo "0 1", senza lasciare il
+     * residuo "qxNxq" che {@link #SUSPECT_LEFTOVER} intercetterebbe). Una cache cosi' va rifatta.
+     */
+    private static boolean missingProtectedToken(String source, String translated) {
+        for (String token : Translator.requiredTokens(source)) {
+            if (!translated.contains(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean looksCorrupted(Object italianValue, Object cachedTranslated) {

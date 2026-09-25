@@ -1,10 +1,13 @@
 package com.teolo.magixcosmetics.cosmetic;
 
+import com.destroystokyo.paper.ParticleBuilder;
 import com.teolo.magixcosmetics.MagixCosmetics;
+import com.teolo.magixcosmetics.hook.LuckPermsHook;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
@@ -16,6 +19,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -62,6 +66,8 @@ public final class HaloManager {
     private double radius;
     private double height;
     private float size;
+    /** Da quanti blocchi si vede (particella "a lunga distanza": oltre 32 serve, massimo 512). */
+    private double viewDistance;
     private long interval;
     private double spinSpeed;
     private boolean hideWhenVanished;
@@ -73,6 +79,12 @@ public final class HaloManager {
     private final Set<UUID> disabled = new HashSet<>();
     /** Il colore scelto da ognuno con /halo setcolor. Persistito su players.yml (vedi {@link #store}). */
     private final Map<UUID, String> chosenColor = new HashMap<>();
+    /**
+     * Il colore a cui ognuno ha DIRITTO (permesso base + permesso colore, scelta compresa), preso
+     * mentre e' online e ricordato su players.yml: da offline i permessi non si possono leggere, ma
+     * la sua statua (vedi {@link #statueColor}) deve sapere lo stesso che aureola mostrare.
+     */
+    private final Map<UUID, String> entitledColor = new HashMap<>();
     private final HaloStore store;
     /** Istante (ms) dell'ultimo colpo dato o subito in PvP: serve al cooldown post-combattimento. */
     private final Map<UUID, Long> lastCombatAt = new HashMap<>();
@@ -81,9 +93,20 @@ public final class HaloManager {
     /** Posizione del puntino lungo il cerchio: avanza di spinSpeed a ogni giro, cosi' orbita. */
     private double angle;
 
+    /** Permessi dei giocatori offline, per l'aureola sulla loro statua. */
+    private final LuckPermsHook luckPerms;
+    /** Quando (ms) e' stato letto da LuckPerms l'ultima volta il diritto di un giocatore offline. */
+    private final Map<UUID, Long> offlineCheckedAt = new HashMap<>();
+    /** Letture offline gia' in corso: una per giocatore alla volta. */
+    private final Set<UUID> offlinePending = new HashSet<>();
+    /** Ogni quanto si rilegge un giocatore offline: un permesso tolto da offline si vede entro questo tempo. */
+    private static final long OFFLINE_REFRESH_MS = 10 * 60_000L;
+
     public HaloManager(MagixCosmetics plugin) {
         this.plugin = plugin;
         this.store = new HaloStore(plugin);
+        this.luckPerms = new LuckPermsHook(plugin);
+        luckPerms.setup();
     }
 
     /** Rilegge i valori dal config.yml e le scelte personali salvate su players.yml. */
@@ -100,6 +123,7 @@ public final class HaloManager {
         radius = c.getDouble("halo.radius", 0.4);
         height = c.getDouble("halo.height", 2.2);
         size = (float) c.getDouble("halo.particle-size", 0.8);
+        viewDistance = Math.max(1, Math.min(512, c.getDouble("halo.view-distance", 96)));
         interval = Math.max(1L, c.getLong("halo.update-interval-ticks", 1));
         spinSpeed = c.getDouble("halo.spin-speed", 0.25);
         hideWhenVanished = c.getBoolean("halo.hide-when-vanished", true);
@@ -107,7 +131,8 @@ public final class HaloManager {
         hideWhileFighting = c.getBoolean("halo.combat.hide-while-fighting", true);
         combatCooldownMs = Math.max(0, c.getLong("halo.combat.cooldown-after-combat-seconds", 30)) * 1000L;
 
-        store.load(chosenColor, disabled);
+        store.load(chosenColor, disabled, entitledColor);
+        offlineCheckedAt.clear(); // dopo un reload i giocatori offline si rileggono da capo
     }
 
     /** Fa ripartire il task col nuovo intervallo (o non parte affatto se l'aureola e' spenta). */
@@ -128,9 +153,95 @@ public final class HaloManager {
         angle += spinSpeed;
         if (angle > Math.PI * 2) angle -= Math.PI * 2;   // niente overflow su uptime lunghi
         for (Player p : Bukkit.getOnlinePlayers()) {
+            remember(p);
             Color color = effectiveColor(p);
             if (color != null) drawAt(p.getLocation(), color);
         }
+    }
+
+    /** Aggiorna il colore a cui ha diritto: su disco solo quando cambia (permesso dato o tolto, setcolor). */
+    private void remember(Player p) {
+        setEntitled(p.getUniqueId(), p.hasPermission(HALO_PERMISSION) ? activeColorName(p) : null);
+    }
+
+    private void setEntitled(UUID id, String name) {
+        if (Objects.equals(name, entitledColor.get(id))) return;
+        if (name == null) entitledColor.remove(id);
+        else entitledColor.put(id, name);
+        store.save(chosenColor, disabled, entitledColor);
+    }
+
+    /**
+     * Rilegge da LuckPerms, su un altro thread, a quale colore ha diritto un giocatore OFFLINE: la
+     * prima volta che la sua statua lo chiede e poi ogni {@link #OFFLINE_REFRESH_MS}. Stesse regole
+     * di {@link #activeColorName}: il colore scelto se ne ha ancora il permesso, altrimenti il primo
+     * della tavolozza. Senza LuckPerms resta il colore ricordato da quando era online.
+     */
+    private void refreshOffline(UUID id) {
+        if (!luckPerms.available() || offlinePending.contains(id)) return;
+        Long at = offlineCheckedAt.get(id);
+        if (at != null && System.currentTimeMillis() - at < OFFLINE_REFRESH_MS) return;
+        offlinePending.add(id);
+        List<String> names = new ArrayList<>(colors.keySet());
+        String chosen = chosenColor.get(id);
+        List<String> nodes = new ArrayList<>();
+        nodes.add(HALO_PERMISSION);
+        for (String n : names) nodes.add(colorPermission(n));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            Map<String, Boolean> perms = luckPerms.check(id, nodes);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                offlinePending.remove(id);
+                offlineCheckedAt.put(id, System.currentTimeMillis());
+                // Lettura fallita: resta quello che si sapeva. Rientrato nel frattempo: ci pensa remember().
+                if (perms == null || Bukkit.getPlayer(id) != null) return;
+                String entitled = null;
+                if (perms.getOrDefault(HALO_PERMISSION, false)) {
+                    if (chosen != null && names.contains(chosen)
+                            && perms.getOrDefault(colorPermission(chosen), false)) {
+                        entitled = chosen;
+                    } else {
+                        for (String n : names) {
+                            if (perms.getOrDefault(colorPermission(n), false)) {
+                                entitled = n;
+                                break;
+                            }
+                        }
+                    }
+                }
+                setEntitled(id, entitled);
+            });
+        });
+    }
+
+    /**
+     * Il colore dell'aureola da mostrare sulla STATUA di un giocatore (un'entita' di MagixEntities
+     * con la sua skin), o {@code null} se non ne ha una. Vale anche da offline: i permessi si
+     * leggono da LuckPerms (vedi {@link #refreshOffline}); finche' la lettura non torna vale il
+     * colore ricordato. Contano il permesso, il colore e /halo off; NON contano combattimento,
+     * vanish, invisibilita' e spettatore, che riguardano il corpo del giocatore, non la sua statua.
+     * Lo chiama MagixEntities per riflessione.
+     */
+    public Color statueColor(String playerName) {
+        if (!enabled || playerName == null || playerName.isBlank()) return null;
+        Player online = Bukkit.getPlayerExact(playerName);
+        if (online != null) return statueColor(online.getUniqueId());
+        // Solo dalla cache del server (usercache): niente richieste a Mojang a ogni tick.
+        OfflinePlayer off = Bukkit.getOfflinePlayerIfCached(playerName);
+        return off == null ? null : statueColor(off.getUniqueId());
+    }
+
+    /**
+     * Come {@link #statueColor(String)}, per UUID: stessa regola (permesso, colore, /halo off, anche
+     * da offline). La usa anche MagixWeb, per riflessione, per mostrare l'aureola sul sito.
+     */
+    public Color statueColor(UUID id) {
+        if (!enabled || id == null) return null;
+        Player online = Bukkit.getPlayer(id);
+        if (online != null) remember(online);
+        else refreshOffline(id);
+        if (disabled.contains(id)) return null;
+        String name = entitledColor.get(id);
+        return name == null ? null : colors.get(name);
     }
 
     /**
@@ -159,15 +270,40 @@ public final class HaloManager {
      * con {@link #effectiveColor(Player)} ({@code null} = niente aureola, non disegnare).
      */
     public void drawAt(Location base, Color color) {
+        drawAt(base, color, 1.0, null);
+    }
+
+    /**
+     * Come {@link #drawAt(Location, Color)}, per un'entita' ingrandita o rimpicciolita
+     * ({@code scale}: altezza, giro e puntino crescono col modello) e, con {@code onlyFor} non null,
+     * visibile solo a quel giocatore: serve alle copie "mirror" di MagixEntities, che ognuno vede
+     * per conto suo nello stesso punto — disegnata sul mondo, ognuno vedrebbe anche l'aureola degli
+     * altri sopra la propria copia.
+     */
+    public void drawAt(Location base, Color color, double scale, Player onlyFor) {
         if (color == null || base.getWorld() == null) return;
+        double s = scale > 0 ? scale : 1.0;
         // Un solo punto, alla posizione corrente lungo il cerchio: il prossimo tick sara' poco
         // piu' avanti, e cosi' orbita. Le particelle vecchie sfumano da sole e lasciano una breve scia.
-        double x = Math.cos(angle) * radius;
-        double z = Math.sin(angle) * radius;
-        Location at = base.clone().add(x, height, z);
-        // Sul MONDO, non solo per chi guarda: cosi' l'aureola la vedono tutti.
+        double x = Math.cos(angle) * radius * s;
+        double z = Math.sin(angle) * radius * s;
+        Location at = base.clone().add(x, height * s, z);
+        // DUST accetta al massimo 4.0 di grandezza.
+        Particle.DustOptions dust = new Particle.DustOptions(color, (float) Math.min(4.0, size * s));
+        // force(true) = particella "a lunga distanza": senza, il server la manda solo entro 32
+        // blocchi e l'aureola di una statua gigante sparisce molto prima della statua. Chi la
+        // riceve lo decidiamo noi, entro halo.view-distance.
         // Con DUST il "count" 1 e gli offset a zero mettono la particella esattamente li'.
-        base.getWorld().spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, new Particle.DustOptions(color, size));
+        ParticleBuilder particle = new ParticleBuilder(Particle.DUST)
+                .location(at).count(1).offset(0, 0, 0).extra(0).data(dust).force(true);
+        if (onlyFor != null) {
+            if (!onlyFor.getWorld().equals(at.getWorld())
+                    || onlyFor.getLocation().distanceSquared(at) > viewDistance * viewDistance) return;
+            particle.receivers(onlyFor);
+        } else {
+            particle.receivers(at.getNearbyPlayers(viewDistance));
+        }
+        particle.spawn();
     }
 
     // ------------------------------------------------------------- toggle personale
@@ -180,7 +316,7 @@ public final class HaloManager {
     public void toggle(UUID id, boolean on) {
         if (on) disabled.remove(id);
         else disabled.add(id);
-        store.save(chosenColor, disabled);
+        store.save(chosenColor, disabled, entitledColor);
     }
 
     public boolean enabled() {
@@ -213,7 +349,7 @@ public final class HaloManager {
     /** Ricorda la scelta di colore del giocatore (il comando controlla gia' il permesso prima di chiamarlo). */
     public void setColor(UUID id, String name) {
         chosenColor.put(id, name);
-        store.save(chosenColor, disabled);
+        store.save(chosenColor, disabled, entitledColor);
     }
 
     /** Il nodo di permesso che sblocca un colore, es. "magixcosmetics.halo.color.yellow". */

@@ -36,6 +36,8 @@ public final class MirrorManager {
     private final NpcManager npcs;
     /** id entita' -> (uuid giocatore -> uuid copia). */
     private final Map<String, Map<UUID, UUID>> clones = new HashMap<>();
+    /** uuid copia -> uuid del suo sedile invisibile (solo per le copie con posa "sitting"). */
+    private final Map<UUID, UUID> seats = new HashMap<>();
     private BukkitTask haloTask;
 
     public MirrorManager(JavaPlugin plugin, NpcManager npcs) {
@@ -50,10 +52,10 @@ public final class MirrorManager {
     }
 
     /**
-     * Aureola VIP sulle copie in modalita' skin "mirror": stesso puntino di MagixCosmetics,
-     * disegnato per riflessione (vedi {@link MagixCosmeticsHook}) sopra la copia di ogni
-     * proprietario che in quel momento ce l'ha davvero attiva. Non parte se MagixCosmetics non
-     * e' installato/abilitato o se {@code mirror.halo.enabled} e' false.
+     * Aureola VIP sulle statue (tipo player): stesso puntino di MagixCosmetics, disegnato per
+     * riflessione (vedi {@link MagixCosmeticsHook}). Con skin "mirror" e' quella di chi guarda la
+     * sua copia; con una skin fissa e' quella del giocatore della skin, per tutti. Non parte se
+     * MagixCosmetics non e' installato/abilitato o se {@code mirror.halo.enabled} e' false.
      */
     private void startHalo() {
         if (!plugin.getConfig().getBoolean("mirror.halo.enabled", true)) return;
@@ -64,15 +66,42 @@ public final class MirrorManager {
 
     private void haloTick() {
         for (NpcDef d : npcs.all()) {
-            if (!d.isSkinMirror()) continue;
-            forEachClone(d, (owner, clone) -> MagixCosmeticsHook.drawHaloIfActive(owner, clone.getLocation()));
+            if (!d.isPlayerType() || !d.chunkLoaded()) continue;
+            if (d.isSkinMirror()) {
+                // ognuno vede la sua copia con la sua aureola, e solo lui
+                forEachClone(d, (owner, clone) ->
+                        MagixCosmeticsHook.drawViewerHalo(owner, clone.getLocation(), d.scale));
+            } else {
+                // Skin fissa: l'aureola e' la stessa per chiunque guardi. Le copie (nome a specchio,
+                // follow personale) stanno nello stesso punto dell'entita' vera, quindi basta
+                // disegnarla una volta li', per tutti.
+                Entity e = npcs.entityOf(d);
+                if (e != null) MagixCosmeticsHook.drawOwnerHalo(d.skinNick(), e.getLocation(), d.scale, null);
+            }
         }
     }
 
-    private double radiusSq() {
-        double r = plugin.getConfig().getDouble("mirror.radius", 48.0);
-        return r * r;
+    /**
+     * Raggio entro cui un giocatore ha la sua copia: mirror.radius, sia con lo specchio (fuori non si
+     * vede niente, l'entita' vera e' nascosta a tutti) sia col solo follow (fuori si vede l'entita'
+     * vera). Se il raggio del follow e' piu' grande, vale quello.
+     */
+    private double radius(NpcDef d) {
+        double mirrorRadius = plugin.getConfig().getDouble("mirror.radius", 48.0);
+        if (d.hidesReal()) return mirrorRadius;
+        // Follow personale: la copia nasce gia' a distanza di visibilita' (mirror.radius), non al
+        // raggio del follow. Il cambio entita' vera <-> copia avviene quindi dove quasi non si vede;
+        // col raggio del follow lo si vedeva a pochi blocchi, come una statua ricreata a ogni
+        // avvicinamento. Il raggio del follow decide solo quando la copia ti guarda (LookManager).
+        return Math.max(mirrorRadius, d.followRadiusOr(plugin.getConfig().getDouble("follow.radius", 12.0)));
     }
+
+    /**
+     * Margine (blocchi) oltre il raggio prima che una copia venga tolta. Senza, chi sta sul bordo
+     * vede la statua scattare di continuo fra la sua copia e l'entita' vera (o sparire, con lo
+     * specchio) a ogni mezzo passo: la copia nasce entro il raggio e sparisce solo oltre il margine.
+     */
+    public static final double KEEP_MARGIN = 3.0;
 
     /** Allinea le copie: ne crea una per ogni giocatore vicino, elimina quelle non piu' valide. */
     public void tick() {
@@ -87,7 +116,9 @@ public final class MirrorManager {
                 continue;
             }
             Map<UUID, UUID> owners = clones.computeIfAbsent(d.id, k -> new HashMap<>());
-            double maxSq = radiusSq();
+            double r = radius(d);
+            double maxSq = r * r;
+            double keepSq = (r + KEEP_MARGIN) * (r + KEEP_MARGIN);
 
             Iterator<Map.Entry<UUID, UUID>> it = owners.entrySet().iterator();
             while (it.hasNext()) {
@@ -96,11 +127,12 @@ public final class MirrorManager {
                 Entity clone = Bukkit.getEntity(entry.getValue());
                 boolean near = owner != null && owner.isOnline()
                         && owner.getWorld().equals(loc.getWorld())
-                        && owner.getLocation().distanceSquared(loc) <= maxSq;
+                        && owner.getLocation().distanceSquared(loc) <= keepSq;
                 if (!near) {
-                    if (clone != null) clone.remove();
+                    removeClone(d, entry.getKey(), entry.getValue());
                     it.remove();
                 } else if (clone == null || clone.isDead()) {
+                    removeClone(d, entry.getKey(), entry.getValue()); // resta solo il sedile da togliere
                     it.remove(); // ricreata sotto
                 }
             }
@@ -110,6 +142,19 @@ public final class MirrorManager {
                 if (p.getLocation().distanceSquared(loc) > maxSq) continue;
                 Entity clone = spawnClone(d, loc, p);
                 if (clone != null) owners.put(p.getUniqueId(), clone.getUniqueId());
+            }
+
+            // Follow personale: l'entita' vera resta visibile a tutti, tranne a chi ha la sua copia
+            // (ne vedrebbe due una dentro l'altra). Rifatto a ogni giro: se l'entita' vera viene
+            // ricreata e' un'entita' nuova, visibile di nuovo a tutti.
+            if (!d.hidesReal()) {
+                Entity real = npcs.entityOf(d);
+                if (real != null) {
+                    for (UUID ownerId : owners.keySet()) {
+                        Player owner = Bukkit.getPlayer(ownerId);
+                        if (owner != null) owner.hideEntity(plugin, real);
+                    }
+                }
             }
         }
     }
@@ -121,6 +166,10 @@ public final class MirrorManager {
         try {
             Entity clone = loc.getWorld().spawn(loc, cls, pre, CreatureSpawnEvent.SpawnReason.CUSTOM);
             owner.showEntity(plugin, clone);
+            // Il sedile resta visibile a tutti (e' comunque invisibile): il client del proprietario
+            // deve conoscere il veicolo, altrimenti non sa che la copia e' seduta.
+            Entity seat = npcs.mountCloneSeat(d, clone);
+            if (seat != null) seats.put(clone.getUniqueId(), seat.getUniqueId());
             return clone;
         } catch (IllegalArgumentException ex) {
             plugin.getLogger().warning("Copia mirror di '" + d.name + "' non creata: " + ex.getMessage());
@@ -132,31 +181,47 @@ public final class MirrorManager {
     public void clear(NpcDef d) {
         Map<UUID, UUID> owners = clones.remove(d.id);
         if (owners == null) return;
-        for (UUID cloneId : owners.values()) {
-            Entity e = Bukkit.getEntity(cloneId);
-            if (e != null) e.remove();
-        }
+        for (Map.Entry<UUID, UUID> entry : owners.entrySet()) removeClone(d, entry.getKey(), entry.getValue());
     }
 
     /** Elimina la copia di un giocatore (uscita dal server). */
     public void forget(Player p) {
         for (Map<UUID, UUID> owners : clones.values()) {
             UUID cloneId = owners.remove(p.getUniqueId());
-            if (cloneId == null) continue;
-            Entity e = Bukkit.getEntity(cloneId);
-            if (e != null) e.remove();
+            // Chi esce non deve rivedere niente: niente definizione, niente showEntity.
+            if (cloneId != null) removeClone(null, p.getUniqueId(), cloneId);
         }
     }
 
     /** Elimina tutte le copie (spegnimento del plugin, o /mentities reload). */
     public void clearAll() {
-        for (Map<UUID, UUID> owners : clones.values()) {
-            for (UUID cloneId : owners.values()) {
-                Entity e = Bukkit.getEntity(cloneId);
-                if (e != null) e.remove();
+        for (Map.Entry<String, Map<UUID, UUID>> byDef : clones.entrySet()) {
+            NpcDef d = npcs.get(byDef.getKey());
+            for (Map.Entry<UUID, UUID> entry : byDef.getValue().entrySet()) {
+                removeClone(d, entry.getKey(), entry.getValue());
             }
         }
         clones.clear();
+        seats.clear();
+    }
+
+    /**
+     * Toglie una copia e il suo eventuale sedile (un sedile senza passeggero resterebbe li'). Col
+     * follow personale l'entita' vera era nascosta al proprietario della copia: gli torna visibile.
+     */
+    private void removeClone(NpcDef d, UUID ownerId, UUID cloneId) {
+        // Prima si rimostra l'entita' vera, POI si toglie la copia: al contrario ci sarebbe un
+        // istante senza niente, e la statua sembrerebbe sparire e rinascere.
+        if (d != null && !d.hidesReal()) {
+            Player owner = Bukkit.getPlayer(ownerId);
+            Entity real = npcs.entityOf(d);
+            if (owner != null && real != null) owner.showEntity(plugin, real);
+        }
+        Entity e = Bukkit.getEntity(cloneId);
+        if (e != null) e.remove();
+        UUID seatId = seats.remove(cloneId);
+        Entity seat = seatId == null ? null : Bukkit.getEntity(seatId);
+        if (seat != null) seat.remove();
     }
 
     /** Ferma il task dell'aureola (solo spegnimento del plugin: /mentities reload non lo tocca). */
@@ -194,7 +259,7 @@ public final class MirrorManager {
         List<Entity> toRemove = new ArrayList<>();
         for (org.bukkit.World w : Bukkit.getWorlds()) {
             for (Entity e : w.getEntities()) {
-                if (npcs.cloneTagOf(e) != null) toRemove.add(e);
+                if (npcs.cloneTagOf(e) != null || npcs.isCloneSeat(e)) toRemove.add(e);
             }
         }
         for (Entity e : toRemove) e.remove();

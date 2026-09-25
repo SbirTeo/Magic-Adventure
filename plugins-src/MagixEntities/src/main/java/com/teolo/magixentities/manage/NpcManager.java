@@ -9,6 +9,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -46,6 +49,7 @@ public final class NpcManager {
     private final NpcStore store;
     private final NamespacedKey key;
     private final NamespacedKey cloneKey;
+    private final NamespacedKey seatKey;
     private final Map<String, NpcDef> npcs = new LinkedHashMap<>();
     private MirrorManager mirror;
     /** Skin gia' risolte: nick in minuscolo -> profilo completo di texture. */
@@ -56,12 +60,30 @@ public final class NpcManager {
     private final Set<String> skinPending = ConcurrentHashMap.newKeySet();
     /** Entita' a cui il mondo ha detto di no: serve a non ripetere l'avviso ad ogni controllo. */
     private final Set<String> refused = ConcurrentHashMap.newKeySet();
+    /** Ultimo profilo messo da noi su ogni Mannequin (uuid entita' -> "uuid profilo|etichetta"). */
+    private final Map<UUID, String> appliedProfile = new ConcurrentHashMap<>();
+    /**
+     * L'attributo vanilla "scale" (introdotto per ingrandire/rimpicciolire un'entita' vivente
+     * intera, skin compresa): si risolve dal registro, non da una costante statica, cosi' il
+     * codice compila anche su build di Paper che non la espongono piu' come campo dedicato.
+     * Null se questa versione del server non la conosce: {@link #applyScale} allora non fa nulla.
+     */
+    private static final Attribute SCALE_ATTRIBUTE = resolveScaleAttribute();
+
+    private static Attribute resolveScaleAttribute() {
+        try {
+            return Registry.ATTRIBUTE.get(NamespacedKey.minecraft("scale"));
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
 
     public NpcManager(JavaPlugin plugin) {
         this.plugin = plugin;
         this.store = new NpcStore(plugin);
         this.key = new NamespacedKey(plugin, "npc");
         this.cloneKey = new NamespacedKey(plugin, "clone");
+        this.seatKey = new NamespacedKey(plugin, "seat");
     }
 
     /** Iniettato dopo la costruzione (MirrorManager ha bisogno di NpcManager). */
@@ -179,6 +201,20 @@ public final class NpcManager {
         return e;
     }
 
+    /**
+     * Sposta l'entita' in {@code loc} (rotazione compresa): la rifa' sul posto, sedile compreso,
+     * cosi' vale per qualunque tipo e posa. Le copie mirror si rifanno subito, non al prossimo giro:
+     * altrimenti a ogni spostamento la statua sparirebbe per un secondo.
+     */
+    public void relocate(NpcDef d, Location loc) {
+        if (mirror != null) mirror.clear(d);
+        despawn(d);
+        d.setLocation(loc);
+        ensure(d);
+        save();
+        if (mirror != null) mirror.tick();
+    }
+
     /** Rimuove definizione ed entita' (comprese le copie mirror). */
     public void delete(NpcDef d) {
         if (mirror != null) mirror.clear(d);
@@ -224,6 +260,10 @@ public final class NpcManager {
         }
         refused.remove(d.id);
         d.uuid = e.getUniqueId();
+        // apply() e' girato dentro il consumer PRE-spawn: a quel punto e.isInWorld() e' ancora
+        // false (e' cosi' per design, vedi il commento su applySeat), quindi il sedile invisibile
+        // non e' stato ancora creato/montato. Qui l'entita' e' gia' nel mondo per davvero.
+        applySeat(d, e);
         return e;
     }
 
@@ -246,11 +286,12 @@ public final class NpcManager {
                 + " al controllo successivo (o subito con /mentities respawn " + d.name + ").";
     }
 
-    /** Rimuove dal mondo l'entita' associata, se presente e caricata. */
+    /** Rimuove dal mondo l'entita' associata (e il suo eventuale sedile), se presente e caricata. */
     public void despawn(NpcDef d) {
         Entity e = d.uuid == null ? null : Bukkit.getEntity(d.uuid);
         if (e != null) e.remove();
         d.uuid = null;
+        removeSeat(d);
     }
 
     /**
@@ -280,6 +321,8 @@ public final class NpcManager {
 
     /** Controlla tutte le entita' (chiamato periodicamente e all'avvio). */
     public void ensureAll() {
+        // Profili ricordati di entita' che non ci sono piu' (copie mirror tolte, entita' rifatte).
+        appliedProfile.keySet().removeIf(id -> Bukkit.getEntity(id) == null);
         boolean changed = false;
         for (NpcDef d : new ArrayList<>(npcs.values())) {
             UUID before = d.uuid;
@@ -307,6 +350,10 @@ public final class NpcManager {
         boolean purge = plugin.getConfig().getBoolean("clean-orphans", true);
         boolean changed = false;
         for (Entity e : chunk.getEntities()) {
+            if (purge && isOrphanSeat(e)) {
+                e.remove();
+                continue;
+            }
             String id = tagOf(e);
             if (id == null) continue;
             NpcDef d = npcs.get(id);
@@ -356,6 +403,7 @@ public final class NpcManager {
             le.setCollidable(d.opt("collidable", false));
             le.setCanPickupItems(false);
             try { le.setAI(ai); } catch (UnsupportedOperationException ignored) {}
+            applyScale(d, le);
             // Difesa in profondita': qualsiasi problema sull'equipaggiamento non deve impedire
             // la creazione dell'entita' (apply() gira anche nel consumer di spawn).
             try {
@@ -370,7 +418,8 @@ public final class NpcManager {
         }
         // In modalita' specchio (skin o displayname) l'entita' vera resta nascosta a tutti:
         // quello che i giocatori vedono sono le copie create da MirrorManager.
-        e.setVisibleByDefault(!d.needsClones());
+        // Solo se cambia: rimettere la visibilita' fa rimandare l'entita' a tutti i client.
+        if (e.isVisibleByDefault() == d.hidesReal()) e.setVisibleByDefault(!d.hidesReal());
 
         if (e instanceof Mannequin man) {
             man.setImmovable(d.opt("immovable", true));
@@ -384,6 +433,13 @@ public final class NpcManager {
             applyPose(d, man);
             if (!d.isSkinMirror()) applySkin(d, man);
         }
+        // Auto-guarigione: se l'entita' e' gia' nel mondo (ensure/onChunkLoad/un comando che
+        // aggiorna un'entita' viva), risistema anche il sedile se serve o se e' stato ucciso.
+        // Durante il consumer PRE-spawn (vedi spawn()) e.isInWorld() e' ancora false: qui non fa
+        // nulla, ci pensa spawn() subito dopo. Le copie mirror passano SOLO dal consumer pre-spawn
+        // di applyClone, quindi qui non prendono mai il sedile dell'entita' vera: il loro lo crea
+        // MirrorManager con mountCloneSeat, appena la copia e' nel mondo.
+        applySeat(d, e);
     }
 
     /**
@@ -463,19 +519,172 @@ public final class NpcManager {
         }
     }
 
+    /** Ingrandisce/rimpicciolisce l'intera entita' (skin compresa): vale per qualunque tipo. */
+    private void applyScale(NpcDef d, LivingEntity le) {
+        if (SCALE_ATTRIBUTE == null) return;
+        AttributeInstance inst = le.getAttribute(SCALE_ATTRIBUTE);
+        if (inst != null) inst.setBaseValue(d.scale);
+    }
+
+    /** Valore riservato di {@link NpcDef#pose}: non e' una Pose vera, vedi {@link #applySeat}. */
+    private static final String SITTING = "sitting";
+    /** Valori del tag "seat": sedile dell'entita' vera (persistente) o di una copia mirror (no). */
+    private static final String SEAT_REAL = "seat";
+    private static final String SEAT_CLONE = "clone";
+    /** Entita' il cui montaggio e' gia' stato rifiutato: l'avviso in console esce una volta sola. */
+    private final Set<String> refusedSeats = ConcurrentHashMap.newKeySet();
+
     private void applyPose(NpcDef d, Mannequin man) {
-        if (d.pose == null || d.pose.isBlank()) return;
+        if (d.pose == null || d.pose.isBlank() || SITTING.equalsIgnoreCase(d.pose)) return;
         try {
             Pose p = Pose.valueOf(d.pose.toUpperCase(Locale.ROOT));
             if (Mannequin.validPoses().contains(p)) man.setPose(p, true);
         } catch (IllegalArgumentException ignored) {}
     }
 
-    /** Pose accettate dalle entita' di tipo player, in minuscolo. */
+    /**
+     * Pose accettate dalle entita' di tipo player, in minuscolo. "sitting" NON e' fra le Pose
+     * vere del Mannequin ({@code Mannequin.validPoses()} non la contiene su questa versione:
+     * quella e' per gatti/pappagalli/lupi) — e' aggiunta a mano perche' e' comunque un valore
+     * valido per /mentities pose: {@link #applySeat} la ottiene con un sedile invisibile, lo
+     * stesso trucco che piega le gambe a un giocatore vero seduto su una barca o un cavallo.
+     */
     public List<String> validPoses() {
         List<String> out = new ArrayList<>();
+        out.add(SITTING);
         for (Pose p : Mannequin.validPoses()) out.add(p.name().toLowerCase(Locale.ROOT));
         return out;
+    }
+
+    /**
+     * La "seduta" di un Mannequin non e' una Pose vanilla: si ottiene facendo cavalcare
+     * all'entita' un sedile invisibile ({@code ArmorStand} marker), esattamente come un
+     * giocatore vero appare seduto su una barca o un cavallo — il modello del giocatore piega
+     * le gambe da solo ogni volta che e' un passeggero, indipendentemente dal veicolo.
+     *
+     * Se la posa non e' "sitting" (piu') il sedile va tolto, non solo lasciato li' vuoto.
+     */
+    private void applySeat(NpcDef d, Entity e) {
+        // Durante il consumer pre-spawn l'entita' non e' ancora nel mondo: spawn() richiama
+        // questo metodo di nuovo appena lo e' davvero (vedi il commento li').
+        if (!e.isInWorld()) return;
+        if (!wantsSeat(d)) {
+            removeSeat(d);
+            return;
+        }
+        Location seatLoc = seatLocation(d);
+        if (seatLoc == null) return;
+        Entity seat = d.seatUuid == null ? null : Bukkit.getEntity(d.seatUuid);
+        // Sedile fuori posto (scarto cambiato nel config, entita' spostata): si rifa'. Un veicolo
+        // con passeggero non si teletrasporta senza smontarlo, quindi rifarlo e' la via semplice.
+        // Tolleranza di 0.1 blocchi: il sedile si rifa' solo se e' davvero fuori posto (scarto
+        // cambiato, entita' spostata), mai per un arrotondamento — rifarlo fa alzare e risedere la statua.
+        if (seat != null && seat.isValid() && seat.getLocation().distanceSquared(seatLoc) > 0.01) {
+            seat.remove();
+            seat = null;
+        }
+        if (seat == null || seat.isDead() || !seat.isValid()) {
+            seat = spawnSeat(seatLoc, SEAT_REAL);
+            if (seat == null) return; // nascita del sedile rifiutata da un altro plugin: si riprova al prossimo giro
+            d.seatUuid = seat.getUniqueId();
+        }
+        mount(d, seat, e);
+    }
+
+    private static boolean wantsSeat(NpcDef d) {
+        return d.isPlayerType() && SITTING.equalsIgnoreCase(d.pose);
+    }
+
+    /**
+     * Sedile di una copia mirror. In modalita' specchio l'entita' vera e' nascosta a tutti: quello
+     * che un giocatore vede e' la SUA copia, quindi e' la copia che deve sedersi. Il sedile non e'
+     * persistente (come la copia) e lo toglie MirrorManager insieme a lei.
+     *
+     * @return il sedile, o null se la posa non e' "sitting" o se non e' nato
+     */
+    public Entity mountCloneSeat(NpcDef d, Entity clone) {
+        Location seatLoc = seatLocation(d);
+        if (!wantsSeat(d) || !clone.isInWorld() || seatLoc == null) return null;
+        Entity seat = spawnSeat(seatLoc, SEAT_CLONE);
+        if (seat == null) return null;
+        mount(d, seat, clone);
+        return seat;
+    }
+
+    /**
+     * Sedile dell'entita' vera che nessuna definizione riconosce piu': succede se l'entita' e'
+     * stata rimossa (o ha cambiato posa) mentre il chunk del sedile era scarico.
+     */
+    private boolean isOrphanSeat(Entity e) {
+        if (!SEAT_REAL.equals(e.getPersistentDataContainer().get(seatKey, PersistentDataType.STRING))) {
+            return false;
+        }
+        for (NpcDef d : npcs.values()) {
+            if (e.getUniqueId().equals(d.seatUuid)) return false;
+        }
+        return true;
+    }
+
+    /** true se e' il sedile di una copia mirror (serve a ripulire quelli rimasti dopo un reload). */
+    public boolean isCloneSeat(Entity e) {
+        return SEAT_CLONE.equals(e.getPersistentDataContainer().get(seatKey, PersistentDataType.STRING));
+    }
+
+    private void mount(NpcDef d, Entity seat, Entity rider) {
+        if (seat.equals(rider.getVehicle())) return;
+        rider.leaveVehicle();
+        // addPassenger restituisce false se il montaggio viene rifiutato (evento annullato da un
+        // altro plugin, entita' che non puo' cavalcare): senza questo avviso la statua resterebbe
+        // in piedi senza un perche'.
+        if (!seat.addPassenger(rider) && refusedSeats.add(d.id)) {
+            plugin.getLogger().warning("'" + d.name + "' non riesce a sedersi: il montaggio sul sedile"
+                    + " invisibile e' stato rifiutato (un altro plugin annulla l'EntityMountEvent?).");
+        }
+    }
+
+    /**
+     * Dove sta il sedile: nella posizione SALVATA dell'entita', mai in quella attuale. Un'entita'
+     * gia' seduta sta piu' in basso (il gioco aggancia il passeggero per il bacino), e partire da
+     * li' la farebbe sprofondare a ogni sedile rifatto.
+     *
+     * Il sedile e' un ArmorStand marker, che ha altezza zero: il gioco mette il bacino del
+     * passeggero esattamente all'altezza del sedile. Quindi con scarto 0 la statua si siede sulla
+     * superficie su cui starebbe in piedi, a qualunque scala (l'aggancio cresce col modello).
+     * {@code player.seat-y-offset} serve solo per sedie con la seduta piu' bassa del blocco.
+     */
+    private Location seatLocation(NpcDef d) {
+        Location loc = d.location();
+        if (loc == null) return null;
+        return loc.add(0, plugin.getConfig().getDouble("player.seat-y-offset", 0.0), 0);
+    }
+
+    /** Il sedile: ArmorStand invisibile, senza hitbox (marker) e senza gravita', in {@code seatLoc}. */
+    private Entity spawnSeat(Location seatLoc, String kind) {
+        try {
+            org.bukkit.entity.ArmorStand seat = seatLoc.getWorld().spawn(seatLoc, org.bukkit.entity.ArmorStand.class, s -> {
+                s.setMarker(true);
+                s.setSmall(true);
+                s.setInvisible(true);
+                s.setInvulnerable(true);
+                s.setGravity(false);
+                s.setSilent(true);
+                s.setCanTick(false);
+                s.setPersistent(SEAT_REAL.equals(kind));
+                s.getPersistentDataContainer().set(seatKey, PersistentDataType.STRING, kind);
+            }, CreatureSpawnEvent.SpawnReason.CUSTOM);
+            return seat.isInWorld() ? seat : null;
+        } catch (RuntimeException ex) {
+            plugin.getLogger().warning("Sedile invisibile non creato: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    /** Toglie il sedile (se c'e') e dimentica il suo UUID. */
+    private void removeSeat(NpcDef d) {
+        if (d.seatUuid == null) return;
+        Entity seat = Bukkit.getEntity(d.seatUuid);
+        if (seat != null) seat.remove();
+        d.seatUuid = null;
     }
 
     /**
@@ -500,7 +709,7 @@ public final class NpcManager {
 
         PlayerProfile inCache = skinCache.get(key);
         if (inCache != null) {
-            if (!vestita(man, inCache, label)) man.setProfile(withLabel(inCache, label));
+            setProfileOnce(man, inCache, label);
             return;
         }
 
@@ -509,7 +718,7 @@ public final class NpcManager {
             PlayerProfile profilo = online.getPlayerProfile();
             skinCache.put(key, profilo);
             skinRetry.remove(key);
-            man.setProfile(withLabel(profilo, label));
+            setProfileOnce(man, profilo, label);
             return;
         }
 
@@ -558,10 +767,27 @@ public final class NpcManager {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Entity e = Bukkit.getEntity(entityId);
                 if (e instanceof Mannequin m) {
-                    m.setProfile(withLabel(profile, d.opt("nametag", true) ? nick : ""));
+                    setProfileOnce(m, profile, d.opt("nametag", true) ? nick : "");
                 }
             });
         });
+    }
+
+    /**
+     * Mette il profilo (skin + etichetta) solo se non l'abbiamo GIA' messo noi, uguale, su questa
+     * entita'. Ogni setProfile fa ricaricare la statua a tutti i client vicini: rimandato a ogni
+     * controllo periodico (check-interval-seconds) la statua sembra rinascere ogni 20 secondi.
+     *
+     * <p>Non basta chiedere all'entita' che profilo ha ({@link #vestita}): il server "risolve" da solo
+     * un profilo con l'etichetta vuota (nametag off) e ci rimette il nome vero, quindi il confronto
+     * falliva sempre e il profilo ripartiva a ogni giro. Conta quello che abbiamo messo noi.</p>
+     */
+    private void setProfileOnce(Mannequin man, PlayerProfile profile, String label) {
+        String signature = profile.getId() + "|" + label;
+        if (signature.equals(appliedProfile.get(man.getUniqueId()))) return;
+        // Entita' appena caricata dal mondo (dopo un riavvio) che ha gia' il profilo giusto: nessun invio.
+        if (!vestita(man, profile, label)) man.setProfile(withLabel(profile, label));
+        appliedProfile.put(man.getUniqueId(), signature);
     }
 
     /**

@@ -73,6 +73,9 @@ public class Database {
             // The player's language (it/en/es/de), mirrored from MagixLanguage the same way as
             // the rank above: LanguageSync fills it on join and on every /language set.
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS language CHAR(2) NULL");
+            // The colour of the player's VIP halo (MagixCosmetics) as #RRGGBB, NULL = no halo:
+            // the site draws it over their face like the top supporter's crown. See HaloSync.
+            st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS halo_color CHAR(7) NULL");
 
             // The game's groups, mirrored for the site's permissions panel.
             st.execute("CREATE TABLE IF NOT EXISTS web_groups (" +

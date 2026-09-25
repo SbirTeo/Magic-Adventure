@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.7.2** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.22** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -46,7 +46,11 @@ Comando principale: `/magixentities` — alias: `/mentities`, `/mentity`, `/ment
 | `/mentities displayname <nome> off\|on` | Nasconde/rimostra il nome sopra la testa (stessa opzione di `/mentities set <nome> nametag`) |
 | `/mentities skin <nome> <nick>` | Cambia la skin (solo tipo `player`) |
 | `/mentities skin <nome> mirror` | Specchio: **ognuno la vede con la propria skin** |
+| `/mentities editor <nome>` | **Pannello** con tutti i comandi dell'entita', sezione Posizione compresa (vedi sotto) |
+| `/mentities position <nome> <x\|y\|z> <blocchi>` | Sposta l'entita' di pochi blocchi su un asse, tenendo la rotazione (max 16) |
+| `/mentities followradius <nome> <blocchi\|reset>` | Raggio del follow di questa entita' (1-64; `reset` = `follow.radius`) |
 | `/mentities pose <nome> <posa>` | Posa della statua (solo tipo `player`) |
+| `/mentities scale <nome> <valore\|reset>` | Ingrandisce/rimpicciolisce l'entita' (1 = normale, qualunque tipo) |
 | `/mentities set <nome> <opzione> <on\|off>` | Modifica un'opzione (sotto) |
 | `/mentities equip <nome>` | Apre il menu per vestirla (armatura, mano, mano secondaria) |
 | `/mentities cmd <nome> add <comando>` | Esegue il comando quando l'entita' viene cliccata |
@@ -142,7 +146,7 @@ il nome e' un identificativo, li' `mirror` sarebbe solo un nome come un altro.
 | `collidable` | off | Se `on` i giocatori la spingono/urtano |
 | `immovable` | on | Solo `player`: blocca completamente la statua |
 | `interact` | off | Se `on` il clic destro **non** viene annullato: lo vedono anche gli altri plugin |
-| `follow` | off | L'entita' **gira verso il giocatore piu' vicino** (raggio in `config.yml`) |
+| `follow` | off | Ognuno vicino vede l'entita' **girata verso di se'** (raggio in `config.yml`) |
 
 I default delle nuove entita' si cambiano nella sezione `defaults` di `config.yml`.
 
@@ -160,13 +164,76 @@ I default delle nuove entita' si cambiano nella sezione `defaults` di `config.ym
 /mentities set <nome> follow on
 ```
 
-L'entita' gira verso il giocatore piu' vicino entro `follow.radius` (default 12 blocchi) e torna
-all'orientamento salvato quando non c'e' piu' nessuno. L'aggiornamento avviene ogni
-`follow.interval-ticks` (default 5 tick = 4 volte al secondo): alzalo se vuoi meno lavoro, abbassalo
-per un movimento piu' fluido.
+Ognuno, entro `follow.radius` (default 12 blocchi), vede l'entita' girata verso **di se'** — non
+verso il giocatore piu' vicino: due persone davanti alla stessa statua si vedono guardate entrambe.
+Una testa sola non puo' guardare due persone, quindi funziona come lo specchio: ogni giocatore entro
+`mirror.radius` (48 blocchi, circa la distanza a cui si cominciano a vedere le entita') ha una sua
+**copia personale**, visibile solo a lui; entro il raggio del follow la copia lo guarda, fuori resta
+dritta. Il cambio fra entita' vera e copia avviene cosi' lontano, dove quasi non si vede: fatto al
+raggio del follow, la statua sembrava ricrearsi a ogni avvicinamento. Oltre `mirror.radius` si vede
+l'entita' vera, ferma (una statua gigante resta visibile anche da lontano).
+L'aggiornamento avviene ogni `follow.interval-ticks` (default 5 tick = 4 volte al secondo).
 
-Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). Sulle entita' a specchio ogni
-copia segue il **proprio** proprietario, quindi ciascuno si vede guardato dalla sua.
+Il raggio si puo' dare **per singola entita'**: `/mentities followradius <nome> <blocchi>` (da 1 a
+64; `reset` torna a `follow.radius`), o col cannocchiale nell'editor. Una statua gigante vista da
+lontano vuole un raggio grande, un NPC in un corridoio uno piccolo.
+
+Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). **Costo:** una copia per ogni
+giocatore entro `mirror.radius`. Come per lo specchio, un plugin che lega l'azione del clic
+all'UUID dell'entita' (es. `cmi:interactivecommand`) non vede le copie: usa i comandi al clic di
+MagixEntities.
+
+## Editor (`/mentities editor <nome>`)
+
+Un pannello (cassa 6x9) con tutto quello che si puo' fare a un'entita': displayname, nome, skin
+(clic destro = `mirror`), posa (clic sinistro/destro = successiva/precedente), scala (±0.25,
+shift ±1, tasto Q torna a 1), tipo, equipaggiamento, tutte le opzioni on/off, teletrasporto,
+"portala qui", comandi al clic, ricrea e rimuovi. Anche `/mentities gui <nome>`, o il pulsante
+✎ Editor sotto `/mentities info`.
+
+I pulsanti **eseguono i comandi normali** per conto di chi clicca: stessi permessi, stessi
+controlli, stesse conferme in chat. Quello che richiede un testo (nome, displayname, nick della
+skin, tipo, un comando al clic) chiude il pannello e ti propone il comando in chat, da completare.
+La rimozione e' solo proposta, mai eseguita al clic.
+
+**Sezione Posizione** (bussola): tre righe X, Y, Z con `−` e `+`, e un orologio che sceglie il
+passo (0.05, 0.1, 0.25, 0.5 o 1 blocco). Ogni clic esegue `/mentities position` e mantiene la
+rotazione. Attenzione: con `gravity on` un'entita' sollevata ricade a terra (il pannello lo
+ricorda); una statua seduta invece sta sul suo sedile e resta dove la metti — e' il modo piu'
+comodo di allinearla a una trave o a una sedia.
+
+## Seduta (`sitting`)
+
+```
+/mentities pose <nome> sitting
+```
+
+`sitting` NON e' una Pose vanilla del Mannequin (quelle vere sono `sleeping`, `swimming`,
+`sneaking`, `fall_flying`, `standing`: il tab-completion in gioco le mostra tutte). La seduta si
+ottiene con un trucco diverso, lo stesso che fa apparire seduto un giocatore vero su una barca o
+un cavallo: il modello del giocatore piega le gambe da solo ogni volta che l'entita' e' un
+**passeggero**, qualunque sia il veicolo. Il plugin crea un piccolo `ArmorStand` invisibile
+(sedile), ci monta sopra la statua e lo gestisce da solo — respawn compreso, come per il resto
+dell'entita'.
+
+Se l'altezza del sedile non torna su questa versione del gioco, si aggiusta `player.seat-y-offset`
+in `config.yml` (nessuna modifica al codice serve). Vale anche per le statue con skin o nome a
+specchio (`mirror`): li' ogni copia personale ha il **suo** sedile, non persistente, che sparisce
+insieme alla copia. Se un altro plugin rifiuta il montaggio, la console lo dice una volta per entita'.
+
+## Scala (`scale`)
+
+```
+/mentities scale <nome> <valore>
+/mentities scale <nome> reset
+```
+
+Ingrandisce o rimpicciolisce l'intera entita' — skin, equipaggiamento e hitbox insieme — con
+l'attributo vanilla `scale` (1 = grandezza normale). Vale per **qualunque tipo**, non solo per il
+tipo `player`. I limiti accettati sono in `config.yml` (`scale.min`/`scale.max`, default 0.0625–10).
+
+Combinata con `pose` e `follow` e' cosi' che si fa una statua gigante con la skin di un giocatore
+che gira lo sguardo verso chi le passa vicino.
 
 ## Equipaggiamento (`/mentities equip`)
 
@@ -252,13 +319,19 @@ mostrata solo a lui (`showEntity`). Le copie:
 **Costo:** una copia per ogni giocatore nel raggio. Con molti giocatori nello stesso punto (es. spawn)
 conviene tenere `mirror.radius` basso.
 
-**Aureola VIP sulla skin a specchio:** se il plugin **MagixCosmetics** e' installato e abilitato
-(`softdepend`, nessuna dipendenza obbligatoria), la copia in modalita' skin `mirror` di un giocatore
-riproduce sopra la testa la sua stessa aureola colorata da VIP — ma solo se in quel momento
-quel giocatore ce l'ha **davvero attiva** (permesso `magixcosmetics.halo` + un permesso colore,
-non spenta con `/halo off`, non in combattimento PvP, non in spettatore/vanish/invisibile: le
-stesse condizioni della sua aureola vera). Un giocatore senza aureola attiva vede/mostra la sua
-copia senza. Si regola con `mirror.halo.enabled` e `mirror.halo.interval-ticks` nel config.
+**Aureola VIP sulle statue:** se il plugin **MagixCosmetics** e' installato e abilitato
+(`softdepend`, nessuna dipendenza obbligatoria), ogni statua di tipo `player` mostra un'aureola:
+
+- **skin fissa** (es. `/mentities skin Statua SbirTeo`): l'aureola del giocatore della skin, nel
+  **suo** colore, visibile a tutti — anche se lui e' offline (MagixCosmetics legge i suoi permessi da
+  LuckPerms e li rilegge ogni 10 minuti). Conta `/halo off`; combattimento, vanish e
+  invisibilita' no, perche' riguardano il giocatore, non la statua;
+- **skin `mirror`**: l'aureola di chi guarda sopra la sua copia, **visibile solo a lui** (le copie
+  stanno tutte nello stesso punto), e solo se in quel momento ce l'ha davvero attiva, con le stesse
+  condizioni della sua aureola vera.
+
+Su una statua ingrandita (`scale`) l'aureola cresce con lei. Si regola con `mirror.halo.enabled` e
+`mirror.halo.interval-ticks` nel config (la sezione si chiama `mirror` per ragioni storiche).
 
 ---
 

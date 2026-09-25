@@ -128,6 +128,18 @@ public final class MagixCosmetics extends JavaPlugin {
                                 + "{{se:halo.combat.hide-while-fighting!=true}}Con **halo.combat.hide-while-fighting** "
                                 + "spento l'aureola resta visibile anche in combattimento.{{/se}}")
 
+                .section("L'aureola sulle statue (MagixEntities)",
+                        "Una statua di MagixEntities con la skin di un giocatore mostra la **sua** aureola, nel suo "
+                                + "colore, a chiunque la guardi — anche se lui è offline: i suoi permessi si leggono da "
+                                + "LuckPerms (su un altro thread, senza pesare sul server) e si rileggono ogni 10 minuti, "
+                                + "quindi un permesso dato o tolto mentre è offline si vede sulla statua entro quel tempo. "
+                                + "Il colore resta anche ricordato in `players.yml`: senza LuckPerms vale quello dell'ultima "
+                                + "volta che era online. **/halo off** vale anche per la statua; combattimento, vanish e "
+                                + "invisibilità no, perché riguardano il giocatore, non la statua.",
+                        "Su una statua a specchio (skin \"mirror\") ognuno vede la propria copia con la propria "
+                                + "aureola, e solo lui la vede: le copie stanno tutte nello stesso punto. Su una statua "
+                                + "ingrandita l'aureola cresce con lei.")
+
                 .section("Perché è un plugin a parte",
                         "I cosmetici non c'entrano con le fazioni, con l'ora o con le sanzioni: tenerli qui evita di "
                                 + "gonfiare gli altri plugin, e domani ci si aggiungono scie, ali o cappelli senza "

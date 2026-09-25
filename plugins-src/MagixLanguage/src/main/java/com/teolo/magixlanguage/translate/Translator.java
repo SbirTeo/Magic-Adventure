@@ -130,6 +130,20 @@ public final class Translator {
                     + "tornato al suo posto (testo: " + restored + ").");
             return null;
         }
+        for (String token : protectedText.tokens()) {
+            if (!restored.contains(token)) {
+                // Caso peggiore del precedente: il wrapper qx/xq e' sparito INSIEME al colore o al
+                // placeholder che proteggeva, invece di lasciarne un residuo riconoscibile (visto
+                // succedere davvero: "qx0xq" e "qx1xq" di una riga fatta solo di due codici colore
+                // ridotti al numero nudo "0 1", che LEFTOVER_TOKEN non intercetta perche' non
+                // assomiglia piu' a un segnaposto). Si verifica che ogni pezzo protetto sia
+                // davvero tornato, non solo che non ne resti un residuo visibile.
+                log.warning("MagixLanguage: traduzione verso " + targetLang + " scartata: un colore o un "
+                        + "placeholder e' sparito invece di tornare al suo posto (mancante: " + token
+                        + ", testo: " + restored + ").");
+                return null;
+            }
+        }
         return leading + restored + trailing;
     }
 
@@ -246,6 +260,20 @@ public final class Translator {
     /** Un segnaposto rimasto non riconosciuto dopo restore(): la traduzione non e' affidabile. */
     private static final Pattern LEFTOVER_TOKEN = Pattern.compile(
             "(?i)" + TOKEN_PREFIX + "[\\s\\-_]*\\d+[\\s\\-_]*" + TOKEN_SUFFIX);
+
+    /**
+     * I pezzi (colori, placeholder...) che {@link #protect} avrebbe isolato in {@code text}: usato
+     * da {@code TranslationSync} per verificare che una traduzione gia' in cache li contenga
+     * ancora tutti, senza dover rifare la chiamata di traduzione per saperlo.
+     */
+    public static List<String> requiredTokens(String text) {
+        List<String> tokens = new ArrayList<>();
+        Matcher m = TOKEN.matcher(text);
+        while (m.find()) {
+            tokens.add(m.group());
+        }
+        return tokens;
+    }
 
     private record Protected(String text, List<String> tokens) {}
 

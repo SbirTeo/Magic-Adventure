@@ -42,6 +42,15 @@ public final class NpcDef {
     public UUID uuid;
     /** Posa (solo tipo player/Mannequin), es. STANDING, SITTING, SLEEPING. */
     public String pose;
+    /** Scala dell'entita' (1.0 = normale). Vale per qualunque tipo, non solo player. */
+    public double scale = 1.0;
+    /** Raggio del follow di QUESTA entita', in blocchi; null = quello del config (follow.radius). */
+    public Double followRadius;
+    /**
+     * UUID del sedile invisibile usato dalla posa "sitting" (vedi NpcManager#applySeat); null se
+     * non serve. Solo per l'entita' vera, mai per le copie mirror (vedi il commento in apply()).
+     */
+    public UUID seatUuid;
 
     public final Map<String, Boolean> options = new LinkedHashMap<>();
 
@@ -88,7 +97,29 @@ public final class NpcDef {
 
     /** true se l'entita' va mostrata come copia personalizzata per ogni giocatore. */
     public boolean needsClones() {
+        return hidesReal() || isFollowPersonal();
+    }
+
+    /**
+     * true se l'entita' vera va nascosta a TUTTI: skin o nome a specchio, dove l'entita' vera non ha
+     * nulla di giusto da mostrare a nessuno.
+     */
+    public boolean hidesReal() {
         return isSkinMirror() || isDisplayMirror();
+    }
+
+    /**
+     * Opzione "follow" su un'entita' senza specchio: ognuno vicino vede una sua copia che guarda LUI
+     * (non il giocatore piu' vicino: una testa sola non puo' guardare due persone). Da lontano si vede
+     * l'entita' vera, nascosta solo a chi ha la sua copia.
+     */
+    /** Il raggio del follow di questa entita': il suo, o {@code fallback} (follow.radius) se non ne ha uno. */
+    public double followRadiusOr(double fallback) {
+        return followRadius != null ? followRadius : fallback;
+    }
+
+    public boolean isFollowPersonal() {
+        return opt("follow", false) && !hidesReal();
     }
 
     /** Nick usato per la skin (solo tipo player). */
