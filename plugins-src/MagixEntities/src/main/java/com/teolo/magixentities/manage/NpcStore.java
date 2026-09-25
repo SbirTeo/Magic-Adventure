@@ -52,6 +52,7 @@ public final class NpcStore {
             d.yaw = (float) s.getDouble("yaw");
             d.pitch = (float) s.getDouble("pitch");
             d.pose = s.getString("pose");
+            d.scale = s.getDouble("scale", 1.0);
             String u = s.getString("uuid");
             if (u != null && !u.isBlank()) {
                 try { d.uuid = UUID.fromString(u); } catch (IllegalArgumentException ignored) {}
@@ -88,6 +89,7 @@ public final class NpcStore {
             cfg.set(base + "yaw", d.yaw);
             cfg.set(base + "pitch", d.pitch);
             cfg.set(base + "pose", d.pose);
+            cfg.set(base + "scale", d.scale);
             cfg.set(base + "uuid", d.uuid == null ? null : d.uuid.toString());
             cfg.set(base + "commands", d.commands.isEmpty() ? null : d.commands);
             for (String slot : NpcDef.EQUIPMENT) {

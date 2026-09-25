@@ -33,7 +33,7 @@ public final class MeCommand implements TabExecutor {
     private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_-]{1,32}");
     private static final List<String> SUBS = List.of(
             "create", "remove", "list", "info", "tp", "here", "name", "displayname",
-            "type", "skin", "pose", "set", "equip", "cmd", "respawn", "reload", "help");
+            "type", "skin", "pose", "scale", "set", "equip", "cmd", "respawn", "reload", "help");
     private static final int PAGE_SIZE = 8;
 
     private final JavaPlugin plugin;
@@ -80,6 +80,7 @@ public final class MeCommand implements TabExecutor {
             case "type", "tipo" -> type(sender, args);
             case "skin" -> skin(sender, args);
             case "pose" -> pose(sender, args);
+            case "scale" -> scale(sender, args);
             case "set", "toggle" -> set(sender, args);
             case "equip", "equipaggia" -> equip(sender, args);
             case "cmd", "command", "comandi" -> commands(sender, args);
@@ -216,6 +217,7 @@ public final class MeCommand implements TabExecutor {
             line(sender, "skin", d.isSkinMirror() ? M.get("info-mirror-skin", "clones", clones) : d.skinNick());
             line(sender, "posa", d.pose == null ? "standing" : d.pose.toLowerCase(Locale.ROOT));
         }
+        if (d.scale != 1.0) line(sender, "scala", trim(d.scale));
         line(sender, "posizione", d.world + " &8· &f" + Math.round(d.x) + " " + Math.round(d.y) + " " + Math.round(d.z));
         line(sender, "stato", status(d));
         StringBuilder opts = new StringBuilder();
@@ -457,6 +459,50 @@ public final class MeCommand implements TabExecutor {
         M.send(sender, "pose-set", "name", d.name, "pose", pose);
     }
 
+    /**
+     * /mentities scale &lt;nome&gt; &lt;valore|reset&gt; - ingrandisce/rimpicciolisce l'entita'
+     * (1 = normale). Vale per qualunque tipo, non solo per il tipo player: usa l'attributo
+     * vanilla "scale", che ridimensiona l'intera entita' skin compresa.
+     */
+    private void scale(CommandSender sender, String[] args) {
+        double min = plugin.getConfig().getDouble("scale.min", 0.0625);
+        double max = plugin.getConfig().getDouble("scale.max", 10.0);
+        if (args.length < 3) {
+            M.send(sender, "usage-scale", "min", trim(min), "max", trim(max));
+            return;
+        }
+        NpcDef d = npcs.get(args[1]);
+        if (d == null) {
+            M.send(sender, "not-found", "name", args[1]);
+            return;
+        }
+        String raw = args[2].toLowerCase(Locale.ROOT);
+        double value;
+        if (raw.equals("reset")) {
+            value = 1.0;
+        } else {
+            try {
+                value = Double.parseDouble(raw.replace(',', '.'));
+            } catch (NumberFormatException ex) {
+                M.send(sender, "scale-invalid", "min", trim(min), "max", trim(max));
+                return;
+            }
+        }
+        if (value < min || value > max) {
+            M.send(sender, "scale-invalid", "min", trim(min), "max", trim(max));
+            return;
+        }
+        d.scale = value;
+        applyLive(sender, d);
+        npcs.save();
+        M.send(sender, "scale-set", "name", d.name, "scale", trim(value));
+    }
+
+    /** Un numero senza zeri decimali inutili (2.0 -> "2", 1.5 resta "1.5"). */
+    private static String trim(double v) {
+        return v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
+    }
+
     private void set(CommandSender sender, String[] args) {
         if (args.length < 4) {
             M.send(sender, "usage-set");
@@ -677,6 +723,7 @@ public final class MeCommand implements TabExecutor {
                 case "skin" -> filter(skinSuggestions(), args[2]);
                 case "displayname", "display" -> filter(List.of(NpcDef.MIRROR, "reset", "off", "on"), args[2]);
                 case "pose" -> filter(npcs.validPoses(), args[2]);
+                case "scale" -> filter(List.of("0.5", "1", "2", "4", "8", "reset"), args[2]);
                 case "set", "toggle" -> filter(NpcDef.OPTIONS, args[2]);
                 case "cmd", "command", "comandi" -> filter(List.of("add", "list", "remove", "clear"), args[2]);
                 default -> List.of();

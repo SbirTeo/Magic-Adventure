@@ -9,6 +9,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -56,6 +59,21 @@ public final class NpcManager {
     private final Set<String> skinPending = ConcurrentHashMap.newKeySet();
     /** Entita' a cui il mondo ha detto di no: serve a non ripetere l'avviso ad ogni controllo. */
     private final Set<String> refused = ConcurrentHashMap.newKeySet();
+    /**
+     * L'attributo vanilla "scale" (introdotto per ingrandire/rimpicciolire un'entita' vivente
+     * intera, skin compresa): si risolve dal registro, non da una costante statica, cosi' il
+     * codice compila anche su build di Paper che non la espongono piu' come campo dedicato.
+     * Null se questa versione del server non la conosce: {@link #applyScale} allora non fa nulla.
+     */
+    private static final Attribute SCALE_ATTRIBUTE = resolveScaleAttribute();
+
+    private static Attribute resolveScaleAttribute() {
+        try {
+            return Registry.ATTRIBUTE.get(NamespacedKey.minecraft("scale"));
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
 
     public NpcManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -356,6 +374,7 @@ public final class NpcManager {
             le.setCollidable(d.opt("collidable", false));
             le.setCanPickupItems(false);
             try { le.setAI(ai); } catch (UnsupportedOperationException ignored) {}
+            applyScale(d, le);
             // Difesa in profondita': qualsiasi problema sull'equipaggiamento non deve impedire
             // la creazione dell'entita' (apply() gira anche nel consumer di spawn).
             try {
@@ -461,6 +480,13 @@ public final class NpcManager {
         } catch (RuntimeException ignored) {
             // niente drop chance su questa entita': l'invulnerabilita' evita comunque i drop
         }
+    }
+
+    /** Ingrandisce/rimpicciolisce l'intera entita' (skin compresa): vale per qualunque tipo. */
+    private void applyScale(NpcDef d, LivingEntity le) {
+        if (SCALE_ATTRIBUTE == null) return;
+        AttributeInstance inst = le.getAttribute(SCALE_ATTRIBUTE);
+        if (inst != null) inst.setBaseValue(d.scale);
     }
 
     private void applyPose(NpcDef d, Mannequin man) {
