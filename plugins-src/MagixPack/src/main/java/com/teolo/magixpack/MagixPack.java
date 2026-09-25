@@ -1,19 +1,25 @@
 package com.teolo.magixpack;
 
 import com.teolo.magixpack.command.MagixPackCommand;
+import com.teolo.magixpack.glyph.GlyphCatalog;
+import com.teolo.magixpack.item.ItemCatalog;
 import com.teolo.magixpack.lang.Messages;
 import com.teolo.magixpack.pack.PackListener;
 import com.teolo.magixpack.pack.PackService;
 import com.teolo.magixpack.util.ConfigAlign;
 import com.teolo.magixpack.util.StaffGuide;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerLoadEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,6 +28,11 @@ import java.util.Map;
  * silenzio, lasciando l'utente davanti a texture mancanti), tutti registrano qui il loro contenuto
  * — vedi {@link #registerPack} — e questo plugin li fonde in un unico zip, lo serve via un piccolo
  * server HTTP integrato e lo rende obbligatorio al join.
+ *
+ * <p>Oltre a fondere, MagixPack genera anche DUE cataloghi propri (staff-editable, senza scrivere
+ * codice): oggetti custom con texture/modello proprio ({@code items.yml}, vedi {@link ItemCatalog}
+ * e {@link #customItem}) e icone custom via font per chat/tablist ({@code glyphs.yml}, vedi
+ * {@link GlyphCatalog} e {@link #customGlyph}). Dettagli in README.md.
  *
  * <h2>Come registrarsi (da un altro plugin Magix)</h2>
  * Niente dipendenza Maven: ogni plugin del repository si compila per conto suo (vedi
@@ -45,6 +56,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
     private PackService packService;
     private Messages messages;
+    private ItemCatalog itemCatalog;
+    private GlyphCatalog glyphCatalog;
 
     @Override
     public void onEnable() {
@@ -58,11 +71,15 @@ public final class MagixPack extends JavaPlugin implements Listener {
         messages = new Messages(this);
 
         packService = new PackService(this);
+        itemCatalog = new ItemCatalog(this);
+        glyphCatalog = new GlyphCatalog(this);
+        loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new PackListener(this, packService), this);
 
         MagixPackCommand cmd = new MagixPackCommand(this, messages);
         getCommand("magixpack").setExecutor(cmd);
+        getCommand("magixpack").setTabCompleter(cmd);
 
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
@@ -99,10 +116,23 @@ public final class MagixPack extends JavaPlugin implements Listener {
         ConfigAlign.alignAll(this);
         reloadConfig();
         messages.reload();
+        loadCatalogsAndRegister();
         packService.reloadConfig();
         if (packService.isAvailable()) {
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) packService.sendTo(p);
         }
+    }
+
+    /** Rilegge items.yml/glyphs.yml (e le rispettive texture) e registra il risultato nel
+     *  pacchetto sotto il PROPRIO nome (owner = MagixPack stesso, stessa API usata dagli altri
+     *  plugin): un'unica {@code register()}, perche' due chiamate con lo stesso owner si
+     *  sovrascriverebbero a vicenda invece di sommarsi (vedi {@link PackService#register}). */
+    private void loadCatalogsAndRegister() {
+        itemCatalog.reload();
+        glyphCatalog.reload();
+        Map<String, byte[]> files = new LinkedHashMap<>(itemCatalog.packFiles());
+        files.putAll(glyphCatalog.packFiles());
+        packService.register(this, files);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -137,6 +167,32 @@ public final class MagixPack extends JavaPlugin implements Listener {
     /** URL pubblico da cui i client scaricano lo zip (null finche' il servizio non e' partito). */
     public String packPublicUrl() {
         return packService.publicUrl();
+    }
+
+    /** Il catalogo degli oggetti custom (items.yml): usato dal comando {@code /mpack item}. */
+    public ItemCatalog itemCatalog() {
+        return itemCatalog;
+    }
+
+    /** Il catalogo delle icone custom via font (glyphs.yml): usato dal comando {@code /mpack glyph}. */
+    public GlyphCatalog glyphCatalog() {
+        return glyphCatalog;
+    }
+
+    /** L'oggetto custom di items.yml, pronto da dare a un giocatore; null se {@code id} non e' nel
+     *  catalogo (texture mancante compresa: vedi {@link ItemCatalog#reload}). Tipo di ritorno
+     *  Bukkit "vero": un chiamante per riflessione lo usa senza bisogno del jar di MagixPack sul
+     *  proprio classpath, come per {@link #sendPackTo}. */
+    public ItemStack customItem(String id) {
+        return itemCatalog.build(id);
+    }
+
+    /** Il Component Adventure di un'icona custom di glyphs.yml (font gia' impostato), pronto da
+     *  concatenare in un messaggio; null se {@code id} non e' nel catalogo. Non scrivere MAI il
+     *  carattere a mano: il punto di codice puo' cambiare se cambia il catalogo (vedi
+     *  {@link GlyphCatalog}). */
+    public Component customGlyph(String id) {
+        return glyphCatalog.component(id);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -209,13 +265,42 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "pacchetto finche' non si riavviava l'intero server Minecraft.")
 
                 .subcommands("I comandi (/mpack)",
-                        "/mpack reload", "Rilegge config.yml (porta, host, messaggi, scadenze), ricostruisce "
-                                + "subito il pacchetto con le registrazioni gia' in mano e lo RIMANDA a chi e' "
-                                + "gia' online (senza, un client gia' connesso non saprebbe mai che lo zip e' "
-                                + "cambiato: il pacchetto si manda da solo solo al join). F3+T dal client NON "
-                                + "basta: ricarica solo i pacchetti gia' scaricati sul disco, non ricontatta il "
-                                + "server. Non richiede di nuovo il contenuto agli altri plugin: se e' cambiato "
-                                + "un LORO segnaposto, serve ricaricare (o riavviare) quel plugin, non questo.")
+                        "/mpack reload", "Rilegge config.yml (porta, host, messaggi, scadenze), items.yml e "
+                                + "glyphs.yml, ricostruisce subito il pacchetto con le registrazioni gia' in "
+                                + "mano e lo RIMANDA a chi e' gia' online (senza, un client gia' connesso non "
+                                + "saprebbe mai che lo zip e' cambiato: il pacchetto si manda da solo solo al "
+                                + "join). F3+T dal client NON basta: ricarica solo i pacchetti gia' scaricati "
+                                + "sul disco, non ricontatta il server. Non richiede di nuovo il contenuto agli "
+                                + "altri plugin: se e' cambiato un LORO segnaposto, serve ricaricare (o "
+                                + "riavviare) quel plugin, non questo.",
+                        "/mpack item give <id> [giocatore]", "Da' un oggetto custom di items.yml (texture e "
+                                + "modello propri, come Oraxen). Senza destinatario lo da' a chi lancia il "
+                                + "comando.",
+                        "/mpack item list", "Elenca gli oggetti custom caricati da items.yml in questo momento "
+                                + "(quelli con la texture mancante in items/ non compaiono: vedi la console).",
+                        "/mpack glyph list", "Elenca le icone custom di glyphs.yml col loro punto di codice "
+                                + "attuale (font magixpack:icons) — utile per verificare cosa e' disponibile "
+                                + "prima di usarle da un altro plugin.")
+
+                .section("Oggetti custom (items.yml)",
+                        "Catalogo staff-editable per oggetti con texture E MODELLO propri, non un semplice "
+                                + "glifo: un vero modello 2D generato (parent item/generated), sopra un item "
+                                + "base di Minecraft che decide solo le meccaniche (danno, durabilita', "
+                                + "impilabilita'...), mai l'aspetto. Basta un file in plugins/MagixPack/items/"
+                                + "<id>.png + una voce in items.yml (material, name, lore) + /mpack reload: il "
+                                + "plugin genera da solo il JSON del modello, non serve scriverlo a mano. Limite "
+                                + "attuale: solo icone 2D piatte, niente modelli 3D ne' piu' layer.")
+
+                .section("Icone custom via font (glyphs.yml)",
+                        "Per simboli dentro un messaggio di chat o nel tablist, MAI per gli oggetti (quelli "
+                                + "hanno il loro modello vero, vedi sopra). Font PROPRIO (magixpack:icons), mai "
+                                + "minecraft:default: quel file vanilla il client lo sostituisce per intero, non "
+                                + "lo fonde, quindi toccarlo direttamente rischierebbe di cancellare tutti i "
+                                + "provider vanilla (e' il motivo per cui l'esperimento della cornice, prima di "
+                                + "questa funzione, e' stato tolto). Il punto di codice di ogni icona lo assegna "
+                                + "il plugin da solo, in ordine alfabetico: puo' cambiare se il catalogo cambia, "
+                                + "quindi un altro plugin la richiama sempre per NOME tramite l'API "
+                                + "(MagixPack.customGlyph(\"id\")), mai scrivendo il carattere a mano.")
 
                 .commands()
                 .permissions()
@@ -238,6 +323,12 @@ public final class MagixPack extends JavaPlugin implements Listener {
                         "Serve /mpack reload (o un riavvio) dopo aver aggiunto/modificato un file: la "
                                 + "cartella viene riletta solo alla costruzione del pacchetto, non in "
                                 + "automatico a ogni scrittura su disco.")
+                .issue("Ho aggiunto un oggetto/icona in items.yml o glyphs.yml ma /mpack item list (o glyph "
+                        + "list) non lo mostra",
+                        "Quasi sempre manca la texture: un oggetto senza plugins/MagixPack/items/<id>.png (o "
+                                + "un'icona senza glyphs/<id>.png) viene ignorato con un avviso in console, non "
+                                + "un errore bloccante. Controlla che il nome del file combaci ESATTAMENTE con "
+                                + "la chiave in items.yml/glyphs.yml (maiuscole comprese), poi /mpack reload.")
                 .issue("Il pacchetto non si scarica per nessuno",
                         "Quasi sempre la porta configurata non e' aperta sul firewall del VPS verso "
                                 + "l'esterno, oppure public-host e' vuoto/sbagliato. Il log segnala i download "

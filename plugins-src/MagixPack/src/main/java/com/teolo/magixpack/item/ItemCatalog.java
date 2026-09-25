@@ -1,0 +1,138 @@
+package com.teolo.magixpack.item;
+
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+/**
+ * Legge {@code items.yml} (creata vuota al primo avvio, la riempie lo staff) e ne ricava due cose:
+ *
+ * <ul>
+ *   <li>il contenuto da registrare nel resource pack — un modello 2D generato ({@code
+ *       assets/magixpack/models/item/<id>.json}) che punta alla texture che lo staff ha messo in
+ *       {@code items/<id>.png} — vedi {@link #packFiles()};</li>
+ *   <li>l'{@link ItemStack} vero da dare a un giocatore — vedi {@link #build}.</li>
+ * </ul>
+ *
+ * <p>Un oggetto senza la sua texture in {@code items/<id>.png} viene ignorato (con un avviso nel
+ * log): niente modello rotto nel pacchetto, niente item fantasma da poter dare.
+ */
+public final class ItemCatalog {
+
+    /** Namespace proprio di MagixPack nel pacchetto: mai "minecraft", per non rischiare di
+     *  scavalcare una texture vanilla per sbaglio (per quello c'e' overrides/, esplicito). */
+    public static final String NAMESPACE = "magixpack";
+
+    private final JavaPlugin plugin;
+    private final Map<String, ItemEntry> entries = new LinkedHashMap<>();
+
+    public ItemCatalog(JavaPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    /** Rilegge items.yml e la cartella items/ (texture) dal disco. */
+    public void reload() {
+        entries.clear();
+        File file = new File(plugin.getDataFolder(), "items.yml");
+        if (!file.exists()) plugin.saveResource("items.yml", false);
+        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+        for (String id : cfg.getKeys(false)) {
+            ConfigurationSection sec = cfg.getConfigurationSection(id);
+            if (sec == null) continue;
+            String materialName = sec.getString("material", "").trim().toUpperCase(java.util.Locale.ROOT);
+            Material material = Material.matchMaterial(materialName);
+            if (material == null || material.isAir()) {
+                plugin.getLogger().warning("[Items] '" + id + "' in items.yml: material '" + materialName
+                        + "' non esiste, oggetto ignorato.");
+                continue;
+            }
+            if (!textureFile(id).isFile()) {
+                plugin.getLogger().warning("[Items] '" + id + "' in items.yml: manca la texture items/"
+                        + id + ".png, oggetto ignorato.");
+                continue;
+            }
+            String name = sec.getString("name", id);
+            List<String> lore = sec.getStringList("lore");
+            entries.put(id, new ItemEntry(id, materialName, name, lore));
+        }
+        if (!entries.isEmpty()) {
+            plugin.getLogger().info("[Items] " + entries.size() + " oggetto/i custom caricati da items.yml.");
+        }
+    }
+
+    private File textureFile(String id) {
+        return new File(new File(plugin.getDataFolder(), "items"), id + ".png");
+    }
+
+    public boolean has(String id) {
+        return entries.containsKey(id);
+    }
+
+    public List<String> ids() {
+        return new ArrayList<>(new TreeMap<>(entries).keySet());
+    }
+
+    /** L'oggetto vero, pronto da dare: null se l'id non esiste nel catalogo. */
+    public ItemStack build(String id) {
+        ItemEntry e = entries.get(id);
+        if (e == null) return null;
+        Material material = Material.matchMaterial(e.material());
+        if (material == null) return null;
+        ItemStack stack = new ItemStack(material);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setItemModel(new NamespacedKey(NAMESPACE, "item/" + id));
+            if (e.name() != null && !e.name().isBlank()) {
+                meta.displayName(com.teolo.magixpack.util.Colors.component(e.name())
+                        .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+            }
+            if (!e.lore().isEmpty()) {
+                List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+                for (String riga : e.lore()) {
+                    lore.add(com.teolo.magixpack.util.Colors.component(riga)
+                            .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+                }
+                meta.lore(lore);
+            }
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    /**
+     * Contenuto da registrare nel pacchetto: per ogni oggetto valido, il modello generato (un
+     * semplice layer0, come le icone 2D vanilla — {@code parent: item/generated}) e la texture
+     * letta da {@code items/<id>.png}, entrambi sotto il namespace proprio {@value #NAMESPACE}.
+     */
+    public Map<String, byte[]> packFiles() {
+        Map<String, byte[]> out = new LinkedHashMap<>();
+        for (ItemEntry e : entries.values()) {
+            try {
+                byte[] texture = Files.readAllBytes(textureFile(e.id()).toPath());
+                out.put("assets/" + NAMESPACE + "/textures/item/" + e.id() + ".png", texture);
+                String model = "{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\""
+                        + NAMESPACE + ":item/" + e.id() + "\"}}";
+                out.put("assets/" + NAMESPACE + "/models/item/" + e.id() + ".json",
+                        model.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException ex) {
+                plugin.getLogger().warning("[Items] Impossibile leggere items/" + e.id() + ".png ("
+                        + ex.getMessage() + "): oggetto escluso da questo pacchetto.");
+            }
+        }
+        return out;
+    }
+}

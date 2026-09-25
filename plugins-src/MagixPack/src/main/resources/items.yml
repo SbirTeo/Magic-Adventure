@@ -1,0 +1,25 @@
+# =====================================================================
+#  MagixPack - catalogo degli OGGETTI custom (texture e modello propri,
+#  come Oraxen: niente resource pack a parte, entrano in questo).
+#
+#  Per aggiungerne uno:
+#   1. Metti la texture in plugins/MagixPack/items/<id>.png (stesso nome
+#      della chiave qui sotto, es. flaming_sword.png).
+#   2. Aggiungi la voce qui sotto (material = l'item base di Minecraft:
+#      decide le meccaniche - danno, durabilita', se e' impilabile - non
+#      l'aspetto, che viene sempre dalla texture).
+#   3. /mpack reload. Il modello (un semplice layer0, come le icone 2D
+#      vanilla) lo genera il plugin da solo: non serve scrivere JSON a mano.
+#
+#  In gioco: /mpack item give <id> [giocatore].
+#
+#  Limite attuale: solo icone 2D piatte (parent item/generated), niente
+#  modelli 3D o piu' layer.
+# =====================================================================
+
+# Esempio (rimuovi il commento e metti items/flaming_sword.png per provarlo):
+# flaming_sword:
+#   material: DIAMOND_SWORD
+#   name: "&cSpada Ardente"
+#   lore:
+#     - "&7Forgiata nel fuoco del Nether"

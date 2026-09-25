@@ -50,6 +50,8 @@ Metodi pubblici esposti da `MagixPack` (tutti raggiungibili solo per riflessione
 | `isPackRequired()` | true se il pacchetto e' obbligatorio (config `required`). |
 | `sendPackTo(Player p)` | Manda il pacchetto al giocatore. |
 | `packPublicUrl()` | URL pubblico dello zip (null finche' il servizio non e' partito). |
+| `customItem(String id)` | L'`ItemStack` di `items.yml` pronto da dare, o null se `id` non c'e'. |
+| `customGlyph(String id)` | Il `Component` Adventure (font gia' impostato) di `glyphs.yml`, o null se `id` non c'e'. |
 
 Il momento giusto per registrarsi e' il proprio `onEnable`, con `softdepend: [MagixPack]` nel
 proprio `plugin.yml`: cosi' MagixPack e' gia' abilitato (il metodo esiste) quando il chiamante
@@ -75,6 +77,75 @@ in posizioni scritte nel CLIENT, non nell'immagine): un file con proporzioni div
 comunque a quella dimensione, e puo' venire illeggibile se non e' stato disegnato apposta per quel
 formato.
 
+## Oggetti custom (texture e modello propri, come Oraxen)
+
+`items.yml` (creata vuota gia' al primo avvio) e' il catalogo degli oggetti con texture E modello
+propri — non un glifo: un vero modello 2D generato, come le icone vanilla. Per aggiungerne uno:
+
+1. Metti la texture in `plugins/MagixPack/items/<id>.png` (stesso nome della chiave, es.
+   `flaming_sword.png`).
+2. Aggiungi la voce in `items.yml`:
+   ```yaml
+   flaming_sword:
+     material: DIAMOND_SWORD
+     name: "&cSpada Ardente"
+     lore:
+       - "&7Forgiata nel fuoco del Nether"
+   ```
+   `material` e' l'item base di Minecraft: decide le meccaniche (danno, durabilita',
+   impilabilita'...), MAI l'aspetto — quello viene sempre dalla texture.
+3. `/mpack reload`. Il modello (`assets/magixpack/models/item/<id>.json`, `parent:
+   item/generated`, `layer0` sulla texture appena messa) lo genera il plugin da solo: non serve
+   scrivere JSON a mano. Un oggetto senza la sua texture viene ignorato con un avviso in console.
+
+In gioco: `/mpack item give <id> [giocatore]` (permesso `magixpack.item.give`), `/mpack item list`
+per vedere il catalogo caricato. Niente crafting/shop qui dentro: quello si fa con altri strumenti
+gia' presenti sul server (es. CMI).
+
+**Limite attuale**: solo icone 2D piatte (un solo layer, `parent: item/generated`), niente modelli
+3D ne' piu' layer — se in futuro serve, e' un'estensione di `item/ItemCatalog.java`, non una
+riscrittura.
+
+Da un altro plugin: `MagixPack.customItem(String id)` (via riflessione, come `registerPack`)
+restituisce l'`ItemStack` pronto, o null se l'id non e' nel catalogo.
+
+## Icone custom via font (per chat/tablist, non per gli oggetti)
+
+`glyphs.yml` (creata vuota gia' al primo avvio) e' il catalogo delle icone via font — per simboli
+dentro un messaggio di chat o nel tablist, MAI per gli oggetti (quelli hanno il loro modello vero,
+vedi sopra). Per aggiungerne una:
+
+1. Texture in `plugins/MagixPack/glyphs/<id>.png` (stesso nome della chiave) — un'unica icona per
+   immagine, non un atlas.
+2. Voce in `glyphs.yml`:
+   ```yaml
+   star:
+     height: 8
+     ascent: 7
+   ```
+   `height`/`ascent` sono le stesse misure dei font bitmap vanilla (quanto e' alta l'icona e dove
+   sta la base del testo rispetto al bordo alto dell'immagine).
+3. `/mpack reload`.
+
+Il font e' custom (`magixpack:icons`), **mai** `minecraft:default`: quel file il client lo prende
+per intero dal pacchetto con priorita' piu' alta, non lo fonde — un provider aggiunto li' sopra
+cancellerebbe silenziosamente tutti i provider vanilla (e' il motivo per cui l'esperimento della
+cornice, prima di questa funzione, e' stato tolto). Con un font a parte questo rischio non c'e'.
+
+Il **punto di codice** (dove vive l'icona nello spazio Unicode) non si sceglie a mano: viene
+assegnato in ordine alfabetico sugli id presenti, a partire da un'area privata Unicode dedicata
+(mai in conflitto con un carattere vero). Puo' quindi CAMBIARE se il catalogo cambia — ecco perche'
+un'icona si richiama sempre per NOME tramite l'API, mai scrivendo il carattere a mano:
+
+```java
+Plugin mp = Bukkit.getPluginManager().getPlugin("MagixPack");
+Component icona = (Component) mp.getClass().getMethod("customGlyph", String.class).invoke(mp, "star");
+if (icona != null) player.sendMessage(Component.text("Hai trovato una ").append(icona));
+```
+
+`/mpack glyph list` (permesso `magixpack.glyph.list`) mostra il catalogo caricato col punto di
+codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
+
 ## Config
 
 - `public-host` / `port` — da dove i client scaricano lo zip (la porta va aperta sul firewall).
@@ -85,15 +156,20 @@ formato.
 
 ## Comandi
 
-- `/mpack reload` (permesso `magixpack.admin`) — rilegge config.yml, ricostruisce il pacchetto con
-  le registrazioni gia' in mano e lo **rimanda a chi e' gia' online** (senza, un client connesso non
-  saprebbe mai che lo zip e' cambiato: si manda da solo solo al join). `F3+T` dal client NON basta:
-  ricarica solo i pacchetti gia' scaricati sul disco, non ricontatta il server. Non richiede di
-  nuovo il contenuto agli altri plugin: se e' cambiato un LORO segnaposto, serve ricaricare (o
-  riavviare) quel plugin.
+- `/mpack reload` (permesso `magixpack.admin`) — rilegge config.yml, items.yml e glyphs.yml,
+  ricostruisce il pacchetto con le registrazioni gia' in mano e lo **rimanda a chi e' gia' online**
+  (senza, un client connesso non saprebbe mai che lo zip e' cambiato: si manda da solo solo al
+  join). `F3+T` dal client NON basta: ricarica solo i pacchetti gia' scaricati sul disco, non
+  ricontatta il server. Non richiede di nuovo il contenuto agli altri plugin: se e' cambiato un
+  LORO segnaposto, serve ricaricare (o riavviare) quel plugin.
+- `/mpack item give <id> [giocatore]` / `/mpack item list` (permesso `magixpack.item.give`) — vedi
+  "Oggetti custom" sopra.
+- `/mpack glyph list` (permesso `magixpack.glyph.list`) — vedi "Icone custom via font" sopra.
 
 ## Permessi
 
 - `magixpack.admin` (default op) — `/mpack reload`.
 - `magixpack.bypass` (default op) — non viene mai espulso se il pacchetto obbligatorio non si
   carica (lo riceve comunque). Salvaguardia per non restare chiusi fuori dal proprio server.
+- `magixpack.item.give` (default op) — `/mpack item give` e `/mpack item list`.
+- `magixpack.glyph.list` (default op) — `/mpack glyph list`.
