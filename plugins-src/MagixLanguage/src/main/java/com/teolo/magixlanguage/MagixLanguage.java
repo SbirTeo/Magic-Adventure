@@ -395,12 +395,24 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "correzione che resti, va usato il file -overrides.yml (vedi sopra), non "
                                 + "&lt;lingua&gt;.yml direttamente.")
                 .issue("Tante chiavi restano in italiano dopo una sincronizzazione",
-                        "Probabile limite giornaliero del servizio di traduzione (MyMemory, gratuito): con "
-                                + "/language status si vede subito quante ne mancano per ogni plugin, e nel log "
-                                + "compare 'rifiutata (risposta HTTP 429)' o 'interrotta la traduzione automatica'. "
-                                + "Non serve intervenire: si riprova da sola ai prossimi riavvii/sync, quando la "
-                                + "quota si libera. Per alzare il limite (5000 -> 10000 parole/giorno) si puo' "
-                                + "impostare translations.auto-translate.contact-email nel config.")
+                        "Probabile limite del servizio di traduzione (MyMemory, gratuito): con /language status "
+                                + "si vede subito quante ne mancano per ogni plugin, e nel log compare 'rifiutata "
+                                + "(risposta HTTP 429)' o 'interrotta la traduzione automatica'. Non serve "
+                                + "intervenire: si riprova da sola al prossimo giorno. Per alzare il limite (5000 "
+                                + "-> 10000 parole/giorno) si puo' impostare translations.auto-translate.contact-email "
+                                + "nel config.")
+                .issue("Perche' non riprova subito, a ogni riavvio",
+                        "Per disegno: si tenta una traduzione vera al massimo UNA volta al giorno, qualunque cosa "
+                                + "succeda nel frattempo (un riavvio dopo un deploy, un /language sync lanciato a "
+                                + "mano...). MyMemory non ha solo una quota di parole al giorno: ha anche un limite "
+                                + "di frequenza (HTTP 429) che un IP puo' far scattare ripetendo il tentativo troppo "
+                                + "spesso, e quel blocco puo' restare attivo ben oltre un giorno — e' successo "
+                                + "davvero con una decina di riavvii ravvicinati in poche ore. Lo specchio it.yml e "
+                                + "le chiavi gia' tradotte in cache continuano comunque ad aggiornarsi a ogni "
+                                + "riavvio: solo le chiamate di rete vere e proprie verso MyMemory si fermano dopo "
+                                + "il primo tentativo del giorno (il file last-translation-attempt.txt nella "
+                                + "cartella dati tiene la data; cancellarlo forza un nuovo tentativo prima di "
+                                + "mezzanotte, utile solo per verificare se un blocco si e' gia' liberato).")
                 .issue("Un colore o un placeholder e' sparito da un messaggio tradotto",
                         "Il servizio di traduzione puo' alterare un segnaposto interno (successo davvero: ha "
                                 + "tolto una coppia di parentesi da uno, lasciando un residuo tipo &quot;[2]&quot; al "

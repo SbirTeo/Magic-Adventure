@@ -121,6 +121,17 @@ public final class Translator {
         return !circuitOpen;
     }
 
+    /**
+     * Apre il circuito senza nemmeno provare una chiamata: usato quando il tentativo di
+     * traduzione di oggi e' gia' stato consumato da un giro precedente (vedi
+     * {@code TranslationSync}, un tentativo al giorno per non farsi bloccare da MyMemory a furia
+     * di riavvii). Le chiavi gia' in cache continuano comunque a funzionare: solo le chiamate di
+     * rete vere e proprie si fermano.
+     */
+    public void forceUnavailable() {
+        circuitOpen = true;
+    }
+
     private String call(String text, String targetLang) {
         try {
             // java.net.URI e' rigido con l'RFC 3986: "|" (in "it|en") non e' un carattere
