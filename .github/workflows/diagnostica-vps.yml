@@ -33,6 +33,10 @@ on:
         description: "si = cerca anche nei log vecchi (logs/*.log.gz), no = solo latest.log"
         required: false
         default: "si"
+      quanti_vecchi:
+        description: "Quanti file .log.gz vecchi guardare (i riavvii ravvicinati ne consumano in fretta: alza questo numero per cercare piu' indietro nel tempo)"
+        required: false
+        default: "8"
 
 concurrency:
   group: diagnostica-vps
@@ -67,6 +71,7 @@ jobs:
           IN_GREP: ${{ inputs.grep }}
           IN_RIGHE: ${{ inputs.righe }}
           IN_STORICO: ${{ inputs.storico }}
+          IN_QUANTI_VECCHI: ${{ inputs.quanti_vecchi }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
@@ -74,7 +79,7 @@ jobs:
           FILE_B64="$(printf '%s' "${IN_FILE:-}" | base64 -w0)"
           GREP_B64="$(printf '%s' "${IN_GREP:-}" | base64 -w0)"
           ssh -i "$KEY" -o StrictHostKeyChecking=yes "$DEST" \
-            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' bash -s" <<'REMOTE'
+            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' QUANTI_VECCHI='${IN_QUANTI_VECCHI:-8}' bash -s" <<'REMOTE'
           set -uo pipefail
           PLUGIN="$(printf '%s' "$PLUGIN_B64" | base64 -d)"
           FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
@@ -187,7 +192,7 @@ jobs:
           # successo PRIMA dell'ultimo riavvio).
           VECCHI=""
           if [ "${STORICO:-si}" = "si" ]; then
-            VECCHI="$(ls -t "$BASE/logs"/*.log.gz 2>/dev/null | head -n 8 | tr '\n' ' ')"
+            VECCHI="$(ls -t "$BASE/logs"/*.log.gz 2>/dev/null | head -n "${QUANTI_VECCHI:-8}" | tr '\n' ' ')"
           fi
           echo "Log esaminati: latest.log $VECCHI"
 
