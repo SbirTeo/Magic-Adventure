@@ -42,6 +42,8 @@ public final class NpcDef {
     public UUID uuid;
     /** Posa (solo tipo player/Mannequin), es. STANDING, SITTING, SLEEPING. */
     public String pose;
+    /** Scala dell'entita' (1.0 = normale). Vale per qualunque tipo, non solo player. */
+    public double scale = 1.0;
 
     public final Map<String, Boolean> options = new LinkedHashMap<>();
 

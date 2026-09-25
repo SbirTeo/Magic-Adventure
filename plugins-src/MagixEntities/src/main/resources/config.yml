@@ -78,6 +78,13 @@ mirror:
     # halo.update-interval-ticks in MagixCosmetics. Basso = piu' fluido, alto = piu' leggero.
     interval-ticks: 1
 
+scale:
+  # Limiti accettati da /mentities scale <nome> <valore> (1 = grandezza normale). Servono a evitare
+  # valori assurdi digitati per errore: il gioco stesso non li limita oltre questo.
+  min: 0.0625
+  # Vedi min sopra: stesso comando, stesso motivo, e' il tetto invece del pavimento.
+  max: 10.0
+
 skin:
   # Scarica le texture della skin da Mojang (in async) quando crei un'entita' "player".
   # Se false viene usato solo il nome: il server risolve la skin da solo, ma

@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.7.2** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.14** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -47,6 +47,7 @@ Comando principale: `/magixentities` — alias: `/mentities`, `/mentity`, `/ment
 | `/mentities skin <nome> <nick>` | Cambia la skin (solo tipo `player`) |
 | `/mentities skin <nome> mirror` | Specchio: **ognuno la vede con la propria skin** |
 | `/mentities pose <nome> <posa>` | Posa della statua (solo tipo `player`) |
+| `/mentities scale <nome> <valore\|reset>` | Ingrandisce/rimpicciolisce l'entita' (1 = normale, qualunque tipo) |
 | `/mentities set <nome> <opzione> <on\|off>` | Modifica un'opzione (sotto) |
 | `/mentities equip <nome>` | Apre il menu per vestirla (armatura, mano, mano secondaria) |
 | `/mentities cmd <nome> add <comando>` | Esegue il comando quando l'entita' viene cliccata |
@@ -167,6 +168,20 @@ per un movimento piu' fluido.
 
 Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). Sulle entita' a specchio ogni
 copia segue il **proprio** proprietario, quindi ciascuno si vede guardato dalla sua.
+
+## Scala (`scale`)
+
+```
+/mentities scale <nome> <valore>
+/mentities scale <nome> reset
+```
+
+Ingrandisce o rimpicciolisce l'intera entita' — skin, equipaggiamento e hitbox insieme — con
+l'attributo vanilla `scale` (1 = grandezza normale). Vale per **qualunque tipo**, non solo per il
+tipo `player`. I limiti accettati sono in `config.yml` (`scale.min`/`scale.max`, default 0.0625–10).
+
+Combinata con `pose` e `follow` e' cosi' che si fa una statua gigante con la skin di un giocatore
+che gira lo sguardo verso chi le passa vicino.
 
 ## Equipaggiamento (`/mentities equip`)
 

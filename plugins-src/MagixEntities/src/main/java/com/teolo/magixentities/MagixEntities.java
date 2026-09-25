@@ -161,7 +161,12 @@ public final class MagixEntities extends JavaPlugin {
                                 + "client disegna da solo mirandola da vicino, indipendente dal nome sopra la "
                                 + "testa: si toglie il nome dal profilo stesso, non solo dal cartello.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
-                                + "Si accende per singola entità.")
+                                + "Si accende per singola entità.",
+                        "La scala si cambia con `/mentities scale <nome> <valore>` (1 = normale, `reset` torna a "
+                                + "1): usa l'attributo vanilla dell'entità, quindi ingrandisce o rimpicciolisce tutto "
+                                + "— skin, equipaggiamento, hitbox — insieme. Vale per qualunque tipo, non solo per "
+                                + "il tipo player: è così che si fa una statua gigante con la skin di un giocatore "
+                                + "che segue con lo sguardo, combinando `scale` con `follow`.")
 
                 .section("Azioni al clic",
                         "A un'entità si può attaccare un'azione: eseguire un comando, aprire un menu, mandare un "
