@@ -4,7 +4,7 @@ main: com.teolo.magixweb.MagixWeb
 api-version: '1.21'
 author: teolo
 description: Collega l'account Minecraft al sito magicadventure.it
-softdepend: [LuckPerms, PlaceholderAPI]
+softdepend: [LuckPerms, PlaceholderAPI, MagixLanguage]
 
 # Nessun comando: /link e /otp sono passati a MagixAuth, che e' il solo padrone
 # dell'ingresso in partita.

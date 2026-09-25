@@ -72,6 +72,23 @@ public final class ResourcePackContent {
         double size = plugin.getConfig().getDouble("map.minimap.screen-size", 0.22);
         size = Math.max(0.05, Math.min(0.6, size));
         String sizeStr = String.format(java.util.Locale.ROOT, "%.4f", size);
+        // Pannello info sotto la minimap: righe di testo (px) e spazio dalla minimap (NDC). Le righe sono
+        // dedotte dal NUMERO di righe di testo in config (map.minimap.info-panel.lines), con la stessa
+        // formula di InfoPanelRenderer.panelRows -> shader e renderer concordano sull'altezza. Cambiare il
+        // NUMERO di righe richiede quindi un riavvio (rigenera il pack); il TESTO delle righe e' live.
+        int panelLines = Math.max(1, plugin.getConfig().getStringList("map.minimap.info-panel.lines").size());
+        int panelRows = com.teolo.magixfactions.minimap.InfoPanelRenderer.panelRows(panelLines);
+        String panelRowsStr = String.format(java.util.Locale.ROOT, "%.1f", (double) panelRows);
+        double panelGap = plugin.getConfig().getDouble("map.minimap.info-panel.gap", 0.006);
+        panelGap = Math.max(0.0, Math.min(0.2, panelGap));
+        String panelGapStr = String.format(java.util.Locale.ROOT, "%.4f", panelGap);
+        // Colore-CHIAVE dello sfondo trasparente passato allo shader: l'RGB EFFETTIVO reso dalla palette
+        // (non il magenta teorico), cosi' il confronto per il discard e' esatto. E' FISSO (non dipende dal
+        // config): "trasparente vs riquadro pieno" e' una scelta live del renderer (vedi text.fsh custom==3).
+        java.awt.Color panelKey = com.teolo.magixfactions.minimap.InfoPanelRenderer.transparentKeyRendered();
+        String panelKeyR = String.format(java.util.Locale.ROOT, "%.4f", panelKey.getRed() / 255f);
+        String panelKeyG = String.format(java.util.Locale.ROOT, "%.4f", panelKey.getGreen() / 255f);
+        String panelKeyB = String.format(java.util.Locale.ROOT, "%.4f", panelKey.getBlue() / 255f);
         // Forma minimap: quadrata o rotonda (default rotonda) -> #define SQUARE nel fragment shader.
         boolean square = "square".equalsIgnoreCase(plugin.getConfig().getString("map.minimap.shape", "round"));
         String squareStr = square ? "1" : "0";
@@ -105,11 +122,13 @@ public final class ResourcePackContent {
                     .getResourceAsStream("resourcepack/" + path)) {
                 if (in == null) throw new IOException("Risorsa mancante nel jar: resourcepack/" + path);
                 byte[] data = in.readAllBytes();
-                if (path.endsWith(".vsh")) { // il vertex shader ha il placeholder della dimensione
+                if (path.endsWith(".vsh")) { // il vertex shader ha i placeholder di minimap e pannello info
                     data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
                             .replace("__MAP_SIZE__", sizeStr)
+                            .replace("__PANEL_ROWS__", panelRowsStr)
+                            .replace("__PANEL_GAP__", panelGapStr)
                             .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                } else if (path.endsWith(".fsh")) { // il fragment shader ha i placeholder di forma e cornice
+                } else if (path.endsWith(".fsh")) { // il fragment shader ha i placeholder di forma, cornice e pannello
                     data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
                             .replace("__SQUARE__", squareStr)
                             .replace("__SMOOTH__", smoothStr)
@@ -117,6 +136,9 @@ public final class ResourcePackContent {
                             .replace("__BORDER_R__", brStr)
                             .replace("__BORDER_G__", bgStr)
                             .replace("__BORDER_B__", bbStr)
+                            .replace("__PANEL_KEY_R__", panelKeyR)
+                            .replace("__PANEL_KEY_G__", panelKeyG)
+                            .replace("__PANEL_KEY_B__", panelKeyB)
                             .getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 } else if (path.endsWith("font/default.json")) { // il font del logo ha i placeholder di dimensione/posizione
                     data = new String(data, java.nio.charset.StandardCharsets.UTF_8)

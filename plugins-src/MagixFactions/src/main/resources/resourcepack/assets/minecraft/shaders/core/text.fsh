@@ -55,6 +55,14 @@ const float HEADER_ROWS = 2.0;
 // puro, pixel nudi) da config map.style.
 #define SMOOTH __SMOOTH__
 
+// Pannello info (custom==3): colore-CHIAVE dello sfondo trasparente. Lo shader scarta SEMPRE i pixel di
+// questo colore (fisso, InfoPanelRenderer.TRANSPARENT_KEY): cosi' "trasparente vs riquadro pieno" e' una
+// scelta LIVE del renderer (fondo = chiave -> scartato; fondo = colore vero -> resta), senza riavvio. Un
+// colore di riquadro vero non coincide mai col magenta-chiave, quindi il riquadro pieno funziona lo stesso.
+// __PANEL_KEY_*__ = RGB EFFETTIVO reso dalla palette dal byte-chiave (non il magenta teorico), sostituito
+// dal plugin cosi' il confronto e' esatto.
+const vec3 PANEL_KEY = vec3(__PANEL_KEY_R__, __PANEL_KEY_G__, __PANEL_KEY_B__);
+
 // --- Frecce dei giocatori (minimap): SPRITE del cursore-mappa VANILLA -----------------------------
 // Copia PIXEL-PER-PIXEL della texture ufficiale del cursore giocatore di Minecraft
 // (assets/minecraft/textures/map/decorations/player.png, 8x8 — estratta dal client e ricodificata
@@ -219,6 +227,26 @@ void main() {
         vec3 rgb = texelFetch(Sampler0, tx, 0).rgb * ColorModulator.rgb;
 #endif
         fragColor = vec4(rgb, 1.0);
+        return;
+    }
+
+    // PANNELLO INFO (custom==3): striscia sotto la minimap con orologio/coordinate/info. Come la minimap
+    // sta SEMPRE davanti a tutto (gl_FragDepth = 1.0, reversed-Z). Testo campionato NEAREST (niente
+    // upscaling smart: sul testo distorcerebbe i glifi). Le prime HEADER_ROWS righe portano la firma
+    // magica e vanno nascoste: si campiona da riga >= HEADER_ROWS.
+    if (custom == 3) {
+        gl_FragDepth = 1.0;
+        // Le prime HEADER_ROWS righe portano la firma magica: si SCARTANO (discard), non si clampano. Col
+        // clamp (max(y,HEADER_ROWS)) le righe-schermo 0..HEADER_ROWS leggevano tutte la stessa riga di
+        // texture -> il bordo alto della prima riga di testo veniva duplicato e appariva "stirato".
+        if (uvCoord.y < HEADER_ROWS) discard;
+        ivec2 tx = clamp(ivec2(uvCoord), ivec2(0), ivec2(127));
+        vec3 rgb = texelFetch(Sampler0, tx, 0).rgb;
+        // Sfondo trasparente (scelta LIVE del renderer): i pixel del colore-CHIAVE non si disegnano ->
+        // resta solo il testo con la sua ombra. Con un riquadro pieno il fondo non e' il colore-chiave e
+        // nessun pixel viene scartato.
+        if (dot(abs(rgb - PANEL_KEY), vec3(1.0)) < 0.02) discard;
+        fragColor = vec4(rgb * ColorModulator.rgb, 1.0);
         return;
     }
 #endif

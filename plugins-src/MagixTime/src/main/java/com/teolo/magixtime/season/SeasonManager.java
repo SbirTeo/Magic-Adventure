@@ -142,7 +142,7 @@ public final class SeasonManager {
         String prev = previous == null ? "" : previous.display();
         if (plugin.getConfig().getBoolean("seasons.announce", true)) {
             Bukkit.broadcast(Colors.component(
-                    plugin.messages().prefix() + plugin.messages().get("season-change",
+                    plugin.messages().get("season-change",
                             "season", now.display(), "prev", prev)));
         }
         boolean title = plugin.getConfig().getBoolean("seasons.announce-title", true);

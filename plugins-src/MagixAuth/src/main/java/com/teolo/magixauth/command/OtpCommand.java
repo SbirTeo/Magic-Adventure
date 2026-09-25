@@ -3,6 +3,7 @@ package com.teolo.magixauth.command;
 import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.gate.EntryState;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.util.Texts;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -20,25 +21,27 @@ public final class OtpCommand implements CommandExecutor {
 
     private final AuthConfig config;
     private final AuthGate gate;
+    private final Messages messages;
 
-    public OtpCommand(AuthConfig config, AuthGate gate) {
+    public OtpCommand(AuthConfig config, AuthGate gate, Messages messages) {
         this.config = config;
         this.gate = gate;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage("Solo un giocatore puo' verificarsi.");
+            sender.sendMessage(messages.get("otp-command.players-only"));
             return true;
         }
         EntryState state = gate.state(p);
         if (state == null || !state.awaitsCode()) {
-            p.sendMessage(Texts.c(config.prefix, "&7Non ti sta venendo chiesto nessun codice."));
+            p.sendMessage(Texts.c(messages.get(p, "otp-command.not-requested")));
             return true;
         }
         if (args.length != 1) {
-            p.sendMessage(Texts.c(config.prefix, "&7Uso: &f/otp <codice a sei cifre>"));
+            p.sendMessage(Texts.c(messages.get(p, "otp-command.usage")));
             return true;
         }
         gate.tryCode(p, args[0]);

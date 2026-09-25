@@ -59,6 +59,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private final com.teolo.magixfactions.minimap.MinimapManager minimap;
     private final com.teolo.magixfactions.manage.FakeDataManager fake;
     private final com.teolo.magixfactions.listener.ProtectionListener protection;
+    private final com.teolo.magixfactions.listener.HomeWarmupListener homeWarmup;
 
     private final Map<UUID, Long> invites = new HashMap<>();
     private final Map<UUID, Long> unclaimAllConfirm = new HashMap<>(); // giocatore -> timestamp richiesta /f unclaimall
@@ -68,28 +69,38 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     com.teolo.magixfactions.manage.ScoreManager score,
                     com.teolo.magixfactions.map.MapService maps, com.teolo.magixfactions.minimap.MinimapManager minimap,
                     com.teolo.magixfactions.manage.FakeDataManager fake,
-                    com.teolo.magixfactions.listener.ProtectionListener protection) {
+                    com.teolo.magixfactions.listener.ProtectionListener protection,
+                    com.teolo.magixfactions.listener.HomeWarmupListener homeWarmup) {
         this.plugin = plugin; this.fm = fm; this.ranks = ranks; this.chat = chat; this.db = db; this.M = messages;
         this.power = power; this.claims = claims; this.score = score; this.maps = maps; this.minimap = minimap;
-        this.fake = fake; this.protection = protection;
+        this.fake = fake; this.protection = protection; this.homeWarmup = homeWarmup;
+    }
+
+    /** La risposta a un comando. */
+    private void msg(CommandSender s, String m) {
+        if (s instanceof Player p) m = Papi.resolve(p, m); // risolve i %placeholder% per il giocatore
+        s.sendMessage(m);
     }
 
     /**
-     * La risposta a un comando: il cartellino del plugin davanti, poi il messaggio.
-     *
-     * Il prefisso sta qui e non davanti a ogni riga di messages.yml perche' i pannelli
-     * (l'aiuto, /f info, /f list, /f map) devono restarne fuori: una cornice ha senso attorno a
-     * una risposta, non ripetuta dodici volte dentro una scheda. Quelli passano da {@link #panel}.
+     * Come {@link #msg}, ma a partire dalla CHIAVE invece che dal testo gia' pronto: se il
+     * destinatario e' un giocatore con MagixLanguage installato e non italofono, il testo esce
+     * gia' tradotto (vedi {@code Messages.get(CommandSender, String, String...)}); altrimenti e'
+     * l'italiano di sempre. La stragrande maggioranza delle risposte del plugin passa da qui.
      */
-    private void msg(CommandSender s, String m) {
-        if (s instanceof Player p) m = Papi.resolve(p, m); // risolve i %placeholder% per il giocatore
-        s.sendMessage(M.prefix() + m);
+    private void msgKey(CommandSender s, String path, String... kv) {
+        msg(s, M.get(s, path, kv));
     }
 
     /** Una riga di pannello: niente prefisso, il pannello ha gia' la sua intestazione. */
     private void panel(CommandSender s, String m) {
         if (s instanceof Player p) m = Papi.resolve(p, m);
         s.sendMessage(m);
+    }
+
+    /** Come {@link #msgKey}, ma per una riga di pannello (nessun prefisso). */
+    private void panelKey(CommandSender s, String path, String... kv) {
+        panel(s, M.get(s, path, kv));
     }
 
     @Override
@@ -107,7 +118,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (sub.equals("list") || sub.equals("l")) return list(sender);
         if (sub.equals("top") || sub.equals("classifica")) return top(sender);
         if (sub.equals("reload")) {
-            if (!sender.hasPermission("magixfactions.admin")) { msg(sender, M.get("errors.no-permission")); return true; }
+            if (!sender.hasPermission("magixfactions.admin")) { msgKey(sender, "errors.no-permission"); return true; }
             // Prima si allineano i file del server a quelli del jar (le chiavi nuove di un
         // deploy compaiono anche senza riavvio), poi si rilegge.
         ConfigAlign.alignAll(plugin);
@@ -118,11 +129,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             // Guide e tutorial riportano i valori del config: se cambia il config devono cambiare
             // anche loro, subito, senza aspettare il prossimo riavvio.
             if (plugin instanceof com.teolo.magixfactions.MagixFactions mf) mf.riscriviGuide();
-            msg(sender, M.get("reload"));
+            msgKey(sender, "reload");
             return true;
         }
 
-        if (!(sender instanceof Player p)) { msg(sender, M.get("errors.players-only")); return true; }
+        if (!(sender instanceof Player p)) { msgKey(sender, "errors.players-only"); return true; }
 
         try {
             switch (sub) {
@@ -157,18 +168,18 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 default: help(p, 1); return true;
             }
         } catch (Exception e) {
-            msg(p, M.get("errors.generic", "error", String.valueOf(e.getMessage())));
+            msgKey(p, "errors.generic", "error", String.valueOf(e.getMessage()));
             plugin.getLogger().warning("Errore comando /f " + sub + ": " + e.getMessage());
             return true;
         }
     }
 
     private boolean create(Player p, String[] a) throws Exception {
-        if (a.length < 2) { msg(p, M.get("create.usage")); return true; }
-        if (fm.getFaction(p.getUniqueId()) != null) { msg(p, M.get("create.already-in")); return true; }
+        if (a.length < 2) { msgKey(p, "create.usage"); return true; }
+        if (fm.getFaction(p.getUniqueId()) != null) { msgKey(p, "create.already-in"); return true; }
         if (inProtectedSpawn(p)) {
-            msg(p, M.get("protected-spawn.no-create", "radius",
-                    String.valueOf(plugin.getConfig().getInt("claims.protected-spawn.radius", 500))));
+            msgKey(p, "protected-spawn.no-create", "radius",
+                    String.valueOf(plugin.getConfig().getInt("claims.protected-spawn.radius", 500)));
             return true;
         }
         String name = a[1];
@@ -180,8 +191,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         req.consume(p);
 
         Faction f = fm.createFaction(name, name, p.getUniqueId());
-        msg(p, M.get("create.success", "name", cname(p, f)));
-        broadcastAll(M.get("create.broadcast", "name", f.getName(), "player", p.getName()));
+        msgKey(p, "create.success", "name", cname(p, f));
+        broadcastAll("create.broadcast", "name", f.getName(), "player", p.getName());
         return true;
     }
 
@@ -198,16 +209,16 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         int max = plugin.getConfig().getInt("faction-name.max-length", 15);
         int maxDigits = plugin.getConfig().getInt("faction-name.max-digits", 2);
         if (name.length() < min || name.length() > max) {
-            msg(p, M.get("create.name-length", "min", String.valueOf(min), "max", String.valueOf(max))); return false;
+            msgKey(p, "create.name-length", "min", String.valueOf(min), "max", String.valueOf(max)); return false;
         }
-        if (!name.matches("[A-Za-z0-9]+")) { msg(p, M.get("create.name-chars")); return false; }
+        if (!name.matches("[A-Za-z0-9]+")) { msgKey(p, "create.name-chars"); return false; }
         long digits = name.chars().filter(Character::isDigit).count();
-        if (digits > maxDigits) { msg(p, M.get("create.name-digits", "max", String.valueOf(maxDigits))); return false; }
+        if (digits > maxDigits) { msgKey(p, "create.name-digits", "max", String.valueOf(maxDigits)); return false; }
         if (WordFilter.isForbidden(plugin.getConfig().getStringList("forbidden-words"), name)) {
-            msg(p, M.get("filter.blocked")); return false;
+            msgKey(p, "filter.blocked"); return false;
         }
         Faction taken = fm.getByName(name);
-        if (taken != null && taken != self) { msg(p, M.get("create.name-taken")); return false; }
+        if (taken != null && taken != self) { msgKey(p, "create.name-taken"); return false; }
         return true;
     }
 
@@ -238,11 +249,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean rename(Player p, String[] a) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("rename.not-leader")); return true; }
-        if (a.length < 2) { msg(p, M.get("rename.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!p.getUniqueId().equals(f.getLeader())) { msgKey(p, "rename.not-leader"); return true; }
+        if (a.length < 2) { msgKey(p, "rename.usage"); return true; }
         String name = a[1];
-        if (name.equals(f.getName())) { msg(p, M.get("rename.same-name")); return true; }
+        if (name.equals(f.getName())) { msgKey(p, "rename.same-name"); return true; }
         if (!nameOk(p, name, f)) return true;
 
         // Attesa fra un cambio nome e il successivo (0 giorni = nessun limite).
@@ -251,8 +262,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             long readyAt = f.getRenamedAt() + cooldownDays * 24L * 3600_000L;
             long now = System.currentTimeMillis();
             if (now < readyAt) {
-                msg(p, M.get("rename.cooldown", "time",
-                        com.teolo.magixfactions.util.DurationText.fromMillis(readyAt - now)));
+                msgKey(p, "rename.cooldown", "time",
+                        com.teolo.magixfactions.util.DurationText.fromMillis(readyAt - now));
                 return true;
             }
         }
@@ -265,41 +276,41 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
         String old = f.getName();
         fm.renameFaction(f, name);
-        broadcast(f, M.get("rename.broadcast", "old", old, "name", name));
-        msg(p, M.get("rename.success", "name", cname(p, f)));
+        broadcast(f, "rename.broadcast", "old", old, "name", name);
+        msgKey(p, "rename.success", "name", cname(p, f));
         return true;
     }
 
     private boolean disband(Player p) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("disband.not-leader")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!p.getUniqueId().equals(f.getLeader())) { msgKey(p, "disband.not-leader"); return true; }
         String name = f.getName();
         fm.disband(f);
-        msg(p, M.get("disband.success"));
-        broadcastAll(M.get("disband.announce", "name", name, "player", p.getName()));
+        msgKey(p, "disband.success");
+        broadcastAll("disband.announce", "name", name, "player", p.getName());
         return true;
     }
 
     private boolean leave(Player p) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
         FactionManager.LeaveResult r = fm.handleLeave(f, p.getUniqueId());
         switch (r) {
-            case DISBANDED -> msg(p, M.get("leave.disbanded"));
+            case DISBANDED -> msgKey(p, "leave.disbanded");
             case SUCCESSION -> {
-                msg(p, M.get("leave.succession"));
+                msgKey(p, "leave.succession");
                 // Chi esce e' gia' stato rimosso da f: il broadcast raggiunge solo i membri rimasti.
-                broadcast(f, M.get("leave.broadcast", "player", p.getName()));
+                broadcast(f, "leave.broadcast", "player", p.getName());
                 Player nl = f.getLeader() != null ? Bukkit.getPlayer(f.getLeader()) : null;
-                if (nl != null) msg(nl, M.get("leave.new-leader", "name", cname(nl, f)));
+                if (nl != null) msgKey(nl, "leave.new-leader", "name", cname(nl, f));
                 String leaderName = f.getLeader() != null ? Bukkit.getOfflinePlayer(f.getLeader()).getName() : "?";
-                broadcast(f, M.get("leave.succession-broadcast", "leader", leaderName));
+                broadcast(f, "leave.succession-broadcast", "leader", leaderName);
             }
             case LEFT -> {
-                msg(p, M.get("leave.left"));
+                msgKey(p, "leave.left");
                 // Chi esce e' gia' stato rimosso da f: il broadcast raggiunge solo i membri rimasti.
-                broadcast(f, M.get("leave.broadcast", "player", p.getName()));
+                broadcast(f, "leave.broadcast", "player", p.getName());
             }
         }
         return true;
@@ -307,119 +318,119 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
     private boolean transfer(Player p, String[] a) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("transfer.not-leader")); return true; }
-        if (a.length < 2) { msg(p, M.get("transfer.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!p.getUniqueId().equals(f.getLeader())) { msgKey(p, "transfer.not-leader"); return true; }
+        if (a.length < 2) { msgKey(p, "transfer.usage"); return true; }
         OfflinePlayer target = resolveMember(f, a[1]);
-        if (target == null) { msg(p, M.get("transfer.not-member")); return true; }
-        if (target.getUniqueId().equals(p.getUniqueId())) { msg(p, M.get("transfer.already-leader")); return true; }
+        if (target == null) { msgKey(p, "transfer.not-member"); return true; }
+        if (target.getUniqueId().equals(p.getUniqueId())) { msgKey(p, "transfer.already-leader"); return true; }
         fm.setRank(f, p.getUniqueId(), ranks.highest().getId());
         fm.setLeader(f, target.getUniqueId());
         fm.setRank(f, target.getUniqueId(), Rank.LEADER_ID);
-        msg(p, M.get("transfer.success", "player", target.getName()));
+        msgKey(p, "transfer.success", "player", target.getName());
         Player tp = target.getPlayer();
-        if (tp != null) msg(tp, M.get("transfer.received", "name", cname(tp, f)));
+        if (tp != null) msgKey(tp, "transfer.received", "name", cname(tp, f));
         return true;
     }
 
     private boolean promote(Player p, String[] a) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "promote")) { msg(p, M.get("promote.no-perm")); return true; }
-        if (a.length < 2) { msg(p, M.get("promote.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "promote")) { msgKey(p, "promote.no-perm"); return true; }
+        if (a.length < 2) { msgKey(p, "promote.usage"); return true; }
         OfflinePlayer target = resolveMember(f, a[1]);
-        if (target == null) { msg(p, M.get("promote.not-member")); return true; }
+        if (target == null) { msgKey(p, "promote.not-member"); return true; }
         Member tm = f.getMember(target.getUniqueId());
-        if (tm.isLeader()) { msg(p, M.get("promote.cant-leader")); return true; }
+        if (tm.isLeader()) { msgKey(p, "promote.cant-leader"); return true; }
 
         boolean actorLeader = p.getUniqueId().equals(f.getLeader());
         int actorOrder = ranks.rankOrder(f.getMember(p.getUniqueId()).getRankId());
         int maxIndex = actorLeader ? ranks.size() - 1 : actorOrder - 1;
         int targetIndex = ranks.indexOf(tm.getRankId());
-        if (!actorLeader && targetIndex >= actorOrder) { msg(p, M.get("promote.too-high")); return true; }
+        if (!actorLeader && targetIndex >= actorOrder) { msgKey(p, "promote.too-high"); return true; }
         int newIndex = Math.min(targetIndex + 1, maxIndex);
-        if (newIndex <= targetIndex) { msg(p, M.get("promote.max")); return true; }
+        if (newIndex <= targetIndex) { msgKey(p, "promote.max"); return true; }
         fm.setRank(f, target.getUniqueId(), ranks.byIndex(newIndex).getId());
-        msg(p, M.get("promote.success", "player", target.getName(), "rank", ranks.byIndex(newIndex).getName()));
+        msgKey(p, "promote.success", "player", target.getName(), "rank", ranks.byIndex(newIndex).getName());
         Player tp = target.getPlayer();
-        if (tp != null) msg(tp, M.get("promote.received", "rank", ranks.byIndex(newIndex).getName()));
+        if (tp != null) msgKey(tp, "promote.received", "rank", ranks.byIndex(newIndex).getName());
         return true;
     }
 
     private boolean demote(Player p, String[] a) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "demote")) { msg(p, M.get("demote.no-perm")); return true; }
-        if (a.length < 2) { msg(p, M.get("demote.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "demote")) { msgKey(p, "demote.no-perm"); return true; }
+        if (a.length < 2) { msgKey(p, "demote.usage"); return true; }
         OfflinePlayer target = resolveMember(f, a[1]);
-        if (target == null) { msg(p, M.get("demote.not-member")); return true; }
+        if (target == null) { msgKey(p, "demote.not-member"); return true; }
         Member tm = f.getMember(target.getUniqueId());
-        if (tm.isLeader()) { msg(p, M.get("demote.cant-leader")); return true; }
+        if (tm.isLeader()) { msgKey(p, "demote.cant-leader"); return true; }
         int targetIndex = ranks.indexOf(tm.getRankId());
-        if (targetIndex <= 0) { msg(p, M.get("demote.min")); return true; }
+        if (targetIndex <= 0) { msgKey(p, "demote.min"); return true; }
         fm.setRank(f, target.getUniqueId(), ranks.byIndex(targetIndex - 1).getId());
-        msg(p, M.get("demote.success", "player", target.getName(), "rank", ranks.byIndex(targetIndex - 1).getName()));
+        msgKey(p, "demote.success", "player", target.getName(), "rank", ranks.byIndex(targetIndex - 1).getName());
         Player tp = target.getPlayer();
-        if (tp != null) msg(tp, M.get("demote.received", "rank", ranks.byIndex(targetIndex - 1).getName()));
+        if (tp != null) msgKey(tp, "demote.received", "rank", ranks.byIndex(targetIndex - 1).getName());
         return true;
     }
 
     private boolean invite(Player p, String[] a) {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "invite")) { msg(p, M.get("invite.no-perm")); return true; }
-        if (a.length < 2) { msg(p, M.get("invite.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "invite")) { msgKey(p, "invite.no-perm"); return true; }
+        if (a.length < 2) { msgKey(p, "invite.usage"); return true; }
         Player target = Bukkit.getPlayerExact(a[1]);
-        if (target == null) { msg(p, M.get("invite.not-online")); return true; }
-        if (fm.getFaction(target.getUniqueId()) != null) { msg(p, M.get("invite.already-in")); return true; }
-        if (f.size() >= fm.effectiveMaxMembers(f)) { msg(p, M.get("invite.full", "max", String.valueOf(fm.effectiveMaxMembers(f)))); return true; }
+        if (target == null) { msgKey(p, "invite.not-online"); return true; }
+        if (fm.getFaction(target.getUniqueId()) != null) { msgKey(p, "invite.already-in"); return true; }
+        if (f.size() >= fm.effectiveMaxMembers(f)) { msgKey(p, "invite.full", "max", String.valueOf(fm.effectiveMaxMembers(f))); return true; }
         invites.put(target.getUniqueId(), f.getId());
-        msg(p, M.get("invite.sent", "player", target.getName()));
-        msg(target, M.get("invite.received", "name", cname(target, f)));
+        msgKey(p, "invite.sent", "player", target.getName());
+        msgKey(target, "invite.received", "name", cname(target, f));
         return true;
     }
 
     private boolean join(Player p, String[] a) throws Exception {
-        if (fm.getFaction(p.getUniqueId()) != null) { msg(p, M.get("join.already-in")); return true; }
-        if (a.length < 2) { msg(p, M.get("join.usage")); return true; }
+        if (fm.getFaction(p.getUniqueId()) != null) { msgKey(p, "join.already-in"); return true; }
+        if (a.length < 2) { msgKey(p, "join.usage"); return true; }
         Faction f = fm.getByName(a[1]);
-        if (f == null) { msg(p, M.get("join.not-found")); return true; }
+        if (f == null) { msgKey(p, "join.not-found"); return true; }
         Long inv = invites.get(p.getUniqueId());
-        if (inv == null || inv != f.getId()) { msg(p, M.get("join.not-invited")); return true; }
-        if (f.size() >= fm.effectiveMaxMembers(f)) { msg(p, M.get("join.full")); return true; }
+        if (inv == null || inv != f.getId()) { msgKey(p, "join.not-invited"); return true; }
+        if (f.size() >= fm.effectiveMaxMembers(f)) { msgKey(p, "join.full"); return true; }
         fm.addMember(f, p.getUniqueId(), ranks.lowest().getId());
         invites.remove(p.getUniqueId());
-        msg(p, M.get("join.success", "name", cname(p, f)));
-        broadcast(f, M.get("join.broadcast", "player", p.getName()));
+        msgKey(p, "join.success", "name", cname(p, f));
+        broadcast(f, "join.broadcast", "player", p.getName());
         return true;
     }
 
     private boolean kick(Player p, String[] a) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "kick")) { msg(p, M.get("kick.no-perm")); return true; }
-        if (a.length < 2) { msg(p, M.get("kick.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "kick")) { msgKey(p, "kick.no-perm"); return true; }
+        if (a.length < 2) { msgKey(p, "kick.usage"); return true; }
         OfflinePlayer target = resolveMember(f, a[1]);
-        if (target == null) { msg(p, M.get("kick.not-member")); return true; }
+        if (target == null) { msgKey(p, "kick.not-member"); return true; }
         Member tm = f.getMember(target.getUniqueId());
-        if (tm.isLeader()) { msg(p, M.get("kick.cant-leader")); return true; }
+        if (tm.isLeader()) { msgKey(p, "kick.cant-leader"); return true; }
         boolean actorLeader = p.getUniqueId().equals(f.getLeader());
         if (!actorLeader && ranks.rankOrder(tm.getRankId()) >= ranks.rankOrder(f.getMember(p.getUniqueId()).getRankId())) {
-            msg(p, M.get("kick.too-high")); return true;
+            msgKey(p, "kick.too-high"); return true;
         }
         fm.removeMember(f, target.getUniqueId());
-        msg(p, M.get("kick.success", "player", target.getName()));
+        msgKey(p, "kick.success", "player", target.getName());
         Player tp = target.getPlayer();
-        if (tp != null) msg(tp, M.get("kick.received", "name", cname(tp, f)));
+        if (tp != null) msgKey(tp, "kick.received", "name", cname(tp, f));
         return true;
     }
 
     private boolean chatCmd(Player p, String[] a) {
-        if (fm.getFaction(p.getUniqueId()) == null) { msg(p, M.get("errors.no-faction")); return true; }
+        if (fm.getFaction(p.getUniqueId()) == null) { msgKey(p, "errors.no-faction"); return true; }
         ChatChannel ch;
         if (a.length >= 2) {
             ch = ChatChannel.parse(a[1]);
-            if (ch == null) { msg(p, M.get("chat.invalid")); return true; }
+            if (ch == null) { msgKey(p, "chat.invalid"); return true; }
         } else {
             ch = chat.get(p.getUniqueId()).next();
         }
@@ -429,7 +440,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case FACTION -> M.get("chat.channel-faction");
             case ALLY -> M.get("chat.channel-ally");
         };
-        msg(p, M.get("chat.set", "channel", name));
+        msgKey(p, "chat.set", "channel", name);
         return true;
     }
 
@@ -442,12 +453,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean relationCmd(Player p, String[] a, RelationType desired) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "relation")) { msg(p, M.get("relation.no-perm")); return true; }
-        if (a.length < 2) { msg(p, M.get("relation.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "relation")) { msgKey(p, "relation.no-perm"); return true; }
+        if (a.length < 2) { msgKey(p, "relation.usage"); return true; }
         Faction other = fm.getByName(a[1]);
-        if (other == null) { msg(p, M.get("relation.not-found")); return true; }
-        if (other.getId() == f.getId()) { msg(p, M.get("relation.self")); return true; }
+        if (other == null) { msgKey(p, "relation.not-found"); return true; }
+        if (other.getId() == f.getId()) { msgKey(p, "relation.self"); return true; }
 
         long fi = f.getId(), oi = other.getId();
         RelationType effective = fm.effectiveRelation(fi, oi);
@@ -456,22 +467,22 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
         if (desired == RelationType.ALLY) {
             // Alleanza: richiede il consenso reciproco.
-            if (effective == RelationType.ALLY) { msg(p, M.get("relation.ally-already", "name", cname(p, other))); return true; }
+            if (effective == RelationType.ALLY) { msgKey(p, "relation.ally-already", "name", cname(p, other)); return true; }
             if (myWish == RelationType.ALLY) {
                 // Richiesta gia' inviata: ri-eseguendo /f ally la si ANNULLA (toggle).
                 fm.setRelationWish(fi, oi, RelationType.ENEMY);
-                msg(p, M.get("relation.ally-cancelled", "name", cname(p, other)));
+                msgKey(p, "relation.ally-cancelled", "name", cname(p, other));
                 return true;
             }
             int max = plugin.getConfig().getInt("relations.max-allies", 0);
-            if (max > 0 && fm.alliesOf(f).size() >= max) { msg(p, M.get("relation.ally-max", "max", String.valueOf(max))); return true; }
+            if (max > 0 && fm.alliesOf(f).size() >= max) { msgKey(p, "relation.ally-max", "max", String.valueOf(max)); return true; }
             fm.setRelationWish(fi, oi, RelationType.ALLY);
             if (fm.effectiveRelation(fi, oi) == RelationType.ALLY) {
-                broadcast(f, M.get("relation.ally-formed", "name", cname(f, other)));
-                broadcast(other, M.get("relation.ally-formed", "name", cname(other, f)));
+                broadcast(f, "relation.ally-formed", "name", cname(f, other));
+                broadcast(other, "relation.ally-formed", "name", cname(other, f));
             } else {
-                msg(p, M.get("relation.ally-requested", "name", cname(p, other)));
-                broadcast(other, M.get("relation.ally-incoming", "name", cname(other, f)));
+                msgKey(p, "relation.ally-requested", "name", cname(p, other));
+                broadcast(other, "relation.ally-incoming", "name", cname(other, f));
             }
             return true;
         }
@@ -481,84 +492,84 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             // Sciogliere un'alleanza: immediato, dissolve entrambi i lati.
             fm.setRelationWish(fi, oi, RelationType.ENEMY);
             fm.setRelationWish(oi, fi, RelationType.ENEMY);
-            broadcast(f, M.get("relation.enemy-broke-self", "name", cname(f, other)));
-            broadcast(other, M.get("relation.enemy-broke-other", "name", cname(other, f)));
+            broadcast(f, "relation.enemy-broke-self", "name", cname(f, other));
+            broadcast(other, "relation.enemy-broke-other", "name", cname(other, f));
             return true;
         }
         if (myWish == RelationType.ALLY) {
             // Avevo una richiesta di alleanza in sospeso: annullala.
             fm.setRelationWish(fi, oi, RelationType.ENEMY);
-            msg(p, M.get("relation.ally-cancelled", "name", cname(p, other)));
+            msgKey(p, "relation.ally-cancelled", "name", cname(p, other));
             return true;
         }
         if (otherWish == RelationType.ALLY) {
             // L'altra fazione mi aveva chiesto alleanza: rifiuta.
             fm.setRelationWish(oi, fi, RelationType.ENEMY);
-            msg(p, M.get("relation.ally-rejected-self", "name", cname(p, other)));
-            broadcast(other, M.get("relation.ally-rejected-other", "name", cname(other, f)));
+            msgKey(p, "relation.ally-rejected-self", "name", cname(p, other));
+            broadcast(other, "relation.ally-rejected-other", "name", cname(other, f));
             return true;
         }
         // Gia' nemici di default.
-        msg(p, M.get("relation.enemy-already", "name", cname(p, other)));
+        msgKey(p, "relation.enemy-already", "name", cname(p, other));
         return true;
     }
 
     /** /f description <testo> (alias /f desc) - imposta la descrizione della fazione (max configurabile). */
     private boolean description(Player p, String[] a) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "description")) { msg(p, M.get("description.no-perm")); return true; }
-        if (a.length < 2) { msg(p, M.get("description.usage")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "description")) { msgKey(p, "description.no-perm"); return true; }
+        if (a.length < 2) { msgKey(p, "description.usage"); return true; }
         String desc = String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length)).trim();
         int max = plugin.getConfig().getInt("faction-description.max-length", 100);
-        if (desc.length() > max) { msg(p, M.get("description.too-long", "max", String.valueOf(max))); return true; }
+        if (desc.length() > max) { msgKey(p, "description.too-long", "max", String.valueOf(max)); return true; }
         if (WordFilter.isForbidden(plugin.getConfig().getStringList("forbidden-words"), desc)) {
-            msg(p, M.get("filter.blocked")); return true;
+            msgKey(p, "filter.blocked"); return true;
         }
         fm.setDescription(f, desc);
-        msg(p, M.get("description.success"));
+        msgKey(p, "description.success");
         return true;
     }
 
     /** /f sethome - imposta la home della fazione nella posizione attuale (dev'essere nel proprio territorio). */
     private boolean sethome(Player p) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "sethome")) { msg(p, M.get("home.no-perm-set")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "sethome")) { msgKey(p, "home.no-perm-set"); return true; }
         org.bukkit.Chunk ch = p.getLocation().getChunk();
         Long owner = claims.owner(ch.getWorld().getName(), ch.getX(), ch.getZ());
-        if (owner == null || owner != f.getId()) { msg(p, M.get("home.not-own-land")); return true; }
+        if (owner == null || owner != f.getId()) { msgKey(p, "home.not-own-land"); return true; }
         // Costo (stesso motore di /f create e /f claim; default gratis)
         Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("sethome-cost"));
         String unmet = req.checkUnmet(p);
         if (unmet != null) { msg(p, org.bukkit.ChatColor.translateAlternateColorCodes('&', unmet)); return true; }
         req.consume(p);
         fm.setHome(f, p.getLocation());
-        msg(p, M.get("home.set"));
+        msgKey(p, "home.set");
         return true;
     }
 
     /** /f unsethome - rimuove la home della fazione (stesso permesso di /f sethome). */
     private boolean unsethome(Player p) {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "sethome")) { msg(p, M.get("home.no-perm-set")); return true; }
-        if (fm.getHome(f.getId()) == null) { msg(p, M.get("home.not-set")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "sethome")) { msgKey(p, "home.no-perm-set"); return true; }
+        if (fm.getHome(f.getId()) == null) { msgKey(p, "home.not-set"); return true; }
         fm.unsetHome(f);
-        msg(p, M.get("home.unset"));
+        msgKey(p, "home.unset");
         return true;
     }
 
     /** /f home - teletrasporto alla home della fazione. */
     private boolean home(Player p) {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "home")) { msg(p, M.get("home.no-perm")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "home")) { msgKey(p, "home.no-perm"); return true; }
         FactionManager.Home h = fm.getHome(f.getId());
-        if (h == null) { msg(p, M.get("home.not-set")); return true; }
+        if (h == null) { msgKey(p, "home.not-set"); return true; }
         org.bukkit.Location loc = h.toLocation();
-        if (loc == null) { msg(p, M.get("home.world-missing")); return true; }
-        teleportHome(p, loc, true);
+        if (loc == null) { msgKey(p, "home.world-missing"); return true; }
+        homeWarmup.start(p, () -> teleportHome(p, loc, true));
         return true;
     }
 
@@ -573,14 +584,14 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private void teleportHome(Player p, org.bukkit.Location loc, boolean retry) {
         p.eject();
-        if (p.teleport(loc)) { msg(p, M.get("home.teleported")); return; }
+        if (p.teleport(loc)) { msgKey(p, "home.teleported"); return; }
         if (retry) {
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (p.isOnline()) teleportHome(p, loc, false);
             });
             return;
         }
-        msg(p, M.get("home.failed"));
+        msgKey(p, "home.failed");
     }
 
     /**
@@ -592,8 +603,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean claim(Player p) throws Exception {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "claim")) { msg(p, M.get("claim.no-perm")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "claim")) { msgKey(p, "claim.no-perm"); return true; }
 
         org.bukkit.Chunk ch = p.getLocation().getChunk();
         String world = ch.getWorld().getName();
@@ -602,44 +613,44 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         // Territori consentiti solo in certi mondi (config claims.allowed-worlds). Lista vuota = ovunque.
         java.util.List<String> allowedWorlds = plugin.getConfig().getStringList("claims.allowed-worlds");
         if (!allowedWorlds.isEmpty() && !allowedWorlds.contains(world)) {
-            msg(p, M.get("claim.wrong-world")); return true;
+            msgKey(p, "claim.wrong-world"); return true;
         }
         // Area protetta dello spawn: nel quadrato centrale non si conquistano territori (i blocchi
         // restano comunque NON protetti: si costruisce liberamente, semplicemente non si claima).
         if (inProtectedSpawn(p)) {
-            msg(p, M.get("protected-spawn.no-claim", "radius",
-                    String.valueOf(plugin.getConfig().getInt("claims.protected-spawn.radius", 500))));
+            msgKey(p, "protected-spawn.no-claim", "radius",
+                    String.valueOf(plugin.getConfig().getInt("claims.protected-spawn.radius", 500)));
             return true;
         }
 
         Long ownerId = claims.owner(world, cx, cz);
-        if (ownerId != null && ownerId == f.getId()) { msg(p, M.get("claim.already-own")); return true; }
+        if (ownerId != null && ownerId == f.getId()) { msgKey(p, "claim.already-own"); return true; }
 
         int fPow = power.factionPower(f);
         int owned = claims.count(f.getId());
         int cap = claims.maxClaims(power.factionMaxPower(f));
 
         // condizioni valide sia per neutrale sia per nemico
-        if (owned >= cap) { msg(p, M.get("claim.cap-reached", "cap", String.valueOf(cap))); return true; }
+        if (owned >= cap) { msgKey(p, "claim.cap-reached", "cap", String.valueOf(cap)); return true; }
         if (fPow <= owned) {
-            msg(p, M.get("claim.not-enough-power", "power", String.valueOf(fPow), "claims", String.valueOf(owned)));
+            msgKey(p, "claim.not-enough-power", "power", String.valueOf(fPow), "claims", String.valueOf(owned));
             return true;
         }
 
         Faction enemy = (ownerId == null) ? null : fm.getById(ownerId);
         if (enemy != null) {
             if (fm.effectiveRelation(f.getId(), enemy.getId()) == RelationType.ALLY) {
-                msg(p, M.get("claim.ally-land", "name", cname(p, enemy))); return true;
+                msgKey(p, "claim.ally-land", "name", cname(p, enemy)); return true;
             }
             int ePow = power.factionPower(enemy);
             int eOwned = claims.count(enemy.getId());
             if (ePow >= eOwned) {
-                msg(p, M.get("claim.enemy-not-raidable", "name", cname(p, enemy),
-                        "power", String.valueOf(ePow), "claims", String.valueOf(eOwned)));
+                msgKey(p, "claim.enemy-not-raidable", "name", cname(p, enemy),
+                        "power", String.valueOf(ePow), "claims", String.valueOf(eOwned));
                 return true;
             }
             if (!claims.isBorderOf(enemy.getId(), world, cx, cz)) {
-                msg(p, M.get("claim.not-border", "name", cname(p, enemy))); return true;
+                msgKey(p, "claim.not-border", "name", cname(p, enemy)); return true;
             }
         }
 
@@ -657,9 +668,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         // Costo money incrementale dalla banca: calcolato sul numero di territori GIA' posseduti.
         double cost = nextClaimCost(costSec == null ? null : String.valueOf(costSec.get("money", "0")), owned);
         if (cost > 0) {
-            if (!Econ.enabled()) { msg(p, M.get("bank.no-economy")); return true; }
+            if (!Econ.enabled()) { msgKey(p, "bank.no-economy"); return true; }
             if (f.getBank() < cost) {
-                msg(p, M.get("claim.bank-insufficient", "cost", Econ.format(cost), "bank", Econ.format(f.getBank())));
+                msgKey(p, "claim.bank-insufficient", "cost", Econ.format(cost), "bank", Econ.format(f.getBank()));
                 return true;
             }
         }
@@ -667,28 +678,28 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         req.consume(p);
         if (cost > 0) {
             fm.setBank(f, f.getBank() - cost);
-            msg(p, M.get("claim.paid", "cost", Econ.format(cost), "bank", Econ.format(f.getBank())));
+            msgKey(p, "claim.paid", "cost", Econ.format(cost), "bank", Econ.format(f.getBank()));
         }
 
         claims.setOwner(world, cx, cz, f.getId(), cost); // registra il prezzo pagato (base del rimborso di /f unclaim)
         if (enemy != null) {
-            msg(p, M.get("claim.overclaim-success", "name", cname(p, enemy),
-                    "x", String.valueOf(cx), "z", String.valueOf(cz)));
-            broadcast(enemy, M.get("claim.overclaimed-victim", "name", cname(enemy, f),
-                    "x", String.valueOf(cx), "z", String.valueOf(cz)));
+            msgKey(p, "claim.overclaim-success", "name", cname(p, enemy),
+                    "x", String.valueOf(cx), "z", String.valueOf(cz));
+            broadcast(enemy, "claim.overclaimed-victim", "name", cname(enemy, f),
+                    "x", String.valueOf(cx), "z", String.valueOf(cz));
             // Se il territorio strappato conteneva la HOME della fazione nemica, gliela togliamo: senza,
             // i suoi membri continuerebbero a fare /f home teletrasportandosi dentro un territorio ormai
             // NOSTRO (segnalato dall'utente). La home va reimpostata con /f sethome in un loro territorio.
             String claimedKey = world + ":" + cx + ":" + cz;
             if (claimedKey.equals(fm.homeChunkKey(enemy.getId()))) {
                 fm.unsetHome(enemy);
-                msg(p, M.get("claim.overclaim-home-taken", "name", cname(p, enemy)));
-                broadcast(enemy, M.get("claim.overclaim-home-lost"));
+                msgKey(p, "claim.overclaim-home-taken", "name", cname(p, enemy));
+                broadcast(enemy, "claim.overclaim-home-lost");
             }
             announceOverclaim(f, enemy, cx, cz); // allerta a schermo + suono a TUTTO il server
         } else {
-            msg(p, M.get("claim.success", "x", String.valueOf(cx), "z", String.valueOf(cz),
-                    "count", String.valueOf(claims.count(f.getId())), "cap", String.valueOf(cap)));
+            msgKey(p, "claim.success", "x", String.valueOf(cx), "z", String.valueOf(cz),
+                    "count", String.valueOf(claims.count(f.getId())), "cap", String.valueOf(cap));
         }
         return true;
     }
@@ -699,15 +710,15 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean unclaim(Player p) {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "unclaim")) { msg(p, M.get("unclaim.no-perm")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "unclaim")) { msgKey(p, "unclaim.no-perm"); return true; }
 
         org.bukkit.Chunk ch = p.getLocation().getChunk();
         String world = ch.getWorld().getName();
         int cx = ch.getX(), cz = ch.getZ();
 
         Long ownerId = claims.owner(world, cx, cz);
-        if (ownerId == null || ownerId != f.getId()) { msg(p, M.get("unclaim.not-your-land")); return true; }
+        if (ownerId == null || ownerId != f.getId()) { msgKey(p, "unclaim.not-your-land"); return true; }
 
         // Se il chunk rilasciato conteneva la HOME della fazione, togliamola: senza, /f home continuerebbe
         // a teletrasportare su un chunk ormai neutrale (segnalato dall'utente: home impostata ma 0 territori).
@@ -717,15 +728,15 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         // (salvato al claim: i prezzi incrementali cambiano nel tempo). Va alla BANCA della fazione.
         double refund = unclaimRefund(claims.paidAt(world, cx, cz));
         claims.removeClaim(world, cx, cz);
-        msg(p, M.get("unclaim.success", "x", String.valueOf(cx), "z", String.valueOf(cz),
-                "count", String.valueOf(claims.count(f.getId()))));
+        msgKey(p, "unclaim.success", "x", String.valueOf(cx), "z", String.valueOf(cz),
+                "count", String.valueOf(claims.count(f.getId())));
         if (refund > 0) {
             fm.setBank(f, f.getBank() + refund);
-            msg(p, M.get("unclaim.refund", "refund", Econ.format(refund), "bank", Econ.format(f.getBank())));
+            msgKey(p, "unclaim.refund", "refund", Econ.format(refund), "bank", Econ.format(f.getBank()));
         }
         if (wasHome) {
             fm.unsetHome(f);
-            msg(p, M.get("home.lost-unclaim"));
+            msgKey(p, "home.lost-unclaim");
         }
         return true;
     }
@@ -743,11 +754,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean unclaimAll(Player p) {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!fm.hasPerm(f, p.getUniqueId(), "unclaim")) { msg(p, M.get("unclaim.no-perm")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!fm.hasPerm(f, p.getUniqueId(), "unclaim")) { msgKey(p, "unclaim.no-perm"); return true; }
 
         int owned = claims.count(f.getId());
-        if (owned == 0) { msg(p, M.get("unclaimall.none")); return true; }
+        if (owned == 0) { msgKey(p, "unclaimall.none"); return true; }
 
         long confirmWindowMs = 1000L * plugin.getConfig().getInt("claims.unclaim-all-confirm-seconds", 10);
         long now = System.currentTimeMillis();
@@ -770,19 +781,19 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     M.get("unclaimall.done-subtitle", "count", String.valueOf(removed)));
             p.sendTitle(title, sub, 10, 70, 20);
             playUnclaimAllSound(p);
-            msg(p, M.get("unclaimall.success", "count", String.valueOf(removed)));
+            msgKey(p, "unclaimall.success", "count", String.valueOf(removed));
             if (refund > 0) {
                 fm.setBank(f, f.getBank() + refund);
-                msg(p, M.get("unclaim.refund", "refund", Econ.format(refund), "bank", Econ.format(f.getBank())));
+                msgKey(p, "unclaim.refund", "refund", Econ.format(refund), "bank", Econ.format(f.getBank()));
             }
-            if (hadHome) msg(p, M.get("home.lost-unclaim"));
+            if (hadHome) msgKey(p, "home.lost-unclaim");
             return true;
         }
 
         // Primo comando: SOLO la richiesta di conferma in chat. Niente titolo a schermo ne' suono: quelli
         // arrivano alla conferma (secondo comando), quando i territori vengono davvero rilasciati.
         unclaimAllConfirm.put(p.getUniqueId(), now);
-        msg(p, M.get("unclaimall.confirm-chat", "count", String.valueOf(owned)));
+        msgKey(p, "unclaimall.confirm-chat", "count", String.valueOf(owned));
         return true;
     }
 
@@ -808,35 +819,35 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean owner(Player p, String[] a) {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!p.getUniqueId().equals(f.getLeader())) { msg(p, M.get("owner.not-leader")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!p.getUniqueId().equals(f.getLeader())) { msgKey(p, "owner.not-leader"); return true; }
 
         org.bukkit.Chunk ch = p.getLocation().getChunk();
         String world = ch.getWorld().getName();
         int cx = ch.getX(), cz = ch.getZ();
         Long ownerId = claims.owner(world, cx, cz);
-        if (ownerId == null || ownerId != f.getId()) { msg(p, M.get("owner.not-your-land")); return true; }
+        if (ownerId == null || ownerId != f.getId()) { msgKey(p, "owner.not-your-land"); return true; }
 
         if (a.length < 2) {   // nessun argomento: mostra il proprietario attuale
             String co = claims.chunkOwnerUuid(world, cx, cz);
-            if (co == null) { msg(p, M.get("owner.none-here")); return true; }
+            if (co == null) { msgKey(p, "owner.none-here"); return true; }
             String name = Bukkit.getOfflinePlayer(UUID.fromString(co)).getName();
-            msg(p, M.get("owner.current", "owner", name != null ? name : "?"));
+            msgKey(p, "owner.current", "owner", name != null ? name : "?");
             return true;
         }
 
         String arg = a[1];
         if (arg.equalsIgnoreCase("clear") || arg.equalsIgnoreCase("none") || arg.equalsIgnoreCase("remove")) {
             claims.setChunkOwner(world, cx, cz, null);
-            msg(p, M.get("owner.cleared"));
+            msgKey(p, "owner.cleared");
             return true;
         }
         OfflinePlayer target = resolveMember(f, arg);
-        if (target == null) { msg(p, M.get("owner.not-member")); return true; }
+        if (target == null) { msgKey(p, "owner.not-member"); return true; }
         claims.setChunkOwner(world, cx, cz, target.getUniqueId().toString());
-        msg(p, M.get("owner.set", "player", target.getName()));
+        msgKey(p, "owner.set", "player", target.getName());
         Player tp = target.getPlayer();
-        if (tp != null && !tp.getUniqueId().equals(p.getUniqueId())) msg(tp, M.get("owner.received"));
+        if (tp != null && !tp.getUniqueId().equals(p.getUniqueId())) msgKey(tp, "owner.received");
         return true;
     }
 
@@ -851,12 +862,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (plugin.getConfig().getString("map.mode", "item").equalsIgnoreCase("chat")) return mapChat(p, bpp);
 
         maps.removeExistingFactionMaps(p); // libera lo slot della vecchia mappa, se ce l'aveva
-        if (p.getInventory().firstEmpty() == -1) { msg(p, M.get("map.inventory-full")); return true; }
+        if (p.getInventory().firstEmpty() == -1) { msgKey(p, "map.inventory-full"); return true; }
 
         org.bukkit.inventory.ItemStack item = maps.create(p, bpp,
                 com.teolo.magixfactions.map.MapService.itemName(plugin, bpp));
         p.getInventory().addItem(item); // c'e' sicuramente posto, appena verificato sopra
-        msg(p, M.get("map.given"));
+        msgKey(p, "map.given");
         return true;
     }
 
@@ -867,19 +878,19 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * e' disponibile. Senza argomento fa da interruttore (inverte lo stato attuale).
      */
     private boolean minimapCmd(Player p, String[] a) {
-        if (!power.hasMinimapPermission(p)) { msg(p, M.get("minimap.no-permission")); return true; }
+        if (!power.hasMinimapPermission(p)) { msgKey(p, "minimap.no-permission"); return true; }
         boolean currentlyHidden = power.isMinimapHidden(p.getUniqueId());
         boolean wantHidden;
         if (a.length >= 2) {
             String v = a[1].toLowerCase(Locale.ROOT);
             if (v.equals("on") || v.equals("si") || v.equals("sì")) wantHidden = false;
             else if (v.equals("off") || v.equals("no")) wantHidden = true;
-            else { msg(p, M.get("minimap.usage")); return true; }
+            else { msgKey(p, "minimap.usage"); return true; }
         } else {
             wantHidden = !currentlyHidden; // nessun argomento: inverte
         }
         power.setMinimapHidden(p, wantHidden);
-        msg(p, M.get(wantHidden ? "minimap.disabled" : "minimap.enabled"));
+        msgKey(p, wantHidden ? "minimap.disabled" : "minimap.enabled");
         return true;
     }
 
@@ -896,12 +907,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             String v = a[1].toLowerCase(Locale.ROOT);
             if (v.equals("on") || v.equals("si") || v.equals("sì")) want = true;
             else if (v.equals("off") || v.equals("no")) want = false;
-            else { msg(p, M.get("borders.usage")); return true; }
+            else { msgKey(p, "borders.usage"); return true; }
         } else {
             want = !current; // nessun argomento: inverte
         }
         power.setBordersEnabled(p, want);
-        msg(p, M.get(want ? "borders.enabled" : "borders.disabled"));
+        msgKey(p, want ? "borders.enabled" : "borders.disabled");
         return true;
     }
 
@@ -930,7 +941,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         String neutralSym = plugin.getConfig().getString("map.chat.symbols.neutral", "&8-");
 
         java.util.LinkedHashMap<Long, Character> letters = new java.util.LinkedHashMap<>();
-        panel(p, M.get("map.chat-header", "zoom", com.teolo.magixfactions.map.MapService.formatZoom(bpp)));
+        panelKey(p, "map.chat-header", "zoom", com.teolo.magixfactions.map.MapService.formatZoom(bpp));
         for (int gz = -half; gz <= half; gz++) {
             StringBuilder line = new StringBuilder();
             for (int gx = -half; gx <= half; gx++) {
@@ -944,13 +955,13 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             }
             panel(p, Colors.translate(line.toString()));
         }
-        panel(p, M.get("map.chat-legend"));
+        panelKey(p, "map.chat-legend");
         for (Map.Entry<Long, Character> e : letters.entrySet()) {
             Faction f = fm.getById(e.getKey());
             if (f == null) continue;
             String rc = Colors.translate(mapFill(mapRelKey(own, e.getKey())));
-            panel(p, M.get("map.chat-legend-entry", "relcolor", rc,
-                    "letter", String.valueOf(e.getValue()), "name", f.getName()));
+            panelKey(p, "map.chat-legend-entry", "relcolor", rc,
+                    "letter", String.valueOf(e.getValue()), "name", f.getName());
         }
         return true;
     }
@@ -972,17 +983,17 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     /** /f list - elenca tutte le fazioni del server (ordinate per numero di membri). */
     private boolean list(CommandSender s) {
         Collection<Faction> all = fm.all();
-        if (all.isEmpty()) { msg(s, M.get("list.empty")); return true; }
+        if (all.isEmpty()) { msgKey(s, "list.empty"); return true; }
         Faction own = (s instanceof Player p) ? fm.getFaction(p.getUniqueId()) : null;
         List<Faction> sorted = new ArrayList<>(all);
         sorted.sort((x, y) -> {
             int c = Integer.compare(y.size(), x.size());
             return c != 0 ? c : x.getName().compareToIgnoreCase(y.getName());
         });
-        panel(s, M.get("list.header", "count", String.valueOf(sorted.size())));
+        panelKey(s, "list.header", "count", String.valueOf(sorted.size()));
         for (Faction f : sorted) {
-            panel(s, M.get("list.entry", "relcolor", relColor(own, f), "name", f.getName(),
-                    "members", String.valueOf(f.size()), "max", String.valueOf(fm.effectiveMaxMembers(f))));
+            panelKey(s, "list.entry", "relcolor", relColor(own, f), "name", f.getName(),
+                    "members", String.valueOf(f.size()), "max", String.valueOf(fm.effectiveMaxMembers(f)));
         }
         return true;
     }
@@ -996,10 +1007,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean top(CommandSender s) {
         java.util.List<com.teolo.magixfactions.manage.ScoreManager.Entry> rank = score.ranking();
-        if (rank.isEmpty()) { msg(s, M.get("top.empty")); return true; }
+        if (rank.isEmpty()) { msgKey(s, "top.empty"); return true; }
         Faction own = (s instanceof Player p) ? fm.getFaction(p.getUniqueId()) : null;
         int size = Math.min(rank.size(), score.topSize());
-        panel(s, M.get("top.header", "count", String.valueOf(rank.size())));
+        panelKey(s, "top.header", "count", String.valueOf(rank.size()));
         boolean ownShown = false;
         for (int i = 0; i < size; i++) {
             com.teolo.magixfactions.manage.ScoreManager.Entry e = rank.get(i);
@@ -1014,7 +1025,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (own != null && !ownShown) {
             for (int i = size; i < rank.size(); i++) {
                 if (rank.get(i).faction.getId() == own.getId()) {
-                    panel(s, M.get("top.separator"));
+                    panelKey(s, "top.separator");
                     sendScoreLine(s, own, M.get("top.entry-own", "pos", String.valueOf(i + 1),
                             "relcolor", relColor(own, own), "name", own.getName(),
                             "score", score.formatScore(rank.get(i).score)));
@@ -1158,12 +1169,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
     private boolean info(Player p, String[] a) {
         Faction f = (a.length >= 2) ? fm.getByName(a[1]) : fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("info.not-found")); return true; }
+        if (f == null) { msgKey(p, "info.not-found"); return true; }
         Faction own = fm.getFaction(p.getUniqueId());
-        panel(p, M.get("info.line"));
-        panel(p, M.get("info.name", "relcolor", relColor(own, f), "name", f.getName(), "tag", f.getTag()));
-        if (!f.getDescription().isEmpty()) panel(p, M.get("info.description", "desc", f.getDescription()));
-        panel(p, M.get("info.members", "count", String.valueOf(f.size()), "max", String.valueOf(fm.effectiveMaxMembers(f))));
+        panelKey(p, "info.line");
+        panelKey(p, "info.name", "relcolor", relColor(own, f), "name", f.getName(), "tag", f.getTag());
+        if (!f.getDescription().isEmpty()) panelKey(p, "info.description", "desc", f.getDescription());
+        panelKey(p, "info.members", "count", String.valueOf(f.size()), "max", String.valueOf(fm.effectiveMaxMembers(f)));
         // Elenco membri (tag di rank + nome) ordinati per rank decrescente, in grigio dopo il conteggio.
         java.util.List<Member> ms = new java.util.ArrayList<>(f.getMembers().values());
         ms.sort((x, y) -> Integer.compare(ranks.rankOrder(y.getRankId()), ranks.rankOrder(x.getRankId())));
@@ -1176,7 +1187,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             if (memList.length() > 0) memList.append(memSep);
             memList.append(M.get("info.members-list-entry", "tag", tag, "player", nm));
         }
-        if (memList.length() > 0) panel(p, M.get("info.members-list", "list", memList.toString()));
+        if (memList.length() > 0) panelKey(p, "info.members-list", "list", memList.toString());
         int fPow = power.factionPower(f);
         int fMax = power.factionMaxPower(f);
         int owned = claims.count(f.getId());
@@ -1196,11 +1207,11 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             statusColor = M.get("info.status-raid-color");
             statusDesc = M.get(self ? "info.status-weak-self" : "info.status-weak");
         }
-        panel(p, M.get("info.status", "statuscolor", statusColor,
-                "claims", String.valueOf(owned), "power", String.valueOf(fPow), "maxpower", String.valueOf(fMax)));
+        panelKey(p, "info.status", "statuscolor", statusColor,
+                "claims", String.valueOf(owned), "power", String.valueOf(fPow), "maxpower", String.valueOf(fMax));
         panel(p, statusDesc);
         // Banca di fazione: mostrata solo se c'e' un'economia attiva (senza, il saldo non avrebbe senso).
-        if (Econ.enabled()) panel(p, M.get("info.bank", "bank", Econ.format(f.getBank())));
+        if (Econ.enabled()) panelKey(p, "info.bank", "bank", Econ.format(f.getBank()));
         // Punteggio composito + posizione in classifica (/f top). Un tooltip spiega da cosa e' composto.
         // Una fazione INATTIVA (tutti i membri assenti da troppo) e' oscurata: riga senza posizione + avviso.
         boolean active = score.isActive(f);
@@ -1208,13 +1219,13 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 ? M.get("info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(score.position(f)))
                 : M.get("info.score-unranked", "score", score.formatScore(score.score(f)));
         sendScoreLine(p, f, scoreLine);
-        if (!active) panel(p, M.get("info.inactive", "days", String.valueOf(score.inactiveDays())));
+        if (!active) panelKey(p, "info.inactive", "days", String.valueOf(score.inactiveDays()));
         sendAlliesLine(p, f, own, own != null && own.getId() == f.getId());
         if (own != null && own.getId() != f.getId()) {
             RelationType rel = fm.effectiveRelation(own.getId(), f.getId());
-            panel(p, M.get("info.your-relation", "relation", relationName(rel)));
+            panelKey(p, "info.your-relation", "relation", relationName(rel));
         }
-        panel(p, M.get("info.line"));
+        panelKey(p, "info.line");
         return true;
     }
 
@@ -1225,26 +1236,26 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     private boolean powerCmd(Player p, String[] a) {
         if (a.length >= 2) {
             UUID target = power.findByName(a[1]);
-            if (target == null) { msg(p, M.get("power.not-found", "player", a[1])); return true; }
+            if (target == null) { msgKey(p, "power.not-found", "player", a[1]); return true; }
             String name = Bukkit.getOfflinePlayer(target).getName();
-            msg(p, M.get("power.other", "player", name != null ? name : a[1],
+            msgKey(p, "power.other", "player", name != null ? name : a[1],
                     "power", String.valueOf(power.getPower(target)),
-                    "maxpower", String.valueOf(power.getMaxPower(target))));
+                    "maxpower", String.valueOf(power.getMaxPower(target)));
         } else {
-            msg(p, M.get("power.self",
+            msgKey(p, "power.self",
                     "power", String.valueOf(power.getPower(p.getUniqueId())),
-                    "maxpower", String.valueOf(power.getMaxPower(p.getUniqueId()))));
+                    "maxpower", String.valueOf(power.getMaxPower(p.getUniqueId())));
             // Righe in piu' solo per chi ha velocita' diverse dal normale (permessi VIP): al giocatore
             // comune non serve sapere che esistono, a chi paga si', ed e' il modo piu' semplice per
             // verificare che il permesso sia davvero attivo.
             com.teolo.magixfactions.manage.PowerManager.Vantaggi vip = power.vantaggi(p);
             if (vip.speed != 100) {
-                msg(p, M.get("power.speed",
+                msgKey(p, "power.speed",
                         "speed", String.valueOf(vip.speed),
-                        "minutes", com.teolo.magixfactions.util.DurationText.fromSeconds(power.secondsPerGain(p))));
+                        "minutes", com.teolo.magixfactions.util.DurationText.fromSeconds(power.secondsPerGain(p)));
             }
             if (vip.loss != 100) {
-                msg(p, M.get("power.loss-speed", "speed", String.valueOf(vip.loss)));
+                msgKey(p, "power.loss-speed", "speed", String.valueOf(vip.loss));
             }
         }
         return true;
@@ -1287,28 +1298,28 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private boolean bankCmd(Player p, String[] a, boolean deposit) {
         Faction f = fm.getFaction(p.getUniqueId());
-        if (f == null) { msg(p, M.get("errors.no-faction")); return true; }
-        if (!Econ.enabled()) { msg(p, M.get("bank.no-economy")); return true; }
-        if (!deposit && !fm.hasPerm(f, p.getUniqueId(), "withdraw")) { msg(p, M.get("bank.no-perm")); return true; }
-        if (a.length < 2) { msg(p, M.get(deposit ? "bank.usage-deposit" : "bank.usage-withdraw")); return true; }
+        if (f == null) { msgKey(p, "errors.no-faction"); return true; }
+        if (!Econ.enabled()) { msgKey(p, "bank.no-economy"); return true; }
+        if (!deposit && !fm.hasPerm(f, p.getUniqueId(), "withdraw")) { msgKey(p, "bank.no-perm"); return true; }
+        if (a.length < 2) { msgKey(p, deposit ? "bank.usage-deposit" : "bank.usage-withdraw"); return true; }
 
         double amount;
         try { amount = Double.parseDouble(a[1].replace(',', '.')); }
-        catch (NumberFormatException e) { msg(p, M.get("bank.bad-amount")); return true; }
+        catch (NumberFormatException e) { msgKey(p, "bank.bad-amount"); return true; }
         // due decimali max, sempre positivo (evita giochetti con -x o frazioni di centesimo)
         amount = Math.floor(amount * 100) / 100.0;
-        if (amount <= 0 || !Double.isFinite(amount)) { msg(p, M.get("bank.bad-amount")); return true; }
+        if (amount <= 0 || !Double.isFinite(amount)) { msgKey(p, "bank.bad-amount"); return true; }
 
         if (deposit) {
-            if (!Econ.has(p, amount)) { msg(p, M.get("bank.not-enough-money", "amount", Econ.format(amount))); return true; }
-            if (!Econ.withdraw(p, amount)) { msg(p, M.get("bank.pay-failed")); return true; }
+            if (!Econ.has(p, amount)) { msgKey(p, "bank.not-enough-money", "amount", Econ.format(amount)); return true; }
+            if (!Econ.withdraw(p, amount)) { msgKey(p, "bank.pay-failed"); return true; }
             fm.setBank(f, f.getBank() + amount);
-            msg(p, M.get("bank.deposited", "amount", Econ.format(amount), "bank", Econ.format(f.getBank())));
+            msgKey(p, "bank.deposited", "amount", Econ.format(amount), "bank", Econ.format(f.getBank()));
         } else {
-            if (f.getBank() < amount) { msg(p, M.get("bank.insufficient", "bank", Econ.format(f.getBank()))); return true; }
-            if (!Econ.deposit(p, amount)) { msg(p, M.get("bank.pay-failed")); return true; }
+            if (f.getBank() < amount) { msgKey(p, "bank.insufficient", "bank", Econ.format(f.getBank())); return true; }
+            if (!Econ.deposit(p, amount)) { msgKey(p, "bank.pay-failed"); return true; }
             fm.setBank(f, f.getBank() - amount);
-            msg(p, M.get("bank.withdrawn", "amount", Econ.format(amount), "bank", Econ.format(f.getBank())));
+            msgKey(p, "bank.withdrawn", "amount", Econ.format(amount), "bank", Econ.format(f.getBank()));
         }
         return true;
     }
@@ -1363,16 +1374,16 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * il comando in chat. I comandi di /mf li vede solo chi ha magixfactions.admin.
      */
     private void help(CommandSender s, int page) {
-        List<Help.Entry> entries = Help.fromConfig(M.section("help.sections"));
+        List<Help.Entry> entries = Help.fromConfig(M.section("help.sections"), s, M::get, M::getList);
         if (entries.isEmpty()) {
             // messages.yml di una versione precedente (elenco piatto): meglio quello che niente.
-            for (String line : M.getList("help")) panel(s, line);
-            if (s.hasPermission("magixfactions.admin")) for (String line : M.getList("help-admin")) panel(s, line);
+            for (String line : M.getList(s, "help")) panel(s, line);
+            if (s.hasPermission("magixfactions.admin")) for (String line : M.getList(s, "help-admin")) panel(s, line);
             return;
         }
         ConfigurationSection h = M.section("help");
         String title = h != null ? h.getString("title", "MagixFactions") : "MagixFactions";
-        Help.show(s, title, "/f help", entries, page, s.hasPermission("magixfactions.admin"));
+        Help.show(s, M::get, title, "/f help", entries, page, s.hasPermission("magixfactions.admin"));
     }
 
     // ---- TAB COMPLETION -----------------------------------------------------------------------------
@@ -1544,7 +1555,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     private boolean adminCommand(CommandSender s, String[] a) {
-        if (!s.hasPermission("magixfactions.admin")) { msg(s, M.get("errors.no-permission")); return true; }
+        if (!s.hasPermission("magixfactions.admin")) { msgKey(s, "errors.no-permission"); return true; }
         String sc = a.length >= 2 ? a[1].toLowerCase(Locale.ROOT) : "";
         switch (sc) {
             // Tetto di Potenza e minimap NON hanno piu' un comando: sono permessi
@@ -1558,7 +1569,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "minimapdump": minimap.dumpMapPacketStructure(s); return true;
             case "minimaprptest": return adminMinimapResourcePackTest(s);
             case "minimapmarker": return adminMinimapMarkerTest(s);
-            default: msg(s, M.get("admin.usage")); return true;
+            default: msgKey(s, "admin.usage"); return true;
         }
     }
 
@@ -1570,7 +1581,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * mappa in mano.
      */
     private boolean adminMinimapMarkerTest(CommandSender s) {
-        if (!(s instanceof Player p)) { msg(s, M.get("errors.players-only")); return true; }
+        if (!(s instanceof Player p)) { msgKey(s, "errors.players-only"); return true; }
         org.bukkit.map.MapView view = Bukkit.createMap(p.getWorld());
         for (org.bukkit.map.MapRenderer r : new java.util.ArrayList<>(view.getRenderers())) view.removeRenderer(r);
         view.addRenderer(new com.teolo.magixfactions.resourcepack.MarkerTestRenderer());
@@ -1591,7 +1602,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * (accettato/rifiutato/fallito) va controllato in console, vedi {@code MagixPack.pack.PackListener}.
      */
     private boolean adminMinimapResourcePackTest(CommandSender s) {
-        if (!(s instanceof Player p)) { msg(s, M.get("errors.players-only")); return true; }
+        if (!(s instanceof Player p)) { msgKey(s, "errors.players-only"); return true; }
         if (!com.teolo.magixfactions.hook.MagixPackHook.isAvailable()) {
             msg(s, Colors.translate("&cResource pack non disponibile (MagixPack assente, o public-host non configurato nel suo config.yml)."));
             return true;
@@ -1603,16 +1614,16 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
 
     /** /mf admin setmap <giocatore> <closest|close|normal|far|farthest|reset>. */
     private boolean adminSetMap(CommandSender s, String[] a) {
-        if (a.length < 4) { msg(s, M.get("admin.setmap-usage")); return true; }
+        if (a.length < 4) { msgKey(s, "admin.setmap-usage"); return true; }
         UUID target = resolveAdminTarget(a[2]);
-        if (target == null) { msg(s, M.get("admin.not-found", "player", a[2])); return true; }
+        if (target == null) { msgKey(s, "admin.not-found", "player", a[2]); return true; }
         boolean reset = a[3].equalsIgnoreCase("reset");
         double bpp = 0;
         if (!reset) {
             try {
                 bpp = Double.parseDouble(a[3].replace(',', '.'));
-            } catch (NumberFormatException e) { msg(s, M.get("admin.setmap-bad")); return true; }
-            if (bpp < 0.05 || bpp > 64) { msg(s, M.get("admin.setmap-bad")); return true; }
+            } catch (NumberFormatException e) { msgKey(s, "admin.setmap-bad"); return true; }
+            if (bpp < 0.05 || bpp > 64) { msgKey(s, "admin.setmap-bad"); return true; }
         }
         power.setMapZoomBpp(target, reset ? 0 : bpp);
         // Se il giocatore e' online e ha gia' una Mappa Fazioni in inventario, aggiornane lo zoom sul
@@ -1630,7 +1641,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             minimap.refreshNow(targetPlayer);
         }
         String label = com.teolo.magixfactions.map.MapService.formatZoom(power.getResolvedZoomFactor(target));
-        msg(s, M.get(reset ? "admin.setmap-reset" : "admin.setmap-ok", "player", a[2], "zoom", label));
+        msgKey(s, reset ? "admin.setmap-reset" : "admin.setmap-ok", "player", a[2], "zoom", label);
         return true;
     }
 
@@ -1640,19 +1651,19 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * permesso {@code magixfactions.power.powermax.<numero>}.
      */
     private boolean adminSetPower(CommandSender s, String[] a) {
-        if (a.length < 4) { msg(s, M.get("admin.usage")); return true; }
+        if (a.length < 4) { msgKey(s, "admin.usage"); return true; }
         UUID target = resolveAdminTarget(a[2]);
-        if (target == null) { msg(s, M.get("admin.not-found", "player", a[2])); return true; }
+        if (target == null) { msgKey(s, "admin.not-found", "player", a[2]); return true; }
         boolean reset = a[3].equalsIgnoreCase("reset");
         int value;
         if (reset) {
             value = plugin.getConfig().getInt("power.start", 0);
         } else {
-            try { value = Integer.parseInt(a[3]); } catch (NumberFormatException e) { msg(s, M.get("admin.bad-value")); return true; }
+            try { value = Integer.parseInt(a[3]); } catch (NumberFormatException e) { msgKey(s, "admin.bad-value"); return true; }
         }
         power.setPower(target, value);
-        msg(s, M.get(reset ? "admin.setpower-reset" : "admin.setpower-ok",
-                "player", a[2], "value", String.valueOf(power.getPower(target))));
+        msgKey(s, reset ? "admin.setpower-reset" : "admin.setpower-ok",
+                "player", a[2], "value", String.valueOf(power.getPower(target)));
         return true;
     }
 
@@ -1673,28 +1684,28 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 maxM = Math.max(minM, Math.min(30, maxM));
                 try {
                     com.teolo.magixfactions.manage.FakeDataManager.Result r = fake.generate(count, minM, maxM);
-                    msg(s, M.get("admin.fake.created",
-                            "factions", String.valueOf(r.factions), "players", String.valueOf(r.players)));
+                    msgKey(s, "admin.fake.created",
+                            "factions", String.valueOf(r.factions), "players", String.valueOf(r.players));
                 } catch (Exception e) {
-                    msg(s, M.get("errors.generic", "error", String.valueOf(e.getMessage())));
+                    msgKey(s, "errors.generic", "error", String.valueOf(e.getMessage()));
                 }
                 return true;
             }
             case "clear": {
-                if (!fake.hasAny()) { msg(s, M.get("admin.fake.none")); return true; }
+                if (!fake.hasAny()) { msgKey(s, "admin.fake.none"); return true; }
                 com.teolo.magixfactions.manage.FakeDataManager.Result r = fake.clearAll();
-                msg(s, M.get("admin.fake.cleared",
-                        "factions", String.valueOf(r.factions), "players", String.valueOf(r.players)));
+                msgKey(s, "admin.fake.cleared",
+                        "factions", String.valueOf(r.factions), "players", String.valueOf(r.players));
                 return true;
             }
             case "info": {
-                msg(s, M.get("admin.fake.info",
+                msgKey(s, "admin.fake.info",
                         "factions", String.valueOf(fake.factionCount()),
-                        "players", String.valueOf(fake.playerCount())));
+                        "players", String.valueOf(fake.playerCount()));
                 return true;
             }
             default:
-                msg(s, M.get("admin.fake.usage"));
+                msgKey(s, "admin.fake.usage");
                 return true;
         }
     }
@@ -1712,58 +1723,58 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * e poi rimetterlo. Senza argomento inverte lo stato attuale.
      */
     private boolean adminBypass(CommandSender s, String[] a) {
-        if (!(s instanceof Player p)) { msg(s, M.get("errors.players-only")); return true; }
+        if (!(s instanceof Player p)) { msgKey(s, "errors.players-only"); return true; }
         boolean enabled;
         if (a.length >= 3) {
             String v = a[2].toLowerCase(Locale.ROOT);
-            if (!v.equals("on") && !v.equals("off")) { msg(s, M.get("admin.bypass-usage")); return true; }
+            if (!v.equals("on") && !v.equals("off")) { msgKey(s, "admin.bypass-usage"); return true; }
             enabled = v.equals("on");
             protection.setBypass(p.getUniqueId(), enabled);
         } else {
             enabled = protection.toggleBypass(p.getUniqueId());
         }
-        msg(s, M.get(enabled ? "admin.bypass-on" : "admin.bypass-off"));
+        msgKey(s, enabled ? "admin.bypass-on" : "admin.bypass-off");
         return true;
     }
 
     /** /mf admin home <fazione> - teletrasporta chi esegue il comando alla home di UNA FAZIONE QUALSIASI. */
     private boolean adminHome(CommandSender s, String[] a) {
-        if (!(s instanceof Player p)) { msg(s, M.get("errors.players-only")); return true; }
-        if (a.length < 3) { msg(s, M.get("admin.home-usage")); return true; }
+        if (!(s instanceof Player p)) { msgKey(s, "errors.players-only"); return true; }
+        if (a.length < 3) { msgKey(s, "admin.home-usage"); return true; }
         Faction f = fm.getByName(a[2]);
-        if (f == null) { msg(s, M.get("admin.faction-not-found", "faction", a[2])); return true; }
+        if (f == null) { msgKey(s, "admin.faction-not-found", "faction", a[2]); return true; }
         FactionManager.Home h = fm.getHome(f.getId());
-        if (h == null) { msg(s, M.get("admin.home-not-set", "faction", f.getName())); return true; }
+        if (h == null) { msgKey(s, "admin.home-not-set", "faction", f.getName()); return true; }
         org.bukkit.Location loc = h.toLocation();
-        if (loc == null) { msg(s, M.get("home.world-missing")); return true; }
+        if (loc == null) { msgKey(s, "home.world-missing"); return true; }
         teleportHome(p, loc, true);
         return true;
     }
 
     /** /mf admin disband <fazione> - scioglie UNA FAZIONE QUALSIASI, senza doverne essere il leader. */
     private boolean adminDisband(CommandSender s, String[] a) {
-        if (a.length < 3) { msg(s, M.get("admin.disband-usage")); return true; }
+        if (a.length < 3) { msgKey(s, "admin.disband-usage"); return true; }
         Faction f = fm.getByName(a[2]);
-        if (f == null) { msg(s, M.get("admin.faction-not-found", "faction", a[2])); return true; }
+        if (f == null) { msgKey(s, "admin.faction-not-found", "faction", a[2]); return true; }
         String name = f.getName();
         fm.disband(f);
-        msg(s, M.get("admin.disband-ok", "faction", name));
-        broadcastAll(M.get("disband.announce", "name", name, "player", s.getName()));
+        msgKey(s, "admin.disband-ok", "faction", name);
+        broadcastAll("disband.announce", "name", name, "player", s.getName());
         return true;
     }
 
     private boolean dbCommand(CommandSender s, String[] a) {
-        if (!s.hasPermission("magixfactions.admin")) { msg(s, M.get("db.no-perm")); return true; }
+        if (!s.hasPermission("magixfactions.admin")) { msgKey(s, "db.no-perm"); return true; }
         if (a.length >= 2 && a[1].equalsIgnoreCase("info")) {
-            msg(s, M.get("db.info-header", "type", String.valueOf(db.getType())));
-            try { for (String t : Database.TABLES) panel(s, M.get("db.info-row", "table", t, "count", String.valueOf(db.countRows(t)))); }
-            catch (Exception e) { msg(s, M.get("errors.generic", "error", String.valueOf(e.getMessage()))); }
+            msgKey(s, "db.info-header", "type", String.valueOf(db.getType()));
+            try { for (String t : Database.TABLES) panelKey(s, "db.info-row", "table", t, "count", String.valueOf(db.countRows(t))); }
+            catch (Exception e) { msgKey(s, "errors.generic", "error", String.valueOf(e.getMessage())); }
             return true;
         }
         if (a.length >= 3 && a[1].equalsIgnoreCase("migrate")) {
             Database.Type target = Database.parseType(a[2]);
-            if (target == db.getType()) { msg(s, M.get("db.same")); return true; }
-            msg(s, M.get("db.migrating", "from", String.valueOf(db.getType()), "to", String.valueOf(target)));
+            if (target == db.getType()) { msgKey(s, "db.same"); return true; }
+            msgKey(s, "db.migrating", "from", String.valueOf(db.getType()), "to", String.valueOf(target));
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 HikariDataSource tds = null;
                 try {
@@ -1774,19 +1785,19 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                     int tot = res.values().stream().mapToInt(Integer::intValue).sum();
                     final HikariDataSource toClose = tds;
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        msg(s, M.get("db.migrated", "rows", String.valueOf(tot), "to", String.valueOf(target)));
-                        msg(s, M.get("db.hint", "type", target.name().toLowerCase()));
+                        msgKey(s, "db.migrated", "rows", String.valueOf(tot), "to", String.valueOf(target));
+                        msgKey(s, "db.hint", "type", target.name().toLowerCase());
                         toClose.close();
                     });
                 } catch (Exception e) {
                     final String em = String.valueOf(e.getMessage());
                     if (tds != null) tds.close();
-                    Bukkit.getScheduler().runTask(plugin, () -> msg(s, M.get("db.failed", "error", em)));
+                    Bukkit.getScheduler().runTask(plugin, () -> msgKey(s, "db.failed", "error", em));
                 }
             });
             return true;
         }
-        msg(s, M.get("db.usage"));
+        msgKey(s, "db.usage");
         return true;
     }
 
@@ -1798,16 +1809,22 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         return null;
     }
 
-    private void broadcast(Faction f, String message) {
+    /** Annuncio a tutti i membri della fazione: ognuno lo riceve nella propria lingua. */
+    private void broadcast(Faction f, String path, String... kv) {
         for (UUID u : f.getMembers().keySet()) {
             Player p = Bukkit.getPlayer(u);
-            if (p != null) msg(p, message);
+            if (p != null) msgKey(p, path, kv);
         }
     }
 
-    /** Annuncio a TUTTO il server (col prefisso del plugin): fondazione e scioglimento fazioni. */
-    private void broadcastAll(String message) {
-        String line = M.prefix() + message;
-        for (Player pl : Bukkit.getOnlinePlayers()) pl.sendMessage(Papi.resolve(pl, line));
+    /**
+     * Annuncio a TUTTO il server: fondazione e scioglimento fazioni.
+     * Tradotto per ognuno nella propria lingua: il testo va ricalcolato per ogni giocatore, non
+     * costruito una volta sola come prima di MagixLanguage.
+     */
+    private void broadcastAll(String path, String... kv) {
+        for (Player pl : Bukkit.getOnlinePlayers()) {
+            pl.sendMessage(Papi.resolve(pl, M.get(pl, path, kv)));
+        }
     }
 }

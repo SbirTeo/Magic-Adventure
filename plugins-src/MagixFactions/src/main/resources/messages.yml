@@ -13,10 +13,6 @@
 #    errore &#FF6B6B  |  avviso &#FFD166
 # ============================================================
 
-# Il cartellino davanti alle risposte dei comandi. Stesso stile negli altri
-# plugin Magix: nome in viola grassetto, doppia freccia, poi il messaggio.
-prefix: "&#C046E8&lMagixFactions &8» &r"
-
 filter:
   blocked: "&cIl testo contiene una parola non consentita. Scegline un'altra."
 
@@ -294,6 +290,10 @@ home:
   unset: "&aHome della fazione rimossa."
   not-set: "&cLa tua fazione non ha una home impostata."
   world-missing: "&cIl mondo della home non e' disponibile."
+  warmup-start: "&eTeletrasporto alla home tra &6{seconds}&e secondi... non muoverti o si annulla!"
+  warmup-cancelled: "&cTeletrasporto alla home annullato: ti sei mosso."
+  warmup-cancelled-damage: "&cTeletrasporto alla home annullato: hai subito un danno."
+  warmup-cancelled-pvp: "&cTeletrasporto alla home annullato: hai attaccato un altro giocatore."
   teleported: "&aTeletrasportato alla home della fazione."
   failed: "&cTeletrasporto fallito, riprova."
   lost-unclaim: "&cAvevi la HOME in quel territorio: e' stata rimossa. Impostane una nuova con &e/f sethome&c."
@@ -427,6 +427,17 @@ reload: "&aConfigurazione e messaggi ricaricati."
 #   - staff: true su una sezione = la vede solo chi ha magixfactions.admin.
 help:
   title: "MagixFactions"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
+  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
   sections:
     faction:
       title: "Fazione"

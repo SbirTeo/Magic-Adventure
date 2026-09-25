@@ -70,6 +70,9 @@ public class Database {
             // First time they joined the server, shown on their profile page. RankSync fills it
             // on join, and backfills it at startup for players who were already around.
             st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS first_join DATETIME NULL");
+            // The player's language (it/en/es/de), mirrored from MagixLanguage the same way as
+            // the rank above: LanguageSync fills it on join and on every /language set.
+            st.execute("ALTER TABLE mc_ranks ADD COLUMN IF NOT EXISTS language CHAR(2) NULL");
 
             // The game's groups, mirrored for the site's permissions panel.
             st.execute("CREATE TABLE IF NOT EXISTS web_groups (" +
@@ -104,6 +107,22 @@ public class Database {
                     "sort_order INT NOT NULL DEFAULT 100," +
                     "body_html MEDIUMTEXT NOT NULL," +
                     "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" +
+                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            // Cache delle traduzioni del SITO (testo di pagina, non catalogo di un plugin): il
+            // sito accoda qui le frasi che incontra e non ha ancora, MagixWeb le smalta un tanto
+            // alla volta chiedendole a MagixLanguage (vedi language/SiteTranslationWorker) e le
+            // riscrive tradotte. phrase_hash e' lo sha1 del testo italiano, calcolato dal sito.
+            st.execute("CREATE TABLE IF NOT EXISTS site_translations (" +
+                    "lang CHAR(2) NOT NULL," +
+                    "phrase_hash CHAR(40) NOT NULL," +
+                    "source_text MEDIUMTEXT NOT NULL," +
+                    "translated_text MEDIUMTEXT NULL," +
+                    "status ENUM('pending','done','failed') NOT NULL DEFAULT 'pending'," +
+                    "attempts INT NOT NULL DEFAULT 0," +
+                    "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                    "PRIMARY KEY (lang, phrase_hash)," +
+                    "KEY idx_stato (status, updated_at)" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
             plugin.getLogger().info("MagixWeb: connesso a MariaDB (" + db + ").");

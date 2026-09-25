@@ -1,0 +1,21 @@
+name: MagixScoreboard
+version: '${project.version}'
+main: com.teolo.magixscoreboard.MagixScoreboard
+api-version: '26.1'
+author: teolo
+description: Scoreboard laterale con placeholder Magix/PAPI, condizioni di permesso/mondo/regione WorldGuard e priorita' per peso.
+softdepend: [PlaceholderAPI, MagixLanguage, WorldGuard]
+
+commands:
+  magixscoreboard:
+    aliases: [mscoreboard, msb]
+    description: Stato della scoreboard laterale e comandi di amministrazione.
+    usage: /mscoreboard help
+
+permissions:
+  magixscoreboard.use:
+    description: Vedere la propria scoreboard e nasconderla/mostrarla (/mscoreboard, /mscoreboard toggle).
+    default: true
+  magixscoreboard.admin:
+    description: Comandi amministrativi (reload, list, debug).
+    default: op

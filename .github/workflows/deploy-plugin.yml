@@ -5,6 +5,11 @@ name: Deploy plugin sul server Minecraft
 # /home/ubuntu/magicadventure/plugins/ (togliendo la versione vecchia) e il server viene
 # riavviato PER CARICARLI, con un preavviso in chat ai giocatori online.
 #
+# REGOLA (CLAUDE.md): lo STOP del server si fa con il comando CMI `stopserverfast` in console
+# (salva tutto e chiude pulito), NON con un systemctl restart "secco". systemctl restart si usa
+# solo per riportare su il server dopo lo stop (se systemd non lo rilancia da solo) e come
+# fallback se stopserverfast non lo ferma in tempo -- cosi' non si resta mai offline.
+#
 # Usa gli stessi secret del deploy sito: VPS_HOST, VPS_USER, VPS_SSH_KEY.
 # Serve inoltre, lato VPS, che l'utente possa riavviare il servizio senza password:
 #   ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart magicadventure.service
@@ -49,7 +54,14 @@ jobs:
         if: steps.check.outputs.ok == 'true'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2   # serve HEAD^ per capire quali plugin sono cambiati in un push
+          # Storia intera: serve a risalire fino a github.event.before (il commit su cui stava
+          # main PRIMA di questo push), non solo a HEAD^. Con un push che e' un MERGE COMMIT
+          # (due sessioni che pushano su main quasi insieme: capita davvero, vedi sotto) HEAD^ e'
+          # solo il primo genitore, e un diff HEAD^..HEAD perde tutte le modifiche portate dal
+          # SECONDO genitore — cioe' esattamente i plugin che l'altra sessione aveva appena
+          # cambiato: sono spariti dall'elenco "da compilare" senza nessun errore, e sul VPS
+          # restava il jar vecchio con la build verde. Successo davvero il 2026-09-23.
+          fetch-depth: 0
 
       - name: Java 25 + Maven
         if: steps.check.outputs.ok == 'true'
@@ -72,13 +84,37 @@ jobs:
               LIST="$INPUT"
             fi
           else
-            # push: solo le cartelle di primo livello cambiate sotto plugins-src/
-            LIST="$(git diff --name-only HEAD^ HEAD -- plugins-src/ \
-                    | sed -n 's#^plugins-src/\([^/]*\)/.*#\1#p' | sort -u)"
+            # push: solo le cartelle di primo livello cambiate sotto plugins-src/, confrontando
+            # con COM'ERA main PRIMA di questo push (github.event.before), non con HEAD^ — che
+            # per un merge commit e' solo il primo genitore e perderebbe le modifiche del secondo
+            # (vedi il commento sopra su fetch-depth). Se "before" non e' utilizzabile (primo
+            # push di un branch nuovo, oppure storia riscritta e commit non piu' raggiungibile) si
+            # compilano TUTTI i plugin per sicurezza, invece di rischiare di saltarne uno in
+            # silenzio: costa qualche minuto di build in piu', non un deploy a meta'.
+            BEFORE="${{ github.event.before }}"
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+                && git cat-file -e "$BEFORE" 2>/dev/null; then
+              LIST="$(git diff --name-only "$BEFORE" HEAD -- plugins-src/ \
+                      | sed -n 's#^plugins-src/\([^/]*\)/.*#\1#p' | sort -u)"
+            else
+              echo "::warning::github.event.before non utilizzabile: compilo tutti i plugin per sicurezza."
+              LIST="$(ls -1 plugins-src)"
+            fi
           fi
           echo "Plugin da compilare:"; echo "${LIST:-(nessuno)}"
           printf '%s\n' "$LIST" > "$RUNNER_TEMP/plugin_list"
           if [ -n "$LIST" ]; then echo "any=true" >> "$GITHUB_OUTPUT"; else echo "any=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Installa MagixLanguage nel repo Maven locale
+        # Gli altri plugin compilano contro MagixLanguageAPI con una dipendenza Maven
+        # 'provided' (com.teolo:MagixLanguage): non e' su nessun repository pubblico, quindi
+        # va installata qui, PRIMA di compilare qualunque altro plugin di questo lancio,
+        # cambiata o no lei stessa in questo push. 'install' (non solo 'package') la mette nel
+        # repo Maven locale del runner, da cui gli altri 'mvn package' di questo stesso job la
+        # risolvono. A runtime non cambia nulla: resta un softdepend vero, gestito dal codice
+        # (vedi lang/Messages.java di ogni plugin), non da questa dipendenza di compilazione.
+        if: steps.check.outputs.ok == 'true' && steps.plugins.outputs.any == 'true'
+        run: mvn -q -B -f plugins-src/MagixLanguage/pom.xml install -DskipTests
 
       - name: Compila i plugin
         if: steps.check.outputs.ok == 'true' && steps.plugins.outputs.any == 'true'
@@ -146,27 +182,28 @@ jobs:
           done < "$RUNNER_TEMP/manifest"
           echo "Tutti i $ATTESI jar sono sul VPS."
 
-          # 2) Preavviso ai giocatori (se il server e' su) e riavvio pulito via systemd.
+          # 2) Riavvio: stop pulito via CMI `stopserverfast`; systemd solo se il server e' spento.
           $SSH 'bash -s' <<'REMOTE'
           set -e
-          # dì manda un COMANDO in console; annuncia manda un MESSAGGIO ai giocatori.
-          # Senza "say" davanti, il preavviso finiva in console come comando inesistente
-          # ("Unknown or incomplete command") e in chat non arrivava niente: il server si
-          # riavviava sotto i piedi di chi stava giocando, senza un avviso.
+          # dì manda un COMANDO nella console del server (screen mc).
           dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
-          annuncia() { dì "say $1"; }
           if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
-            annuncia "[Aggiornamento] Il server si riavvia tra 60 secondi per aggiornare i plugin..."
-            sleep 40
-            annuncia "[Aggiornamento] Riavvio tra 20 secondi..."
-            sleep 15
-            annuncia "[Aggiornamento] Riavvio tra 5 secondi!"
-            sleep 5
-            dì "save-all"
-            sleep 3
+            # REGOLA (CLAUDE.md): lo STOP si fa con il comando CMI `stopserverfast`, che salva tutto e
+            # chiude pulito -- NON con un systemctl restart "secco" (SIGTERM). Gli AVVISI ai giocatori
+            # e il conto alla rovescia sono gia' configurati DENTRO il comando stopserverfast (CMI),
+            # quindi qui NON li ripetiamo (altrimenti i giocatori vedono due countdown sovrapposti).
+            # Poi lo screen `mc` esegue server/start.sh (while true; do java ...; done): quando java
+            # esce, start.sh rilancia da solo il server, coi jar nuovi (gia' copiati sopra), come per
+            # il riavvio notturno (che manda solo `stop`).
+            dì "stopserverfast"
+            echo "Inviato stopserverfast (avvisi ai giocatori gestiti da CMI); start.sh rilancera' il server."
+          else
+            # Server non in esecuzione (nessuno screen 'mc'): niente da fermare con stopserverfast,
+            # lo si avvia via systemd (il sudoers consente systemctl restart senza password).
+            sudo systemctl restart magicadventure.service
+            echo "Server non attivo: avviato via systemd."
           fi
-          sudo systemctl restart magicadventure.service
-          echo "Riavvio richiesto."
+          echo "Riavvio completato."
           REMOTE
 
       - name: Rimuovi la chiave dal runner

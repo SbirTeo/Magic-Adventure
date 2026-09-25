@@ -37,8 +37,9 @@ public final class MagixMenusCommand implements CommandExecutor, TabCompleter {
 
         if (a.length == 0 || a[0].equalsIgnoreCase("help")) {
             int page = a.length > 1 ? intero(a[1], 1) : 1;
-            Help.show(m, "MagixMenus", "/" + label + " help",
-                    Help.fromConfig(plugin.messages().section("help.sections")), page, staff);
+            Help.show(m, plugin.messages()::forPlayer, "MagixMenus", "/" + label + " help",
+                    Help.fromConfig(plugin.messages().section("help.sections"), m,
+                            plugin.messages()::forPlayer, plugin.messages()::listForPlayer), page, staff);
             return true;
         }
 

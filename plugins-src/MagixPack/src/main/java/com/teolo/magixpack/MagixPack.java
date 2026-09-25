@@ -1,6 +1,7 @@
 package com.teolo.magixpack;
 
 import com.teolo.magixpack.command.MagixPackCommand;
+import com.teolo.magixpack.lang.Messages;
 import com.teolo.magixpack.pack.PackListener;
 import com.teolo.magixpack.pack.PackService;
 import com.teolo.magixpack.util.ConfigAlign;
@@ -43,6 +44,7 @@ import java.util.Map;
 public final class MagixPack extends JavaPlugin implements Listener {
 
     private PackService packService;
+    private Messages messages;
 
     @Override
     public void onEnable() {
@@ -53,12 +55,13 @@ public final class MagixPack extends JavaPlugin implements Listener {
         // resterebbe indietro in silenzio (vedi util/ConfigAlign).
         ConfigAlign.alignAll(this);
         reloadConfig();
+        messages = new Messages(this);
 
         packService = new PackService(this);
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new PackListener(this, packService), this);
 
-        MagixPackCommand cmd = new MagixPackCommand(this);
+        MagixPackCommand cmd = new MagixPackCommand(this, messages);
         getCommand("magixpack").setExecutor(cmd);
 
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
@@ -95,6 +98,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
     public void reload() {
         ConfigAlign.alignAll(this);
         reloadConfig();
+        messages.reload();
         packService.reloadConfig();
         if (packService.isAvailable()) {
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) packService.sendTo(p);

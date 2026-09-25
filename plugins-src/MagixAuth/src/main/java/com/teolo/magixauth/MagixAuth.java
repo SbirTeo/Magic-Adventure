@@ -14,6 +14,7 @@ import com.teolo.magixauth.gate.ConnectionListener;
 import com.teolo.magixauth.gate.FreezeListener;
 import com.teolo.magixauth.gate.OtpPolicy;
 import com.teolo.magixauth.gate.Visibility;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.premium.MojangLookup;
 import com.teolo.magixauth.util.StaffGuide;
 import org.bukkit.Bukkit;
@@ -38,6 +39,7 @@ public final class MagixAuth extends JavaPlugin {
     private AuthDao dao;
     private OtpPolicy policy;
     private AuthGate gate;
+    private Messages messages;
 
     @Override
     public void onEnable() {
@@ -49,6 +51,7 @@ public final class MagixAuth extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         config = new AuthConfig(getConfig());
+        messages = new Messages(this);
 
         database = new Database(config);
         if (!database.raggiungibile()) {
@@ -86,7 +89,7 @@ public final class MagixAuth extends JavaPlugin {
         if (config.skinFromMojang) {
             getServer().getScheduler().runTaskAsynchronously(this, mojang::warmUp);
         }
-        gate = new AuthGate(this, config, dao, policy, visibility, mojang);
+        gate = new AuthGate(this, config, dao, policy, visibility, mojang, messages);
 
         // "Chiudi la sessione di gioco" premuto sul sito: si guarda spesso, perche' chi
         // preme quel pulsante ha fretta — sospetta che qualcun altro sia dentro col suo
@@ -98,15 +101,15 @@ public final class MagixAuth extends JavaPlugin {
                 new ConnectionListener(config, gate, visibility), this);
         getServer().getPluginManager().registerEvents(new FreezeListener(config, gate), this);
 
-        MauthCommand mauth = new MauthCommand(this, config, dao, policy, gate);
+        MauthCommand mauth = new MauthCommand(this, config, dao, policy, gate, messages);
         getCommand("magixauth").setExecutor(mauth);
         getCommand("magixauth").setTabCompleter(mauth);
-        getCommand("login").setExecutor(new LoginCommand(config, gate));
-        getCommand("register").setExecutor(new RegisterCommand(config, gate));
-        getCommand("otp").setExecutor(new OtpCommand(config, gate));
-        getCommand("logout").setExecutor(new LogoutCommand(this, config, dao, gate));
+        getCommand("login").setExecutor(new LoginCommand(config, gate, messages));
+        getCommand("register").setExecutor(new RegisterCommand(config, gate, messages));
+        getCommand("otp").setExecutor(new OtpCommand(config, gate, messages));
+        getCommand("logout").setExecutor(new LogoutCommand(this, config, dao, gate, messages));
         getCommand("changepassword").setExecutor(
-                new ChangePasswordCommand(this, config, dao, gate));
+                new ChangePasswordCommand(this, config, dao, gate, messages));
 
         async(() -> {
             try {
@@ -227,7 +230,7 @@ public final class MagixAuth extends JavaPlugin {
                         "premium.skin_cache_minutes", "Ogni quanti minuti la skin gia' presa viene richiesta di nuovo a Mojang.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«In gioco ho addosso la skin di un'altra persona»",
                         "La skin la mette il server, perché in offline mode il gioco non la chiede più a "
                                 + "nessuno. Se la richiesta a Mojang non riesce, chi entra da un launcher non "
@@ -286,6 +289,7 @@ public final class MagixAuth extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         config = new AuthConfig(getConfig());
+        messages.reload();
         policy.refreshGroups();
         Readme.rigenera(this, config);
     }
@@ -315,7 +319,7 @@ public final class MagixAuth extends JavaPlugin {
                 }
                 getLogger().info("MagixAuth: sessione di gioco chiusa dal sito per "
                         + p.getName() + ", verifica richiesta di nuovo.");
-                gate.refreeze(p, "La sessione di gioco e' stata chiusa dal sito: verificati di nuovo.");
+                gate.refreeze(p, "gate.refreeze-reason");
             }
         } catch (SQLException e) {
             getLogger().warning("MagixAuth: revoche non raccolte (" + e.getMessage() + ").");

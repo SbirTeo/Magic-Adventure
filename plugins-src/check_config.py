@@ -47,7 +47,8 @@ def present_plugins():
 
 PLUGINS = present_plugins()
 # Keys that read by themselves or do not belong to the plugin: not to be reported.
-IGNORE_UNREAD = re.compile(r"^(storage\.|mariadb\.|sqlite\.|ranks|leader|forbidden-words|value-blocks|messages)")
+IGNORE_UNREAD = re.compile(
+    r"^(storage\.|mariadb\.|sqlite\.|ranks|leader|forbidden-words|value-blocks|messages|scoreboards)")
 
 # Files with a FIXED SCHEMA — config.yml, modules.yml and the per-feature files (tablist.yml...) —
 # are the ones where every key is read by the code, so [3] and [4] apply to them. The exceptions are

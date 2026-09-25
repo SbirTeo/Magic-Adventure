@@ -231,12 +231,14 @@ body.pagina-store {
 .auth-box { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 /* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata. */
 .cambia-tema {
+  /* Stessa altezza di Gestione/Esci: "stretch" (come su a.who-link piu' sotto) lo allunga
+     fino alla riga piu' alta di .auth-box invece di fermarsi al contenuto suo (un'icona e una
+     parola sono piu' corte della riga di testo degli altri pulsanti, restava piu' basso). */
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 12px;
-  line-height: 1;
   flex: 0 0 auto;
+  align-self: stretch;
   text-transform: capitalize;
 }
 .cambia-tema-icona { font-size: 15px; }
@@ -244,6 +246,95 @@ body.pagina-store {
 @media (max-width: 900px) {
   .cambia-tema { padding: 0; width: 34px; height: 34px; justify-content: center; }
   .cambia-tema-testo { display: none; }
+}
+
+/* Bandiera come SVG (vedi includes/language.php, language_flag_svg): niente emoji, Windows
+   non ha i disegni delle bandiere nel suo font di sistema e mostrerebbe le due lettere del
+   codice paese al loro posto — visto succedere davvero, era il problema da risolvere. */
+.bandiera-lingua { width: 20px; height: 14px; border-radius: 2px; display: block; flex-shrink: 0; }
+
+/* Selettore di lingua: <details> nativo, niente JavaScript (funziona anche disattivato). */
+.cambia-lingua {
+  position: relative;
+  flex: 0 0 auto;
+  /* Anche qui "stretch" come su .cambia-tema: la bandiera da sola e' piu' bassa di una riga
+     di testo, e senza questo il pulsante restava piu' basso di Gestione/Esci. */
+  display: flex;
+  align-self: stretch;
+}
+.cambia-lingua > summary {
+  /* Stesso padding di Gestione/Esci (arrivano da .btn, qui non si tocca). */
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+}
+.cambia-lingua > summary::-webkit-details-marker { display: none; }
+.cambia-lingua > summary::marker { display: none; }
+@media (max-width: 900px) {
+  /* Stessa riduzione del pulsante del tema qui affianco: un quadrato fisso invece del
+     pulsante largo, altrimenti sulla barra stretta del telefono spingeva il resto fuori
+     e faceva comparire lo scorrimento orizzontale (era successo davvero: vedi issue). */
+  .cambia-lingua > summary { padding: 0; width: 34px; height: 34px; justify-content: center; }
+}
+.cambia-lingua-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+  /* Non deve MAI spingere la pagina piu' larga della finestra: e' assoluto quindi non conta
+     per la larghezza della riga, ma su un telefono strettissimo max-content potrebbe comunque
+     sforare a sinistra del bordo se il pulsante e' vicino al bordo destro. */
+  max-width: calc(100vw - 24px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.cambia-lingua-menu a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+}
+.cambia-lingua-menu a:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
+.cambia-lingua-menu a.active { color: var(--purple); font-weight: 700; }
+
+/* Riga di lingua dentro il menu ad hamburger (vedi .auth-box .cambia-lingua sopra): sotto
+   l'hamburger non c'e' spazio per un altro pulsante nella barra in alto, ma dentro il menu
+   aperto lo spazio verticale non manca, quindi qui le lingue stanno una accanto all'altra,
+   senza un'altra tendina da aprire dentro quella gia' aperta. */
+.lingua-mobile { display: none; }
+@media (max-width: 768px) {
+  .lingua-mobile {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+  }
+  .lingua-mobile a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 2px solid transparent;
+  }
+  .lingua-mobile a.active { border-color: var(--purple); }
+  .lingua-mobile .bandiera-lingua { width: 26px; height: 18px; border-radius: 3px; }
 }
 
 /* Scelta del tema nel profilo: tre pulsanti, quello attivo in evidenza */
@@ -285,32 +376,111 @@ a.who-link {
 }
 
 @media (max-width: 768px) {
-  .nav-toggle { display: flex; }
+  /* Il bottone resta sopra al menu a schermo intero (z-index piu' alto, vedi .nav-collapse
+     sotto): e' lui che, girando in una X, fa anche da tasto per richiuderlo. */
+  .nav-toggle { display: flex; position: relative; z-index: 60; }
+
+  /* Il menu ad hamburger copre tutto lo schermo invece di una tendina stretta sotto la
+     barra: c'era spazio SOLO per un elenco in colonna, che con le lingue aggiunte in piu'
+     (vedi .lingua-mobile) iniziava a essere fitto e spento. Scorre da sinistra con
+     un'animazione, e le voci sono una griglia di riquadri invece di righe una sotto l'altra. */
   .nav-collapse {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    display: flex;
     flex-direction: column;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(192, 79, 240, .22), transparent 45%),
+      radial-gradient(circle at 100% 18%, rgba(163, 230, 53, .14), transparent 42%),
+      var(--bg-panel);
+    padding: 88px 22px 32px;
+    border-bottom: none;
+    box-shadow: none;
+    overflow-y: auto;
     align-items: stretch;
-    gap: 16px;
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 16px 24px -12px rgba(0, 0, 0, 0.5);
-    padding: 16px 20px 22px;
+    gap: 0;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease, visibility 0s linear .38s;
   }
-  .nav-collapse.open { display: flex; }
-  .main-nav { flex-direction: column; align-items: stretch; gap: 4px; }
-  .main-nav a { padding: 10px 2px; border-bottom: 1px solid var(--border); }
-  .main-nav a.active { border-bottom-color: var(--purple); }
-  .btn-nav { align-self: flex-start; margin: 6px 0 0; }
+  .nav-collapse.open {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
+    transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease;
+  }
+
+  .main-nav {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    flex: none;
+  }
+  .main-nav .nav-logo { grid-column: 1 / -1; justify-self: center; margin-bottom: 10px; }
+  .main-nav a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 68px;
+    border-radius: var(--radius);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  /* Lo Store (.btn-gold) tiene il SUO oro: qui si tocca solo misura/posizione, mai i
+     colori, altrimenti sparisce il motivo per cui e' colorato diverso da tutti gli altri. */
+  .main-nav a:not(.btn-nav) {
+    padding: 12px 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
+  .main-nav a:active { transform: scale(.95); }
+  .main-nav .btn-nav { grid-column: 1 / -1; margin: 4px 0 0; min-height: 56px; }
+
+  /* Le voci compaiono una dopo l'altra invece che tutte insieme: e' quel poco di movimento
+     che fa sentire il menu vivo invece che un pannello che si accende di colpo. */
+  .nav-collapse.open .main-nav a,
+  .nav-collapse.open .lingua-mobile {
+    animation: voce-menu-entra .38s cubic-bezier(.22, 1, .36, 1) backwards;
+  }
+  .nav-collapse:not(.open) .main-nav a,
+  .nav-collapse:not(.open) .lingua-mobile { animation: none; }
+  .main-nav a:nth-child(1) { animation-delay: .04s; }
+  .main-nav a:nth-child(2) { animation-delay: .08s; }
+  .main-nav a:nth-child(3) { animation-delay: .12s; }
+  .main-nav a:nth-child(4) { animation-delay: .16s; }
+  .main-nav a:nth-child(5) { animation-delay: .20s; }
+  .main-nav a:nth-child(6) { animation-delay: .24s; }
+  .main-nav a:nth-child(7) { animation-delay: .28s; }
+  .main-nav a:nth-child(8) { animation-delay: .32s; }
+  .lingua-mobile { animation-delay: .34s; }
+  @keyframes voce-menu-entra {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   .auth-box { margin-left: auto; gap: 8px; font-size: 13px; }
   .auth-box .btn { padding: 7px 12px; font-size: 12.5px; }
   /* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
   .auth-box .who-link { padding: 3px 12px 3px 3px; }
   .who-avatar { width: 24px; height: 24px; }
+  /* Sotto l'hamburger il selettore di lingua della barra sparisce: non c'e' spazio per
+     aggiungerne uno in piu' senza spingere "Esci" a capo (provato dal vivo, veniva brutto).
+     Riappare come riga di bandiere dentro il menu ad hamburger, vedi .lingua-mobile. */
+  .auth-box .cambia-lingua { display: none; }
 }
+/* Il body non scorre sotto al menu a schermo intero (site.js aggiunge/toglie la classe). */
+body.menu-aperto { overflow: hidden; }
+/* backdrop-filter sull'header crea un "containing block" per i figli position:fixed (bug
+   noto delle specifiche CSS): senza questo il menu a schermo intero restava alto solo
+   quanto la barra, invece di tutto lo schermo. Si spegne solo mentre il menu e' aperto,
+   quando comunque l'header non si vede piu' sotto al menu. */
+body.menu-aperto .site-header { backdrop-filter: none; }
 
 .btn {
   display: inline-block;
@@ -421,8 +591,7 @@ a.who-link {
   overflow: visible;
   pointer-events: none;
 }
-.logo-particles .particle,
-.nether-scintille .particle {
+.logo-particles .particle {
   position: absolute;
   left: var(--x);
   top: var(--y);
@@ -5015,500 +5184,6 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 [data-tema="chiaro"] body.senza-veli-blog :is(.bento-feature, .post-tile):not(.no-image) :is(h2, h3, p, .meta, .card-cta, .bento-tag),
 [data-tema="chiaro"] body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-prezzo, .store-card-voci, li) {
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 10px rgba(255, 255, 255, 0.65);
-}
-
-/* ==========================================================================================
-   CONTO ALLA ROVESCIA — IL PORTALE DEL NETHER (home, fra il logo e gli articoli)
-   Nessun riquadro, nessuna cornice: c'e' il portale e basta, costruito a blocchi come in
-   gioco, con gli ANGOLI MANCANTI (e' quel profilo spezzato che lo fa riconoscere). Accanto
-   sta il testo, sotto corre la miccia. Tutto appoggiato sul fondo della pagina.
-   --carica va da 0 (annuncio) a 1 (apertura) e governa vortice, alone, scintille e fiamma.
-   ========================================================================================== */
-.nether {
-  --carica: 0;
-  --blocco: clamp(30px, 5.6vw, 54px);
-  --nether-scintilla: color-mix(in srgb, var(--cd) 35%, #ffffff);
-  /* Il margine interno della card: lo tiene anche la miccia, cosi' i suoi estremi si
-     allineano al testo e al portale invece di finire contro il bordo. */
-  --nether-pad: clamp(20px, 3vw, 30px);
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: clamp(20px, 4vw, 48px);
-  margin: 0 0 44px;
-  /* Racchiuso in una cornice come le altre card del sito: stesso fondo, bordo e raggio.
-     Il fondo in piu' in basso e' il posto della miccia, che corre sopra al bordo interno. */
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--nether-pad);
-  padding-bottom: 40px;
-}
-.nether-edit { top: 12px; right: 12px; }
-
-/* --- il portale: 4 blocchi di larghezza, 5 di altezza --- */
-.nether-portale {
-  position: relative;   /* riferimento per il piglin che si affaccia */
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: repeat(4, var(--blocco));
-  grid-template-rows: repeat(5, var(--blocco));
-  /* l'alone del portale acceso: cresce mano a mano che la miccia avanza */
-  filter: drop-shadow(0 0 calc(6px + 26px * var(--carica)) var(--cd-alone));
-  transition: filter .6s;
-}
-/* Un blocco di ossidiana: quasi nero, con le venature viola e il rilievo dei bordi */
-.nether-blocco {
-  background-color: #0c0812;
-  background-image:
-    radial-gradient(circle at 30% 28%, rgba(150, 70, 220, 0.16), transparent 44%),
-    radial-gradient(circle at 74% 70%, rgba(110, 45, 190, 0.13), transparent 42%),
-    radial-gradient(circle at 52% 88%, rgba(70, 30, 130, 0.11), transparent 38%);
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.75),
-    inset 1px 1px 0 1px rgba(255, 255, 255, 0.05),
-    inset -1px -1px 0 1px rgba(0, 0, 0, 0.45);
-}
-
-/* --- il vano: il vetro viola del portale --- */
-.nether-vano {
-  position: relative;
-  overflow: hidden;
-  grid-area: 2 / 2 / 5 / 4;   /* le tre righe centrali fra i due montanti */
-  background: #0a0710;         /* portale spento: si vede il buio dietro */
-}
-.nether-vortice {
-  position: absolute;
-  inset: 0;
-  background:
-    /* i filamenti chiari che scendono: e' il movimento tipico del portale */
-    repeating-linear-gradient(101deg,
-      rgba(255, 255, 255, 0.13) 0 3px,
-      rgba(255, 255, 255, 0) 3px 12px),
-    /* due nuvole viola che si incrociano piano */
-    radial-gradient(58% 46% at 26% 28%, color-mix(in srgb, var(--cd) 88%, #ffffff) 0%, transparent 62%),
-    radial-gradient(54% 50% at 76% 74%, color-mix(in srgb, var(--cd) 70%, #000000) 0%, transparent 64%),
-    /* il fondo, viola cupo */
-    linear-gradient(180deg, color-mix(in srgb, var(--cd) 52%, #100320), color-mix(in srgb, var(--cd) 74%, #100320));
-  background-size: 200% 220%, 190% 190%, 175% 175%, 100% 100%;
-  /* spento = si intravede appena; acceso = pieno */
-  opacity: calc(0.12 + 0.88 * var(--carica));
-  /* il bordo del vano resta in ombra: il portale e' incassato nell'ossidiana */
-  box-shadow: inset 0 0 26px 6px rgba(0, 0, 0, 0.55);
-  animation: nether-onde 7s linear infinite;
-}
-@keyframes nether-onde {
-  0%   { background-position: 0    0%,   0% 100%, 100%   0%, 0 0; }
-  100% { background-position: 0 -220%, 100%   0%,   0% 100%, 0 0; }
-}
-.nether-scintille {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: calc(0.25 + 0.75 * var(--carica));
-}
-
-/* --- il testo, accanto al portale --- */
-/* Il testo prende lo spazio che avanza, il portale resta della sua misura in fondo:
-   cosi' il portale e' sempre attaccato al bordo destro, dove finisce la miccia. */
-.nether-testo { flex: 1 1 auto; min-width: 0; text-align: center; }
-.nether-tag {
-  display: inline-block;
-  margin-bottom: 10px;
-  font-family: var(--font-heading);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--cd-testo, var(--cd));
-}
-.nether-titolo {
-  margin: 0 0 8px;
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-.nether-tempo {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;   /* i numeri restano centrati come il resto del testo */
-  flex-wrap: wrap;
-  gap: 4px 18px;
-  margin: 0;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  line-height: 1;
-}
-.nether-giorni, .nether-orologio { display: inline-flex; align-items: baseline; }
-.nether-giorni b {
-  font-size: clamp(42px, 8vw, 78px);
-  color: var(--cd-testo, var(--cd));
-  text-shadow: 0 0 26px var(--cd-testo-alone, var(--cd-alone));
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-.nether-unita {
-  margin-left: 9px;
-  font-size: clamp(11px, 1.5vw, 14px);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-dimmer);
-}
-.nether-orologio b {
-  font-size: clamp(28px, 5vw, 48px);
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-/* I due punti battono il secondo: e' l'unica cosa che dice "sta correndo davvero" */
-.nether-orologio i {
-  font-style: normal;
-  margin: 0 3px;
-  font-size: clamp(24px, 4.2vw, 40px);
-  color: var(--cd-testo, var(--cd));
-  animation: nether-battito 1s steps(1, end) infinite;
-}
-@keyframes nether-battito {
-  0%, 49%   { opacity: 1; }
-  50%, 100% { opacity: 0.22; }
-}
-.nether-quando { margin: 12px 0 0; color: var(--text-dim); font-size: 14px; }
-.nether-fuso {
-  margin-left: 8px;
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-dimmer);
-}
-.nether-nota { margin: 10px auto 0; max-width: 56ch; color: var(--text-dim); font-size: 14.5px; }
-.nether-annuncio {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: clamp(28px, 5vw, 52px);
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--cd-testo, var(--cd));
-  text-shadow: 0 0 30px var(--cd-testo-alone, var(--cd-alone));
-}
-.nether-btn {
-  margin-top: 18px;
-  color: var(--contrasto-testo);
-  background: var(--cd-testo, var(--cd));
-  border: 0;
-}
-.nether-btn:hover { filter: brightness(1.08); }
-
-/* --- la miccia: brucia da destra verso il portale --- */
-/* La miccia attraversa tutta la sezione, da bordo a bordo. */
-.nether-miccia {
-  position: absolute;
-  left: var(--nether-pad);
-  right: var(--nether-pad);
-  bottom: 12px;
-  height: 16px;
-}
-.nether-corda, .nether-accesa {
-  position: absolute;
-  top: 7px;
-  height: 3px;
-  border-radius: 2px;
-}
-/* Il tratto ancora da percorrere: miccia spenta, appena visibile nel buio. */
-.nether-corda {
-  left: 0;
-  right: 0;
-  background: repeating-linear-gradient(72deg, #3b3228 0 3px, #241e18 3px 7px);
-}
-/* Il tratto gia' percorso, alle spalle del corridore: acceso, con la luce che si spegne
-   piano andando all'indietro — la scia si perde da dove e' partito. */
-.nether-accesa {
-  left: 0;
-  width: calc(var(--carica) * 100%);
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--miccia, var(--cd)) 25%, transparent) 0%,
-    var(--miccia, var(--cd)) 55%,
-    #ffe6a3 100%);
-  box-shadow: 0 0 10px 1px var(--miccia-alone, var(--cd-alone));
-}
-.nether-fiamma {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--carica) * 100%);
-  width: 16px;
-  height: 16px;
-  margin: -8px 0 0 -8px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #ffd98a 26%, var(--miccia, var(--cd)) 58%, transparent 72%);
-  box-shadow: 0 0 12px 3px var(--miccia-alone, var(--cd-alone)), 0 0 28px 9px var(--miccia-alone, var(--cd-alone));
-  animation: nether-guizzo .42s ease-in-out infinite alternate;
-}
-@keyframes nether-guizzo {
-  from { transform: scale(0.82) translateY(1px); }
-  to   { transform: scale(1.16) translateY(-1px); }
-}
-
-
-/* --- il corridore: il giocatore che corre sulla miccia verso il portale -----------------
-   Non e' un ritratto gia' pronto: e' la TEXTURE della skin (il PNG 64x64 di Minecraft)
-   ritagliata pezzo per pezzo, cosi' braccia e gambe si muovono per davvero.
-
-   E' visto DI PROFILO, non di fronte: di fronte le braccia che ruotano sembrano un salto
-   della rana, perche' una corsa oscilla avanti e indietro, non a destra e sinistra. Di
-   profilo l'oscillazione cade nel piano giusto e si legge come una falcata. Si usano le
-   facce DESTRE della texture: guardando qualcuno dalla sua destra, lui guarda verso la
-   nostra destra — cioe' verso il portale.
-
-   --u e' il lato di un pixel della skin.                                                  */
-.corridore {
-  --u: clamp(2.2px, 0.4vw, 3.6px);
-  position: absolute;
-  /* Non sta sul punto esatto in cui brucia la miccia: resta un po' indietro, e la fiamma
-     gli corre davanti. La sua corsa e' accorciata di tre blocchi, cosi' quando arriva in
-     fondo mette piede sulla SOGLIA del portale invece di finire oltre il bordo della
-     pagina. */
-  left: calc(var(--carica) * (100% - 3 * var(--blocco)));
-  /* I piedi corrono appoggiati sulla miccia. Senza piu' il portale in fondo non c'e' una
-     soglia su cui salire, quindi resta alla stessa quota per tutta la corsa: abbassato un
-     po' cosi' sta proprio sopra la corda invece di fluttuarle sopra. (--salita resta come
-     margine se in futuro tornasse un capolinea rialzato.) */
-  bottom: calc(7px + var(--carica) * var(--salita, 0px));
-  width: calc(8 * var(--u));
-  height: calc(32 * var(--u));
-  margin-left: calc(-4 * var(--u));
-  /* dritto in piedi: e' il movimento di braccia e gambe a dire che sta correndo,
-     senza bisogno di inclinarlo (di sbieco sembrava storto) */
-  transform-origin: bottom center;
-}
-.corridore-corpo {
-  position: absolute;
-  inset: 0;
-  animation: corridore-balzo 0.34s ease-in-out infinite alternate;
-}
-@keyframes corridore-balzo {
-  from { transform: translateY(0); }
-  to   { transform: translateY(calc(-1.2 * var(--u))); }
-}
-.corridore-pezzo {
-  position: absolute;
-  background-image: var(--skin);
-  background-size: calc(64 * var(--u)) calc(64 * var(--u));
-  background-repeat: no-repeat;
-  image-rendering: pixelated;
-}
-
-/* I ritagli: le facce destre della texture di Minecraft, moltiplicate per il lato del pixel.
-   Il busto e gli arti sono profondi 4 pixel contro gli 8 della testa, quindi stanno
-   incolonnati al centro. */
-.corridore-pezzo.e-testa {
-  left: 0; top: 0;
-  width: calc(8 * var(--u)); height: calc(8 * var(--u));
-  background-position: 0 calc(-8 * var(--u));
-  z-index: 4;
-}
-.corridore-pezzo.e-torso {
-  left: calc(2 * var(--u)); top: calc(8 * var(--u));
-  width: calc(4 * var(--u)); height: calc(12 * var(--u));
-  background-position: calc(-16 * var(--u)) calc(-20 * var(--u));
-  z-index: 3;
-}
-/* Braccia e gambe partono tutte dallo stesso punto: di profilo stanno una dietro l'altra,
-   ed e' l'oscillazione a separarle. */
-.corridore-pezzo.e-braccio {
-  left: calc(2 * var(--u)); top: calc(8 * var(--u));
-  width: calc(4 * var(--u)); height: calc(12 * var(--u));
-  background-position: calc(-40 * var(--u)) calc(-20 * var(--u));
-  transform-origin: top center;
-}
-.corridore-pezzo.e-gamba {
-  left: calc(2 * var(--u)); top: calc(20 * var(--u));
-  width: calc(4 * var(--u)); height: calc(12 * var(--u));
-  background-position: 0 calc(-20 * var(--u));
-  transform-origin: top center;
-}
-/* L'arto vicino a chi guarda sta davanti al busto; quello lontano dietro, e piu' in ombra */
-.corridore-pezzo.e-avanti { z-index: 5; }
-.corridore-pezzo.e-dietro { z-index: 1; filter: brightness(0.68); }
-
-/* La falcata: braccio e gamba dello stesso lato vanno in direzioni opposte, come si corre. */
-.corridore-pezzo.e-braccio.e-avanti,
-.corridore-pezzo.e-gamba.e-dietro { animation: corridore-avanti 0.34s ease-in-out infinite alternate; }
-.corridore-pezzo.e-braccio.e-dietro,
-.corridore-pezzo.e-gamba.e-avanti { animation: corridore-indietro 0.34s ease-in-out infinite alternate; }
-@keyframes corridore-avanti {
-  from { transform: rotate(34deg); }
-  to   { transform: rotate(-34deg); }
-}
-@keyframes corridore-indietro {
-  from { transform: rotate(-34deg); }
-  to   { transform: rotate(34deg); }
-}
-
-/* La polvere sotto i piedi: piccole zolle quadrate che schizzano ALL'INDIETRO (il
-   corridore va verso destra) e si spengono per aria. Partono tutte dallo stesso punto,
-   ma ognuna con il suo ritardo, la sua direzione e la sua misura: in blocco si vedrebbe
-   subito che sono finte. */
-.corridore-polvere {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 0;
-  height: 0;
-}
-.corridore-polvere i {
-  position: absolute;
-  width: calc(1.3 * var(--u));
-  height: calc(1.3 * var(--u));
-  background: #b9a887;
-  opacity: 0;
-  animation: corridore-polvere 0.85s linear infinite;
-  animation-delay: var(--d);
-}
-@keyframes corridore-polvere {
-  0%   { opacity: 0;    transform: translate(0, 0) scale(var(--s, 1)); }
-  12%  { opacity: 0.75; }
-  100% { opacity: 0;    transform: translate(var(--dx), var(--dy)) scale(calc(var(--s, 1) * 1.7)); }
-}
-
-/* --- il piglin zombificato che si affaccia dal portale ---------------------------------
-   Esce dal vano ogni tanto, dice la sua e rientra: sta fuori tre secondi su quindici, il
-   resto del tempo non c'e'. La testa e' un'immagine, la nuvoletta un riquadro con la coda
-   che punta verso di lui. */
-.piglin {
-  position: absolute;
-  /* a cavallo del montante di sinistra: si sporge FUORI dal portale, non ci sta dentro */
-  left: calc(0.15 * var(--blocco));
-  top: calc(2.2 * var(--blocco));
-  width: calc(1.3 * var(--blocco));
-  height: calc(1.3 * var(--blocco));
-  z-index: 6;
-  animation: piglin-affaccia 15s ease-in-out infinite;
-}
-.piglin-testa {
-  display: block;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.7));
-}
-@keyframes piglin-affaccia {
-  0%, 6%    { opacity: 0; transform: translateX(70%) scale(0.86); }
-  11%, 27%  { opacity: 1; transform: translateX(0) scale(1); }
-  33%, 100% { opacity: 0; transform: translateX(70%) scale(0.86); }
-}
-
-.piglin-nuvoletta {
-  position: absolute;
-  /* SOPRA la testa, non di fianco: di fianco finisce sulla traiettoria del corridore, che
-     verso fine corsa si alza proprio li' e le passa davanti. */
-  right: calc(100% - 0.5 * var(--blocco));
-  bottom: calc(100% + 8px);
-  padding: 7px 12px;
-  border-radius: 12px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 8px 22px -12px rgba(0, 0, 0, 0.9);
-  color: var(--text);
-  font-family: var(--font-heading);
-  font-size: clamp(11px, 1.3vw, 13.5px);
-  font-weight: 700;
-  line-height: 1.25;
-  white-space: nowrap;
-  opacity: 0;
-  animation: piglin-parla 15s ease-in-out infinite;
-}
-/* la codina che punta giu' verso il piglin */
-.piglin-nuvoletta::after {
-  content: "";
-  position: absolute;
-  right: 16px;
-  bottom: -6px;
-  width: 10px;
-  height: 10px;
-  transform: rotate(45deg);
-  background: var(--bg-elevated);
-  border-right: 1px solid var(--border-strong);
-  border-bottom: 1px solid var(--border-strong);
-}
-@keyframes piglin-parla {
-  0%, 13%   { opacity: 0; transform: translateY(5px) scale(0.94); }
-  17%, 26%  { opacity: 1; transform: none; }
-  31%, 100% { opacity: 0; transform: translateY(5px) scale(0.94); }
-}
-
-/* A portale acceso il corridore ha finito la corsa: e' entrato. */
-.nether.is-aperto .corridore { display: none; }
-
-/* --- le due facce: in attesa / aperto --- */
-.nether-aperto { display: none; }
-.nether.is-aperto { --carica: 1; }
-.nether.is-aperto .nether-attesa { display: none; }
-.nether.is-aperto .nether-aperto { display: block; }
-/* A portale acceso il vortice gira piu' in fretta e la miccia ha finito il suo lavoro */
-.nether.is-aperto .nether-vortice { animation-duration: 4.5s; }
-.nether.is-aperto .nether-fiamma { display: none; }
-/* Quando manca meno di un giorno la parola "giorni" sparisce: "0 giorni" e' solo rumore */
-.nether-giorni[hidden] { display: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  .nether-vortice, .nether-orologio i, .nether-fiamma { animation: none; }
-  .nether-scintille, .corridore-polvere { display: none; }
-  .corridore-corpo, .corridore-pezzo { animation: none; }
-  /* il piglin smette di entrare e uscire e resta affacciato */
-  .piglin, .piglin-nuvoletta { animation: none; opacity: 1; transform: none; }
-}
-
-/* Sotto i 900px il conto alla rovescia diventa una FASCIA a tutta larghezza come tutti gli
-   altri riquadri del sito (vedi "IL SITO A FASCE"): arriva ai bordi dello schermo, niente
-   angoli né cornice ai lati, solo il filo colorato in cima. Sta QUI, dopo la definizione
-   base di .nether, se no la cornice della card (piu' in basso nel foglio) vincerebbe e il
-   riquadro resterebbe. Il margine interno passa a quello della fascia, cosi' la miccia
-   (che lo usa) resta allineata al testo e al portale. */
-@media (max-width: 900px) {
-  .nether {
-    --nether-pad: var(--wrap-pad);
-    margin: 0 calc(var(--wrap-pad) * -1) 12px;
-    border-radius: 0;
-    border-width: 1px 0 0;
-    border-style: solid;
-    border-image: var(--filo-fascia) 1;
-  }
-}
-
-/* Su schermo stretto il portale va sopra e il testo sotto: affiancati diventerebbero due
-   colonne strette, e il portale perderebbe la sua sagoma.
-
-   La miccia esce dal fondo della sezione e si infila SUBITO SOTTO al portale: cosi' il
-   corridore resta sullo stesso piano del portale verso cui sta correndo, invece di
-   ritrovarsi in fondo alla pagina staccato da lui. */
-@media (max-width: 700px) {
-  .nether {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    /* qui la miccia entra nel flusso in fondo: basta il fondo normale della card */
-    padding-bottom: clamp(20px, 3vw, 30px);
-    text-align: center;
-  }
-  /* Il portale resta a destra anche qui: e' il capolinea della miccia. Centrato, il
-     corridore gli finirebbe addosso gia' a meta' strada. */
-  .nether-portale { order: 1; align-self: flex-end; }
-  .nether-miccia  { order: 2; }
-  .nether-testo   { order: 3; margin-top: 26px; text-align: center; }
-
-  /* la miccia entra nel flusso, appoggiata alla soglia del portale */
-  .nether-miccia {
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    width: 100%;
-  }
-  .nether-tempo { justify-content: center; }
-  .nether-nota { margin-left: auto; margin-right: auto; }
 }
 
 /* =====================================================================

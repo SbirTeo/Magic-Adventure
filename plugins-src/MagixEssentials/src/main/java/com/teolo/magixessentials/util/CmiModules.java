@@ -81,10 +81,11 @@ public final class CmiModules {
     }
 
     /**
-     * Spegne un modulo di CMI cambiando la sua riga nel file, con una copia di scorta accanto
-     * ({@code Modules.yml.bak-<data>}). Torna {@code true} solo se ha cambiato davvero qualcosa:
-     * un modulo gia' spento, una chiave che non c'e' o un file che non si riesce a scrivere
-     * tornano {@code false}, senza far danni.
+     * Spegne un modulo di CMI cambiando la sua riga nel file, con una copia di scorta in
+     * {@code .bak/CMI/Settings/} (fuori da {@code plugins/} sul server, {@code Modules.yml.bak-<data>}
+     * — la stessa struttura di {@link ConfigAlign}). Torna {@code true} solo se ha cambiato davvero
+     * qualcosa: un modulo gia' spento, una chiave che non c'e' o un file che non si riesce a
+     * scrivere tornano {@code false}, senza far danni.
      */
     public static boolean disable(JavaPlugin plugin, String... names) {
         File file = file(plugin);
@@ -114,8 +115,10 @@ public final class CmiModules {
             return false;   // gia' spento, o la chiave in questa versione si chiama in un altro modo
         }
         try {
+            File bakDir = bakDir(plugin, file);
+            Files.createDirectories(bakDir.toPath());
             Files.copy(file.toPath(),
-                    new File(file.getParentFile(), file.getName() + ".bak-" + LocalDateTime.now().format(STAMP)).toPath(),
+                    new File(bakDir, file.getName() + ".bak-" + LocalDateTime.now().format(STAMP)).toPath(),
                     StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             // Nessuna copia, nessuna modifica: il file di un altro plugin non si tocca al buio.
@@ -135,6 +138,22 @@ public final class CmiModules {
     /** Il file degli interruttori di CMI, accanto alla nostra cartella dati. */
     public static File file(JavaPlugin plugin) {
         return new File(plugin.getDataFolder().getParentFile(), PATH);
+    }
+
+    /**
+     * La cartella dove va la copia di scorta di {@code file}: la cartella {@code plugins/} viene
+     * sostituita con {@code .bak/}, il resto del percorso resta lo stesso ({@code plugins/CMI/Settings/
+     * Modules.yml} -> {@code .bak/CMI/Settings/}) — la stessa struttura che usa {@link ConfigAlign}.
+     */
+    private static File bakDir(JavaPlugin plugin, File file) {
+        // Assoluto PRIMA di risalire i genitori: su un server vero getDataFolder() e' quasi sempre
+        // relativo ("plugins/<Plugin>"), e getParentFile() su un singolo segmento come "plugins" da'
+        // null - il ramo di ripiego (copia accanto al file) scattava quindi sempre, anche live.
+        File pluginsDir = plugin.getDataFolder().getAbsoluteFile().getParentFile();
+        File serverRoot = pluginsDir == null ? null : pluginsDir.getParentFile();
+        if (serverRoot == null) return file.getParentFile();
+        String relative = pluginsDir.toPath().relativize(file.getAbsoluteFile().getParentFile().toPath()).toString();
+        return relative.isEmpty() ? new File(serverRoot, ".bak") : new File(new File(serverRoot, ".bak"), relative);
     }
 
     /** Confronto fra nomi di chiave alla larga: maiuscole, trattini e trattini bassi non contano. */

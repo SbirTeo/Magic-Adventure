@@ -754,47 +754,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/manage?section=theme&ok=1');
         }
 
-        case 'countdown_save': {
-            // La data arriva da <input type="datetime-local">: "2026-09-05T21:00", ora
-            // ITALIANA. Si salva com'e' scritta; a interpretarla nel fuso giusto ci pensa
-            // countdown_istante() (includes/countdown.php), perche' il server lavora in UTC.
-            $acceso = isset($_POST['enabled']) ? '1' : '0';
-            $quando = trim($_POST['target'] ?? '');
-            if ($quando !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$/', $quando)) {
-                redirect('/manage?section=theme&err=data#countdown');
-            }
-            // Da quando il portale comincia a caricarsi. Vuoto = un mese prima dell'apertura.
-            $partenza = trim($_POST['start'] ?? '');
-            if ($partenza !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$/', $partenza)) {
-                redirect('/manage?section=theme&err=data#countdown');
-            }
-            // Tre colori a parte: portale, miccia e testo. Ognuno torna al suo se scritto male.
-            $tinta = function (string $campo, string $ripiego): string {
-                $c = trim($_POST[$campo] ?? '');
-                return is_valid_hex_color($c) ? $c : $ripiego;
-            };
-            $colore = $tinta('color', '#c04ff0');
-            $coloreMiccia = $tinta('fuse_color', '#c04ff0');
-            $coloreTesto = $tinta('text_color', '#a3e635');
-
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            $upd->execute(['countdown_enabled', $acceso]);
-            $upd->execute(['countdown_target', $quando]);
-            $upd->execute(['countdown_start', $partenza]);
-            $upd->execute(['countdown_color', $colore]);
-            $upd->execute(['countdown_fuse_color', $coloreMiccia]);
-            $upd->execute(['countdown_text_color', $coloreTesto]);
-            $upd->execute(['countdown_tag', trim($_POST['tag'] ?? '')]);
-            $upd->execute(['countdown_title', trim($_POST['title'] ?? '')]);
-            $upd->execute(['countdown_text', trim($_POST['text'] ?? '')]);
-            $upd->execute(['countdown_done_title', trim($_POST['done_title'] ?? '')]);
-            $upd->execute(['countdown_done_text', trim($_POST['done_text'] ?? '')]);
-            $upd->execute(['countdown_piglin_text', trim($_POST['piglin_text'] ?? '')]);
-            $upd->execute(['countdown_button_text', trim($_POST['button_text'] ?? '')]);
-            $upd->execute(['countdown_button_url', trim($_POST['button_url'] ?? '')]);
-            redirect('/manage?section=theme&ok=1#countdown');
-        }
-
         case 'vip_banner_save': {
             $enabled = isset($_POST['enabled']) ? '1' : '0';
             $icon = trim($_POST['icon'] ?? '');
@@ -1421,7 +1380,6 @@ if (isset($_GET['err'])) {
         'protected' => 'Questo account è protetto: il suo ruolo web-admin si può cambiare solo dal server, non dal sito.',
         'self' => 'Non puoi togliere i permessi di amministratore a te stesso da qui.',
         'core' => 'Questa pagina è protetta e non può essere eliminata.',
-        'data' => 'Data del conto alla rovescia non valida: usa il selettore di data e ora.',
         'invalid' => 'Controlla i valori inseriti (i colori devono essere in formato esadecimale, es. #a3e635).',
         default => 'Si è verificato un errore.',
     };
@@ -2713,101 +2671,6 @@ if ($section === 'dashboard') {
           </label>
         </div>
         <button type="submit" class="btn btn-accent">Salva aspetto</button>
-      </form>
-    </div>
-
-    <?php
-    // Conto alla rovescia dell'apertura. La data salvata puo' avere lo spazio al posto
-    // della T (se qualcuno l'ha scritta a mano nel database): il campo del browser
-    // accetta solo la forma con la T.
-    $cdTarget = substr(str_replace(' ', 'T', trim((string) ($s['countdown_target'] ?? ''))), 0, 16);
-    $cdStart = substr(str_replace(' ', 'T', trim((string) ($s['countdown_start'] ?? ''))), 0, 16);
-    ?>
-    <h2 id="countdown" style="margin-top:34px;">Conto alla rovescia</h2>
-    <p class="sub" style="margin-bottom:14px;">
-      Il <strong>portale</strong> in home, sotto al logo: quanto manca all&rsquo;apertura del server al
-      pubblico. Pi&ugrave; la data si avvicina, pi&ugrave; il portale si accende. Passata la data e
-      l&rsquo;ora, al posto dell&rsquo;orologio compare il messaggio di apertura.
-    </p>
-    <div class="panel">
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="countdown_save">
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="enabled" value="1" style="width:auto;" <?= ($s['countdown_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-            Mostra il conto alla rovescia in home
-          </label>
-        </div>
-        <div>
-          <label for="cd_target">Data e ora dell&rsquo;apertura</label>
-          <input type="datetime-local" id="cd_target" name="target" value="<?= h($cdTarget) ?>" style="max-width:260px;">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
-            <strong>Ora italiana.</strong> Senza data la fascia non compare, anche se la spunta qui sopra &egrave; accesa.
-          </p>
-        </div>
-        <div>
-          <label for="cd_start">Inizio dello sviluppo <span style="text-transform:none; color:var(--text-dim);">(facoltativo)</span></label>
-          <input type="datetime-local" id="cd_start" name="start" value="<?= h($cdStart) ?>" style="max-width:260px;">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
-            Il giorno in cui sono cominciati i lavori. &Egrave; da qui che parte la miccia: il tratto
-            acceso dice quanta strada &egrave; stata fatta, e il portale si accende di pari passo.
-            <strong>Vuoto = primo luglio.</strong>
-          </p>
-        </div>
-        <div>
-          <label for="cd_tag">Etichetta piccola</label>
-          <input type="text" id="cd_tag" name="tag" maxlength="60" value="<?= h($s['countdown_tag'] ?? 'Apertura al pubblico') ?>">
-        </div>
-        <div>
-          <label for="cd_title">Titolo (mentre si aspetta)</label>
-          <input type="text" id="cd_title" name="title" maxlength="120" value="<?= h($s['countdown_title'] ?? 'Il server apre fra') ?>">
-        </div>
-        <div>
-          <label for="cd_text">Testo sotto l&rsquo;orologio</label>
-          <textarea id="cd_text" name="text" rows="2" maxlength="300"><?= h($s['countdown_text'] ?? '') ?></textarea>
-        </div>
-        <div>
-          <label for="cd_done_title">Titolo dopo l&rsquo;apertura</label>
-          <input type="text" id="cd_done_title" name="done_title" maxlength="120" value="<?= h($s['countdown_done_title'] ?? 'Il server è APERTO') ?>">
-        </div>
-        <div>
-          <label for="cd_done_text">Testo dopo l&rsquo;apertura</label>
-          <textarea id="cd_done_text" name="done_text" rows="2" maxlength="300"><?= h($s['countdown_done_text'] ?? 'Entra adesso e prenditi il tuo territorio.') ?></textarea>
-        </div>
-        <div>
-          <label for="cd_piglin">Frase del piglin <span style="text-transform:none; color:var(--text-dim);">(vuoto = non esce nessuno)</span></label>
-          <input type="text" id="cd_piglin" name="piglin_text" maxlength="60"
-                 value="<?= h($s['countdown_piglin_text'] ?? 'Dai, vieni a dominare!') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
-            Ogni tanto un piglin zombificato caccia la testa fuori dal portale e dice questa frase
-            in una nuvoletta. Tienila corta: sta tutta su una riga.
-          </p>
-        </div>
-        <div>
-          <label for="cd_button_text">Testo del pulsante <span style="text-transform:none; color:var(--text-dim);">(vuoto = nessun pulsante)</span></label>
-          <input type="text" id="cd_button_text" name="button_text" maxlength="60" value="<?= h($s['countdown_button_text'] ?? '') ?>">
-        </div>
-        <div>
-          <label for="cd_button_url">Indirizzo del pulsante</label>
-          <input type="text" id="cd_button_url" name="button_url" value="<?= h($s['countdown_button_url'] ?? '') ?>">
-        </div>
-        <div>
-          <label for="cd_color">Colore del portale</label>
-          <input type="color" id="cd_color" name="color" value="<?= h($s['countdown_color'] ?? '#c04ff0') ?>" style="max-width:80px; padding:2px;">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Il vortice dentro l&rsquo;ossidiana, il suo alone e le scintille. Il viola &egrave; quello del Nether.</p>
-        </div>
-        <div>
-          <label for="cd_fuse_color">Colore della miccia</label>
-          <input type="color" id="cd_fuse_color" name="fuse_color" value="<?= h($s['countdown_fuse_color'] ?? '#c04ff0') ?>" style="max-width:80px; padding:2px;">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Il tratto gi&agrave; percorso e la fiamma che corre davanti al giocatore.</p>
-        </div>
-        <div>
-          <label for="cd_text_color">Colore del testo</label>
-          <input type="color" id="cd_text_color" name="text_color" value="<?= h($s['countdown_text_color'] ?? '#a3e635') ?>" style="max-width:80px; padding:2px;">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">L&rsquo;etichetta, il numero dei giorni, i due punti dell&rsquo;orologio, l&rsquo;annuncio di apertura e il pulsante.</p>
-        </div>
-        <button type="submit" class="btn btn-accent">Salva conto alla rovescia</button>
       </form>
     </div>
 

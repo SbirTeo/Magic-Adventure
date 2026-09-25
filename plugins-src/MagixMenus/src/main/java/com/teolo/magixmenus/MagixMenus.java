@@ -215,6 +215,21 @@ public final class MagixMenus extends JavaPlugin {
                                 + "spenta nel config e va lasciata spenta: quasi sempre console: fa la stessa "
                                 + "cosa senza dare niente a nessuno.")
 
+                .section("Il testo dei menu si traduce da solo (con MagixLanguage installato)",
+                        "Titolo del menu, nome e descrizione di ogni item, corpo/bottoni/campi delle finestre "
+                                + "di dialogo, e il testo scritto dentro message:/broadcast:/title:/actionbar: "
+                                + "(comprese le versioni negate di show_requirements/click_requirements/"
+                                + "open_requirements) vengono tradotti in automatico per chi gioca in un'altra "
+                                + "lingua — senza scrivere niente in piu' nel file del menu.",
+                        "A differenza di messages.yml qui non c'e' una chiave: la ricerca avviene sulla "
+                                + "FRASE italiana esatta (placeholder %tipo_questo% compresi). Per correggere "
+                                + "una traduzione, o per tradurre a mano una frase che l'automatismo non trova da "
+                                + "solo (es. dentro un blocco if/then/else di un'azione), si aggiunge la frase "
+                                + "italiana esatta in plugins/MagixLanguage/translations/MagixMenus/"
+                                + "menu-phrases-<lingua>-overrides.yml.",
+                        "Materiali, permessi, equazioni, nomi di suono, di menu e di comando NON vengono mai "
+                                + "toccati: solo il testo che un giocatore legge davvero passa dalla traduzione.")
+
                 .detailedCommands()
                 .commands()
                 .permissions()
@@ -226,7 +241,7 @@ public final class MagixMenus extends JavaPlugin {
                                 + "descrizione. Spegnendolo, le righe le scrivi a mano.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Un menu non si apre",
                         "Controlla il permesso del menu e le sue condizioni di apertura con /menus info <menu>. "
                                 + "Se il file ha errori, sono elencati li'.")
@@ -245,6 +260,15 @@ public final class MagixMenus extends JavaPlugin {
                 .issue("Nel menu si legge %qualcosa% invece di un valore",
                         "Quel placeholder non esiste o PlaceholderAPI non ha l'espansione che lo fornisce. "
                                 + "Verifica con /papi parse me %quel_placeholder%.")
+                .issue("Un giocatore straniero vede ancora il menu in italiano",
+                        "MagixLanguage deve essere installato e quel testo gia' tradotto: la prima volta puo' "
+                                + "volerci fino al prossimo /language sync o riavvio. Con /language status si vede "
+                                + "quante frasi di questo plugin sono ancora mancanti.")
+                .issue("Una traduzione di un menu non convince",
+                        "Si corregge SENZA toccare i file del menu: si aggiunge la STESSA frase italiana (esatta, "
+                                + "placeholder compresi) in plugins/MagixLanguage/translations/MagixMenus/"
+                                + "menu-phrases-<lingua>-overrides.yml. Vince sempre lei, anche se il testo "
+                                + "italiano del menu cambia di nuovo in seguito.")
                 .issue("Un articolo del negozio non fa niente quando lo clicco",
                         "Guarda in chat: il plugin dice sempre perche' (soldi insufficienti, inventario "
                                 + "pieno, niente economia sul server). Se non dice niente, l'item non ha "

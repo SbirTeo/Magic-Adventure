@@ -119,6 +119,20 @@ function rischio_elenco(bool $includiControllati = false, int $limite = 60): arr
         $giocatori[$r['mc_uuid']]['mute_attivi'] = (int) $r['mute'];
     }
 
+    // --- UUID Mojang vero, quando MagixAuth l'ha annotato: serve alla skin nel pannello,
+    // che altrimenti mostrerebbe sempre il default passando l'UUID offline a minotar.
+    try {
+        $st = db()->prepare(
+            "SELECT mc_uuid, premium_uuid FROM users WHERE premium_uuid IS NOT NULL AND mc_uuid IN ($uuidIn)"
+        );
+        $st->execute($uuids);
+        foreach ($st as $r) {
+            $giocatori[$r['mc_uuid']]['premium_uuid'] = $r['premium_uuid'];
+        }
+    } catch (PDOException $e) {
+        // nessun account sito per questi uuid: si resta con la skin di default
+    }
+
     // --- di cosa si tratta: le categorie piu' frequenti, per capire a colpo d'occhio ---
     try {
         $st = db()->prepare(

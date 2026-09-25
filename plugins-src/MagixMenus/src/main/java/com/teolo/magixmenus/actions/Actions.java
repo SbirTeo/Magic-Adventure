@@ -69,10 +69,15 @@ public final class Actions {
         }
     }
 
+    /** Tipi la cui azione e' testo per il giocatore: vedi {@link Text#translated}. */
+    private static final java.util.Set<Action.Type> TEXT_ACTION_TYPES = java.util.EnumSet.of(
+            Action.Type.MESSAGE, Action.Type.ANNUNCIO, Action.Type.TITLE, Action.Type.ACTIONBAR);
+
     /** @return false se la catena si deve fermare qui. */
     private static boolean una(MagixMenus plugin, Context context, Action a) {
         Player p = context.player();
-        String arg = Text.raw(p, context.variabili(), a.argomento());
+        String template = TEXT_ACTION_TYPES.contains(a.type()) ? Text.translated(p, a.argomento()) : a.argomento();
+        String arg = Text.raw(p, context.variabili(), template);
 
         switch (a.type()) {
             case COMMAND -> p.performCommand(removeBar(arg));

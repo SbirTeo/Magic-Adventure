@@ -14,8 +14,6 @@
 #    giallo &#FFD166  attenzione
 # ==========================================================================================
 
-prefix: "&#C046E8&lMagixMenus &8» &r"
-
 players-only: "&#FF6B6BQuesto comando lo puo' usare solo chi sta giocando."
 no-permission: "&#FF6B6BNon hai il permesso per farlo."
 player-required: "&#FF6B6BDalla console serve dire a chi: /menus open <menu> <giocatore>"
@@ -84,6 +82,17 @@ shop:
 # ------------------------------------------------------------------------------------------
 help:
   title: "MagixMenus"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
+  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
   sections:
     generale:
       title: "Menu"

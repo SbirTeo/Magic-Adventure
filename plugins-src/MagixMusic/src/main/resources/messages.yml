@@ -1,0 +1,58 @@
+# ============================================================
+#  MagixMusic - Messaggi (modificabili)
+#  Colori con & ; esadecimali &#RRGGBB ; placeholder fra {graffe}
+#  Dopo le modifiche: /radio reload  (oppure riavvia il server)
+#
+#  PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
+#    viola  &#C046E8  nome del plugin, titoli
+#    verde  &#A8DC2C  comandi e conferme
+#    errore &#FF6B6B  |  avviso &#FFD166
+# ============================================================
+
+no-permission: "&cNon hai il permesso."
+players-only: "&cSolo un giocatore puo' regolare la radio (ha un volume personale)."
+unknown-subcommand: "&cComando sconosciuto. Usa /radio help."
+reloaded: "&aRadio ricaricata dal config."
+usage: "&cUso: /radio [on|off|up|down|<0-100>]"
+disabled-globally: "&cLa radio dello spawn e' spenta al momento."
+status-on: "&aRadio &2accesa&a a volume &e{volume}&a. In onda: &b{track}&a. Regolala con &e/radio up&a, &e/radio down&a o &e/radio off&a."
+status-off: "&aRadio &cspenta&a per te. Riaccendila con &e/radio on&a."
+turned-on: "&aRadio &2accesa&a a volume &e{volume}&a. In onda: &b{track}&a."
+turned-off: "&aRadio &cspenta&a per te: non sentirai piu' la musica dello spawn."
+volume: "&aVolume radio: &e{volume}&a. In onda: &b{track}&a."
+volume-off: "&aVolume radio a &e0&a: radio &cspenta&a per te."
+skipped: "&aBrano saltato. Ora in onda: &b{track}&a."
+replayed: "&aFai ripartire il brano dall'inizio: &b{track}&a."
+none-playing: "silenzio"
+
+# Aiuto sfogliabile (/radio help). Ogni voce: "comando :: descrizione".
+help:
+  title: "MagixMusic"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
+  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
+  sections:
+    player:
+      title: "Radio"
+      entries:
+        - "/radio :: stato della radio (accesa, volume, brano in onda)"
+        - "/radio up :: alza il volume della radio"
+        - "/radio down :: abbassa il volume della radio"
+        - "/radio off :: spegni la radio (solo per te)"
+        - "/radio on :: riaccendi la radio"
+        - "/radio <0-100> :: imposta il volume esatto"
+        - "/radio replay :: fai ripartire il brano dall'inizio (per te)"
+        - "/musica :: apri il menu grafico della radio"
+    admin:
+      title: "Staff"
+      entries:
+        - "/radio next :: salta al brano successivo (per tutti)"
+        - "/radio reload :: ricarica il config (scaletta, portata, volume)"

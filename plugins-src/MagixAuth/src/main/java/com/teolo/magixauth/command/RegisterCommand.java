@@ -3,6 +3,7 @@ package com.teolo.magixauth.command;
 import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.gate.EntryState;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.model.Phase;
 import com.teolo.magixauth.util.Texts;
 import org.bukkit.command.Command;
@@ -21,34 +22,35 @@ public final class RegisterCommand implements CommandExecutor {
 
     private final AuthConfig config;
     private final AuthGate gate;
+    private final Messages messages;
 
-    public RegisterCommand(AuthConfig config, AuthGate gate) {
+    public RegisterCommand(AuthConfig config, AuthGate gate, Messages messages) {
         this.config = config;
         this.gate = gate;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage("Solo un giocatore puo' registrarsi.");
+            sender.sendMessage(messages.get("register-command.players-only"));
             return true;
         }
         EntryState state = gate.state(p);
         if (state == null) {
-            p.sendMessage(Texts.c(config.prefix, "&7Sei gia' dentro."));
+            p.sendMessage(Texts.c(messages.get(p, "register-command.already-in")));
             return true;
         }
         if (state.phase != Phase.REGISTRAZIONE) {
-            p.sendMessage(Texts.c(config.prefix,
-                    "&7Hai gia' un account: usa &f/login <password>&7."));
+            p.sendMessage(Texts.c(messages.get(p, "register-command.already-registered")));
             return true;
         }
         if (args.length != 2) {
-            p.sendMessage(Texts.c(config.prefix, "&7Uso: &f/register <password> <ripeti password>"));
+            p.sendMessage(Texts.c(messages.get(p, "register-command.usage")));
             return true;
         }
         if (!args[0].equals(args[1])) {
-            p.sendMessage(Texts.c(config.prefix, Texts.NON_COINCIDONO));
+            p.sendMessage(Texts.c(messages.get(p, "gate.password-mismatch")));
             return true;
         }
         gate.register(p, args[0]);

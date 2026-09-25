@@ -46,6 +46,17 @@ chat:
 # si configurano nel suo config.yml. Il sito continua a usare le stesse colonne di `users`,
 # quindi un codice speso di qua risulta speso anche di la'.
 
+# Traduzione automatica del sito: le pagine accodano in site_translations le frasi che
+# incontrano e non hanno ancora, questo giro le smaltisce chiedendole a MagixLanguage.
+# Usa la stessa quota giornaliera (translations.auto-translate nel config di MagixLanguage,
+# vedi il suo README): un traguardo raggiunto da un lato si sente anche dall'altro.
+site-translation:
+  enabled: true
+  # Ogni quanto passare a tradurre le frasi in attesa (secondi, minimo 10).
+  check-interval-seconds: 30
+  # Quante frasi tradurre al massimo per giro.
+  batch-size: 25
+
 # Guida per amministratori del sito (/manage?section=guida).
 # Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html;
 # MagixWeb li raccoglie e li porta sul sito. Le credenziali del sito restano solo qui.

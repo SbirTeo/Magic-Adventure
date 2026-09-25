@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixCosmetics</artifactId>
-    <version>0.1.5</version>
+    <version>0.1.8</version>
     <packaging>jar</packaging>
 
     <name>MagixCosmetics</name>
@@ -32,6 +32,16 @@
             <artifactId>paper-api</artifactId>
             <!-- Stesso build del server (log: "Paper version 26.1.2-72-ver/26.1.2"). -->
             <version>26.1.2.build.72-stable</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Solo per compilare contro MagixLanguageAPI (softdepend, mai imbustato nel jar): il
+             workflow di deploy installa MagixLanguage nel repo Maven locale prima di questo
+             plugin (vedi .github/workflows/deploy-plugin.yml). A runtime, se MagixLanguage non
+             e' installato sul server, il codice non tocca mai questa classe (vedi lang/Messages). -->
+        <dependency>
+            <groupId>com.teolo</groupId>
+            <artifactId>MagixLanguage</artifactId>
+            <version>0.4.6</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

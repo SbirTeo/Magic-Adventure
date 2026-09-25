@@ -1,6 +1,7 @@
 package com.teolo.magixguard;
 
 import com.teolo.magixguard.util.ConfigAlign;
+import com.teolo.magixguard.lang.Messages;
 import com.teolo.magixguard.alert.AlertService;
 import com.teolo.magixguard.analyze.CorrelationEngine;
 import com.teolo.magixguard.analyze.LinkScorer;
@@ -52,11 +53,17 @@ public final class MagixGuard extends JavaPlugin {
     private Database database;
     private DbExecutor dbExecutor;
     private SignalCollector collector;
+    private Messages messages;
 
     // Modulo sanzioni (0.2.0): vive sul database del SITO, separato da quello della
     // profilazione. Gli IP restano di qua, i provvedimenti pubblici di la'.
     private SiteDb siteDb;
     private SanctionsService sanctions;
+    // Letto dal dossier: e' un campo, non una variabile locale di startSanctions(), perche'
+    // wire() (che costruisce il DossierBuilder) gira PRIMA di startSanctions() al primo avvio.
+    // Il dossier lo legge tramite un supplier, cosi' vede il valore vero anche se al momento
+    // in cui e' stato costruito era ancora null.
+    private ViolationsDao violationsDao;
 
     @Override
     public void onEnable() {
@@ -68,6 +75,7 @@ public final class MagixGuard extends JavaPlugin {
         ConfigAlign.alignAll(this);
         reloadConfig();
         getDataFolder().mkdirs();
+        messages = new Messages(this);
         // Solo I/O su file: fuori dal tick di avvio (stessa convenzione degli altri plugin Magix).
         // Il README nella cartella del plugin non si copia piu' dal jar: lo genera
         // StaffGuide insieme al capitolo per il sito, cosi' i due non possono divergere.
@@ -153,9 +161,10 @@ public final class MagixGuard extends JavaPlugin {
             getLogger().warning("Tabella delle violazioni non pronta: " + e.getMessage()
                     + ". I punti non verranno registrati.");
         }
+        this.violationsDao = violations;
         PointsLog log = new PointsLog(violations, cfg);
         Policy policy = new Policy(cfg);
-        sanctions = new SanctionsService(this, cfg, dao, log, policy, violations);
+        sanctions = new SanctionsService(this, cfg, dao, log, policy, violations, messages);
 
         // Il registro delle violazioni: TUTTO quello che il server nota passa di qui, e da qui
         // escono i punti. I rilevatori qui sotto non sanno niente di soglie e provvedimenti.
@@ -163,9 +172,9 @@ public final class MagixGuard extends JavaPlugin {
         startDetectors(cfg, detector, dao);
 
         getServer().getPluginManager().registerEvents(
-                new SanctionsListener(this, cfg, sanctions, dao), this);
+                new SanctionsListener(this, cfg, sanctions, dao, messages), this);
 
-        SanctionCommands commands = new SanctionCommands(this, cfg, sanctions, dao);
+        SanctionCommands commands = new SanctionCommands(this, cfg, sanctions, dao, messages);
         String[] names = { "ban", "tempban", "mute", "tempmute", "kick", "warn",
                           "unban", "unmute", "history", "sanctions" };
         for (String name : names) {
@@ -178,7 +187,7 @@ public final class MagixGuard extends JavaPlugin {
         // /report lo usano i giocatori, non lo staff: sta a parte anche nel codice.
         org.bukkit.command.PluginCommand cmdReport = getCommand("report");
         if (cmdReport != null) {
-            ReportCommand report = new ReportCommand(this, cfg, sanctions, dao);
+            ReportCommand report = new ReportCommand(this, cfg, sanctions, dao, messages);
             cmdReport.setExecutor(report);
             cmdReport.setTabCompleter(report);
         }
@@ -217,12 +226,12 @@ public final class MagixGuard extends JavaPlugin {
         CorrelationEngine engine = new CorrelationEngine(dao, config, scorer, alerts);
         CookieService cookies = new CookieService(this, config.cookieKey, config.cookieEnabled);
         DossierBuilder dossier = new DossierBuilder(dao, config, scorer, getDataFolder(),
-                getPluginMeta().getVersion());
+                getPluginMeta().getVersion(), () -> violationsDao);
 
         collector = new SignalCollector(this, config, dao, dbExecutor, hashing, engine, cookies);
         getServer().getPluginManager().registerEvents(collector, this);
 
-        GuardCommand command = new GuardCommand(this, config, dao, dbExecutor, scorer, dossier);
+        GuardCommand command = new GuardCommand(this, config, dao, dbExecutor, scorer, dossier, messages);
         var registered = getCommand("magixguard");
         if (registered != null) {
             registered.setExecutor(command);
@@ -239,6 +248,7 @@ public final class MagixGuard extends JavaPlugin {
         // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
         ConfigAlign.alignAll(this);
         reloadConfig();
+        messages.reload();
         if (collector != null) {
             collector.closeAllOpenSessions();
             HandlerList.unregisterAll(collector);
@@ -269,7 +279,7 @@ public final class MagixGuard extends JavaPlugin {
 
         org.bukkit.configuration.ConfigurationSection sezChat = conf.getConfigurationSection("chat");
         if (sezChat == null || sezChat.getBoolean("attivo", true)) {
-            getServer().getPluginManager().registerEvents(new ChatFilter(detector, sezChat), this);
+            getServer().getPluginManager().registerEvents(new ChatFilter(detector, sezChat, messages), this);
             getLogger().info("Filtro chat attivo (spam, insulti, pubblicita', dati personali).");
         }
 
@@ -282,7 +292,7 @@ public final class MagixGuard extends JavaPlugin {
 
         org.bukkit.configuration.ConfigurationSection sezAfk = conf.getConfigurationSection("afk");
         if (sezAfk == null || sezAfk.getBoolean("attivo", true)) {
-            AfkGuard afk = new AfkGuard(this, detector, sezAfk);
+            AfkGuard afk = new AfkGuard(this, detector, sezAfk, messages);
             getServer().getPluginManager().registerEvents(afk, this);
             afk.start();
             getLogger().info("Anti-AFK attivo (niente guadagni da fermo + caccia ai dispositivi).");
@@ -290,7 +300,7 @@ public final class MagixGuard extends JavaPlugin {
 
         org.bukkit.command.PluginCommand cmd = getCommand("mgviolation");
         if (cmd != null) {
-            cmd.setExecutor(new ViolationCommand(this, detector, dao));
+            cmd.setExecutor(new ViolationCommand(this, detector, dao, messages));
         }
     }
 
@@ -589,6 +599,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "il documento esisteva già in quella forma **prima** della decisione.")
 
                 .subcommands("I comandi delle indagini (/mg, /guard, /alts)",
+                        "/mg help [pagina]", "L'elenco dei comandi, a pagine e cliccabile.",
                         "/mg alts <nome>", "Gli account collegati a quel giocatore, col dettaglio degli indizi.",
                         "/mg dossier <nome> [nome2] [pubblico]", "Genera il documento completo. Con «pubblico» gli indirizzi sono mascherati: è quello da allegare al ricorso.",
                         "/mg sessions <nome> [n]", "Gli ultimi accessi con tutti i dati tecnici.",
@@ -624,7 +635,7 @@ public final class MagixGuard extends JavaPlugin {
                         "privacy.session-retention-days", "Per quanti giorni si tengono gli indirizzi in chiaro.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«Ho bannato ma il giocatore è ancora dentro»",
                         "Il ban vale all'ingresso: se era già collegato viene espulso subito, ma solo se "
                                 + "l'ambito comprende il gioco. Un provvedimento con ambito «sito» in "

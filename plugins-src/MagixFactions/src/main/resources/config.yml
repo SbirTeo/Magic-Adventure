@@ -235,6 +235,16 @@ sethome-cost:
   placeholders: []
   permission: ""
 
+# ----------------------- WARMUP /f home ---------------------------
+# Prima del teletrasporto con /f home il giocatore deve restare fermo per questi secondi:
+# muoversi anche di un blocco annulla il teletrasporto (va ripetuto il comando). 0 = teletrasporto
+# istantaneo, senza attesa. Personalizzabile PER GIOCATORE col permesso VIP
+# magixfactions.warmup.home.<secondi> (...home.0 = istantaneo): fra piu' permessi di questo tipo
+# posseduti vince il piu' basso, senza nessuno vale questo valore (vedi plugin.yml). Chi ha
+# magixfactions.admin salta sempre il warmup, a prescindere da questo valore o dal permesso VIP.
+home-warmup:
+  seconds: 5
+
 # ----------------------- RINOMINA FAZIONE ------------------------
 # /f rename <nuovonome>: SOLO il leader cambia il nome della fazione. Valgono le stesse regole del nome
 # in creazione (lunghezza, caratteri, cifre, parole vietate, unicita'). Il nuovo nome compare da solo
@@ -527,6 +537,38 @@ map:
     # server (rigenera il pack) e che i client riscarichino il pack; /mf reload da solo non basta.
     screen-size: 0.3
     # (Il refresh del contenuto usa la chiave CONDIVISA map.render-interval-ticks, come la mappa-item.)
+
+    # --- Pannello info sotto la minimap (orologio, coordinate, info a piacere) ---
+    # Una striscia larga quanto la minimap, subito SOTTO di essa, con righe di testo che decidi tu. Le
+    # righe supportano i placeholder di PlaceholderAPI (se installato): ad es. l'ora la da' MagixTime con
+    # %magixtime_mc_time% (ora di gioco, che sul server coincide con quella reale), le coordinate le da'
+    # PlaceholderAPI base con %player_x% / %player_y% / %player_z%. Il testo si aggiorna a ogni refresh.
+    info-panel:
+      # Mostrare il pannello? (riservato, come la minimap, a chi ha il permesso magixfactions.minimap)
+      enabled: true
+      # Righe del pannello. Il TESTO e' live (/mf reload), ma cambiare il NUMERO di righe richiede un
+      # RIAVVIO del server: l'altezza della striscia e' impressa nello shader del pack (come screen-size).
+      # Puoi COLORARE e FORMATTARE il testo con i codici Minecraft:
+      #  - colore: &0-&f (i 16 classici), &r (torna al default), RGB esadecimale in tre sintassi
+      #    (&#RRGGBB, <#RRGGBB>, legacy &x&R&R&G&G&B&B);
+      #  - formato: &l grassetto, &o corsivo, &n sottolineato, &m barrato (resi nei pixel; &k offuscato no).
+      # Come in vanilla, un codice colore azzera i formati attivi. Es.: "&6&l%magixtime_mc_time%" oppure
+      # "&bX:&f%player_x% &bZ:&f%player_z%" oppure "&#FF8800Ciao".
+      lines:
+        - "%magixtime_mc_time%"
+        - "X:%player_x% Z:%player_z%"
+      # Colore di DEFAULT del testo (per le parti senza un codice colore), in esadecimale "#RRGGBB".
+      text-color: "#FFFFFF"
+      # Ombra del testo (una copia spostata di 1px, tiene il testo leggibile sul mondo col fondo
+      # trasparente): colore in "#RRGGBB", oppure "none"/"off" per spegnerla del tutto. Live con /mf reload.
+      shadow-color: "#000000"
+      # Sfondo della striscia. "transparent" (o "none") = nessun riquadro, resta solo il testo (le mappe
+      # non hanno trasparenza vera: lo shader SCARTA i pixel di sfondo). In alternativa un "#RRGGBB" per un
+      # riquadro pieno di quel colore. NB: e' inciso nello shader del pack -> cambiarlo richiede un RIAVVIO.
+      background-color: "transparent"
+      # Spazio tra il bordo basso della minimap e il pannello, come frazione di schermo (NDC). Impresso
+      # nello shader: cambiarlo richiede un RIAVVIO del server. Intervallo utile ~0.000-0.030.
+      gap: 0.006
 
     # Quanta area si vede: SEMPRE la stessa dello zoom `/f map` del giocatore (i blocchi/pixel di
     # map.default-zoom / /mf admin setmap) — non e' configurabile qui a parte, deve corrispondere

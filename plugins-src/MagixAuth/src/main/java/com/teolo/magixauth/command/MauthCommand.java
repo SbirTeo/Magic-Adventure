@@ -6,6 +6,7 @@ import com.teolo.magixauth.crypt.Password;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.gate.AuthGate;
 import com.teolo.magixauth.gate.OtpPolicy;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.model.Account;
 import com.teolo.magixauth.util.Help;
 import com.teolo.magixauth.util.Texts;
@@ -37,14 +38,16 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
     private final AuthDao dao;
     private final OtpPolicy policy;
     private final AuthGate gate;
+    private final Messages messages;
 
     public MauthCommand(MagixAuth plugin, AuthConfig config, AuthDao dao,
-                        OtpPolicy policy, AuthGate gate) {
+                        OtpPolicy policy, AuthGate gate, Messages messages) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
         this.policy = policy;
         this.gate = gate;
+        this.messages = messages;
     }
 
     @Override
@@ -62,52 +65,52 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "reload" -> {
                 plugin.reload();
-                reply(sender, "&aConfigurazione ricaricata.");
+                reply(sender, messages.get(sender, "admin.reload-done"));
             }
             case "info" -> info(sender);
             case "setspawn" -> {
                 if (!sender.hasPermission("magixauth.admin")) {
-                    reply(sender, "&cNon hai il permesso di spostare il cancello di login.");
+                    reply(sender, messages.get(sender, "admin.no-permission.setspawn"));
                     return true;
                 }
                 setspawn(sender);
             }
             case "reset" -> {
                 if (!sender.hasPermission("magixauth.reset")) {
-                    reply(sender, "&cNon hai il permesso di azzerare le password.");
+                    reply(sender, messages.get(sender, "admin.no-permission.reset"));
                     return true;
                 }
                 if (args.length < 2) {
-                    reply(sender, "&7Uso: &f/mauth reset <giocatore>");
+                    reply(sender, messages.get(sender, "admin.usage.reset"));
                     return true;
                 }
                 reset(sender, args[1]);
             }
             case "register" -> {
                 if (!sender.hasPermission("magixauth.reset")) {
-                    reply(sender, "&cNon hai il permesso di registrare giocatori.");
+                    reply(sender, messages.get(sender, "admin.no-permission.register"));
                     return true;
                 }
                 if (args.length < 3) {
-                    reply(sender, "&7Uso: &f/mauth register <giocatore> <password>");
+                    reply(sender, messages.get(sender, "admin.usage.register"));
                     return true;
                 }
                 register(sender, args[1], args[2]);
             }
             case "unlock" -> {
                 if (!sender.hasPermission("magixauth.unlock")) {
-                    reply(sender, "&cNon hai il permesso di togliere i blocchi.");
+                    reply(sender, messages.get(sender, "admin.no-permission.unlock"));
                     return true;
                 }
                 if (args.length < 2) {
-                    reply(sender, "&7Uso: &f/mauth unlock <giocatore|indirizzo>");
+                    reply(sender, messages.get(sender, "admin.usage.unlock"));
                     return true;
                 }
                 unlock(sender, args[1]);
             }
             case "sessions" -> {
                 if (args.length < 2) {
-                    reply(sender, "&7Uso: &f/mauth sessions <giocatore>");
+                    reply(sender, messages.get(sender, "admin.usage.sessions"));
                     return true;
                 }
                 sessions(sender, args[1]);
@@ -124,37 +127,24 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * impaginare, filtrare per permesso e rendere cliccabile senza riscriverlo ogni volta.
      */
     private void help(CommandSender sender, int page) {
-        List<Help.Entry> entries = List.of(
-                Help.Entry.di("/login", "<password>", "entra con la tua password").in("Il tuo account"),
-                Help.Entry.di("/register", "<password> <ripeti>", "registrati al primo ingresso").in("Il tuo account"),
-                Help.Entry.di("/otp", "<codice>", "il codice della verifica in due passaggi").in("Il tuo account"),
-                Help.Entry.di("/changepassword", "<vecchia> <nuova> <ripeti> [codice]",
-                        "cambia la password (vale anche sul sito)").in("Il tuo account"),
-                Help.Entry.di("/logout", "", "chiude l'accesso in gioco e sul sito").in("Il tuo account"),
-                Help.Entry.staff("/mauth info", "", "stato del plugin e della verifica").in("Staff"),
-                Help.Entry.staff("/mauth setspawn", "",
-                        "fissa il cancello di login dove sei (es. sullo spawn di CMI)").in("Staff"),
-                Help.Entry.staff("/mauth register", "<giocatore> <password>",
-                        "registra un giocatore o gli riscrive la password").in("Staff"),
-                Help.Entry.staff("/mauth reset", "<giocatore>", "azzera la password di chi l'ha dimenticata").in("Staff"),
-                Help.Entry.staff("/mauth unlock", "<giocatore|indirizzo>",
-                        "toglie l'attesa a chi ha sbagliato troppe volte").in("Staff"),
-                Help.Entry.staff("/mauth sessions", "<giocatore>", "dimentica i suoi accessi ricordati").in("Staff"),
-                Help.Entry.staff("/mauth reload", "", "rilegge la configurazione").in("Staff"));
-
-        Help.show(sender, "MagixAuth", "/mauth", entries, page,
-                sender.hasPermission("magixauth.admin"));
+        org.bukkit.configuration.ConfigurationSection h = messages.section("help");
+        String title = h != null ? h.getString("title", "MagixAuth") : "MagixAuth";
+        Help.show(sender, messages::get, title, "/mauth help",
+                Help.fromConfig(messages.section("help.sections"), sender, messages::get, messages::getList),
+                page, sender.hasPermission("magixauth.admin"));
     }
 
     private void info(CommandSender sender) {
-        reply(sender, "&7Account condiviso con &fmagicadventure.it&7 (tabella users).");
-        reply(sender, "&7Chiave OTP: " + (config.otpKeyReady() ? "&apronta" : "&cmancante o non valida"));
-        reply(sender, "&7LuckPerms: " + (policy.luckPermsPresent()
-                ? "&acollegato&7, track \"&f" + config.staffTrack + "&7\" con &f"
-                  + policy.staffGroupCount() + "&7 gruppi"
-                : "&eassente&7 (verifica obbligatoria solo per i web-admin)"));
-        reply(sender, "&7Sessione dispositivo: &f" + config.sessionHours + "&7 ore");
-        reply(sender, "&7Fermi al cancello adesso: &f" + frozenCount());
+        reply(sender, messages.get(sender, "admin.info.shared-account"));
+        reply(sender, messages.get(sender, "admin.info.otp-key", "stato",
+                messages.get(sender, config.otpKeyReady() ? "admin.info.otp-ready" : "admin.info.otp-missing")));
+        String luckPerms = policy.luckPermsPresent()
+                ? messages.get(sender, "admin.info.luckperms-connected",
+                        "track", config.staffTrack, "numero", String.valueOf(policy.staffGroupCount()))
+                : messages.get(sender, "admin.info.luckperms-absent");
+        reply(sender, messages.get(sender, "admin.info.luckperms", "stato", luckPerms));
+        reply(sender, messages.get(sender, "admin.info.session-hours", "ore", String.valueOf(config.sessionHours)));
+        reply(sender, messages.get(sender, "admin.info.frozen", "numero", String.valueOf(frozenCount())));
     }
 
     private int frozenCount() {
@@ -177,16 +167,17 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      */
     private void setspawn(CommandSender sender) {
         if (!(sender instanceof Player p)) {
-            reply(sender, "&cDallo in gioco, stando dove vuoi il cancello di login.");
+            reply(sender, messages.get(sender, "admin.setspawn.console-only"));
             return;
         }
         org.bukkit.Location l = p.getLocation();
         gate.setLoginSpawn(l);
-        reply(sender, "&aCancello di login fissato qui: &f" + l.getWorld().getName() + " "
-                + Math.round(l.getX()) + "/" + Math.round(l.getY()) + "/" + Math.round(l.getZ())
-                + "&7, guardando dove guardi adesso.");
-        reply(sender, "&7Da ora chi deve fare il login compare esattamente qui, in qualunque "
-                + "mondo si fosse disconnesso.");
+        reply(sender, messages.get(sender, "admin.setspawn.done",
+                "mondo", l.getWorld().getName(),
+                "x", String.valueOf(Math.round(l.getX())),
+                "y", String.valueOf(Math.round(l.getY())),
+                "z", String.valueOf(Math.round(l.getZ()))));
+        reply(sender, messages.get(sender, "admin.setspawn.hint"));
     }
 
     /**
@@ -203,22 +194,20 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
             try {
                 Account account = dao.byName(name);
                 if (account == null) {
-                    reply(sender, "&cNessun account con questo nome.");
+                    reply(sender, messages.get(sender, "admin.no-account"));
                     return;
                 }
                 dao.changePassword(account.siteId, null);
                 dao.revokeSessions(account.uuid);
-                reply(sender, "&aPassword di &f" + account.name + "&a azzerata. "
-                        + "&7Al prossimo ingresso ne sceglie una nuova.");
+                reply(sender, messages.get(sender, "admin.reset.done", "nome", account.name));
 
                 Player online = Bukkit.getPlayer(account.uuid);
                 if (online != null) {
                     Bukkit.getScheduler().runTask(plugin, () ->
-                            online.kick(Texts.c("&eLa tua password e' stata azzerata&r\n\n"
-                                    + "&7Rientra e scegline una nuova.")));
+                            online.kick(Texts.c(messages.get(online, "admin.password-reset-kick"))));
                 }
             } catch (SQLException e) {
-                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, messages.get(sender, "admin.db-error", "errore", e.getMessage()));
             }
         });
     }
@@ -233,9 +222,9 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
      * gli darebbe comunque al primo ingresso, cosi' quando entrera' si ritrovera' il suo.
      */
     private void register(CommandSender sender, String name, String password) {
-        String no = Password.whyNot(password, name, config.minPasswordLength);
+        Password.Rejection no = Password.whyNot(password, name, config.minPasswordLength);
         if (no != null) {
-            reply(sender, "&c" + no);
+            reply(sender, "&c" + messages.get(sender, no.key(), no.kv()));
             return;
         }
         plugin.async(() -> {
@@ -246,22 +235,21 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
                 if (account == null) {
                     int id = dao.register(AuthDao.uuidOffline(name), name, fingerprint, null);
                     if (id < 0) {
-                        reply(sender, "&cNon sono riuscito a creare l'account.");
+                        reply(sender, messages.get(sender, "admin.register.create-failed"));
                         return;
                     }
-                    reply(sender, "&aAccount &f" + name + "&a creato.");
+                    reply(sender, messages.get(sender, "admin.register.created", "nome", name));
                 } else {
                     dao.changePassword(account.siteId, fingerprint);
                     dao.revokeSessions(account.uuid);
-                    reply(sender, "&aPassword di &f" + account.name + "&a impostata.");
+                    reply(sender, messages.get(sender, "admin.register.password-set", "nome", account.name));
                 }
                 // La password gliela deve comunicare qualcuno a voce: scriverla qui in chat
                 // la lascerebbe nei registri del server e sotto gli occhi di chi passa.
-                reply(sender, "&7Comunicagliela a voce, e digli di cambiarla con "
-                        + "&f/changepassword&7 appena entra.");
+                reply(sender, messages.get(sender, "admin.register.tell-them"));
 
             } catch (SQLException e) {
-                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, messages.get(sender, "admin.db-error", "errore", e.getMessage()));
             }
         });
     }
@@ -288,9 +276,9 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
             plugin.async(() -> {
                 try {
                     dao.resetAttempts(chi);
-                    reply(sender, "&aIndirizzo &f" + chi + "&a sbloccato.");
+                    reply(sender, messages.get(sender, "admin.unlock.address-done", "indirizzo", chi));
                 } catch (SQLException e) {
-                    reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                    reply(sender, messages.get(sender, "admin.db-error", "errore", e.getMessage()));
                 }
             });
             return;
@@ -322,27 +310,25 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
                 String name = account != null ? account.name : chi;
                 if (addresses.isEmpty() && !otp) {
                     if (account == null) {
-                        reply(sender, "&eNessun account con questo nome e nessun blocco a suo carico.");
+                        reply(sender, messages.get(sender, "admin.unlock.no-account-no-block"));
                     } else {
-                        reply(sender, "&e" + name + " non risulta bloccato: puo' gia' entrare.");
+                        reply(sender, messages.get(sender, "admin.unlock.not-blocked", "nome", name));
                     }
-                    reply(sender, "&7Se il blocco resta, passami l'indirizzo: "
-                            + "&f/mauth unlock <indirizzo>&7.");
+                    reply(sender, messages.get(sender, "admin.unlock.hint-address"));
                     return;
                 }
 
                 if (!addresses.isEmpty()) {
-                    reply(sender, "&aSbloccato &f" + name + "&a: "
-                            + addresses.size() + (addresses.size() == 1 ? " indirizzo" : " indirizzi")
-                            + " &7(" + String.join(", ", addresses) + "&7)");
+                    reply(sender, messages.get(sender, addresses.size() == 1 ? "admin.unlock.done-one" : "admin.unlock.done-many",
+                            "nome", name, "numero", String.valueOf(addresses.size()), "elenco", String.join(", ", addresses)));
                 }
                 if (otp) {
-                    reply(sender, "&aTolto anche il blocco del codice in due passaggi.");
+                    reply(sender, messages.get(sender, "admin.unlock.otp-cleared"));
                 }
-                reply(sender, "&7Puo' rientrare adesso.");
+                reply(sender, messages.get(sender, "admin.unlock.can-return"));
 
             } catch (SQLException e) {
-                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, messages.get(sender, "admin.db-error", "errore", e.getMessage()));
             }
         });
     }
@@ -353,19 +339,19 @@ public final class MauthCommand implements CommandExecutor, TabCompleter {
             try {
                 Account account = dao.byName(name);
                 if (account == null) {
-                    reply(sender, "&cNessun account con questo nome.");
+                    reply(sender, messages.get(sender, "admin.no-account"));
                     return;
                 }
                 dao.revokeSessions(account.uuid);
-                reply(sender, "&aDispositivi di &f" + account.name + "&a dimenticati.");
+                reply(sender, messages.get(sender, "admin.sessions.forgotten", "nome", account.name));
             } catch (SQLException e) {
-                reply(sender, "&cNon riesco a scrivere nel database: " + e.getMessage());
+                reply(sender, messages.get(sender, "admin.db-error", "errore", e.getMessage()));
             }
         });
     }
 
     private void reply(CommandSender sender, String text) {
-        sender.sendMessage(Texts.c(config.prefix, text));
+        sender.sendMessage(Texts.c(text));
     }
 
     @Override

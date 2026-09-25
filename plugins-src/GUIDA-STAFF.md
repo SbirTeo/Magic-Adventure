@@ -143,7 +143,6 @@ Una riga per plugin, sovrascritta a ogni avvio: non serve storico, la verita' e'
 | MagixMenus | 75 | **in linea** |
 | MagixCosmetics | 80 | **in linea** |
 | MagixEssentials | 90 | **in linea** (dal 2026-09-14) |
-| AutoBackup | 100-110 | da fare: non sono "Magix" ma sono nostri, stesso trattamento |
 
 La colonna delle versioni non c'e' piu' apposta: era gia' vecchia di dieci rilasci mentre la
 tabella diceva "in linea". La versione vera di ogni capitolo si legge **nel gestionale**, in testa

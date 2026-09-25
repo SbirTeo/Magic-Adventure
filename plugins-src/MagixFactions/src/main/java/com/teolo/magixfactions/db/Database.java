@@ -98,8 +98,9 @@ public final class Database {
             addIfMissing(c, st, "factions", "score", "DOUBLE DEFAULT 0");
             // Dettaglio del punteggio in JSON: lo legge il sito per il tooltip "come si arriva a questo valore".
             addIfMissing(c, st, "factions", "score_detail", "TEXT");
-            // Fazione "in classifica" o oscurata perche' INATTIVA (tutti i membri assenti): lo calcola il
-            // campionatore (ScoreManager) e lo legge il sito per non mostrare le fazioni morte.
+            // Fazione "in classifica" o oscurata perche' INATTIVA (tutti i membri assenti) oppure perche'
+            // ha un membro dello STAFF (permesso magixfactions.leaderboard.hide): lo calcola il campionatore
+            // (ScoreManager.countsInLeaderboard) e lo legge il sito per non mostrare le fazioni da nascondere.
             addIfMissing(c, st, "factions", "ranked", "INT DEFAULT 1");
             // Ultimo cambio nome (/f rename): serve al cooldown fra un cambio e il successivo.
             addIfMissing(c, st, "factions", "renamed_at", "BIGINT DEFAULT 0");
@@ -113,6 +114,9 @@ public final class Database {
             addIfMissing(c, st, "players", "play_seconds", "BIGINT DEFAULT 0");
             addIfMissing(c, st, "players", "money_avg_accum", "DOUBLE DEFAULT 0");
             addIfMissing(c, st, "players", "money_seconds", "BIGINT DEFAULT 0");
+            // Giocatore NASCOSTO dalle classifiche del sito (staff col permesso magixfactions.leaderboard.hide):
+            // 1 = non compare in Top Giocatori. Lo scrive PlayerStatsManager al login/campionamento dal permesso.
+            addIfMissing(c, st, "players", "leaderboard_hidden", "INT DEFAULT 0");
             // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
             addIfMissing(c, st, "players", "minimap_hidden", "INT DEFAULT 0");
             // Interruttore personale dei confini a particelle (/f borders): 1 = acceso dal giocatore.
@@ -177,6 +181,9 @@ public final class Database {
                 // DA QUANDO la funzione è attiva) per la giacenza media personale.
                 "kills BIGINT DEFAULT 0, deaths BIGINT DEFAULT 0, play_seconds BIGINT DEFAULT 0, " +
                 "money_avg_accum DOUBLE DEFAULT 0, money_seconds BIGINT DEFAULT 0, " +
+                // Giocatore nascosto dalle classifiche del sito (staff col permesso magixfactions.leaderboard.hide):
+                // 1 = non compare in Top Giocatori. Lo scrive PlayerStatsManager dal permesso.
+                "leaderboard_hidden INT DEFAULT 0, " +
                 // Interruttore personale della minimap HUD (/f minimap off): 1 = spenta dal giocatore.
                 // Interruttore personale dei confini a particelle (/f borders): 1 = acceso; di serie spento.
                 "minimap_hidden INT DEFAULT 0, borders_enabled INT DEFAULT 0)");

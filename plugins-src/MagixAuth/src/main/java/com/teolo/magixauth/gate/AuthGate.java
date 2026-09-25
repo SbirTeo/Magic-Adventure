@@ -5,6 +5,7 @@ import com.teolo.magixauth.MagixAuth;
 import com.teolo.magixauth.crypt.OtpCodes;
 import com.teolo.magixauth.crypt.Password;
 import com.teolo.magixauth.db.AuthDao;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.model.Account;
 import com.teolo.magixauth.model.Phase;
 import com.teolo.magixauth.premium.MojangLookup;
@@ -47,6 +48,7 @@ public final class AuthGate {
     private final Visibility visibility;
     private final MojangLookup mojang;
     private final Cookie cookie;
+    private final Messages messages;
 
     /**
      * Il punto esatto in cui compare chi deve ancora fare il login, deciso a mano con
@@ -63,13 +65,14 @@ public final class AuthGate {
     private final Map<UUID, EntryState> decisions = new ConcurrentHashMap<>();
 
     public AuthGate(MagixAuth plugin, AuthConfig config, AuthDao dao, OtpPolicy policy,
-                    Visibility visibility, MojangLookup mojang) {
+                    Visibility visibility, MojangLookup mojang, Messages messages) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
         this.policy = policy;
         this.visibility = visibility;
         this.mojang = mojang;
+        this.messages = messages;
         this.cookie = new Cookie(plugin, config.cookieWaitMillis);
         this.loginSpawn = readLoginSpawn();
     }
@@ -150,7 +153,8 @@ public final class AuthGate {
         try {
             java.time.LocalDateTime blocked = dao.blockedUntil(ip);
             if (blocked != null) {
-                return Texts.kickTooManyAttempts(DurationText.until(blocked));
+                return messages.get(proposedUuid, "gate.kick-too-many-attempts",
+                        "time", DurationText.until(blocked));
             }
 
             Account account = dao.byName(name);
@@ -181,7 +185,7 @@ public final class AuthGate {
             prof.apply(uuid.equals(proposedUuid) ? null : uuid, skin);
 
             if (Bukkit.getPlayer(uuid) != null) {
-                return Texts.KICK_NAME_TAKEN;
+                return messages.get(uuid, "gate.kick-name-taken");
             }
 
             // Il dispositivo si riconosce in DUE modi, e basta che ne funzioni uno.
@@ -227,7 +231,7 @@ public final class AuthGate {
                     + name + " (" + e.getMessage() + ").");
             // Non si puo' sapere chi sia: si tiene fuori. Preferibile chiudere fuori il
             // proprietario per qualche minuto che far entrare chiunque col suo nome.
-            return Texts.KICK_DATABASE;
+            return messages.get(proposedUuid, "gate.kick-database");
         }
     }
 
@@ -374,21 +378,21 @@ public final class AuthGate {
      */
     private void instructions(Player p, EntryState state) {
         if (state.awaitsCode()) {
-            p.sendMessage(Texts.c(config.prefix, Texts.OTP_SERVE));
-            p.sendMessage(Texts.c("&7Scrivi &f/otp <codice a sei cifre>"));
+            p.sendMessage(Texts.c(messages.get(p, "gate.otp-required")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.otp-hint")));
         } else if (state.inRegistration()) {
-            p.sendMessage(Texts.c(config.prefix, Texts.BENVENUTO_NUOVO));
-            p.sendMessage(Texts.c("&7Scrivi &f/register <password> <ripeti password>"));
+            p.sendMessage(Texts.c(messages.get(p, "gate.welcome-new")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.register-hint")));
         } else {
-            p.sendMessage(Texts.c(config.prefix, Texts.BENTORNATO));
-            p.sendMessage(Texts.c("&7Scrivi &f/login <password>"));
+            p.sendMessage(Texts.c(messages.get(p, "gate.welcome-back")));
+            p.sendMessage(Texts.c(messages.get(p, "gate.login-hint")));
         }
     }
 
     private void startTimer(Player p, EntryState state) {
         state.expiryTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (p.isOnline() && isFrozen(p)) {
-                p.kick(Texts.c(Texts.KICK_TEMPO_SCADUTO));
+                p.kick(Texts.c(messages.get(p, "gate.kick-timeout")));
             }
         }, config.maxSeconds * 20L).getTaskId();
 
@@ -444,9 +448,9 @@ public final class AuthGate {
     }
 
     private void register(Player p, EntryState state, String typed) {
-        String no = Password.whyNot(typed, state.name, config.minPasswordLength);
+        Password.Rejection no = Password.whyNot(typed, state.name, config.minPasswordLength);
         if (no != null) {
-            reprompt(p, "&c" + no);
+            reprompt(p, no.key(), no.kv());
             return;
         }
 
@@ -457,19 +461,19 @@ public final class AuthGate {
         try {
             int id = dao.register(state.uuid, state.name, Password.fingerprint(typed), premium);
             if (id < 0) {
-                onMain(() -> p.kick(Texts.c(Texts.KICK_NAME_TAKEN)));
+                onMain(() -> p.kick(Texts.c(messages.get(p, "gate.kick-name-taken"))));
                 return;
             }
             remember(p, state, false);
         } catch (SQLException e) {
             plugin.getLogger().warning("MagixAuth: registrazione di " + state.name
                     + " fallita (" + e.getMessage() + ").");
-            onMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
+            onMain(() -> p.kick(Texts.c(messages.get(p, "gate.kick-database"))));
             return;
         }
 
         onMain(() -> {
-            p.sendMessage(Texts.c(Texts.REGISTERED));
+            p.sendMessage(Texts.c(messages.get(p, "gate.register-success")));
             release(p, true);
         });
     }
@@ -485,13 +489,13 @@ public final class AuthGate {
                 if (falliti >= config.maxAttempts) {
                     // Il blocco parte adesso, quindi manca esattamente quanto dura.
                     String remaining = DurationText.fromSeconds(config.lockoutMinutes * 60L);
-                    onMain(() -> p.kick(Texts.c(Texts.kickTooManyAttempts(remaining))));
+                    onMain(() -> p.kick(Texts.c(messages.get(p, "gate.kick-too-many-attempts", "time", remaining))));
                     return;
                 }
             } catch (SQLException e) {
                 plugin.getLogger().warning("MagixAuth: tentativo non registrato (" + e.getMessage() + ").");
             }
-            reprompt(p, Texts.CREDENZIALI_NO);
+            reprompt(p, "gate.wrong-password");
             return;
         }
 
@@ -508,8 +512,8 @@ public final class AuthGate {
         if (needsCode) {
             state.phase = Phase.OTP;
             onMain(() -> {
-                p.sendMessage(Texts.c(config.prefix, Texts.OTP_SERVE));
-                p.sendMessage(Texts.c("&7Scrivi &f/otp <codice a sei cifre>"));
+                p.sendMessage(Texts.c(messages.get(p, "gate.otp-required")));
+                p.sendMessage(Texts.c(messages.get(p, "gate.otp-hint")));
             });
             return;
         }
@@ -535,7 +539,7 @@ public final class AuthGate {
                 Account account = state.account;
                 if (account.otpLocked()) {
                     String remaining = DurationText.until(account.totpLockedUntil);
-                    onMain(() -> p.sendMessage(Texts.c(config.prefix, Texts.otpLocked(remaining))));
+                    onMain(() -> p.sendMessage(Texts.c(messages.get(p, "gate.otp-locked", "time", remaining))));
                     return;
                 }
                 String secret = OtpCodes.decryptSecret(account.totpSecretCifrato, config.otpKeyBase64);
@@ -544,7 +548,7 @@ public final class AuthGate {
                     // di installazione, non del giocatore, e va detto a chi gestisce.
                     plugin.getLogger().severe("MagixAuth: impossibile leggere il segreto OTP di "
                             + state.name + ". Controlla database.chiave_otp_base64 (OTP_CHIAVE del sito).");
-                    onMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
+                    onMain(() -> p.kick(Texts.c(messages.get(p, "gate.kick-database"))));
                     return;
                 }
 
@@ -555,7 +559,7 @@ public final class AuthGate {
                     } catch (SQLException ignored) {
                         // Il conteggio e' un di piu': il codice resta comunque rifiutato.
                     }
-                    onMain(() -> p.sendMessage(Texts.c(config.prefix, Texts.OTP_NO)));
+                    onMain(() -> p.sendMessage(Texts.c(messages.get(p, "gate.otp-invalid"))));
                     return;
                 }
 
@@ -565,15 +569,15 @@ public final class AuthGate {
 
             } catch (SQLException e) {
                 plugin.getLogger().warning("MagixAuth: verifica codice fallita (" + e.getMessage() + ").");
-                onMain(() -> p.kick(Texts.c(Texts.KICK_DATABASE)));
+                onMain(() -> p.kick(Texts.c(messages.get(p, "gate.kick-database"))));
             } finally {
                 state.busy = false;
             }
         });
     }
 
-    private void reprompt(Player p, String message) {
-        onMain(() -> p.sendMessage(Texts.c(config.prefix, message)));
+    private void reprompt(Player p, String key, String... kv) {
+        onMain(() -> p.sendMessage(Texts.c(messages.get(p, key, kv))));
     }
 
     // =================================================================================
@@ -599,7 +603,7 @@ public final class AuthGate {
         sendBackToPlace(p, state);
 
         if (announce) {
-            p.sendMessage(Texts.c(config.prefix, Texts.INSIDE));
+            p.sendMessage(Texts.c(messages.get(p, "gate.login-success")));
         }
         // Solo adesso il server dice che e' arrivato: prima sarebbe stato l'annuncio di un
         // tentativo, non di un ingresso.
@@ -676,7 +680,7 @@ public final class AuthGate {
      * — non ha senso spedirlo allo spawn, la sua posizione l'ha gia' vista — ma torna muto,
      * fermo e invisibile finche' non ridigita il codice.
      */
-    public void refreeze(Player p, String reason) {
+    public void refreeze(Player p, String reasonKey) {
         if (isFrozen(p)) {
             return;
         }
@@ -701,8 +705,8 @@ public final class AuthGate {
                     frozen.put(p.getUniqueId(), state);
                     visibility.hide(p);
                     startTimer(p, state);
-                    p.sendMessage(Texts.c(config.prefix, "&e" + reason));
-                    p.sendMessage(Texts.c("&7Scrivi &f/otp <codice a sei cifre>"));
+                    p.sendMessage(Texts.c("&e" + messages.get(p, reasonKey)));
+                    p.sendMessage(Texts.c(messages.get(p, "gate.otp-hint")));
                 });
             } catch (SQLException e) {
                 plugin.getLogger().warning("MagixAuth: revoca per " + p.getName()

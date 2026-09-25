@@ -4,6 +4,16 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/sidebar.php';
 require_once __DIR__ . '/seo.php';
 require_once __DIR__ . '/immagini.php';   // misure del logo nella barra
+require_once __DIR__ . '/language.php';
+require_once __DIR__ . '/translate.php';
+
+// Da qui in poi TUTTO l'output della pagina (fino al footer) viene bufferizzato: footer.php lo
+// traduce in un colpo solo prima di mandarlo al browser (vedi translate_html). Bufferizzare
+// prima di qualunque HTML e' anche cio' che permette a header()/setcookie() di funzionare
+// sempre, anche dopo che una pagina ha gia' scritto qualcosa: niente viene davvero inviato
+// finche' il buffer non si svuota.
+ob_start();
+$GLOBALS['__siteLang'] = site_language();
 
 $__siteName = site_setting('site_name', 'MAGICADVENTURE');
 $__logo = site_setting('logo_url', '/assets/img/logo.png');
@@ -159,7 +169,7 @@ align_mc_names();
 $__navItems = db()->query('SELECT * FROM nav_items WHERE enabled = 1 ORDER BY sort_order, id')->fetchAll();
 $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 ?><!DOCTYPE html>
-<html lang="it" data-tema="<?= h(tema_scelto()) ?>">
+<html lang="<?= h($GLOBALS['__siteLang']) ?>" data-tema="<?= h(tema_scelto()) ?>">
 <head>
 <meta charset="UTF-8">
 <script>
@@ -209,7 +219,7 @@ $__verificaGoogle = trim(site_setting('google_site_verification', ''));
 <?php /* Anteprima quando il link viene incollato su Discord, WhatsApp, Telegram, X... */ ?>
 <meta property="og:type" content="<?= h($__ogType) ?>">
 <meta property="og:site_name" content="<?= h($__siteName) ?>">
-<meta property="og:locale" content="it_IT">
+<meta property="og:locale" content="<?= h(og_locale($GLOBALS['__siteLang'])) ?>">
 <meta property="og:title" content="<?= h($__title) ?>">
 <?php if ($__description !== ''): ?>
 <meta property="og:description" content="<?= h($__description) ?>">
@@ -498,6 +508,27 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <a href="<?= h($item['url']) ?>" class="<?= h(implode(' ', $__classi)) ?>"><?= h($item['label']) ?></a>
         <?php endforeach; ?>
       </nav>
+      <?php
+        // Selettore di lingua: un link per lingua verso la stessa pagina con ?lingua=xx, che
+        // language.php legge e rende sticky (sessione + cookie). Niente JavaScript necessario:
+        // funziona anche con JS disattivato, come il resto della navigazione del sito.
+        // La bandiera sta per la lingua (convenzione comune: UK per l'inglese, non gli USA), come
+        // SVG e non come emoji: Windows non ha i disegni delle bandiere e mostrerebbe di nuovo
+        // due lettere al loro posto (vedi language_flag_svg). title/aria-label portano il nome
+        // vero per chi non la riconosce o usa uno screen reader.
+        // Ripetuto qui (riga semplice, sempre visibile) SOLO per il menu ad hamburger: sotto
+        // l'hamburger .auth-box non ha piu' spazio per il pulsante di sotto (vedi CSS), quindi
+        // qui c'e' l'unica copia raggiungibile da telefono.
+        $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
+      ?>
+      <div class="lingua-mobile">
+        <?php foreach (SITE_LANGUAGES as $__lang): ?>
+          <a href="<?= h(language_switch_url($__lang)) ?>" title="<?= h($__nomeLingua[$__lang]) ?>"
+             aria-label="<?= h($__nomeLingua[$__lang]) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+            <?= language_flag_svg($__lang) ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
     </div>
     <div class="auth-box">
       <?php
@@ -515,6 +546,19 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         <?php /* La parola sparisce su schermo stretto: resta la sola icona. */ ?>
         <span class="cambia-tema-testo"><?= h(str_replace('Tema ', '', $__nomeTema[$__temaOra])) ?></span>
       </button>
+      <details class="cambia-lingua">
+        <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
+          <?= language_flag_svg($GLOBALS['__siteLang']) ?>
+        </summary>
+        <div class="cambia-lingua-menu">
+          <?php foreach (SITE_LANGUAGES as $__lang): ?>
+            <a href="<?= h(language_switch_url($__lang)) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+              <?= language_flag_svg($__lang) ?>
+              <?= h($__nomeLingua[$__lang]) ?>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </details>
       <?php if ($__u): ?>
         <?php
         // Qui i tag dei gradi NON si mostrano (la barra deve restare pulita): del grado resta
@@ -524,7 +568,7 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         <a href="/profilo" class="btn btn-ghost who-link<?= $__currentPath === '/profilo' ? ' active' : '' ?>" title="Il tuo profilo">
           <?php /* Corona anche qui, se e' il miglior sostenitore: senza cuoricini, nella
                    barra sarebbero rumore in mezzo ai pulsanti. */ ?>
-          <?= avatar_top('<img class="who-avatar" src="' . h(mc_avatar_url($__u['mc_uuid'], 64)) . '" alt="" width="28" height="28">', $__u['mc_uuid'], 28) ?>
+          <?= avatar_top('<img class="who-avatar" src="' . h(mc_avatar_url($__u['mc_uuid'], 64, $__u['premium_uuid'] ?? null)) . '" alt="" width="28" height="28">', $__u['mc_uuid'], 28) ?>
           <span class="who colore-grado"<?= $__coloreNome !== null ? ' style="' . rank_color_style($__coloreNome) . '"' : '' ?>><?= h($__u['mc_username']) ?></span>
         </a>
         <?php if (can_manage()): ?>

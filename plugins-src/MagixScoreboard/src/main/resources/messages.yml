@@ -1,0 +1,90 @@
+# MagixScoreboard - tutti i testi mostrati ai giocatori.
+# Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+# \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
+# Placeholder disponibili indicati riga per riga.
+#
+# PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
+#   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
+#   verde  &#A8DC2C  l'ADVENTURE del logo: comandi, conferme, cose cliccabili
+#   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
+#   errore &#FF6B6B  |  avviso &#FFD166
+
+# ---------------------------------------------------------------- generici
+no-permission: "&cNon hai il permesso per questo comando."
+players-only: "&cQuesto comando va eseguito da un giocatore."
+unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/mscoreboard help&c."
+reloaded: "&aConfigurazione ricaricata."
+player-not-found: "&cGiocatore &e{player}&c non trovato (deve essere online)."
+
+state-visible: "&aattiva"
+state-hidden: "&7nascosta"
+
+# ---------------------------------------------------------------- /mscoreboard
+# {version} versione - {board} id della scoreboard che stai vedendo ora (o "-")
+# {hidden} "attiva"/"nascosta"
+info:
+  - "&8&m                                                  "
+  - "&#C046E8&lMagixScoreboard &7v{version}"
+  - "&7Scoreboard attuale: &f{board}"
+  - "&7Stato: {hidden}"
+  - "&8&m                                                  "
+
+toggled-off: "&eScoreboard nascosta. Usa &e/mscoreboard toggle&e di nuovo per rimostrarla."
+toggled-on: "&aScoreboard rimostrata."
+
+# ---------------------------------------------------------------- /mscoreboard help
+# L'aiuto lo impagina la classe Aiuto (la stessa in tutti i plugin Magix): una
+# sezione per volta, frecce per sfogliare, ogni riga cliccabile per scriversi il
+# comando in chat.
+# Formato di una riga:  "<comando> [argomenti] :: spiegazione"
+#   - staff: true su una sezione = la vede solo chi ha magixscoreboard.admin.
+help:
+  title: "MagixScoreboard"
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
+  sections:
+    scoreboard:
+      title: "Scoreboard"
+      entries:
+        - "/mscoreboard :: la scoreboard che stai vedendo ora"
+        - "/mscoreboard toggle :: nascondi o rimostra la scoreboard laterale"
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/mscoreboard list :: elenco delle scoreboard configurate, con peso e condizioni"
+        - "/mscoreboard debug <giocatore> :: quale scoreboard vede e perche' (punteggi di ognuna)"
+        - "/mscoreboard reload :: ricarica config.yml e messages.yml"
+
+# ---------------------------------------------------------------- /mscoreboard list
+# Diagnostica. {count} scoreboard configurate, {priority} ordine di spareggio,
+# {worldguard} "attiva"/"nascosta" a seconda che WorldGuard sia collegato o no.
+list-header:
+  - "&8&m                                                  "
+  - "&#C046E8&lScoreboard configurate&7: {count} &8- spareggio: {priority} &8- WorldGuard: {worldguard}"
+
+# Una riga per scoreboard. {id} chiave - {state} "attiva"/"nascosta" (enabled nel
+# config) - {weight} peso - {permission} permesso richiesto o "-" - {worlds}
+# mondi richiesti o "*" - {regions} regioni richieste o "*" - {placeholders}
+# condizioni sui placeholder richieste o "-"
+list-line:
+  - "&7- &f{id} &8| {state} &8| peso &f{weight} &8| perm &f{permission} &8| mondi &f{worlds} &8| regioni &f{regions} &8| placeholder &f{placeholders}"
+
+# ---------------------------------------------------------------- /mscoreboard debug
+# {player} nome del giocatore - {world} il suo mondo attuale - {selected} id della
+# scoreboard scelta per lui (o "-")
+debug-header:
+  - "&8&m                                                  "
+  - "&#C046E8&lDebug scoreboard&7: &f{player} &8(mondo &f{world}&8) &7- scelta: &f{selected}"
+
+# Una riga per scoreboard candidata. {id} chiave - {matches} "attiva" se le
+# condizioni corrispondono al giocatore, "nascosta" se no - {weight} peso -
+# {score} punteggio di spareggio (vedi priority-order in config.yml)
+debug-line:
+  - "&7- &f{id} &8| corrisponde: {matches} &8| peso &f{weight} &8| punteggio spareggio &f{score}"

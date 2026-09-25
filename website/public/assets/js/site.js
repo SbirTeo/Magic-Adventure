@@ -53,16 +53,31 @@
     collapse.classList.remove('open');
     toggle.classList.remove('is-active');
     toggle.setAttribute('aria-expanded', 'false');
+    // Su telefono il menu copre tutto lo schermo: senza questo la pagina sotto restava
+    // scorribile col dito, invisibile ma viva, e si scorreva "alla cieca" col menu aperto.
+    document.body.classList.remove('menu-aperto');
   }
   toggle.addEventListener('click', function () {
     var isOpen = collapse.classList.toggle('open');
     toggle.classList.toggle('is-active', isOpen);
     toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    document.body.classList.toggle('menu-aperto', isOpen);
   });
   collapse.querySelectorAll('a').forEach(function (a) {
     a.addEventListener('click', close);
   });
 })();
+
+// Selettore di lingua (<details> nativo): da solo un <details> resta aperto finche' non si
+// clicca di nuovo sul suo <summary>, un clic altrove sulla pagina non lo chiude. Qui si chiude
+// anche cosi', come ci si aspetta da un menu a tendina qualsiasi.
+document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
+  document.addEventListener('click', function (ev) {
+    if (dettagli.hasAttribute('open') && !dettagli.contains(ev.target)) {
+      dettagli.removeAttribute('open');
+    }
+  });
+});
 
 document.querySelectorAll('.ip-copy').forEach(function (btn) {
   btn.addEventListener('click', function () {
@@ -468,113 +483,4 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
     });
   }
   if (copiaBtn) copiaBtn.addEventListener('click', function () { clone(copiaBtn); });
-})();
-
-
-// Conto alla rovescia dell'apertura: il PORTALE DEL NETHER in home.
-// Markup e testi in includes/countdown.php; qui si muovono i numeri e si regola --carica,
-// da cui dipendono il vortice, l'alone, le scintille e il punto in cui e' arrivata la
-// fiamma della miccia (0 = giorno dell'annuncio, 1 = apertura).
-(function () {
-  var box = document.querySelector('[data-countdown]');
-  if (!box) return;
-
-  var fine = parseInt(box.getAttribute('data-fine'), 10);
-  var inizio = parseInt(box.getAttribute('data-inizio'), 10);
-  var adessoServer = parseInt(box.getAttribute('data-adesso'), 10);
-  if (!fine || !adessoServer) return;
-
-  // Scarto fra l'orologio del server e quello di chi guarda: sui telefoni con la data
-  // sbagliata, senza questo, il conto direbbe qualsiasi cosa.
-  var scarto = adessoServer - Date.now();
-
-  var gruppoGiorni = box.querySelector('[data-giorni]');
-  var celle = {
-    g: box.querySelector('[data-g]'),
-    h: box.querySelector('[data-h]'),
-    m: box.querySelector('[data-m]'),
-    s: box.querySelector('[data-s]')
-  };
-  if (!celle.g || !celle.h || !celle.m || !celle.s) return;
-
-  function due(n) { return n < 10 ? '0' + n : String(n); }
-
-  /*
-   * Di quanti pixel deve salire il corridore lungo il percorso.
-   *
-   * Parte dalla miccia e deve arrivare alla SOGLIA del portale, cioe' sopra la fila di
-   * ossidiana in basso: da li' in poi ci cammina dentro. Quanto sia distante dipende da
-   * dove cade il portale nella pagina (larghezza della finestra, testo su piu' righe,
-   * telefono o schermo grande), quindi si misura qui e non nel foglio di stile.
-   *
-   * L'altezza di un blocco si ricava dal portale stesso: e' alto cinque blocchi. Leggere
-   * --blocco non servirebbe, perche' e' una clamp() e il browser la restituisce com'e'
-   * scritta invece che in pixel.
-   */
-  var portale = box.querySelector('.nether-portale');
-  var miccia = box.querySelector('.nether-miccia');
-
-  function misuraSalita() {
-    if (!portale || !miccia) return;
-    var rp = portale.getBoundingClientRect();
-    var rm = miccia.getBoundingClientRect();
-    if (!rp.height || !rm.height) return;
-    var blocco = rp.height / 5;
-    var quotaSoglia = rp.bottom - blocco;    // dove deve arrivare
-    var quotaPartenza = rm.bottom - 13;      // dove sta adesso (vedi .corridore nel CSS)
-    box.style.setProperty('--salita', Math.max(0, quotaPartenza - quotaSoglia).toFixed(1) + 'px');
-  }
-
-  misuraSalita();
-  // le immagini che arrivano dopo spostano il portale: si rimisura a pagina caricata
-  window.addEventListener('load', misuraSalita);
-  var attesaSalita;
-  window.addEventListener('resize', function () {
-    clearTimeout(attesaSalita);
-    attesaSalita = setTimeout(misuraSalita, 150);
-  });
-
-  function write(cella, text) {
-    if (cella.textContent !== text) cella.textContent = text;
-  }
-
-  var timer;
-
-  function passo() {
-    var ora = Date.now() + scarto;
-    var restano = fine - ora;
-
-    if (restano <= 0) {
-      box.classList.add('is-aperto');
-      clearInterval(timer);
-      return;
-    }
-
-    var sec = Math.floor(restano / 1000);
-    var giorni = Math.floor(sec / 86400);
-
-    // Sotto il giorno la parola "giorni" sparisce: "0 giorni 04:12:07" e' solo rumore,
-    // e nell'ultima giornata l'orologio da solo e' piu' teso.
-    if (gruppoGiorni) {
-      if (giorni > 0) {
-        gruppoGiorni.hidden = false;
-        write(celle.g, String(giorni));
-      } else {
-        gruppoGiorni.hidden = true;
-      }
-    }
-    write(celle.h, due(Math.floor((sec % 86400) / 3600)));
-    write(celle.m, due(Math.floor((sec % 3600) / 60)));
-    write(celle.s, due(sec % 60));
-
-    // Carica del portale: quanta strada e' stata fatta fra l'annuncio e l'apertura.
-    if (inizio && fine > inizio) {
-      var quota = (ora - inizio) / (fine - inizio);
-      quota = Math.max(0, Math.min(1, quota));
-      box.style.setProperty('--carica', quota.toFixed(3));
-    }
-  }
-
-  passo();
-  timer = setInterval(passo, 1000);
 })();

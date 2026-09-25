@@ -3,6 +3,13 @@
 Questo file viene caricato in **ogni** sessione (locale o cloud). Le regole qui valgono
 sempre, per tutte le sessioni correnti e future.
 
+## LINGUA DELLA CHAT: SEMPRE ITALIANO
+
+In ogni sessione (locale o cloud), le risposte in chat all'utente sono **sempre in italiano**,
+qualunque sia la lingua del messaggio ricevuto o del contenuto tecnico coinvolto (log, codice,
+nomi in inglese per struttura come da regola sotto). Non chiedere conferma su questo: è la lingua
+di default e basta.
+
 ## IL DEPLOY È SEMPRE AUTOMATICO (regola prioritaria)
 
 A ogni modifica completata, **porta SEMPRE il lavoro fino in fondo e in automatico**, senza
@@ -84,6 +91,25 @@ plugin cambiati (Maven/JDK 25) via GitHub Action (`.github/workflows/deploy-plug
 copia il jar sul VPS in `/home/ubuntu/magicadventure/plugins/` e **riavvia il server** (screen
 `mc`, servizio `magicadventure.service`) con preavviso in chat ai giocatori. Stessi secret del
 sito + un sudoers per `systemctl restart magicadventure.service`. Setup: `website/vps/AUTO-DEPLOY.md`.
+
+## IL RIAVVIO DEL SERVER SI FA SEMPRE CON `stopserverfast` DI CMI (obbligatorio)
+
+Ogni volta che un riavvio del server Minecraft viene innescato — dall'auto-deploy dei plugin o
+da **qualunque** altra automazione, presente o futura — lo **STOP** si fa mandando in console
+il comando CMI **`stopserverfast`** (salva tutto e chiude pulito), **non** con un
+`systemctl restart` "secco" (che manderebbe un SIGTERM al processo). Non serve fare altro per
+riportarlo su: lo screen `mc` esegue `server/start.sh` (`while true; do java ...; done`), che
+**rilancia da solo** il server qualche secondo dopo qualsiasi stop (è lo stesso meccanismo del
+riavvio notturno, che manda solo `stop`) — e i jar nuovi, già copiati, vengono caricati.
+`systemctl restart magicadventure.service` si usa **solo** quando il server è **spento** (nessuno
+screen `mc`: non c'è nulla da fermare con `stopserverfast`, lo si avvia via systemd). Questo è
+implementato in `deploy-plugin.yml`; qualsiasi nuovo meccanismo di riavvio deve seguire la stessa
+regola.
+
+Gli **avvisi ai giocatori e il conto alla rovescia** sono già configurati **dentro** il comando
+CMI `stopserverfast`: l'automazione **non** deve aggiungere un proprio preavviso (`say`/countdown),
+altrimenti i giocatori vedono due countdown sovrapposti. Manda solo `stopserverfast` e lascia fare
+a CMI.
 
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
@@ -212,9 +238,13 @@ Cosa fa, in ordine, a ogni avvio e a ogni reload:
 
 Regole che ne discendono:
 
-- **Prima di ogni scrittura** il file viene copiato accanto a se' con la data nel nome
-  (`config.yml.bak-20260915-041200`). Se la copia non riesce, il file **non** si tocca. Si
-  tengono le ultime 10 copie per file.
+- **Prima di ogni scrittura** il file viene copiato nella cartella `.bak/<Plugin>/...` — la
+  cartella `plugins/` sostituita con `.bak/`, fuori da `plugins/` sul server — con la data nel
+  nome (es. `.bak/MagixFactions/config.yml.bak-20260915-041200`). E' la stessa cartella che usa
+  il workflow manuale `pulizia-bak-vps.yml` (`.github/workflows/pulizia-bak-vps.yml`): i backup
+  nascono gia' li', quel workflow serve solo come rete di sicurezza per eventuali `.bak-*`
+  lasciati in giro da altri script (o da versioni precedenti di questo meccanismo). Se la copia
+  non riesce, il file **non** si tocca. Si tengono le ultime 10 copie per file.
 - **Ogni plugin nuovo** chiama `ConfigAlign.alignAll(this)` subito dopo `saveDefaultConfig()` e
   nel suo comando di reload. Non serve elencare i file: li trova da se' dentro il jar.
 - `ConfigAlign` e' una **classe comune**: le copie nei vari plugin devono restare identiche
@@ -258,6 +288,39 @@ questi viene promosso a tipo top-level o a file suo, la regola scatta.
 
 Gira come **git pre-commit** (`.githooks/pre-commit`): un nome italiano nella struttura **blocca
 il commit**. Non aggirarlo: si rinomina.
+
+## OGNI TESTO CHE UN GIOCATORE LEGGE VA IN messages.yml (obbligatorio)
+
+Nessun testo che un giocatore può vedere in chat, in un pannello, in un titolo/action bar o in un
+messaggio di kick va scritto a mano dentro il `.java`: vive in `messages.yml` (o nel file di
+funzione competente, es. `tablist.yml`), con una chiave, e il codice lo legge da lì. Questo vale
+per **tutti** i plugin Magix, non solo per quelli già collegati a MagixLanguageAPI: una stringa
+hardcoded in Java non è mai traducibile, quindi resta per sempre in italiano anche se il giocatore
+ha scelto un'altra lingua — è esattamente il tipo di buco che MagixLanguage non può chiudere da
+solo, per quanto sia fatto bene.
+
+Non è solo una preferenza di stile: è la premessa perché la traduzione automatica funzioni. Una
+chiave in `messages.yml` la sincronizza da sola `TranslationSync` verso `en.yml`/`es.yml`/`de.yml`
+(vedi il capitolo di MagixLanguage); una stringa dentro `sender.sendMessage("...")` non la vede
+nessuno, e resta un buco silenzioso finché qualcuno non lo nota giocando in un'altra lingua (è
+successo davvero con l'elenco comandi di MagixAuth: sembrava tradotto, non lo era per niente).
+
+**Cosa NON è testo del giocatore** (resta pure nel codice): nodi di permesso, nomi di comando,
+chiavi di config, log di console, nomi tecnici (materiali, suoni, permessi) — tutto quello che la
+regola "codice in inglese" qui sopra già copre.
+
+**La classe condivisa `util/Help.java`** (identica in ogni plugin che ce l'ha, vedi
+`plugins-src/STILE-MAGIX.md` §3) fa eccezione alla regola "una chiave per stringa": le sue frasi
+di cornice (`Nessun comando disponibile.`, `Clicca per scriverlo`, `Riservato allo staff`,
+`indietro`/`avanti`...) vivono sotto una manciata di chiavi fisse `help.chrome.*` in ogni
+`messages.yml`, lette e tradotte da `Help` stesso tramite MagixLanguageAPI (softdepend, come ogni
+altro plugin) — non serve toccare `Help.java` per aggiungerne una nuova, la classe le legge per
+nome. Le voci dei comandi (`help.sections.<nome>.entries`) sono liste, tradotte con
+`translateList`, non con `translate`.
+
+Quando si trova una stringa hardcoded in un plugin già "migrato", non è un'eccezione da lasciar
+stare: è lo stesso buco di MagixAuth, e si tratta allo stesso modo — chiave nuova in
+`messages.yml`, lettura tramite MagixLanguageAPI, mai testo diretto nel `.java`.
 
 ## GUIDA E TUTORIAL SEMPRE AGGIORNATI (obbligatorio a ogni modifica)
 

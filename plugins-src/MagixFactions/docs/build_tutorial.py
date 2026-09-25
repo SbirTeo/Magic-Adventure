@@ -364,7 +364,8 @@ HTML = r"""<!DOCTYPE html>
   in un angolo, quello sì che si aggiorna da solo mentre cammini — spetta a chi ha il permesso apposta.
   Se ce l'hai puoi <b>accenderla o spegnerla</b> quando vuoi con <span class="cmd">/f minimap on</span> /
   <span class="cmd">/f minimap off</span>: anche da spenta, la mappa in chat con <span class="cmd">/f map</span>
-  resta sempre a disposizione. La scelta resta salvata anche dopo il logout.</div>
+  resta sempre a disposizione. La scelta resta salvata anche dopo il logout.{{se:map.minimap.info-panel.enabled=true}}
+  Sotto la minimap una piccola <b>striscia informativa</b> ti mostra l'<b>ora</b> e le tue <b>coordinate</b>.{{/se}}</div>
 {{/se}}
 {{se:map.mode=item}}
   <p>Il comando <span class="cmd">/f map</span> ti consegna un <b>item mappa</b> (una mappa vera, come quella di
@@ -397,7 +398,11 @@ HTML = r"""<!DOCTYPE html>
   <h2><span class="n">10</span>La casa della fazione — <span class="cmd" style="font-size:15px">/f home</span></h2>
   <ol class="steps">
     <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.</li>
-    <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione.</li>
+    <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione dopo
+      <b>{{secondi:home-warmup.seconds}}</b> di attesa immobile: se ti muovi (anche di un blocco) o <b>subisci un
+      danno</b> (un mob, una caduta, il fuoco, un altro giocatore...) il teletrasporto si annulla e va ripetuto
+      il comando — non è una via di fuga. Attaccare un altro giocatore annulla il tuo, anche se non subisci
+      danno tu.</li>
     <li><span class="cmd">/f unsethome</span> toglie la casa: la fazione resta senza, e <span class="cmd">/f home</span>
       non porta più da nessuna parte finché non ne imposti un'altra.</li>
   </ol>

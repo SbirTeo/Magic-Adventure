@@ -136,15 +136,15 @@ public final class DecayManager {
                     double lostPaid = claims.removeOneClaim(f.getId(), fm.homeChunkKey(f.getId()));
                     if (lostPaid >= 0) {
                         t.lastLoss = now; save(f.getId(), t);
-                        broadcast(f, M.get("decay.lost"));
+                        broadcast(f, "decay.lost");
                         // Anche il territorio perso per sovraccarico RIMBORSA la % configurata di quanto
                         // fu pagato (scelta utente 2026-07-17): stesso motore di /f unclaim, alla banca.
                         double refund = claims.refundFor(lostPaid);
                         if (refund > 0) {
                             fm.setBank(f, f.getBank() + refund);
-                            broadcast(f, M.get("decay.lost-refund",
+                            broadcast(f, "decay.lost-refund",
                                     "refund", com.teolo.magixfactions.hook.Econ.format(refund),
-                                    "bank", com.teolo.magixfactions.hook.Econ.format(f.getBank())));
+                                    "bank", com.teolo.magixfactions.hook.Econ.format(f.getBank()));
                         }
                         if (claims.count(f.getId()) <= cap) { timers.remove(f.getId()); delete(f.getId()); }
                     }
@@ -158,15 +158,14 @@ public final class DecayManager {
 
     // ------------------------------ avvisi -------------------------------
     private void warn(Faction f, int owned, int cap) {
-        String title = color(M.get("decay.warn-title"));
-        String sub = color(M.get("decay.warn-subtitle")
-                .replace("{owned}", String.valueOf(owned)).replace("{cap}", String.valueOf(cap)));
         String sound = cfgString("sound", "entity.wither.spawn");
         float vol = (float) cfgDouble("sound-volume", 1.0);
         float pitch = (float) cfgDouble("sound-pitch", 1.0);
         for (UUID u : f.getMembers().keySet()) {
             Player p = Bukkit.getPlayer(u);
             if (p == null) continue;
+            String title = color(M.get(p, "decay.warn-title"));
+            String sub = color(M.get(p, "decay.warn-subtitle", "owned", String.valueOf(owned), "cap", String.valueOf(cap)));
             p.sendTitle(title, sub, 5, 50, 10);
             if (sound != null && !sound.isEmpty()) {
                 try { p.playSound(p.getLocation(), sound, vol, pitch); } catch (Exception ignored) {}
@@ -174,10 +173,10 @@ public final class DecayManager {
         }
     }
 
-    private void broadcast(Faction f, String message) {
+    private void broadcast(Faction f, String path, String... kv) {
         for (UUID u : f.getMembers().keySet()) {
             Player p = Bukkit.getPlayer(u);
-            if (p != null) p.sendMessage(M.prefix() + message);
+            if (p != null) p.sendMessage(M.get(p, path, kv));
         }
     }
 

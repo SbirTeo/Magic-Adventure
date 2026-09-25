@@ -25,10 +25,12 @@ import org.bukkit.scoreboard.Scoreboard;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,12 +45,18 @@ import java.util.regex.Pattern;
  * <h2>Due modi di disegnarla, e perche'</h2>
  * Il gioco ne sa fare una sola, di riga, e il nome vero che ci mette in mezzo accetta solo i 16 colori
  * storici: e' la targhetta di {@link NameTeams}, che in cambio costa quasi niente, sfuma con la
- * distanza, sparisce da sola quando uno si accuccia e — sola fra le due — puo' essere <b>diversa per
- * ogni spettatore</b> (i placeholder {@code %rel_...%}: il verde dell'alleato, il rosso del nemico).
- * Due righe, un esadecimale sul nome, una misura diversa vogliono invece delle entita' di testo
- * agganciate al giocatore: {@link DisplayLines}, che pero' e' un oggetto del mondo e come tale lo
- * vedono tutti uguale. Non c'e' un modo che vinca sempre, quindi ci sono tutti e due e il config
- * sceglie; con {@code mode: auto} sceglie da se' guardando quante righe sono state scritte.
+ * distanza e sparisce da sola quando uno si accuccia. Due righe, un esadecimale sul nome, una misura
+ * diversa vogliono invece delle entita' di testo agganciate al giocatore: {@link DisplayLines}. Non
+ * c'e' un modo che vinca sempre, quindi ci sono tutti e due e il config sceglie; con {@code mode: auto}
+ * sceglie da se' guardando quante righe sono state scritte.
+ *
+ * <p><b>Diversa per ogni spettatore</b> (i placeholder {@code %rel_...%}: il verde dell'alleato, il
+ * rosso del nemico) la sanno fare tutte e due, ma per due strade diverse. In vanilla e' una lavagna
+ * (scoreboard) per ciascuno; in display si disegna un gruppo di entita' per ogni testo diverso, montato
+ * sullo stesso giocatore, e a ognuno si nasconde quello che non e' il suo (vedi {@link #variants} e
+ * {@link DisplayLines}). Il prezzo e' diverso: in vanilla una lavagna per giocatore (e allora salta il
+ * pannello di un altro plugin, vedi {@link NameTeams}); in display piu' entita', poche finche' i colori
+ * in gioco sono pochi.</p>
  *
  * <h2>Si lavora solo sulla differenza</h2>
  * A ogni giro si ricompone il testo di ciascuno e si confronta con quello di prima: si scrive — cioe'
@@ -93,12 +101,21 @@ public final class NametagManager implements Listener {
     private List<String> lines = List.of(NAME_TOKEN);
     /** Se le righe le disegniamo noi (modalita' display) invece di lasciarle al gioco. */
     private boolean ourLines;
+    /** Lavagne per-spettatore per la targhetta del gioco (relazionale in vanilla). */
     private boolean perViewer;
+    /** Un gruppo di entita' per ogni testo diverso: il relazionale in modalita' display. */
+    private boolean displayPerViewer;
     private boolean skipEmpty = true;
     private boolean nameColor = true;
     private Set<String> offWorlds = Set.of();
     /** Quanto resta visibile la targhetta di chi si accuccia: 1.0 = invariata, 0.0 = invisibile. */
     private float sneakOpacity = 0.3f;
+    /**
+     * Se le righe (modalita' display) si vedono attraverso i muri. {@code vanilla} come la targhetta
+     * del gioco: attraverso i muri da fermo, occluse da accucciato. {@code always}/{@code never}
+     * forzano sempre acceso o sempre spento.
+     */
+    private SeeThrough seeThrough = SeeThrough.VANILLA;
     private boolean hideInvisible = true;
     private boolean hideSpectator = true;
     /** Una riga senza {name} e' un errore di configurazione: si dice una volta, non a ogni giro. */
@@ -110,6 +127,16 @@ public final class NametagManager implements Listener {
      * Lo legge anche la guida per lo staff, da un altro thread: da qui il volatile.
      */
     private volatile String style = "";
+
+    /** Come le righe della modalita' display si comportano coi muri davanti. */
+    private enum SeeThrough {
+        /** Come il gioco: attraverso i muri da fermo, occluse (e sfumate) da accucciato. */
+        VANILLA,
+        /** Sempre attraverso i muri. */
+        ALWAYS,
+        /** Sempre occluse dai blocchi. */
+        NEVER
+    }
 
     public NametagManager(JavaPlugin plugin, ConfigurationSection cfg) {
         this.plugin = plugin;
@@ -169,15 +196,16 @@ public final class NametagManager implements Listener {
         for (String line : lines) {
             relational |= line.contains(RELATIONAL);
         }
-        perViewer = !ourLines && (viewers.equalsIgnoreCase("always")
-                || (!viewers.equalsIgnoreCase("never") && relational));
-        if (relational && !perViewer) {
+        // Serve una targhetta diversa per chi guarda? Poi COME la si fa dipende dalla modalita': in
+        // vanilla con una lavagna per giocatore, in display con un gruppo di entita' per ogni testo.
+        boolean wantPerViewer = viewers.equalsIgnoreCase("always")
+                || (!viewers.equalsIgnoreCase("never") && relational);
+        perViewer = wantPerViewer && !ourLines;
+        displayPerViewer = wantPerViewer && ourLines;
+        if (relational && viewers.equalsIgnoreCase("never")) {
             plugin.getLogger().warning("[Nametag] nelle righe c'e' un placeholder relazionale (" + RELATIONAL
-                    + "...), ma la targhetta e' la stessa per tutti"
-                    + (ourLines ? ": in modalita' display e' un oggetto del mondo, e un oggetto del mondo lo"
-                            + " vedono tutti uguale (serve mode: vanilla con una riga sola)"
-                            : " perche' per-viewer e' su never")
-                    + ". Quei placeholder valgono come se il giocatore guardasse se stesso.");
+                    + "...), ma per-viewer e' su never: quei placeholder valgono come se il giocatore"
+                    + " guardasse se stesso.");
         }
 
         skipEmpty = cfg.getBoolean("skip-empty-lines", true);
@@ -188,6 +216,7 @@ public final class NametagManager implements Listener {
         }
         offWorlds = Set.copyOf(worlds);
         sneakOpacity = clamp01((float) cfg.getDouble("display.sneak-opacity", 0.3));
+        seeThrough = readSeeThrough(cfg.getString("display.see-through", "vanilla"));
         hideInvisible = cfg.getBoolean("display.hide-when-invisible", true);
         hideSpectator = cfg.getBoolean("display.hide-in-spectator", true);
         // Una riga nel log che risponde da sola alla domanda "perche' sopra la testa vedo questo?".
@@ -347,7 +376,15 @@ public final class NametagManager implements Listener {
     private void apply(Player target, List<Scoreboard> boards, Collection<? extends Player> online) {
         boolean off = offWorlds.contains(target.getWorld().getName().toLowerCase(Locale.ROOT));
         if (ourLines) {
-            displays.update(target, off || hidden(target) ? List.of() : rendered(target), opacity(target));
+            if (off || hidden(target)) {
+                displays.update(target, List.of(), opacity(target), seeThrough(target));
+            } else if (displayPerViewer) {
+                // Una variante per ogni testo diverso (il colore relazionale cambia per chi guarda),
+                // ciascuna coi suoi spettatori: DisplayLines nasconde a ognuno quelle che non sono le sue.
+                displays.updateVariants(target, variants(target, online), opacity(target), seeThrough(target));
+            } else {
+                displays.update(target, rendered(target, target), opacity(target), seeThrough(target));
+            }
             // Il nome del gioco si nasconde solo dove la targhetta la disegniamo noi: due targhette
             // sovrapposte sono peggio di una brutta. Nei mondi esclusi torna visibile.
             for (Scoreboard board : boards) {
@@ -389,19 +426,43 @@ public final class NametagManager implements Listener {
     }
 
     /**
-     * Le righe da disegnare, dall'alto verso il basso, coi placeholder risolti. Con
-     * {@code skip-empty-lines} le righe rimaste senza niente da leggere non vengono nemmeno create —
-     * tutte tranne l'ultima, che e' quella del nome e non si salta mai.
+     * Le varianti di una targhetta in modalita' display quando cambia da spettatore a spettatore: per
+     * ogni giocatore online si risolvono le sue righe (i {@code %rel_...%} dipendono da chi guarda) e si
+     * raggruppano quelli che ottengono lo <b>stesso testo</b>, cosi' due che vedono lo stesso colore
+     * condividono un gruppo solo. Con {@code hide-self} il target non e' fra gli spettatori: la propria
+     * targhetta non la vede comunque.
      */
-    private List<String> rendered(Player target) {
+    private List<DisplayLines.Variant> variants(Player target, Collection<? extends Player> online) {
+        boolean skipSelf = displays.hideSelf();
+        Map<List<String>, Set<UUID>> byText = new LinkedHashMap<>();
+        for (Player viewer : online) {
+            if (skipSelf && viewer.equals(target)) {
+                continue;
+            }
+            byText.computeIfAbsent(rendered(viewer, target), k -> new HashSet<>()).add(viewer.getUniqueId());
+        }
+        List<DisplayLines.Variant> out = new ArrayList<>(byText.size());
+        for (Map.Entry<List<String>, Set<UUID>> e : byText.entrySet()) {
+            out.add(new DisplayLines.Variant(e.getKey(), e.getValue()));
+        }
+        return out;
+    }
+
+    /**
+     * Le righe da disegnare, dall'alto verso il basso, coi placeholder risolti per lo spettatore
+     * {@code viewer} che guarda {@code target} (i due coincidono quando la targhetta e' uguale per
+     * tutti). Con {@code skip-empty-lines} le righe rimaste senza niente da leggere non vengono nemmeno
+     * create — tutte tranne l'ultima, che e' quella del nome e non si salta mai.
+     */
+    private List<String> rendered(Player viewer, Player target) {
         List<String> out = new ArrayList<>(lines.size());
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             boolean last = i == lines.size() - 1;
-            if (!last && skipEmpty && nothingLeft(target, line)) {
+            if (!last && skipEmpty && nothingLeft(viewer, target, line)) {
                 continue;
             }
-            out.add(resolve(target, target, line.replace(NAME_TOKEN, target.getName())));
+            out.add(resolve(viewer, target, line.replace(NAME_TOKEN, target.getName())));
         }
         return out;
     }
@@ -412,7 +473,7 @@ public final class NametagManager implements Listener {
      * questo controllo resterebbe appeso un {@code []}. Una riga senza placeholder — una decorazione
      * scritta a mano — non e' mai "vuota": quella l'ha voluta qualcuno.
      */
-    private boolean nothingLeft(Player target, String line) {
+    private boolean nothingLeft(Player viewer, Player target, String line) {
         Matcher m = PLACEHOLDER.matcher(line);
         StringBuilder found = new StringBuilder();
         while (m.find()) {
@@ -421,7 +482,7 @@ public final class NametagManager implements Listener {
         if (found.length() == 0) {
             return false;
         }
-        return TextFormat.plain(resolve(target, target, found.toString())).isBlank();
+        return TextFormat.plain(resolve(viewer, target, found.toString())).isBlank();
     }
 
     /**
@@ -515,6 +576,30 @@ public final class NametagManager implements Listener {
             return (byte) -1;
         }
         return (byte) Math.round(sneakOpacity * 255f);
+    }
+
+    /**
+     * Se le righe disegnate da noi si vedono attraverso i muri. Con {@link SeeThrough#VANILLA} si fa
+     * come la targhetta del gioco: attraverso i muri da fermo (cosi' non "sparisce dietro" a vetri,
+     * acqua o lava, che col see-through spento sballano il test di profondita' delle entita' di testo),
+     * occlusa dai blocchi appena il giocatore si accuccia — insieme alla sfumatura di {@link #opacity}.
+     */
+    private boolean seeThrough(Player p) {
+        return switch (seeThrough) {
+            case ALWAYS -> true;
+            case NEVER -> false;
+            case VANILLA -> !p.isSneaking();
+        };
+    }
+
+    /** Legge {@code display.see-through}: {@code vanilla} (default), {@code true} o {@code false}. */
+    private SeeThrough readSeeThrough(String value) {
+        String text = value == null ? "vanilla" : value.trim().toLowerCase(Locale.ROOT);
+        return switch (text) {
+            case "true" -> SeeThrough.ALWAYS;
+            case "false" -> SeeThrough.NEVER;
+            default -> SeeThrough.VANILLA;
+        };
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.teolo.magixguard.sanctions;
 
+import com.teolo.magixguard.lang.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -34,19 +35,20 @@ public final class ViolationCommand implements CommandExecutor {
     private final JavaPlugin plugin;
     private final Detector detector;
     private final SanctionsDao dao;
+    private final Messages messages;
 
-    public ViolationCommand(JavaPlugin plugin, Detector detector, SanctionsDao dao) {
+    public ViolationCommand(JavaPlugin plugin, Detector detector, SanctionsDao dao, Messages messages) {
         this.plugin = plugin;
         this.detector = detector;
         this.dao = dao;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender chi, Command command, String label, String[] args) {
         if (args.length < 2) {
-            chi.sendMessage(Text.msg("&#FFD166Uso: &f/mgviolation <giocatore> <categoria> [dettaglio]"));
-            chi.sendMessage(Text.panel("&7Lo chiama l'anticheat, non una persona. Categorie: "
-                    + "cheat.movimento, cheat.combat, cheat.xray, afk.elusione."));
+            chi.sendMessage(Text.msg(messages.get(chi, "violation-command.usage")));
+            chi.sendMessage(Text.panel(messages.get(chi, "violation-command.usage-hint")));
             return true;
         }
 

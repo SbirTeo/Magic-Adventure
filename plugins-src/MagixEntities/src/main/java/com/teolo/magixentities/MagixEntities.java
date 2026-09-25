@@ -156,7 +156,10 @@ public final class MagixEntities extends JavaPlugin {
                                 + "opzione di `/mentities set <nome> nametag`, solo più comoda da qui. Toglie "
                                 + "proprio il nome, non solo la visibilità: in Minecraft un mob con nome ma "
                                 + "\"non visibile\" lo mostra comunque mirandolo da vicino, quindi spegnerlo "
-                                + "del tutto richiede di togliere il nome stesso, non solo il cartello.",
+                                + "del tutto richiede di togliere il nome stesso, non solo il cartello. Su una "
+                                + "statua (tipo player) spegne anche la targhetta vanilla del profilo che il "
+                                + "client disegna da solo mirandola da vicino, indipendente dal nome sopra la "
+                                + "testa: si toglie il nome dal profilo stesso, non solo dal cartello.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
                                 + "Si accende per singola entità.")
 
@@ -176,7 +179,7 @@ public final class MagixEntities extends JavaPlugin {
                 .permissions()
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file accanto all'originale, col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("/me apre l'emote invece del plugin",
                         "È l'emote di Minecraft, e CMI ne registra una sua. Usa /mentities, /ment oppure la forma "
                                 + "esplicita /magixentities:me.")

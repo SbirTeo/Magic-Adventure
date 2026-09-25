@@ -66,8 +66,11 @@ sudo o chiave non autorizzata).
 Il workflow `.github/workflows/deploy-plugin.yml` fa lo stesso per i **plugin**: a ogni push
 su `main` che tocca `plugins-src/`, compila i plugin cambiati (Maven/JDK 21), copia il jar
 sul VPS in `/home/ubuntu/magicadventure/plugins/` (togliendo la versione vecchia) e **riavvia
-il server** per caricarli, con un **preavviso in chat** ai giocatori online (say a -60s, -20s,
--5s, poi `save-all` e riavvio).
+il server** per caricarli. Lo **stop** si fa con il comando CMI `stopserverfast` (salva e chiude
+pulito, regola in `CLAUDE.md`): il **preavviso in chat** ai giocatori e il conto alla rovescia
+sono già dentro quel comando (CMI), quindi il workflow non li ripete. Poi `server/start.sh`
+(`while true; do java ...; done` nello screen `mc`) rilancia il server da solo, come per il
+riavvio notturno. `systemctl restart` si usa solo se il server è spento (nessuno screen `mc`).
 
 Usa gli **stessi tre secret** del deploy sito. In piu' serve un permesso sudo lato VPS,
 perche' il riavvio usa systemd (come il pulsante "Riavvia" del gestionale):
@@ -96,8 +99,8 @@ Ogni notte il server si riavvia da solo, con preavviso ai giocatori: 5 minuti, 1
 secondi) e infine un semplice `stop`.
 
 Non serve systemd ne' un cron esterno: `server/start.sh` (`while true; do java ...; done`)
-gia' riavvia da solo il processo qualche secondo dopo QUALSIASI stop, backup di AutoBackup
-compreso — mandare "stop" da un plugin di gioco basta e avanza. Il countdown vive quindi
+gia' riavvia da solo il processo qualche secondo dopo QUALSIASI stop — mandare "stop" da un
+plugin di gioco basta e avanza. Il countdown vive quindi
 interamente in `plugins/CMI/Settings/Schedules.yml` come una voce dello scheduler di CMI
 (`PerformOn`, con `delay!` tra un avviso e l'altro — stesso meccanismo dell'esempio
 `StopServer` gia' presente di default in quel file), aggiunta/corretta con gli stessi

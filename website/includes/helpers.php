@@ -49,25 +49,38 @@ function redirect(string $path): void {
  *
  * L'UUID va passato SENZA trattini: con i trattini minotar risponde 301 e ogni immagine
  * costerebbe un viaggio in piu'.
+ *
+ * `users.mc_uuid` e' l'UUID OFFLINE con cui il giocatore entra in gioco (il server non e' in
+ * modalita' premium): non corrisponde a nessun profilo Mojang, quindi passato a minotar da
+ * solo torna sempre la skin di default. `users.premium_uuid`, quando MagixAuth l'ha annotato
+ * alla registrazione, e' invece il vero UUID Mojang del nome: e' quello che minotar sa
+ * risolvere nella skin reale. Va sempre passato quando c'e'.
  */
-function mc_avatar_url(?string $uuid, int $size = 64): string {
-    return 'https://minotar.net/helm/' . rawurlencode(str_replace('-', '', (string) $uuid)) . '/' . $size;
+function mc_skin_uuid(?string $uuid, ?string $premiumUuid = null): string {
+    $premiumUuid = trim((string) $premiumUuid);
+    $id = $premiumUuid !== '' ? $premiumUuid : (string) $uuid;
+    return str_replace('-', '', $id);
+}
+
+function mc_avatar_url(?string $uuid, int $size = 64, ?string $premiumUuid = null): string {
+    return 'https://minotar.net/helm/' . rawurlencode(mc_skin_uuid($uuid, $premiumUuid)) . '/' . $size;
 }
 
 /** Figura intera con i livelli esterni della skin (cappello, giacca...). */
-function mc_body_url(?string $uuid, int $size = 160): string {
-    return 'https://minotar.net/armor/body/' . rawurlencode(str_replace('-', '', (string) $uuid)) . '/' . $size;
+function mc_body_url(?string $uuid, int $size = 160, ?string $premiumUuid = null): string {
+    return 'https://minotar.net/armor/body/' . rawurlencode(mc_skin_uuid($uuid, $premiumUuid)) . '/' . $size;
 }
 
 /**
  * La TEXTURE grezza della skin (il PNG 64x64 di Minecraft), non un ritratto gia' composto.
  * Serve a chi si costruisce il personaggio pezzo per pezzo ritagliando la texture: la
- * visuale 3D del profilo e il corridore del conto alla rovescia in home.
+ * visuale 3D del profilo.
  *
- * Senza UUID torna la skin predefinita: minotar serve Steve per i nomi che non conosce.
+ * Senza UUID (offline o premium) torna la skin predefinita: minotar serve Steve per i nomi
+ * che non conosce.
  */
-function mc_skin_url(?string $uuid): string {
-    $id = str_replace('-', '', (string) $uuid);
+function mc_skin_url(?string $uuid, ?string $premiumUuid = null): string {
+    $id = mc_skin_uuid($uuid, $premiumUuid);
     return 'https://minotar.net/skin/' . rawurlencode($id !== '' ? $id : 'Steve');
 }
 
@@ -441,7 +454,7 @@ function users_on_site(int $minuti = 5, int $max = 100): array {
 
     try {
         return db()->query(
-            'SELECT u.id, u.mc_uuid, u.mc_username, u.last_seen, r.weight, ' . RANK_SELECT_SQL
+            'SELECT u.id, u.mc_uuid, u.premium_uuid, u.mc_username, u.last_seen, r.weight, ' . RANK_SELECT_SQL
             . ' FROM users u' . rank_join_sql()
             . " WHERE u.last_seen >= DATE_SUB(NOW(), INTERVAL {$minuti} MINUTE)"
             // Prima il grado piu' pesante (com'e' in gioco: lo staff in cima), poi chi si e'

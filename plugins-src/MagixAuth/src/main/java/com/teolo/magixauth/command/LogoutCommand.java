@@ -4,6 +4,7 @@ import com.teolo.magixauth.AuthConfig;
 import com.teolo.magixauth.MagixAuth;
 import com.teolo.magixauth.db.AuthDao;
 import com.teolo.magixauth.gate.AuthGate;
+import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.model.Account;
 import com.teolo.magixauth.util.Texts;
 import org.bukkit.Bukkit;
@@ -37,18 +38,20 @@ public final class LogoutCommand implements CommandExecutor {
     private final AuthConfig config;
     private final AuthDao dao;
     private final AuthGate gate;
+    private final Messages messages;
 
-    public LogoutCommand(MagixAuth plugin, AuthConfig config, AuthDao dao, AuthGate gate) {
+    public LogoutCommand(MagixAuth plugin, AuthConfig config, AuthDao dao, AuthGate gate, Messages messages) {
         this.plugin = plugin;
         this.config = config;
         this.dao = dao;
         this.gate = gate;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage("Solo un giocatore puo' chiudere il proprio accesso.");
+            sender.sendMessage(messages.get("logout-command.players-only"));
             return true;
         }
         // Chi e' ancora al cancello non ha niente da chiudere: non e' mai entrato.
@@ -79,11 +82,9 @@ public final class LogoutCommand implements CommandExecutor {
 
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (p.isOnline()) {
-                    p.kick(Texts.c("&aAccesso chiuso&r\n\n"
-                            + "&7Sei stato disconnesso dal gioco e dal sito.\n"
-                            + "&7Al prossimo ingresso ti verranno chiesti di nuovo\n"
-                            + "&7la password" + (account != null && account.haOtp()
-                            ? " e il codice di verifica." : ".")));
+                    String key = account != null && account.haOtp()
+                            ? "logout-command.kick-with-otp" : "logout-command.kick-without-otp";
+                    p.kick(Texts.c(messages.get(p, key)));
                 }
             });
 
@@ -92,8 +93,7 @@ public final class LogoutCommand implements CommandExecutor {
                     + " fallito (" + e.getMessage() + ").");
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (p.isOnline()) {
-                    p.sendMessage(Texts.c(config.prefix,
-                            "&cNon sono riuscito a chiudere l'accesso adesso. Riprova."));
+                    p.sendMessage(Texts.c(messages.get(p, "logout-command.failed")));
                 }
             });
         }

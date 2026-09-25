@@ -1,0 +1,22 @@
+name: MagixMusic
+version: '${project.version}'
+main: com.teolo.magixmusic.MagixMusic
+api-version: '26.1'
+author: teolo
+description: Radio musicale sincronizzata allo spawn, regolabile e spegnibile da ogni giocatore.
+# MagixMenus: se c'e', MagixMusic installa da solo il menu /musica (softdepend -> carica dopo di lui).
+softdepend: [PlaceholderAPI, MagixMenus, MagixLanguage]
+
+commands:
+  magixmusic:
+    aliases: [radio, music]
+    description: "Radio musicale dello spawn: stato, volume, on/off."
+    usage: /radio
+
+permissions:
+  magixmusic.use:
+    description: Usare /radio per regolare o spegnere la radio musicale dello spawn (preferenza personale).
+    default: true
+  magixmusic.admin:
+    description: Comandi amministrativi della radio (reload).
+    default: op

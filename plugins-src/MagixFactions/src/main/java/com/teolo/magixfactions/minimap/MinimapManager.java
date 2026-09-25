@@ -13,6 +13,7 @@ import com.comphenix.protocol.wrappers.BukkitConverters;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
+import com.teolo.magixfactions.hook.Papi;
 import com.teolo.magixfactions.manage.PowerManager;
 import com.teolo.magixfactions.map.MapService;
 import com.teolo.magixfactions.util.Colors;
@@ -86,6 +87,10 @@ public final class MinimapManager {
 
     private final Map<UUID, int[]> frameIds = new HashMap<>(); // i 4 entity id dei quadri del giocatore
     private final Map<UUID, MapView> views = new HashMap<>();
+    // Pannello info (orologio/coordinate/info) sotto la minimap: una SECONDA mappa finta, con i suoi quadri
+    // co-locati alle stesse ancore della minimap (stesso mount/detach). Vedi InfoPanelRenderer + text.vsh (custom==3).
+    private final Map<UUID, int[]> panelFrameIds = new HashMap<>();
+    private final Map<UUID, MapView> panelViews = new HashMap<>();
     private final Map<UUID, BukkitTask> tasks = new HashMap<>();
     private final Map<UUID, Location> lastRemountPos = new HashMap<>(); // per rimontare mentre ci si muove (anti-flash)
 
@@ -329,6 +334,57 @@ public final class MinimapManager {
 
     public boolean isActive(Player viewer) { return frameIds.containsKey(viewer.getUniqueId()); }
 
+    /** Il pannello info (orologio/coordinate/info sotto la minimap) e' attivo da config? */
+    private boolean panelEnabled() {
+        return plugin.getConfig().getBoolean("map.minimap.info-panel.enabled", true);
+    }
+
+    /** Tutti i quadri finti del giocatore: minimap + pannello. In mount servono INSIEME nello stesso
+     *  pacchetto MOUNT (i passeggeri si sovrascrivono: montarli separati "smonterebbe" l'altro). */
+    private int[] allFrameIds(UUID uuid) {
+        int[] a = frameIds.get(uuid);
+        int[] b = panelFrameIds.get(uuid);
+        if (a == null) return b == null ? new int[0] : b;
+        if (b == null) return a;
+        int[] all = new int[a.length + b.length];
+        System.arraycopy(a, 0, all, 0, a.length);
+        System.arraycopy(b, 0, all, a.length, b.length);
+        return all;
+    }
+
+    /** Spawna i quadri finti del pannello, co-locati alle stesse ancore/facing della minimap (stesso base). */
+    private int[] spawnPanelFrames(ProtocolManager pm, Player viewer, MapView panelView, boolean detach,
+                                   Location base) throws Exception {
+        Object nmsItem = mapNmsItem(panelView);
+        int count = detach ? DETACH_ANCHORS.length : FACINGS.length;
+        int[] ids = new int[count];
+        for (int i = 0; i < count; i++) {
+            ids[i] = FakeEntityIds.next();
+            Location loc = detach
+                    ? base.clone().add(DETACH_ANCHORS[i].x(), DETACH_ANCHORS[i].y(), DETACH_ANCHORS[i].z())
+                    : base;
+            spawnFrame(pm, viewer, ids[i], loc, nmsItem, detach ? DETACH_ANCHORS[i].facing() : FACINGS[i]);
+        }
+        return ids;
+    }
+
+    /** Risolve le righe del pannello (PlaceholderAPI), le cuoce nei pixel e le spinge alla mappa-pannello. */
+    private void pushPanelContent(Player viewer, MapView panelView) {
+        java.util.List<String> lines = plugin.getConfig().getStringList("map.minimap.info-panel.lines");
+        java.util.List<String> resolved = new java.util.ArrayList<>(lines.size());
+        for (String l : lines) resolved.add(Papi.resolve(viewer, l));
+        byte text = InfoPanelRenderer.colorByte(
+                plugin.getConfig().getString("map.minimap.info-panel.text-color", "#FFFFFF"), java.awt.Color.WHITE);
+        String bgStr = plugin.getConfig().getString("map.minimap.info-panel.background-color", "transparent");
+        boolean transparent = InfoPanelRenderer.isTransparentBg(bgStr);
+        byte bg = transparent ? 0 : InfoPanelRenderer.colorByte(bgStr, new java.awt.Color(0x0E, 0x0E, 0x16));
+        String shadowStr = plugin.getConfig().getString("map.minimap.info-panel.shadow-color", "#000000");
+        boolean drawShadow = !InfoPanelRenderer.isShadowOff(shadowStr);
+        byte shadowColor = drawShadow ? InfoPanelRenderer.colorByte(shadowStr, java.awt.Color.BLACK) : 0;
+        byte[] palette = InfoPanelRenderer.render(resolved, text, bg, transparent, drawShadow, shadowColor);
+        pushPalette(viewer, panelView, palette, (byte) 0);
+    }
+
     /**
      * Fonde l'ID del quadro fittizio in OGNI pacchetto MOUNT reale in uscita per un giocatore con la
      * minimap attiva: senza, un vero cambio di passeggeri (es. monta un cavallo) manderebbe un MOUNT
@@ -341,8 +397,8 @@ public final class MinimapManager {
             public void onPacketSending(PacketEvent event) {
                 Player viewer = event.getPlayer();
                 if (detachFrames()) return; // detach: i quadri NON sono passeggeri, non fonderli nei MOUNT reali
-                int[] ours = frameIds.get(viewer.getUniqueId());
-                if (ours == null) return;
+                int[] ours = allFrameIds(viewer.getUniqueId()); // minimap + pannello
+                if (ours.length == 0) return;
                 PacketContainer packet = event.getPacket();
                 if (packet.getIntegers().read(0) != viewer.getEntityId()) return; // veicolo != questo giocatore
                 int[] current = packet.getIntegerArrays().read(0);
@@ -390,9 +446,20 @@ public final class MinimapManager {
                 spawnFrame(pm, viewer, ids[i], loc, nmsItem, detach ? DETACH_ANCHORS[i].facing() : FACINGS[i]);
             }
             frameIds.put(viewer.getUniqueId(), ids);
-            if (detach) lastDetachBase.put(viewer.getUniqueId(), base.clone()); else sendMount(viewer, ids);
+            // Pannello info sotto la minimap: seconda mappa finta, quadri co-locati alle stesse ancore.
+            MapView panelView = null;
+            if (panelEnabled()) {
+                panelView = maps.createPanelView(viewer);
+                panelViews.put(viewer.getUniqueId(), panelView);
+                panelFrameIds.put(viewer.getUniqueId(), spawnPanelFrames(pm, viewer, panelView, detach, base));
+            }
+            // In mount i passeggeri vanno mandati INSIEME (minimap + pannello), altrimenti l'ultimo MOUNT
+            // smonterebbe l'altro. In detach non c'e' mount: le ancore sono fisse (riposizionate dai task).
+            if (detach) lastDetachBase.put(viewer.getUniqueId(), base.clone());
+            else sendMount(viewer, allFrameIds(viewer.getUniqueId()));
             long tSpawn = System.nanoTime();
             pushMapContent(viewer, view, blocksPerPixel);
+            if (panelView != null) pushPanelContent(viewer, panelView);
             long tPush = System.nanoTime();
 
             long interval = Math.max(1, plugin.getConfig().getLong("map.render-interval-ticks", 1));
@@ -469,9 +536,11 @@ public final class MinimapManager {
         if (detachFrames()) { // detach: riposiziona la corona, non montare
             Location base = anchorBase(viewer);
             positionFrames(viewer, ids, base);
+            int[] pids = panelFrameIds.get(viewer.getUniqueId());
+            if (pids != null) positionFrames(viewer, pids, base);
             lastDetachBase.put(viewer.getUniqueId(), base.clone());
         } else {
-            sendMount(viewer, ids);
+            sendMount(viewer, allFrameIds(viewer.getUniqueId()));
         }
     }
 
@@ -491,7 +560,7 @@ public final class MinimapManager {
             ProtocolManager pm = ProtocolLibrary.getProtocolManager();
             PacketContainer destroy = pm.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
             List<Integer> list = new java.util.ArrayList<>();
-            for (int id : ids) list.add(id);
+            for (int id : allFrameIds(uuid)) list.add(id); // minimap + pannello
             destroy.getIntLists().write(0, list);
             pm.sendServerPacket(viewer, destroy);
 
@@ -503,8 +572,20 @@ public final class MinimapManager {
                 Location loc = detach ? base.clone().add(an.x(), an.y(), an.z()) : base;
                 spawnFrame(pm, viewer, ids[i], loc, nmsItem, detach ? an.facing() : FACINGS[i]);
             }
-            if (detach) lastDetachBase.put(uuid, base.clone()); else sendMount(viewer, ids);
+            // Ri-spawna anche i quadri del pannello, con gli STESSI id (il client li aveva scaricati).
+            MapView panelView = panelViews.get(uuid);
+            int[] pids = panelFrameIds.get(uuid);
+            if (panelView != null && pids != null) {
+                Object panelItem = mapNmsItem(panelView);
+                for (int i = 0; i < pids.length; i++) {
+                    Anchor an = DETACH_ANCHORS[i % DETACH_ANCHORS.length];
+                    Location loc = detach ? base.clone().add(an.x(), an.y(), an.z()) : base;
+                    spawnFrame(pm, viewer, pids[i], loc, panelItem, detach ? an.facing() : FACINGS[i]);
+                }
+            }
+            if (detach) lastDetachBase.put(uuid, base.clone()); else sendMount(viewer, allFrameIds(uuid));
             pushMapContent(viewer, view, power.getResolvedZoomFactor(uuid));
+            if (panelView != null) pushPanelContent(viewer, panelView);
             lastRemountPos.put(uuid, base.clone());
         } catch (Exception e) {
             plugin.getLogger().warning("[Minimap] Errore resend dopo teleport: " + e.getMessage());
@@ -541,13 +622,15 @@ public final class MinimapManager {
         Location cur = viewer.getLocation();
         Location prev = lastRemountPos.get(uuid);
         if (prev == null || prev.getWorld() != cur.getWorld() || prev.distanceSquared(cur) > 0.04) {
-            sendMount(viewer, ids);
+            sendMount(viewer, allFrameIds(uuid)); // minimap + pannello insieme
             lastRemountPos.put(uuid, cur.clone());
         }
         // Zoom LIVE (blocchi/pixel) letto a ogni refresh: la minimap segue SEMPRE lo zoom `/f map` del
         // giocatore (default config o override `/mf admin setmap`), come la mappa-item e la mappa in chat,
         // senza dover ricreare i quadri quando lo zoom cambia.
         pushMapContent(viewer, view, power.getResolvedZoomFactor(uuid));
+        MapView panelView = panelViews.get(uuid);
+        if (panelView != null) pushPanelContent(viewer, panelView);
     }
 
     /** Come {@link #refreshContent} ma per la modalita' DETACH: gira ogni tick, riposiziona la corona di
@@ -565,6 +648,8 @@ public final class MinimapManager {
         Location prev = lastDetachBase.get(uuid);
         if (prev == null || prev.getWorld() != base.getWorld() || prev.distanceSquared(base) > 1.0e-6) {
             positionFrames(viewer, ids, base);
+            int[] pids = panelFrameIds.get(uuid);
+            if (pids != null) positionFrames(viewer, pids, base);
             lastDetachBase.put(uuid, base.clone());
         }
         // Refresh ADATTIVO del contenuto: in volo veloce (elytra/caduta, >1 blocco/tick) il giocatore
@@ -578,6 +663,8 @@ public final class MinimapManager {
             // Zoom LIVE letto a ogni refresh: la minimap segue sempre lo zoom `/f map` del giocatore
             // (default o `/mf admin setmap`), in pari passo con la mappa-item e la mappa in chat.
             pushMapContent(viewer, view, power.getResolvedZoomFactor(uuid));
+            MapView panelView = panelViews.get(uuid);
+            if (panelView != null) pushPanelContent(viewer, panelView);
         }
     }
 
@@ -587,7 +674,12 @@ public final class MinimapManager {
      */
     private void pushMapContent(Player viewer, MapView view, double blocksPerPixel) {
         byte[] palette = maps.renderPaletteWithHeader(viewer, blocksPerPixel);
+        pushPalette(viewer, view, palette, (byte) cosmeticScaleValue(blocksPerPixel));
+    }
 
+    /** Spinge un array di 128x128 byte-palette gia' pronto a una MapView via pacchetto MAP costruito a mano.
+     *  Condiviso da minimap ({@link #pushMapContent}) e pannello info ({@link #pushPanelContent}). */
+    private void pushPalette(Player viewer, MapView view, byte[] palette, byte scale) {
         MapIdBox idBox = new MapIdBox();
         idBox.id = view.getId();
         MapPatchBox patchBox = new MapPatchBox();
@@ -598,7 +690,7 @@ public final class MinimapManager {
         PacketContainer packet = pm.createPacket(PacketType.Play.Server.MAP);
         StructureModifier<Object> mod = packet.getModifier();
         mod.write(0, MAP_ID_WRAPPER.unwrap(idBox));
-        mod.write(1, (byte) cosmeticScaleValue(blocksPerPixel));
+        mod.write(1, scale);
         mod.write(2, false);
         mod.write(3, Optional.empty());
         mod.write(4, Optional.of(MAP_PATCH_WRAPPER.unwrap(patchBox)));
@@ -635,18 +727,22 @@ public final class MinimapManager {
     /** Distrugge (se presente) il display fittizio del giocatore e ferma il suo task di refresh. */
     public void deactivate(Player viewer) {
         if (!available) return;
-        views.remove(viewer.getUniqueId());
-        lastRemountPos.remove(viewer.getUniqueId());
-        lastDetachBase.remove(viewer.getUniqueId());
-        BukkitTask task = tasks.remove(viewer.getUniqueId());
+        UUID uuid = viewer.getUniqueId();
+        views.remove(uuid);
+        panelViews.remove(uuid);
+        lastRemountPos.remove(uuid);
+        lastDetachBase.remove(uuid);
+        BukkitTask task = tasks.remove(uuid);
         if (task != null) task.cancel();
-        int[] ids = frameIds.remove(viewer.getUniqueId());
-        if (ids == null) return;
+        int[] all = allFrameIds(uuid); // minimap + pannello, PRIMA di rimuoverli dalle mappe
+        frameIds.remove(uuid);
+        panelFrameIds.remove(uuid);
+        if (all.length == 0) return;
         try {
             ProtocolManager pm = ProtocolLibrary.getProtocolManager();
             PacketContainer destroy = pm.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
             List<Integer> list = new java.util.ArrayList<>();
-            for (int id : ids) list.add(id);
+            for (int id : all) list.add(id);
             destroy.getIntLists().write(0, list);
             pm.sendServerPacket(viewer, destroy);
         } catch (Exception e) {

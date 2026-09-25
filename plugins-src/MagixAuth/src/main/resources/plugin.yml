@@ -6,7 +6,7 @@ author: teolo
 description: Registrazione e login per il server non premium, sullo stesso account del sito
 # MagixWeb non serve per funzionare, ma se c'e' deve caricarsi prima: il gate OTP
 # passa da qui, e i due non devono congelare lo stesso giocatore.
-softdepend: [MagixPack, LuckPerms, MagixWeb, MagixGuard]
+softdepend: [MagixPack, LuckPerms, MagixWeb, MagixGuard, MagixLanguage]
 
 commands:
   magixauth:

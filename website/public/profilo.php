@@ -160,9 +160,9 @@ require __DIR__ . '/../includes/header.php';
   <?php /* Il personaggio si gira trascinandolo: ci pensa assets/js/profilo-skin.js.
            L'immagine ferma resta come ripiego se il 3D non parte. */ ?>
   <div class="profilo-avatar" id="avatar3d"
-       data-skin="<?= h('https://minotar.net/skin/' . rawurlencode(str_replace('-', '', $me['mc_uuid']))) ?>">
+       data-skin="<?= h(mc_skin_url($me['mc_uuid'], $me['premium_uuid'] ?? null)) ?>">
     <canvas hidden></canvas>
-    <img class="profilo-skin" src="<?= h(mc_body_url($me['mc_uuid'], 160)) ?>" alt=""
+    <img class="profilo-skin" src="<?= h(mc_body_url($me['mc_uuid'], 160, $me['premium_uuid'] ?? null)) ?>" alt=""
          width="90" height="200" loading="lazy">
     <span class="profilo-avatar-nota">Trascina per girarlo</span>
   </div>

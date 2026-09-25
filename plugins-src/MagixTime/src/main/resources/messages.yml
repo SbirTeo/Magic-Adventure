@@ -9,8 +9,6 @@
 #   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
 #   errore &#FF6B6B  |  avviso &#FFD166
 
-prefix: "&#C046E8&lMagixTime &8» &r"
-
 # ---------------------------------------------------------------- generici
 no-permission: "&cNon hai il permesso per questo comando."
 players-only: "&cQuesto comando va eseguito da un giocatore."
@@ -53,6 +51,17 @@ info-gamerule-warning: "&cAttenzione: doDaylightCycle non si e' spenta. Allineam
 #   - staff: true su una sezione = la vede solo chi ha magixtime.admin.
 help:
   title: "MagixTime"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
+  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
   sections:
     orologio:
       title: "Ora e stagione"

@@ -1,0 +1,63 @@
+# MagixLanguage - tutti i testi mostrati ai giocatori.
+# Codici colore: & classici (&a, &e, &c...) ed esadecimali &#RRGGBB.
+# \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
+# Placeholder disponibili indicati riga per riga.
+#
+# PALETTE MAGIX (uguale in tutti i plugin del server, vedi plugins-src/STILE-MAGIX.md):
+#   viola  &#C046E8  il MAGIC del logo: nome del plugin, titoli, staff
+#   verde  &#A8DC2C  l'ADVENTURE del logo: comandi, conferme, cose cliccabili
+#   grigio &#9A8CA8  testo di servizio   |  tenue &#5A5068 cornici e separatori
+#   errore &#FF6B6B  |  avviso &#FFD166
+
+# ---------------------------------------------------------------- generici
+no-permission: "&cNon hai il permesso per questo comando."
+players-only: "&cQuesto comando va eseguito da un giocatore."
+unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/language help&c."
+player-not-found: "&cGiocatore &e{player}&c non trovato (deve essere online almeno una volta)."
+reloaded: "&aConfigurazione ricaricata."
+
+# {lang} lingua attuale - {source} auto (da GeoIP) o manuale - {country} paese rilevato (- se nessuno)
+info:
+  - "&8&m                                                  "
+  - "&#C046E8&lMagixLanguage &7v{version}"
+  - "&7Lingua attuale: &f{lang} &8({source})"
+  - "&7Paese rilevato: &f{country}"
+  - "&7Cambiarla: &e/language set <it|en|es|de>"
+  - "&8&m                                                  "
+
+# {list} elenco delle lingue supportate, separate da virgola
+set-invalid: "&cLingua sconosciuta. Lingue supportate: &e{list}&c."
+set-self: "&aLingua impostata su &e{lang}&a."
+set-other: "&aLingua di &e{player}&a impostata su &e{lang}&a."
+
+# {plugins} plugin scansionati - {translated} chiavi tradotte adesso - {reused} gia' in cache - {failed} fallite (restano in italiano)
+sync-done: "&aSincronizzazione completata: &e{plugins}&a plugin, &e{translated}&a chiavi tradotte, &e{reused}&a gia' in cache, &e{failed}&a fallite."
+sync-running: "&eSincronizzazione in corso: puo' volerci un po' se ci sono molte chiavi nuove da tradurre..."
+sync-running-force: "&eSincronizzazione forzata in corso: ignoro il tentativo di traduzione gia' fatto oggi, riprovo subito su MyMemory..."
+
+# /language status: stato dell'ultima sincronizzazione (avvio o /language sync), plugin per plugin.
+status-none: "&eNessuna sincronizzazione ancora eseguita in questa sessione. Aspetta l'avvio automatico o lancia &e/language sync&e."
+status-header: "&#C046E8&lMagixLanguage &7- stato traduzioni (ultima sincronizzazione)"
+# {plugin} nome del plugin - {total} chiavi in italiano - {translated} tradotte in questo giro - {reused} gia' in cache dai giri precedenti - {missing} ancora in italiano (in almeno una lingua)
+status-line: "&7{plugin} &8(&f{total}&8 chiavi): &a{reused}&7 in cache, &e{translated}&7 tradotte ora, &c{missing}&7 mancanti"
+# {plugins} plugin scansionati - {translated}/{reused}/{failed} come sopra, sommati su tutti i plugin
+status-footer: "&7Totale: &a{plugins}&7 plugin, &e{translated}&7 tradotte ora, &a{reused}&7 in cache, &c{failed}&7 mancanti."
+
+help:
+  title: "MagixLanguage"
+  sections:
+    generale:
+      title: "Lingua"
+      staff: false
+      entries:
+        - "/language :: mostra la lingua che stai usando adesso"
+        - "/language set <it|en|es|de> :: cambia la tua lingua"
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/language set <it|en|es|de> <giocatore> :: cambia la lingua di un altro giocatore"
+        - "/language sync :: ricopia i messaggi degli altri plugin da tradurre"
+        - "/language sync force :: come sopra, ma ignora il tentativo gia' fatto oggi (un colpo vero anche se e' gia' scattato il limite di un tentativo al giorno)"
+        - "/language status :: quante chiavi sono tradotte/mancanti, plugin per plugin"
+        - "/language reload :: ricarica config.yml e messages.yml"

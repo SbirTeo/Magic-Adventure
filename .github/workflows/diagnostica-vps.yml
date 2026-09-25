@@ -135,17 +135,31 @@ jobs:
           echo "=== CARTELLA DATI $PLUGIN ==="
           ls -la "$BASE/plugins/$PLUGIN" 2>/dev/null || echo "(cartella assente)"
 
+          # Il valore di una chiave "sensibile" (password, webhook, token...) non esce mai nel
+          # log di questa Action, leggibile da chiunque abbia accesso al repo: si vede che la
+          # chiave c'e' ed e' valorizzata, mai il segreto vero. Il NOME della chiave resta
+          # visibile apposta: e' quello che serve per capire cosa e' configurato.
+          oscura() {
+            sed -E 's/^([[:space:]]*[A-Za-z0-9_-]*(password|secret|token|webhook|api[_-]?key)[A-Za-z0-9_-]*:)[[:space:]]*.+$/\1 "[nascosto]"/I'
+          }
+
           echo
           echo "=== config.yml ATTIVO ($PLUGIN) ==="
-          sed -e 's/[[:space:]]*$//' "$BASE/plugins/$PLUGIN/config.yml" 2>/dev/null | grep -v '^[[:space:]]*#' | grep -v '^[[:space:]]*$' || echo "(nessun config.yml)"
+          if [ -f "$BASE/plugins/$PLUGIN/config.yml" ]; then
+            sed -e 's/[[:space:]]*$//' "$BASE/plugins/$PLUGIN/config.yml" | grep -v '^[[:space:]]*#' | grep -v '^[[:space:]]*$' | oscura
+          else
+            echo "(nessun config.yml)"
+          fi
 
           if [ -n "$FILE" ]; then
             echo
             echo "=== $FILE ($PLUGIN) ==="
             if [ -d "$BASE/plugins/$PLUGIN/$FILE" ]; then
               ls -la "$BASE/plugins/$PLUGIN/$FILE" 2>/dev/null || echo "(cartella assente)"
+            elif [ -f "$BASE/plugins/$PLUGIN/$FILE" ]; then
+              tail -n 400 "$BASE/plugins/$PLUGIN/$FILE" | oscura
             else
-              tail -n 400 "$BASE/plugins/$PLUGIN/$FILE" 2>/dev/null || echo "(file assente)"
+              echo "(file assente)"
             fi
           fi
 

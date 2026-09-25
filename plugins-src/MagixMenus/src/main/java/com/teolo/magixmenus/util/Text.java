@@ -1,7 +1,9 @@
 package com.teolo.magixmenus.util;
 
+import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -103,6 +105,46 @@ public final class Text {
             }
         }
         return false;
+    }
+
+    /**
+     * Il testo tradotto per il giocatore (se MagixLanguage lo conosce), altrimenti quello
+     * italiano invariato. Va chiamato PRIMA di sostituire variabili/placeholder (vedi
+     * {@link #apply}/{@link #raw}): la ricerca avviene sul testo con {@code %placeholder%}
+     * ancora intatti, esattamente come li ha letti MagixLanguage scandendo il file del menu.
+     *
+     * <p>Usarlo solo per testo che un giocatore LEGGE (titolo, lore, un messaggio scritto dentro
+     * un'azione): i campi tecnici (materiale, colore, testa, componenti, incantesimi...) non
+     * passano mai da qui, altrimenti si rischierebbe di provare a "tradurre" un nome di materiale.
+     */
+    public static String translated(Player p, String italianText) {
+        if (p == null || italianText == null || italianText.isBlank()) {
+            return italianText;
+        }
+        MagixLanguageAPI api = magixLanguage();
+        if (api == null) {
+            return italianText;
+        }
+        try {
+            String t = api.translatePhrase("MagixMenus", p, italianText);
+            return t != null ? t : italianText;
+        } catch (Throwable ignored) {
+            return italianText;
+        }
+    }
+
+    /** Il servizio di MagixLanguage se il plugin e' installato e attivo, altrimenti null: mai un'eccezione. */
+    private static MagixLanguageAPI magixLanguage() {
+        if (Bukkit.getPluginManager().getPlugin("MagixLanguage") == null) {
+            return null;
+        }
+        try {
+            RegisteredServiceProvider<MagixLanguageAPI> rsp =
+                    Bukkit.getServicesManager().getRegistration(MagixLanguageAPI.class);
+            return rsp != null ? rsp.getProvider() : null;
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     /** Numero letto da un testo gia' risolto: "12", "12.5", "1.234" (le virgole si ignorano). */

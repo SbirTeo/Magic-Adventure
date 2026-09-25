@@ -88,7 +88,7 @@ if (is_logged_in()) {
 }
 
 $stmt = db()->prepare("
-    SELECT p.*, u.mc_username, u.mc_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . "
+    SELECT p.*, u.mc_username, u.mc_uuid, u.premium_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . "
     FROM forum_posts p JOIN forum_topics t ON t.id = p.topic_id
     JOIN users u ON u.id = p.user_id" . rank_join_sql() . "
     WHERE p.topic_id = ?

@@ -233,7 +233,7 @@ public final class ConfigAlign {
             if (!result.removed.isEmpty()) {
                 plugin.getLogger().info(fileName + ": tolte le righe morte, che il codice non legge"
                         + " piu' (" + String.join(", ", result.removed) + "). La copia di prima e'"
-                        + " nella cartella del plugin, col nome che finisce in .bak-<data>.");
+                        + " nella cartella .bak/ del server, col nome che finisce in .bak-<data>.");
             }
             if (!result.unknown.isEmpty()) {
                 plugin.getLogger().info(fileName + ": sul server ci sono chiavi che il codice non legge"
@@ -253,16 +253,21 @@ public final class ConfigAlign {
     private static final int COPIES_KEPT = 10;
 
     /**
-     * Copia il file accanto a se stesso, col timestamp nel nome ({@code config.yml.bak-20260915-0412}).
-     * Si fa prima di ogni scrittura: se l'allineamento sbaglia qualcosa — ed e' gia' successo — la
-     * versione buona e' li' a un rename di distanza, senza dover cercare backup del server.
+     * Copia il file in {@code .bak/<Plugin>/<stesso percorso>}, fuori dalla cartella {@code plugins/}
+     * sul server — la stessa struttura che {@code pulizia-bak-vps.yml} gia' usa per i .bak lasciati
+     * in giro dalle versioni precedenti di questa classe, cosi' la copia nasce gia' al suo posto e
+     * quel passaggio manuale serve solo come rete di sicurezza. Si fa prima di ogni scrittura: se
+     * l'allineamento sbaglia qualcosa — ed e' gia' successo — la versione buona e' li' a un rename
+     * di distanza, senza dover cercare backup del server.
      */
     private static void backup(JavaPlugin plugin, File file) {
         try {
             String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
-            File copy = new File(file.getParentFile(), file.getName() + ".bak-" + stamp);
+            File bakDir = bakDir(plugin, file);
+            Files.createDirectories(bakDir.toPath());
+            File copy = new File(bakDir, file.getName() + ".bak-" + stamp);
             Files.copy(file.toPath(), copy.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            dropOldCopies(file);
+            dropOldCopies(bakDir, file.getName());
         } catch (Exception e) {
             plugin.getLogger().warning("Non sono riuscito a fare la copia di " + file.getName()
                     + " (" + e.getClass().getSimpleName() + "): il file NON viene toccato.");
@@ -270,10 +275,30 @@ public final class ConfigAlign {
         }
     }
 
+    /**
+     * La cartella dove va la copia di scorta di {@code file}: la cartella {@code plugins/} viene
+     * sostituita con {@code .bak/}, il resto del percorso resta lo stesso — es.
+     * {@code plugins/MagixFactions/menus/homes.yml} -> {@code .bak/MagixFactions/menus/}. Se la
+     * struttura non e' quella attesa (es. sviluppo, fuori da un server vero) la copia resta accanto
+     * al file: meglio quello che niente.
+     */
+    private static File bakDir(JavaPlugin plugin, File file) {
+        // getAbsoluteFile() PRIMA di risalire i genitori: su un server vero plugin.getDataFolder()
+        // e' quasi sempre un percorso RELATIVO ("plugins/<Plugin>", costruito da Bukkit a partire
+        // da "plugins"), e File.getParentFile() su un singolo segmento relativo come "plugins" da'
+        // null - si finiva quindi sempre nel ramo di ripiego (copia accanto al file) anche su un
+        // server vero. Con l'assoluto la catena dei genitori e' sempre completa.
+        File dataFolder = plugin.getDataFolder().getAbsoluteFile();
+        File pluginsDir = dataFolder.getParentFile();
+        File serverRoot = pluginsDir == null ? null : pluginsDir.getParentFile();
+        if (serverRoot == null) return file.getParentFile();
+        String relative = pluginsDir.toPath().relativize(file.getAbsoluteFile().getParentFile().toPath()).toString();
+        return relative.isEmpty() ? new File(serverRoot, ".bak") : new File(new File(serverRoot, ".bak"), relative);
+    }
+
     /** Tiene solo le ultime {@link #COPIES_KEPT} copie di quel file. */
-    private static void dropOldCopies(File file) {
-        File[] copies = file.getParentFile().listFiles(
-                (dir, found) -> found.startsWith(file.getName() + ".bak-"));
+    private static void dropOldCopies(File bakDir, String fileName) {
+        File[] copies = bakDir.listFiles((dir, found) -> found.startsWith(fileName + ".bak-"));
         if (copies == null || copies.length <= COPIES_KEPT) return;
         java.util.Arrays.sort(copies, java.util.Comparator.comparing(File::getName));
         for (int i = 0; i < copies.length - COPIES_KEPT; i++) copies[i].delete();

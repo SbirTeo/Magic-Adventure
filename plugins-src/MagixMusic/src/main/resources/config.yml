@@ -1,0 +1,52 @@
+# ============================================================
+#  MagixMusic - configurazione
+#  Radio musicale sincronizzata del mondo spawn: un "jukebox" invisibile che suona a ciclo i dischi di
+#  Minecraft a tutti i giocatori del mondo, sullo STESSO brano nello STESSO momento (li sincronizza il
+#  server). Il suono e' NON posizionale: si sente uguale in TUTTO il mondo, allo stesso volume, e segue
+#  il giocatore mentre cammina (niente raggio, niente calo con la distanza). Negli altri mondi non si
+#  sente. Ogni giocatore la regola o la spegne per se' con /radio (preferenza personale salvata).
+#
+#  LIMITE di Minecraft: un suono parte sempre dall'inizio, non si puo' "riprendere" a meta'. Quindi
+#  chi entra a brano gia' iniziato lo sente dall'inizio, non dal secondo in corso; al primo cambio
+#  di brano si riallinea con tutti.
+#
+#  Dopo le modifiche: /radio reload  (oppure riavvia il server)
+# ============================================================
+
+enabled: true            # interruttore GENERALE della radio (false = spenta per tutti; /radio lo dice)
+world: world             # nome del MONDO in cui si sente; si sente in TUTTO questo mondo, allo stesso volume. Negli altri mondi resta muta
+sound-category: records  # canale audio del suono: records (come un jukebox) oppure music (slider "Musica" del gioco)
+default-volume: 70       # volume di partenza (0-100) per chi non l'ha ancora regolato con /radio
+volume-step: 10          # di quanti punti (su 0-100) sale/scende il volume a ogni /radio up|down
+pitch: 1.0               # intonazione del suono (1.0 = normale); di norma si lascia com'e'
+play-on-join: true       # true = chi entra nel mondo sente subito il brano in corso (dall'inizio, non sincronizzato: vedi il limite qui sopra)
+
+# Scaletta dei brani riprodotti a ciclo, in ordine. Ogni voce ha due campi: sound = id del suono (i
+# dischi vanilla sono minecraft:music_disc.<nome>), seconds = durata del brano in secondi, che serve
+# al server per far partire il brano successivo al momento giusto. Il ciclo totale = somma dei seconds.
+# Aggiungi, togli o riordina come vuoi; le durate qui sotto sono quelle dei dischi vanilla.
+playlist:
+  - sound: minecraft:music_disc.cat
+    seconds: 185
+  - sound: minecraft:music_disc.mellohi
+    seconds: 96
+  - sound: minecraft:music_disc.stal
+    seconds: 150
+  - sound: minecraft:music_disc.mall
+    seconds: 197
+  - sound: minecraft:music_disc.far
+    seconds: 174
+  - sound: minecraft:music_disc.chirp
+    seconds: 185
+  - sound: minecraft:music_disc.strad
+    seconds: 188
+  - sound: minecraft:music_disc.blocks
+    seconds: 345
+  - sound: minecraft:music_disc.wait
+    seconds: 238
+  - sound: minecraft:music_disc.pigstep
+    seconds: 148
+  - sound: minecraft:music_disc.otherside
+    seconds: 195
+  - sound: minecraft:music_disc.13
+    seconds: 178

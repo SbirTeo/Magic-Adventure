@@ -4,7 +4,7 @@ main: com.teolo.magixtime.MagixTime
 api-version: '26.1'
 author: teolo
 description: Allinea l'ora e la stagione di Minecraft al mondo reale, con piogge e nevicate che cambiano col calendario.
-softdepend: [PlaceholderAPI]
+softdepend: [PlaceholderAPI, MagixLanguage]
 
 commands:
   magixtime:
