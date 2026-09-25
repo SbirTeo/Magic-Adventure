@@ -1,0 +1,70 @@
+name: Azzera spawnRadius nel mondo spawn
+
+# UNA TANTUM: il mondo "spawn" (hub) ha il suo spawn-location registrato in Multiverse a
+# (0, 100, 0), ma il gamerule vanilla spawnRadius (default 10) fa atterrare chi entra per la
+# prima volta (quindi anche chi si registra con MagixAuth, che riporta il giocatore esattamente
+# li') su una colonna A CASO entro 10 blocchi da quel punto, sul blocco piu' alto di quella
+# colonna. Con un hub a piu' piani questo significa finire a volte su un tetto/piano superiore
+# invece che sul pavimento vero (visto in log: ShadowMains il 25/09 pomeriggio, "riporto
+# ShadowMains a spawn 10/117/5" invece di Y=100, con lamentela in chat "mi ha portato subito
+# sopra"). Non e' un bug di MagixAuth: il plugin riporta esattamente il punto che Bukkit/
+# Multiverse avevano assegnato.
+#
+# Comando FISSO, non parametrizzabile da chi lancia il workflow (nessun input libero): manda
+# "/execute in minecraft:spawn run gamerule spawnRadius 0" in console, cosi' chi entra nel
+# mondo spawn atterra sempre esattamente in (0,100,0), senza randomizzazione. Poi rilegge il
+# valore con "/execute in minecraft:spawn run gamerule spawnRadius" per confermare in log che
+# sia stato applicato. Non tocca nessun file, e' reversibile con lo stesso comando (valore
+# diverso da 0) in qualunque momento.
+#
+# Stessi secret VPS_HOST / VPS_USER / VPS_SSH_KEY degli altri workflow.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: comando-console-vps
+  cancel-in-progress: false
+
+jobs:
+  azzera:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Manda il comando fisso e verifica il risultato
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -e
+          BASE=/home/ubuntu/magicadventure
+          LOG="$BASE/logs/latest.log"
+          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            echo "::error::Server non in esecuzione (screen mc non attivo)."
+            exit 1
+          fi
+          screen -S mc -p 0 -X stuff "$(printf '/execute in minecraft:spawn run gamerule spawnRadius 0\r')"
+          sleep 2
+          screen -S mc -p 0 -X stuff "$(printf '/execute in minecraft:spawn run gamerule spawnRadius\r')"
+          sleep 2
+          echo "=== Coda del log (conferma del valore applicato) ==="
+          tail -n 15 "$LOG"
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
