@@ -112,10 +112,10 @@ final class PlayerBoard {
 
     /**
      * Copia sulla nostra scoreboard il team a cui il giocatore appartiene su quella CONDIVISA (nome,
-     * colore, prefisso, suffisso) — tipicamente quello che gli colora il nome. Ricontrollato a ogni
-     * refresh: se cambia team (o esce da tutti) lo segue, se l'aspetto del team cambia lo aggiorna.
-     * Non copia le altre impostazioni del team (fuoco amico, visibilita' del nametag...): qui conta
-     * solo come il nome appare.
+     * colore, prefisso, suffisso, visibilita' del nametag) — tipicamente quello che gli colora il
+     * nome, o glielo nasconde del tutto. Ricontrollato a ogni refresh: se cambia team (o esce da
+     * tutti) lo segue, se l'aspetto del team cambia lo aggiorna. Non copia le altre impostazioni del
+     * team (fuoco amico, regola di collisione...): qui conta solo come il nome appare.
      */
     private void mirrorNametagTeam(Player player, Scoreboard main) {
         Team source = main.getEntryTeam(player.getName());
@@ -133,6 +133,9 @@ final class PlayerBoard {
         if (!Objects.equals(source.prefix(), local.prefix())) local.prefix(source.prefix());
         if (!Objects.equals(source.suffix(), local.suffix())) local.suffix(source.suffix());
         if (source.getColor() != local.getColor()) local.setColor(source.getColor());
+        if (source.getNameTagVisibility() != local.getNameTagVisibility()) {
+            local.setNameTagVisibility(source.getNameTagVisibility());
+        }
         if (!local.hasEntry(player.getName())) local.addEntry(player.getName());
     }
 
