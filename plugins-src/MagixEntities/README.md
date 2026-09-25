@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.9.15** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.16** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -184,9 +184,9 @@ un cavallo: il modello del giocatore piega le gambe da solo ogni volta che l'ent
 dell'entita'.
 
 Se l'altezza del sedile non torna su questa versione del gioco, si aggiusta `player.seat-y-offset`
-in `config.yml` (nessuna modifica al codice serve). **Limite noto**: sulle statue con skin o nome
-a specchio (`mirror`) le copie personalizzate non hanno un proprio sedile e restano in piedi anche
-con posa `sitting` — l'entita' vera, non a specchio, si siede regolarmente.
+in `config.yml` (nessuna modifica al codice serve). Vale anche per le statue con skin o nome a
+specchio (`mirror`): li' ogni copia personale ha il **suo** sedile, non persistente, che sparisce
+insieme alla copia. Se un altro plugin rifiuta il montaggio, la console lo dice una volta per entita'.
 
 ## Scala (`scale`)
 

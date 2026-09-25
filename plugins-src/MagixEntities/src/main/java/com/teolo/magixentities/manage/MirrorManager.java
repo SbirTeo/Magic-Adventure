@@ -36,6 +36,8 @@ public final class MirrorManager {
     private final NpcManager npcs;
     /** id entita' -> (uuid giocatore -> uuid copia). */
     private final Map<String, Map<UUID, UUID>> clones = new HashMap<>();
+    /** uuid copia -> uuid del suo sedile invisibile (solo per le copie con posa "sitting"). */
+    private final Map<UUID, UUID> seats = new HashMap<>();
     private BukkitTask haloTask;
 
     public MirrorManager(JavaPlugin plugin, NpcManager npcs) {
@@ -98,9 +100,10 @@ public final class MirrorManager {
                         && owner.getWorld().equals(loc.getWorld())
                         && owner.getLocation().distanceSquared(loc) <= maxSq;
                 if (!near) {
-                    if (clone != null) clone.remove();
+                    removeClone(entry.getValue());
                     it.remove();
                 } else if (clone == null || clone.isDead()) {
+                    removeClone(entry.getValue()); // resta solo il sedile da togliere
                     it.remove(); // ricreata sotto
                 }
             }
@@ -121,6 +124,10 @@ public final class MirrorManager {
         try {
             Entity clone = loc.getWorld().spawn(loc, cls, pre, CreatureSpawnEvent.SpawnReason.CUSTOM);
             owner.showEntity(plugin, clone);
+            // Il sedile resta visibile a tutti (e' comunque invisibile): il client del proprietario
+            // deve conoscere il veicolo, altrimenti non sa che la copia e' seduta.
+            Entity seat = npcs.mountCloneSeat(d, clone);
+            if (seat != null) seats.put(clone.getUniqueId(), seat.getUniqueId());
             return clone;
         } catch (IllegalArgumentException ex) {
             plugin.getLogger().warning("Copia mirror di '" + d.name + "' non creata: " + ex.getMessage());
@@ -132,31 +139,33 @@ public final class MirrorManager {
     public void clear(NpcDef d) {
         Map<UUID, UUID> owners = clones.remove(d.id);
         if (owners == null) return;
-        for (UUID cloneId : owners.values()) {
-            Entity e = Bukkit.getEntity(cloneId);
-            if (e != null) e.remove();
-        }
+        for (UUID cloneId : owners.values()) removeClone(cloneId);
     }
 
     /** Elimina la copia di un giocatore (uscita dal server). */
     public void forget(Player p) {
         for (Map<UUID, UUID> owners : clones.values()) {
             UUID cloneId = owners.remove(p.getUniqueId());
-            if (cloneId == null) continue;
-            Entity e = Bukkit.getEntity(cloneId);
-            if (e != null) e.remove();
+            if (cloneId != null) removeClone(cloneId);
         }
     }
 
     /** Elimina tutte le copie (spegnimento del plugin, o /mentities reload). */
     public void clearAll() {
         for (Map<UUID, UUID> owners : clones.values()) {
-            for (UUID cloneId : owners.values()) {
-                Entity e = Bukkit.getEntity(cloneId);
-                if (e != null) e.remove();
-            }
+            for (UUID cloneId : owners.values()) removeClone(cloneId);
         }
         clones.clear();
+        seats.clear();
+    }
+
+    /** Toglie una copia e il suo eventuale sedile: un sedile senza passeggero resterebbe li'. */
+    private void removeClone(UUID cloneId) {
+        Entity e = Bukkit.getEntity(cloneId);
+        if (e != null) e.remove();
+        UUID seatId = seats.remove(cloneId);
+        Entity seat = seatId == null ? null : Bukkit.getEntity(seatId);
+        if (seat != null) seat.remove();
     }
 
     /** Ferma il task dell'aureola (solo spegnimento del plugin: /mentities reload non lo tocca). */
@@ -194,7 +203,7 @@ public final class MirrorManager {
         List<Entity> toRemove = new ArrayList<>();
         for (org.bukkit.World w : Bukkit.getWorlds()) {
             for (Entity e : w.getEntities()) {
-                if (npcs.cloneTagOf(e) != null) toRemove.add(e);
+                if (npcs.cloneTagOf(e) != null || npcs.isCloneSeat(e)) toRemove.add(e);
             }
         }
         for (Entity e : toRemove) e.remove();

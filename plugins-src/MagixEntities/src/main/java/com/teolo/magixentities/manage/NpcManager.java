@@ -332,6 +332,10 @@ public final class NpcManager {
         boolean purge = plugin.getConfig().getBoolean("clean-orphans", true);
         boolean changed = false;
         for (Entity e : chunk.getEntities()) {
+            if (purge && isOrphanSeat(e)) {
+                e.remove();
+                continue;
+            }
             String id = tagOf(e);
             if (id == null) continue;
             NpcDef d = npcs.get(id);
@@ -413,9 +417,9 @@ public final class NpcManager {
         // Auto-guarigione: se l'entita' e' gia' nel mondo (ensure/onChunkLoad/un comando che
         // aggiorna un'entita' viva), risistema anche il sedile se serve o se e' stato ucciso.
         // Durante il consumer PRE-spawn (vedi spawn()) e.isInWorld() e' ancora false: qui non fa
-        // nulla, ci pensa spawn() subito dopo. Le copie mirror passano SEMPRE e SOLO dal consumer
-        // pre-spawn di applyClone (mai riapplicate mentre gia' nel mondo): per questo non hanno
-        // mai un sedile proprio, e restano in piedi anche con pose "sitting" — limite noto.
+        // nulla, ci pensa spawn() subito dopo. Le copie mirror passano SOLO dal consumer pre-spawn
+        // di applyClone, quindi qui non prendono mai il sedile dell'entita' vera: il loro lo crea
+        // MirrorManager con mountCloneSeat, appena la copia e' nel mondo.
         applySeat(d, e);
     }
 
@@ -505,6 +509,11 @@ public final class NpcManager {
 
     /** Valore riservato di {@link NpcDef#pose}: non e' una Pose vera, vedi {@link #applySeat}. */
     private static final String SITTING = "sitting";
+    /** Valori del tag "seat": sedile dell'entita' vera (persistente) o di una copia mirror (no). */
+    private static final String SEAT_REAL = "seat";
+    private static final String SEAT_CLONE = "clone";
+    /** Entita' il cui montaggio e' gia' stato rifiutato: l'avviso in console esce una volta sola. */
+    private final Set<String> refusedSeats = ConcurrentHashMap.newKeySet();
 
     private void applyPose(NpcDef d, Mannequin man) {
         if (d.pose == null || d.pose.isBlank() || SITTING.equalsIgnoreCase(d.pose)) return;
@@ -540,20 +549,66 @@ public final class NpcManager {
         // Durante il consumer pre-spawn l'entita' non e' ancora nel mondo: spawn() richiama
         // questo metodo di nuovo appena lo e' davvero (vedi il commento li').
         if (!e.isInWorld()) return;
-        boolean wantsSeat = d.isPlayerType() && SITTING.equalsIgnoreCase(d.pose);
-        if (!wantsSeat) {
+        if (!wantsSeat(d)) {
             removeSeat(d);
             return;
         }
         Entity seat = d.seatUuid == null ? null : Bukkit.getEntity(d.seatUuid);
         if (seat == null || seat.isDead() || !seat.isValid()) {
-            seat = spawnSeat(e.getLocation());
+            seat = spawnSeat(e.getLocation(), SEAT_REAL);
             if (seat == null) return; // nascita del sedile rifiutata da un altro plugin: si riprova al prossimo giro
             d.seatUuid = seat.getUniqueId();
         }
-        if (!seat.equals(e.getVehicle())) {
-            e.leaveVehicle();
-            seat.addPassenger(e);
+        mount(d, seat, e);
+    }
+
+    private static boolean wantsSeat(NpcDef d) {
+        return d.isPlayerType() && SITTING.equalsIgnoreCase(d.pose);
+    }
+
+    /**
+     * Sedile di una copia mirror. In modalita' specchio l'entita' vera e' nascosta a tutti: quello
+     * che un giocatore vede e' la SUA copia, quindi e' la copia che deve sedersi. Il sedile non e'
+     * persistente (come la copia) e lo toglie MirrorManager insieme a lei.
+     *
+     * @return il sedile, o null se la posa non e' "sitting" o se non e' nato
+     */
+    public Entity mountCloneSeat(NpcDef d, Entity clone) {
+        if (!wantsSeat(d) || !clone.isInWorld()) return null;
+        Entity seat = spawnSeat(clone.getLocation(), SEAT_CLONE);
+        if (seat == null) return null;
+        mount(d, seat, clone);
+        return seat;
+    }
+
+    /**
+     * Sedile dell'entita' vera che nessuna definizione riconosce piu': succede se l'entita' e'
+     * stata rimossa (o ha cambiato posa) mentre il chunk del sedile era scarico.
+     */
+    private boolean isOrphanSeat(Entity e) {
+        if (!SEAT_REAL.equals(e.getPersistentDataContainer().get(seatKey, PersistentDataType.STRING))) {
+            return false;
+        }
+        for (NpcDef d : npcs.values()) {
+            if (e.getUniqueId().equals(d.seatUuid)) return false;
+        }
+        return true;
+    }
+
+    /** true se e' il sedile di una copia mirror (serve a ripulire quelli rimasti dopo un reload). */
+    public boolean isCloneSeat(Entity e) {
+        return SEAT_CLONE.equals(e.getPersistentDataContainer().get(seatKey, PersistentDataType.STRING));
+    }
+
+    private void mount(NpcDef d, Entity seat, Entity rider) {
+        if (seat.equals(rider.getVehicle())) return;
+        rider.leaveVehicle();
+        // addPassenger restituisce false se il montaggio viene rifiutato (evento annullato da un
+        // altro plugin, entita' che non puo' cavalcare): senza questo avviso la statua resterebbe
+        // in piedi senza un perche'.
+        if (!seat.addPassenger(rider) && refusedSeats.add(d.id)) {
+            plugin.getLogger().warning("'" + d.name + "' non riesce a sedersi: il montaggio sul sedile"
+                    + " invisibile e' stato rifiutato (un altro plugin annulla l'EntityMountEvent?).");
         }
     }
 
@@ -564,7 +619,7 @@ public final class NpcManager {
      * coincide con la base. Se il risultato visivo non torna su questa versione del client,
      * e' quella la chiave da ritoccare — nessun'altra modifica al codice serve.
      */
-    private Entity spawnSeat(Location loc) {
+    private Entity spawnSeat(Location loc, String kind) {
         double offset = plugin.getConfig().getDouble("player.seat-y-offset", -0.6);
         Location seatLoc = loc.clone().add(0, offset, 0);
         try {
@@ -576,8 +631,8 @@ public final class NpcManager {
                 s.setGravity(false);
                 s.setSilent(true);
                 s.setCanTick(false);
-                s.setPersistent(true);
-                s.getPersistentDataContainer().set(seatKey, PersistentDataType.STRING, "seat");
+                s.setPersistent(SEAT_REAL.equals(kind));
+                s.getPersistentDataContainer().set(seatKey, PersistentDataType.STRING, kind);
             }, CreatureSpawnEvent.SpawnReason.CUSTOM);
             return seat.isInWorld() ? seat : null;
         } catch (RuntimeException ex) {

@@ -172,9 +172,9 @@ public final class MagixEntities extends JavaPlugin {
                                 + "parte, lo stesso che piega le gambe a un giocatore vero seduto su una barca o un "
                                 + "cavallo. Il plugin crea un piccolo ArmorStand invisibile, ci monta sopra la "
                                 + "statua e lo gestisce da solo (respawn compreso). Se l'altezza non torna si "
-                                + "aggiusta `player.seat-y-offset` nel config, senza toccare il codice. Limite "
-                                + "noto: le copie a specchio (skin/nome mirror) non hanno un sedile proprio e "
-                                + "restano in piedi anche con posa sitting.")
+                                + "aggiusta `player.seat-y-offset` nel config, senza toccare il codice. Sulle "
+                                + "statue a specchio (skin/nome mirror) ogni copia personale ha il suo sedile, "
+                                + "che sparisce insieme alla copia.")
 
                 .section("Azioni al clic",
                         "A un'entità si può attaccare un'azione: eseguire un comando, aprire un menu, mandare un "
