@@ -45,12 +45,17 @@ final class MapContentBuilder {
     static void paint(MapCanvas canvas, Player player, FactionManager fm, ClaimManager claims,
                        TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin, int centerX, int centerZ,
                        int supersampling, AvatarCache avatars, boolean[] completeOut) {
-        boolean dither = plugin.getConfig().getBoolean("map.dither", false) && MapColorUtil.isReady();
-        boolean[][] protect = dither ? new boolean[128][128] : null;
-        Color[][] pixels = computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, protect, completeOut);
-        if (dither) {
-            // Dithering: colori piu' ricchi SOLO sul terreno (marcatori/territori restano netti). setPixel
-            // scrive direttamente il byte-palette gia' scelto.
+        boolean ready = MapColorUtil.isReady();
+        boolean ditherTerrain = plugin.getConfig().getBoolean("map.dither", false) && ready;
+        // Il RIEMPIMENTO dei territori va SEMPRE ditherato (vedi computeColors): la tinta fusa col terreno
+        // spesso non ha un colore vicino nella palette mappa (poche tinte per famiglia di colore lontane dal
+        // verde/marrone del terreno, es. il rosso nemico) e senza dithering l'errore di quantizzazione la
+        // appiattisce su un colore spento/grigiastro invece che restare una tinta leggibile e trasparente.
+        // Percio' si passa SEMPRE dalla tabella {@link MapColorUtil}, non solo quando map.dither e' attivo
+        // (quello resta un'opzione SEPARATA, solo per il terreno "nudo").
+        boolean[][] protect = ready ? new boolean[128][128] : null;
+        Color[][] pixels = computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ, supersampling, avatars, protect, completeOut, ditherTerrain);
+        if (ready) {
             byte[] d = MapColorUtil.dither(pixels, protect);
             for (int x = 0; x < 128; x++)
                 for (int y = 0; y < 128; y++)
@@ -75,6 +80,20 @@ final class MapContentBuilder {
                                     TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin,
                                     int centerX, int centerZ, int supersampling, AvatarCache avatars,
                                     boolean[][] protectOut, boolean[] completeOut) {
+        return computeColors(player, fm, claims, terrain, blocksPerPixel, plugin, centerX, centerZ,
+                supersampling, avatars, protectOut, completeOut, false);
+    }
+
+    /** Come sopra, con {@code ditherTerrain} a decidere se il dithering (quando {@code protectOut != null})
+     *  copre anche il terreno "nudo" (config {@code map.dither}) oltre al riempimento dei territori, che va
+     *  SEMPRE ditherato indipendentemente da questa opzione (vedi {@link #paint}). */
+    static Color[][] computeColors(Player player, FactionManager fm, ClaimManager claims,
+                                    TerrainCache terrain, double blocksPerPixel, JavaPlugin plugin,
+                                    int centerX, int centerZ, int supersampling, AvatarCache avatars,
+                                    boolean[][] protectOut, boolean[] completeOut, boolean ditherTerrain) {
+        if (protectOut != null && !ditherTerrain) {
+            for (boolean[] col : protectOut) java.util.Arrays.fill(col, true);
+        }
         World w = player.getWorld();
         String world = w.getName();
         Faction own = fm.getFaction(player.getUniqueId());
@@ -182,10 +201,18 @@ final class MapContentBuilder {
                 }
                 String rel = relKey(fm, own, o);
                 Color base = terr != null ? terr : unknown;
-                out[x][y] = isBorder(owner, x, y, o)
+                boolean border = isBorder(owner, x, y, o);
+                out[x][y] = border
                         ? blend(base, relColor(plugin, rel, "border"), borderAlpha)
                         : blend(base, relColor(plugin, rel, "fill"), alpha);
-                if (protectOut != null) protectOut[x][y] = true; // overlay territorio: niente dithering (resta netto)
+                // Il BORDO resta netto (mai ditherato): e' la cornice che separa i territori, deve restare
+                // leggibile. Il RIEMPIMENTO invece va SEMPRE ditherato (protectOut[x][y] = false), anche a
+                // dither del terreno spento: fuso a bassa opacita' spesso non ha un colore vicino nella
+                // palette mappa (es. rosso nemico su terreno verde) e senza diffondere l'errore sui pixel
+                // vicini l'arrotondamento lo appiattisce su un grigio/marrone spento invece che restare una
+                // tinta leggibile e semitrasparente come il verde (che invece azzecca sempre un colore
+                // vicino, essendo gia' nella stessa famiglia del terreno).
+                if (protectOut != null) protectOut[x][y] = border;
             }
         }
         // Snapshot del frame PRIMA dei marcatori: cosi' i pixel che marcatori/cardinali cambieranno vengono
