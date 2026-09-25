@@ -199,6 +199,20 @@ public final class NpcManager {
         return e;
     }
 
+    /**
+     * Sposta l'entita' in {@code loc} (rotazione compresa): la rifa' sul posto, sedile compreso,
+     * cosi' vale per qualunque tipo e posa. Le copie mirror si rifanno subito, non al prossimo giro:
+     * altrimenti a ogni spostamento la statua sparirebbe per un secondo.
+     */
+    public void relocate(NpcDef d, Location loc) {
+        if (mirror != null) mirror.clear(d);
+        despawn(d);
+        d.setLocation(loc);
+        ensure(d);
+        save();
+        if (mirror != null) mirror.tick();
+    }
+
     /** Rimuove definizione ed entita' (comprese le copie mirror). */
     public void delete(NpcDef d) {
         if (mirror != null) mirror.clear(d);

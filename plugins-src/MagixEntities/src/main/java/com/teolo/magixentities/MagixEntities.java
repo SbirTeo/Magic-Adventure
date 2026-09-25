@@ -6,6 +6,7 @@ import com.teolo.magixentities.hook.MagixCosmeticsHook;
 import com.teolo.magixentities.lang.Messages;
 import com.teolo.magixentities.listener.NpcListener;
 import com.teolo.magixentities.manage.ActionRunner;
+import com.teolo.magixentities.manage.EditorMenu;
 import com.teolo.magixentities.manage.EquipMenu;
 import com.teolo.magixentities.manage.LookManager;
 import com.teolo.magixentities.manage.MirrorManager;
@@ -62,10 +63,12 @@ public final class MagixEntities extends JavaPlugin {
 
         ActionRunner actions = new ActionRunner(this);
         EquipMenu equipMenu = new EquipMenu(this, npcs, mirror, messages);
+        EditorMenu editorMenu = new EditorMenu(this, npcs, messages);
         PluginCommand cmd = getCommand("magixentities");
-        if (cmd != null) cmd.setExecutor(new MeCommand(this, npcs, mirror, equipMenu, messages));
+        if (cmd != null) cmd.setExecutor(new MeCommand(this, npcs, mirror, equipMenu, editorMenu, messages));
         getServer().getPluginManager().registerEvents(new NpcListener(this, npcs, mirror, actions), this);
         getServer().getPluginManager().registerEvents(equipMenu, this);
+        getServer().getPluginManager().registerEvents(editorMenu, this);
 
         // Primo controllo al tick successivo: i chunk di spawn sono gia' caricati e
         // gli altri plugin hanno finito di avviarsi.
@@ -151,6 +154,12 @@ public final class MagixEntities extends JavaPlugin {
                 .section("Aspetto, equipaggiamento e sguardo",
                         "Nome visibile, equipaggiamento e posa si cambiano dai comandi o dal menu in gioco, senza "
                                 + "toccare il file.",
+                        "`/mentities editor <nome>` apre un pannello con tutti i comandi dell'entità: i pulsanti "
+                                + "eseguono i comandi normali (stessi permessi e conferme in chat), quelli che "
+                                + "richiedono un testo lo propongono in chat, e la rimozione non parte mai al clic. "
+                                + "La sezione Posizione sposta l'entità su X, Y e Z con un passo da 0.05 a 1 blocco "
+                                + "(è `/mentities position <nome> <x|y|z> <blocchi>`, usabile anche da chat). Con "
+                                + "gravity on un'entità sollevata ricade: una statua seduta invece resta sul sedile.",
                         "Il nome sopra la testa si può anche nascondere del tutto senza perdere il testo scelto: "
                                 + "`/mentities displayname <nome> off` lo spegne, `... on` lo riaccende — stessa "
                                 + "opzione di `/mentities set <nome> nametag`, solo più comoda da qui. Toglie "

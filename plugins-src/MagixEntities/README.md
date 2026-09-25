@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.9.16** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.17** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -46,6 +46,8 @@ Comando principale: `/magixentities` — alias: `/mentities`, `/mentity`, `/ment
 | `/mentities displayname <nome> off\|on` | Nasconde/rimostra il nome sopra la testa (stessa opzione di `/mentities set <nome> nametag`) |
 | `/mentities skin <nome> <nick>` | Cambia la skin (solo tipo `player`) |
 | `/mentities skin <nome> mirror` | Specchio: **ognuno la vede con la propria skin** |
+| `/mentities editor <nome>` | **Pannello** con tutti i comandi dell'entita', sezione Posizione compresa (vedi sotto) |
+| `/mentities position <nome> <x\|y\|z> <blocchi>` | Sposta l'entita' di pochi blocchi su un asse, tenendo la rotazione (max 16) |
 | `/mentities pose <nome> <posa>` | Posa della statua (solo tipo `player`) |
 | `/mentities scale <nome> <valore\|reset>` | Ingrandisce/rimpicciolisce l'entita' (1 = normale, qualunque tipo) |
 | `/mentities set <nome> <opzione> <on\|off>` | Modifica un'opzione (sotto) |
@@ -168,6 +170,25 @@ per un movimento piu' fluido.
 
 Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). Sulle entita' a specchio ogni
 copia segue il **proprio** proprietario, quindi ciascuno si vede guardato dalla sua.
+
+## Editor (`/mentities editor <nome>`)
+
+Un pannello (cassa 6x9) con tutto quello che si puo' fare a un'entita': displayname, nome, skin
+(clic destro = `mirror`), posa (clic sinistro/destro = successiva/precedente), scala (±0.25,
+shift ±1, tasto Q torna a 1), tipo, equipaggiamento, tutte le opzioni on/off, teletrasporto,
+"portala qui", comandi al clic, ricrea e rimuovi. Anche `/mentities gui <nome>`, o il pulsante
+✎ Editor sotto `/mentities info`.
+
+I pulsanti **eseguono i comandi normali** per conto di chi clicca: stessi permessi, stessi
+controlli, stesse conferme in chat. Quello che richiede un testo (nome, displayname, nick della
+skin, tipo, un comando al clic) chiude il pannello e ti propone il comando in chat, da completare.
+La rimozione e' solo proposta, mai eseguita al clic.
+
+**Sezione Posizione** (bussola): tre righe X, Y, Z con `−` e `+`, e un orologio che sceglie il
+passo (0.05, 0.1, 0.25, 0.5 o 1 blocco). Ogni clic esegue `/mentities position` e mantiene la
+rotazione. Attenzione: con `gravity on` un'entita' sollevata ricade a terra (il pannello lo
+ricorda); una statua seduta invece sta sul suo sedile e resta dove la metti — e' il modo piu'
+comodo di allinearla a una trave o a una sedia.
 
 ## Seduta (`sitting`)
 

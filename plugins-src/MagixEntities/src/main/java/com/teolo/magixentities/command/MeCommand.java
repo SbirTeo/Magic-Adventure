@@ -2,6 +2,7 @@ package com.teolo.magixentities.command;
 
 import com.teolo.magixentities.util.ConfigAlign;
 import com.teolo.magixentities.lang.Messages;
+import com.teolo.magixentities.manage.EditorMenu;
 import com.teolo.magixentities.manage.EquipMenu;
 import com.teolo.magixentities.manage.MirrorManager;
 import com.teolo.magixentities.manage.NpcManager;
@@ -32,22 +33,27 @@ public final class MeCommand implements TabExecutor {
 
     private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_-]{1,32}");
     private static final List<String> SUBS = List.of(
-            "create", "remove", "list", "info", "tp", "here", "name", "displayname",
+            "create", "remove", "list", "info", "editor", "tp", "here", "position", "name", "displayname",
             "type", "skin", "pose", "scale", "set", "equip", "cmd", "respawn", "reload", "help");
     private static final int PAGE_SIZE = 8;
+    private static final List<String> AXES = List.of("x", "y", "z");
+    /** Spostamento massimo per /mentities position, in blocchi. */
+    private static final double MAX_NUDGE = 16;
 
     private final JavaPlugin plugin;
     private final NpcManager npcs;
     private final MirrorManager mirror;
     private final EquipMenu equipMenu;
+    private final EditorMenu editorMenu;
     private final Messages M;
 
     public MeCommand(JavaPlugin plugin, NpcManager npcs, MirrorManager mirror,
-                     EquipMenu equipMenu, Messages messages) {
+                     EquipMenu equipMenu, EditorMenu editorMenu, Messages messages) {
         this.plugin = plugin;
         this.npcs = npcs;
         this.mirror = mirror;
         this.equipMenu = equipMenu;
+        this.editorMenu = editorMenu;
         this.M = messages;
     }
 
@@ -75,6 +81,8 @@ public final class MeCommand implements TabExecutor {
             case "info" -> info(sender, args);
             case "tp", "teleport" -> tp(sender, args);
             case "here", "move" -> here(sender, args);
+            case "position", "pos" -> position(sender, args);
+            case "editor", "gui" -> editor(sender, args);
             case "name", "rename" -> rename(sender, args);
             case "displayname", "display" -> displayname(sender, args);
             case "type", "tipo" -> type(sender, args);
@@ -244,8 +252,11 @@ public final class MeCommand implements TabExecutor {
         // Rimozione: solo suggerita, cosi' serve un invio consapevole.
         Component remove = M.component("info-actions-remove")
                 .clickEvent(ClickEvent.suggestCommand("/mentities remove " + d.name));
+        Component editor = M.component("info-actions-editor")
+                .clickEvent(ClickEvent.runCommand("/mentities editor " + d.name));
         Component sep = Colors.component(" &8· ");
-        return Colors.component(" &8└ ").append(tp).append(sep).append(here).append(sep).append(remove);
+        return Colors.component(" &8└ ").append(editor).append(sep).append(tp).append(sep)
+                .append(here).append(sep).append(remove);
     }
 
     private void line(CommandSender to, String key, String value) {
@@ -275,13 +286,69 @@ public final class MeCommand implements TabExecutor {
         }
         NpcDef d = require(sender, args, "usage-here");
         if (d == null) return;
-        mirror.clear(d);
-        npcs.despawn(d);
-        d.setLocation(p.getLocation());
-        npcs.ensure(d);
-        npcs.save();
+        npcs.relocate(d, p.getLocation());
         M.send(sender, "moved", "name", d.name);
         warnIfRefused(sender, d);
+    }
+
+    /**
+     * /mentities position &lt;nome&gt; &lt;x|y|z&gt; &lt;blocchi&gt; - sposta l'entita' di pochi blocchi
+     * su un asse, tenendo la rotazione. E' anche quello che usa la sezione Posizione dell'editor.
+     */
+    private void position(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            M.send(sender, "usage-position");
+            return;
+        }
+        NpcDef d = npcs.get(args[1]);
+        if (d == null) {
+            M.send(sender, "not-found", "name", args[1]);
+            return;
+        }
+        String axis = args[2].toLowerCase(Locale.ROOT);
+        double delta;
+        try {
+            delta = Double.parseDouble(args[3].replace(',', '.'));
+        } catch (NumberFormatException ex) {
+            delta = Double.NaN;
+        }
+        // Il tetto evita che un errore di battitura (100 invece di 1.0) spedisca l'entita' lontano:
+        // per gli spostamenti grandi c'e' /mentities here.
+        if (!AXES.contains(axis) || Double.isNaN(delta) || delta == 0 || Math.abs(delta) > MAX_NUDGE) {
+            M.send(sender, "position-invalid", "max", trim(MAX_NUDGE));
+            return;
+        }
+        Location loc = d.location();
+        if (loc == null) {
+            M.send(sender, "world-missing", "world", d.world);
+            return;
+        }
+        switch (axis) {
+            case "x" -> loc.add(delta, 0, 0);
+            case "y" -> loc.add(0, delta, 0);
+            default -> loc.add(0, 0, delta);
+        }
+        npcs.relocate(d, loc);
+        M.send(sender, "position-set", "name", d.name, "axis", axis.toUpperCase(Locale.ROOT),
+                "delta", (delta > 0 ? "+" : "") + trim(delta),
+                "x", coord(d.x), "y", coord(d.y), "z", coord(d.z));
+        warnIfRefused(sender, d);
+    }
+
+    /** Coordinata con due decimali: gli spostamenti fini si vedono, i numeri lunghi no. */
+    public static String coord(double v) {
+        return String.format(Locale.ROOT, "%.2f", v);
+    }
+
+    /** /mentities editor &lt;nome&gt; - il pannello con tutti i comandi dell'entita'. */
+    private void editor(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player p)) {
+            M.send(sender, "players-only");
+            return;
+        }
+        NpcDef d = require(sender, args, "usage-editor");
+        if (d == null) return;
+        editorMenu.open(p, d);
     }
 
     /** Rinomina l'entita' in se'. Per il tipo player la skin segue il nome (salvo skin esplicita). */
@@ -724,6 +791,7 @@ public final class MeCommand implements TabExecutor {
                 case "displayname", "display" -> filter(List.of(NpcDef.MIRROR, "reset", "off", "on"), args[2]);
                 case "pose" -> filter(npcs.validPoses(), args[2]);
                 case "scale" -> filter(List.of("0.5", "1", "2", "4", "8", "reset"), args[2]);
+                case "position", "pos" -> filter(AXES, args[2]);
                 case "set", "toggle" -> filter(NpcDef.OPTIONS, args[2]);
                 case "cmd", "command", "comandi" -> filter(List.of("add", "list", "remove", "clear"), args[2]);
                 default -> List.of();
@@ -731,6 +799,9 @@ public final class MeCommand implements TabExecutor {
         }
         if (args.length == 4 && (sub.equals("set") || sub.equals("toggle"))) {
             return filter(List.of("on", "off"), args[3]);
+        }
+        if (args.length == 4 && (sub.equals("position") || sub.equals("pos"))) {
+            return filter(List.of("0.1", "0.5", "1", "-0.1", "-0.5", "-1"), args[3]);
         }
         return List.of();
     }

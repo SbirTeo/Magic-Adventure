@@ -22,12 +22,15 @@ pose-not-player: "&#FF6B6B✖ Le pose valgono solo per le entita' di tipo &fplay
 skin-not-player: "&#FF6B6B✖ &f{name}&7 non e' di tipo &fplayer&7: non ha una skin."
 option-unknown: "&#FF6B6B✖ Opzione sconosciuta &8· &7disponibili: &f{options}"
 scale-invalid: "&#FF6B6B✖ Scala non valida &8· &7dev'essere un numero fra &f{min}&7 e &f{max}&7 (1 = normale)."
+position-invalid: "&#FF6B6B✖ Spostamento non valido &8· &7asse &fx&7, &fy&7 o &fz&7 e un numero di blocchi diverso da 0, al massimo &f{max}&7 (per andare lontano usa &f/mentities here&7)."
 
 # ------------------------------------------------------------------- usage
 usage-create: "&#FFD166▸ Uso: &f/mentities create <nome> <tipo> &7[displayname]"
 usage-remove: "&#FFD166▸ Uso: &f/mentities remove <nome>"
 usage-tp: "&#FFD166▸ Uso: &f/mentities tp <nome>"
 usage-here: "&#FFD166▸ Uso: &f/mentities here <nome>"
+usage-position: "&#FFD166▸ Uso: &f/mentities position <nome> <x|y|z> <blocchi> &7(es. &fy 0.5&7 la alza di mezzo blocco, &fy -0.5&7 la abbassa)"
+usage-editor: "&#FFD166▸ Uso: &f/mentities editor <nome>"
 usage-name: "&#FFD166▸ Uso: &f/mentities name <nome> <nuovoNome>"
 usage-displayname: "&#FFD166▸ Uso: &f/mentities displayname <nome> <testo|mirror|reset|off|on>"
 usage-type: "&#FFD166▸ Uso: &f/mentities type <nome> <tipo> &7(player o un mob)"
@@ -68,6 +71,7 @@ scale-set: "&#A8DC2C✔ Scala di &f{name}&7: &f{scale}"
 option-set: "&#A8DC2C✔ &f{name} &8· &7{option} &8→ &f{value}"
 teleported: "&#A8DC2C✔ Teletrasportato da &f{name}&7."
 moved: "&#A8DC2C✔ &f{name} &7spostata nella tua posizione."
+position-set: "&#A8DC2C✔ &f{name} &8· &7{axis} {delta} &8→ &f{x} {y} {z}"
 respawned: "&#A8DC2C✔ &f{name} &7ricreata."
 reloaded: "&#A8DC2C✔ Configurazione ricaricata &8· &7entita': &f{count}"
 not-loaded: "&#FFD166▸ &f{name} &7non e' caricata (chunk scarico): la modifica e' salvata e verra' applicata al ritorno."
@@ -113,6 +117,7 @@ status-legend: " &8└ &#A8DC2C● &7attiva &8· &8● &7chunk scarico &8· &#FF
 # -------------------------------------------------------------------- info
 info-header: "&#C046E8&l {name} &8· &7{type}"
 info-line: " &8│ &7{key} &8· &r{value}"
+info-actions-editor: "&#C046E8✎ Editor"
 info-actions-tp: "&#A8DC2C▶ Vai"
 info-actions-here: "&#FFD166⇄ Porta qui"
 info-actions-remove: "&#FF6B6B✖ Rimuovi"
@@ -120,6 +125,132 @@ info-follows-name: "&8(segue il nome)"
 info-mirror-display: "&#A8DC2Cmirror &8· &7ognuno vede il proprio nome &8· &7{clones} copie"
 info-mirror-skin: "&#A8DC2Cmirror &8· &7ognuno vede la propria skin &8· &7{clones} copie"
 info-commands: "&f{count} comandi &8· &7/mentities cmd {name} list"
+
+# ------------------------------------------------------------------ editor
+# /mentities editor <nome>: il pannello con tutti i comandi dell'entita'. I pulsanti eseguono
+# gli stessi comandi di sempre, quindi conferme ed errori arrivano in chat con i messaggi sopra.
+editor-title: "Editor · {name}"
+editor-info-name: "&#C046E8&l{name}"
+editor-info-lore:
+  - "&7Tipo &f{type}"
+  - "&7Displayname &r{display}"
+  - "&7Posizione &f{world} &8· &f{x} {y} {z}"
+  - "&7Scala &f{scale} &8· &7Posa &f{pose}"
+  - " "
+  - "&#A8DC2C▸ Clicca per i dettagli in chat"
+editor-display-name: "&fDisplayname"
+editor-display-lore:
+  - "&7Ora: &r{display}"
+  - "&7Anche &fmirror&7, &freset&7, &foff&7, &fon"
+  - " "
+  - "&#A8DC2C▸ Clicca per scriverlo in chat"
+editor-rename-name: "&fNome"
+editor-rename-lore:
+  - "&7Ora: &f{name}"
+  - "&7Per il tipo player e' anche la skin"
+  - " "
+  - "&#A8DC2C▸ Clicca per scriverlo in chat"
+editor-skin-name: "&fSkin"
+editor-skin-lore:
+  - "&7Ora: &f{skin}"
+  - " "
+  - "&#A8DC2C▸ Clic sinistro: scrivi il nick in chat"
+  - "&#A8DC2C▸ Clic destro: mirror &8(ognuno vede la sua)"
+editor-pose-name: "&fPosa"
+editor-pose-lore:
+  - "&7Ora: &f{pose}"
+  - " "
+  - "&#A8DC2C▸ Clic sinistro: posa successiva"
+  - "&#A8DC2C▸ Clic destro: posa precedente"
+editor-scale-name: "&fScala"
+editor-scale-lore:
+  - "&7Ora: &f{scale} &8(1 = normale)"
+  - " "
+  - "&#A8DC2C▸ Clic sinistro: +{step} &8· &#A8DC2Cdestro: -{step}"
+  - "&#A8DC2C▸ Shift+clic: di 1 intero"
+  - "&#A8DC2C▸ Tasto Q: torna a 1"
+editor-type-name: "&fTipo"
+editor-type-lore:
+  - "&7Ora: &f{type}"
+  - "&7Tiene posizione, opzioni, vestiti e comandi"
+  - " "
+  - "&#A8DC2C▸ Clicca per scriverlo in chat"
+editor-equip-name: "&fEquipaggiamento"
+editor-equip-lore:
+  - "&7Armatura, mano e mano secondaria"
+  - " "
+  - "&#A8DC2C▸ Clicca per aprire"
+editor-option-name: "&f{option}"
+editor-option-lore:
+  - "&7{desc}"
+  - "&7Ora: {state}"
+  - " "
+  - "&#A8DC2C▸ Clicca per cambiarla"
+editor-option-on: "&#A8DC2Con"
+editor-option-off: "&#FF6B6Boff"
+editor-option-desc-invulnerable: "Nessun danno (fuoco, mob, giocatori, cadute)"
+editor-option-desc-nametag: "Nome sopra la testa"
+editor-option-desc-ai: "Cammina, insegue e attacca"
+editor-option-desc-gravity: "Resta appoggiata al terreno"
+editor-option-desc-silent: "Nessun verso"
+editor-option-desc-glowing: "Contorno luminoso"
+editor-option-desc-collidable: "I giocatori la spingono e la urtano"
+editor-option-desc-immovable: "Statua bloccata del tutto"
+editor-option-desc-interact: "Il clic arriva anche agli altri plugin (CMI...)"
+editor-option-desc-follow: "Segue con lo sguardo il giocatore piu' vicino"
+editor-position-name: "&fPosizione"
+editor-position-lore:
+  - "&7{world} &8· &f{x} {y} {z}"
+  - " "
+  - "&#A8DC2C▸ Clicca per spostarla su, giu', X e Z"
+editor-tp-name: "&fVai dall'entita'"
+editor-tp-lore:
+  - "&#A8DC2C▸ Clicca per teletrasportarti"
+editor-here-name: "&fPortala qui"
+editor-here-lore:
+  - "&7Nella tua posizione e con la tua rotazione"
+  - " "
+  - "&#A8DC2C▸ Clicca per spostarla"
+editor-commands-name: "&fComandi al clic"
+editor-commands-lore:
+  - "&7{count} comandi"
+  - " "
+  - "&#A8DC2C▸ Clic sinistro: elenco in chat"
+  - "&#A8DC2C▸ Clic destro: aggiungine uno"
+editor-respawn-name: "&fRicrea"
+editor-respawn-lore:
+  - "&7Se e' sparita o si comporta in modo strano"
+  - " "
+  - "&#A8DC2C▸ Clicca per ricrearla"
+editor-remove-name: "&#FF6B6BRimuovi"
+editor-remove-lore:
+  - "&7Ti propone il comando in chat:"
+  - "&7serve un invio per confermare"
+editor-close-name: "&fChiudi"
+editor-back-name: "&f« Indietro"
+editor-pos-header-name: "&#C046E8&lPosizione · {name}"
+editor-pos-header-lore:
+  - "&7Mondo &f{world}"
+  - "&7X &f{x} &8· &7Y &f{y} &8· &7Z &f{z}"
+  - "&7Passo &f{step} &7blocchi"
+editor-pos-minus-name: "&#FF6B6B{axis} −{step}"
+editor-pos-plus-name: "&#A8DC2C{axis} +{step}"
+editor-pos-axis-name: "&f{axis} &8· &f{value}"
+editor-pos-axis-lore-x:
+  - "&7+ verso est, − verso ovest"
+editor-pos-axis-lore-y:
+  - "&7+ la alza, − la abbassa"
+editor-pos-axis-lore-z:
+  - "&7+ verso sud, − verso nord"
+editor-pos-gravity-hint: "&#FFD166▲ Con gravity on ricade a terra: spegnila per lasciarla sollevata"
+editor-pos-step-name: "&fPasso: {step} blocchi"
+editor-pos-step-lore:
+  - "&7Di quanto si sposta a ogni clic"
+  - " "
+  - "&#A8DC2C▸ Clic sinistro: passo piu' grande"
+  - "&#A8DC2C▸ Clic destro: passo piu' piccolo"
+editor-suggest: "&#A8DC2C▸ Clicca qui per scrivere &f{cmd}"
+editor-suggest-hover: "&7Il comando finisce nella barra della chat: completalo e invia"
 
 # -------------------------------------------------------------------- help
 # L'aiuto lo impagina la classe Aiuto (la stessa in tutti i plugin Magix): una
@@ -150,6 +281,7 @@ help:
         - "/mentities remove <nome> :: elimina l'entita'"
         - "/mentities list [pagina] :: elenco delle entita'"
         - "/mentities info <nome> :: dettagli di una entita'"
+        - "/mentities editor <nome> :: pannello con tutti i comandi dell'entita', posizione compresa"
         - "/mentities type <nome> <tipo> :: cambia il tipo tenendo tutto il resto"
         - "/mentities respawn <nome> :: ricrea l'entita' se e' sparita"
     aspetto:
@@ -175,6 +307,7 @@ help:
       entries:
         - "/mentities tp <nome> :: teletrasportati dall'entita'"
         - "/mentities here <nome> :: sposta l'entita' dove sei tu"
+        - "/mentities position <nome> <x|y|z> <blocchi> :: la sposta di pochi blocchi su un asse (y 0.5 = su di mezzo blocco)"
     staff:
       title: "Staff"
       staff: true
