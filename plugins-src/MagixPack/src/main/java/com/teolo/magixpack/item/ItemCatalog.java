@@ -105,7 +105,12 @@ public final class ItemCatalog {
         ItemStack stack = new ItemStack(material);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
-            meta.setItemModel(new NamespacedKey(NAMESPACE, "item/" + id));
+            // ATTENZIONE alla differenza: il componente item_model punta al file di DEFINIZIONE
+            // (assets/<ns>/items/<id>.json, SENZA "item/"), non al modello (assets/<ns>/models/
+            // item/<id>.json, quello si') — bug reale, trovato perche' con "item/" qui il client
+            // cercava assets/magixpack/items/item/test_gem.json (inesistente) e falliva in
+            // silenzio mostrando la texture "mancante", pur avendo model.json e texture corretti.
+            meta.setItemModel(new NamespacedKey(NAMESPACE, id));
             // Anche il meccanismo "vecchio" (CustomModelData + predicate override sul modello
             // vanilla, vedi packFiles()): tenerli insieme copre entrambe le strade con cui il
             // client potrebbe risolvere l'aspetto dell'oggetto, come raccomanda Oraxen stesso.
