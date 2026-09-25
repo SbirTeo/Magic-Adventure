@@ -166,7 +166,15 @@ public final class MagixEntities extends JavaPlugin {
                                 + "1): usa l'attributo vanilla dell'entità, quindi ingrandisce o rimpicciolisce tutto "
                                 + "— skin, equipaggiamento, hitbox — insieme. Vale per qualunque tipo, non solo per "
                                 + "il tipo player: è così che si fa una statua gigante con la skin di un giocatore "
-                                + "che segue con lo sguardo, combinando `scale` con `follow`.")
+                                + "che segue con lo sguardo, combinando `scale` con `follow`.",
+                        "`/mentities pose <nome> sitting` non usa una Pose vanilla del Mannequin (quelle vere sono "
+                                + "sleeping, swimming, sneaking, fall_flying, standing): la seduta è un trucco a "
+                                + "parte, lo stesso che piega le gambe a un giocatore vero seduto su una barca o un "
+                                + "cavallo. Il plugin crea un piccolo ArmorStand invisibile, ci monta sopra la "
+                                + "statua e lo gestisce da solo (respawn compreso). Se l'altezza non torna si "
+                                + "aggiusta `player.seat-y-offset` nel config, senza toccare il codice. Limite "
+                                + "noto: le copie a specchio (skin/nome mirror) non hanno un sedile proprio e "
+                                + "restano in piedi anche con posa sitting.")
 
                 .section("Azioni al clic",
                         "A un'entità si può attaccare un'azione: eseguire un comando, aprire un menu, mandare un "

@@ -44,6 +44,11 @@ public final class NpcDef {
     public String pose;
     /** Scala dell'entita' (1.0 = normale). Vale per qualunque tipo, non solo player. */
     public double scale = 1.0;
+    /**
+     * UUID del sedile invisibile usato dalla posa "sitting" (vedi NpcManager#applySeat); null se
+     * non serve. Solo per l'entita' vera, mai per le copie mirror (vedi il commento in apply()).
+     */
+    public UUID seatUuid;
 
     public final Map<String, Boolean> options = new LinkedHashMap<>();
 
