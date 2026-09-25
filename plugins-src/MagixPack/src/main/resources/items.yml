@@ -17,6 +17,15 @@
 #  modelli 3D o piu' layer.
 # =====================================================================
 
+# Oggetto di PROVA, per verificare che texture/modello/comando funzionino davvero end-to-end:
+# togli pure appena non serve piu'.
+test_gem:
+  material: PAPER
+  name: "&bGemma di Prova"
+  lore:
+    - "&7Oggetto di prova per MagixPack"
+    - "&7(texture generata, non vanilla)"
+
 # Esempio (rimuovi il commento e metti items/flaming_sword.png per provarlo):
 # flaming_sword:
 #   material: DIAMOND_SWORD

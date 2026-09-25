@@ -52,9 +52,11 @@ IGNORE_UNREAD = re.compile(
 
 # Files with a FIXED SCHEMA — config.yml, modules.yml and the per-feature files (tablist.yml...) —
 # are the ones where every key is read by the code, so [3] and [4] apply to them. The exceptions are
-# the STAFF CATALOGS, listed here: menus/*.yml is a subfolder (never listed) and sanctions.yml holds
-# entries the staff adds. renames.yml is not a config at all: it maps old key paths to new ones.
-CATALOGS = {"sanctions.yml", "renames.yml"}
+# the STAFF CATALOGS, listed here: menus/*.yml is a subfolder (never listed), sanctions.yml holds
+# entries the staff adds, and items.yml/glyphs.yml (MagixPack) hold the ids of custom items/glyphs
+# the staff defines, read dynamically (cfg.getKeys), never as a literal string in the code.
+# renames.yml is not a config at all: it maps old key paths to new ones.
+CATALOGS = {"sanctions.yml", "renames.yml", "items.yml", "glyphs.yml"}
 
 
 def file_keys(path):
