@@ -109,7 +109,14 @@ comando piu' comodo da ricordare quando si sta gia' lavorando sul displayname.
 l'entita' da vicino" (il comportamento normale di un mob rinominato col name tag) — `true` vuol
 dire "sempre visibile", come un cartello. Impostare solo la visibilita' a `false` lascerebbe
 comunque un nome sull'entita', che il client mostrerebbe ugualmente mirandola. Vale per qualunque
-tipo di entita' (statua o mob) e anche sulle skin a specchio.
+tipo di entita' (statua o mob).
+
+**Solo per il tipo `player`**, `nametag off` toglie anche il nome dal PROFILO stesso (stessa
+skin, texture intatte, solo senza l'etichetta): la targhetta VANILLA che il client disegna da
+solo (col nome del profilo/skin) quando ci si punta vicino a una statua e' un meccanismo
+**diverso e indipendente** dal customName sopra — legge il nome dal profilo, non dal cartello —
+e resterebbe visibile anche a nametag spento se si toccasse solo il customName. Funziona allo
+stesso modo anche sulle skin a specchio.
 
 `mirror` e' una **parola riservata** su `displayname` e su `skin` (vedi sotto), **non** su `name`:
 il nome e' un identificativo, li' `mirror` sarebbe solo un nome come un altro.
