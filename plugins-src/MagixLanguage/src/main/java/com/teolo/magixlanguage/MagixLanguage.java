@@ -82,7 +82,10 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         // Puro I/O su file: non deve bloccare il tick di avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         if (getConfig().getBoolean("translations.sync-on-start", true)) {
-            Bukkit.getScheduler().runTaskAsynchronously(this, () -> lastSyncResult = new TranslationSync(this).run());
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                lastSyncResult = new TranslationSync(this).run();
+                clearCatalogCaches();
+            });
         }
 
         getLogger().info("Avviato: lingua di default " + getConfig().getString("default-language", "it")
@@ -100,9 +103,21 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         reloadConfig();
         messages.reload();
         geo = buildGeoLookup();
+        clearCatalogCaches();
+        getLogger().info("Configurazione ricaricata.");
+    }
+
+    /**
+     * Svuota le cache dei cataloghi tradotti, cosi' la prossima {@link #translate} rilegge i file
+     * appena scritti invece di continuare a servire quello che aveva in memoria da PRIMA della
+     * sincronizzazione (visto succedere davvero: centinaia di chiavi tradotte su disco, ma i
+     * giocatori online continuavano a vedere l'italiano perche' nessuno svuotava questa cache
+     * dopo un /language sync - solo /language reload lo faceva). Va chiamato dopo OGNI
+     * {@link TranslationSync#run()}, sia quello all'avvio che quello di /language sync.
+     */
+    public void clearCatalogCaches() {
         catalogCache.clear();
         menuPhraseCache.clear();
-        getLogger().info("Configurazione ricaricata.");
     }
 
     private GeoLookup buildGeoLookup() {

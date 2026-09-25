@@ -112,6 +112,7 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
             }
             TranslationSync.Result result = sync.run();
             plugin.setLastSyncResult(result);
+            plugin.clearCatalogCaches(); // altrimenti i giocatori online continuano a vedere quello che c'era in memoria da prima
             Bukkit.getScheduler().runTask(plugin, () -> msg.send(sender, "sync-done",
                     "plugins", String.valueOf(result.pluginsScanned()),
                     "translated", String.valueOf(result.keysTranslated()),
