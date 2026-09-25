@@ -169,6 +169,17 @@ public final class TranslationSync {
         }
     }
 
+    /** Cancella il segna-tentativo di oggi: il prossimo {@link #run()} prova MyMemory anche se oggi
+     *  e' gia' stato tentato. Usato da "/language sync force", per verificare a mano se un blocco
+     *  (HTTP 429) si e' liberato senza aspettare la mezzanotte. */
+    public void forceNextAttempt() {
+        try {
+            Files.deleteIfExists(new File(plugin.getDataFolder(), LAST_ATTEMPT_FILE).toPath());
+        } catch (IOException e) {
+            log.warning("MagixLanguage: impossibile azzerare il tentativo di oggi (" + e + ").");
+        }
+    }
+
     /** Segna il tentativo di oggi come usato, PRIMA di sapere se andra' a buon fine: e' il punto,
      *  altrimenti un tentativo fallito subito (HTTP 429) non risparmierebbe i riavvii successivi. */
     private void markAttemptedToday() {

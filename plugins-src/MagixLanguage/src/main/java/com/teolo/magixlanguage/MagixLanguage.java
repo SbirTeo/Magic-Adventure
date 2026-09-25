@@ -411,8 +411,10 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "le chiavi gia' tradotte in cache continuano comunque ad aggiornarsi a ogni "
                                 + "riavvio: solo le chiamate di rete vere e proprie verso MyMemory si fermano dopo "
                                 + "il primo tentativo del giorno (il file last-translation-attempt.txt nella "
-                                + "cartella dati tiene la data; cancellarlo forza un nuovo tentativo prima di "
-                                + "mezzanotte, utile solo per verificare se un blocco si e' gia' liberato).")
+                                + "cartella dati tiene la data). Per un tentativo vero prima di mezzanotte, tipico "
+                                + "per verificare se un blocco si e' gia' liberato, c'e' /language sync force: "
+                                + "ignora il segna-tentativo di oggi e riprova subito su MyMemory (equivale a "
+                                + "cancellare a mano last-translation-attempt.txt e poi lanciare /language sync).")
                 .issue("Un colore o un placeholder e' sparito da un messaggio tradotto",
                         "Il servizio di traduzione puo' alterare un segnaposto interno (successo davvero: ha "
                                 + "tolto una coppia di parentesi da uno, lasciando un residuo tipo &quot;[2]&quot; al "

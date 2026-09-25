@@ -40,7 +40,7 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         switch (sub) {
             case "info" -> info(sender);
             case "set" -> set(sender, args);
-            case "sync" -> sync(sender);
+            case "sync" -> sync(sender, args);
             case "status" -> status(sender);
             case "reload" -> reload(sender);
             case "help", "?" -> help(sender);
@@ -98,14 +98,19 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         msg.send(sender, "set-self", "lang", lang);
     }
 
-    private void sync(CommandSender sender) {
+    private void sync(CommandSender sender, String[] args) {
         if (!sender.hasPermission(ADMIN)) {
             msg.send(sender, "no-permission");
             return;
         }
-        msg.send(sender, "sync-running");
+        boolean force = args.length >= 2 && args[1].equalsIgnoreCase("force");
+        msg.send(sender, force ? "sync-running-force" : "sync-running");
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            TranslationSync.Result result = new TranslationSync(plugin).run();
+            TranslationSync sync = new TranslationSync(plugin);
+            if (force) {
+                sync.forceNextAttempt(); // ignora il tentativo gia' fatto oggi: un colpo vero e proprio
+            }
+            TranslationSync.Result result = sync.run();
             plugin.setLastSyncResult(result);
             Bukkit.getScheduler().runTask(plugin, () -> msg.send(sender, "sync-done",
                     "plugins", String.valueOf(result.pluginsScanned()),
@@ -179,6 +184,9 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
             return filter(plugin.getConfig().getStringList("supported-languages"), args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("sync") && admin) {
+            return filter(List.of("force"), args[1]);
         }
         return Collections.emptyList();
     }

@@ -33,6 +33,7 @@ set-other: "&aLingua di &e{player}&a impostata su &e{lang}&a."
 # {plugins} plugin scansionati - {translated} chiavi tradotte adesso - {reused} gia' in cache - {failed} fallite (restano in italiano)
 sync-done: "&aSincronizzazione completata: &e{plugins}&a plugin, &e{translated}&a chiavi tradotte, &e{reused}&a gia' in cache, &e{failed}&a fallite."
 sync-running: "&eSincronizzazione in corso: puo' volerci un po' se ci sono molte chiavi nuove da tradurre..."
+sync-running-force: "&eSincronizzazione forzata in corso: ignoro il tentativo di traduzione gia' fatto oggi, riprovo subito su MyMemory..."
 
 # /language status: stato dell'ultima sincronizzazione (avvio o /language sync), plugin per plugin.
 status-none: "&eNessuna sincronizzazione ancora eseguita in questa sessione. Aspetta l'avvio automatico o lancia &e/language sync&e."
@@ -57,5 +58,6 @@ help:
       entries:
         - "/language set <it|en|es|de> <giocatore> :: cambia la lingua di un altro giocatore"
         - "/language sync :: ricopia i messaggi degli altri plugin da tradurre"
+        - "/language sync force :: come sopra, ma ignora il tentativo gia' fatto oggi (un colpo vero anche se e' gia' scattato il limite di un tentativo al giorno)"
         - "/language status :: quante chiavi sono tradotte/mancanti, plugin per plugin"
         - "/language reload :: ricarica config.yml e messages.yml"
