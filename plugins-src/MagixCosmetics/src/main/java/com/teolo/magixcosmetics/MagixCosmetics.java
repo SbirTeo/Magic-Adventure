@@ -105,8 +105,8 @@ public final class MagixCosmetics extends JavaPlugin {
                                 + "LuckPerms sul grado VIP. Non serve nessun comando per accenderla — appena il permesso "
                                 + "c'è, l'aureola compare, MA senza un colore resta invisibile: vedi sotto.",
                         "Un VIP che non la vuole può spegnersela con **/halo off** e riaccenderla con "
-                                + "**/halo on**. Questa scelta vive in memoria: a un riavvio del server torna "
-                                + "accesa per tutti.")
+                                + "**/halo on**. La scelta resta salvata (`players.yml`): un riavvio del server "
+                                + "non la riaccende da solo.")
 
                 .section("Il colore: nessuno di serie, dipende dal permesso",
                         "Non c'è un colore di default: ogni colore della tavolozza (**halo.colors** nel config) ha "

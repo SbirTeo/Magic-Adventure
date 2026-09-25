@@ -69,10 +69,11 @@ public final class HaloManager {
     private boolean hideWhileFighting;
     private long combatCooldownMs;
 
-    /** Chi ha spento la PROPRIA aureola con /halo off. In memoria: default accesa. */
+    /** Chi ha spento la PROPRIA aureola con /halo off. Persistito su players.yml (vedi {@link #store}). */
     private final Set<UUID> disabled = new HashSet<>();
-    /** Il colore scelto da ognuno con /halo setcolor. In memoria: senza scelta si usa il primo colore permesso. */
+    /** Il colore scelto da ognuno con /halo setcolor. Persistito su players.yml (vedi {@link #store}). */
     private final Map<UUID, String> chosenColor = new HashMap<>();
+    private final HaloStore store;
     /** Istante (ms) dell'ultimo colpo dato o subito in PvP: serve al cooldown post-combattimento. */
     private final Map<UUID, Long> lastCombatAt = new HashMap<>();
 
@@ -82,9 +83,10 @@ public final class HaloManager {
 
     public HaloManager(MagixCosmetics plugin) {
         this.plugin = plugin;
+        this.store = new HaloStore(plugin);
     }
 
-    /** Rilegge i valori dal config.yml. */
+    /** Rilegge i valori dal config.yml e le scelte personali salvate su players.yml. */
     public void load() {
         var c = plugin.getConfig();
         enabled = c.getBoolean("halo.enabled", true);
@@ -104,6 +106,8 @@ public final class HaloManager {
         hideWhenInvisible = c.getBoolean("halo.hide-when-invisible", true);
         hideWhileFighting = c.getBoolean("halo.combat.hide-while-fighting", true);
         combatCooldownMs = Math.max(0, c.getLong("halo.combat.cooldown-after-combat-seconds", 30)) * 1000L;
+
+        store.load(chosenColor, disabled);
     }
 
     /** Fa ripartire il task col nuovo intervallo (o non parte affatto se l'aureola e' spenta). */
@@ -176,6 +180,7 @@ public final class HaloManager {
     public void toggle(UUID id, boolean on) {
         if (on) disabled.remove(id);
         else disabled.add(id);
+        store.save(chosenColor, disabled);
     }
 
     public boolean enabled() {
@@ -208,6 +213,7 @@ public final class HaloManager {
     /** Ricorda la scelta di colore del giocatore (il comando controlla gia' il permesso prima di chiamarlo). */
     public void setColor(UUID id, String name) {
         chosenColor.put(id, name);
+        store.save(chosenColor, disabled);
     }
 
     /** Il nodo di permesso che sblocca un colore, es. "magixcosmetics.halo.color.yellow". */
