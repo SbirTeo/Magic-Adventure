@@ -395,12 +395,26 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "correzione che resti, va usato il file -overrides.yml (vedi sopra), non "
                                 + "&lt;lingua&gt;.yml direttamente.")
                 .issue("Tante chiavi restano in italiano dopo una sincronizzazione",
-                        "Probabile limite giornaliero del servizio di traduzione (MyMemory, gratuito): con "
-                                + "/language status si vede subito quante ne mancano per ogni plugin, e nel log "
-                                + "compare 'rifiutata (risposta HTTP 429)' o 'interrotta la traduzione automatica'. "
-                                + "Non serve intervenire: si riprova da sola ai prossimi riavvii/sync, quando la "
-                                + "quota si libera. Per alzare il limite (5000 -> 10000 parole/giorno) si puo' "
-                                + "impostare translations.auto-translate.contact-email nel config.")
+                        "Probabile limite del servizio di traduzione (MyMemory, gratuito): con /language status "
+                                + "si vede subito quante ne mancano per ogni plugin, e nel log compare 'rifiutata "
+                                + "(risposta HTTP 429)' o 'interrotta la traduzione automatica'. Non serve "
+                                + "intervenire: si riprova da sola al prossimo giorno. Per alzare il limite (5000 "
+                                + "-> 10000 parole/giorno) si puo' impostare translations.auto-translate.contact-email "
+                                + "nel config.")
+                .issue("Perche' non riprova subito, a ogni riavvio",
+                        "Per disegno: si tenta una traduzione vera al massimo UNA volta al giorno, qualunque cosa "
+                                + "succeda nel frattempo (un riavvio dopo un deploy, un /language sync lanciato a "
+                                + "mano...). MyMemory non ha solo una quota di parole al giorno: ha anche un limite "
+                                + "di frequenza (HTTP 429) che un IP puo' far scattare ripetendo il tentativo troppo "
+                                + "spesso, e quel blocco puo' restare attivo ben oltre un giorno — e' successo "
+                                + "davvero con una decina di riavvii ravvicinati in poche ore. Lo specchio it.yml e "
+                                + "le chiavi gia' tradotte in cache continuano comunque ad aggiornarsi a ogni "
+                                + "riavvio: solo le chiamate di rete vere e proprie verso MyMemory si fermano dopo "
+                                + "il primo tentativo del giorno (il file last-translation-attempt.txt nella "
+                                + "cartella dati tiene la data). Per un tentativo vero prima di mezzanotte, tipico "
+                                + "per verificare se un blocco si e' gia' liberato, c'e' /language sync force: "
+                                + "ignora il segna-tentativo di oggi e riprova subito su MyMemory (equivale a "
+                                + "cancellare a mano last-translation-attempt.txt e poi lanciare /language sync).")
                 .issue("Un colore o un placeholder e' sparito da un messaggio tradotto",
                         "Il servizio di traduzione puo' alterare un segnaposto interno (successo davvero: ha "
                                 + "tolto una coppia di parentesi da uno, lasciando un residuo tipo &quot;[2]&quot; al "
@@ -408,6 +422,14 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "traduzione invece di mostrarla rotta, e alla sincronizzazione successiva scarta "
                                 + "anche una vecchia traduzione gia' in cache che avesse lo stesso problema, "
                                 + "ritraducendola — ma serve un nuovo /language sync o riavvio perche' succeda.")
+                .issue("Uno spazio manca vicino a &lt;argomento&gt; in una riga tradotta (es. &quot;/login&lt;password&gt;&quot; attaccato)",
+                        "MyMemory scambiava &lt;password&gt; per un tag HTML e ne mangiava lo spazio intorno: "
+                                + "successo davvero nell'aiuto (/help) di piu' plugin. Da quando Translator protegge "
+                                + "anche questi argomenti (come gia' faceva per {player} e i colori) non ricapita "
+                                + "nelle traduzioni nuove, e lo stesso rilevamento del problema sopra scarta da solo "
+                                + "le vecchie traduzioni in cache con lo spazio mangiato — anche qui serve un nuovo "
+                                + "/language sync o riavvio (o /language sync force, per non aspettare) perche' "
+                                + "vengano rifatte.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")

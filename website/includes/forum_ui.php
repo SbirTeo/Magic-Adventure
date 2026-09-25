@@ -52,7 +52,7 @@ function forum_tinta_hex(int $categoriaId): string {
  */
 function forum_latest_posts(): array {
     $sql = "SELECT t.category_id, t.id AS topic_id, t.title, p.created_at,
-                   u.mc_username, u.mc_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . "
+                   u.mc_username, u.mc_uuid, u.premium_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . "
             FROM forum_posts p
             JOIN forum_topics t ON t.id = p.topic_id
             JOIN users u ON u.id = p.user_id" . rank_join_sql() . "
@@ -195,7 +195,7 @@ function forum_riga_sezione(array $sez, ?array $ultimo): void {
 
 /** Faccia del giocatore, con il posto gia' riservato: niente salti mentre carica. */
 function forum_faccia(?array $riga, int $misura = 40): string {
-    $img = '<img class="forum-faccia" src="' . h(mc_avatar_url($riga['mc_uuid'] ?? null, $misura * 2))
+    $img = '<img class="forum-faccia" src="' . h(mc_avatar_url($riga['mc_uuid'] ?? null, $misura * 2, $riga['premium_uuid'] ?? null))
         . '" alt="" width="' . $misura . '" height="' . $misura . '" loading="lazy">';
     // Corona del miglior sostenitore: passa da qui tutto il forum (autori, elenchi, firme).
     // I cuoricini solo sulle facce grandi: su una da 24px sarebbero coriandoli.
@@ -312,7 +312,7 @@ function forum_ultime_discussioni(int $quante = 6): array {
     $stmt = db()->prepare("
         SELECT t.id, t.title, t.last_post_at, t.views,
                c.name AS cat_name, c.slug AS cat_slug, c.id AS cat_id, c.color AS cat_color,
-               u.mc_username, u.mc_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . ",
+               u.mc_username, u.mc_uuid, u.premium_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . ",
                (SELECT COUNT(*) FROM forum_posts p WHERE p.topic_id = t.id) AS post_count
         FROM forum_topics t
         JOIN forum_categories c ON c.id = t.category_id

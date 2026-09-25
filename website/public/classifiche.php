@@ -119,7 +119,7 @@ if ($factions) {
     try {
         $q = db()->prepare(
             'SELECT m.faction_id, m.rank, p.name AS mc_name, m.uuid AS mc_uuid, p.power,
-                    u.mc_username AS site_name
+                    u.mc_username AS site_name, u.premium_uuid
                FROM factions_magixfactions.faction_members m
                JOIN factions_magixfactions.players p ON p.uuid = m.uuid
                LEFT JOIN users u ON u.mc_uuid = m.uuid COLLATE utf8mb4_unicode_ci
@@ -187,7 +187,7 @@ function faction_info_popup(array $f, array $members, array $alliesList, int $vi
             $mcName = (string) $m['mc_name'];
             $siteName = $m['site_name'] ?? null;
             // avatar_top aggiunge la CORONA se questo uuid è il miglior sostenitore (convenzione del sito).
-            $img = avatar_top('<img src="' . h(mc_avatar_url((string) $m['mc_uuid'], 40)) . '" alt="' . h($mcName) . '" width="34" height="34" loading="lazy">', (string) $m['mc_uuid'], 34);
+            $img = avatar_top('<img src="' . h(mc_avatar_url((string) $m['mc_uuid'], 40, $m['premium_uuid'] ?? null)) . '" alt="' . h($mcName) . '" width="34" height="34" loading="lazy">', (string) $m['mc_uuid'], 34);
             $title = h($mcName) . ' · ' . h(rank_name((string) $rankId)) . ' · Potenza ' . (int) $m['power'];
             if ($siteName) {
                 $avatars .= '<a class="fi-av" href="' . h('utente?nome=' . rawurlencode((string) $siteName)) . '" title="' . $title . '">' . $img . '</a>';
@@ -321,7 +321,7 @@ function player_name_cell(array $p, int $viewerFactionId, array $allies): string
     $relCls = faction_rel_class((int) ($p['faction_id'] ?? 0), $viewerFactionId, $allies);
     $facName = trim((string) ($p['faction_name'] ?? ''));
 
-    $avatar = avatar_top('<img src="' . h(mc_avatar_url((string) ($p['mc_uuid'] ?? ''), 64)) . '" alt="' . h($name) . '" width="48" height="48" loading="lazy">', (string) ($p['mc_uuid'] ?? ''), 48);
+    $avatar = avatar_top('<img src="' . h(mc_avatar_url((string) ($p['mc_uuid'] ?? ''), 64, $p['premium_uuid'] ?? null)) . '" alt="' . h($name) . '" width="48" height="48" loading="lazy">', (string) ($p['mc_uuid'] ?? ''), 48);
     $card = '<span class="pl-card">' . $avatar . '<span class="pl-card-info">'
           . '<span class="pl-card-name ' . $relCls . '">' . h($name) . '</span>'
           . ($facName !== '' ? '<span class="pl-card-fac ' . $relCls . '">' . h($facName) . '</span>' : '')
@@ -600,7 +600,8 @@ try {
                 (SELECT fo.name FROM factions_magixfactions.factions fo
                    JOIN factions_magixfactions.faction_members mm ON mm.faction_id = fo.id
                   WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
-                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
+                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name,
+                (SELECT u.premium_uuid FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS premium_uuid
            FROM factions_magixfactions.players p
           WHERE p.play_seconds > 0 AND p.name IS NOT NULL AND COALESCE(p.leaderboard_hidden, 0) = 0
           ORDER BY p.play_seconds DESC, p.name ASC LIMIT 50'
@@ -612,7 +613,8 @@ try {
                 (SELECT fo.name FROM factions_magixfactions.factions fo
                    JOIN factions_magixfactions.faction_members mm ON mm.faction_id = fo.id
                   WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
-                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
+                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name,
+                (SELECT u.premium_uuid FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS premium_uuid
            FROM factions_magixfactions.players p
           WHERE p.money_seconds > 0 AND p.name IS NOT NULL AND COALESCE(p.leaderboard_hidden, 0) = 0
           ORDER BY avg_money DESC, p.name ASC LIMIT 50'
@@ -624,7 +626,8 @@ try {
                 (SELECT fo.name FROM factions_magixfactions.factions fo
                    JOIN factions_magixfactions.faction_members mm ON mm.faction_id = fo.id
                   WHERE mm.uuid = p.uuid LIMIT 1) AS faction_name,
-                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name
+                (SELECT u.mc_username FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS site_name,
+                (SELECT u.premium_uuid FROM users u WHERE u.mc_uuid = p.uuid COLLATE utf8mb4_unicode_ci LIMIT 1) AS premium_uuid
            FROM factions_magixfactions.players p
           WHERE p.kills > 0 AND p.name IS NOT NULL AND COALESCE(p.leaderboard_hidden, 0) = 0
           ORDER BY p.kills DESC, p.deaths ASC, p.name ASC LIMIT 50'

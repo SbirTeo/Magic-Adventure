@@ -24,7 +24,7 @@ function forum_discussioni(array $categorieId): array {
     }
     $segni = implode(',', array_fill(0, count($categorieId), '?'));
     $stmt = db()->prepare("
-        SELECT t.*, u.mc_username, u.mc_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . ",
+        SELECT t.*, u.mc_username, u.mc_uuid, u.premium_uuid, u.is_admin, u.last_seen, " . RANK_SELECT_SQL . ",
                (SELECT COUNT(*) FROM forum_posts p WHERE p.topic_id = t.id) AS post_count
         FROM forum_topics t
         JOIN users u ON u.id = t.user_id" . rank_join_sql() . "

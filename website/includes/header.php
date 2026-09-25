@@ -568,7 +568,7 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         <a href="/profilo" class="btn btn-ghost who-link<?= $__currentPath === '/profilo' ? ' active' : '' ?>" title="Il tuo profilo">
           <?php /* Corona anche qui, se e' il miglior sostenitore: senza cuoricini, nella
                    barra sarebbero rumore in mezzo ai pulsanti. */ ?>
-          <?= avatar_top('<img class="who-avatar" src="' . h(mc_avatar_url($__u['mc_uuid'], 64)) . '" alt="" width="28" height="28">', $__u['mc_uuid'], 28) ?>
+          <?= avatar_top('<img class="who-avatar" src="' . h(mc_avatar_url($__u['mc_uuid'], 64, $__u['premium_uuid'] ?? null)) . '" alt="" width="28" height="28">', $__u['mc_uuid'], 28) ?>
           <span class="who colore-grado"<?= $__coloreNome !== null ? ' style="' . rank_color_style($__coloreNome) . '"' : '' ?>><?= h($__u['mc_username']) ?></span>
         </a>
         <?php if (can_manage()): ?>

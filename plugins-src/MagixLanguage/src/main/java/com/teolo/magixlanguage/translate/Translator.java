@@ -37,10 +37,13 @@ public final class Translator {
     /** {chiave}, %chiave% (PlaceholderAPI, usato nei menu di MagixMenus), &#RRGGBB, &<colore>,
      *  \n letterale (due caratteri, gestito da Colors.translate), | (separatore, es. nei titoli
      *  "Grande|piccolo" di MagixMenus: senza protezione un servizio di traduzione puo' spostarlo
-     *  o toglierlo). */
+     *  o toglierlo), e &lt;argomento&gt; (es. "/login &lt;password&gt;" nelle righe di uso e di
+     *  aiuto: senza protezione MyMemory lo scambia per un tag HTML e mangia lo spazio prima o dopo
+     *  - visto succedere davvero, "/login&lt;password&gt;" attaccato). Un livello di annidamento
+     *  (es. "&lt;info|migrate &lt;sqlite|mariadb&gt;&gt;") e' incluso apposta. */
     private static final Pattern TOKEN = Pattern.compile(
             "\\{[a-zA-Z0-9_]+}" + "|%[a-zA-Z0-9_]+%" + "|&#[0-9a-fA-F]{6}" + "|&[0-9a-fk-orA-FK-OR]"
-                    + "|\\\\n" + "|\\|");
+                    + "|\\\\n" + "|\\|" + "|<(?:[^<>]|<[^<>]*>)*>");
 
     private static final Pattern TRANSLATED_TEXT = Pattern.compile("\"translatedText\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
     private static final Pattern RESPONSE_STATUS = Pattern.compile("\"responseStatus\"\\s*:\\s*\"?(\\d+)\"?");
@@ -119,6 +122,17 @@ public final class Translator {
     /** Se false, {@link #translate} non prova nemmeno piu' la rete: vedi {@link #MAX_CONSECUTIVE_FAILURES}. */
     public boolean isAvailable() {
         return !circuitOpen;
+    }
+
+    /**
+     * Apre il circuito senza nemmeno provare una chiamata: usato quando il tentativo di
+     * traduzione di oggi e' gia' stato consumato da un giro precedente (vedi
+     * {@code TranslationSync}, un tentativo al giorno per non farsi bloccare da MyMemory a furia
+     * di riavvii). Le chiavi gia' in cache continuano comunque a funzionare: solo le chiamate di
+     * rete vere e proprie si fermano.
+     */
+    public void forceUnavailable() {
+        circuitOpen = true;
     }
 
     private String call(String text, String targetLang) {
