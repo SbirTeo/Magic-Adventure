@@ -82,15 +82,18 @@ public final class MirrorManager {
     }
 
     /**
-     * Raggio entro cui un giocatore ha la sua copia. Con lo specchio e' mirror.radius (fuori non si
-     * vede niente, l'entita' vera e' nascosta a tutti); col solo follow e' il raggio del follow di
-     * quell'entita' (o follow.radius): oltre, la copia non guarderebbe comunque nessuno, e si vede
-     * l'entita' vera.
+     * Raggio entro cui un giocatore ha la sua copia: mirror.radius, sia con lo specchio (fuori non si
+     * vede niente, l'entita' vera e' nascosta a tutti) sia col solo follow (fuori si vede l'entita'
+     * vera). Se il raggio del follow e' piu' grande, vale quello.
      */
     private double radius(NpcDef d) {
-        return d.hidesReal()
-                ? plugin.getConfig().getDouble("mirror.radius", 48.0)
-                : d.followRadiusOr(plugin.getConfig().getDouble("follow.radius", 12.0));
+        double mirrorRadius = plugin.getConfig().getDouble("mirror.radius", 48.0);
+        if (d.hidesReal()) return mirrorRadius;
+        // Follow personale: la copia nasce gia' a distanza di visibilita' (mirror.radius), non al
+        // raggio del follow. Il cambio entita' vera <-> copia avviene quindi dove quasi non si vede;
+        // col raggio del follow lo si vedeva a pochi blocchi, come una statua ricreata a ogni
+        // avvicinamento. Il raggio del follow decide solo quando la copia ti guarda (LookManager).
+        return Math.max(mirrorRadius, d.followRadiusOr(plugin.getConfig().getDouble("follow.radius", 12.0)));
     }
 
     /**
@@ -207,16 +210,18 @@ public final class MirrorManager {
      * follow personale l'entita' vera era nascosta al proprietario della copia: gli torna visibile.
      */
     private void removeClone(NpcDef d, UUID ownerId, UUID cloneId) {
-        Entity e = Bukkit.getEntity(cloneId);
-        if (e != null) e.remove();
-        UUID seatId = seats.remove(cloneId);
-        Entity seat = seatId == null ? null : Bukkit.getEntity(seatId);
-        if (seat != null) seat.remove();
+        // Prima si rimostra l'entita' vera, POI si toglie la copia: al contrario ci sarebbe un
+        // istante senza niente, e la statua sembrerebbe sparire e rinascere.
         if (d != null && !d.hidesReal()) {
             Player owner = Bukkit.getPlayer(ownerId);
             Entity real = npcs.entityOf(d);
             if (owner != null && real != null) owner.showEntity(plugin, real);
         }
+        Entity e = Bukkit.getEntity(cloneId);
+        if (e != null) e.remove();
+        UUID seatId = seats.remove(cloneId);
+        Entity seat = seatId == null ? null : Bukkit.getEntity(seatId);
+        if (seat != null) seat.remove();
     }
 
     /** Ferma il task dell'aureola (solo spegnimento del plugin: /mentities reload non lo tocca). */

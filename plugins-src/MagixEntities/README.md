@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che crea e gestisce **entita' statiche da comando**, stile Citizens,
 comprese le **statue con la skin di un giocatore**.
 
-Versione: **0.9.21** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
+Versione: **0.9.22** — questo file viene riscritto in `plugins/MagixEntities/README.md` ad ogni avvio del server.
 
 ---
 
@@ -166,9 +166,12 @@ I default delle nuove entita' si cambiano nella sezione `defaults` di `config.ym
 
 Ognuno, entro `follow.radius` (default 12 blocchi), vede l'entita' girata verso **di se'** — non
 verso il giocatore piu' vicino: due persone davanti alla stessa statua si vedono guardate entrambe.
-Una testa sola non puo' guardare due persone, quindi funziona come lo specchio: ogni giocatore nel
-raggio ha una sua **copia personale**, visibile solo a lui, che guarda lui. Da piu' lontano si vede
-l'entita' vera, ferma nella rotazione salvata (una statua gigante resta visibile anche da lontano).
+Una testa sola non puo' guardare due persone, quindi funziona come lo specchio: ogni giocatore entro
+`mirror.radius` (48 blocchi, circa la distanza a cui si cominciano a vedere le entita') ha una sua
+**copia personale**, visibile solo a lui; entro il raggio del follow la copia lo guarda, fuori resta
+dritta. Il cambio fra entita' vera e copia avviene cosi' lontano, dove quasi non si vede: fatto al
+raggio del follow, la statua sembrava ricrearsi a ogni avvicinamento. Oltre `mirror.radius` si vede
+l'entita' vera, ferma (una statua gigante resta visibile anche da lontano).
 L'aggiornamento avviene ogni `follow.interval-ticks` (default 5 tick = 4 volte al secondo).
 
 Il raggio si puo' dare **per singola entita'**: `/mentities followradius <nome> <blocchi>` (da 1 a
@@ -176,7 +179,7 @@ Il raggio si puo' dare **per singola entita'**: `/mentities followradius <nome> 
 lontano vuole un raggio grande, un NPC in un corridoio uno piccolo.
 
 Ruota **testa e corpo** (solo la testa lascerebbe il busto storto). **Costo:** una copia per ogni
-giocatore entro il raggio. Come per lo specchio, un plugin che lega l'azione del clic
+giocatore entro `mirror.radius`. Come per lo specchio, un plugin che lega l'azione del clic
 all'UUID dell'entita' (es. `cmi:interactivecommand`) non vede le copie: usa i comandi al clic di
 MagixEntities.
 

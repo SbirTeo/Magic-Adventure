@@ -30,10 +30,11 @@ defaults:
   follow: false
 
 follow:
-  # Opzione "follow" (/mentities set <nome> follow on): ogni giocatore entro questo raggio ha una sua
-  # copia dell'entita', visibile solo a lui, che guarda lui; oltre il raggio si vede l'entita' vera,
-  # ferma. Piu' e' grande, piu' copie esistono insieme (una per giocatore nel raggio). E' il valore
-  # di default: ogni entita' puo' averne uno suo con /mentities followradius <nome> <blocchi>.
+  # Opzione "follow" (/mentities set <nome> follow on): entro questo raggio ognuno vede l'entita'
+  # girata verso di se'. Funziona con una copia per giocatore (visibile solo a lui) che nasce gia' a
+  # mirror.radius, cosi' il cambio fra entita' vera e copia non si vede da vicino; questo raggio
+  # decide solo quando la copia ti guarda. E' il valore di default: ogni entita' puo' averne uno suo
+  # con /mentities followradius <nome> <blocchi>.
   radius: 12
   # Ogni quanti tick viene aggiornato l'orientamento (5 = 4 volte al secondo).
   interval-ticks: 5

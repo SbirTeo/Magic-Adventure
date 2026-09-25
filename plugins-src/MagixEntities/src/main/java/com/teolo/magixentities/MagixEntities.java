@@ -172,8 +172,10 @@ public final class MagixEntities extends JavaPlugin {
                                 + "testa: si toglie il nome dal profilo stesso, non solo dal cartello.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
                                 + "Si accende per singola entità, e ognuno la vede girata verso di sé, non verso il "
-                                + "giocatore più vicino: ogni giocatore entro follow.radius ha una sua copia "
-                                + "personale che guarda lui, e da più lontano si vede l'entità vera, ferma. Il raggio "
+                                + "giocatore più vicino: ogni giocatore entro mirror.radius ha una sua copia "
+                                + "personale, che lo guarda quando è entro il raggio del follow. La copia nasce così "
+                                + "lontano apposta: il cambio fra entità vera e copia, fatto da vicino, sembrava una "
+                                + "statua che si ricrea. Oltre mirror.radius si vede l'entità vera, ferma. Il raggio "
                                 + "si può dare per singola entità con `/mentities followradius <nome> <blocchi>` "
                                 + "(`reset` torna a follow.radius), o dal cannocchiale nell'editor.",
                         "La scala si cambia con `/mentities scale <nome> <valore>` (1 = normale, `reset` torna a "
