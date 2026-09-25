@@ -225,7 +225,8 @@ public final class TranslationSync {
 
             Object cachedSource = cache.source().get(key);
             Object cachedTranslated = cache.translated().get(key);
-            if (cachedTranslated != null && Objects.equals(cachedSource, italianValue) && !looksCorrupted(cachedTranslated)) {
+            if (cachedTranslated != null && Objects.equals(cachedSource, italianValue)
+                    && !looksCorrupted(italianValue, cachedTranslated)) {
                 result.put(key, cachedTranslated);
                 newCacheSource.put(key, italianValue);
                 newCacheTranslated.put(key, cachedTranslated);
@@ -279,17 +280,36 @@ public final class TranslationSync {
      */
     private static final Pattern GLUED_BRACKET = Pattern.compile("[\\p{L}\\p{N}]<|>[\\p{L}\\p{N}]");
 
-    private static boolean looksCorrupted(Object value) {
-        if (value instanceof String s) {
-            return SUSPECT_LEFTOVER.matcher(s).find() || GLUED_BRACKET.matcher(s).find();
+    /** True se una stringa ha uno spazio a inizio/fine e l'altra no: un padding voluto (es.
+     *  " « indietro " per staccare la scritta dai bordi cliccabili) che un servizio di traduzione
+     *  ha mangiato non lascia mai un valore identico su questo fronte. */
+    private static boolean edgeWhitespaceMismatch(String source, String translated) {
+        boolean sourceLeading = !source.isEmpty() && Character.isWhitespace(source.charAt(0));
+        boolean sourceTrailing = !source.isEmpty() && Character.isWhitespace(source.charAt(source.length() - 1));
+        boolean translatedLeading = !translated.isEmpty() && Character.isWhitespace(translated.charAt(0));
+        boolean translatedTrailing = !translated.isEmpty() && Character.isWhitespace(translated.charAt(translated.length() - 1));
+        return sourceLeading != translatedLeading || sourceTrailing != translatedTrailing;
+    }
+
+    private static boolean lineCorrupted(String source, String translated) {
+        return SUSPECT_LEFTOVER.matcher(translated).find() || GLUED_BRACKET.matcher(translated).find()
+                || (source != null && edgeWhitespaceMismatch(source, translated));
+    }
+
+    private static boolean looksCorrupted(Object italianValue, Object cachedTranslated) {
+        if (cachedTranslated instanceof String s) {
+            String source = italianValue instanceof String is ? is : null;
+            return lineCorrupted(source, s);
         }
-        if (value instanceof List<?> list) {
-            for (Object line : list) {
-                if (line != null) {
-                    String s = String.valueOf(line);
-                    if (SUSPECT_LEFTOVER.matcher(s).find() || GLUED_BRACKET.matcher(s).find()) {
-                        return true;
-                    }
+        if (cachedTranslated instanceof List<?> list) {
+            List<?> sourceList = italianValue instanceof List<?> sl ? sl : null;
+            for (int i = 0; i < list.size(); i++) {
+                Object line = list.get(i);
+                if (line == null) continue;
+                String source = sourceList != null && i < sourceList.size() && sourceList.get(i) != null
+                        ? String.valueOf(sourceList.get(i)) : null;
+                if (lineCorrupted(source, String.valueOf(line))) {
+                    return true;
                 }
             }
         }

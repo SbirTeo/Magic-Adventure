@@ -30,6 +30,16 @@ import java.util.Objects;
  * zecca e' quando non ne ha ancora una sua (ha ancora quella CONDIVISA di tutti, che non puo'
  * portare contenuti diversi da giocatore a giocatore).
  *
+ * <h2>Il team che colora il nome</h2>
+ * Quando tocca crearne una nuova di zecca, nasce VUOTA — ma il team che colora il nome del
+ * giocatore (tag colorato, nome in tablist: qui lo fa CMI) di norma vive sulla scoreboard
+ * CONDIVISA, non su questa nuova. Senza far niente, il giocatore lo perderebbe (nome tornato
+ * vanilla) finche' non ricapita sulla condivisa — e ogni volta che ci ricapita e noi lo
+ * riprendiamo sulla nostra, si vedrebbe il nome sfarfallare fra colorato e vanilla in sincrono
+ * con la sidebar. {@link #mirrorNametagTeam} copia quel singolo team (nome, colore, prefisso e
+ * suffisso) sulla NOSTRA scoreboard, ricontrollato a ogni refresh cosi' un cambio di grado in
+ * corsa si vede lo stesso.
+ *
  * <h2>Perche' le righe sono squadre, non punteggi diretti</h2>
  * Un punteggio della sidebar vanilla e' legato a un "entry" (di norma il nome di un giocatore/team):
  * per avere un testo lungo, colorato e magari ripetuto identico su piu' righe (due frame diversi
@@ -56,6 +66,8 @@ final class PlayerBoard {
     private Component shownTitle;
     private boolean visible;
     private String currentBoardId;
+    private boolean ownScoreboard;
+    private String mirroredTeamName;
 
     PlayerBoard(Player player) {
         ensureAttached(player);
@@ -83,15 +95,45 @@ final class PlayerBoard {
             // (il giocatore e' solo tornato sulla condivisa nel frattempo): la si riassegna.
             if (scoreboard == null || scoreboard.equals(main)) {
                 attachTo(Bukkit.getScoreboardManager().getNewScoreboard());
+                ownScoreboard = true;
             }
             player.setScoreboard(scoreboard);
-            return;
-        }
-        if (!current.equals(scoreboard)) {
+        } else if (!current.equals(scoreboard)) {
             // Il giocatore ha ADESSO una scoreboard diversa dall'ultima che conoscevamo (sua, o di
-            // un altro plugin): ci si aggancia sopra quella, senza rimpiazzarla.
+            // un altro plugin): ci si aggancia sopra quella, senza rimpiazzarla. E' gia' quella che
+            // gestisce lui (o chi per lui), quindi non e' nostra: niente da rispecchiare da main.
             attachTo(current);
+            ownScoreboard = false;
         }
+        // Solo su una scoreboard NOSTRA il giocatore rischia di perdere il team che gli colora il
+        // nome (viveva sulla condivisa): su una di qualcun altro ce l'ha gia'.
+        if (ownScoreboard) mirrorNametagTeam(player, main);
+    }
+
+    /**
+     * Copia sulla nostra scoreboard il team a cui il giocatore appartiene su quella CONDIVISA (nome,
+     * colore, prefisso, suffisso) — tipicamente quello che gli colora il nome. Ricontrollato a ogni
+     * refresh: se cambia team (o esce da tutti) lo segue, se l'aspetto del team cambia lo aggiorna.
+     * Non copia le altre impostazioni del team (fuoco amico, visibilita' del nametag...): qui conta
+     * solo come il nome appare.
+     */
+    private void mirrorNametagTeam(Player player, Scoreboard main) {
+        Team source = main.getEntryTeam(player.getName());
+        String wanted = source != null ? source.getName() : null;
+        if (!Objects.equals(wanted, mirroredTeamName)) {
+            if (mirroredTeamName != null) {
+                Team old = scoreboard.getTeam(mirroredTeamName);
+                if (old != null) old.removeEntry(player.getName());
+            }
+            mirroredTeamName = wanted;
+        }
+        if (source == null) return;
+        Team local = scoreboard.getTeam(wanted);
+        if (local == null) local = scoreboard.registerNewTeam(wanted);
+        if (!Objects.equals(source.prefix(), local.prefix())) local.prefix(source.prefix());
+        if (!Objects.equals(source.suffix(), local.suffix())) local.suffix(source.suffix());
+        if (source.getColor() != local.getColor()) local.setColor(source.getColor());
+        if (!local.hasEntry(player.getName())) local.addEntry(player.getName());
     }
 
     /** (Ri)registra il nostro obiettivo e le nostre squadre sulla scoreboard indicata, riusando
