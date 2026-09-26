@@ -265,7 +265,11 @@ public final class MenuLoader {
         }
 
         String materiale = text(s, "id", "material", "materiale", "item", "tipo");
-        if (materiale == null && text(s, "head", "testa", "skull") == null) {
+        String magixpack = text(s, "magixpack");
+        if (magixpack != null) {
+            def.magixpack(magixpack);
+        }
+        if (materiale == null && magixpack == null && text(s, "head", "testa", "skull") == null) {
             errori.add("l'item \"" + key + "\" non dice che item e' (chiave id).");
             return null;
         }

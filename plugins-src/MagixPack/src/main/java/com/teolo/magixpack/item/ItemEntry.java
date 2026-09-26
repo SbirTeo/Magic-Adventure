@@ -28,8 +28,12 @@ import java.util.List;
  * ancora il modello al centro nominale del proprio spazio, non al fondo come un blocco, quindi
  * questo valore dipende dalla vera altezza del modello (letta dal suo JSON), non e' un fisso 0.5
  * uguale per tutti.
+ *
+ * <p>{@code playerAvatar} ({@code type: player-avatar} in items.yml): the item is built for a given
+ * player — their own head as icon and their full-body avatar in the lore (see
+ * {@code avatar.AvatarService}). No texture, no model: nothing of it goes in the pack.
  */
 public record ItemEntry(String id, String material, String name, List<String> lore, int customModelData,
                          boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired,
-                         double furnitureYOffset) {
+                         double furnitureYOffset, boolean playerAvatar) {
 }

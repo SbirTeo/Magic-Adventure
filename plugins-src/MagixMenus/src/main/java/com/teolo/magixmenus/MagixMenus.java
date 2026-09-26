@@ -146,6 +146,16 @@ public final class MagixMenus extends JavaPlugin {
                         "Se nel file si scrivono dei comandi, quei comandi vengono creati all'avvio e a ogni "
                                 + "reload. Per questo non li trovi nel plugin.yml: nascono dal file del menu.")
 
+                .section("Gli oggetti di MagixPack (magixpack: <id>)",
+                        "Un item del menu puo' essere un oggetto del catalogo di MagixPack (items.yml): "
+                                + "si scrive magixpack: avatar al posto di id:, e l'oggetto arriva gia' fatto, "
+                                + "texture e nome compresi. display_name del menu, se c'e', ne cambia il nome; "
+                                + "le righe di lore del menu vanno sopra la sua descrizione.",
+                        "L'oggetto viene costruito per CHI GUARDA il menu: l'avatar (type: player-avatar in "
+                                + "items.yml) mostra la testa di quel giocatore e, passandoci sopra, la sua figura "
+                                + "intera. Se MagixPack non c'e' o l'id non esiste al suo posto compare la "
+                                + "barriera rossa con il motivo.")
+
                 .section("Le chiavi si scrivono in inglese",
                         "Vale per tutti i plugin Magix: le chiavi dei config e dei formati di file sono "
                                 + "in inglese (slot, display_name, lore, show_requirements, actions, price). "
