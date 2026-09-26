@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -99,8 +100,15 @@ public final class ItemCatalog {
             boolean furnitureSolid = sec.getBoolean("furniture-solid", false);
             boolean furnitureShiftRequired = sec.getBoolean("furniture-shift-required", true);
             double furnitureYOffset = furniture ? furnitureYOffset(id) : 0.5;
+            int furnitureHits = Math.max(1, sec.getInt("furniture-hits", 1));
+            boolean furnitureDrop = sec.getBoolean("furniture-drop", false);
+            Sound furnitureHitSound = parseSound(sec.getString("furniture-hit-sound", "BLOCK_WOOD_HIT"),
+                    id, "furniture-hit-sound", Sound.BLOCK_WOOD_HIT);
+            Sound furnitureBreakSound = parseSound(sec.getString("furniture-break-sound", "BLOCK_WOOD_BREAK"),
+                    id, "furniture-break-sound", Sound.BLOCK_WOOD_BREAK);
             entries.put(id, new ItemEntry(id, materialName, name, lore, nextCustomModelData,
-                    furniture, furnitureSolid, furnitureShiftRequired, furnitureYOffset));
+                    furniture, furnitureSolid, furnitureShiftRequired, furnitureYOffset,
+                    furnitureHits, furnitureDrop, furnitureHitSound, furnitureBreakSound));
             nextCustomModelData++;
         }
         if (!entries.isEmpty()) {
@@ -161,6 +169,19 @@ public final class ItemCatalog {
             plugin.getLogger().warning("[Items] '" + id + "': impossibile leggere il modello per calcolare "
                     + "l'altezza della furniture (" + ex.getMessage() + "), uso 0.5 blocchi di default.");
             return 0.5;
+        }
+    }
+
+    /** Un nome di {@link Sound} scritto dallo staff in items.yml, con un default sensato se manca
+     *  o e' scritto male (avviso in console, non un oggetto ignorato: il suono e' solo un
+     *  dettaglio, non deve bloccare tutto il resto della voce). */
+    private Sound parseSound(String raw, String id, String key, Sound fallback) {
+        try {
+            return Sound.valueOf(raw.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("[Items] '" + id + "' in items.yml: " + key + " '" + raw
+                    + "' non esiste, uso " + fallback + ".");
+            return fallback;
         }
     }
 

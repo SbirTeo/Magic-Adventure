@@ -141,6 +141,10 @@ flaming_sword:
   furniture: true
   furniture-solid: true
   furniture-shift-required: false
+  furniture-hits: 3
+  furniture-drop: true
+  furniture-hit-sound: BLOCK_STONE_HIT
+  furniture-break-sound: BLOCK_STONE_BREAK
 ```
 
 - `furniture: true` (default `false`) — lo rende piazzabile: **tasto destro sulla faccia
@@ -155,8 +159,15 @@ flaming_sword:
 - `furniture-shift-required` (default `true`) — se serve tenere premuto **shift** durante il
   tasto destro per piazzarlo. Di default si', per non entrare in conflitto con l'uso normale del
   blocco cliccato (es. aprire un baule); `false` toglie l'obbligo. Scelta per oggetto.
-- Si rompe **attaccando** l'entita' piazzata (niente tasto/comando a parte): torna nell'inventario
-  di chi l'ha colpita (o cade a terra se non c'e' posto).
+- Si rompe **attaccando** l'entita' piazzata (niente tasto/comando a parte). `furniture-hits`
+  (default `1`) — quanti colpi servono, contati sull'entita' stessa: due copie piazzate della
+  stessa furniture si rompono in modo indipendente. `furniture-drop` (default `false`) — cosa
+  succede all'ultimo colpo: `false` da' l'oggetto direttamente a chi ha colpito (o lo fa cadere se
+  non c'e' posto), `true` lo fa cadere per terra come un blocco normale. `furniture-hit-sound` /
+  `furniture-break-sound` (default `BLOCK_WOOD_HIT` / `BLOCK_WOOD_BREAK`) — un nome dell'enum
+  Bukkit `Sound` (es. `BLOCK_STONE_HIT`, `ENTITY_VILLAGER_HURT`...) per il colpo che non rompe
+  ancora e per quello che rompe davvero; un nome sbagliato o inesistente usa il default con un
+  avviso in console, non blocca l'oggetto.
 
 Sotto il cofano: una coppia `ItemDisplay` (l'aspetto) + `Interaction` (l'entita' invisibile su cui
 si clicca/attacca davvero — un `ItemDisplay` da solo non e' interagibile), vedi
