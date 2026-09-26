@@ -32,18 +32,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The player's full-body avatar (front view of the skin, second layer included) as a single line
- * of text: a "pixel font" glyph, not a head and not an item.
+ * The player's avatar — the flat FACE of the skin, hat layer included — as text: a "pixel font"
+ * glyph that fits in a normal line of chat, like a letter.
  *
  * <h2>Why a pixel font</h2>
  * A resource pack is the same for everyone, so it cannot contain one image per player. Instead the
- * pack carries a tiny font ({@code magixpack:avatar}) with 32 "pixel" characters — character
- * {@code i} is a single white pixel on row {@code i} of a 32 px tall cell — plus two space
+ * pack carries a tiny font ({@code magixpack:avatar}) with 8 "pixel" characters — character
+ * {@code i} is a single white pixel on row {@code i} of an 8 px tall cell — plus two space
  * characters (one steps back, one steps forward). The avatar is then drawn at runtime, column by
  * column: for every non-transparent pixel of the skin the right row character, COLORED with that
  * pixel's color, followed by the step-back space; at the end of the column the step-forward space.
- * The client draws every colored pixel exactly where it belongs, and the whole 16x32 figure takes a
- * single text line (it sticks out above it, like a tall icon).
+ * The client draws every colored pixel exactly where it belongs: the 8x8 face takes the place of
+ * one character, as tall as a letter.
  *
  * <h2>Where the skin comes from</h2>
  * The server runs in offline mode, so the profile usually has no textures: first the profile is
@@ -55,11 +55,11 @@ public final class AvatarService {
 
     public static final Key FONT = Key.key("magixpack", "avatar");
 
-    /** Avatar size in skin pixels (front view: head 8, body 12, legs 12; arms + body 16). */
-    public static final int WIDTH = 16;
-    public static final int HEIGHT = 32;
+    /** Avatar size in skin pixels: the face. */
+    public static final int WIDTH = 8;
+    public static final int HEIGHT = 8;
 
-    /** Row characters U+E000..U+E01F, then the two spaces. Own font: no clash with any other one. */
+    /** Row characters U+E000..U+E007, then the two spaces. Own font: no clash with any other one. */
     private static final int FIRST_ROW = 0xE000;
     private static final char BACK = '';
     private static final char STEP = '';
@@ -182,7 +182,7 @@ public final class AvatarService {
                     misses.put(k, System.currentTimeMillis());
                     return null;
                 }
-                Component c = render(img, skin.slim);
+                Component c = render(img);
                 skins.put(k, skin);
                 cache.put(k, c);
                 return c;
@@ -239,36 +239,13 @@ public final class AvatarService {
 
     // ------------------------------------------------------------------------------------- render
 
-    /** Front view of the skin, 16x32 ARGB (0 = transparent), second layer composited on top. */
-    static int[][] frontView(BufferedImage skin, boolean slim) {
+    /** The face of the skin, 8x8 ARGB (0 = transparent), hat layer composited on top. */
+    static int[][] face(BufferedImage skin) {
         int s = Math.max(1, skin.getWidth() / 64);
-        boolean legacy = skin.getHeight() * 2 == skin.getWidth(); // 64x32: no left limbs, only the hat
-        int arm = slim ? 3 : 4;
+        boolean legacy = skin.getHeight() * 2 == skin.getWidth(); // old 64x32 skins
         int[][] out = new int[HEIGHT][WIDTH];
-        // head, hat
-        copy(skin, s, out, 8, 8, 8, 8, 4, 0, false, true);
-        if (!legacy || !hatFullyOpaque(skin, s)) copy(skin, s, out, 40, 8, 8, 8, 4, 0, false, false);
-        // body, jacket
-        copy(skin, s, out, 20, 20, 8, 12, 4, 8, false, true);
-        if (!legacy) copy(skin, s, out, 20, 36, 8, 12, 4, 8, false, false);
-        // right arm (viewer's left), sleeve
-        copy(skin, s, out, 44, 20, arm, 12, 4 - arm, 8, false, true);
-        if (!legacy) copy(skin, s, out, 44, 36, arm, 12, 4 - arm, 8, false, false);
-        // left arm (viewer's right): legacy skins mirror the right one
-        if (legacy) copy(skin, s, out, 44, 20, arm, 12, 12, 8, true, true);
-        else {
-            copy(skin, s, out, 36, 52, arm, 12, 12, 8, false, true);
-            copy(skin, s, out, 52, 52, arm, 12, 12, 8, false, false);
-        }
-        // right leg, pants
-        copy(skin, s, out, 4, 20, 4, 12, 4, 20, false, true);
-        if (!legacy) copy(skin, s, out, 4, 36, 4, 12, 4, 20, false, false);
-        // left leg
-        if (legacy) copy(skin, s, out, 4, 20, 4, 12, 8, 20, true, true);
-        else {
-            copy(skin, s, out, 20, 52, 4, 12, 8, 20, false, true);
-            copy(skin, s, out, 4, 52, 4, 12, 8, 20, false, false);
-        }
+        copy(skin, s, out, 8, 8, 8, 8, 0, 0, true);
+        if (!legacy || !hatFullyOpaque(skin, s)) copy(skin, s, out, 40, 8, 8, 8, 0, 0, false);
         return out;
     }
 
@@ -286,10 +263,10 @@ public final class AvatarService {
     /** Copies a w x h face from the skin (at sx,sy in 64-px units, scale s) to out at dx,dy. The
      *  base layer is opaque; an overlay pixel replaces it only where it is not transparent. */
     private static void copy(BufferedImage skin, int s, int[][] out, int sx, int sy, int w, int h,
-                             int dx, int dy, boolean mirror, boolean base) {
+                             int dx, int dy, boolean base) {
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                int px = (sx + (mirror ? w - 1 - x : x)) * s, py = (sy + y) * s;
+                int px = (sx + x) * s, py = (sy + y) * s;
                 if (px >= skin.getWidth() || py >= skin.getHeight()) continue;
                 int argb = skin.getRGB(px, py);
                 int alpha = argb >>> 24;
@@ -307,8 +284,8 @@ public final class AvatarService {
         return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
-    private static Component render(BufferedImage skin, boolean slim) {
-        int[][] px = frontView(skin, slim);
+    private static Component render(BufferedImage skin) {
+        int[][] px = face(skin);
         TextComponent.Builder root = Component.text().font(FONT).shadowColor(ShadowColor.none());
         for (int x = 0; x < WIDTH; x++) {
             for (int y = 0; y < HEIGHT; y++) {

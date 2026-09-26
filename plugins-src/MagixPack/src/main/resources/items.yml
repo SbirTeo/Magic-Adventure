@@ -57,10 +57,10 @@ test_cube:
   furniture-solid: true
 
 # L'AVATAR del giocatore: type: player-avatar. Niente texture ne' material: l'icona e' la testa
-# del giocatore e, passandoci sopra, la descrizione mostra la sua FIGURA INTERA (vista frontale
+# del giocatore e, passandoci sopra, la descrizione mostra il suo AVATAR (la faccia piatta
 # della skin, disegnata dal font del pacchetto). {player} = il nome del giocatore a cui si
 # riferisce: con /mpack item give avatar [giocatore] quello che lo riceve; in un menu di
-# MagixMenus (magixpack: avatar) chi guarda il menu. Le righe qui sotto vengono PRIMA della figura.
+# MagixMenus (magixpack: avatar) chi guarda il menu. Le righe qui sotto vengono PRIMA dell'avatar.
 avatar:
   type: player-avatar
   name: "&e{player}"

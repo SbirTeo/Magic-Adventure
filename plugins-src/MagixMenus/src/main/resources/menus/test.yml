@@ -178,7 +178,7 @@ items:
       - "&#9A8CA8base64 dei siti di teste."
 
   # Un oggetto del catalogo di MagixPack (items.yml), costruito per chi guarda: l'avatar mostra
-  # la testa del giocatore e, passandoci sopra, la sua figura intera.
+  # la testa del giocatore e, passandoci sopra, il suo avatar (la faccia della skin).
   # avatar:
   #   slot: 15
   #   magixpack: avatar

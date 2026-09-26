@@ -45,7 +45,7 @@ public final class GlyphCatalog {
      *  conflitto con un carattere vero di nessuna lingua. */
     private static final int FIRST_CODEPOINT = 0xF0000;
 
-    /** {@code type} of a glyphs.yml entry that is the full-body avatar of a player. */
+    /** {@code type} of a glyphs.yml entry that is the avatar of a player (the face of the skin). */
     public static final String TYPE_PLAYER_AVATAR = "player-avatar";
 
     private final JavaPlugin plugin;

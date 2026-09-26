@@ -194,7 +194,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 viewer.sendMessage(messages.get(viewer, "glyph-avatar-no-skin").replace("{player}", name));
                 return;
             }
-            // The avatar sticks out above its own line: leave room so it does not cover older chat.
+            // A taller avatar (pixel-size > 1) sticks out above its line: leave room for it.
             for (int i = 0; i < plugin.avatarService().emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
             viewer.sendMessage(avatar.append(caption));
         }));

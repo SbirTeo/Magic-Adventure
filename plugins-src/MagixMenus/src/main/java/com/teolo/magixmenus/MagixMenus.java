@@ -152,8 +152,8 @@ public final class MagixMenus extends JavaPlugin {
                                 + "texture e nome compresi. display_name del menu, se c'e', ne cambia il nome; "
                                 + "le righe di lore del menu vanno sopra la sua descrizione.",
                         "L'oggetto viene costruito per CHI GUARDA il menu: l'avatar (type: player-avatar in "
-                                + "items.yml) mostra la testa di quel giocatore e, passandoci sopra, la sua figura "
-                                + "intera. Se MagixPack non c'e' o l'id non esiste al suo posto compare la "
+                                + "items.yml) mostra la testa di quel giocatore e, passandoci sopra, il suo avatar "
+                                + "(la faccia della skin). Se MagixPack non c'e' o l'id non esiste al suo posto compare la "
                                 + "barriera rossa con il motivo.")
 
                 .section("Le chiavi si scrivono in inglese",

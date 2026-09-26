@@ -72,7 +72,7 @@ public final class ItemCatalog {
      *  material/nome/lore (fragile: due oggetti diversi possono condividere lo stesso material). */
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(NAMESPACE, "item-id");
 
-    /** {@code type} of an items.yml entry built per player: head + full-body avatar in the lore. */
+    /** {@code type} of an items.yml entry built per player: head + avatar (skin face glyph) in the lore. */
     public static final String TYPE_PLAYER_AVATAR = "player-avatar";
 
     private final JavaPlugin plugin;
@@ -266,10 +266,9 @@ public final class ItemCatalog {
     }
 
     /**
-     * A {@code player-avatar} item: the owner's head as icon (no item model can draw a whole body
-     * with a different skin per player: the only skin-aware one is the head) and their full-body
-     * avatar glyph at the bottom of the lore, visible on hover. {@code {player}} in name and lore
-     * becomes the owner's name. If the avatar is not downloaded yet the lore has no figure (the
+     * A {@code player-avatar} item: the owner's head as icon and their avatar (the flat face of
+     * the skin, as a glyph) at the bottom of the lore, visible on hover. {@code {player}} in name and lore
+     * becomes the owner's name. If the avatar is not downloaded yet the lore has no face (the
      * download starts now: an item built a moment later has it).
      */
     private ItemStack buildAvatar(ItemEntry e, Player owner) {
@@ -289,7 +288,7 @@ public final class ItemCatalog {
         }
         Component avatar = owner != null ? avatars.cached(owner) : null;
         if (avatar != null) {
-            // The figure sticks out above its own line: empty lines keep it inside the tooltip.
+            // Only a taller avatar (pixel-size > 1) sticks out: empty lines keep it in the tooltip.
             for (int i = 0; i < avatars.emptyLinesAbove(10); i++) lore.add(Component.empty());
             lore.add(avatar.decoration(TextDecoration.ITALIC, false));
         }

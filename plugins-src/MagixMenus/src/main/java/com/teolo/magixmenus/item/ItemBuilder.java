@@ -199,7 +199,7 @@ public final class ItemBuilder {
      * Un oggetto del catalogo di MagixPack ({@code magixpack: <id>}), costruito per chi guarda il
      * menu. Nome e aspetto sono i suoi; {@code display_name} del menu, se c'e', lo sostituisce, e
      * le righe di {@code lore} del menu vanno PRIMA della sua descrizione (quella di un avatar
-     * finisce con la figura del giocatore, che deve restare in fondo).
+     * finisce con la faccia del giocatore, che deve restare in fondo).
      */
     private static ItemStack daMagixPack(MagixMenus plugin, Player p, Map<String, String> variabili, ItemDef def) {
         String id = Text.raw(p, variabili, def.magixpack()).trim();

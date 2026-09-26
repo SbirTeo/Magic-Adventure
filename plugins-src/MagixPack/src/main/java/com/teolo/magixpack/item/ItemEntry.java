@@ -39,7 +39,7 @@ import java.util.List;
  * che non rompe ancora e per quello che rompe davvero — scelte per oggetto, non globali.
  *
  * <p>{@code playerAvatar} ({@code type: player-avatar} in items.yml): the item is built for a given
- * player — their own head as icon and their full-body avatar in the lore (see
+ * player — their own head as icon and their avatar (skin face glyph) in the lore (see
  * {@code avatar.AvatarService}). No texture, no model: nothing of it goes in the pack.
  */
 public record ItemEntry(String id, String material, String name, List<String> lore, int customModelData,

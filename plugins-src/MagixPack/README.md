@@ -52,9 +52,9 @@ Metodi pubblici esposti da `MagixPack` (tutti raggiungibili solo per riflessione
 | `packPublicUrl()` | URL pubblico dello zip (null finche' il servizio non e' partito). |
 | `customItem(String id)` | L'`ItemStack` di `items.yml` pronto da dare, o null se `id` non c'e'. |
 | `customItem(String id, Player p)` | Come sopra, costruito per `p` (serve alle voci `player-avatar`). |
-| `playerAvatar(Player p)` | L'avatar a figura intera di `p` come `Component`, o null se non e' ancora scaricato. |
+| `playerAvatar(Player p)` | L'avatar di `p` (la faccia della skin) come `Component`, o null se non e' ancora scaricato. |
 | `playerAvatarAsync(String nome)` | Come sopra, aspettando il download (`CompletableFuture`, thread in sottofondo). |
-| `customGlyph(String id, Player p)` | Come sotto, per `p`: la voce `player-avatar` e' il suo avatar a figura intera. |
+| `customGlyph(String id, Player p)` | Come sotto, per `p`: la voce `player-avatar` e' il suo avatar (la faccia della skin). |
 | `customGlyph(String id)` | Il `Component` Adventure (font gia' impostato) di `glyphs.yml`, o null se `id` non c'e'. |
 
 Il momento giusto per registrarsi e' il proprio `onEnable`, con `softdepend: [MagixPack]` nel
@@ -120,8 +120,8 @@ gia' presenti sul server (es. CMI).
 
 Una voce di `items.yml` con `type: player-avatar` non ha texture ne' `material`: e' un oggetto
 costruito **per un giocatore**. L'icona e' la sua testa (con la sua skin vera) e, passandoci sopra,
-la descrizione finisce con la sua **figura intera** — la vista frontale della skin, secondo strato
-compreso, disegnata dal font `magixpack:avatar` (vedi "L'avatar come glifo" sotto). Nel catalogo
+la descrizione finisce con il suo **avatar** — la faccia piatta della skin, secondo strato
+compreso, alta come una lettera, disegnata dal font `magixpack:avatar` (vedi "L'avatar come glifo" sotto). Nel catalogo
 di default c'e' gia':
 
 ```yaml
@@ -132,7 +132,7 @@ avatar:
     - "&7Il tuo avatar"
 ```
 
-`{player}` diventa il nome del giocatore; le righe di `lore` vengono prima della figura.
+`{player}` diventa il nome del giocatore; le righe di `lore` vengono prima dell'avatar.
 
 - `/mpack item give avatar [giocatore]` — l'avatar di chi lo riceve (aspetta, se serve, che la
   skin sia scaricata).
@@ -140,10 +140,6 @@ avatar:
   per **chi guarda** il menu (`display_name` del menu ne cambia il nome, le righe di `lore` del
   menu vanno sopra la sua descrizione).
 - Da un altro plugin: `customItem(String id, Player player)`.
-
-**Limite del client, non del plugin**: nessun modello di item sa disegnare un corpo intero con una
-skin diversa per ogni giocatore (l'unico modello legato alla skin e' la testa, `player_head`).
-Per questo l'icona nella casella e' la testa e la figura intera sta nella descrizione.
 
 ### Modelli 3D veri (non la semplice icona piatta)
 
@@ -251,17 +247,16 @@ In `glyphs.yml` c'e' la voce `avatar` (`type: player-avatar`, niente texture): c
 `/mpack glyph list` e `/mpack glyph show avatar [giocatore]` la mostra in chat. Da un altro plugin:
 `customGlyph("avatar", giocatore)`.
 
-La figura intera della skin come **testo**, per chat e tablist: `playerAvatar(Player)` restituisce
+La faccia della skin come **testo**, per chat e tablist (alta come una lettera): `playerAvatar(Player)` restituisce
 il `Component` pronto (null finche' non e' scaricato), `playerAvatarAsync(String nome)` un
 `CompletableFuture<Component>` che si completa su un thread in sottofondo (null se la skin non si
 trova). E' lo stesso che finisce nella descrizione dell'oggetto `avatar`.
 
 Come e' fatto: un resource pack e' uguale per tutti, quindi non puo' contenere un'immagine per
-giocatore. Il pacchetto contiene solo un font minuscolo (`magixpack:avatar`): 32 caratteri
+giocatore. Il pacchetto contiene solo un font minuscolo (`magixpack:avatar`): 8 caratteri
 "pixel" (il carattere `i` e' un pixel bianco sulla riga `i`) piu' due spazi, uno che torna indietro
 e uno che avanza. L'avatar si compone a runtime colonna per colonna, un carattere-pixel COLORATO
-per ogni pixel della skin: 16x32 pixel in una sola riga di testo, che sporge in alto (quattro righe
-di chat circa) — per questo chi lo scrive lascia righe vuote sopra.
+per ogni pixel della faccia: 8x8 pixel al posto di un carattere, dentro la riga di testo.
 
 Da dove arriva la skin: il server e' in offline-mode, quindi il profilo del giocatore di solito
 non la ha. Si prova prima il profilo (un plugin di skin tipo SkinsRestorer ce la mette), poi, con
@@ -276,8 +271,8 @@ solo dopo 10 minuti.
 - `send-delay-ticks` / `timeout-seconds` — tempistiche di invio ed espulsione.
 - `watchdog-seconds` — ogni quanto si verifica che il pacchetto sia ancora scaricabile.
 - `prompt` / `kick-messages.*` — testi mostrati al giocatore (colori `&` e `\n` per andare a capo).
-- `avatar.pixel-size` — lato di un pixel della skin in pixel dello schermo (1-4; 1 = alto 32).
-- `avatar.baseline-offset` — di quanti pixel i piedi scendono sotto la riga del testo.
+- `avatar.pixel-size` — lato di un pixel della skin in pixel dello schermo (1-4; 1 = alto 8 come una lettera, di piu' sporge sopra la riga).
+- `avatar.baseline-offset` — di quanti pixel il mento scende sotto la riga del testo (1 = come le lettere).
 - `avatar.mojang-lookup` — se chiedere la skin a Mojang per nome quando il profilo non la ha.
 
 ## Comandi

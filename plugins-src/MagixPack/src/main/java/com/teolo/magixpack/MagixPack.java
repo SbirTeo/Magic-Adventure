@@ -212,28 +212,28 @@ public final class MagixPack extends JavaPlugin implements Listener {
     }
 
     /** Like {@link #customGlyph(String)}, for {@code player}: a {@code player-avatar} entry of
-     *  glyphs.yml is their full-body avatar (null while it is being downloaded). */
+     *  glyphs.yml is their avatar, the face of their skin (null while it is being downloaded). */
     public Component customGlyph(String id, Player player) {
         return glyphCatalog.component(id, player);
     }
 
-    /** The avatar service (full-body skin glyph): used by {@code /mpack item give} for the
+    /** The avatar service (skin face glyph): used by {@code /mpack item give} for the
      *  {@code player-avatar} items, to wait for the download before giving. */
     public AvatarService avatarService() {
         return avatarService;
     }
 
     /** Like {@link #customItem(String)}, built FOR {@code player}: a {@code player-avatar} item of
-     *  items.yml carries their head and their full-body avatar (the other items ignore the player). This is
+     *  items.yml carries their head and their avatar (the other items ignore the player). This is
      *  the one MagixMenus uses, with the viewer of the menu. */
     public ItemStack customItem(String id, Player player) {
         return itemCatalog.build(id, player);
     }
 
-    /** The player's full-body avatar (front view of the skin) as a Component, ready to be put in a
+    /** The player's avatar (the flat face of the skin, hat included) as a Component, ready to be put in a
      *  chat message or in the tablist; null if it is not downloaded yet (the download starts in
      *  the background, and it is done at every join anyway) or if the player has no skin. It is
-     *  32 GUI pixels tall: it sticks out above the line it is written on (see README.md). */
+     *  As tall as a letter: it fits in any line of text (see README.md). */
     public Component playerAvatar(Player player) {
         return avatarService.cached(player);
     }
@@ -332,8 +332,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "attuale (font magixpack:icons) — utile per verificare cosa e' disponibile "
                                 + "prima di usarle da un altro plugin.",
                         "/mpack glyph show <id> [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
-                                + "provarla. Per la voce avatar (type: player-avatar) mostra la FIGURA INTERA "
-                                + "del giocatore indicato (di chi lancia il comando, se manca), dopo averne "
+                                + "provarla. Per la voce avatar (type: player-avatar) mostra la FACCIA della "
+                                + "skin del giocatore indicato (di chi lancia il comando, se manca), dopo averne "
                                 + "scaricato la skin.")
 
                 .section("Oggetti custom (items.yml)",
@@ -349,14 +349,12 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "col suo aspetto vero; furniture-solid: true gli da' collisione vera. Vedi il "
                                 + "README per i dettagli.",
                         "La voce avatar (type: player-avatar) e' speciale: niente texture, e' costruita per un "
-                                + "giocatore — l'icona e' la sua testa, e passandoci sopra si vede la sua FIGURA "
-                                + "INTERA (vista frontale della skin). /mpack item give avatar [giocatore] da' "
+                                + "giocatore — l'icona e' la sua testa, e passandoci sopra si vede il suo AVATAR "
+                                + "(la faccia della skin, piatta, alta come una lettera). /mpack item give avatar [giocatore] da' "
                                 + "l'avatar di chi lo riceve; in un menu di MagixMenus si scrive magixpack: avatar "
-                                + "e si vede l'avatar di chi guarda. La casella mostra solo la testa per un limite "
-                                + "del client: nessun modello di item disegna un corpo intero con la skin del "
-                                + "giocatore. Il server e' in offline-mode: la skin si prende dal profilo se c'e' "
+                                + "e si vede l'avatar di chi guarda. Il server e' in offline-mode: la skin si prende dal profilo se c'e' "
                                 + "(plugin di skin), altrimenti da Mojang per nome (avatar.mojang-lookup); un "
-                                + "account non premium senza plugin di skin non ha figura.")
+                                + "account non premium senza plugin di skin non ha avatar.")
 
                 .section("Icone custom via font (glyphs.yml)",
                         "Per simboli dentro un messaggio di chat o nel tablist, MAI per gli oggetti (quelli "
@@ -376,7 +374,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
                         "port", "Porta del server HTTP che serve lo zip: va aperta sul firewall del VPS.",
                         "required", "Se il pacchetto e' obbligatorio (true, default) o facoltativo (false, nessuna espulsione).",
                         "watchdog-seconds", "Ogni quanti secondi si verifica che il pacchetto sia ancora scaricabile.",
-                        "avatar.pixel-size", "Grandezza dell'avatar: lato di un pixel della skin in pixel dello schermo (1 = alto 32).",
+                        "avatar.pixel-size", "Grandezza dell'avatar: lato di un pixel della skin in pixel dello schermo (1 = alto 8, come una lettera).",
                         "avatar.mojang-lookup", "Se chiedere la skin a Mojang per nome quando il profilo del giocatore non la ha.")
 
                 .issue("Un giocatore e' stato espulso appena entrato",
