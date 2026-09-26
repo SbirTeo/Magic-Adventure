@@ -92,7 +92,7 @@ public final class ConnectionListener implements Listener {
         if (uuid == null) {
             return;
         }
-        Location dirottato = gate.hijackSpawn(uuid, e.getSpawnLocation());
+        Location dirottato = gate.hijackSpawn(uuid, e.getSpawnLocation(), e.isNewPlayer());
         if (dirottato != null) {
             e.setSpawnLocation(dirottato);
         }
