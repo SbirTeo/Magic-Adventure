@@ -10,7 +10,7 @@ commands:
   magixpack:
     aliases: [mpack]
     description: Amministrazione del pacchetto risorse, oggetti e icone custom.
-    usage: /mpack reload|item give <id> [giocatore]|item list|glyph list
+    usage: /mpack reload|item give <id> [giocatore]|item list|glyph list|glyph show <id> [giocatore]
     # Nessun permesso qui: ogni sotto-comando ha il suo (vedi permissions sotto), controllato
     # a mano nel comando - cosi' /mpack item give si puo' dare a qualcuno senza dargli anche
     # magixpack.admin.
@@ -26,5 +26,5 @@ permissions:
     description: Dare a se stessi o a un altro giocatore un oggetto custom di items.yml (/mpack item give|list).
     default: op
   magixpack.glyph.list:
-    description: Vedere il catalogo delle icone custom di glyphs.yml e il loro punto di codice (/mpack glyph list).
+    description: Vedere il catalogo delle icone custom di glyphs.yml e il loro punto di codice, e provarle in chat (/mpack glyph list|show).
     default: op

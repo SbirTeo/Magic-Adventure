@@ -3,6 +3,8 @@ package com.teolo.magixpack.command;
 import com.teolo.magixpack.MagixPack;
 import com.teolo.magixpack.glyph.GlyphEntry;
 import com.teolo.magixpack.lang.Messages;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -14,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 /** {@code /mpack}: reload (magixpack.admin), oggetti custom (magixpack.item.give), icone custom
  *  via font (magixpack.glyph.list) — vedi README.md per items.yml/glyphs.yml. */
@@ -132,10 +135,15 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(messages.get(sender, "no-permission"));
             return;
         }
-        if (args.length < 2 || !args[1].equalsIgnoreCase("list")) {
-            sender.sendMessage(messages.get(sender, "glyph-usage"));
-            return;
+        String sub = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        switch (sub) {
+            case "list" -> glyphList(sender);
+            case "show" -> glyphShow(sender, args);
+            default -> sender.sendMessage(messages.get(sender, "glyph-usage"));
         }
+    }
+
+    private void glyphList(CommandSender sender) {
         List<String> ids = plugin.glyphCatalog().ids();
         if (ids.isEmpty()) {
             sender.sendMessage(messages.get(sender, "glyph-list-empty"));
@@ -144,10 +152,52 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(messages.get(sender, "glyph-list-header").replace("{count}", String.valueOf(ids.size())));
         for (String id : ids) {
             GlyphEntry e = plugin.glyphCatalog().entry(id);
+            if (e.playerAvatar()) {
+                sender.sendMessage(messages.get(sender, "glyph-list-row-avatar").replace("{glyph}", id));
+                continue;
+            }
             sender.sendMessage(messages.get(sender, "glyph-list-row")
                     .replace("{glyph}", id)
                     .replace("{codepoint}", String.format("U+%X", e.codepoint())));
         }
+    }
+
+    /** Shows a glyph in the sender's chat; for a player-avatar entry, the avatar of a player (the
+     *  sender by default), after waiting for the skin download. */
+    private void glyphShow(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player viewer)) {
+            sender.sendMessage(messages.get(sender, "glyph-player-only"));
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(messages.get(sender, "glyph-usage"));
+            return;
+        }
+        String id = args[2];
+        GlyphEntry e = plugin.glyphCatalog().entry(id);
+        if (e == null) {
+            sender.sendMessage(messages.get(sender, "glyph-unknown").replace("{glyph}", id));
+            return;
+        }
+        Component caption = LegacyComponentSerializer.legacySection()
+                .deserialize(messages.get(viewer, "glyph-show-caption").replace("{glyph}", id));
+        if (!e.playerAvatar()) {
+            viewer.sendMessage(plugin.glyphCatalog().component(id).append(caption));
+            return;
+        }
+        String name = args.length >= 4 ? args[3] : viewer.getName();
+        CompletableFuture<Component> future = plugin.avatarService().fetch(name);
+        if (!future.isDone()) viewer.sendMessage(messages.get(viewer, "glyph-avatar-loading").replace("{player}", name));
+        future.thenAccept(avatar -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!viewer.isOnline()) return;
+            if (avatar == null) {
+                viewer.sendMessage(messages.get(viewer, "glyph-avatar-no-skin").replace("{player}", name));
+                return;
+            }
+            // The avatar sticks out above its own line: leave room so it does not cover older chat.
+            for (int i = 0; i < plugin.avatarService().emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
+            viewer.sendMessage(avatar.append(caption));
+        }));
     }
 
     // ------------------------------------------------------------------------------ completamento
@@ -168,7 +218,21 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("glyph")) {
-            if ("list".startsWith(args[1].toLowerCase(Locale.ROOT))) out.add("list");
+            for (String s : List.of("list", "show")) {
+                if (s.startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(s);
+            }
+            return out;
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("glyph") && args[1].equalsIgnoreCase("show")) {
+            for (String id : plugin.glyphCatalog().ids()) {
+                if (id.startsWith(args[2].toLowerCase(Locale.ROOT))) out.add(id);
+            }
+            return out;
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("glyph") && args[1].equalsIgnoreCase("show")) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p.getName().toLowerCase(Locale.ROOT).startsWith(args[3].toLowerCase(Locale.ROOT))) out.add(p.getName());
+            }
             return out;
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("item") && args[1].equalsIgnoreCase("give")) {

@@ -54,6 +54,7 @@ Metodi pubblici esposti da `MagixPack` (tutti raggiungibili solo per riflessione
 | `customItem(String id, Player p)` | Come sopra, costruito per `p` (serve alle voci `player-avatar`). |
 | `playerAvatar(Player p)` | L'avatar a figura intera di `p` come `Component`, o null se non e' ancora scaricato. |
 | `playerAvatarAsync(String nome)` | Come sopra, aspettando il download (`CompletableFuture`, thread in sottofondo). |
+| `customGlyph(String id, Player p)` | Come sotto, per `p`: la voce `player-avatar` e' il suo avatar a figura intera. |
 | `customGlyph(String id)` | Il `Component` Adventure (font gia' impostato) di `glyphs.yml`, o null se `id` non c'e'. |
 
 Il momento giusto per registrarsi e' il proprio `onEnable`, con `softdepend: [MagixPack]` nel
@@ -246,6 +247,10 @@ codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
 
 ## L'avatar come glifo (chat, tablist)
 
+In `glyphs.yml` c'e' la voce `avatar` (`type: player-avatar`, niente texture): compare in
+`/mpack glyph list` e `/mpack glyph show avatar [giocatore]` la mostra in chat. Da un altro plugin:
+`customGlyph("avatar", giocatore)`.
+
 La figura intera della skin come **testo**, per chat e tablist: `playerAvatar(Player)` restituisce
 il `Component` pronto (null finche' non e' scaricato), `playerAvatarAsync(String nome)` un
 `CompletableFuture<Component>` che si completa su un thread in sottofondo (null se la skin non si
@@ -285,7 +290,8 @@ solo dopo 10 minuti.
   LORO segnaposto, serve ricaricare (o riavviare) quel plugin.
 - `/mpack item give <id> [giocatore]` / `/mpack item list` (permesso `magixpack.item.give`) — vedi
   "Oggetti custom" sopra.
-- `/mpack glyph list` (permesso `magixpack.glyph.list`) — vedi "Icone custom via font" sopra.
+- `/mpack glyph list` / `/mpack glyph show <id> [giocatore]` (permesso `magixpack.glyph.list`) — vedi
+  "Icone custom via font" e "L'avatar come glifo" sopra.
 
 ## Permessi
 
@@ -293,4 +299,4 @@ solo dopo 10 minuti.
 - `magixpack.bypass` (default op) — non viene mai espulso se il pacchetto obbligatorio non si
   carica (lo riceve comunque). Salvaguardia per non restare chiusi fuori dal proprio server.
 - `magixpack.item.give` (default op) — `/mpack item give` e `/mpack item list`.
-- `magixpack.glyph.list` (default op) — `/mpack glyph list`.
+- `magixpack.glyph.list` (default op) — `/mpack glyph list` e `/mpack glyph show`.

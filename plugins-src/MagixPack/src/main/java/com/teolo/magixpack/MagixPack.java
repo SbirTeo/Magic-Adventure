@@ -78,7 +78,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
         packService = new PackService(this);
         avatarService = new AvatarService(this);
         itemCatalog = new ItemCatalog(this, avatarService);
-        glyphCatalog = new GlyphCatalog(this);
+        glyphCatalog = new GlyphCatalog(this, avatarService);
         loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new PackListener(this, packService), this);
@@ -211,6 +211,12 @@ public final class MagixPack extends JavaPlugin implements Listener {
         return glyphCatalog.component(id);
     }
 
+    /** Like {@link #customGlyph(String)}, for {@code player}: a {@code player-avatar} entry of
+     *  glyphs.yml is their full-body avatar (null while it is being downloaded). */
+    public Component customGlyph(String id, Player player) {
+        return glyphCatalog.component(id, player);
+    }
+
     /** The avatar service (full-body skin glyph): used by {@code /mpack item give} for the
      *  {@code player-avatar} items, to wait for the download before giving. */
     public AvatarService avatarService() {
@@ -324,7 +330,11 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "(quelli con la texture mancante in items/ non compaiono: vedi la console).",
                         "/mpack glyph list", "Elenca le icone custom di glyphs.yml col loro punto di codice "
                                 + "attuale (font magixpack:icons) — utile per verificare cosa e' disponibile "
-                                + "prima di usarle da un altro plugin.")
+                                + "prima di usarle da un altro plugin.",
+                        "/mpack glyph show <id> [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
+                                + "provarla. Per la voce avatar (type: player-avatar) mostra la FIGURA INTERA "
+                                + "del giocatore indicato (di chi lancia il comando, se manca), dopo averne "
+                                + "scaricato la skin.")
 
                 .section("Oggetti custom (items.yml)",
                         "Catalogo staff-editable per oggetti con texture E MODELLO propri, non un semplice "
