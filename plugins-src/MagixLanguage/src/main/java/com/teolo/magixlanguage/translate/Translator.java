@@ -142,7 +142,12 @@ public final class Translator {
             return null;
         }
         consecutiveFailures = 0;
-        String restored = restore(raw, protectedText.tokens);
+        // Un <argomento> protetto torna tradotto col glossario, non in italiano (vedi HelpSyntax).
+        List<String> shown = new ArrayList<>(protectedText.tokens.size());
+        for (String token : protectedText.tokens) {
+            shown.add(token.startsWith("<") ? HelpSyntax.translateSyntax(token, targetLang) : token);
+        }
+        String restored = restore(raw, shown);
         if (LEFTOVER_TOKEN.matcher(restored).find()) {
             // Il servizio ha alterato un segnaposto (es. tolto una lettera) al punto che non lo
             // si e' piu' riconosciuto per rimetterlo a posto: meglio niente traduzione che un
@@ -152,7 +157,7 @@ public final class Translator {
                     + "tornato al suo posto (testo: " + restored + ").");
             return null;
         }
-        for (String token : protectedText.tokens()) {
+        for (String token : shown) {
             if (!restored.contains(token)) {
                 // Caso peggiore del precedente: il wrapper qx/xq e' sparito INSIEME al colore o al
                 // placeholder che proteggeva, invece di lasciarne un residuo riconoscibile (visto

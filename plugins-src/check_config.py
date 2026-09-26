@@ -22,8 +22,9 @@ What it reports, for each .yml config file:
   [7] MODE (a key holding one word out of several) that the player tutorial does not tell with a
       {{if:key=value}} block  -> changing mode leaves the guide on the old one.
       If the mode is NOT visible in game, write [staff only] in the key comment.
-  [8] word inside < > or [ ] of a help line ("/f join <fazione> :: ...") that MagixLanguage's
-      argument-glossary.yml does not know -> it would stay in Italian in every other language.
+  [8] command argument that MagixLanguage's argument-glossary.yml does not know: a word inside
+      < > or [ ] of a help line ("/f join <fazione> :: ..."), or inside < > of any other message
+      ("Uso: /f join <fazione>") -> it would stay in Italian in every other language.
       Add it to "words" (argument name, translated) or "keep" (typed as is: on|off, clear...).
 
 Exits with code 1 if it found anything: can be wired to a hook or to the build.
@@ -331,11 +332,41 @@ def glossary_words():
     return _glossary_words
 
 
+ANGLE_ARGUMENT = re.compile(r'<(?:[^<>]|<[^<>]*>)*>')
+ARGUMENT_WORD = re.compile(r'[^\W\d_][^\W_]*(?:-[^\W_]+)*')   # "blocchi-per-pixel" is one entry
+
+
+def unknown_argument_words(syntax, known):
+    """Words inside < > or [ ] of `syntax` the glossary does not know (same scan as HelpSyntax)."""
+    phrases = sorted((k for k in known if " " in k), key=len, reverse=True)
+    out, depth, i = [], 0, 0
+    while i < len(syntax):
+        ch = syntax[i]
+        if ch in "<[":
+            depth += 1
+        elif ch in ">]" and depth > 0:
+            depth -= 1
+        if depth > 0 and ch.isalpha():
+            phrase = next((p for p in phrases if syntax.startswith(p, i)
+                           and not syntax[i + len(p):i + len(p) + 1].isalnum()), None)
+            if phrase:
+                i += len(phrase)
+                continue
+            word = ARGUMENT_WORD.match(syntax, i).group(0)
+            if word not in known:
+                out.append(word)
+            i += len(word)
+            continue
+        i += 1
+    return out
+
+
 def help_arguments_unknown(name):
     """
-    [8] The syntax of a help line never goes to the machine translator: MagixLanguage translates the
-    words inside < > and [ ] with argument-glossary.yml (same scan as HelpSyntax.translateSyntax).
-    A word the glossary does not know would silently stay in Italian in every other language.
+    [8] Command arguments are translated by MagixLanguage's argument-glossary.yml, never by the machine
+    translator: the words inside < > and [ ] of a help line's syntax, and every <...> in any other
+    message ("Usage: /f join <fazione>"). A word the glossary does not know would silently stay in
+    Italian in every other language.
     """
     path = os.path.join(HERE, name, "src", "main", "resources", "messages.yml")
     known = glossary_words()
@@ -344,24 +375,18 @@ def help_arguments_unknown(name):
     problems = []
     with open(path, encoding="utf-8") as f:
         for n, line in enumerate(f, 1):
-            m = re.match(r'\s*-\s*"(\s*/[^"]*?)\s*::', line)
-            if not m:
+            if line.lstrip().startswith("#"):
                 continue
-            syntax, depth, i = m.group(1), 0, 0
-            while i < len(syntax):
-                ch = syntax[i]
-                if ch in "<[":
-                    depth += 1
-                elif ch in ">]" and depth > 0:
-                    depth -= 1
-                if depth > 0 and ch.isalpha():
-                    word = re.match(r'[^\W\d_][^\W_]*', syntax[i:]).group(0)
-                    if word not in known:
-                        problems.append(("messages.yml", n,
-                                         "[8] help argument not in MagixLanguage argument-glossary.yml", word))
-                    i += len(word)
-                    continue
-                i += 1
+            words = []
+            help_line = re.match(r'(\s*-\s*"\s*/[^"]*?)\s*::(.*)$', line)
+            if help_line:
+                words += unknown_argument_words(help_line.group(1), known)
+                line = help_line.group(2)
+            for segment in ANGLE_ARGUMENT.findall(line):
+                words += unknown_argument_words(segment, known)
+            for word in words:
+                problems.append(("messages.yml", n,
+                                 "[8] command argument not in MagixLanguage argument-glossary.yml", word))
     return problems
 
 

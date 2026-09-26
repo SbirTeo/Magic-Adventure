@@ -211,9 +211,12 @@ public final class TranslationSync {
 
             Object cachedSource = cache.source().get(key);
             Object cachedTranslated = cache.translated().get(key);
-            Object reusable = cachedTranslated != null && Objects.equals(cachedSource, italianValue)
-                    && !looksCorrupted(italianValue, cachedTranslated)
+            // Prima si rifanno gli argomenti col glossario, POI si controlla: una vecchia traduzione
+            // con "<fazione>" rimasto in italiano non e' da buttare (e ritradurre consumando quota),
+            // basta correggerla.
+            Object refreshed = cachedTranslated != null && Objects.equals(cachedSource, italianValue)
                     ? HelpSyntax.refreshCached(italianValue, cachedTranslated, lang) : null;
+            Object reusable = refreshed != null && !looksCorrupted(italianValue, refreshed, lang) ? refreshed : null;
             if (reusable != null) {
                 result.put(key, reusable);
                 newCacheSource.put(key, italianValue);
@@ -279,7 +282,7 @@ public final class TranslationSync {
         return sourceLeading != translatedLeading || sourceTrailing != translatedTrailing;
     }
 
-    private static boolean lineCorrupted(String source, String translated) {
+    private static boolean lineCorrupted(String source, String translated, String lang) {
         String[] sourceHelp = source != null ? HelpSyntax.split(source) : null;
         if (sourceHelp != null) {
             // Riga di aiuto: la sintassi la rifa ogni volta il glossario (e "<fazione>" diventa
@@ -294,7 +297,7 @@ public final class TranslationSync {
         }
         return SUSPECT_LEFTOVER.matcher(translated).find() || GLUED_BRACKET.matcher(translated).find()
                 || (source != null && edgeWhitespaceMismatch(source, translated))
-                || (source != null && missingProtectedToken(source, translated));
+                || (source != null && missingProtectedToken(source, translated, lang));
     }
 
     /**
@@ -303,19 +306,21 @@ public final class TranslationSync {
      * "qx1xq" ridotti dal servizio di traduzione al solo numero nudo "0 1", senza lasciare il
      * residuo "qxNxq" che {@link #SUSPECT_LEFTOVER} intercetterebbe). Una cache cosi' va rifatta.
      */
-    private static boolean missingProtectedToken(String source, String translated) {
+    private static boolean missingProtectedToken(String source, String translated, String lang) {
         for (String token : Translator.requiredTokens(source)) {
-            if (!translated.contains(token)) {
+            // un <argomento> torna tradotto col glossario (vedi Translator), non identico
+            String expected = token.startsWith("<") ? HelpSyntax.translateSyntax(token, lang) : token;
+            if (!translated.contains(expected)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean looksCorrupted(Object italianValue, Object cachedTranslated) {
+    private static boolean looksCorrupted(Object italianValue, Object cachedTranslated, String lang) {
         if (cachedTranslated instanceof String s) {
             String source = italianValue instanceof String is ? is : null;
-            return lineCorrupted(source, s);
+            return lineCorrupted(source, s, lang);
         }
         if (cachedTranslated instanceof List<?> list) {
             List<?> sourceList = italianValue instanceof List<?> sl ? sl : null;
@@ -324,7 +329,7 @@ public final class TranslationSync {
                 if (line == null) continue;
                 String source = sourceList != null && i < sourceList.size() && sourceList.get(i) != null
                         ? String.valueOf(sourceList.get(i)) : null;
-                if (lineCorrupted(source, String.valueOf(line))) {
+                if (lineCorrupted(source, String.valueOf(line), lang)) {
                     return true;
                 }
             }
