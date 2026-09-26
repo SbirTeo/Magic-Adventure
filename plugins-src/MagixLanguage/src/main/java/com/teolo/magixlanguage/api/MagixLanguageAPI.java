@@ -105,6 +105,18 @@ public interface MagixLanguageAPI {
     Map<String, String> translateRawBatch(List<String> italianTexts, String targetLanguage);
 
     /**
+     * Se in questo momento {@link #translateRawBatch} chiamerebbe davvero il servizio di
+     * traduzione: false durante una pausa dopo un blocco di MyMemory o con la traduzione
+     * automatica spenta. Chi tiene il conto dei tentativi per frase (il sito) lo chiede PRIMA e
+     * DOPO un lotto: una frase non tradotta perche' nessuno l'ha nemmeno provata non e' un
+     * tentativo fallito (visto succedere davvero: 1435 frasi del sito segnate "fallite" per
+     * sempre in pochi minuti, senza una sola chiamata a MyMemory).
+     */
+    default boolean autoTranslationAvailable() {
+        return true;
+    }
+
+    /**
      * Il sito (MagixWeb) riporta qui, dopo ogni giro di {@code SiteTranslationWorker}, quante
      * frasi di {@code site_translations} sono pronte/in attesa/fallite per ciascuna lingua —
      * cosi' {@code /language status} puo' mostrarle insieme allo stato dei plugin, senza che

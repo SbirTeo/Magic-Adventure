@@ -163,10 +163,15 @@ public class MagixWeb extends JavaPlugin {
                 .issue("Il sito resta in italiano anche per chi ha scelto un'altra lingua",
                         "Normale nei primi minuti dopo che una frase compare per la prima volta: viene "
                                 + "accodata e tradotta al giro successivo (site-translation.check-interval-seconds), "
-                                + "non sul momento. Se dura da ore, controlla che MagixLanguage sia presente e che "
-                                + "translations.auto-translate.enabled sia acceso nel SUO config: senza, il lotto "
-                                + "resta 'pending' per sempre. Una riga in site_translations con status 'failed' "
-                                + "ha esaurito i tentativi (5): il servizio l'ha rifiutata in modo persistente.")
+                                + "non sul momento. Se dura da ore, guarda /language status: se MyMemory e' in pausa "
+                                + "dopo un blocco (quota del giorno finita), le frasi aspettano in coda e ripartono "
+                                + "da sole a fine pausa, senza perdere tentativi. Controlla anche che MagixLanguage sia "
+                                + "presente e che translations.auto-translate.enabled sia acceso nel SUO config: "
+                                + "senza, il lotto resta 'pending' per sempre. Una riga in site_translations con "
+                                + "status 'failed' ha esaurito i tentativi (5) con MyMemory disponibile: il servizio "
+                                + "l'ha rifiutata o rovinata ogni volta. Fino alla 0.12.10 contava come tentativo "
+                                + "anche un giro in pausa, e ogni frase finiva 'failed' in due minuti senza essere "
+                                + "mai provata: la migrazione 2026-09-26-riprova-traduzioni-sito.sql le rimette in coda.")
                 .issue("Sul sito la lingua di un giocatore e' vecchia o mancante",
                         "Controlla che MagixLanguage sia installato e attivo: senza, MagixWeb lo scrive nel log "
                                 + "all'avvio e non tenta nessuna sincronizzazione. Con MagixLanguage presente, un "

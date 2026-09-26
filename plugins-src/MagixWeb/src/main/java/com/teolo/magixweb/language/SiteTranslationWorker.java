@@ -55,19 +55,28 @@ public final class SiteTranslationWorker {
         if (api == null) {
             return;
         }
-        Map<String, Map<String, String>> pendingByLang = readPending();
-        for (Map.Entry<String, Map<String, String>> e : pendingByLang.entrySet()) {
-            String lang = e.getKey();
-            Map<String, String> hashToText = e.getValue();
-            Map<String, String> translated = api.translateRawBatch(new ArrayList<>(hashToText.values()), lang);
-            for (Map.Entry<String, String> entry : hashToText.entrySet()) {
-                String hash = entry.getKey();
-                String text = entry.getValue();
-                String result = translated.get(text);
-                if (result != null) {
-                    markDone(lang, hash, result);
-                } else {
-                    markFailedAttempt(lang, hash);
+        // Durante una pausa di MyMemory translateRawBatch non chiama nessuno e torna vuoto: contarlo
+        // come tentativo fallito bruciava ogni frase in quattro giri (due minuti) e la segnava
+        // "failed" per sempre, senza che MyMemory l'avesse mai vista.
+        if (api.autoTranslationAvailable()) {
+            Map<String, Map<String, String>> pendingByLang = readPending();
+            for (Map.Entry<String, Map<String, String>> e : pendingByLang.entrySet()) {
+                String lang = e.getKey();
+                Map<String, String> hashToText = e.getValue();
+                Map<String, String> translated = api.translateRawBatch(new ArrayList<>(hashToText.values()), lang);
+                // Bloccato a meta' lotto: le frasi rimaste non sono state provate, non e' colpa loro.
+                boolean stillAvailable = api.autoTranslationAvailable();
+                for (Map.Entry<String, String> entry : hashToText.entrySet()) {
+                    String hash = entry.getKey();
+                    String result = translated.get(entry.getValue());
+                    if (result != null) {
+                        markDone(lang, hash, result);
+                    } else if (stillAvailable) {
+                        markFailedAttempt(lang, hash);
+                    }
+                }
+                if (!stillAvailable) {
+                    break;
                 }
             }
         }
@@ -148,8 +157,10 @@ public final class SiteTranslationWorker {
     private void markFailedAttempt(String lang, String hash) {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
+                     // MySQL/MariaDB valutano le assegnazioni da sinistra: qui "attempts" e' GIA'
+                     // quello incrementato (con "attempts + 1" diventava "failed" al quarto, non al quinto).
                      "UPDATE site_translations SET attempts = attempts + 1, "
-                             + "status = IF(attempts + 1 >= ?, 'failed', 'pending') "
+                             + "status = IF(attempts >= ?, 'failed', 'pending') "
                              + "WHERE lang = ? AND phrase_hash = ?")) {
             ps.setInt(1, MAX_ATTEMPTS);
             ps.setString(2, lang);

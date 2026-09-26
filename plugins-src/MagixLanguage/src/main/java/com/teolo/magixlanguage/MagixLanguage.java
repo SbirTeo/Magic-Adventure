@@ -335,6 +335,11 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     }
 
     @Override
+    public boolean autoTranslationAvailable() {
+        return getConfig().getBoolean("translations.auto-translate.enabled", true) && pacing.pausedUntil() == null;
+    }
+
+    @Override
     public void reportSiteTranslationStatus(Map<String, int[]> countsByLang) {
         this.siteTranslationStatus = countsByLang == null ? Map.of() : Map.copyOf(countsByLang);
     }
