@@ -117,7 +117,11 @@ public final class FurnitureListener implements Listener {
 
         ItemDisplay display = world.spawn(loc, ItemDisplay.class, d -> {
             d.setItemStack(displayed);
-            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+            // NONE, non FIXED: FIXED applica la trasformazione vanilla pensata per un'icona 2D
+            // dentro un item frame (pensata per un layer0 piatto, non per un modello 3D vero) e
+            // distorce/appiattisce un modello come questo. NONE mostra il modello grezzo, con solo
+            // la Transformation scelta qui sotto.
+            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
             d.setTransformation(new Transformation(
                     new Vector3f(0f, 0f, 0f),
                     new Quaternionf(new AxisAngle4f((float) Math.toRadians(yaw), 0f, 1f, 0f)),
