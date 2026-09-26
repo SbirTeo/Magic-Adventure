@@ -21,7 +21,15 @@ import java.util.List;
  * {@code furnitureShiftRequired} (default true) decide se il tasto destro deve avvenire con shift
  * premuto (per non entrare in conflitto con l'uso normale del blocco cliccato, es. un baule) o se
  * basta il click semplice — anche questa scelta e' per oggetto, non globale.
+ *
+ * <p>{@code furnitureYOffset} (blocchi) e' calcolato da {@link ItemCatalog}, non scelto dallo
+ * staff: quanto sollevare il modello quando piazzato come furniture perche' il suo fondo tocchi il
+ * terreno invece di restare sospeso a meta' o sprofondato — un {@link org.bukkit.entity.ItemDisplay}
+ * ancora il modello al centro nominale del proprio spazio, non al fondo come un blocco, quindi
+ * questo valore dipende dalla vera altezza del modello (letta dal suo JSON), non e' un fisso 0.5
+ * uguale per tutti.
  */
 public record ItemEntry(String id, String material, String name, List<String> lore, int customModelData,
-                         boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired) {
+                         boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired,
+                         double furnitureYOffset) {
 }

@@ -123,12 +123,12 @@ public final class FurnitureListener implements Listener {
             // la Transformation scelta qui sotto.
             d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
             d.setTransformation(new Transformation(
-                    // +0.5 sull'asse Y: un ItemDisplay ancora il modello al CENTRO (non al fondo,
-                    // come farebbe un blocco), verificato via log su un piazzamento reale (entita'
-                    // esattamente al livello del terreno, ma il cubo appariva comunque meta'
-                    // interrato) - senza questo spostamento meta' del modello finisce sempre sotto
-                    // il punto di appoggio.
-                    new Vector3f(0f, 0.5f, 0f),
+                    // Un ItemDisplay ancora il modello al CENTRO nominale del proprio spazio (non
+                    // al fondo, come farebbe un blocco), verificato via log su un piazzamento reale.
+                    // furnitureYOffset e' calcolato da ItemCatalog dalla vera altezza del modello
+                    // (letta dal suo JSON), non un fisso 0.5: un cubo piu' basso di un blocco intero
+                    // (es. elements 4-12) andrebbe sollevato di meno, altrimenti resta sospeso.
+                    new Vector3f(0f, (float) entry.furnitureYOffset(), 0f),
                     new Quaternionf(new AxisAngle4f((float) Math.toRadians(yaw), 0f, 1f, 0f)),
                     new Vector3f(1f, 1f, 1f),
                     new Quaternionf()));

@@ -1,5 +1,9 @@
 package com.teolo.magixpack.item;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -94,8 +98,9 @@ public final class ItemCatalog {
             boolean furniture = sec.getBoolean("furniture", false);
             boolean furnitureSolid = sec.getBoolean("furniture-solid", false);
             boolean furnitureShiftRequired = sec.getBoolean("furniture-shift-required", true);
+            double furnitureYOffset = furniture ? furnitureYOffset(id) : 0.5;
             entries.put(id, new ItemEntry(id, materialName, name, lore, nextCustomModelData,
-                    furniture, furnitureSolid, furnitureShiftRequired));
+                    furniture, furnitureSolid, furnitureShiftRequired, furnitureYOffset));
             nextCustomModelData++;
         }
         if (!entries.isEmpty()) {
@@ -114,6 +119,49 @@ public final class ItemCatalog {
      *  false, model: ..."): l'auto-generazione resta solo per il caso semplice (icona piatta). */
     private File customModelFile(String id) {
         return new File(new File(plugin.getDataFolder(), "items"), id + "-model.json");
+    }
+
+    /** Il modello vero e proprio per {@code id}: il file {@code items/<id>-model.json} cosi'
+     *  com'e' se esiste, altrimenti il semplice layer0 2D generato di default. Usato sia da
+     *  {@link #packFiles()} (cosa va nel pacchetto) sia da {@link #furnitureYOffset} (dove sta
+     *  davvero il fondo del modello) — un solo posto che decide "qual e' il modello di questo
+     *  oggetto", non due copie della stessa scelta. */
+    private byte[] resolveModelBytes(String id) throws IOException {
+        File customModel = customModelFile(id);
+        if (customModel.isFile()) return Files.readAllBytes(customModel.toPath());
+        return ("{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\""
+                + NAMESPACE + ":item/" + id + "\"}}").getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** Quanto spostare in alto (in blocchi) un {@link org.bukkit.entity.ItemDisplay} che mostra
+     *  questo oggetto come furniture, perche' il suo fondo tocchi il punto di piazzamento invece
+     *  di restarci sospeso a meta': un ItemDisplay ancora il modello al CENTRO nominale del
+     *  proprio spazio locale (elemento y=8 su 16), non al fondo come farebbe un blocco — verificato
+     *  con un log su un piazzamento reale (vedi il commit che ha introdotto questo metodo). Per un
+     *  modello a tutta altezza (0-16, es. il layer0 2D generato) il fondo e' y=0 e lo spostamento
+     *  giusto e' 0.5 blocchi; per un modello piu' piccolo o non centrato (es. un cubo 4-12) va
+     *  ricalcolato dal suo vero punto piu' basso, letto dal JSON invece di indovinato — cosi'
+     *  qualunque modello 3D futuro (Blockbench o scritto a mano) si appoggia da solo, senza dover
+     *  regolare a mano un valore per ogni oggetto. */
+    private double furnitureYOffset(String id) {
+        try {
+            JsonObject model = JsonParser.parseString(new String(resolveModelBytes(id), StandardCharsets.UTF_8))
+                    .getAsJsonObject();
+            JsonArray elements = model.getAsJsonArray("elements");
+            if (elements == null || elements.isEmpty()) return 0.5;
+            double minY = Double.MAX_VALUE;
+            for (JsonElement el : elements) {
+                JsonObject e = el.getAsJsonObject();
+                double fromY = e.getAsJsonArray("from").get(1).getAsDouble();
+                double toY = e.getAsJsonArray("to").get(1).getAsDouble();
+                minY = Math.min(minY, Math.min(fromY, toY));
+            }
+            return (8.0 - minY) / 16.0;
+        } catch (RuntimeException | IOException ex) {
+            plugin.getLogger().warning("[Items] '" + id + "': impossibile leggere il modello per calcolare "
+                    + "l'altezza della furniture (" + ex.getMessage() + "), uso 0.5 blocchi di default.");
+            return 0.5;
+        }
     }
 
     public boolean has(String id) {
@@ -201,12 +249,7 @@ public final class ItemCatalog {
             try {
                 byte[] texture = Files.readAllBytes(textureFile(e.id()).toPath());
                 out.put("assets/" + NAMESPACE + "/textures/item/" + e.id() + ".png", texture);
-                File customModel = customModelFile(e.id());
-                byte[] model = customModel.isFile()
-                        ? Files.readAllBytes(customModel.toPath())
-                        : ("{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\""
-                                + NAMESPACE + ":item/" + e.id() + "\"}}").getBytes(StandardCharsets.UTF_8);
-                out.put("assets/" + NAMESPACE + "/models/item/" + e.id() + ".json", model);
+                out.put("assets/" + NAMESPACE + "/models/item/" + e.id() + ".json", resolveModelBytes(e.id()));
                 String definition = "{\"model\":{\"type\":\"minecraft:model\",\"model\":\""
                         + NAMESPACE + ":item/" + e.id() + "\"}}";
                 out.put("assets/" + NAMESPACE + "/items/" + e.id() + ".json",

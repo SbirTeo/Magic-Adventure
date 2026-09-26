@@ -121,6 +121,11 @@ automatica (stesso principio di Oraxen, `generate_model: false, model: ...`). La
 `items/<id>.png` resta comunque obbligatoria, referenziata dal modello come `magixpack:item/<id>`.
 `/mpack reload` come sempre per vederlo in gioco.
 
+Se poi l'oggetto ha anche `furniture: true`, il fondo del modello viene appoggiato al terreno da
+solo: la vera altezza del modello (letta dal suo `"elements"`) decide quanto va sollevato, non un
+valore fisso — un cubo piu' basso di un blocco intero non resta ne' sprofondato ne' sospeso a
+mezz'aria. Non serve regolare niente a mano, nemmeno per un modello futuro fatto in Blockbench.
+
 Da un altro plugin: `MagixPack.customItem(String id)` (via riflessione, come `registerPack`)
 restituisce l'`ItemStack` pronto, o null se l'id non e' nel catalogo.
 
