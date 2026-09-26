@@ -319,6 +319,8 @@ public final class AvatarService {
             }
             root.append(Component.text(String.valueOf(STEP)));
         }
-        return root.build();
+        // Wrapped in a plain parent: whatever a caller appends after the avatar (a name, a caption)
+        // must not inherit the pixel font, which has no letters (they would show as empty boxes).
+        return Component.text().append(root.build()).build();
     }
 }
