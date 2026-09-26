@@ -182,20 +182,22 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
         Component caption = LegacyComponentSerializer.legacySection()
                 .deserialize(messages.get(viewer, "glyph-show-caption").replace("{glyph}", id));
         if (!e.playerAvatar()) {
+            for (int i = 0; i < e.emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
             viewer.sendMessage(plugin.glyphCatalog().component(id).append(caption));
             return;
         }
         String name = args.length >= 4 ? args[3] : viewer.getName();
-        CompletableFuture<Component> future = plugin.avatarService().fetch(name);
+        CompletableFuture<int[][]> future = plugin.avatarService().fetch(name);
         if (!future.isDone()) viewer.sendMessage(messages.get(viewer, "glyph-avatar-loading").replace("{player}", name));
-        future.thenAccept(avatar -> Bukkit.getScheduler().runTask(plugin, () -> {
+        future.thenAccept(face -> Bukkit.getScheduler().runTask(plugin, () -> {
             if (!viewer.isOnline()) return;
-            if (avatar == null) {
+            if (face == null) {
                 viewer.sendMessage(messages.get(viewer, "glyph-avatar-no-skin").replace("{player}", name));
                 return;
             }
-            // A taller avatar (pixel-size > 1) sticks out above its line: leave room for it.
-            for (int i = 0; i < plugin.avatarService().emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
+            Component avatar = plugin.avatarService().render(e, face);
+            // A glyph taller than a letter (scale, offset-y) sticks out above its line: leave room.
+            for (int i = 0; i < e.emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
             viewer.sendMessage(avatar.append(caption));
         }));
     }

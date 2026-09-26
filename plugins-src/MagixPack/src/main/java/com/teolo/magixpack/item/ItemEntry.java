@@ -41,9 +41,12 @@ import java.util.List;
  * <p>{@code playerAvatar} ({@code type: player-avatar} in items.yml): the item is built for a given
  * player — their own head as icon and their avatar (skin face glyph) in the lore (see
  * {@code avatar.AvatarService}). No texture, no model: nothing of it goes in the pack.
+ * {@code avatarGlyph} is the {@code player-avatar} voice of glyphs.yml it uses (its size and
+ * offsets): key {@code glyph}, default {@code avatar}.
  */
 public record ItemEntry(String id, String material, String name, List<String> lore, int customModelData,
                          boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired,
                          double furnitureYOffset, int furnitureHits, boolean furnitureDrop,
-                         Sound furnitureHitSound, Sound furnitureBreakSound, boolean playerAvatar) {
+                         Sound furnitureHitSound, Sound furnitureBreakSound, boolean playerAvatar,
+                         String avatarGlyph) {
 }

@@ -12,17 +12,29 @@
 #      assegna il plugin da solo, in ordine alfabetico - vedi /mpack glyph
 #      list per il carattere e il font da usare in un Component Adventure.
 #
+#  Per OGNI voce (icone e avatar), facoltative:
+#   scale: 2      -> si vede 2 volte piu' grande; 0.8 -> un quinto piu' piccola
+#                    (1 = come e' disegnata; anche decimali).
+#   offset-x: 3   -> spostata di 3 pixel a DESTRA (negativo = a sinistra; anche
+#                    decimali). Il testo che la segue NON si sposta.
+#   offset-y: 2   -> spostata di 2 pixel in SU (negativo = in giu').
+#  Provale con /mpack glyph show <id> dopo /mpack reload.
+#
 #  Un altro plugin la usa tramite l'API di MagixPack (vedi README.md),
 #  non scrivendo il carattere a mano in messages.yml: il punto di codice
 #  puo' cambiare se cambia il catalogo.
 # =====================================================================
 
 # L'AVATAR del giocatore: type: player-avatar. Niente texture: e' la FACCIA della sua skin
-# (piatta, secondo strato compreso), disegnata pixel per pixel dal font magixpack:avatar, alta
-# come una lettera. Anteprima in chat:
+# (piatta, secondo strato compreso), disegnata pixel per pixel da un font del pacchetto; a
+# scale 1 e' alta come una lettera. Se ne possono fare piu' voci con grandezze diverse (es.
+# avatar_big con scale: 2): l'oggetto di items.yml sceglie quale con glyph:. Anteprima in chat:
 # /mpack glyph show avatar [giocatore]. Da un altro plugin: customGlyph("avatar", giocatore).
 avatar:
   type: player-avatar
+  scale: 1
+  offset-x: 0
+  offset-y: 0
 
 # Esempio (rimuovi il commento e metti glyphs/star.png per provarlo):
 # star:

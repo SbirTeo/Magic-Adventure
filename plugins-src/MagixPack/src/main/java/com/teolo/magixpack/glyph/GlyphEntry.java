@@ -6,8 +6,18 @@ package com.teolo.magixpack.glyph;
  * codice lo assegna {@link GlyphCatalog}, non e' scelto dallo staff: vedi la sua Javadoc.
  *
  * <p>{@code playerAvatar} ({@code type: player-avatar} in glyphs.yml): not an image of the pack but
- * the avatar of a player (the face of the skin), drawn by {@code avatar.AvatarService} with its own font
- * ({@code magixpack:avatar}); no texture, no codepoint (-1).
+ * the avatar of a player (the face of the skin), drawn by {@code avatar.AvatarService} with a font
+ * of its own; no texture, no codepoint (-1).
+ *
+ * <p>{@code scale}, {@code offsetX}, {@code offsetY} are the staff's per-glyph adjustments (size,
+ * GUI pixels to the right, GUI pixels up); {@code fit} is what they become in the font JSON.
  */
-public record GlyphEntry(String id, int height, int ascent, int codepoint, boolean playerAvatar) {
+public record GlyphEntry(String id, int codepoint, boolean playerAvatar, double scale, double offsetX,
+                         int offsetY, int imageRows, BitmapFit fit) {
+
+    /** Empty lines to leave above the glyph so that it does not cover the text before it: a normal
+     *  letter has ascent 7, anything higher sticks out by the difference. */
+    public int emptyLinesAbove(int lineHeight) {
+        return (Math.max(0, fit.ascent() - 7) + lineHeight - 1) / lineHeight;
+    }
 }

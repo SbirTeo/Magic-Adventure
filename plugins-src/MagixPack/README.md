@@ -222,6 +222,23 @@ vedi sopra). Per aggiungerne una:
    sta la base del testo rispetto al bordo alto dell'immagine).
 3. `/mpack reload`.
 
+### Grandezza e posizione, voce per voce
+
+Ogni voce di `glyphs.yml` (icone e avatar) accetta tre chiavi facoltative:
+
+| Chiave | Esempio | Effetto |
+| --- | --- | --- |
+| `scale` | `2` / `0.8` | 2 volte piu' grande / un quinto piu' piccola (1 = come e' disegnata; decimali ammessi). |
+| `offset-x` | `3` / `-1.5` | pixel a destra / a sinistra. Il testo che la segue non si sposta (due spazi invisibili attorno all'icona). |
+| `offset-y` | `2` / `-3` | pixel in su / in giu'. |
+
+L'altezza nel font e' un numero intero di pixel: `scale` viene arrotondata al pixel (un avatar a
+`0.8` e' alto 6 invece di 6,4). Per spostare un'icona piu' in alto di "base sulla riga" il client
+non accetta il valore cosi' com'e': MagixPack aggiunge da solo righe trasparenti sotto l'immagine
+(vedi `glyph.BitmapFit`), quindi non serve preparare immagini apposta. Un'icona piu' alta di una
+lettera sporge sopra la riga: `/mpack glyph show` e la descrizione dell'oggetto avatar lasciano da
+sole le righe vuote che servono.
+
 Il font e' custom (`magixpack:icons`), **mai** `minecraft:default`: quel file il client lo prende
 per intero dal pacchetto con priorita' piu' alta, non lo fonde — un provider aggiunto li' sopra
 cancellerebbe silenziosamente tutti i provider vanilla (e' il motivo per cui l'esperimento della
@@ -244,7 +261,10 @@ codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
 ## L'avatar come glifo (chat, tablist)
 
 In `glyphs.yml` c'e' la voce `avatar` (`type: player-avatar`, niente texture): compare in
-`/mpack glyph list` e `/mpack glyph show avatar [giocatore]` la mostra in chat. Da un altro plugin:
+`/mpack glyph list` e `/mpack glyph show avatar [giocatore]` la mostra in chat. `scale`, `offset-x`,
+`offset-y` come ogni altra voce; se ne possono fare piu' di una con grandezze diverse (es.
+`avatar_big` con `scale: 2`), ognuna col suo font `magixpack:avatar/<id>`, e l'oggetto `avatar` di
+`items.yml` sceglie quale usare con `glyph:` (default `avatar`). Da un altro plugin:
 `customGlyph("avatar", giocatore)`.
 
 La faccia della skin come **testo**, per chat e tablist (alta come una lettera): `playerAvatar(Player)` restituisce
@@ -271,8 +291,6 @@ solo dopo 10 minuti.
 - `send-delay-ticks` / `timeout-seconds` — tempistiche di invio ed espulsione.
 - `watchdog-seconds` — ogni quanto si verifica che il pacchetto sia ancora scaricabile.
 - `prompt` / `kick-messages.*` — testi mostrati al giocatore (colori `&` e `\n` per andare a capo).
-- `avatar.pixel-size` — lato di un pixel della skin in pixel dello schermo (1-4; 1 = alto 8 come una lettera, di piu' sporge sopra la riga).
-- `avatar.baseline-offset` — di quanti pixel il mento scende sotto la riga del testo (1 = come le lettere).
 - `avatar.mojang-lookup` — se chiedere la skin a Mojang per nome quando il profilo non la ha.
 
 ## Comandi

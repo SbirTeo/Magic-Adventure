@@ -63,13 +63,10 @@ kick-messages:
 # ---- AVATAR DELLA SKIN ----
 # Glifo con la FACCIA della skin del giocatore (piatta, secondo strato compreso),
 # disegnato pixel per pixel con un font del pacchetto. Lo usano l'oggetto "avatar" di items.yml
-# (nella descrizione) e, via API, chat e tablist (MagixPack.playerAvatar). Vedi README.md.
+# (nella descrizione) e, via API, chat e tablist (MagixPack.playerAvatar). Grandezza e
+# posizione (scale, offset-x, offset-y) si regolano nella voce "avatar" di glyphs.yml, come per
+# ogni altra icona. Vedi README.md.
 avatar:
-  # Lato di un pixel della skin, in pixel dello schermo (1-4). 1 = avatar alto 8, come una
-  # lettera; 2 = il doppio (sporge sopra la riga).
-  pixel-size: 1
-  # Di quanti pixel il mento scende sotto la riga del testo (1 = come le lettere normali).
-  baseline-offset: 1
   # Il server e' in offline-mode: se il profilo non ha una skin (nessun plugin di skin che la
   # imposta), la si chiede a Mojang per NOME, cioe' la skin dell'account premium con quel nome.
   # false = solo la skin del profilo.

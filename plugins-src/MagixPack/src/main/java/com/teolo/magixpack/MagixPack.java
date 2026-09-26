@@ -77,8 +77,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
         packService = new PackService(this);
         avatarService = new AvatarService(this);
-        itemCatalog = new ItemCatalog(this, avatarService);
         glyphCatalog = new GlyphCatalog(this, avatarService);
+        itemCatalog = new ItemCatalog(this, avatarService, glyphCatalog);
         loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new PackListener(this, packService), this);
@@ -147,7 +147,6 @@ public final class MagixPack extends JavaPlugin implements Listener {
         glyphCatalog.reload();
         Map<String, byte[]> files = new LinkedHashMap<>(itemCatalog.packFiles());
         files.putAll(glyphCatalog.packFiles());
-        files.putAll(avatarService.packFiles());
         packService.register(this, files);
     }
 
@@ -235,14 +234,17 @@ public final class MagixPack extends JavaPlugin implements Listener {
      *  the background, and it is done at every join anyway) or if the player has no skin. It is
      *  As tall as a letter: it fits in any line of text (see README.md). */
     public Component playerAvatar(Player player) {
-        return avatarService.cached(player);
+        return glyphCatalog.component("avatar", player);
     }
 
     /** Like {@link #playerAvatar}, but waits for the download: completes on a BACKGROUND thread
      *  (hop back to the main thread before touching the world) with the avatar, or with null if
      *  no skin is found. Works for any name, online or not (Mojang lookup by name). */
     public CompletableFuture<Component> playerAvatarAsync(String name) {
-        return avatarService.fetch(name);
+        return avatarService.fetch(name).thenApply(face -> {
+            com.teolo.magixpack.glyph.GlyphEntry e = glyphCatalog.entry("avatar");
+            return face != null && e != null && e.playerAvatar() ? avatarService.render(e, face) : null;
+        });
     }
 
     // --------------------------------------------------------------------------------------------
@@ -365,7 +367,13 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "questa funzione, e' stato tolto). Il punto di codice di ogni icona lo assegna "
                                 + "il plugin da solo, in ordine alfabetico: puo' cambiare se il catalogo cambia, "
                                 + "quindi un altro plugin la richiama sempre per NOME tramite l'API "
-                                + "(MagixPack.customGlyph(\"id\")), mai scrivendo il carattere a mano.")
+                                + "(MagixPack.customGlyph(\"id\")), mai scrivendo il carattere a mano.",
+                        "Ogni voce ha tre chiavi facoltative per grandezza e posizione: scale (2 = due volte "
+                                + "piu' grande, 0.8 = un quinto piu' piccola), offset-x (pixel a destra, negativo a "
+                                + "sinistra: il testo dopo non si sposta) e offset-y (pixel in su, negativo in giu'). "
+                                + "Valgono anche per l'avatar, e si possono fare piu' voci avatar di grandezze "
+                                + "diverse; l'oggetto avatar di items.yml sceglie quale usare con glyph:. Dopo "
+                                + "averle cambiate: /mpack reload, poi /mpack glyph show <id> per vederle.")
 
                 .commands()
                 .permissions()
@@ -374,7 +382,6 @@ public final class MagixPack extends JavaPlugin implements Listener {
                         "port", "Porta del server HTTP che serve lo zip: va aperta sul firewall del VPS.",
                         "required", "Se il pacchetto e' obbligatorio (true, default) o facoltativo (false, nessuna espulsione).",
                         "watchdog-seconds", "Ogni quanti secondi si verifica che il pacchetto sia ancora scaricabile.",
-                        "avatar.pixel-size", "Grandezza dell'avatar: lato di un pixel della skin in pixel dello schermo (1 = alto 8, come una lettera).",
                         "avatar.mojang-lookup", "Se chiedere la skin a Mojang per nome quando il profilo del giocatore non la ha.")
 
                 .issue("Un giocatore e' stato espulso appena entrato",

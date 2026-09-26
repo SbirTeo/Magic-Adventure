@@ -100,6 +100,8 @@ test_cube:
 # MagixMenus (magixpack: avatar) chi guarda il menu. Le righe qui sotto vengono PRIMA dell'avatar.
 avatar:
   type: player-avatar
+  # Quale voce avatar di glyphs.yml usare nella descrizione (grandezza e posizione sono sue).
+  glyph: avatar
   name: "&e{player}"
   lore:
     - "&7Il tuo avatar"
