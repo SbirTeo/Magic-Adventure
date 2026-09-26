@@ -52,12 +52,15 @@ priority-order:
 #                UNA delle regioni elencate (vuoto = qualunque posizione; con
 #                WorldGuard non installato queste condizioni non corrispondono mai)
 #   placeholders : elenco di condizioni "%placeholder% OP valore" (OP: >= <= ==
-#                != > <), risolte con PlaceholderAPI — TUTTE richieste (vuoto =
-#                nessuna). Es. per mostrare una scoreboard solo a chi ha una
-#                fazione: ["%magixfactions_faction% != "]. Numeri a destra e a
-#                sinistra si confrontano come numeri, il resto come testo (senza
+#                != > <), risolte con PlaceholderAPI (vuoto = nessuna). Es. per
+#                mostrare una scoreboard solo a chi ha una fazione:
+#                ["%magixfactions_faction% != "]. Numeri a destra e a sinistra
+#                si confrontano come numeri, il resto come testo (senza
 #                distinguere maiuscole/minuscole). Copre qualunque placeholder,
 #                non solo quelli dei plugin Magix.
+#   placeholders-mode : con PIU' di una condizione in "placeholders", decide se
+#                servono TUTTE (all, il default) o ne basta UNA (any). Con una
+#                sola condizione (o nessuna) non cambia niente.
 #   title      : il titolo, con interval-ticks + frames (vedi sotto)
 #   lines      : le righe, dall'alto verso il basso (max 15, il limite di
 #                Minecraft), ognuna con interval-ticks + frames
@@ -82,6 +85,7 @@ scoreboards:
     worlds: []
     regions: []
     placeholders: []
+    placeholders-mode: all
     title:
       interval-ticks: 20
       frames:
@@ -107,6 +111,7 @@ scoreboards:
     worlds: []
     regions: []
     placeholders: []
+    placeholders-mode: all
     title:
       interval-ticks: 20
       frames:
@@ -132,6 +137,7 @@ scoreboards:
     regions:
       - "spawn"
     placeholders: []
+    placeholders-mode: all
     title:
       interval-ticks: 20
       frames:
@@ -156,6 +162,10 @@ scoreboards:
     regions: []
     placeholders:
       - "%magixfactions_faction% != "
+    # Una sola condizione qui: "all" o "any" darebbero lo stesso risultato.
+    # Con piu' di una condizione, "any" vorrebbe dire "basta una delle due",
+    # es. ["%magixfactions_faction% != ", "%vault_eco_balance% >= 1000"].
+    placeholders-mode: all
     title:
       interval-ticks: 20
       frames:
@@ -176,6 +186,7 @@ scoreboards:
     regions: []
     placeholders:
       - "%magixfactions_faction% == "
+    placeholders-mode: all
     title:
       interval-ticks: 20
       frames:

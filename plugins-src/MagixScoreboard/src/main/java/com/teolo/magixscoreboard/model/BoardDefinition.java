@@ -28,12 +28,13 @@ public final class BoardDefinition {
     private final Set<String> worlds;
     private final Set<String> regions;
     private final List<String> placeholderConditions;
+    private final boolean placeholdersMatchAny;
     private final BoardLine title;
     private final List<BoardLine> lines;
 
     public BoardDefinition(String id, boolean enabled, int weight, String permission,
                             Set<String> worlds, Set<String> regions, List<String> placeholderConditions,
-                            BoardLine title, List<BoardLine> lines) {
+                            boolean placeholdersMatchAny, BoardLine title, List<BoardLine> lines) {
         this.id = id;
         this.enabled = enabled;
         this.weight = weight;
@@ -41,6 +42,7 @@ public final class BoardDefinition {
         this.worlds = Set.copyOf(worlds);
         this.regions = Set.copyOf(regions);
         this.placeholderConditions = List.copyOf(placeholderConditions);
+        this.placeholdersMatchAny = placeholdersMatchAny;
         this.title = title;
         this.lines = List.copyOf(lines);
     }
@@ -54,8 +56,14 @@ public final class BoardDefinition {
     public Set<String> worlds() { return worlds; }
     public Set<String> regions() { return regions; }
     public List<String> placeholderConditions() { return placeholderConditions; }
+    public boolean placeholdersMatchAny() { return placeholdersMatchAny; }
 
-    /** true se il giocatore soddisfa TUTTE le condizioni impostate (quelle vuote non contano). */
+    /**
+     * true se il giocatore soddisfa TUTTE le condizioni impostate (quelle vuote non contano).
+     * Le condizioni sui placeholder sono un'eccezione voluta: fra loro possono essere richieste
+     * TUTTE (placeholders-mode: all, il default) oppure ne basta UNA (placeholders-mode: any) —
+     * vedi {@link #placeholdersMatchAny}.
+     */
     public boolean matches(Player player, WorldGuardHook worldGuard) {
         if (!enabled) return false;
         if (!permission.isEmpty() && !player.hasPermission(permission)) return false;
@@ -66,8 +74,18 @@ public final class BoardDefinition {
             Set<String> here = worldGuard.regionsAt(player.getLocation());
             if (here.stream().noneMatch(regions::contains)) return false;
         }
-        for (String condition : placeholderConditions) {
-            if (!evalPlaceholderCondition(player, condition)) return false;
+        if (!placeholderConditions.isEmpty()) {
+            if (placeholdersMatchAny) {
+                boolean any = false;
+                for (String condition : placeholderConditions) {
+                    if (evalPlaceholderCondition(player, condition)) { any = true; break; }
+                }
+                if (!any) return false;
+            } else {
+                for (String condition : placeholderConditions) {
+                    if (!evalPlaceholderCondition(player, condition)) return false;
+                }
+            }
         }
         return true;
     }
