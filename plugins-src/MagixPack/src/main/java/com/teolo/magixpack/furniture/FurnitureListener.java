@@ -75,8 +75,13 @@ public final class FurnitureListener implements Listener {
         this.blockKey = new NamespacedKey(ItemCatalog.NAMESPACE, "furniture-block");
     }
 
-    /** Tasto destro su un blocco, con in mano un oggetto {@code furniture: true}: lo piazza sulla
-     *  faccia cliccata, invece del normale utilizzo dell'oggetto/blocco. Per default serve anche
+    /** Tasto destro sulla faccia SUPERIORE di un blocco, con in mano un oggetto {@code furniture:
+     *  true}: lo piazza sopra, invece del normale utilizzo dell'oggetto/blocco. Solo la faccia
+     *  superiore (mai i lati) apposta: su un terreno sconnesso (gradini da un blocco, tipici di
+     *  badlands/spiagge...) cliccare il LATO di un blocco piu' basso farebbe nascere l'oggetto
+     *  alla sua stessa altezza, piu' bassa del terreno intorno - sembrerebbe "affondato" nel
+     *  terreno vicino, anche se il modello stesso (Blockbench) e' perfettamente centrato: non e'
+     *  un problema di modello, e' la faccia sbagliata su cui appoggiarsi. Per default serve anche
      *  shift (evita conflitti con l'interazione normale, es. aprire un baule cliccato), ma e'
      *  configurabile per oggetto con {@code furniture-shift-required: false} in items.yml. */
     @EventHandler(ignoreCancelled = true)
@@ -96,7 +101,7 @@ public final class FurnitureListener implements Listener {
 
         Block clicked = e.getClickedBlock();
         BlockFace face = e.getBlockFace();
-        if (clicked == null || face == null) return;
+        if (clicked == null || face != BlockFace.UP) return;
         Block target = clicked.getRelative(face);
         if (!target.getType().isAir()) return;
 
