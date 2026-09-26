@@ -111,13 +111,6 @@ public final class FurnitureListener implements Listener {
         Location loc = target.getLocation().add(0.5, 0, 0.5);
         float yaw = Math.round(player.getLocation().getYaw() / 90f) * 90f;
         loc.setYaw(yaw);
-        // Diagnostica temporanea: un piazzamento che sembra "affondato" va confrontato con le
-        // coordinate vere usate, non indovinato - vedi CLAUDE.md sulla diagnostica prima di
-        // rispondere a occhio.
-        plugin.getLogger().info("[Furniture] " + player.getName() + " piazza '" + id + "': clicked="
-                + clicked.getX() + "," + clicked.getY() + "," + clicked.getZ() + " (" + clicked.getType()
-                + ") target=" + target.getX() + "," + target.getY() + "," + target.getZ()
-                + " entita' in " + loc.getX() + "," + loc.getY() + "," + loc.getZ());
 
         ItemStack displayed = itemCatalog.build(id);
         if (displayed == null) return;
@@ -130,7 +123,12 @@ public final class FurnitureListener implements Listener {
             // la Transformation scelta qui sotto.
             d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
             d.setTransformation(new Transformation(
-                    new Vector3f(0f, 0f, 0f),
+                    // +0.5 sull'asse Y: un ItemDisplay ancora il modello al CENTRO (non al fondo,
+                    // come farebbe un blocco), verificato via log su un piazzamento reale (entita'
+                    // esattamente al livello del terreno, ma il cubo appariva comunque meta'
+                    // interrato) - senza questo spostamento meta' del modello finisce sempre sotto
+                    // il punto di appoggio.
+                    new Vector3f(0f, 0.5f, 0f),
                     new Quaternionf(new AxisAngle4f((float) Math.toRadians(yaw), 0f, 1f, 0f)),
                     new Vector3f(1f, 1f, 1f),
                     new Quaternionf()));
