@@ -49,7 +49,8 @@ final class Readme {
                 4. **Se serve, digita il codice** sul tastierino: nove tasti da 1 a 9 piu' la
                    riga con lo zero, cancella e conferma.
                 5. **Torna dov'era**, ricompare agli altri, e solo adesso il server annuncia
-                   che e' arrivato.
+                   che e' arrivato. Chi entra per la **prima volta** in assoluto non ha un
+                   posto suo a cui tornare: resta esattamente dove e' comparso, al cancello.
 
                 ## Chi deve la verifica in due passaggi
 

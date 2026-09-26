@@ -249,6 +249,13 @@ public final class MagixAuth extends JavaPlugin {
                                 + "giocatore ha CHIUSO il gioco — cosa che cancella il gettone — non resta "
                                 + "nessuno dei due segni e la password viene richiesta. È voluto: l'alternativa "
                                 + "sarebbe far entrare senza password chiunque conosca il nick.")
+                .issue("«Appena mi sono registrato mi ha portato in alto, sopra lo spawn»",
+                        "Dalla v0.7.24 non succede più. Dopo il login il giocatore torna dove si era "
+                                + "disconnesso; chi entra per la prima volta però non ha un posto suo, e prima "
+                                + "veniva «riportato» al primo spawn calcolato da Minecraft, cioè sopra il blocco "
+                                + "più alto della colonna dello spawn: con l'hub coperto, sul tetto. Adesso chi è al "
+                                + "primo ingresso resta esattamente dov'è comparso, al cancello. Chi aveva già "
+                                + "giocato (anche dopo /mauth reset) torna come sempre dov'era.")
                 .issue("«Ho dimenticato la password»",
                         "/mauth reset <nome>: la password viene azzerata e il giocatore ne imposta una nuova al "
                                 + "prossimo ingresso. Vale anche per il sito, perché l'account è lo stesso.")
