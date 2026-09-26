@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** {@code /mpack}: reload (magixpack.admin), oggetti custom (magixpack.item.give) e icone custom
+/** {@code /mpack}: reload (magixpack.admin), oggetti custom (magixpack.item.give), icone custom
  *  via font (magixpack.glyph.list) — vedi README.md per items.yml/glyphs.yml. */
 public final class MagixPackCommand implements CommandExecutor, TabCompleter {
 
@@ -75,8 +75,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             return;
         }
         String id = args[2];
-        ItemStack stack = plugin.itemCatalog().build(id);
-        if (stack == null) {
+        if (!plugin.itemCatalog().has(id)) {
             sender.sendMessage(messages.get(sender, "item-unknown").replace("{item}", id));
             return;
         }
@@ -93,6 +92,24 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(messages.get(sender, "player-required"));
             return;
         }
+        if (plugin.itemCatalog().entry(id).playerAvatar()) {
+            // The avatar in the lore needs the skin: wait for the download (usually already done
+            // at join), then give on the main thread. Without a skin the item is given anyway.
+            plugin.avatarService().fetch(target).thenAccept(avatar -> Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!target.isOnline()) return;
+                if (avatar == null) {
+                    sender.sendMessage(messages.get(sender, "item-avatar-no-skin").replace("{player}", target.getName()));
+                }
+                give(sender, target, id);
+            }));
+            return;
+        }
+        give(sender, target, id);
+    }
+
+    private void give(CommandSender sender, Player target, String id) {
+        ItemStack stack = plugin.itemCatalog().build(id, target);
+        if (stack == null) return;
         target.getInventory().addItem(stack);
         sender.sendMessage(messages.get(sender, "item-given")
                 .replace("{item}", id).replace("{player}", target.getName()));

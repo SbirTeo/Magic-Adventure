@@ -177,6 +177,12 @@ items:
       - "&#9A8CA8l'indirizzo di una texture o il valore"
       - "&#9A8CA8base64 dei siti di teste."
 
+  # Un oggetto del catalogo di MagixPack (items.yml), costruito per chi guarda: l'avatar mostra
+  # la testa del giocatore e, passandoci sopra, la sua figura intera.
+  # avatar:
+  #   slot: 15
+  #   magixpack: avatar
+
   # ────────────────────────────────────────────────────────────────────────────────────────
   #  4. LA PRIORITA': DUE ITEM SULLA STESSA CASELLA
   #

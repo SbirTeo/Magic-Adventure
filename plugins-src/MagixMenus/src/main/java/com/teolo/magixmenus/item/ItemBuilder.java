@@ -2,6 +2,7 @@ package com.teolo.magixmenus.item;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.teolo.magixmenus.MagixMenus;
+import com.teolo.magixmenus.hook.MagixPackHook;
 import com.teolo.magixmenus.menu.ItemDef;
 import com.teolo.magixmenus.shop.Shop;
 import com.teolo.magixmenus.util.Colors;
@@ -77,6 +78,10 @@ public final class ItemBuilder {
                                        ItemDef def, boolean perIlMenu) {
         Logger log = plugin.getLogger();
         List<String> problemi = new ArrayList<>();
+
+        if (def.magixpack() != null && !def.magixpack().isBlank()) {
+            return daMagixPack(plugin, p, variabili, def);
+        }
 
         String materialName = Text.raw(p, variabili, def.materiale()).trim();
         boolean testaRichiesta = def.testa() != null && !def.testa().isBlank();
@@ -186,6 +191,49 @@ public final class ItemBuilder {
             meta.lore(lore);
         }
 
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    /**
+     * Un oggetto del catalogo di MagixPack ({@code magixpack: <id>}), costruito per chi guarda il
+     * menu. Nome e aspetto sono i suoi; {@code display_name} del menu, se c'e', lo sostituisce, e
+     * le righe di {@code lore} del menu vanno PRIMA della sua descrizione (quella di un avatar
+     * finisce con la figura del giocatore, che deve restare in fondo).
+     */
+    private static ItemStack daMagixPack(MagixMenus plugin, Player p, Map<String, String> variabili, ItemDef def) {
+        String id = Text.raw(p, variabili, def.magixpack()).trim();
+        ItemStack stack = MagixPackHook.item(id, p);
+        if (stack == null) {
+            return barriera(def.name(), List.of("MagixPack non ha l'oggetto \"" + id + "\" (items.yml)"));
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return stack;
+        }
+        if (def.title() != null) {
+            meta.displayName(senzaCorsivo(Colors.component(Text.apply(p, variabili, Text.translated(p, def.title())))));
+        }
+        List<String> description = new ArrayList<>();
+        for (String line : def.description()) {
+            description.add(Text.translated(p, line));
+        }
+        if (!description.isEmpty()) {
+            List<Component> rows = new ArrayList<>();
+            for (String r : Text.apply(p, variabili, description)) {
+                rows.add(senzaCorsivo(Colors.component(r)));
+            }
+            if (meta.lore() != null) {
+                rows.addAll(meta.lore());
+            }
+            meta.lore(rows);
+        }
+        if (def.luccica()) {
+            meta.setEnchantmentGlintOverride(Boolean.TRUE);
+        }
+        if (def.hideDetails()) {
+            meta.addItemFlags(ItemFlag.values());
+        }
         stack.setItemMeta(meta);
         return stack;
     }

@@ -141,6 +141,7 @@ public final class JsonExport {
         o.addProperty("modello_item", i.modelloItem());
         o.addProperty("colore", i.color());
         o.addProperty("testa", i.testa());
+        o.addProperty("magixpack", i.magixpack());
         o.addProperty("avanzate", i.raw());
         o.addProperty("prezzo", i.prezzo());
         o.addProperty("dai", i.dai());

@@ -59,3 +59,18 @@ kick-messages:
   declined: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Su &6MAGICADVENTURE&7 il pacchetto risorse e' &cobbligatorio&7.\n&7Rientra e premi &aAccetta&7 quando ti viene chiesto.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
   failed: "&c&lPACCHETTO RISORSE NON CARICATO\n\n&7Il pacchetto risorse &cobbligatorio&7 non e' stato scaricato dal tuo client.\n&7Riprova tra poco; se continua, controlla la connessione o\n&7svuota la cartella &fserver-resource-packs&7 del gioco.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
   timeout: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Il tuo client non ha risposto alla richiesta del pacchetto.\n&7Il pacchetto e' &cobbligatorio&7 per giocare: rientra e accetta il download.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+
+# ---- AVATAR DELLA SKIN ----
+# Glifo con la figura INTERA del giocatore (vista frontale della skin, secondo strato compreso),
+# disegnato pixel per pixel con un font del pacchetto. Lo usano l'oggetto "avatar" di items.yml
+# (nella descrizione) e, via API, chat e tablist (MagixPack.playerAvatar). Vedi README.md.
+avatar:
+  # Lato di un pixel della skin, in pixel dello schermo (1-4). 1 = avatar alto 32, cioe' circa
+  # quattro righe di chat; 2 = il doppio.
+  pixel-size: 1
+  # Di quanti pixel i piedi scendono sotto la riga del testo (1 = come le lettere normali).
+  baseline-offset: 1
+  # Il server e' in offline-mode: se il profilo non ha una skin (nessun plugin di skin che la
+  # imposta), la si chiede a Mojang per NOME, cioe' la skin dell'account premium con quel nome.
+  # false = solo la skin del profilo.
+  mojang-lookup: true
