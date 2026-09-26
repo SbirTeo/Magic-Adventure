@@ -1,5 +1,7 @@
 package com.teolo.magixpack.item;
 
+import org.bukkit.Sound;
+
 import java.util.List;
 
 /**
@@ -21,7 +23,27 @@ import java.util.List;
  * {@code furnitureShiftRequired} (default true) decide se il tasto destro deve avvenire con shift
  * premuto (per non entrare in conflitto con l'uso normale del blocco cliccato, es. un baule) o se
  * basta il click semplice — anche questa scelta e' per oggetto, non globale.
+ *
+ * <p>{@code furnitureYOffset} (blocchi) e' calcolato da {@link ItemCatalog}, non scelto dallo
+ * staff: quanto sollevare il modello quando piazzato come furniture perche' il suo fondo tocchi il
+ * terreno invece di restare sospeso a meta' o sprofondato — un {@link org.bukkit.entity.ItemDisplay}
+ * ancora il modello al centro nominale del proprio spazio, non al fondo come un blocco, quindi
+ * questo valore dipende dalla vera altezza del modello (letta dal suo JSON), non e' un fisso 0.5
+ * uguale per tutti.
+ *
+ * <p>{@code furnitureHits} (default 1) quanti colpi servono per romperla — contati sull'entita'
+ * piazzata, non sul catalogo. {@code furnitureDrop} decide cosa succede all'ultimo colpo: {@code
+ * false} (default) da' l'oggetto direttamente nell'inventario di chi ha colpito (o lo fa cadere se
+ * non c'e' posto), {@code true} lo fa cadere per terra come un blocco normale, senza darlo a nessuno
+ * in particolare. {@code furnitureHitSound}/{@code furnitureBreakSound} sono i suoni per un colpo
+ * che non rompe ancora e per quello che rompe davvero — scelte per oggetto, non globali.
+ *
+ * <p>{@code playerAvatar} ({@code type: player-avatar} in items.yml): the item is built for a given
+ * player — their own head as icon and their full-body avatar in the lore (see
+ * {@code avatar.AvatarService}). No texture, no model: nothing of it goes in the pack.
  */
 public record ItemEntry(String id, String material, String name, List<String> lore, int customModelData,
-                         boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired) {
+                         boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired,
+                         double furnitureYOffset, int furnitureHits, boolean furnitureDrop,
+                         Sound furnitureHitSound, Sound furnitureBreakSound, boolean playerAvatar) {
 }

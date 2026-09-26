@@ -1,5 +1,6 @@
 package com.teolo.magixpack;
 
+import com.teolo.magixpack.avatar.AvatarService;
 import com.teolo.magixpack.command.MagixPackCommand;
 import com.teolo.magixpack.furniture.FurnitureListener;
 import com.teolo.magixpack.glyph.GlyphCatalog;
@@ -14,6 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -22,6 +24,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Server UNICO del resource pack: un client Minecraft ne applica solo uno alla volta, quindi
@@ -59,6 +62,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
     private Messages messages;
     private ItemCatalog itemCatalog;
     private GlyphCatalog glyphCatalog;
+    private AvatarService avatarService;
 
     @Override
     public void onEnable() {
@@ -72,7 +76,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
         messages = new Messages(this);
 
         packService = new PackService(this);
-        itemCatalog = new ItemCatalog(this);
+        avatarService = new AvatarService(this);
+        itemCatalog = new ItemCatalog(this, avatarService);
         glyphCatalog = new GlyphCatalog(this);
         loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
@@ -100,6 +105,13 @@ public final class MagixPack extends JavaPlugin implements Listener {
         packService.start();
     }
 
+    /** The skin may have changed since last time: the avatar is downloaded again in the
+     *  background, so it is ready by the time a plugin asks for it. */
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        avatarService.refresh(e.getPlayer());
+    }
+
     @Override
     public void onDisable() {
         if (packService != null) packService.stop();
@@ -118,6 +130,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
         ConfigAlign.alignAll(this);
         reloadConfig();
         messages.reload();
+        avatarService.reload();
         loadCatalogsAndRegister();
         packService.reloadConfig();
         if (packService.isAvailable()) {
@@ -134,6 +147,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
         glyphCatalog.reload();
         Map<String, byte[]> files = new LinkedHashMap<>(itemCatalog.packFiles());
         files.putAll(glyphCatalog.packFiles());
+        files.putAll(avatarService.packFiles());
         packService.register(this, files);
     }
 
@@ -195,6 +209,34 @@ public final class MagixPack extends JavaPlugin implements Listener {
      *  {@link GlyphCatalog}). */
     public Component customGlyph(String id) {
         return glyphCatalog.component(id);
+    }
+
+    /** The avatar service (full-body skin glyph): used by {@code /mpack item give} for the
+     *  {@code player-avatar} items, to wait for the download before giving. */
+    public AvatarService avatarService() {
+        return avatarService;
+    }
+
+    /** Like {@link #customItem(String)}, built FOR {@code player}: a {@code player-avatar} item of
+     *  items.yml carries their head and their full-body avatar (the other items ignore the player). This is
+     *  the one MagixMenus uses, with the viewer of the menu. */
+    public ItemStack customItem(String id, Player player) {
+        return itemCatalog.build(id, player);
+    }
+
+    /** The player's full-body avatar (front view of the skin) as a Component, ready to be put in a
+     *  chat message or in the tablist; null if it is not downloaded yet (the download starts in
+     *  the background, and it is done at every join anyway) or if the player has no skin. It is
+     *  32 GUI pixels tall: it sticks out above the line it is written on (see README.md). */
+    public Component playerAvatar(Player player) {
+        return avatarService.cached(player);
+    }
+
+    /** Like {@link #playerAvatar}, but waits for the download: completes on a BACKGROUND thread
+     *  (hop back to the main thread before touching the world) with the avatar, or with null if
+     *  no skin is found. Works for any name, online or not (Mojang lookup by name). */
+    public CompletableFuture<Component> playerAvatarAsync(String name) {
+        return avatarService.fetch(name);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -295,7 +337,16 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "puo' anche piazzare per terra (tasto destro su un blocco, shift richiesto per "
                                 + "default - furniture-shift-required: false lo toglie - si rompe attaccandolo) "
                                 + "col suo aspetto vero; furniture-solid: true gli da' collisione vera. Vedi il "
-                                + "README per i dettagli.")
+                                + "README per i dettagli.",
+                        "La voce avatar (type: player-avatar) e' speciale: niente texture, e' costruita per un "
+                                + "giocatore — l'icona e' la sua testa, e passandoci sopra si vede la sua FIGURA "
+                                + "INTERA (vista frontale della skin). /mpack item give avatar [giocatore] da' "
+                                + "l'avatar di chi lo riceve; in un menu di MagixMenus si scrive magixpack: avatar "
+                                + "e si vede l'avatar di chi guarda. La casella mostra solo la testa per un limite "
+                                + "del client: nessun modello di item disegna un corpo intero con la skin del "
+                                + "giocatore. Il server e' in offline-mode: la skin si prende dal profilo se c'e' "
+                                + "(plugin di skin), altrimenti da Mojang per nome (avatar.mojang-lookup); un "
+                                + "account non premium senza plugin di skin non ha figura.")
 
                 .section("Icone custom via font (glyphs.yml)",
                         "Per simboli dentro un messaggio di chat o nel tablist, MAI per gli oggetti (quelli "
@@ -314,7 +365,9 @@ public final class MagixPack extends JavaPlugin implements Listener {
                         "public-host", "IP pubblico da cui i client scaricano il pacchetto. Vuoto = pacchetto disabilitato.",
                         "port", "Porta del server HTTP che serve lo zip: va aperta sul firewall del VPS.",
                         "required", "Se il pacchetto e' obbligatorio (true, default) o facoltativo (false, nessuna espulsione).",
-                        "watchdog-seconds", "Ogni quanti secondi si verifica che il pacchetto sia ancora scaricabile.")
+                        "watchdog-seconds", "Ogni quanti secondi si verifica che il pacchetto sia ancora scaricabile.",
+                        "avatar.pixel-size", "Grandezza dell'avatar: lato di un pixel della skin in pixel dello schermo (1 = alto 32).",
+                        "avatar.mojang-lookup", "Se chiedere la skin a Mojang per nome quando il profilo del giocatore non la ha.")
 
                 .issue("Un giocatore e' stato espulso appena entrato",
                         "Ha rifiutato il pacchetto, o il download e' fallito, o il client non ha risposto in "

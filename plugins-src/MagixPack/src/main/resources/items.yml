@@ -28,6 +28,12 @@
 #  shift per piazzarlo (true di default, per non entrare in conflitto
 #  col click normale sul blocco cliccato, es. un baule) - scelta per
 #  oggetto.
+#  furniture-hits: quanti colpi servono per romperla (default 1).
+#  furniture-drop: true la fa cadere per terra all'ultimo colpo invece
+#  di darla direttamente a chi ha colpito (default false, come un blocco
+#  normale che dropperebbe). furniture-hit-sound/furniture-break-sound:
+#  nome di un Sound (es. BLOCK_WOOD_HIT, BLOCK_STONE_BREAK...) per il
+#  colpo che non rompe ancora e per quello che rompe davvero.
 # =====================================================================
 
 # Oggetto di PROVA, per verificare che texture/modello/comando funzionino davvero end-to-end:
@@ -49,6 +55,17 @@ test_cube:
     - "&7(non la semplice icona piatta)"
   furniture: true
   furniture-solid: true
+
+# L'AVATAR del giocatore: type: player-avatar. Niente texture ne' material: l'icona e' la testa
+# del giocatore e, passandoci sopra, la descrizione mostra la sua FIGURA INTERA (vista frontale
+# della skin, disegnata dal font del pacchetto). {player} = il nome del giocatore a cui si
+# riferisce: con /mpack item give avatar [giocatore] quello che lo riceve; in un menu di
+# MagixMenus (magixpack: avatar) chi guarda il menu. Le righe qui sotto vengono PRIMA della figura.
+avatar:
+  type: player-avatar
+  name: "&e{player}"
+  lore:
+    - "&7Il tuo avatar"
 
 # Esempio (rimuovi il commento e metti items/flaming_sword.png per provarlo):
 # flaming_sword:

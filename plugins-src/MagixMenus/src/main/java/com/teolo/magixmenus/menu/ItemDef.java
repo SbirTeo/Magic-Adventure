@@ -47,6 +47,7 @@ public final class ItemDef {
     private String modelloItem;                  // item_model (1.21.4+)
     private String color;                       // pelle, pozione, fuoco d'artificio: "#RRGGBB"
     private String testa;                        // nome giocatore, URL o texture base64
+    private String magixpack;                    // id di un oggetto di items.yml di MagixPack
     private String raw;                       // NBT/componenti per quello che qui non e' previsto
 
     // --- negozio: vedi negozio/Shop.java per il perche' non sono requisiti e azioni ---
@@ -120,6 +121,10 @@ public final class ItemDef {
 
     public String testa() {
         return testa;
+    }
+
+    public String magixpack() {
+        return magixpack;
     }
 
     public String raw() {
@@ -255,6 +260,10 @@ public final class ItemDef {
         this.testa = v;
     }
 
+    void magixpack(String v) {
+        this.magixpack = v;
+    }
+
     void raw(String v) {
         this.raw = v;
     }
@@ -297,6 +306,9 @@ public final class ItemDef {
     void computeIfDynamic() {
         dinamico = Text.dinamico(materiale) || Text.dinamico(quantita) || Text.dinamico(title)
                 || Text.dinamico(description) || Text.dinamico(testa) || Text.dinamico(color)
+                // Un oggetto di MagixPack puo' dipendere da chi guarda e arrivare in ritardo (l'avatar
+                // si scarica in sottofondo): lo si ridisegna finche' il menu e' aperto.
+                || (magixpack != null && !magixpack.isBlank())
                 || Text.dinamico(modelloCustom) || Text.dinamico(modelloItem)
                 || Text.dinamico(raw) || Text.dinamico(incantesimi)
                 // Un item con dei mostra_se e' vivo per forza: quelle condizioni possono
