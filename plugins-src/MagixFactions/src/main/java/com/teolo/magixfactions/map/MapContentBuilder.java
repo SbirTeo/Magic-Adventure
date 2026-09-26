@@ -511,13 +511,27 @@ final class MapContentBuilder {
         };
     }
 
+    /** Fonde {@code over} sopra {@code base} interpolando in HSB (tonalita'/saturazione/luminosita'),
+     *  NON sommando i canali RGB: un blend RGB fra colori di tonalita' lontane (es. rosso nemico su terreno
+     *  verde) e' una somma di complementari, che desatura verso un grigio/marrone spento a QUALSIASI
+     *  percentuale — non e' un problema di palette ne' di opacita', e' la matematica dell'RGB additivo (il
+     *  verde, gia' nella stessa famiglia del terreno, non lo mostrava perche' la sua tonalita' non si
+     *  sposta granche'). Interpolando la tonalita' lungo l'arco piu' corto della ruota colore invece si
+     *  passa per le tinte intermedie vere (verde -> giallo-verde -> arancio -> rosso), restando leggibile e
+     *  trasparente a bassa percentuale (si avvicina alla tonalita' del terreno) e diventando la tinta piena
+     *  a 100% (bordo), esattamente come "0 = invisibile, 100 = pieno" promette il config. */
     private static Color blend(Color base, Color over, int alphaPct) {
         if (base == null) return over;
-        int a = alphaPct, ia = 100 - a;
-        return new Color(
-                (base.getRed()   * ia + over.getRed()   * a) / 100,
-                (base.getGreen() * ia + over.getGreen() * a) / 100,
-                (base.getBlue()  * ia + over.getBlue()  * a) / 100);
+        float a = alphaPct / 100f;
+        float[] hb = Color.RGBtoHSB(base.getRed(), base.getGreen(), base.getBlue(), null);
+        float[] ho = Color.RGBtoHSB(over.getRed(), over.getGreen(), over.getBlue(), null);
+        float dh = ho[0] - hb[0];
+        if (dh > 0.5f) dh -= 1f; else if (dh < -0.5f) dh += 1f; // arco piu' corto sulla ruota colore
+        float h = hb[0] + dh * a;
+        if (h < 0f) h += 1f; else if (h >= 1f) h -= 1f;
+        float s = hb[1] + (ho[1] - hb[1]) * a;
+        float br = hb[2] + (ho[2] - hb[2]) * a;
+        return new Color(Color.HSBtoRGB(h, s, br));
     }
 
     /** Converte l'ultimo codice colore '&X' della stringa nel corrispondente RGB di Minecraft. */

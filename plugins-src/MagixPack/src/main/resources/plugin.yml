@@ -9,14 +9,22 @@ softdepend: [MagixLanguage]
 commands:
   magixpack:
     aliases: [mpack]
-    description: Amministrazione del pacchetto risorse.
-    usage: /mpack reload
-    permission: magixpack.admin
+    description: Amministrazione del pacchetto risorse, oggetti e icone custom.
+    usage: /mpack reload|item give <id> [giocatore]|item list|glyph list
+    # Nessun permesso qui: ogni sotto-comando ha il suo (vedi permissions sotto), controllato
+    # a mano nel comando - cosi' /mpack item give si puo' dare a qualcuno senza dargli anche
+    # magixpack.admin.
 
 permissions:
   magixpack.admin:
-    description: Ricaricare la configurazione di MagixPack (porta, host, messaggi, scadenze).
+    description: Ricaricare la configurazione di MagixPack (porta, host, messaggi, scadenze, items.yml, glyphs.yml).
     default: op
   magixpack.bypass:
     description: Non essere mai espulso quando il pacchetto obbligatorio non viene caricato (il pacchetto viene comunque inviato). Salvaguardia per non restare chiusi fuori dal server.
+    default: op
+  magixpack.item.give:
+    description: Dare a se stessi o a un altro giocatore un oggetto custom di items.yml (/mpack item give|list).
+    default: op
+  magixpack.glyph.list:
+    description: Vedere il catalogo delle icone custom di glyphs.yml e il loro punto di codice (/mpack glyph list).
     default: op

@@ -1,4 +1,19 @@
 # Testo che il giocatore (in questo caso lo staff, l'unico che usa /mpack) legge in chat.
 # Tradotto in automatico da MagixLanguage se installato (vedi lang/Messages.java).
 reloaded: "&aMagixPack ricaricato."
-usage: "&eUso: &a/mpack reload"
+usage: "&eUso: &a/mpack reload &7| &a/mpack item give <id> [giocatore] &7| &a/mpack item list &7| &a/mpack glyph list"
+no-permission: "&cNon hai il permesso per farlo."
+player-required: "&cSpecifica un giocatore (comando eseguibile solo da un giocatore, altrimenti)."
+player-not-found: "&cGiocatore '{player}' non trovato (deve essere online)."
+
+item-usage: "&eUso: &a/mpack item give <id> [giocatore] &7| &a/mpack item list"
+item-unknown: "&cNessun oggetto custom '{item}' in items.yml (o gli manca la texture in items/)."
+item-given: "&aDato l'oggetto custom '{item}' a &f{player}&a."
+item-list-empty: "&7Nessun oggetto custom in items.yml."
+item-list-header: "&e{count} oggetto/i custom in items.yml:"
+item-list-row: "&7 - &f{item}"
+
+glyph-usage: "&eUso: &a/mpack glyph list"
+glyph-list-empty: "&7Nessuna icona custom in glyphs.yml."
+glyph-list-header: "&e{count} icona/e custom in glyphs.yml (font magixpack:icons):"
+glyph-list-row: "&7 - &f{glyph} &7({codepoint})"

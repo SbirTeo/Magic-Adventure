@@ -10,10 +10,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Opzione "follow": l'entita' gira verso il giocatore piu' vicino, entro un raggio.
- *
- * Sulle entita' a specchio ogni copia segue il proprio proprietario, quindi ciascuno si vede
- * guardato dalla sua copia — che e' esattamente l'effetto voluto.
+ * Opzione "follow": ognuno, entro un raggio, vede l'entita' girata verso di SE' — non verso il
+ * giocatore piu' vicino. Funziona con una copia per giocatore (come lo specchio): ogni copia segue
+ * il proprio proprietario.
  */
 public final class LookManager {
 
@@ -33,47 +32,32 @@ public final class LookManager {
     }
 
     private void tick() {
-        double radius = plugin.getConfig().getDouble("follow.radius", 12.0);
-        double maxSq = radius * radius;
+        double defaultRadius = plugin.getConfig().getDouble("follow.radius", 12.0);
 
         for (NpcDef d : npcs.all()) {
             if (!d.opt("follow", false)) continue;
+            // Stesso margine con cui MirrorManager tiene in vita le copie: finche' la tua copia esiste
+            // continua a guardarti, invece di voltarsi di colpo appena fuori dal raggio.
+            double radius = d.followRadiusOr(defaultRadius) + MirrorManager.KEEP_MARGIN;
+            double maxSq = radius * radius;
             Location loc = d.location();
             if (loc == null || !d.chunkLoaded()) continue;
 
-            if (d.needsClones()) {
-                // ogni copia guarda il suo proprietario (o torna dritta se si e' allontanato)
-                mirror.forEachClone(d, (owner, clone) -> {
-                    if (owner.getWorld().equals(clone.getWorld())
-                            && owner.getLocation().distanceSquared(clone.getLocation()) <= maxSq) {
-                        look(clone, owner);
-                    } else {
-                        reset(clone, d);
-                    }
-                });
-                continue;
-            }
-
+            // Col follow ogni giocatore vicino ha la sua copia (vedi NpcDef#needsClones): ogni copia
+            // guarda il suo proprietario, o torna dritta se si e' allontanato.
+            mirror.forEachClone(d, (owner, clone) -> {
+                if (owner.getWorld().equals(clone.getWorld())
+                        && owner.getLocation().distanceSquared(clone.getLocation()) <= maxSq) {
+                    look(clone, owner);
+                } else {
+                    reset(clone, d);
+                }
+            });
+            // L'entita' vera (quella che si vede da lontano) non guarda nessuno: una testa sola non
+            // puo' guardare due persone. Resta com'e' stata salvata.
             Entity e = npcs.entityOf(d);
-            if (e == null) continue;
-            Player target = nearest(loc, maxSq);
-            if (target != null) look(e, target);
-            else reset(e, d);
+            if (e != null) reset(e, d);
         }
-    }
-
-    private Player nearest(Location loc, double maxSq) {
-        Player best = null;
-        double bestSq = maxSq;
-        for (Player p : loc.getWorld().getPlayers()) {
-            if (p.isDead() || !p.isValid()) continue;
-            double sq = p.getLocation().distanceSquared(loc);
-            if (sq <= bestSq) {
-                bestSq = sq;
-                best = p;
-            }
-        }
-        return best;
     }
 
     /** Testa (e corpo) verso gli occhi del giocatore. */

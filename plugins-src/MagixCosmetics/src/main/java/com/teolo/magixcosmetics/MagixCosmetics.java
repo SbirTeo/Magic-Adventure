@@ -105,8 +105,8 @@ public final class MagixCosmetics extends JavaPlugin {
                                 + "LuckPerms sul grado VIP. Non serve nessun comando per accenderla — appena il permesso "
                                 + "c'è, l'aureola compare, MA senza un colore resta invisibile: vedi sotto.",
                         "Un VIP che non la vuole può spegnersela con **/halo off** e riaccenderla con "
-                                + "**/halo on**. Questa scelta vive in memoria: a un riavvio del server torna "
-                                + "accesa per tutti.")
+                                + "**/halo on**. La scelta resta salvata (`players.yml`): un riavvio del server "
+                                + "non la riaccende da solo.")
 
                 .section("Il colore: nessuno di serie, dipende dal permesso",
                         "Non c'è un colore di default: ogni colore della tavolozza (**halo.colors** nel config) ha "
@@ -127,6 +127,18 @@ public final class MagixCosmetics extends JavaPlugin {
                                 + "vantaggio per chi lo insegue in mezzo a un mondo pieno di gente.{{/se}}"
                                 + "{{se:halo.combat.hide-while-fighting!=true}}Con **halo.combat.hide-while-fighting** "
                                 + "spento l'aureola resta visibile anche in combattimento.{{/se}}")
+
+                .section("L'aureola sulle statue (MagixEntities)",
+                        "Una statua di MagixEntities con la skin di un giocatore mostra la **sua** aureola, nel suo "
+                                + "colore, a chiunque la guardi — anche se lui è offline: i suoi permessi si leggono da "
+                                + "LuckPerms (su un altro thread, senza pesare sul server) e si rileggono ogni 10 minuti, "
+                                + "quindi un permesso dato o tolto mentre è offline si vede sulla statua entro quel tempo. "
+                                + "Il colore resta anche ricordato in `players.yml`: senza LuckPerms vale quello dell'ultima "
+                                + "volta che era online. **/halo off** vale anche per la statua; combattimento, vanish e "
+                                + "invisibilità no, perché riguardano il giocatore, non la statua.",
+                        "Su una statua a specchio (skin \"mirror\") ognuno vede la propria copia con la propria "
+                                + "aureola, e solo lui la vede: le copie stanno tutte nello stesso punto. Su una statua "
+                                + "ingrandita l'aureola cresce con lei.")
 
                 .section("Perché è un plugin a parte",
                         "I cosmetici non c'entrano con le fazioni, con l'ora o con le sanzioni: tenerli qui evita di "

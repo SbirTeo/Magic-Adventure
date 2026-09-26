@@ -38,6 +38,11 @@ halo:
   # discreto, pensato per non saltare troppo all'occhio.
   particle-size: 0.55
 
+  # Da quanti blocchi si vede l'aureola (giocatori e statue di MagixEntities). Le particelle normali
+  # arrivano solo entro 32 blocchi: su una statua gigante, che si vede da molto piu' lontano,
+  # l'aureola spariva prima della statua. Qui si mandano "a lunga distanza"; massimo 512.
+  view-distance: 96
+
   # Ogni quanti tick il puntino avanza (e viene disegnato). 1 = ogni tick, il movimento piu' fluido.
   # Piu' alto = piu' leggero ma il movimento e' piu' a scatti.
   update-interval-ticks: 1

@@ -1067,6 +1067,55 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   top: calc(var(--av, 40px) * -0.32);
   font-size: calc(var(--av, 40px) * 0.42);
 }
+/* --- Aureola VIP (MagixCosmetics) sopra la faccia -------------------------------------
+   La mette avatar_top() SOLO a chi ce l'ha in gioco, nel suo colore (--halo): un anello
+   schiacciato sopra la testa e un puntino che ci gira intorno, come il puntino che orbita in
+   gioco. Tutte le misure sono frazioni della faccia (--av), come corona e cuori. Il giro del
+   puntino e' un'ellisse fatta da due oscillazioni sfasate di un quarto (orizzontale e verticale). */
+.avatar-halo {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--av, 40px) * -0.24);
+  width: calc(var(--av, 40px) * 0.7);
+  height: calc(var(--av, 40px) * 0.2);
+  box-sizing: border-box;
+  border: max(1.5px, calc(var(--av, 40px) * 0.045)) solid var(--halo);
+  border-radius: 50%;
+  box-shadow: 0 0 calc(var(--av, 40px) * 0.12) var(--halo),
+              inset 0 0 calc(var(--av, 40px) * 0.06) var(--halo);
+  opacity: 0.9;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: aureola-fluttua 3s ease-in-out infinite;
+}
+/* Col miglior sostenitore la corona sta sulla testa: l'aureola le sale sopra. */
+.avatar-top.con-corona .avatar-halo { top: calc(var(--av, 40px) * -0.62); }
+.avatar-halo-x {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  animation: aureola-x 1.2s ease-in-out infinite alternate;
+}
+.avatar-halo-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--av, 40px) * 0.13);
+  height: calc(var(--av, 40px) * 0.13);
+  margin: calc(var(--av, 40px) * -0.065) 0 0 calc(var(--av, 40px) * -0.065);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 calc(var(--av, 40px) * 0.1) calc(var(--av, 40px) * 0.03) var(--halo);
+  animation: aureola-y 1.2s ease-in-out -0.6s infinite alternate;
+}
+@keyframes aureola-x { from { left: 0; } to { left: 100%; } }
+@keyframes aureola-y { from { top: 0; } to { top: 100%; } }
+@keyframes aureola-fluttua {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(calc(var(--av, 40px) * -0.04)); }
+}
 /* NB: sul personaggio in 3D del profilo la corona NON si mette: il modello gira su se'
    stesso mentre la corona resterebbe ferma, e si vedeva che erano due cose separate.
    La corona sta sulle FACCE (avatar quadrati), dove e' ancorata a un'immagine ferma. */
@@ -1732,6 +1781,9 @@ h1.page-title::before {
   .forum-cat, .forum-riga, .forum-msg { animation: none; }
   .store-top-corona { animation: none; transform: translateX(-50%); }
   .store-top-cuori { display: none; }
+  /* L'aureola resta (e' il segno del VIP), ma ferma: niente puntino che gira. */
+  .avatar-halo { animation: none; transform: translateX(-50%); }
+  .avatar-halo-x { display: none; }
 }
 
 /* --- intestazione comune alle tre pagine --- */

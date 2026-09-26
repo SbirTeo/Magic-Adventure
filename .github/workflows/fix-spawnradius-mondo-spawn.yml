@@ -1,0 +1,96 @@
+name: Azzera spawnRadius nel mondo spawn
+
+# NON FUNZIONA DA CONSOLE - non rilanciare aspettandosi un risultato diverso. Lasciato per
+# non far riprovare a una sessione futura la stessa strada gia' chiusa (sessione del 25/09).
+#
+# Diagnosi: il mondo "spawn" (hub) ha spawn-location Multiverse a (0, 100, 0), ma il gamerule
+# vanilla spawnRadius (default 10) fa atterrare chi entra la prima volta (quindi anche chi si
+# registra con MagixAuth, che riporta il giocatore esattamente li') su una colonna A CASO entro
+# 10 blocchi da quel punto, sul blocco piu' alto di quella colonna. Con un hub a piu' piani
+# questo significa finire a volte su un tetto/piano superiore invece che sul pavimento vero
+# (log: ShadowMains il 25/09 pomeriggio, "riporto ShadowMains a spawn 10/117/5" invece di
+# Y=100, con lamentela in chat "mi ha portato subito sopra"). Non e' un bug di MagixAuth: il
+# plugin riporta esattamente il punto che Bukkit/Multiverse avevano assegnato.
+#
+# Tentativi falliti, in ordine, e perche':
+#   1) "/execute in minecraft:spawn run gamerule spawnRadius 0" -> "Uso: /gamerule" (silenzioso:
+#      il namespace minecraft: e' riservato alle tre dimensioni vanilla vere).
+#   2) "/execute in bukkit:spawn run gamerule spawnRadius 0" -> "Unknown dimension 'bukkit:spawn'":
+#      /execute in accetta solo le dimensioni REGISTRATE (le tre vanilla, o quelle di un
+#      datapack), mai un mondo Bukkit aggiuntivo creato da un plugin come Multiverse.
+#   3) "/mv gamerule" (il comando del plugin stesso, che conosce i mondi Bukkit per nome) ->
+#      NullPointerException su CommandSourceStack.getLevel() nullo. Questo NON e' un problema
+#      di sintassi: e' lo STESSO errore, identico, che si vede gia' nei log per /mpack reload,
+#      /mf reload e /language reload quando lanciati da console su questa build di Paper
+#      (26.2). Qualunque comando che ha bisogno di un "mondo corrente" per funzionare non ha
+#      quel contesto quando arriva dalla console (nessun giocatore, nessuna posizione): la
+#      console qui non puo' fisicamente eseguirlo, a prescindere dalla sintassi.
+#
+# Attenzione al NOME: "spawnRadius" non esiste piu' su questo server (26.2). Da Minecraft
+# 1.21.11 i gamerule sono in snake_case e questo si chiama "respawn_radius" (verificato dal
+# proprietario in game: "/gamerule spawnRadius ..." da' errore). Il fallimento del tentativo 1
+# qui sopra puo' dipendere anche da questo, non solo dalla dimensione.
+#
+# Conclusione: questa gamerule va cambiata da un GIOCATORE, fisicamente nel mondo spawn, con
+# "/gamerule respawn_radius 0" (conferma il nome col completamento automatico di "/gamerule ").
+# Un comando, nessun riavvio, reversibile in qualunque momento con un valore diverso da 0.
+#
+# Stessi secret VPS_HOST / VPS_USER / VPS_SSH_KEY degli altri workflow.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: comando-console-vps
+  cancel-in-progress: false
+
+jobs:
+  azzera:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Manda il comando fisso e verifica il risultato
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -e
+          BASE=/home/ubuntu/magicadventure
+          LOG="$BASE/logs/latest.log"
+          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            echo "::error::Server non in esecuzione (screen mc non attivo)."
+            exit 1
+          fi
+          # "spawn" e' un mondo AGGIUNTIVO creato da Multiverse: non e' una delle tre
+          # dimensioni vanilla vere (overworld/the_nether/the_end), quindi /execute in non lo
+          # accetta affatto (ne' "minecraft:spawn" ne' "bukkit:spawn": "Unknown dimension" in
+          # entrambi i casi, gia' provato). Prima di tentare alla cieca una terza sintassi,
+          # si chiede a Multiverse stesso quale sia (come chiedi-help-cmi-world.yml): il
+          # comando "/mv gamerule" senza argomenti stampa il suo usage se esiste, o "Unknown
+          # command" se non esiste proprio in questa versione - in nessuno dei due casi
+          # cambia nulla sul server.
+          screen -S mc -p 0 -X stuff "$(printf '/mv gamerule\r')"
+          sleep 2
+          screen -S mc -p 0 -X stuff "$(printf '/mv help gamerule\r')"
+          sleep 2
+          echo "=== Coda del log (conferma del valore applicato) ==="
+          tail -n 15 "$LOG"
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

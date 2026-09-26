@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -57,15 +56,14 @@ public final class TranslationSync {
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final int MAX_BACKUPS = 10;
 
-    /** Un tentativo di traduzione al giorno, qualunque cosa succeda: vedi {@link #alreadyAttemptedToday()}. */
-    private static final String LAST_ATTEMPT_FILE = "last-translation-attempt.txt";
-
     private final JavaPlugin plugin;
     private final Logger log;
+    private final DailyThrottle throttle;
 
     public TranslationSync(JavaPlugin plugin) {
         this.plugin = plugin;
         this.log = plugin.getLogger();
+        this.throttle = new DailyThrottle(plugin.getDataFolder(), log);
     }
 
     public record Result(int pluginsScanned, int keysTranslated, int keysReused, int translationFailures,
@@ -88,18 +86,20 @@ public final class TranslationSync {
         Translator translator = autoTranslateEnabled ? new Translator(timeoutMs, log, contactEmail) : null;
 
         // Un solo tentativo di traduzione al giorno, a prescindere da quanti riavvii o /language
-        // sync capitano nel frattempo: MyMemory non ha solo una quota giornaliera di parole, ha
-        // anche un limite di frequenza (HTTP 429) che un IP puo' far scattare ripetendo il
-        // tentativo a ogni riavvio, e quel blocco puo' restare attivo ben oltre un giorno. Lo
-        // specchio it.yml e le chiavi gia' in cache continuano comunque a funzionare: solo le
-        // chiamate di rete vere e proprie si fermano finche' non cambia la data.
+        // sync capitano nel frattempo, E condiviso con la traduzione del sito (MagixWeb chiama
+        // MagixLanguageAPI.translateRawBatch ogni 30 secondi H24, vedi DailyThrottle): MyMemory
+        // non ha solo una quota giornaliera di parole, ha anche un limite di frequenza (HTTP 429)
+        // che un IP puo' far scattare ripetendo il tentativo troppo spesso, e quel blocco puo'
+        // restare attivo ben oltre un giorno. Lo specchio it.yml e le chiavi gia' in cache
+        // continuano comunque a funzionare: solo le chiamate di rete vere e proprie si fermano
+        // finche' non cambia la data.
         boolean throttledToday = false;
         if (translator != null) {
-            if (alreadyAttemptedToday()) {
+            if (throttle.alreadyUsedToday()) {
                 translator.forceUnavailable();
                 throttledToday = true;
             } else {
-                markAttemptedToday();
+                throttle.markUsedToday();
             }
         }
 
@@ -155,40 +155,12 @@ public final class TranslationSync {
         return new Result(scanned, totals.translated, totals.reused, failureTotal, perPlugin);
     }
 
-    /** Se oggi si e' gia' tentata una traduzione vera (anche se fallita subito): vedi {@link #run()}. */
-    private boolean alreadyAttemptedToday() {
-        File f = new File(plugin.getDataFolder(), LAST_ATTEMPT_FILE);
-        if (!f.isFile()) {
-            return false;
-        }
-        try {
-            String saved = Files.readString(f.toPath(), StandardCharsets.UTF_8).trim();
-            return LocalDate.now().toString().equals(saved);
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
     /** Cancella il segna-tentativo di oggi: il prossimo {@link #run()} prova MyMemory anche se oggi
-     *  e' gia' stato tentato. Usato da "/language sync force", per verificare a mano se un blocco
-     *  (HTTP 429) si e' liberato senza aspettare la mezzanotte. */
+     *  e' gia' stato tentato (anche dalla traduzione del sito: vedi {@link DailyThrottle}). Usato
+     *  da "/language sync force", per verificare a mano se un blocco (HTTP 429) si e' liberato
+     *  senza aspettare la mezzanotte. */
     public void forceNextAttempt() {
-        try {
-            Files.deleteIfExists(new File(plugin.getDataFolder(), LAST_ATTEMPT_FILE).toPath());
-        } catch (IOException e) {
-            log.warning("MagixLanguage: impossibile azzerare il tentativo di oggi (" + e + ").");
-        }
-    }
-
-    /** Segna il tentativo di oggi come usato, PRIMA di sapere se andra' a buon fine: e' il punto,
-     *  altrimenti un tentativo fallito subito (HTTP 429) non risparmierebbe i riavvii successivi. */
-    private void markAttemptedToday() {
-        try {
-            Files.writeString(new File(plugin.getDataFolder(), LAST_ATTEMPT_FILE).toPath(),
-                    LocalDate.now().toString(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            log.warning("MagixLanguage: impossibile salvare la data dell'ultimo tentativo di traduzione (" + e + ").");
-        }
+        throttle.reset();
     }
 
     private static final class Counters {
@@ -293,7 +265,23 @@ public final class TranslationSync {
 
     private static boolean lineCorrupted(String source, String translated) {
         return SUSPECT_LEFTOVER.matcher(translated).find() || GLUED_BRACKET.matcher(translated).find()
-                || (source != null && edgeWhitespaceMismatch(source, translated));
+                || (source != null && edgeWhitespaceMismatch(source, translated))
+                || (source != null && missingProtectedToken(source, translated));
+    }
+
+    /**
+     * Un colore o un placeholder che il testo italiano richiede ma che non compare piu' nel
+     * testo tradotto in cache (visto succedere davvero: due codici colore protetti come "qx0xq"/
+     * "qx1xq" ridotti dal servizio di traduzione al solo numero nudo "0 1", senza lasciare il
+     * residuo "qxNxq" che {@link #SUSPECT_LEFTOVER} intercetterebbe). Una cache cosi' va rifatta.
+     */
+    private static boolean missingProtectedToken(String source, String translated) {
+        for (String token : Translator.requiredTokens(source)) {
+            if (!translated.contains(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean looksCorrupted(Object italianValue, Object cachedTranslated) {

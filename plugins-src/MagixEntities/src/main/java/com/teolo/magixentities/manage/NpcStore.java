@@ -52,9 +52,15 @@ public final class NpcStore {
             d.yaw = (float) s.getDouble("yaw");
             d.pitch = (float) s.getDouble("pitch");
             d.pose = s.getString("pose");
+            d.scale = s.getDouble("scale", 1.0);
+            if (s.contains("follow-radius")) d.followRadius = s.getDouble("follow-radius");
             String u = s.getString("uuid");
             if (u != null && !u.isBlank()) {
                 try { d.uuid = UUID.fromString(u); } catch (IllegalArgumentException ignored) {}
+            }
+            String su = s.getString("seat-uuid");
+            if (su != null && !su.isBlank()) {
+                try { d.seatUuid = UUID.fromString(su); } catch (IllegalArgumentException ignored) {}
             }
             d.commands.addAll(s.getStringList("commands"));
             ConfigurationSection eq = s.getConfigurationSection("equipment");
@@ -88,7 +94,10 @@ public final class NpcStore {
             cfg.set(base + "yaw", d.yaw);
             cfg.set(base + "pitch", d.pitch);
             cfg.set(base + "pose", d.pose);
+            cfg.set(base + "scale", d.scale);
+            cfg.set(base + "follow-radius", d.followRadius);
             cfg.set(base + "uuid", d.uuid == null ? null : d.uuid.toString());
+            cfg.set(base + "seat-uuid", d.seatUuid == null ? null : d.seatUuid.toString());
             cfg.set(base + "commands", d.commands.isEmpty() ? null : d.commands);
             for (String slot : NpcDef.EQUIPMENT) {
                 cfg.set(base + "equipment." + slot, d.equipment.get(slot));

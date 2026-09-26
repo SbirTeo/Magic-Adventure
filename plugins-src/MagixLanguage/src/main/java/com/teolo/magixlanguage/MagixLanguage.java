@@ -6,6 +6,7 @@ import com.teolo.magixlanguage.geo.GeoLookup;
 import com.teolo.magixlanguage.hook.MagixLanguagePlaceholders;
 import com.teolo.magixlanguage.lang.Messages;
 import com.teolo.magixlanguage.listener.LoginListener;
+import com.teolo.magixlanguage.translate.DailyThrottle;
 import com.teolo.magixlanguage.translate.MenuPhraseSync;
 import com.teolo.magixlanguage.translate.PlayerLocales;
 import com.teolo.magixlanguage.translate.TranslationSync;
@@ -44,6 +45,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     private Messages messages;
     private PlayerLocales locales;
     private GeoLookup geo;
+    private DailyThrottle throttle;
 
     /** Risultato dell'ultima sincronizzazione (avvio o /language sync), per /language status. */
     private volatile TranslationSync.Result lastSyncResult;
@@ -67,6 +69,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         messages = new Messages(this);
         locales = new PlayerLocales(getDataFolder(), getLogger());
         geo = buildGeoLookup();
+        throttle = new DailyThrottle(getDataFolder(), getLogger());
 
         PluginCommand cmd = getCommand("magixlanguage");
         if (cmd != null) {
@@ -82,7 +85,10 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         // Puro I/O su file: non deve bloccare il tick di avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         if (getConfig().getBoolean("translations.sync-on-start", true)) {
-            Bukkit.getScheduler().runTaskAsynchronously(this, () -> lastSyncResult = new TranslationSync(this).run());
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                lastSyncResult = new TranslationSync(this).run();
+                clearCatalogCaches();
+            });
         }
 
         getLogger().info("Avviato: lingua di default " + getConfig().getString("default-language", "it")
@@ -100,9 +106,21 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         reloadConfig();
         messages.reload();
         geo = buildGeoLookup();
+        clearCatalogCaches();
+        getLogger().info("Configurazione ricaricata.");
+    }
+
+    /**
+     * Svuota le cache dei cataloghi tradotti, cosi' la prossima {@link #translate} rilegge i file
+     * appena scritti invece di continuare a servire quello che aveva in memoria da PRIMA della
+     * sincronizzazione (visto succedere davvero: centinaia di chiavi tradotte su disco, ma i
+     * giocatori online continuavano a vedere l'italiano perche' nessuno svuotava questa cache
+     * dopo un /language sync - solo /language reload lo faceva). Va chiamato dopo OGNI
+     * {@link TranslationSync#run()}, sia quello all'avvio che quello di /language sync.
+     */
+    public void clearCatalogCaches() {
         catalogCache.clear();
         menuPhraseCache.clear();
-        getLogger().info("Configurazione ricaricata.");
     }
 
     private GeoLookup buildGeoLookup() {
@@ -223,6 +241,16 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 || !getConfig().getBoolean("translations.auto-translate.enabled", true)) {
             return out;
         }
+        // Stesso tentativo-al-giorno del sync dei plugin (vedi DailyThrottle): questo metodo lo
+        // richiama MagixWeb ogni 30 secondi H24 per il sito, e senza questo limite un Translator
+        // nuovo a ogni giro riprovava MyMemory da capo (nessuna memoria dei fallimenti precedenti)
+        // tutto il giorno — la causa piu' probabile per cui il blocco (HTTP 429) di MyMemory non
+        // si liberava mai, nemmeno nelle ore in cui il sync dei plugin non l'aveva ancora usato.
+        if (throttle.alreadyUsedToday()) {
+            return out;
+        }
+        throttle.markUsedToday();
+
         int timeoutMs = getConfig().getInt("translations.auto-translate.timeout-ms", 4000);
         int delayMs = getConfig().getInt("translations.auto-translate.delay-ms", 150);
         String contactEmail = getConfig().getString("translations.auto-translate.contact-email", "");
@@ -404,17 +432,19 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 .issue("Perche' non riprova subito, a ogni riavvio",
                         "Per disegno: si tenta una traduzione vera al massimo UNA volta al giorno, qualunque cosa "
                                 + "succeda nel frattempo (un riavvio dopo un deploy, un /language sync lanciato a "
-                                + "mano...). MyMemory non ha solo una quota di parole al giorno: ha anche un limite "
-                                + "di frequenza (HTTP 429) che un IP puo' far scattare ripetendo il tentativo troppo "
-                                + "spesso, e quel blocco puo' restare attivo ben oltre un giorno — e' successo "
-                                + "davvero con una decina di riavvii ravvicinati in poche ore. Lo specchio it.yml e "
-                                + "le chiavi gia' tradotte in cache continuano comunque ad aggiornarsi a ogni "
-                                + "riavvio: solo le chiamate di rete vere e proprie verso MyMemory si fermano dopo "
-                                + "il primo tentativo del giorno (il file last-translation-attempt.txt nella "
-                                + "cartella dati tiene la data). Per un tentativo vero prima di mezzanotte, tipico "
-                                + "per verificare se un blocco si e' gia' liberato, c'e' /language sync force: "
-                                + "ignora il segna-tentativo di oggi e riprova subito su MyMemory (equivale a "
-                                + "cancellare a mano last-translation-attempt.txt e poi lanciare /language sync).")
+                                + "mano, o un giro della traduzione del sito). MyMemory non ha solo una quota di "
+                                + "parole al giorno: ha anche un limite di frequenza (HTTP 429) che un IP puo' far "
+                                + "scattare ripetendo il tentativo troppo spesso, e quel blocco puo' restare attivo "
+                                + "ben oltre un giorno — e' successo davvero con una decina di riavvii ravvicinati in "
+                                + "poche ore. Lo specchio it.yml e le chiavi gia' tradotte in cache continuano "
+                                + "comunque ad aggiornarsi a ogni riavvio: solo le chiamate di rete vere e proprie "
+                                + "verso MyMemory si fermano dopo il primo tentativo del giorno (il file "
+                                + "last-translation-attempt.txt nella cartella dati tiene la data, condiviso anche "
+                                + "con la traduzione del sito — vedi la voce sotto sul sito senza traduzioni). Per un "
+                                + "tentativo vero prima di mezzanotte, tipico per verificare se un blocco si e' gia' "
+                                + "liberato, c'e' /language sync force: ignora il segna-tentativo di oggi e riprova "
+                                + "subito su MyMemory (equivale a cancellare a mano last-translation-attempt.txt e "
+                                + "poi lanciare /language sync).")
                 .issue("Un colore o un placeholder e' sparito da un messaggio tradotto",
                         "Il servizio di traduzione puo' alterare un segnaposto interno (successo davvero: ha "
                                 + "tolto una coppia di parentesi da uno, lasciando un residuo tipo &quot;[2]&quot; al "
@@ -440,6 +470,30 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "corrotte confronta anche gli spazi a inizio/fine fra originale e tradotto, quindi "
                                 + "una vecchia traduzione senza quel padding viene scartata e rifatta da sola (nuovo "
                                 + "/language sync, riavvio, o /language sync force per non aspettare).")
+
+                .issue("Il sito (magicadventure.it) non traduce mai niente",
+                        "MagixWeb chiama MagixLanguageAPI.translateRawBatch ogni 30 secondi, H24, per smaltire le "
+                                + "frasi che le pagine accodano (vedi includes/translate.php e "
+                                + "language/SiteTranslationWorker.java): fino a quando quella chiamata non "
+                                + "rispettava lo stesso limite di un tentativo al giorno del sync dei plugin, "
+                                + "ripeteva la richiesta a MyMemory in continuazione — la causa piu' probabile per "
+                                + "cui il blocco (HTTP 429) restava attivo anche nelle ore in cui il sync dei plugin "
+                                + "non l'aveva ancora consumato. Ora il segna-tentativo giornaliero (classe "
+                                + "DailyThrottle) e' condiviso fra i due path: un solo tentativo vero al giorno per "
+                                + "TUTTO quello che chiama MyMemory con "
+                                + "questo IP, sito compreso. Se il sito resta in italiano, controlla prima se il "
+                                + "tentativo di oggi e' gia' stato usato (stesso file last-translation-attempt.txt) "
+                                + "prima di pensare a un bug diverso.")
+                .issue("Il sito non segue il cambio di lingua fatto in gioco",
+                        "site_language() in includes/language.php da' la precedenza, in ordine, a: ?lingua= in "
+                                + "pagina (sticky in sessione e nel cookie ma_lingua per 365 giorni), poi il cookie, "
+                                + "SOLO SE NESSUNO dei due c'e' gia' alla lingua di gioco (mc_ranks.language, "
+                                + "sincronizzata da MagixWeb/language/LanguageSync.java a ogni join o cambio vero). "
+                                + "E' voluto: chi ha scelto la lingua del sito a mano (il selettore in pagina) ha "
+                                + "gia' espresso una preferenza per il SITO, che vince anche se poi cambia lingua in "
+                                + "gioco. Chi non ha mai usato quel selettore, invece, segue la lingua di gioco senza "
+                                + "fare nulla. Un visitatore con un cookie ma_lingua vecchio deve ripassare dal "
+                                + "selettore (o cancellare il cookie) per tornare a seguire il gioco.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")

@@ -33,6 +33,10 @@ on:
         description: "si = cerca anche nei log vecchi (logs/*.log.gz), no = solo latest.log"
         required: false
         default: "si"
+      quanti_vecchi:
+        description: "Quanti file .log.gz vecchi guardare (i riavvii ravvicinati ne consumano in fretta: alza questo numero per cercare piu' indietro nel tempo)"
+        required: false
+        default: "8"
 
 concurrency:
   group: diagnostica-vps
@@ -67,6 +71,7 @@ jobs:
           IN_GREP: ${{ inputs.grep }}
           IN_RIGHE: ${{ inputs.righe }}
           IN_STORICO: ${{ inputs.storico }}
+          IN_QUANTI_VECCHI: ${{ inputs.quanti_vecchi }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
@@ -74,7 +79,7 @@ jobs:
           FILE_B64="$(printf '%s' "${IN_FILE:-}" | base64 -w0)"
           GREP_B64="$(printf '%s' "${IN_GREP:-}" | base64 -w0)"
           ssh -i "$KEY" -o StrictHostKeyChecking=yes "$DEST" \
-            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' bash -s" <<'REMOTE'
+            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' QUANTI_VECCHI='${IN_QUANTI_VECCHI:-8}' bash -s" <<'REMOTE'
           set -uo pipefail
           PLUGIN="$(printf '%s' "$PLUGIN_B64" | base64 -d)"
           FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
@@ -151,6 +156,25 @@ jobs:
             echo "(nessun config.yml)"
           fi
 
+          # MagixPack genera parte del contenuto (items.yml, glyphs.yml) DENTRO lo zip in memoria,
+          # mai su disco (a differenza di overrides/, una cartella vera): un ls sulla cartella dati
+          # non lo trova mai, per progetto. L'unico modo di controllare che un file sia DAVVERO nel
+          # pacchetto e' scaricarlo per davvero e guardarci dentro, non fidarsi solo del log.
+          if [ "$PLUGIN" = "MagixPack" ]; then
+            echo
+            echo "=== CONTENUTO DI pack.zip (scaricato in locale, sola lettura) ==="
+            PORT="$(grep -E '^port:' "$BASE/plugins/$PLUGIN/config.yml" 2>/dev/null | head -n1 | grep -oE '[0-9]+')"
+            if [ -z "$PORT" ]; then
+              echo "(porta non trovata in config.yml)"
+            elif ! curl -sf -o /tmp/diag-pack.zip "http://127.0.0.1:${PORT}/pack.zip"; then
+              echo "(download da 127.0.0.1:${PORT}/pack.zip fallito: il servizio HTTP non risponde)"
+            else
+              echo "Scaricato $(stat -c%s /tmp/diag-pack.zip 2>/dev/null || echo '?') byte da 127.0.0.1:${PORT}/pack.zip"
+              python3 -c "import zipfile; z = zipfile.ZipFile('/tmp/diag-pack.zip'); names = z.namelist(); mp = sorted(n for n in names if n.startswith('assets/magixpack/')); legacy = sorted(n for n in names if n.startswith('assets/minecraft/models/item/') and b'magixpack' in z.read(n)); print(f'{len(names)} file nello zip, {len(mp)} sotto assets/magixpack/ (oggetti/icone custom di MagixPack), {len(legacy)} override legacy su modelli vanilla (CustomModelData):'); [print('  ' + n, '(' + str(len(z.read(n))) + ' byte)') for n in mp + legacy]; print(); print('--- contenuto dei .json (per controllare che siano scritti davvero cosi) ---'); [print(n + ':', z.read(n).decode('utf-8', 'replace')) for n in mp + legacy if n.endswith('.json')]"
+              rm -f /tmp/diag-pack.zip
+            fi
+          fi
+
           if [ -n "$FILE" ]; then
             echo
             echo "=== $FILE ($PLUGIN) ==="
@@ -168,7 +192,7 @@ jobs:
           # successo PRIMA dell'ultimo riavvio).
           VECCHI=""
           if [ "${STORICO:-si}" = "si" ]; then
-            VECCHI="$(ls -t "$BASE/logs"/*.log.gz 2>/dev/null | head -n 8 | tr '\n' ' ')"
+            VECCHI="$(ls -t "$BASE/logs"/*.log.gz 2>/dev/null | head -n "${QUANTI_VECCHI:-8}" | tr '\n' ' ')"
           fi
           echo "Log esaminati: latest.log $VECCHI"
 
