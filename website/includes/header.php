@@ -507,34 +507,13 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           ?>
           <a href="<?= h($item['url']) ?>" class="<?= h(implode(' ', $__classi)) ?>"><?= h($item['label']) ?></a>
         <?php endforeach; ?>
-      </nav>
-      <?php
-        // Selettore di lingua: un link per lingua verso la stessa pagina con ?lingua=xx, che
-        // language.php legge e rende sticky (sessione + cookie). Niente JavaScript necessario:
-        // funziona anche con JS disattivato, come il resto della navigazione del sito.
-        // La bandiera sta per la lingua (convenzione comune: UK per l'inglese, non gli USA), come
-        // SVG e non come emoji: Windows non ha i disegni delle bandiere e mostrerebbe di nuovo
-        // due lettere al loro posto (vedi language_flag_svg). title/aria-label portano il nome
-        // vero per chi non la riconosce o usa uno screen reader.
-        // Ripetuto qui (riga semplice, sempre visibile) SOLO per il menu ad hamburger: sotto
-        // l'hamburger .auth-box non ha piu' spazio per il pulsante di sotto (vedi CSS), quindi
-        // qui c'e' l'unica copia raggiungibile da telefono.
-        $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
-      ?>
-      <div class="lingua-mobile">
-        <?php foreach (SITE_LANGUAGES as $__lang): ?>
-          <a href="<?= h(language_switch_url($__lang)) ?>" title="<?= h($__nomeLingua[$__lang]) ?>"
-             aria-label="<?= h($__nomeLingua[$__lang]) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
-            <?= language_flag_svg($__lang) ?>
-          </a>
-        <?php endforeach; ?>
-        <?php if ($GLOBALS['__siteLangManual'] ?? false): ?>
-          <a href="<?= h(language_switch_url('auto')) ?>" title="Automatica (segui il gioco)"
-             aria-label="Automatica (segui il gioco)">
-            <?= language_auto_icon_svg() ?>
-          </a>
+        <?php /* Da telefono "Gestione" sta qui, nel menu ad hamburger, invece che nella barra:
+                 cosi' in barra resta posto per la bandiera della lingua. Su schermo largo si vede
+                 quella in .auth-box e questa resta nascosta (vedi CSS, .nav-gestione). */ ?>
+        <?php if ($__u && can_manage()): ?>
+          <a href="/manage" class="nav-gestione">Gestione</a>
         <?php endif; ?>
-      </div>
+      </nav>
     </div>
     <div class="auth-box">
       <?php
@@ -552,6 +531,16 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         <?php /* La parola sparisce su schermo stretto: resta la sola icona. */ ?>
         <span class="cambia-tema-testo"><?= h(str_replace('Tema ', '', $__nomeTema[$__temaOra])) ?></span>
       </button>
+      <?php
+        // Selettore di lingua: un link per lingua verso la stessa pagina con ?lingua=xx, che
+        // language.php legge e rende sticky (sessione + cookie). Niente JavaScript necessario:
+        // funziona anche con JS disattivato, come il resto della navigazione del sito.
+        // La bandiera sta per la lingua (convenzione comune: UK per l'inglese, non gli USA), come
+        // SVG e non come emoji: Windows non ha i disegni delle bandiere e mostrerebbe di nuovo
+        // due lettere al loro posto (vedi language_flag_svg). Resta nella barra anche da
+        // telefono: il posto glielo lascia "Gestione", che li' passa nel menu ad hamburger.
+        $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
+      ?>
       <details class="cambia-lingua">
         <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
           <?= language_flag_svg($GLOBALS['__siteLang']) ?>
@@ -587,7 +576,7 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <span class="who colore-grado"<?= $__coloreNome !== null ? ' style="' . rank_color_style($__coloreNome) . '"' : '' ?>><?= h($__u['mc_username']) ?></span>
         </a>
         <?php if (can_manage()): ?>
-          <a href="/manage" class="btn btn-ghost">Gestione</a>
+          <a href="/manage" class="btn btn-ghost gestione-barra">Gestione</a>
         <?php endif; ?>
         <a href="/logout" class="btn btn-ghost">Esci</a>
       <?php else: ?>

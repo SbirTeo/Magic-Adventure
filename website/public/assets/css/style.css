@@ -308,34 +308,9 @@ body.pagina-store {
 .cambia-lingua-menu a:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
 .cambia-lingua-menu a.active { color: var(--purple); font-weight: 700; }
 
-/* Riga di lingua dentro il menu ad hamburger (vedi .auth-box .cambia-lingua sopra): sotto
-   l'hamburger non c'e' spazio per un altro pulsante nella barra in alto, ma dentro il menu
-   aperto lo spazio verticale non manca, quindi qui le lingue stanno una accanto all'altra,
-   senza un'altra tendina da aprire dentro quella gia' aperta. */
-.lingua-mobile { display: none; }
-@media (max-width: 768px) {
-  .lingua-mobile {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-top: 22px;
-    padding-top: 22px;
-    border-top: 1px solid var(--border);
-  }
-  .lingua-mobile a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--bg-elevated);
-    border: 2px solid transparent;
-  }
-  .lingua-mobile a.active { border-color: var(--purple); }
-  .lingua-mobile .bandiera-lingua { width: 26px; height: 18px; border-radius: 3px; }
-}
+/* "Gestione" dentro il menu ad hamburger: esiste solo da telefono (vedi la media query sotto),
+   su schermo largo resta il pulsante in .auth-box. */
+.main-nav .nav-gestione { display: none; }
 
 /* Scelta del tema nel profilo: tre pulsanti, quello attivo in evidenza */
 .tema-scelte { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
@@ -381,8 +356,8 @@ a.who-link {
   .nav-toggle { display: flex; position: relative; z-index: 60; }
 
   /* Il menu ad hamburger copre tutto lo schermo invece di una tendina stretta sotto la
-     barra: c'era spazio SOLO per un elenco in colonna, che con le lingue aggiunte in piu'
-     (vedi .lingua-mobile) iniziava a essere fitto e spento. Scorre da sinistra con
+     barra: c'era spazio SOLO per un elenco in colonna, che con tante voci iniziava a essere
+     fitto e spento. Scorre da sinistra con
      un'animazione, e le voci sono una griglia di riquadri invece di righe una sotto l'altra. */
   .nav-collapse {
     display: flex;
@@ -441,15 +416,15 @@ a.who-link {
   .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
   .main-nav a:active { transform: scale(.95); }
   .main-nav .btn-nav { grid-column: 1 / -1; margin: 4px 0 0; min-height: 56px; }
+  /* Ultima voce, a tutta larghezza: e' il pulsante dello staff, non una pagina del sito. */
+  .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; }
 
   /* Le voci compaiono una dopo l'altra invece che tutte insieme: e' quel poco di movimento
      che fa sentire il menu vivo invece che un pannello che si accende di colpo. */
-  .nav-collapse.open .main-nav a,
-  .nav-collapse.open .lingua-mobile {
+  .nav-collapse.open .main-nav a {
     animation: voce-menu-entra .38s cubic-bezier(.22, 1, .36, 1) backwards;
   }
-  .nav-collapse:not(.open) .main-nav a,
-  .nav-collapse:not(.open) .lingua-mobile { animation: none; }
+  .nav-collapse:not(.open) .main-nav a { animation: none; }
   .main-nav a:nth-child(1) { animation-delay: .04s; }
   .main-nav a:nth-child(2) { animation-delay: .08s; }
   .main-nav a:nth-child(3) { animation-delay: .12s; }
@@ -458,7 +433,6 @@ a.who-link {
   .main-nav a:nth-child(6) { animation-delay: .24s; }
   .main-nav a:nth-child(7) { animation-delay: .28s; }
   .main-nav a:nth-child(8) { animation-delay: .32s; }
-  .lingua-mobile { animation-delay: .34s; }
   @keyframes voce-menu-entra {
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
@@ -469,10 +443,14 @@ a.who-link {
   /* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
   .auth-box .who-link { padding: 3px 12px 3px 3px; }
   .who-avatar { width: 24px; height: 24px; }
-  /* Sotto l'hamburger il selettore di lingua della barra sparisce: non c'e' spazio per
-     aggiungerne uno in piu' senza spingere "Esci" a capo (provato dal vivo, veniva brutto).
-     Riappare come riga di bandiere dentro il menu ad hamburger, vedi .lingua-mobile. */
-  .auth-box .cambia-lingua { display: none; }
+  /* Da telefono "Gestione" lascia la barra e passa nel menu ad hamburger (.nav-gestione): il
+     suo posto lo prende la bandiera della lingua, un quadrato piu' stretto di lui. */
+  .auth-box .gestione-barra { display: none; }
+  /* Un nome lungo (16 caratteri) spingeva comunque la barra oltre il bordo dello schermo:
+     da telefono si accorcia coi puntini, avatar e altri pulsanti restano interi. */
+  .auth-box { min-width: 0; }
+  .auth-box .who-link { min-width: 0; }
+  .auth-box .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 /* Il body non scorre sotto al menu a schermo intero (site.js aggiunge/toglie la classe). */
 body.menu-aperto { overflow: hidden; }
