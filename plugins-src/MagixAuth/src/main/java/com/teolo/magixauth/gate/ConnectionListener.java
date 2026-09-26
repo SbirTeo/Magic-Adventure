@@ -119,7 +119,16 @@ public final class ConnectionListener implements Listener {
         }
 
         gate.welcome(p);
+    }
 
+    /**
+     * Il messaggio si trattiene per ULTIMI, non insieme al resto dell'ingresso: CMI
+     * (Messages.Login.Custom) mette il suo "e' entrato." dopo i LOWEST, e cosi' usciva lo
+     * stesso con il giocatore ancora al cancello, piu' quello vanilla dopo il login.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void holdJoinMessage(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
         if (gate.isFrozen(p) && config.delayJoinMessage) {
             EntryState state = gate.state(p);
             if (state != null) {
@@ -133,9 +142,9 @@ public final class ConnectionListener implements Listener {
      * Se ne va.
      *
      * Chi non aveva ancora fatto il login non deve nemmeno salutare: nessuno sapeva che
-     * fosse arrivato.
+     * fosse arrivato. HIGHEST per lo stesso motivo dell'ingresso: il "e' uscito." di CMI.
      */
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void allUscita(PlayerQuitEvent e) {
         Player p = e.getPlayer();
         if (gate.isFrozen(p)) {

@@ -256,6 +256,13 @@ public final class MagixAuth extends JavaPlugin {
                                 + "più alto della colonna dello spawn: con l'hub coperto, sul tetto. Adesso chi è al "
                                 + "primo ingresso resta esattamente dov'è comparso, al cancello. Chi aveva già "
                                 + "giocato (anche dopo /mauth reset) torna come sempre dov'era.")
+                .issue("«In chat un giocatore risulta entrato due volte»",
+                        "Dalla v0.7.25 non succede più. L'annuncio d'ingresso viene trattenuto finché il "
+                                + "giocatore non ha fatto il login, ma il plugin lo tratteneva prima che CMI "
+                                + "mettesse il suo «è entrato.»: così quello di CMI usciva subito, col giocatore "
+                                + "ancora al cancello, e dopo il login arrivava anche quello di Minecraft. Adesso si "
+                                + "trattiene per ultimo ed esce uno solo, quello di CMI, a login fatto. Lo stesso vale "
+                                + "per l'uscita di chi se ne va senza aver fatto il login: nessun annuncio.")
                 .issue("«Ho dimenticato la password»",
                         "/mauth reset <nome>: la password viene azzerata e il giocatore ne imposta una nuova al "
                                 + "prossimo ingresso. Vale anche per il sito, perché l'account è lo stesso.")
