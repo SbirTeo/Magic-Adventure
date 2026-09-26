@@ -56,7 +56,7 @@
         <dependency>
             <groupId>com.teolo</groupId>
             <artifactId>MagixLanguage</artifactId>
-            <version>0.4.7</version>
+            <version>0.4.8</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

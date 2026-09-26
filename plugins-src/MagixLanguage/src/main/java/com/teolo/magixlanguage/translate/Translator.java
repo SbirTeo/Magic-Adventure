@@ -259,7 +259,20 @@ public final class Translator {
 
     /** Un segnaposto rimasto non riconosciuto dopo restore(): la traduzione non e' affidabile. */
     private static final Pattern LEFTOVER_TOKEN = Pattern.compile(
-            "(?i)" + TOKEN_PREFIX + "[\\s\\-_]*\\d+[\\s\\-_]*" + TOKEN_SUFFIX);
+            "(?i)" + TOKEN_PREFIX + "[\\s\\-_⁣]*\\d+[\\s\\-_⁣]*" + TOKEN_SUFFIX);
+
+    /**
+     * U+2063 INVISIBLE SEPARATOR: nessun rendering, nessun significato, esiste apposta per
+     * segnare un confine senza comparire. Inserito da protect() fra due segnaposto ADIACENTI nel
+     * testo originale (es. "&e{power}&7", comunissimo nei messaggi di MagixFactions), che senza
+     * questo diventerebbero un unico blocco "qx0xqqx1xq" indistinguibile da una parola sola: visto
+     * succedere davvero che MyMemory ne storpi uno dei due (una lettera persa) quando sono incollati
+     * cosi', mentre la stessa coppia separata da un carattere qualunque sopravvive. Tolto sempre da
+     * restore(), che sia sopravvissuto, spostato o gia' sparito: non deve mai comparire nel
+     * messaggio finale, e non ha bisogno di sopravvivere alla traduzione per aver gia' fatto il suo
+     * lavoro (rompere il blocco al momento dell'invio).
+     */
+    private static final String GLUE_BREAKER = "⁣";
 
     /**
      * I pezzi (colori, placeholder...) che {@link #protect} avrebbe isolato in {@code text}: usato
@@ -284,6 +297,11 @@ public final class Translator {
         int last = 0;
         while (m.find()) {
             sb.append(text, last, m.start());
+            if (m.start() == last && !tokens.isEmpty()) {
+                // Due segnaposto senza NIENTE fra loro nel testo originale (es. "&e{power}&7"):
+                // vedi GLUE_BREAKER per il perche'.
+                sb.append(GLUE_BREAKER);
+            }
             sb.append(TOKEN_PREFIX).append(tokens.size()).append(TOKEN_SUFFIX);
             tokens.add(m.group());
             last = m.end();
@@ -297,9 +315,11 @@ public final class Translator {
         for (int i = 0; i < tokens.size(); i++) {
             // Il servizio a volte cambia il maiuscolo/minuscolo o gli spazi intorno al segnaposto
             // (es. lo maiuscolizza a inizio frase): si cerca senza badarci ne' all'uno ne' agli altri.
-            out = out.replaceAll("(?i)" + TOKEN_PREFIX + "[\\s\\-_]*" + i + "[\\s\\-_]*" + TOKEN_SUFFIX,
+            out = out.replaceAll("(?i)" + TOKEN_PREFIX + "[\\s\\-_⁣]*" + i + "[\\s\\-_⁣]*" + TOKEN_SUFFIX,
                     Matcher.quoteReplacement(tokens.get(i)));
         }
-        return out;
+        // GLUE_BREAKER ha gia' fatto il suo lavoro (separare i segnaposto all'invio): non deve
+        // comparire nel messaggio finale, indipendentemente da dove il servizio l'abbia lasciato.
+        return out.replace(GLUE_BREAKER, "");
     }
 }
