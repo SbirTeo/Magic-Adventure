@@ -3,6 +3,7 @@ package com.teolo.magixlanguage.command;
 import com.teolo.magixlanguage.MagixLanguage;
 import com.teolo.magixlanguage.lang.Messages;
 import com.teolo.magixlanguage.translate.PlayerLocales;
+import com.teolo.magixlanguage.translate.TranslationPacing;
 import com.teolo.magixlanguage.translate.TranslationSync;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -104,21 +105,16 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
             return;
         }
         boolean force = args.length >= 2 && args[1].equalsIgnoreCase("force");
+        boolean started = plugin.startSync(force, result -> Bukkit.getScheduler().runTask(plugin, () -> msg.send(sender, "sync-done",
+                "plugins", String.valueOf(result.pluginsScanned()),
+                "translated", String.valueOf(result.keysTranslated()),
+                "reused", String.valueOf(result.keysReused()),
+                "failed", String.valueOf(result.translationFailures()))));
+        if (!started) {
+            msg.send(sender, "sync-already-running");
+            return;
+        }
         msg.send(sender, force ? "sync-running-force" : "sync-running");
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            TranslationSync sync = new TranslationSync(plugin);
-            if (force) {
-                sync.forceNextAttempt(); // ignora il tentativo gia' fatto oggi: un colpo vero e proprio
-            }
-            TranslationSync.Result result = sync.run();
-            plugin.setLastSyncResult(result);
-            plugin.clearCatalogCaches(); // altrimenti i giocatori online continuano a vedere quello che c'era in memoria da prima
-            Bukkit.getScheduler().runTask(plugin, () -> msg.send(sender, "sync-done",
-                    "plugins", String.valueOf(result.pluginsScanned()),
-                    "translated", String.valueOf(result.keysTranslated()),
-                    "reused", String.valueOf(result.keysReused()),
-                    "failed", String.valueOf(result.translationFailures())));
-        });
     }
 
     private void status(CommandSender sender) {
@@ -146,6 +142,18 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
                 "translated", String.valueOf(result.keysTranslated()),
                 "reused", String.valueOf(result.keysReused()),
                 "failed", String.valueOf(result.translationFailures()));
+
+        java.time.Instant paused = plugin.pacing().pausedUntil();
+        if (paused != null) {
+            msg.send(sender, "status-paused", "in",
+                    TranslationPacing.formatWait(java.time.Duration.between(java.time.Instant.now(), paused)));
+        } else if (result.translationFailures() > 0) {
+            java.time.Instant next = plugin.pacing().nextPluginAttempt(TranslationSync.retryIntervalMinutes(plugin));
+            if (next != null) {
+                msg.send(sender, "status-next-attempt", "in",
+                        TranslationPacing.formatWait(java.time.Duration.between(java.time.Instant.now(), next)));
+            }
+        }
 
         java.util.Map<String, int[]> web = plugin.siteTranslationStatus();
         if (!web.isEmpty()) {

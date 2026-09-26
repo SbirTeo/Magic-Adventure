@@ -33,7 +33,8 @@ set-other: "&aLingua di &e{player}&a impostata su &e{lang}&a."
 # {plugins} plugin scansionati - {translated} chiavi tradotte adesso - {reused} gia' in cache - {failed} fallite (restano in italiano)
 sync-done: "&aSincronizzazione completata: &e{plugins}&a plugin, &e{translated}&a chiavi tradotte, &e{reused}&a gia' in cache, &e{failed}&a fallite."
 sync-running: "&eSincronizzazione in corso: puo' volerci un po' se ci sono molte chiavi nuove da tradurre..."
-sync-running-force: "&eSincronizzazione forzata in corso: ignoro il tentativo di traduzione gia' fatto oggi, riprovo subito su MyMemory..."
+sync-running-force: "&eSincronizzazione forzata in corso: ignoro la pausa e l'attesa fra un tentativo e l'altro, riprovo subito su MyMemory..."
+sync-already-running: "&eUna sincronizzazione e' gia' in corso: aspetta che finisca (l'esito arriva da solo, o guarda &f/language status&e)."
 
 # /language status: stato dell'ultima sincronizzazione (avvio o /language sync), plugin per plugin.
 status-none: "&eNessuna sincronizzazione ancora eseguita in questa sessione. Aspetta l'avvio automatico o lancia &e/language sync&e."
@@ -42,6 +43,10 @@ status-header: "&#C046E8&lMagixLanguage &7- stato traduzioni (ultima sincronizza
 status-line: "&7{plugin} &8(&f{total}&8 chiavi): &a{reused}&7 in cache, &e{translated}&7 tradotte ora, &c{missing}&7 mancanti"
 # {plugins} plugin scansionati - {translated}/{reused}/{failed} come sopra, sommati su tutti i plugin
 status-footer: "&7Totale: &a{plugins}&7 plugin, &e{translated}&7 tradotte ora, &a{reused}&7 in cache, &c{failed}&7 mancanti."
+
+# {in} fra quanto si riprova da soli, es. "1h 40m"
+status-paused: "&eMyMemory ha bloccato le richieste: riprovo da solo fra &f{in}&e (o subito con &f/language sync force&e)."
+status-next-attempt: "&7Le chiavi mancanti si riprovano da sole fra &f{in}&7 (o subito con &f/language sync force&7)."
 
 # Sotto lo stato dei plugin, quello del sito (site_translations, riportato da MagixWeb): compare
 # solo se il sito e' installato e ha gia' fatto almeno un giro.
@@ -64,6 +69,6 @@ help:
       entries:
         - "/language set <it|en|es|de> <giocatore> :: cambia la lingua di un altro giocatore"
         - "/language sync :: ricopia i messaggi degli altri plugin da tradurre"
-        - "/language sync force :: come sopra, ma ignora il tentativo gia' fatto oggi (un colpo vero anche se e' gia' scattato il limite di un tentativo al giorno)"
+        - "/language sync force :: come sopra, ma riprova subito su MyMemory anche durante una pausa dopo un blocco"
         - "/language status :: quante chiavi sono tradotte/mancanti, plugin per plugin"
         - "/language reload :: ricarica config.yml e messages.yml"

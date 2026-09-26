@@ -133,3 +133,15 @@ translations:
     # limite giornaliero da 5000 a 10000 parole tradotte per questo server. Facoltativo,
     # lasciare vuoto per restare anonimi (limite piu' basso ma nessun dato in piu' inviato).
     contact-email: "admin@magicadventure.it"
+
+    # Quando MyMemory rifiuta tre richieste di fila (quota del giorno finita), nessuno lo
+    # richiama per un po' - ne' i plugin ne' il sito - e poi si riprova DA SOLI, senza
+    # aspettare un riavvio. La durata la dice di solito MyMemory stessa nella risposta
+    # ("next available in..."): questo valore, in minuti, si usa solo quando non la dice.
+    pause-after-block-minutes: 120
+
+    # Senza blocchi, ogni quanti minuti riprovare da soli le chiavi dei plugin rimaste in
+    # italiano (di solito traduzioni scartate perche' rovinavano un colore o un placeholder):
+    # vale anche per i riavvii, che altrimenti riproverebbero tutto ogni volta consumando
+    # quota. Minimo 30; /language sync force riprova comunque subito.
+    retry-interval-minutes: 180

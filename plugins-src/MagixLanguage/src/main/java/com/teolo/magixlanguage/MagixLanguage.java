@@ -6,9 +6,9 @@ import com.teolo.magixlanguage.geo.GeoLookup;
 import com.teolo.magixlanguage.hook.MagixLanguagePlaceholders;
 import com.teolo.magixlanguage.lang.Messages;
 import com.teolo.magixlanguage.listener.LoginListener;
-import com.teolo.magixlanguage.translate.DailyThrottle;
 import com.teolo.magixlanguage.translate.MenuPhraseSync;
 import com.teolo.magixlanguage.translate.PlayerLocales;
+import com.teolo.magixlanguage.translate.TranslationPacing;
 import com.teolo.magixlanguage.translate.TranslationSync;
 import com.teolo.magixlanguage.util.ConfigAlign;
 import com.teolo.magixlanguage.util.StaffGuide;
@@ -20,11 +20,15 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * MagixLanguage - rileva la lingua di chi entra dal paese di provenienza (GeoIP sull'IP di
@@ -45,7 +49,13 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     private Messages messages;
     private PlayerLocales locales;
     private GeoLookup geo;
-    private DailyThrottle throttle;
+    private TranslationPacing pacing;
+
+    /** Ogni quanto si controlla se e' ora di riprovare le chiavi mancanti (vedi {@link #resyncIfDue}). */
+    private static final long RESYNC_CHECK_TICKS = 5 * 60 * 20L;
+
+    /** Una sola sincronizzazione alla volta: una vera puo' durare dieci minuti e oltre. */
+    private final AtomicBoolean syncRunning = new AtomicBoolean();
 
     /** Risultato dell'ultima sincronizzazione (avvio o /language sync), per /language status. */
     private volatile TranslationSync.Result lastSyncResult;
@@ -72,7 +82,13 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         messages = new Messages(this);
         locales = new PlayerLocales(getDataFolder(), getLogger());
         geo = buildGeoLookup();
-        throttle = new DailyThrottle(getDataFolder(), getLogger());
+        pacing = new TranslationPacing(getDataFolder(), getLogger());
+        try {
+            // Il segna-data del vecchio "un tentativo al giorno", sostituito da translation-pacing.properties.
+            Files.deleteIfExists(new File(getDataFolder(), "last-translation-attempt.txt").toPath());
+        } catch (IOException ignored) {
+            // innocuo se resta: non lo legge piu' nessuno
+        }
 
         PluginCommand cmd = getCommand("magixlanguage");
         if (cmd != null) {
@@ -88,11 +104,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         // Puro I/O su file: non deve bloccare il tick di avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
         if (getConfig().getBoolean("translations.sync-on-start", true)) {
-            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-                lastSyncResult = new TranslationSync(this).run();
-                clearCatalogCaches();
-            });
+            startSync(false, null);
         }
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, this::resyncIfDue, RESYNC_CHECK_TICKS, RESYNC_CHECK_TICKS);
 
         getLogger().info("Avviato: lingua di default " + getConfig().getString("default-language", "it")
                 + ", GeoIP " + (getConfig().getBoolean("geoip.enabled", true) ? "attivo" : "disattivo") + ".");
@@ -126,6 +140,53 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         menuPhraseCache.clear();
     }
 
+    /**
+     * Avvia una sincronizzazione fuori dal thread principale, se non ne sta gia' girando un'altra.
+     *
+     * @param ignorePacing "/language sync force" (vedi {@link TranslationSync#run(boolean)})
+     * @param onDone       chiamato (fuori dal thread principale) con l'esito, o null
+     * @return false se ce n'era gia' una in corso: in quel caso non parte nulla
+     */
+    public boolean startSync(boolean ignorePacing, Consumer<TranslationSync.Result> onDone) {
+        if (!syncRunning.compareAndSet(false, true)) {
+            return false;
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                TranslationSync.Result result = new TranslationSync(this).run(ignorePacing);
+                lastSyncResult = result;
+                clearCatalogCaches();
+                if (onDone != null) {
+                    onDone.accept(result);
+                }
+            } finally {
+                syncRunning.set(false);
+            }
+        });
+        return true;
+    }
+
+    /**
+     * Riprova da sola le chiavi rimaste mancanti, invece di aspettare il prossimo riavvio: appena
+     * finisce una pausa dopo un blocco di MyMemory, oppure ogni
+     * translations.auto-translate.retry-interval-minutes se non c'e' stato nessun blocco.
+     */
+    private void resyncIfDue() {
+        TranslationSync.Result last = lastSyncResult;
+        if (last == null || last.translationFailures() == 0 || syncRunning.get()
+                || !getConfig().getBoolean("translations.auto-translate.enabled", true)) {
+            return;
+        }
+        if (pacing.nextPluginAttempt(TranslationSync.retryIntervalMinutes(this)) == null) {
+            startSync(false, null);
+        }
+    }
+
+    /** Pausa dopo un blocco / intervallo fra i giri: per /language status. */
+    public TranslationPacing pacing() {
+        return pacing;
+    }
+
     private GeoLookup buildGeoLookup() {
         return new GeoLookup(getLogger(),
                 getConfig().getString("geoip.provider-url", "http://ip-api.com/json/{ip}?fields=status,countryCode"),
@@ -151,10 +212,6 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     /** L'esito dell'ultima sincronizzazione (avvio o /language sync), o null se non e' mai girata. */
     public TranslationSync.Result lastSyncResult() {
         return lastSyncResult;
-    }
-
-    public void setLastSyncResult(TranslationSync.Result result) {
-        this.lastSyncResult = result;
     }
 
     /** L'ultimo stato riportato dal sito (vedi {@link #reportSiteTranslationStatus}), per /language status. */
@@ -249,15 +306,14 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 || !getConfig().getBoolean("translations.auto-translate.enabled", true)) {
             return out;
         }
-        // Stesso tentativo-al-giorno del sync dei plugin (vedi DailyThrottle): questo metodo lo
-        // richiama MagixWeb ogni 30 secondi H24 per il sito, e senza questo limite un Translator
-        // nuovo a ogni giro riprovava MyMemory da capo (nessuna memoria dei fallimenti precedenti)
-        // tutto il giorno — la causa piu' probabile per cui il blocco (HTTP 429) di MyMemory non
-        // si liberava mai, nemmeno nelle ore in cui il sync dei plugin non l'aveva ancora usato.
-        if (throttle.alreadyUsedToday()) {
+        // Stessa pausa dopo un blocco del sync dei plugin (vedi TranslationPacing): MagixWeb
+        // richiama questo metodo ogni 30 secondi H24, e senza pausa un Translator nuovo a ogni giro
+        // riprovava MyMemory da capo anche mentre era bloccato — il blocco (HTTP 429) non si
+        // liberava mai. Qui niente intervallo fra un giro e l'altro: il sito manda solo frasi mai
+        // tradotte, e ciascuna smette da sola dopo pochi tentativi (vedi SiteTranslationWorker).
+        if (pacing.pausedUntil() != null) {
             return out;
         }
-        throttle.markUsedToday();
 
         int timeoutMs = getConfig().getInt("translations.auto-translate.timeout-ms", 4000);
         int delayMs = getConfig().getInt("translations.auto-translate.delay-ms", 150);
@@ -274,6 +330,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
             }
             sleepQuietly(delayMs);
         }
+        pacing.recordOutcome(translator, TranslationSync.pauseMinutes(this));
         return out;
     }
 
@@ -416,7 +473,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         "translations.plugins", "I plugin la cui cartella dati viene scandita in cerca di testo da tradurre.",
                         "translations.files", "I nomi dei file, dentro ciascuna di quelle cartelle, che contengono testo per i giocatori.",
                         "translations.auto-translate.enabled", "Se spento, le lingue diverse dall'italiano restano col testo italiano finche' non lo corregge lo staff con un file -overrides.yml.",
-                        "translations.auto-translate.contact-email", "Email facoltativa mandata a MyMemory per una quota giornaliera di traduzioni piu' alta.")
+                        "translations.auto-translate.contact-email", "Email facoltativa mandata a MyMemory per una quota giornaliera di traduzioni piu' alta.",
+                        "translations.auto-translate.pause-after-block-minutes", "Quanto aspettare dopo un blocco di MyMemory prima di riprovare da soli, quando MyMemory non lo dice nella risposta.",
+                        "translations.auto-translate.retry-interval-minutes", "Senza blocchi, ogni quanto riprovare da soli le chiavi dei plugin rimaste in italiano (vale anche per i riavvii).")
 
                 .issue("Un giocatore ha la lingua sbagliata",
                         "Se il paese rilevato dal GeoIP non e' quello vero (VPN, IP aziendale condiviso...) si "
@@ -439,25 +498,25 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         "Probabile limite del servizio di traduzione (MyMemory, gratuito): con /language status "
                                 + "si vede subito quante ne mancano per ogni plugin, e nel log compare 'rifiutata "
                                 + "(risposta HTTP 429)' o 'interrotta la traduzione automatica'. Non serve "
-                                + "intervenire: si riprova da sola al prossimo giorno. Per alzare il limite (5000 "
-                                + "-> 10000 parole/giorno) si puo' impostare translations.auto-translate.contact-email "
-                                + "nel config.")
-                .issue("Perche' non riprova subito, a ogni riavvio",
-                        "Per disegno: si tenta una traduzione vera al massimo UNA volta al giorno, qualunque cosa "
-                                + "succeda nel frattempo (un riavvio dopo un deploy, un /language sync lanciato a "
-                                + "mano, o un giro della traduzione del sito). MyMemory non ha solo una quota di "
-                                + "parole al giorno: ha anche un limite di frequenza (HTTP 429) che un IP puo' far "
-                                + "scattare ripetendo il tentativo troppo spesso, e quel blocco puo' restare attivo "
-                                + "ben oltre un giorno — e' successo davvero con una decina di riavvii ravvicinati in "
-                                + "poche ore. Lo specchio it.yml e le chiavi gia' tradotte in cache continuano "
-                                + "comunque ad aggiornarsi a ogni riavvio: solo le chiamate di rete vere e proprie "
-                                + "verso MyMemory si fermano dopo il primo tentativo del giorno (il file "
-                                + "last-translation-attempt.txt nella cartella dati tiene la data, condiviso anche "
-                                + "con la traduzione del sito — vedi la voce sotto sul sito senza traduzioni). Per un "
-                                + "tentativo vero prima di mezzanotte, tipico per verificare se un blocco si e' gia' "
-                                + "liberato, c'e' /language sync force: ignora il segna-tentativo di oggi e riprova "
-                                + "subito su MyMemory (equivale a cancellare a mano last-translation-attempt.txt e "
-                                + "poi lanciare /language sync).")
+                                + "intervenire: dopo il blocco si aspetta quanto dice MyMemory (o "
+                                + "{{cfg:translations.auto-translate.pause-after-block-minutes}} minuti) e si riprova "
+                                + "da soli, senza aspettare un riavvio. /language status dice fra quanto. Per alzare "
+                                + "il limite si puo' impostare translations.auto-translate.contact-email nel config.")
+                .issue("Quando riprova MyMemory, e perche' non a ogni riavvio",
+                        "Due regole, condivise fra plugin e sito e salvate in translation-pacing.properties "
+                                + "(cartella dati) perche' un riavvio non le azzeri. (1) Dopo un blocco — tre "
+                                + "richieste rifiutate di fila, di solito la quota del giorno finita — nessuno "
+                                + "richiama MyMemory finche' non passa la pausa che MyMemory stessa indica nella "
+                                + "risposta (se non la indica, {{cfg:translations.auto-translate.pause-after-block-minutes}} "
+                                + "minuti); poi si riprende DA SOLI, controllando ogni 5 minuti. (2) Senza blocchi, "
+                                + "le chiavi dei plugin rimaste in italiano si riprovano al massimo ogni "
+                                + "{{cfg:translations.auto-translate.retry-interval-minutes}} minuti, riavvii "
+                                + "compresi: ogni tentativo consuma quota, e il server si riavvia anche piu' volte al "
+                                + "giorno per i deploy. Prima c'era un solo tentativo al giorno: se capitava mentre "
+                                + "MyMemory era ancora bloccato (il riavvio notturno), la giornata intera andava persa "
+                                + "a zero chiavi — successo per piu' giorni di fila. /language sync force ignora "
+                                + "entrambe le regole e riprova subito (equivale a cancellare "
+                                + "translation-pacing.properties e lanciare /language sync).")
                 .issue("Un colore o un placeholder e' sparito da un messaggio tradotto",
                         "Il servizio di traduzione puo' alterare un segnaposto interno (successo davvero: ha "
                                 + "tolto una coppia di parentesi da uno, lasciando un residuo tipo &quot;[2]&quot; al "
@@ -487,16 +546,12 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 .issue("Il sito (magicadventure.it) non traduce mai niente",
                         "MagixWeb chiama MagixLanguageAPI.translateRawBatch ogni 30 secondi, H24, per smaltire le "
                                 + "frasi che le pagine accodano (vedi includes/translate.php e "
-                                + "language/SiteTranslationWorker.java): fino a quando quella chiamata non "
-                                + "rispettava lo stesso limite di un tentativo al giorno del sync dei plugin, "
-                                + "ripeteva la richiesta a MyMemory in continuazione — la causa piu' probabile per "
-                                + "cui il blocco (HTTP 429) restava attivo anche nelle ore in cui il sync dei plugin "
-                                + "non l'aveva ancora consumato. Ora il segna-tentativo giornaliero (classe "
-                                + "DailyThrottle) e' condiviso fra i due path: un solo tentativo vero al giorno per "
-                                + "TUTTO quello che chiama MyMemory con "
-                                + "questo IP, sito compreso. Se il sito resta in italiano, controlla prima se il "
-                                + "tentativo di oggi e' gia' stato usato (stesso file last-translation-attempt.txt) "
-                                + "prima di pensare a un bug diverso.")
+                                + "language/SiteTranslationWorker.java): quando quella chiamata non si fermava "
+                                + "durante un blocco, ripeteva la richiesta a MyMemory in continuazione e il blocco "
+                                + "(HTTP 429) non si liberava mai. Ora rispetta la stessa pausa dopo un blocco del "
+                                + "sync dei plugin (classe TranslationPacing, file translation-pacing.properties): se "
+                                + "il sito resta in italiano, guarda prima /language status — se dice che MyMemory e' "
+                                + "in pausa, e' solo questione di aspettare.")
                 .issue("Il sito non segue il cambio di lingua fatto in gioco",
                         "site_language() in includes/language.php da' la precedenza, in ordine, a: ?lingua= in "
                                 + "pagina (sticky in sessione e nel cookie ma_lingua per 365 giorni), poi il cookie, "

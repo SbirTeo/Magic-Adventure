@@ -51,6 +51,11 @@ public final class Translator {
     private static final Pattern RESPONSE_STATUS = Pattern.compile("\"responseStatus\"\\s*:\\s*\"?(\\d+)\"?");
     private static final Pattern QUOTA_FINISHED = Pattern.compile("\"quotaFinished\"\\s*:\\s*(true|false)");
 
+    /** Il messaggio di quota finita di MyMemory dice quando riprovare, es. "NEXT AVAILABLE IN 10
+     *  HOURS 20 MINUTES 05 SECONDS": letto per non riprovare ne' troppo presto ne' troppo tardi. */
+    private static final Pattern NEXT_AVAILABLE = Pattern.compile(
+            "(?i)NEXT\\s+AVAILABLE\\s+IN\\s+(?:(\\d+)\\s*HOURS?)?\\s*(?:(\\d+)\\s*MINUTES?)?\\s*(?:(\\d+)\\s*SECONDS?)?");
+
     /** Dopo tante chiamate fallite DI FILA (429, quota, rete) si smette di provare per il resto
      *  di questa sincronizzazione, invece di martellare il servizio senza pause fra un fallimento
      *  e l'altro (il delay configurato scatta solo intorno a un tentativo vero): si riprova tutto
@@ -63,6 +68,9 @@ public final class Translator {
     private final String contactEmail;
     private int consecutiveFailures;
     private boolean circuitOpen;
+    private boolean blocked;
+    private boolean madeRequests;
+    private Duration retryHint;
 
     public Translator(int timeoutMillis, Logger log) {
         this(timeoutMillis, log, null);
@@ -112,10 +120,10 @@ public final class Translator {
         if (raw == null) {
             if (++consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
                 circuitOpen = true;
+                blocked = true;
                 log.warning("MagixLanguage: " + MAX_CONSECUTIVE_FAILURES + " traduzioni di fila fallite "
                         + "(probabile limite del servizio raggiunto): interrotta la traduzione automatica per "
-                        + "il resto di questa sincronizzazione, le chiavi restanti restano in italiano e si "
-                        + "riprova dal prossimo /language sync o riavvio.");
+                        + "il resto di questo giro, le chiavi restanti restano in italiano per ora.");
             }
             return null;
         }
@@ -153,14 +161,50 @@ public final class Translator {
     }
 
     /**
-     * Apre il circuito senza nemmeno provare una chiamata: usato quando il tentativo di
-     * traduzione di oggi e' gia' stato consumato da un giro precedente (vedi
-     * {@code TranslationSync}, un tentativo al giorno per non farsi bloccare da MyMemory a furia
-     * di riavvii). Le chiavi gia' in cache continuano comunque a funzionare: solo le chiamate di
-     * rete vere e proprie si fermano.
+     * Apre il circuito senza nemmeno provare una chiamata: usato quando non e' il momento di
+     * chiamare MyMemory (pausa dopo un blocco, o intervallo fra un giro e l'altro non ancora
+     * passato: vedi {@link TranslationPacing}). Le chiavi gia' in cache continuano comunque a
+     * funzionare: solo le chiamate di rete vere e proprie si fermano.
      */
     public void forceUnavailable() {
         circuitOpen = true;
+    }
+
+    /** Se in questo giro MyMemory ha rifiutato abbastanza richieste di fila da far smettere. */
+    public boolean wasBlocked() {
+        return blocked;
+    }
+
+    /** Se in questo giro e' partita almeno una richiesta vera verso MyMemory. */
+    public boolean madeRequests() {
+        return madeRequests;
+    }
+
+    /** Fra quanto MyMemory ha detto di riprovare, se l'ha detto (vedi {@link #NEXT_AVAILABLE}). */
+    public Duration retryHint() {
+        return retryHint;
+    }
+
+    private void noteRetryHint(String text) {
+        if (text == null) {
+            return;
+        }
+        Matcher m = NEXT_AVAILABLE.matcher(text);
+        if (!m.find() || (m.group(1) == null && m.group(2) == null && m.group(3) == null)) {
+            return;
+        }
+        Duration d = Duration.ofHours(m.group(1) != null ? Long.parseLong(m.group(1)) : 0)
+                .plusMinutes(m.group(2) != null ? Long.parseLong(m.group(2)) : 0)
+                .plusSeconds(m.group(3) != null ? Long.parseLong(m.group(3)) : 0);
+        retryHint = d;
+    }
+
+    private static String snippet(String body) {
+        if (body == null) {
+            return "";
+        }
+        String flat = body.replaceAll("\\s+", " ").trim();
+        return flat.length() > 200 ? flat.substring(0, 200) + "..." : flat;
     }
 
     private String call(String text, String targetLang) {
@@ -179,10 +223,19 @@ public final class Translator {
                     .header("User-Agent", "Mozilla/5.0 (MagixLanguage; magicadventure.it)")
                     .GET()
                     .build();
+            madeRequests = true;
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() != 200) {
+                noteRetryHint(response.body());
+                response.headers().firstValue("Retry-After").ifPresent(v -> {
+                    if (retryHint == null && v.trim().matches("\\d+")) {
+                        retryHint = Duration.ofSeconds(Long.parseLong(v.trim()));
+                    }
+                });
+                // Il corpo della risposta dice il perche' (quota finita, e fra quanto torna): senza
+                // stamparlo si poteva solo tirare a indovinare.
                 log.warning("MagixLanguage: traduzione verso " + targetLang + " rifiutata (risposta HTTP "
-                        + response.statusCode() + ").");
+                        + response.statusCode() + ": " + snippet(response.body()) + ").");
                 return null;
             }
             return parse(response.body(), targetLang);
@@ -195,14 +248,16 @@ public final class Translator {
     private String parse(String json, String targetLang) {
         Matcher status = RESPONSE_STATUS.matcher(json);
         if (status.find() && !"200".equals(status.group(1))) {
+            noteRetryHint(json);
             log.warning("MagixLanguage: MyMemory ha rifiutato la traduzione verso " + targetLang
-                    + " (responseStatus " + status.group(1) + ").");
+                    + " (responseStatus " + status.group(1) + ": " + snippet(json) + ").");
             return null;
         }
         Matcher quota = QUOTA_FINISHED.matcher(json);
         if (quota.find() && Boolean.parseBoolean(quota.group(1))) {
+            noteRetryHint(json);
             log.warning("MagixLanguage: quota giornaliera di MyMemory esaurita per " + targetLang
-                    + ": si riprova al prossimo sync (resta il testo italiano nel frattempo).");
+                    + " (resta il testo italiano nel frattempo).");
             return null;
         }
         Matcher text = TRANSLATED_TEXT.matcher(json);
@@ -212,6 +267,7 @@ public final class Translator {
         }
         String translated = unescape(text.group(1));
         if (translated.toUpperCase(java.util.Locale.ROOT).contains("MYMEMORY WARNING")) {
+            noteRetryHint(translated);
             log.warning("MagixLanguage: MyMemory ha risposto con un avviso invece di una traduzione verso "
                     + targetLang + ": " + translated);
             return null;
