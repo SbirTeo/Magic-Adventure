@@ -1,5 +1,7 @@
 package com.teolo.magixpack.item;
 
+import org.bukkit.Sound;
+
 import java.util.List;
 
 /**
@@ -29,11 +31,19 @@ import java.util.List;
  * questo valore dipende dalla vera altezza del modello (letta dal suo JSON), non e' un fisso 0.5
  * uguale per tutti.
  *
+ * <p>{@code furnitureHits} (default 1) quanti colpi servono per romperla — contati sull'entita'
+ * piazzata, non sul catalogo. {@code furnitureDrop} decide cosa succede all'ultimo colpo: {@code
+ * false} (default) da' l'oggetto direttamente nell'inventario di chi ha colpito (o lo fa cadere se
+ * non c'e' posto), {@code true} lo fa cadere per terra come un blocco normale, senza darlo a nessuno
+ * in particolare. {@code furnitureHitSound}/{@code furnitureBreakSound} sono i suoni per un colpo
+ * che non rompe ancora e per quello che rompe davvero — scelte per oggetto, non globali.
+ *
  * <p>{@code playerAvatar} ({@code type: player-avatar} in items.yml): the item is built for a given
  * player — their own head as icon and their full-body avatar in the lore (see
  * {@code avatar.AvatarService}). No texture, no model: nothing of it goes in the pack.
  */
 public record ItemEntry(String id, String material, String name, List<String> lore, int customModelData,
                          boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired,
-                         double furnitureYOffset, boolean playerAvatar) {
+                         double furnitureYOffset, int furnitureHits, boolean furnitureDrop,
+                         Sound furnitureHitSound, Sound furnitureBreakSound, boolean playerAvatar) {
 }

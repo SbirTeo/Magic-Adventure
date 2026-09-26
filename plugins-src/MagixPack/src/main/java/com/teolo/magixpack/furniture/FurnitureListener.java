@@ -7,6 +7,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -66,6 +67,7 @@ public final class FurnitureListener implements Listener {
     private final NamespacedKey markerKey;
     private final NamespacedKey pairedKey;
     private final NamespacedKey blockKey;
+    private final NamespacedKey hitsKey;
 
     public FurnitureListener(JavaPlugin plugin, ItemCatalog itemCatalog) {
         this.plugin = plugin;
@@ -73,6 +75,7 @@ public final class FurnitureListener implements Listener {
         this.markerKey = new NamespacedKey(ItemCatalog.NAMESPACE, "furniture-item");
         this.pairedKey = new NamespacedKey(ItemCatalog.NAMESPACE, "furniture-paired");
         this.blockKey = new NamespacedKey(ItemCatalog.NAMESPACE, "furniture-block");
+        this.hitsKey = new NamespacedKey(ItemCatalog.NAMESPACE, "furniture-hits-taken");
     }
 
     /** Tasto destro sulla faccia SUPERIORE di un blocco, con in mano un oggetto {@code furniture:
@@ -163,9 +166,15 @@ public final class FurnitureListener implements Listener {
         }
     }
 
-    /** Attaccare l'entita' Interaction di una furniture la rompe (nessun tasto/permesso a parte,
-     *  come un blocco: chi puo' colpirla per la protezione della regione/claim, puo' romperla) —
-     *  toglie la coppia Display+Interaction, il blocco di collisione se c'era, e ridà l'oggetto. */
+    /** Attaccare l'entita' Interaction di una furniture la colpisce (nessun tasto/permesso a
+     *  parte, come un blocco: chi puo' colpirla per la protezione della regione/claim, puo'
+     *  romperla). Serve {@code furniture-hits} colpi (contati sull'entita' stessa, non sul
+     *  catalogo: due copie piazzate della stessa furniture si rompono in modo indipendente) prima
+     *  di rompersi davvero — un colpo che non basta ancora suona solo {@code furniture-hit-sound}
+     *  e memorizza il progresso, l'ultimo suona anche {@code furniture-break-sound} e toglie la
+     *  coppia Display+Interaction (piu' il blocco di collisione, se c'era). {@code furniture-drop}
+     *  decide cosa fare dell'oggetto all'ultimo colpo: darlo a chi ha colpito (default) o farlo
+     *  cadere per terra come un blocco normale. */
     @EventHandler(ignoreCancelled = true)
     public void onBreak(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof Interaction interaction)) return;
@@ -173,6 +182,22 @@ public final class FurnitureListener implements Listener {
         String id = interaction.getPersistentDataContainer().get(markerKey, PersistentDataType.STRING);
         if (id == null) return;
         e.setCancelled(true);
+
+        ItemEntry entry = itemCatalog.entry(id);
+        int hitsNeeded = entry != null ? Math.max(1, entry.furnitureHits()) : 1;
+        Sound hitSound = entry != null ? entry.furnitureHitSound() : Sound.BLOCK_WOOD_HIT;
+        Sound breakSound = entry != null ? entry.furnitureBreakSound() : Sound.BLOCK_WOOD_BREAK;
+        boolean drop = entry != null && entry.furnitureDrop();
+
+        Location loc = interaction.getLocation();
+        int hitsTaken = interaction.getPersistentDataContainer()
+                .getOrDefault(hitsKey, PersistentDataType.INTEGER, 0) + 1;
+        interaction.getWorld().playSound(loc, hitSound, 1f, 1f);
+        if (hitsTaken < hitsNeeded) {
+            interaction.getPersistentDataContainer().set(hitsKey, PersistentDataType.INTEGER, hitsTaken);
+            return;
+        }
+        interaction.getWorld().playSound(loc, breakSound, 1f, 1f);
 
         String pairedUuid = interaction.getPersistentDataContainer().get(pairedKey, PersistentDataType.STRING);
         if (pairedUuid != null) {
@@ -189,11 +214,14 @@ public final class FurnitureListener implements Listener {
         interaction.remove();
 
         ItemStack item = itemCatalog.build(id);
-        if (item != null) {
-            Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
-            for (ItemStack extra : leftover.values()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), extra);
-            }
+        if (item == null) return;
+        if (drop) {
+            loc.getWorld().dropItemNaturally(loc, item);
+            return;
+        }
+        Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
+        for (ItemStack extra : leftover.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), extra);
         }
     }
 }
