@@ -138,10 +138,13 @@ flaming_sword:
   furniture-shift-required: false
 ```
 
-- `furniture: true` (default `false`) — lo rende piazzabile: **tasto destro** su un blocco lo
-  mette sulla faccia cliccata. Chiunque lo tenga in mano lo puo' piazzare, nessun permesso a
-  parte — la protezione (chi puo' piazzare/rompere dove) la fa la regione/claim gia' presente sul
-  server, esattamente come per un blocco normale messo li'.
+- `furniture: true` (default `false`) — lo rende piazzabile: **tasto destro sulla faccia
+  SUPERIORE** di un blocco lo mette sopra (mai sui lati, apposta: su un terreno sconnesso
+  cliccare il lato di un blocco piu' basso lo farebbe nascere piu' in basso del terreno intorno,
+  con l'effetto di essere "affondato" — non e' un problema del modello). Chiunque lo tenga in
+  mano lo puo' piazzare, nessun permesso a parte — la protezione (chi puo' piazzare/rompere dove)
+  la fa la regione/claim gia' presente sul server, esattamente come per un blocco normale messo
+  li'.
 - `furniture-solid: true` (default `false`) — aggiunge collisione vera (un blocco invisibile,
   blocca il passaggio); `false` lo lascia attraversabile. Scelta per oggetto, non globale.
 - `furniture-shift-required` (default `true`) — se serve tenere premuto **shift** durante il

@@ -13,8 +13,9 @@ name: Azzera spawnRadius nel mondo spawn
 # plugin riporta esattamente il punto che Bukkit/Multiverse avevano assegnato.
 #
 # Tentativi falliti, in ordine, e perche':
-#   1) "/execute in minecraft:spawn run gamerule spawnRadius 0" -> "Uso: /gamerule" (silenzioso:
-#      il namespace minecraft: e' riservato alle tre dimensioni vanilla vere).
+#   1) "/execute in minecraft:spawn run gamerule spawnRadius 0" -> "Uso: /gamerule": la
+#      dimensione era giusta (il log di login la chiama proprio [minecraft:spawn]), il nome no:
+#      spawnRadius non esiste piu' (vedi sotto).
 #   2) "/execute in bukkit:spawn run gamerule spawnRadius 0" -> "Unknown dimension 'bukkit:spawn'":
 #      /execute in accetta solo le dimensioni REGISTRATE (le tre vanilla, o quelle di un
 #      datapack), mai un mondo Bukkit aggiuntivo creato da un plugin come Multiverse.
@@ -27,9 +28,12 @@ name: Azzera spawnRadius nel mondo spawn
 #      console qui non puo' fisicamente eseguirlo, a prescindere dalla sintassi.
 #
 # Attenzione al NOME: "spawnRadius" non esiste piu' su questo server (26.2). Da Minecraft
-# 1.21.11 i gamerule sono in snake_case e questo si chiama "respawn_radius" (verificato dal
-# proprietario in game: "/gamerule spawnRadius ..." da' errore). Il fallimento del tentativo 1
-# qui sopra puo' dipendere anche da questo, non solo dalla dimensione.
+# 1.21.11 i gamerule sono in snake_case e questo si chiama "respawn_radius". Impostato a 0 in
+# game dal proprietario il 25/09 ("Gamerule respawn_radius is now set to: 0").
+#
+# Da solo NON bastava: con raggio 0 X/Z sono esatti, ma Minecraft mette il nuovo giocatore
+# sopra il blocco piu' alto della colonna, cioe' sul tetto dell'hub (Y=117). Il salto dopo
+# /register e' stato risolto in MagixAuth 0.7.24: chi e' al primo ingresso resta al cancello.
 #
 # Conclusione: questa gamerule va cambiata da un GIOCATORE, fisicamente nel mondo spawn, con
 # "/gamerule respawn_radius 0" (conferma il nome col completamento automatico di "/gamerule ").
