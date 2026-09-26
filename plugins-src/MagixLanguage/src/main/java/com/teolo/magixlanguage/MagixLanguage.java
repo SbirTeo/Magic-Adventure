@@ -50,6 +50,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     /** Risultato dell'ultima sincronizzazione (avvio o /language sync), per /language status. */
     private volatile TranslationSync.Result lastSyncResult;
 
+    /** Ultimo stato riportato dal sito (vedi {@link #reportSiteTranslationStatus}), per /language status. */
+    private volatile Map<String, int[]> siteTranslationStatus = Map.of();
+
     /** pluginName -> lingua -> chiave.puntata -> testo. Svuotata a ogni reload/sync: si ricarica da sola. */
     private final Map<String, Map<String, Map<String, Object>>> catalogCache = new ConcurrentHashMap<>();
 
@@ -152,6 +155,11 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
     public void setLastSyncResult(TranslationSync.Result result) {
         this.lastSyncResult = result;
+    }
+
+    /** L'ultimo stato riportato dal sito (vedi {@link #reportSiteTranslationStatus}), per /language status. */
+    public Map<String, int[]> siteTranslationStatus() {
+        return siteTranslationStatus;
     }
 
     // ------------------------------------------------------------- MagixLanguageAPI
@@ -267,6 +275,11 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
             sleepQuietly(delayMs);
         }
         return out;
+    }
+
+    @Override
+    public void reportSiteTranslationStatus(Map<String, int[]> countsByLang) {
+        this.siteTranslationStatus = countsByLang == null ? Map.of() : Map.copyOf(countsByLang);
     }
 
     private static void sleepQuietly(int millis) {
@@ -492,8 +505,18 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "E' voluto: chi ha scelto la lingua del sito a mano (il selettore in pagina) ha "
                                 + "gia' espresso una preferenza per il SITO, che vince anche se poi cambia lingua in "
                                 + "gioco. Chi non ha mai usato quel selettore, invece, segue la lingua di gioco senza "
-                                + "fare nulla. Un visitatore con un cookie ma_lingua vecchio deve ripassare dal "
-                                + "selettore (o cancellare il cookie) per tornare a seguire il gioco.")
+                                + "fare nulla. Un visitatore con un cookie ma_lingua vecchio puo' tornare a seguire il "
+                                + "gioco dal selettore stesso — la voce &quot;Automatica&quot; (visibile solo quando "
+                                + "c'e' davvero una scelta manuale da togliere) cancella sessione e cookie, senza "
+                                + "dover intervenire a mano sul browser.")
+                .issue("Non vedo lo stato delle traduzioni del sito in /language status",
+                        "Compare solo se MagixWeb e' installato e ha gia' fatto almeno un giro (il primo parte 10 "
+                                + "secondi dopo l'avvio, poi ogni site-translation.check-interval-seconds — config.yml "
+                                + "di MagixWeb, default 30): SiteTranslationWorker conta le righe di "
+                                + "site_translations per lingua e stato (pronte/in attesa/fallite) e le riporta a "
+                                + "MagixLanguage con MagixLanguageAPI.reportSiteTranslationStatus, letto da "
+                                + "/language status sotto lo stato dei plugin. Se il sito non e' installato, quella "
+                                + "sezione semplicemente non compare — non e' un errore.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")

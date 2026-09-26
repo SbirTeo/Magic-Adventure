@@ -43,6 +43,12 @@ status-line: "&7{plugin} &8(&f{total}&8 chiavi): &a{reused}&7 in cache, &e{trans
 # {plugins} plugin scansionati - {translated}/{reused}/{failed} come sopra, sommati su tutti i plugin
 status-footer: "&7Totale: &a{plugins}&7 plugin, &e{translated}&7 tradotte ora, &a{reused}&7 in cache, &c{failed}&7 mancanti."
 
+# Sotto lo stato dei plugin, quello del sito (site_translations, riportato da MagixWeb): compare
+# solo se il sito e' installato e ha gia' fatto almeno un giro.
+status-web-header: "&#C046E8&lSito &7- frasi in coda per la traduzione"
+# {lang} codice lingua (en/es/de) - {done} gia' tradotte - {pending} in attesa del prossimo giro - {failed} fallite troppe volte
+status-web-line: "&7{lang}: &a{done}&7 pronte, &e{pending}&7 in attesa, &c{failed}&7 fallite"
+
 help:
   title: "MagixLanguage"
   sections:

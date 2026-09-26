@@ -103,4 +103,16 @@ public interface MagixLanguageAPI {
      *          chi chiama ricade sul testo italiano per quelle mancanti
      */
     Map<String, String> translateRawBatch(List<String> italianTexts, String targetLanguage);
+
+    /**
+     * Il sito (MagixWeb) riporta qui, dopo ogni giro di {@code SiteTranslationWorker}, quante
+     * frasi di {@code site_translations} sono pronte/in attesa/fallite per ciascuna lingua —
+     * cosi' {@code /language status} puo' mostrarle insieme allo stato dei plugin, senza che
+     * MagixLanguage debba avere accesso diretto al database del sito (che non gli appartiene).
+     * Una chiamata sostituisce lo stato precedente per intero: non serve dichiarare a zero una
+     * lingua sparita, basta ometterla dalla mappa.
+     *
+     * @param countsByLang lingua -> {pronte, in attesa, fallite}, in quest'ordine
+     */
+    void reportSiteTranslationStatus(Map<String, int[]> countsByLang);
 }

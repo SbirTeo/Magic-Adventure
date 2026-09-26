@@ -146,6 +146,19 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
                 "translated", String.valueOf(result.keysTranslated()),
                 "reused", String.valueOf(result.keysReused()),
                 "failed", String.valueOf(result.translationFailures()));
+
+        java.util.Map<String, int[]> web = plugin.siteTranslationStatus();
+        if (!web.isEmpty()) {
+            msg.send(sender, "status-web-header");
+            for (java.util.Map.Entry<String, int[]> e : web.entrySet()) {
+                int[] c = e.getValue(); // {pronte, in attesa, fallite}
+                sender.sendMessage(msg.get("status-web-line",
+                        "lang", e.getKey(),
+                        "done", String.valueOf(c[0]),
+                        "pending", String.valueOf(c[1]),
+                        "failed", String.valueOf(c[2])));
+            }
+        }
     }
 
     private void reload(CommandSender sender) {
