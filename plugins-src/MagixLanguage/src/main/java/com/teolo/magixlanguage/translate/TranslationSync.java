@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -58,22 +60,37 @@ public final class TranslationSync {
 
     private final JavaPlugin plugin;
     private final Logger log;
-    private final DailyThrottle throttle;
+    private final TranslationPacing pacing;
 
     public TranslationSync(JavaPlugin plugin) {
         this.plugin = plugin;
         this.log = plugin.getLogger();
-        this.throttle = new DailyThrottle(plugin.getDataFolder(), log);
+        this.pacing = new TranslationPacing(plugin.getDataFolder(), log);
     }
 
     public record Result(int pluginsScanned, int keysTranslated, int keysReused, int translationFailures,
                           Map<String, PluginStats> perPlugin) {}
 
+    /** Minuti fra un giro vero e l'altro del sync dei plugin, senza blocchi (vedi {@link TranslationPacing}). */
+    public static int retryIntervalMinutes(JavaPlugin plugin) {
+        return Math.max(30, plugin.getConfig().getInt("translations.auto-translate.retry-interval-minutes", 180));
+    }
+
+    /** Pausa dopo un blocco quando MyMemory non dice da sola quanto aspettare. */
+    public static int pauseMinutes(JavaPlugin plugin) {
+        return plugin.getConfig().getInt("translations.auto-translate.pause-after-block-minutes", 120);
+    }
+
     /** Un plugin, sommato su tutte le lingue: quante chiavi ha in italiano, e come stanno le altre lingue. */
     public record PluginStats(int totalKeys, int translated, int reused, int missing) {}
 
-    /** Va chiamato fuori dal thread principale: puo' fare centinaia di chiamate di rete. */
-    public Result run() {
+    /**
+     * Va chiamato fuori dal thread principale: puo' fare centinaia di chiamate di rete.
+     *
+     * @param ignorePacing "/language sync force": chiama MyMemory anche durante una pausa dopo un
+     *                     blocco o prima che sia passato l'intervallo fra un giro e l'altro
+     */
+    public Result run(boolean ignorePacing) {
         List<String> pluginNames = plugin.getConfig().getStringList("translations.plugins");
         List<String> fileNames = plugin.getConfig().getStringList("translations.files");
         List<String> targetLanguages = new ArrayList<>(plugin.getConfig().getStringList("supported-languages"));
@@ -85,21 +102,19 @@ public final class TranslationSync {
         String contactEmail = plugin.getConfig().getString("translations.auto-translate.contact-email", "");
         Translator translator = autoTranslateEnabled ? new Translator(timeoutMs, log, contactEmail) : null;
 
-        // Un solo tentativo di traduzione al giorno, a prescindere da quanti riavvii o /language
-        // sync capitano nel frattempo, E condiviso con la traduzione del sito (MagixWeb chiama
-        // MagixLanguageAPI.translateRawBatch ogni 30 secondi H24, vedi DailyThrottle): MyMemory
-        // non ha solo una quota giornaliera di parole, ha anche un limite di frequenza (HTTP 429)
-        // che un IP puo' far scattare ripetendo il tentativo troppo spesso, e quel blocco puo'
-        // restare attivo ben oltre un giorno. Lo specchio it.yml e le chiavi gia' in cache
-        // continuano comunque a funzionare: solo le chiamate di rete vere e proprie si fermano
-        // finche' non cambia la data.
-        boolean throttledToday = false;
+        // Lo specchio it.yml e le chiavi gia' in cache si aggiornano a ogni giro; le chiamate vere
+        // a MyMemory solo quando TranslationPacing lo consente (pausa dopo un blocco finita,
+        // intervallo passato), perche' ogni riavvio non consumi quota da capo.
+        Instant waitUntil = null;
         if (translator != null) {
-            if (throttle.alreadyUsedToday()) {
+            if (ignorePacing) {
+                pacing.clear();
+            }
+            waitUntil = pacing.nextPluginAttempt(retryIntervalMinutes(plugin));
+            if (waitUntil != null) {
                 translator.forceUnavailable();
-                throttledToday = true;
             } else {
-                throttle.markUsedToday();
+                pacing.markPluginAttempt();
             }
         }
 
@@ -147,20 +162,19 @@ public final class TranslationSync {
                     + targetLanguages.size() + " lingue).");
         }
 
+        if (translator != null && waitUntil == null) {
+            pacing.recordOutcome(translator, pauseMinutes(plugin));
+        }
+
         int failureTotal = writeFailureReports(translationsRoot, failures);
         log.info("MagixLanguage: sincronizzazione completata (" + scanned + " plugin, " + totals.translated
                 + " chiavi tradotte, " + totals.reused + " gia' in cache, " + failureTotal + " fallite)."
-                + (throttledToday ? " Tentativo di traduzione di oggi gia' usato: nessuna nuova chiamata"
-                    + " a MyMemory fino a domani (o a un /language sync di un altro giorno)." : ""));
+                + (waitUntil != null && failureTotal > 0
+                    ? " Nessuna chiamata a MyMemory in questo giro: la prossima fra "
+                        + TranslationPacing.formatWait(Duration.between(Instant.now(), waitUntil))
+                        + ", da sola (o subito con /language sync force)."
+                    : ""));
         return new Result(scanned, totals.translated, totals.reused, failureTotal, perPlugin);
-    }
-
-    /** Cancella il segna-tentativo di oggi: il prossimo {@link #run()} prova MyMemory anche se oggi
-     *  e' gia' stato tentato (anche dalla traduzione del sito: vedi {@link DailyThrottle}). Usato
-     *  da "/language sync force", per verificare a mano se un blocco (HTTP 429) si e' liberato
-     *  senza aspettare la mezzanotte. */
-    public void forceNextAttempt() {
-        throttle.reset();
     }
 
     private static final class Counters {

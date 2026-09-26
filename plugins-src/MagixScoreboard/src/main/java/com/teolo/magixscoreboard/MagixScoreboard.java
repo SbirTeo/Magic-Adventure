@@ -106,10 +106,12 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                                 + "mondo, che batte un confronto su placeholder. /mscoreboard debug <giocatore> "
                                 + "mostra il punteggio di ognuna, utile quando il risultato non torna.",
                         "Le condizioni sui placeholder (chiave \"placeholders\") sono nella forma "
-                                + "\"%placeholder% OP valore\" (OP fra >= <= == != > <), TUTTE richieste se ce ne "
-                                + "sono piu' di una — es. \"%magixfactions_faction% != \" mostra una scoreboard "
-                                + "solo a chi ha una fazione. Con due lati numerici il confronto e' numerico, "
-                                + "altrimenti testuale (senza distinguere maiuscole/minuscole).")
+                                + "\"%placeholder% OP valore\" (OP fra >= <= == != > <) — es. "
+                                + "\"%magixfactions_faction% != \" mostra una scoreboard solo a chi ha una "
+                                + "fazione. Con due lati numerici il confronto e' numerico, altrimenti testuale "
+                                + "(senza distinguere maiuscole/minuscole). Con piu' di una condizione, "
+                                + "\"placeholders-mode\" decide se servono TUTTE (all, il default) o ne basta UNA "
+                                + "(any).")
 
                 .section("Titolo, righe, animazioni",
                         "Titolo e ogni riga hanno una lista di \"frames\" (uno o piu' testi) e un "

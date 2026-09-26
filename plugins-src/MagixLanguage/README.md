@@ -49,6 +49,18 @@ esaurita) restano temporaneamente in italiano e finiscono in
 `translations/TRANSLATION-FAILED-<lingua>.txt`, rigenerato ad ogni sincronizzazione: si riprova da
 sola al giro successivo, senza bisogno di intervenire.
 
+**Quando si richiama MyMemory.** Due regole, condivise fra i plugin e il sito e salvate in
+`translation-pacing.properties` perche' un riavvio non le azzeri:
+1. dopo un **blocco** (tre richieste rifiutate di fila, di solito la quota del giorno finita) nessuno
+   richiama MyMemory fino alla fine della pausa — quella che indica MyMemory stessa nella risposta,
+   altrimenti `pause-after-block-minutes` — e poi si riprende **da soli**, senza aspettare un riavvio;
+2. senza blocchi, le chiavi dei plugin rimaste in italiano si riprovano al massimo ogni
+   `retry-interval-minutes`, riavvii compresi (ogni tentativo consuma quota).
+
+`/language status` dice fra quanto si riprova; `/language sync force` ignora entrambe le regole e
+riprova subito. Prima c'era un solo tentativo al giorno: se capitava mentre MyMemory era ancora
+bloccato (al riavvio notturno), la giornata andava persa a zero chiavi tradotte.
+
 **Il testo dei MENU (MagixMenus).** `messages.yml` copre i comandi di un plugin, ma i menu vivono
 in file YAML liberi (`plugins/MagixMenus/menus/*.yml`) senza chiavi stabili: il nome di un item e'
 un identificatore tecnico, non una frase. Per questo il testo dei menu si traduce per **FRASE**
@@ -81,6 +93,7 @@ Comando principale: `/magixlanguage` — alias: `/language`, `/lang`.
 | `/language set <it\|en\|es\|de>` | Cambia la propria lingua | `magixlanguage.use` |
 | `/language set <it\|en\|es\|de> <giocatore>` | Cambia la lingua di un altro giocatore | `magixlanguage.admin` |
 | `/language sync` | Ricopia i messaggi degli altri plugin da tradurre | `magixlanguage.admin` |
+| `/language sync force` | Come sopra, ma riprova subito su MyMemory anche durante una pausa dopo un blocco | `magixlanguage.admin` |
 | `/language status` | Quante chiavi sono tradotte/in cache/mancanti, plugin per plugin (ultima sincronizzazione) | `magixlanguage.admin` |
 | `/language reload` | Ricarica `config.yml` e `messages.yml` a caldo | `magixlanguage.admin` |
 | `/language help` | Elenco dei comandi | `magixlanguage.use` |
@@ -100,7 +113,8 @@ Tutto in `config.yml`: `default-language`, `supported-languages`, la sezione `ge
 usato, timeout, durata della cache) e la mappa `country-language` (paese ISO 3166-1 alpha-2 ->
 lingua). La sezione `translations` elenca i plugin da scandire (`translations.plugins`) e i nomi
 dei file da cercare nella loro cartella dati (`translations.files`, di serie solo `messages.yml`),
-oltre a `translations.auto-translate` (`enabled`, `timeout-ms`, `delay-ms`, `contact-email`).
+oltre a `translations.auto-translate` (`enabled`, `timeout-ms`, `delay-ms`, `contact-email`,
+`pause-after-block-minutes`, `retry-interval-minutes`).
 
 I testi mostrati ai giocatori (`/language ...`) sono in `messages.yml`, come in ogni plugin Magix.
 

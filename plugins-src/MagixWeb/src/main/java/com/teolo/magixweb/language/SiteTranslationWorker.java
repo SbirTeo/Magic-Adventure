@@ -71,6 +71,33 @@ public final class SiteTranslationWorker {
                 }
             }
         }
+        reportStatus(api);
+    }
+
+    /** Riporta a MagixLanguage quante frasi sono pronte/in attesa/fallite per lingua, per
+     *  /language status — indipendentemente da quante ne ha smaltite questo giro. */
+    private void reportStatus(MagixLanguageAPI api) {
+        Map<String, int[]> counts = new LinkedHashMap<>();
+        try (Connection c = database.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT lang, status, COUNT(*) AS n FROM site_translations GROUP BY lang, status")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int[] byStatus = counts.computeIfAbsent(rs.getString("lang"), k -> new int[3]);
+                    int n = rs.getInt("n");
+                    switch (rs.getString("status")) {
+                        case "done" -> byStatus[0] = n;
+                        case "pending" -> byStatus[1] = n;
+                        case "failed" -> byStatus[2] = n;
+                        default -> { }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("MagixWeb: impossibile leggere lo stato delle traduzioni del sito (" + e.getMessage() + ").");
+            return;
+        }
+        api.reportSiteTranslationStatus(counts);
     }
 
     private static MagixLanguageAPI magixLanguage() {

@@ -19,7 +19,9 @@ giocatore col permesso di tre scoreboard diverse vede quella col peso maggiore.
 **Condizioni sui placeholder.** Oltre a permesso/mondo/regione, una scoreboard puo' richiedere
 che un placeholder di PlaceholderAPI soddisfi un confronto (`%placeholder% OP valore`, con
 `OP` fra `>= <= == != > <`) — es. mostrarla solo a chi ha una fazione (MagixFactions) o a chi ha
-un livello minimo. Copre qualunque placeholder, non solo quelli dei plugin Magix.
+un livello minimo. Copre qualunque placeholder, non solo quelli dei plugin Magix. Con piu' di
+una condizione, `placeholders-mode` decide se servono TUTTE (`all`, il default) o ne basta UNA
+(`any`).
 
 **Spareggio configurabile.** A parita' di peso decide `priority-order` nel config: un elenco che
 dice quale TIPO di condizione conta di piu' (`region`, `permission`, `world`, `placeholder`). Di
@@ -52,9 +54,9 @@ Alias: `/msb`.
 ## Configurazione
 
 Tutto in `config.yml`, sotto `scoreboards:`. Vedi i commenti nel file per lo schema completo
-(`weight`, `permission`, `worlds`, `regions`, `placeholders`, `title`, `lines`, `interval-ticks`,
-`frames`) e cinque scoreboard di esempio gia' pronte (`default`, `vip`, `spawn`, `faction`,
-`no-faction`).
+(`weight`, `permission`, `worlds`, `regions`, `placeholders`, `placeholders-mode`, `title`,
+`lines`, `interval-ticks`, `frames`) e cinque scoreboard di esempio gia' pronte (`default`,
+`vip`, `spawn`, `faction`, `no-faction`).
 
 La guida generata dal plugin (`plugins/MagixScoreboard/guida-staff.html`, anche nel gestionale
 del sito) elenca TUTTE le chiavi in uso col valore reale: e' la fonte piu' aggiornata.

@@ -13,6 +13,11 @@ const LANGUAGE_COOKIE = 'ma_lingua';
  * cookie), poi il cookie da una scelta precedente, poi — solo se non ha mai scelto lui stesso —
  * la lingua di gioco di chi e' collegato, poi il browser, infine l'italiano.
  *
+ * ?lingua=auto cancella la scelta esplicita (sessione + cookie) invece di impostarla, cosi' chi
+ * l'aveva fissata a mano puo' tornare a seguire la lingua di gioco (o il browser) senza dover
+ * cancellare il cookie a mano dalle impostazioni del browser: vedi il link "Automatica" nel
+ * selettore, header.php.
+ *
  * La gestionale (manage.php) resta SEMPRE in italiano: e' per lo staff, che scrive e legge le
  * guide in italiano indipendentemente da dove si trovi chi la apre.
  */
@@ -26,7 +31,18 @@ function site_language(): string {
     }
 
     $scelta = $_GET['lingua'] ?? null;
-    if (is_string($scelta) && in_array($scelta, SITE_LANGUAGES, true)) {
+    if ($scelta === 'auto') {
+        unset($_SESSION['lingua_sito']);
+        setcookie(LANGUAGE_COOKIE, '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https',
+            'httponly' => false,
+            'samesite' => 'Lax',
+        ]);
+        $scelta = null; // da qui in poi come se non ci fosse mai stata una scelta esplicita
+    } elseif (is_string($scelta) && in_array($scelta, SITE_LANGUAGES, true)) {
         $_SESSION['lingua_sito'] = $scelta;
         setcookie(LANGUAGE_COOKIE, $scelta, [
             'expires' => time() + 365 * 24 * 3600,
@@ -36,18 +52,22 @@ function site_language(): string {
             'httponly' => false, // il selettore in pagina la legge per evidenziare la scelta attuale
             'samesite' => 'Lax',
         ]);
+        $GLOBALS['__siteLangManual'] = true;
         return $risolta = $scelta;
     }
 
     if (is_string($_SESSION['lingua_sito'] ?? null) && in_array($_SESSION['lingua_sito'], SITE_LANGUAGES, true)) {
+        $GLOBALS['__siteLangManual'] = true;
         return $risolta = $_SESSION['lingua_sito'];
     }
 
     $cookie = $_COOKIE[LANGUAGE_COOKIE] ?? null;
     if (is_string($cookie) && in_array($cookie, SITE_LANGUAGES, true)) {
+        $GLOBALS['__siteLangManual'] = true;
         return $risolta = $cookie;
     }
 
+    $GLOBALS['__siteLangManual'] = false;
     $utente = current_user();
     if ($utente !== null && !empty($utente['language']) && in_array($utente['language'], SITE_LANGUAGES, true)) {
         return $risolta = $utente['language'];
@@ -97,6 +117,19 @@ function language_flag_svg(string $lang): string {
     ];
     $contenuto = $bandiere[$lang] ?? $bandiere['it'];
     return '<svg viewBox="0 0 24 16" class="bandiera-lingua" aria-hidden="true">' . $contenuto . '</svg>';
+}
+
+/**
+ * Icona per l'opzione "Automatica" del selettore: stesso riquadro (24x16) delle bandiere, per
+ * allinearsi nel menu, ma un piccolo orologio invece di una bandiera — segue la lingua di gioco
+ * (o il browser, per chi non gioca) invece di restare fissa su una scelta.
+ */
+function language_auto_icon_svg(): string {
+    return '<svg viewBox="0 0 24 16" class="bandiera-lingua" aria-hidden="true">'
+        . '<circle cx="12" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+        . '<path d="M12 8 L12 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+        . '<path d="M12 8 L15 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+        . '</svg>';
 }
 
 function browser_language(): ?string {

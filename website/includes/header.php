@@ -528,6 +528,12 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
             <?= language_flag_svg($__lang) ?>
           </a>
         <?php endforeach; ?>
+        <?php if ($GLOBALS['__siteLangManual'] ?? false): ?>
+          <a href="<?= h(language_switch_url('auto')) ?>" title="Automatica (segui il gioco)"
+             aria-label="Automatica (segui il gioco)">
+            <?= language_auto_icon_svg() ?>
+          </a>
+        <?php endif; ?>
       </div>
     </div>
     <div class="auth-box">
@@ -557,6 +563,15 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
               <?= h($__nomeLingua[$__lang]) ?>
             </a>
           <?php endforeach; ?>
+          <?php // "Automatica": cancella una scelta fatta a mano in precedenza e torna a seguire
+                // la lingua di gioco (o il browser). Visibile solo quando c'e' davvero una scelta
+                // manuale da togliere: altrimenti non farebbe nulla di diverso da quella attiva. ?>
+          <?php if ($GLOBALS['__siteLangManual'] ?? false): ?>
+            <a href="<?= h(language_switch_url('auto')) ?>" title="Segui la lingua scelta in gioco">
+              <?= language_auto_icon_svg() ?>
+              Automatica
+            </a>
+          <?php endif; ?>
         </div>
       </details>
       <?php if ($__u): ?>

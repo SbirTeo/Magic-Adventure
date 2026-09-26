@@ -91,6 +91,7 @@ public final class BoardManager {
         Set<String> worlds = lowercaseSet(section.getStringList("worlds"));
         Set<String> regions = lowercaseSet(section.getStringList("regions"));
         List<String> placeholders = section.getStringList("placeholders");
+        boolean placeholdersMatchAny = section.getString("placeholders-mode", "all").equalsIgnoreCase("any");
         BoardLine title = readLine(section.getConfigurationSection("title"));
         List<BoardLine> lines = new ArrayList<>();
         List<?> raw = section.getList("lines");
@@ -99,7 +100,8 @@ public final class BoardManager {
                 if (o instanceof Map<?, ?> m) lines.add(readLine(m));
             }
         }
-        return new BoardDefinition(id, sectionEnabled, weight, permission, worlds, regions, placeholders, title, lines);
+        return new BoardDefinition(id, sectionEnabled, weight, permission, worlds, regions, placeholders,
+                placeholdersMatchAny, title, lines);
     }
 
     private static BoardLine readLine(ConfigurationSection section) {
