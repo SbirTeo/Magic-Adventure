@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixCosmetics</artifactId>
-    <version>0.1.8</version>
+    <version>0.1.12</version>
     <packaging>jar</packaging>
 
     <name>MagixCosmetics</name>
@@ -23,6 +23,12 @@
         <repository>
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <!-- API di LuckPerms: serve SOLO per leggere i permessi dei giocatori OFFLINE (l'aureola
+             sulla loro statua), vedi hook/LuckPermsHook. -->
+        <repository>
+            <id>luckperms-repo</id>
+            <url>https://repo.lucko.me/</url>
         </repository>
     </repositories>
 
@@ -41,7 +47,14 @@
         <dependency>
             <groupId>com.teolo</groupId>
             <artifactId>MagixLanguage</artifactId>
-            <version>0.4.4</version>
+            <version>0.4.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- provided: il jar di LuckPerms e' gia' sul server (softdepend), non va impacchettato -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.4</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

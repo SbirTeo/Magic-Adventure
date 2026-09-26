@@ -2,6 +2,7 @@ package com.teolo.magixentities.command;
 
 import com.teolo.magixentities.util.ConfigAlign;
 import com.teolo.magixentities.lang.Messages;
+import com.teolo.magixentities.manage.EditorMenu;
 import com.teolo.magixentities.manage.EquipMenu;
 import com.teolo.magixentities.manage.MirrorManager;
 import com.teolo.magixentities.manage.NpcManager;
@@ -32,22 +33,34 @@ public final class MeCommand implements TabExecutor {
 
     private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_-]{1,32}");
     private static final List<String> SUBS = List.of(
-            "create", "remove", "list", "info", "tp", "here", "name", "displayname",
-            "type", "skin", "pose", "set", "equip", "cmd", "respawn", "reload", "help");
+            "create", "remove", "list", "info", "editor", "tp", "here", "position", "name", "displayname",
+            "type", "skin", "pose", "scale", "set", "followradius", "equip", "cmd", "respawn", "reload", "help");
     private static final int PAGE_SIZE = 8;
+    private static final List<String> AXES = List.of("x", "y", "z");
+    /** Spostamento massimo per /mentities position, in blocchi. */
+    private static final double MAX_NUDGE = 16;
+    /**
+     * Limiti del raggio del follow per entita', in blocchi. Il tetto conta: col follow ogni giocatore
+     * nel raggio ha una sua copia dell'entita', e oltre la distanza a cui il client vede le entita'
+     * una copia non servirebbe a niente.
+     */
+    public static final double MIN_FOLLOW_RADIUS = 1;
+    public static final double MAX_FOLLOW_RADIUS = 64;
 
     private final JavaPlugin plugin;
     private final NpcManager npcs;
     private final MirrorManager mirror;
     private final EquipMenu equipMenu;
+    private final EditorMenu editorMenu;
     private final Messages M;
 
     public MeCommand(JavaPlugin plugin, NpcManager npcs, MirrorManager mirror,
-                     EquipMenu equipMenu, Messages messages) {
+                     EquipMenu equipMenu, EditorMenu editorMenu, Messages messages) {
         this.plugin = plugin;
         this.npcs = npcs;
         this.mirror = mirror;
         this.equipMenu = equipMenu;
+        this.editorMenu = editorMenu;
         this.M = messages;
     }
 
@@ -75,11 +88,15 @@ public final class MeCommand implements TabExecutor {
             case "info" -> info(sender, args);
             case "tp", "teleport" -> tp(sender, args);
             case "here", "move" -> here(sender, args);
+            case "position", "pos" -> position(sender, args);
+            case "editor", "gui" -> editor(sender, args);
             case "name", "rename" -> rename(sender, args);
             case "displayname", "display" -> displayname(sender, args);
             case "type", "tipo" -> type(sender, args);
             case "skin" -> skin(sender, args);
             case "pose" -> pose(sender, args);
+            case "scale" -> scale(sender, args);
+            case "followradius", "fradius" -> followRadius(sender, args);
             case "set", "toggle" -> set(sender, args);
             case "equip", "equipaggia" -> equip(sender, args);
             case "cmd", "command", "comandi" -> commands(sender, args);
@@ -216,6 +233,12 @@ public final class MeCommand implements TabExecutor {
             line(sender, "skin", d.isSkinMirror() ? M.get("info-mirror-skin", "clones", clones) : d.skinNick());
             line(sender, "posa", d.pose == null ? "standing" : d.pose.toLowerCase(Locale.ROOT));
         }
+        if (d.scale != 1.0) line(sender, M.forPlayer(sender, "info-key-scale"), trim(d.scale));
+        if (d.opt("follow", false) || d.followRadius != null) {
+            double def = plugin.getConfig().getDouble("follow.radius", 12.0);
+            line(sender, M.forPlayer(sender, "info-key-follow-radius"), trim(d.followRadiusOr(def))
+                    + (d.followRadius == null ? " " + M.forPlayer(sender, "info-from-config") : ""));
+        }
         line(sender, "posizione", d.world + " &8· &f" + Math.round(d.x) + " " + Math.round(d.y) + " " + Math.round(d.z));
         line(sender, "stato", status(d));
         StringBuilder opts = new StringBuilder();
@@ -242,8 +265,11 @@ public final class MeCommand implements TabExecutor {
         // Rimozione: solo suggerita, cosi' serve un invio consapevole.
         Component remove = M.component("info-actions-remove")
                 .clickEvent(ClickEvent.suggestCommand("/mentities remove " + d.name));
+        Component editor = M.component("info-actions-editor")
+                .clickEvent(ClickEvent.runCommand("/mentities editor " + d.name));
         Component sep = Colors.component(" &8· ");
-        return Colors.component(" &8└ ").append(tp).append(sep).append(here).append(sep).append(remove);
+        return Colors.component(" &8└ ").append(editor).append(sep).append(tp).append(sep)
+                .append(here).append(sep).append(remove);
     }
 
     private void line(CommandSender to, String key, String value) {
@@ -273,13 +299,69 @@ public final class MeCommand implements TabExecutor {
         }
         NpcDef d = require(sender, args, "usage-here");
         if (d == null) return;
-        mirror.clear(d);
-        npcs.despawn(d);
-        d.setLocation(p.getLocation());
-        npcs.ensure(d);
-        npcs.save();
+        npcs.relocate(d, p.getLocation());
         M.send(sender, "moved", "name", d.name);
         warnIfRefused(sender, d);
+    }
+
+    /**
+     * /mentities position &lt;nome&gt; &lt;x|y|z&gt; &lt;blocchi&gt; - sposta l'entita' di pochi blocchi
+     * su un asse, tenendo la rotazione. E' anche quello che usa la sezione Posizione dell'editor.
+     */
+    private void position(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            M.send(sender, "usage-position");
+            return;
+        }
+        NpcDef d = npcs.get(args[1]);
+        if (d == null) {
+            M.send(sender, "not-found", "name", args[1]);
+            return;
+        }
+        String axis = args[2].toLowerCase(Locale.ROOT);
+        double delta;
+        try {
+            delta = Double.parseDouble(args[3].replace(',', '.'));
+        } catch (NumberFormatException ex) {
+            delta = Double.NaN;
+        }
+        // Il tetto evita che un errore di battitura (100 invece di 1.0) spedisca l'entita' lontano:
+        // per gli spostamenti grandi c'e' /mentities here.
+        if (!AXES.contains(axis) || Double.isNaN(delta) || delta == 0 || Math.abs(delta) > MAX_NUDGE) {
+            M.send(sender, "position-invalid", "max", trim(MAX_NUDGE));
+            return;
+        }
+        Location loc = d.location();
+        if (loc == null) {
+            M.send(sender, "world-missing", "world", d.world);
+            return;
+        }
+        switch (axis) {
+            case "x" -> loc.add(delta, 0, 0);
+            case "y" -> loc.add(0, delta, 0);
+            default -> loc.add(0, 0, delta);
+        }
+        npcs.relocate(d, loc);
+        M.send(sender, "position-set", "name", d.name, "axis", axis.toUpperCase(Locale.ROOT),
+                "delta", (delta > 0 ? "+" : "") + trim(delta),
+                "x", coord(d.x), "y", coord(d.y), "z", coord(d.z));
+        warnIfRefused(sender, d);
+    }
+
+    /** Coordinata con due decimali: gli spostamenti fini si vedono, i numeri lunghi no. */
+    public static String coord(double v) {
+        return String.format(Locale.ROOT, "%.2f", v);
+    }
+
+    /** /mentities editor &lt;nome&gt; - il pannello con tutti i comandi dell'entita'. */
+    private void editor(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player p)) {
+            M.send(sender, "players-only");
+            return;
+        }
+        NpcDef d = require(sender, args, "usage-editor");
+        if (d == null) return;
+        editorMenu.open(p, d);
     }
 
     /** Rinomina l'entita' in se'. Per il tipo player la skin segue il nome (salvo skin esplicita). */
@@ -340,12 +422,12 @@ public final class MeCommand implements TabExecutor {
             return;
         }
         boolean reset = text.equalsIgnoreCase("reset");
-        boolean hadClones = d.needsClones();
+        boolean wasHidden = d.hidesReal();
         d.display = reset ? null : text;
         mirror.clear(d);
         // Entrare/uscire dalla modalita' specchio cambia la visibilita' dell'entita' vera:
         // nasconderla a caldo non la toglie a chi la sta gia' vedendo, quindi la ricreiamo.
-        if (hadClones != d.needsClones() && d.chunkLoaded()) npcs.spawn(d);
+        if (wasHidden != d.hidesReal() && d.chunkLoaded()) npcs.spawn(d);
         else applyLive(sender, d);
         npcs.save();
         if (d.isDisplayMirror()) M.send(sender, "display-mirror", "name", d.name);
@@ -414,13 +496,13 @@ public final class MeCommand implements TabExecutor {
             M.send(sender, "skin-not-player", "name", d.name);
             return;
         }
-        boolean hadClones = d.needsClones();
+        boolean wasHidden = d.hidesReal();
         d.skin = value;
         // La skin nuova va richiesta subito, anche se quella vecchia era gia' stata bocciata.
         npcs.forgetSkins();
         // Le copie mirror vanno buttate: o non servono piu', o vanno rifatte sulla nuova entita'.
         mirror.clear(d);
-        if (hadClones != d.needsClones() && d.chunkLoaded()) {
+        if (wasHidden != d.hidesReal() && d.chunkLoaded()) {
             // Entrando/uscendo da mirror cambia la visibilita' dell'entita' vera: nasconderla al
             // volo non la toglie a chi la sta gia' vedendo, quindi la ricreiamo da zero.
             npcs.spawn(d);
@@ -455,6 +537,92 @@ public final class MeCommand implements TabExecutor {
         applyLive(sender, d);
         npcs.save();
         M.send(sender, "pose-set", "name", d.name, "pose", pose);
+    }
+
+    /**
+     * /mentities scale &lt;nome&gt; &lt;valore|reset&gt; - ingrandisce/rimpicciolisce l'entita'
+     * (1 = normale). Vale per qualunque tipo, non solo per il tipo player: usa l'attributo
+     * vanilla "scale", che ridimensiona l'intera entita' skin compresa.
+     */
+    private void scale(CommandSender sender, String[] args) {
+        double min = plugin.getConfig().getDouble("scale.min", 0.0625);
+        double max = plugin.getConfig().getDouble("scale.max", 10.0);
+        if (args.length < 3) {
+            M.send(sender, "usage-scale", "min", trim(min), "max", trim(max));
+            return;
+        }
+        NpcDef d = npcs.get(args[1]);
+        if (d == null) {
+            M.send(sender, "not-found", "name", args[1]);
+            return;
+        }
+        String raw = args[2].toLowerCase(Locale.ROOT);
+        double value;
+        if (raw.equals("reset")) {
+            value = 1.0;
+        } else {
+            try {
+                value = Double.parseDouble(raw.replace(',', '.'));
+            } catch (NumberFormatException ex) {
+                M.send(sender, "scale-invalid", "min", trim(min), "max", trim(max));
+                return;
+            }
+        }
+        if (value < min || value > max) {
+            M.send(sender, "scale-invalid", "min", trim(min), "max", trim(max));
+            return;
+        }
+        d.scale = value;
+        applyLive(sender, d);
+        npcs.save();
+        M.send(sender, "scale-set", "name", d.name, "scale", trim(value));
+    }
+
+    /**
+     * /mentities followradius &lt;nome&gt; &lt;blocchi|reset&gt; - il raggio del follow di questa entita':
+     * entro quel raggio ognuno la vede girata verso di se'. "reset" torna a follow.radius del config.
+     */
+    private void followRadius(CommandSender sender, String[] args) {
+        double def = plugin.getConfig().getDouble("follow.radius", 12.0);
+        String[] limits = {"min", trim(MIN_FOLLOW_RADIUS), "max", trim(MAX_FOLLOW_RADIUS), "default", trim(def)};
+        if (args.length < 3) {
+            M.send(sender, "usage-followradius", limits);
+            return;
+        }
+        NpcDef d = npcs.get(args[1]);
+        if (d == null) {
+            M.send(sender, "not-found", "name", args[1]);
+            return;
+        }
+        String raw = args[2].toLowerCase(Locale.ROOT);
+        if (raw.equals("reset")) {
+            d.followRadius = null;
+        } else {
+            double v;
+            try {
+                v = Double.parseDouble(raw.replace(',', '.'));
+            } catch (NumberFormatException ex) {
+                v = Double.NaN;
+            }
+            if (Double.isNaN(v) || v < MIN_FOLLOW_RADIUS || v > MAX_FOLLOW_RADIUS) {
+                M.send(sender, "followradius-invalid", limits);
+                return;
+            }
+            d.followRadius = v;
+        }
+        // Niente da rifare a mano: al prossimo giro le copie si creano/tolgono col raggio nuovo.
+        npcs.save();
+        if (d.followRadius == null) {
+            M.send(sender, "followradius-reset", "name", d.name, "radius", trim(def));
+        } else {
+            M.send(sender, "followradius-set", "name", d.name, "radius", trim(d.followRadius));
+        }
+        if (!d.opt("follow", false)) M.send(sender, "followradius-off-hint", "name", d.name);
+    }
+
+    /** Un numero senza zeri decimali inutili (2.0 -> "2", 1.5 resta "1.5"). */
+    private static String trim(double v) {
+        return v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v);
     }
 
     private void set(CommandSender sender, String[] args) {
@@ -677,6 +845,9 @@ public final class MeCommand implements TabExecutor {
                 case "skin" -> filter(skinSuggestions(), args[2]);
                 case "displayname", "display" -> filter(List.of(NpcDef.MIRROR, "reset", "off", "on"), args[2]);
                 case "pose" -> filter(npcs.validPoses(), args[2]);
+                case "scale" -> filter(List.of("0.5", "1", "2", "4", "8", "reset"), args[2]);
+                case "position", "pos" -> filter(AXES, args[2]);
+                case "followradius", "fradius" -> filter(List.of("6", "12", "24", "32", "reset"), args[2]);
                 case "set", "toggle" -> filter(NpcDef.OPTIONS, args[2]);
                 case "cmd", "command", "comandi" -> filter(List.of("add", "list", "remove", "clear"), args[2]);
                 default -> List.of();
@@ -684,6 +855,9 @@ public final class MeCommand implements TabExecutor {
         }
         if (args.length == 4 && (sub.equals("set") || sub.equals("toggle"))) {
             return filter(List.of("on", "off"), args[3]);
+        }
+        if (args.length == 4 && (sub.equals("position") || sub.equals("pos"))) {
+            return filter(List.of("0.1", "0.5", "1", "-0.1", "-0.5", "-1"), args[3]);
         }
         return List.of();
     }

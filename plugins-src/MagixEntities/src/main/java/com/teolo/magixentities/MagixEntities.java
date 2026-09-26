@@ -6,6 +6,7 @@ import com.teolo.magixentities.hook.MagixCosmeticsHook;
 import com.teolo.magixentities.lang.Messages;
 import com.teolo.magixentities.listener.NpcListener;
 import com.teolo.magixentities.manage.ActionRunner;
+import com.teolo.magixentities.manage.EditorMenu;
 import com.teolo.magixentities.manage.EquipMenu;
 import com.teolo.magixentities.manage.LookManager;
 import com.teolo.magixentities.manage.MirrorManager;
@@ -62,10 +63,12 @@ public final class MagixEntities extends JavaPlugin {
 
         ActionRunner actions = new ActionRunner(this);
         EquipMenu equipMenu = new EquipMenu(this, npcs, mirror, messages);
+        EditorMenu editorMenu = new EditorMenu(this, npcs, messages);
         PluginCommand cmd = getCommand("magixentities");
-        if (cmd != null) cmd.setExecutor(new MeCommand(this, npcs, mirror, equipMenu, messages));
+        if (cmd != null) cmd.setExecutor(new MeCommand(this, npcs, mirror, equipMenu, editorMenu, messages));
         getServer().getPluginManager().registerEvents(new NpcListener(this, npcs, mirror, actions), this);
         getServer().getPluginManager().registerEvents(equipMenu, this);
+        getServer().getPluginManager().registerEvents(editorMenu, this);
 
         // Primo controllo al tick successivo: i chunk di spawn sono gia' caricati e
         // gli altri plugin hanno finito di avviarsi.
@@ -142,15 +145,22 @@ public final class MagixEntities extends JavaPlugin {
                                 + "PROPRIA skin; con `/mentities displayname <nome> mirror` (qualsiasi tipo) ognuno "
                                 + "vede il PROPRIO nome sopra la testa. Tecnicamente l'entità vera resta nascosta e per "
                                 + "ogni giocatore vicino ne nasce una copia personalizzata, visibile solo a lui.",
-                        "Se il plugin MagixCosmetics è installato e abilitato, la copia a specchio skin di un VIP "
-                                + "riproduce sopra la testa anche la sua stessa aureola colorata — ma solo se in quel "
-                                + "momento lui ce l'ha davvero attiva (permesso, colore scelto, non spenta, non in "
-                                + "combattimento). Senza MagixCosmetics non succede nulla, senza bisogno di configurare "
-                                + "niente in più.")
+                        "Se il plugin MagixCosmetics è installato e abilitato, le statue mostrano l'aureola VIP. "
+                                + "Con una skin fissa è quella del giocatore della skin, nel suo colore, per tutti e "
+                                + "anche se è offline (conta /halo off, non il combattimento). Con la skin a specchio è "
+                                + "quella di chi guarda, visibile solo a lui, e solo se in quel momento ce l'ha davvero "
+                                + "attiva. Su una statua ingrandita cresce con lei. Senza MagixCosmetics non succede "
+                                + "nulla, senza bisogno di configurare niente in più.")
 
                 .section("Aspetto, equipaggiamento e sguardo",
                         "Nome visibile, equipaggiamento e posa si cambiano dai comandi o dal menu in gioco, senza "
                                 + "toccare il file.",
+                        "`/mentities editor <nome>` apre un pannello con tutti i comandi dell'entità: i pulsanti "
+                                + "eseguono i comandi normali (stessi permessi e conferme in chat), quelli che "
+                                + "richiedono un testo lo propongono in chat, e la rimozione non parte mai al clic. "
+                                + "La sezione Posizione sposta l'entità su X, Y e Z con un passo da 0.05 a 1 blocco "
+                                + "(è `/mentities position <nome> <x|y|z> <blocchi>`, usabile anche da chat). Con "
+                                + "gravity on un'entità sollevata ricade: una statua seduta invece resta sul sedile.",
                         "Il nome sopra la testa si può anche nascondere del tutto senza perdere il testo scelto: "
                                 + "`/mentities displayname <nome> off` lo spegne, `... on` lo riaccende — stessa "
                                 + "opzione di `/mentities set <nome> nametag`, solo più comoda da qui. Toglie "
@@ -161,7 +171,26 @@ public final class MagixEntities extends JavaPlugin {
                                 + "client disegna da solo mirandola da vicino, indipendente dal nome sopra la "
                                 + "testa: si toglie il nome dal profilo stesso, non solo dal cartello.",
                         "Le entità possono seguire con lo sguardo chi passa: è quello che le fa sembrare vive. "
-                                + "Si accende per singola entità.")
+                                + "Si accende per singola entità, e ognuno la vede girata verso di sé, non verso il "
+                                + "giocatore più vicino: ogni giocatore entro mirror.radius ha una sua copia "
+                                + "personale, che lo guarda quando è entro il raggio del follow. La copia nasce così "
+                                + "lontano apposta: il cambio fra entità vera e copia, fatto da vicino, sembrava una "
+                                + "statua che si ricrea. Oltre mirror.radius si vede l'entità vera, ferma. Il raggio "
+                                + "si può dare per singola entità con `/mentities followradius <nome> <blocchi>` "
+                                + "(`reset` torna a follow.radius), o dal cannocchiale nell'editor.",
+                        "La scala si cambia con `/mentities scale <nome> <valore>` (1 = normale, `reset` torna a "
+                                + "1): usa l'attributo vanilla dell'entità, quindi ingrandisce o rimpicciolisce tutto "
+                                + "— skin, equipaggiamento, hitbox — insieme. Vale per qualunque tipo, non solo per "
+                                + "il tipo player: è così che si fa una statua gigante con la skin di un giocatore "
+                                + "che segue con lo sguardo, combinando `scale` con `follow`.",
+                        "`/mentities pose <nome> sitting` non usa una Pose vanilla del Mannequin (quelle vere sono "
+                                + "sleeping, swimming, sneaking, fall_flying, standing): la seduta è un trucco a "
+                                + "parte, lo stesso che piega le gambe a un giocatore vero seduto su una barca o un "
+                                + "cavallo. Il plugin crea un piccolo ArmorStand invisibile, ci monta sopra la "
+                                + "statua e lo gestisce da solo (respawn compreso). Se l'altezza non torna si "
+                                + "aggiusta `player.seat-y-offset` nel config, senza toccare il codice. Sulle "
+                                + "statue a specchio (skin/nome mirror) ogni copia personale ha il suo sedile, "
+                                + "che sparisce insieme alla copia.")
 
                 .section("Azioni al clic",
                         "A un'entità si può attaccare un'azione: eseguire un comando, aprire un menu, mandare un "
@@ -217,8 +246,8 @@ public final class MagixEntities extends JavaPlugin {
                         "defaults.ai", "Lascia attiva l'intelligenza artificiale: se true l'entità cammina e insegue.",
                         "defaults.gravity", "Le entità appena create subiscono la gravità.",
                         "defaults.collidable", "Le entità appena create bloccano il passaggio dei giocatori.",
-                        "mirror.halo.enabled", "Aureola VIP sulle copie a specchio skin (richiede MagixCosmetics installato e abilitato).",
-                        "mirror.halo.interval-ticks", "Ogni quanti tick il puntino dell'aureola sui mirror avanza lungo il cerchio.")
+                        "mirror.halo.enabled", "Aureola VIP sulle statue di tipo player, a specchio e no (richiede MagixCosmetics installato e abilitato).",
+                        "mirror.halo.interval-ticks", "Ogni quanti tick il puntino dell'aureola sulle statue avanza lungo il cerchio.")
 
                 .never("Non modificare entities.yml mentre il server gira: al primo salvataggio del plugin le tue "
                         + "modifiche vengono sovrascritte.")

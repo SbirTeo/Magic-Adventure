@@ -1,0 +1,23 @@
+# =====================================================================
+#  MagixPack - catalogo delle ICONE custom via font, per CHAT e TABLIST
+#  (non per gli oggetti: quelli hanno il loro modello vero, vedi items.yml).
+#
+#  Per aggiungerne una:
+#   1. Metti la texture in plugins/MagixPack/glyphs/<id>.png (stesso nome
+#      della chiave qui sotto, es. star.png) - un'unica icona per immagine.
+#   2. Aggiungi la voce qui sotto: height/ascent sono le stesse misure dei
+#      font bitmap di Minecraft (quanto e' alta l'icona e dove sta la base
+#      del testo rispetto al bordo alto dell'immagine).
+#   3. /mpack reload. Il punto di codice Unicode usato per richiamarla lo
+#      assegna il plugin da solo, in ordine alfabetico - vedi /mpack glyph
+#      list per il carattere e il font da usare in un Component Adventure.
+#
+#  Un altro plugin la usa tramite l'API di MagixPack (vedi README.md),
+#  non scrivendo il carattere a mano in messages.yml: il punto di codice
+#  puo' cambiare se cambia il catalogo.
+# =====================================================================
+
+# Esempio (rimuovi il commento e metti glyphs/star.png per provarlo):
+# star:
+#   height: 8
+#   ascent: 7

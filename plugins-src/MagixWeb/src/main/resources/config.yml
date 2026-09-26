@@ -57,6 +57,14 @@ site-translation:
   # Quante frasi tradurre al massimo per giro.
   batch-size: 25
 
+# Aureola VIP di MagixCosmetics sulle facce del sito, come la corona del miglior sostenitore.
+# Stessa regola della statua in gioco: permesso, colore scelto, /halo off, anche da offline.
+halo:
+  # Ogni quanto riallineare l'aureola di tutti i giocatori noti al sito (minuti). Chi entra in
+  # gioco si aggiorna subito; il giro serve per /halo off, /halo setcolor, permessi cambiati e
+  # giocatori offline. 0 = spento: sul sito nessuna aureola.
+  sync-interval-minutes: 2
+
 # Guida per amministratori del sito (/manage?section=guida).
 # Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html;
 # MagixWeb li raccoglie e li porta sul sito. Le credenziali del sito restano solo qui.
