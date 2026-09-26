@@ -111,6 +111,13 @@ public final class FurnitureListener implements Listener {
         Location loc = target.getLocation().add(0.5, 0, 0.5);
         float yaw = Math.round(player.getLocation().getYaw() / 90f) * 90f;
         loc.setYaw(yaw);
+        // Diagnostica temporanea: un piazzamento che sembra "affondato" va confrontato con le
+        // coordinate vere usate, non indovinato - vedi CLAUDE.md sulla diagnostica prima di
+        // rispondere a occhio.
+        plugin.getLogger().info("[Furniture] " + player.getName() + " piazza '" + id + "': clicked="
+                + clicked.getX() + "," + clicked.getY() + "," + clicked.getZ() + " (" + clicked.getType()
+                + ") target=" + target.getX() + "," + target.getY() + "," + target.getZ()
+                + " entita' in " + loc.getX() + "," + loc.getY() + "," + loc.getZ());
 
         ItemStack displayed = itemCatalog.build(id);
         if (displayed == null) return;
