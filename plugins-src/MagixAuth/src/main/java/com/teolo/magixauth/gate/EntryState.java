@@ -36,6 +36,12 @@ public final class EntryState {
     /** Dove si trovava davvero: ci torna appena entra. Null se non aveva mai giocato. */
     public Location realPosition;
 
+    /**
+     * Primo ingresso in assoluto sul server: non ha un posto suo a cui tornare, quindi dopo il
+     * login resta esattamente dove e' comparso.
+     */
+    public boolean newPlayer;
+
     /** Il "e' entrato nel server", tenuto da parte finche' non ha davvero fatto il login. */
     public Component savedJoinMessage;
 

@@ -277,12 +277,15 @@ public final class AuthGate {
     /**
      * @return la posizione a cui farlo comparire, o null per lasciarlo dov'era
      */
-    public Location hijackSpawn(UUID uuid, Location real) {
+    public Location hijackSpawn(UUID uuid, Location real, boolean newPlayer) {
         EntryState state = decisions.get(uuid);
         if (state == null || state.phase == Phase.LIBERO || !config.spawnInsteadOfPosition) {
             return null;
         }
-        state.realPosition = real == null ? null : real.clone();
+        // Per chi non ha mai giocato il server propone la cima della colonna dello spawn, che
+        // sotto l'hub coperto e' il tetto (Y=117 invece di 100): non e' un posto suo, non si tiene.
+        state.newPlayer = newPlayer;
+        state.realPosition = real == null || newPlayer ? null : real.clone();
 
         // La posizione va anche nel database, e non solo qui in memoria: se si disconnette
         // mentre e' fermo allo spawn, il server salverebbe lo spawn come sua ultima
@@ -613,6 +616,13 @@ public final class AuthGate {
     }
 
     private void sendBackToPlace(Player p, EntryState state) {
+        if (state.newPlayer) {
+            plugin.getLogger().info("MagixAuth: " + state.name
+                    + " e' al primo ingresso, resta dov'e' comparso.");
+            // Una riga vecchia puo' esserci solo da prima di un reset del mondo: non vale piu'.
+            clearPosition(state.uuid);
+            return;
+        }
         if (state.realPosition != null) {
             Location where = state.realPosition;
             plugin.getLogger().info("MagixAuth: riporto " + state.name + " a "
