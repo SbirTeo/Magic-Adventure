@@ -22,6 +22,9 @@ What it reports, for each .yml config file:
   [7] MODE (a key holding one word out of several) that the player tutorial does not tell with a
       {{if:key=value}} block  -> changing mode leaves the guide on the old one.
       If the mode is NOT visible in game, write [staff only] in the key comment.
+  [8] word inside < > or [ ] of a help line ("/f join <fazione> :: ...") that MagixLanguage's
+      argument-glossary.yml does not know -> it would stay in Italian in every other language.
+      Add it to "words" (argument name, translated) or "keep" (typed as is: on|off, clear...).
 
 Exits with code 1 if it found anything: can be wired to a hook or to the build.
 """
@@ -305,6 +308,60 @@ def check(name):
                     problems.append((f, c["line"], "[4] in the file but never read by the code", k))
             problems += hand_written_numbers(folder, keys)
             problems += modes_not_told(folder, keys, code)
+    problems += help_arguments_unknown(name)
+    return problems
+
+
+GLOSSARY = os.path.join(HERE, "MagixLanguage", "src", "main", "resources", "argument-glossary.yml")
+_glossary_words = None
+
+
+def glossary_words():
+    """Every word argument-glossary.yml knows: the Italian side of "words" plus "keep"."""
+    global _glossary_words
+    if _glossary_words is None:
+        _glossary_words = set()
+        if os.path.isfile(GLOSSARY):
+            with open(GLOSSARY, encoding="utf-8") as f:
+                text = f.read()
+            _glossary_words |= set(re.findall(r'\bit:\s*"([^"]+)"', text))
+            keep = re.search(r'^keep:\s*\[(.*?)\]', text, re.S | re.M)
+            if keep:
+                _glossary_words |= set(re.findall(r'"([^"]+)"', keep.group(1)))
+    return _glossary_words
+
+
+def help_arguments_unknown(name):
+    """
+    [8] The syntax of a help line never goes to the machine translator: MagixLanguage translates the
+    words inside < > and [ ] with argument-glossary.yml (same scan as HelpSyntax.translateSyntax).
+    A word the glossary does not know would silently stay in Italian in every other language.
+    """
+    path = os.path.join(HERE, name, "src", "main", "resources", "messages.yml")
+    known = glossary_words()
+    if not os.path.isfile(path) or not known:
+        return []
+    problems = []
+    with open(path, encoding="utf-8") as f:
+        for n, line in enumerate(f, 1):
+            m = re.match(r'\s*-\s*"(\s*/[^"]*?)\s*::', line)
+            if not m:
+                continue
+            syntax, depth, i = m.group(1), 0, 0
+            while i < len(syntax):
+                ch = syntax[i]
+                if ch in "<[":
+                    depth += 1
+                elif ch in ">]" and depth > 0:
+                    depth -= 1
+                if depth > 0 and ch.isalpha():
+                    word = re.match(r'[^\W\d_][^\W_]*', syntax[i:]).group(0)
+                    if word not in known:
+                        problems.append(("messages.yml", n,
+                                         "[8] help argument not in MagixLanguage argument-glossary.yml", word))
+                    i += len(word)
+                    continue
+                i += 1
     return problems
 
 

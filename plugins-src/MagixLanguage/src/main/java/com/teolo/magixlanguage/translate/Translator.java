@@ -100,6 +100,20 @@ public final class Translator {
         if (italianText == null || italianText.isBlank()) {
             return italianText;
         }
+        String[] help = HelpSyntax.split(italianText);
+        if (help != null) {
+            // Riga di aiuto: a MyMemory va solo la descrizione, la sintassi la traduce il glossario.
+            String description = translatePlain(help[2], targetLang);
+            return description == null ? null
+                    : HelpSyntax.translateSyntax(help[0], targetLang) + help[1] + description;
+        }
+        return translatePlain(italianText, targetLang);
+    }
+
+    private String translatePlain(String italianText, String targetLang) {
+        if (italianText == null || italianText.isBlank()) {
+            return italianText;
+        }
         if (circuitOpen) {
             return null;
         }

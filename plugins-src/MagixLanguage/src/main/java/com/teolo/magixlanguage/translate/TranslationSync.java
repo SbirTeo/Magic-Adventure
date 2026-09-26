@@ -211,11 +211,13 @@ public final class TranslationSync {
 
             Object cachedSource = cache.source().get(key);
             Object cachedTranslated = cache.translated().get(key);
-            if (cachedTranslated != null && Objects.equals(cachedSource, italianValue)
-                    && !looksCorrupted(italianValue, cachedTranslated)) {
-                result.put(key, cachedTranslated);
+            Object reusable = cachedTranslated != null && Objects.equals(cachedSource, italianValue)
+                    && !looksCorrupted(italianValue, cachedTranslated)
+                    ? HelpSyntax.refreshCached(italianValue, cachedTranslated, lang) : null;
+            if (reusable != null) {
+                result.put(key, reusable);
                 newCacheSource.put(key, italianValue);
-                newCacheTranslated.put(key, cachedTranslated);
+                newCacheTranslated.put(key, reusable);
                 totals.reused++;
                 continue;
             }
@@ -278,6 +280,18 @@ public final class TranslationSync {
     }
 
     private static boolean lineCorrupted(String source, String translated) {
+        String[] sourceHelp = source != null ? HelpSyntax.split(source) : null;
+        if (sourceHelp != null) {
+            // Riga di aiuto: la sintassi la rifa ogni volta il glossario (e "<fazione>" diventa
+            // "<faction>", che il controllo dei pezzi protetti scambierebbe per un placeholder
+            // perso): conta solo la descrizione.
+            String[] translatedHelp = HelpSyntax.split(translated);
+            if (translatedHelp == null) {
+                return true;
+            }
+            source = sourceHelp[2];
+            translated = translatedHelp[2];
+        }
         return SUSPECT_LEFTOVER.matcher(translated).find() || GLUED_BRACKET.matcher(translated).find()
                 || (source != null && edgeWhitespaceMismatch(source, translated))
                 || (source != null && missingProtectedToken(source, translated));

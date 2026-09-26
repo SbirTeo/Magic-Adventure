@@ -49,6 +49,13 @@ esaurita) restano temporaneamente in italiano e finiscono in
 `translations/TRANSLATION-FAILED-<lingua>.txt`, rigenerato ad ogni sincronizzazione: si riprova da
 sola al giro successivo, senza bisogno di intervenire.
 
+**Le righe di aiuto.** In una riga come `/f join <fazione> :: entra se invitato`, a MyMemory va solo
+la descrizione dopo `::`. La sintassi del comando resta com'e', tranne le parole tra `< >` e `[ ]`
+elencate in `src/main/resources/argument-glossary.yml` (`words`: nomi degli argomenti, tradotti a
+mano); quelle in `keep` (`on|off`, `clear`, `pubblico`...) il giocatore le scrive cosi' e non si
+toccano. Un argomento nuovo va aggiunto al glossario: `check_config.py` [8] blocca il commit
+altrimenti.
+
 **Quando si richiama MyMemory.** Due regole, condivise fra i plugin e il sito e salvate in
 `translation-pacing.properties` perche' un riavvio non le azzeri:
 1. dopo un **blocco** (tre richieste rifiutate di fila, di solito la quota del giorno finita) nessuno

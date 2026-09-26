@@ -1,0 +1,44 @@
+# Nomi degli argomenti nelle righe di aiuto ("/f join <fazione> :: ..."), tradotti a mano.
+#
+# La parte di una riga di aiuto prima di "::" e' la SINTASSI del comando: non passa mai dal
+# traduttore automatico (MyMemory ci metteva parole di un'altra lingua, "[jugador|clear]" in un
+# testo inglese, e poteva tradurre un sottocomando che il giocatore deve scrivere cosi' com'e').
+# Dentro < > e [ ] si traducono solo le parole elencate qui sotto; tutto il resto resta identico.
+#
+# Letto dal jar, mai copiato nella cartella dati: si cambia qui, nel sorgente di MagixLanguage.
+# check_config.py [8] blocca il commit se una riga di aiuto di un plugin usa una parola tra < > o
+# [ ] che non e' ne' in "words" ne' in "keep".
+
+# Una voce per nome di argomento: "it" e' la parola come compare in messages.yml, le altre lingue
+# la sostituiscono (una lingua mancante lascia la parola italiana).
+words:
+  - {it: "nome", en: "name", es: "nombre", de: "Name"}
+  - {it: "giocatore", en: "player", es: "jugador", de: "Spieler"}
+  - {it: "fazione", en: "faction", es: "facción", de: "Fraktion"}
+  - {it: "password", en: "password", es: "contraseña", de: "Passwort"}
+  - {it: "ripeti", en: "repeat", es: "repetir", de: "wiederholen"}
+  - {it: "codice", en: "code", es: "código", de: "Code"}
+  - {it: "vecchia", en: "old", es: "antigua", de: "alt"}
+  - {it: "nuova", en: "new", es: "nueva", de: "neu"}
+  - {it: "tipo", en: "type", es: "tipo", de: "Typ"}
+  - {it: "testo", en: "text", es: "texto", de: "Text"}
+  - {it: "posa", en: "pose", es: "pose", de: "Pose"}
+  - {it: "soldi", en: "money", es: "dinero", de: "Geld"}
+  - {it: "menu", en: "menu", es: "menú", de: "Menü"}
+  - {it: "motivo", en: "reason", es: "motivo", de: "Grund"}
+  - {it: "pagina", en: "page", es: "página", de: "Seite"}
+  - {it: "minuti", en: "minutes", es: "minutos", de: "Minuten"}
+  - {it: "valore", en: "value", es: "valor", de: "Wert"}
+  - {it: "stagione", en: "season", es: "estación", de: "Jahreszeit"}
+  - {it: "blocchi", en: "blocks", es: "bloques", de: "Blöcke"}
+  - {it: "colore", en: "color", es: "color", de: "Farbe"}
+  - {it: "comando", en: "command", es: "comando", de: "Befehl"}
+  - {it: "indirizzo", en: "address", es: "dirección", de: "Adresse"}
+  - {it: "opzione", en: "option", es: "opción", de: "Option"}
+  - {it: "nuovoNome", en: "newName", es: "nuevoNombre", de: "neuerName"}
+
+# Parole tra < > o [ ] che restano IDENTICHE in ogni lingua: opzioni che il giocatore scrive
+# davvero ("on|off", "clear", "pubblico" di /mg dossier...) e nomi gia' uguali ovunque ("nick").
+keep: ["on", "off", "it", "en", "es", "de", "public", "faction", "ally", "clear", "reset", "mirror",
+       "auto", "info", "migrate", "sqlite", "mariadb", "x", "y", "z", "rain", "storm", "nick",
+       "nick2", "displayname", "n", "a", "b", "zoom", "pubblico"]
