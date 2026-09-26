@@ -17,6 +17,13 @@
 #  puo' cambiare se cambia il catalogo.
 # =====================================================================
 
+# L'AVATAR del giocatore: type: player-avatar. Niente texture: e' la FACCIA della sua skin
+# (piatta, secondo strato compreso), disegnata pixel per pixel dal font magixpack:avatar, alta
+# come una lettera. Anteprima in chat:
+# /mpack glyph show avatar [giocatore]. Da un altro plugin: customGlyph("avatar", giocatore).
+avatar:
+  type: player-avatar
+
 # Esempio (rimuovi il commento e metti glyphs/star.png per provarlo):
 # star:
 #   height: 8

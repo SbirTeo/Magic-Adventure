@@ -37,9 +37,13 @@ import java.util.List;
  * non c'e' posto), {@code true} lo fa cadere per terra come un blocco normale, senza darlo a nessuno
  * in particolare. {@code furnitureHitSound}/{@code furnitureBreakSound} sono i suoni per un colpo
  * che non rompe ancora e per quello che rompe davvero — scelte per oggetto, non globali.
+ *
+ * <p>{@code playerAvatar} ({@code type: player-avatar} in items.yml): the item is built for a given
+ * player — their own head as icon and their avatar (skin face glyph) in the lore (see
+ * {@code avatar.AvatarService}). No texture, no model: nothing of it goes in the pack.
  */
 public record ItemEntry(String id, String material, String name, List<String> lore, int customModelData,
                          boolean furniture, boolean furnitureSolid, boolean furnitureShiftRequired,
                          double furnitureYOffset, int furnitureHits, boolean furnitureDrop,
-                         Sound furnitureHitSound, Sound furnitureBreakSound) {
+                         Sound furnitureHitSound, Sound furnitureBreakSound, boolean playerAvatar) {
 }

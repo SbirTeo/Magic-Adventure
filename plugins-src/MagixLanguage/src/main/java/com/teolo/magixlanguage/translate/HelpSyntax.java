@@ -25,7 +25,10 @@ import java.util.regex.Pattern;
 public final class HelpSyntax {
 
     private static final Pattern LINE = Pattern.compile("^(\\s*/[^\\n]*?)(\\s*::\\s*)(.*)$", Pattern.DOTALL);
-    private static final Pattern WORD = Pattern.compile("[\\p{L}][\\p{L}\\p{N}]*");
+    /** Una parola, anche col trattino ("blocchi-per-pixel" e' una voce sola del glossario). */
+    private static final Pattern WORD = Pattern.compile("[\\p{L}][\\p{L}\\p{N}]*(?:-[\\p{L}\\p{N}]+)*");
+    /** Un argomento tra &lt; &gt;, con un livello di annidamento: lo stesso che Translator protegge. */
+    private static final Pattern ANGLE_ARGUMENT = Pattern.compile("<(?:[^<>]|<[^<>]*>)*>");
 
     /** parola italiana -> lingua -> parola tradotta. */
     private static volatile Map<String, Map<String, String>> glossary;
@@ -53,6 +56,13 @@ public final class HelpSyntax {
                 depth--;
             }
             if (depth > 0 && Character.isLetter(c)) {
+                String phrase = phraseAt(syntax, i, words);
+                if (phrase != null) {
+                    String translated = words.get(phrase).get(lang);
+                    out.append(translated != null ? translated : phrase);
+                    i += phrase.length();
+                    continue;
+                }
                 Matcher m = WORD.matcher(syntax).region(i, syntax.length());
                 if (m.lookingAt()) {
                     String word = m.group();
@@ -69,11 +79,42 @@ public final class HelpSyntax {
         return out.toString();
     }
 
+    /** Una voce di piu' parole del glossario ("codice a sei cifre") che inizia in {@code at}, o null. */
+    private static String phraseAt(String text, int at, Map<String, Map<String, String>> words) {
+        String best = null;
+        for (String key : words.keySet()) {
+            if (key.indexOf(' ') < 0 || !text.startsWith(key, at)) {
+                continue;
+            }
+            int end = at + key.length();
+            if (end < text.length() && Character.isLetterOrDigit(text.charAt(end))) {
+                continue;
+            }
+            if (best == null || key.length() > best.length()) {
+                best = key;
+            }
+        }
+        return best;
+    }
+
+    /** Ogni &lt;...&gt; di un testo qualsiasi con i nomi degli argomenti nella lingua indicata. */
+    static String translateAngleArguments(String text, String lang) {
+        Matcher m = ANGLE_ARGUMENT.matcher(text);
+        StringBuilder out = new StringBuilder(text.length() + 8);
+        int last = 0;
+        while (m.find()) {
+            out.append(text, last, m.start()).append(translateSyntax(m.group(), lang));
+            last = m.end();
+        }
+        return out.append(text, last, text.length()).toString();
+    }
+
     /**
-     * Una traduzione gia' in cache con la sintassi rifatta dal glossario: le vecchie traduzioni
-     * (quelle con la sintassi passata da MyMemory) si correggono cosi' da sole, senza consumare
-     * quota. Valori che non sono righe di aiuto tornano identici; null se una riga di aiuto in
-     * cache ha perso il "::" (da ritradurre).
+     * Una traduzione gia' in cache con gli argomenti rifatti dal glossario: la sintassi delle righe
+     * di aiuto (passata da MyMemory, nelle traduzioni vecchie) e ogni &lt;...&gt; rimasto in
+     * italiano negli altri messaggi. Si correggono cosi' da sole, senza consumare quota; rifarlo su
+     * un valore gia' corretto non cambia niente. Null se una riga di aiuto in cache ha perso il
+     * "::" (da ritradurre).
      */
     static Object refreshCached(Object italianValue, Object cachedTranslated, String lang) {
         if (italianValue instanceof String source && cachedTranslated instanceof String cached) {
@@ -97,13 +138,13 @@ public final class HelpSyntax {
     private static String refreshLine(String source, String cached, String lang) {
         String[] src = split(source);
         if (src == null) {
-            return cached;
+            return translateAngleArguments(cached, lang);
         }
         String[] old = split(cached);
         if (old == null) {
             return null;
         }
-        return translateSyntax(src[0], lang) + old[1] + old[2];
+        return translateSyntax(src[0], lang) + old[1] + translateAngleArguments(old[2], lang);
     }
 
     private static Map<String, Map<String, String>> glossary() {

@@ -543,11 +543,13 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "una vecchia traduzione senza quel padding viene scartata e rifatta da sola (nuovo "
                                 + "/language sync, riavvio, o /language sync force per non aspettare).")
 
-                .issue("Nell'aiuto tradotto un argomento e' in italiano o in un'altra lingua (es. &lt;fazione&gt;, [jugador|clear] in inglese)",
+                .issue("Un argomento di un comando e' in italiano o in un'altra lingua (es. &lt;fazione&gt;, [jugador|clear] in inglese)",
                         "La parte di una riga di aiuto prima di &quot;::&quot; e' la sintassi del comando: non va "
                                 + "piu' al traduttore automatico (ci metteva parole di un'altra lingua, e avrebbe potuto "
                                 + "tradurre un sottocomando). Le parole tra &lt; &gt; e [ ] si traducono con "
-                                + "argument-glossary.yml, dentro il jar di MagixLanguage: solo quelle elencate in "
+                                + "argument-glossary.yml, dentro il jar di MagixLanguage; lo stesso glossario traduce "
+                                + "ogni &lt;...&gt; negli altri messaggi (&quot;Uso: /f join &lt;fazione&gt;&quot;), che "
+                                + "il traduttore protegge per intero. Solo le voci elencate in "
                                 + "&quot;words&quot;, le altre (on|off, clear, pubblico...) restano identiche. Un "
                                 + "argomento nuovo si aggiunge li' nel sorgente (check_config.py [8] blocca il commit "
                                 + "se manca); le traduzioni gia' in cache si correggono da sole al primo giro, senza "

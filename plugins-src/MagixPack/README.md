@@ -51,6 +51,10 @@ Metodi pubblici esposti da `MagixPack` (tutti raggiungibili solo per riflessione
 | `sendPackTo(Player p)` | Manda il pacchetto al giocatore. |
 | `packPublicUrl()` | URL pubblico dello zip (null finche' il servizio non e' partito). |
 | `customItem(String id)` | L'`ItemStack` di `items.yml` pronto da dare, o null se `id` non c'e'. |
+| `customItem(String id, Player p)` | Come sopra, costruito per `p` (serve alle voci `player-avatar`). |
+| `playerAvatar(Player p)` | L'avatar di `p` (la faccia della skin) come `Component`, o null se non e' ancora scaricato. |
+| `playerAvatarAsync(String nome)` | Come sopra, aspettando il download (`CompletableFuture`, thread in sottofondo). |
+| `customGlyph(String id, Player p)` | Come sotto, per `p`: la voce `player-avatar` e' il suo avatar (la faccia della skin). |
 | `customGlyph(String id)` | Il `Component` Adventure (font gia' impostato) di `glyphs.yml`, o null se `id` non c'e'. |
 
 Il momento giusto per registrarsi e' il proprio `onEnable`, con `softdepend: [MagixPack]` nel
@@ -111,6 +115,31 @@ propri — non un glifo: un vero modello 2D generato, come le icone vanilla. Per
 In gioco: `/mpack item give <id> [giocatore]` (permesso `magixpack.item.give`), `/mpack item list`
 per vedere il catalogo caricato. Niente crafting/shop qui dentro: quello si fa con altri strumenti
 gia' presenti sul server (es. CMI).
+
+### L'avatar del giocatore (`type: player-avatar`)
+
+Una voce di `items.yml` con `type: player-avatar` non ha texture ne' `material`: e' un oggetto
+costruito **per un giocatore**. L'icona e' la sua testa (con la sua skin vera) e, passandoci sopra,
+la descrizione finisce con il suo **avatar** — la faccia piatta della skin, secondo strato
+compreso, alta come una lettera, disegnata dal font `magixpack:avatar` (vedi "L'avatar come glifo" sotto). Nel catalogo
+di default c'e' gia':
+
+```yaml
+avatar:
+  type: player-avatar
+  name: "&e{player}"
+  lore:
+    - "&7Il tuo avatar"
+```
+
+`{player}` diventa il nome del giocatore; le righe di `lore` vengono prima dell'avatar.
+
+- `/mpack item give avatar [giocatore]` — l'avatar di chi lo riceve (aspetta, se serve, che la
+  skin sia scaricata).
+- In un menu di **MagixMenus**: `magixpack: avatar` al posto di `id:` — l'oggetto viene costruito
+  per **chi guarda** il menu (`display_name` del menu ne cambia il nome, le righe di `lore` del
+  menu vanno sopra la sua descrizione).
+- Da un altro plugin: `customItem(String id, Player player)`.
 
 ### Modelli 3D veri (non la semplice icona piatta)
 
@@ -212,6 +241,29 @@ if (icona != null) player.sendMessage(Component.text("Hai trovato una ").append(
 `/mpack glyph list` (permesso `magixpack.glyph.list`) mostra il catalogo caricato col punto di
 codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
 
+## L'avatar come glifo (chat, tablist)
+
+In `glyphs.yml` c'e' la voce `avatar` (`type: player-avatar`, niente texture): compare in
+`/mpack glyph list` e `/mpack glyph show avatar [giocatore]` la mostra in chat. Da un altro plugin:
+`customGlyph("avatar", giocatore)`.
+
+La faccia della skin come **testo**, per chat e tablist (alta come una lettera): `playerAvatar(Player)` restituisce
+il `Component` pronto (null finche' non e' scaricato), `playerAvatarAsync(String nome)` un
+`CompletableFuture<Component>` che si completa su un thread in sottofondo (null se la skin non si
+trova). E' lo stesso che finisce nella descrizione dell'oggetto `avatar`.
+
+Come e' fatto: un resource pack e' uguale per tutti, quindi non puo' contenere un'immagine per
+giocatore. Il pacchetto contiene solo un font minuscolo (`magixpack:avatar`): 8 caratteri
+"pixel" (il carattere `i` e' un pixel bianco sulla riga `i`) piu' due spazi, uno che torna indietro
+e uno che avanza. L'avatar si compone a runtime colonna per colonna, un carattere-pixel COLORATO
+per ogni pixel della faccia: 8x8 pixel al posto di un carattere, dentro la riga di testo.
+
+Da dove arriva la skin: il server e' in offline-mode, quindi il profilo del giocatore di solito
+non la ha. Si prova prima il profilo (un plugin di skin tipo SkinsRestorer ce la mette), poi, con
+`avatar.mojang-lookup: true`, Mojang per NOME (la skin dell'account premium con quel nome). Tutto
+in sottofondo, in cache per nome, riscaricato a ogni ingresso; chi non ha skin viene ritentato
+solo dopo 10 minuti.
+
 ## Config
 
 - `public-host` / `port` — da dove i client scaricano lo zip (la porta va aperta sul firewall).
@@ -219,6 +271,9 @@ codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
 - `send-delay-ticks` / `timeout-seconds` — tempistiche di invio ed espulsione.
 - `watchdog-seconds` — ogni quanto si verifica che il pacchetto sia ancora scaricabile.
 - `prompt` / `kick-messages.*` — testi mostrati al giocatore (colori `&` e `\n` per andare a capo).
+- `avatar.pixel-size` — lato di un pixel della skin in pixel dello schermo (1-4; 1 = alto 8 come una lettera, di piu' sporge sopra la riga).
+- `avatar.baseline-offset` — di quanti pixel il mento scende sotto la riga del testo (1 = come le lettere).
+- `avatar.mojang-lookup` — se chiedere la skin a Mojang per nome quando il profilo non la ha.
 
 ## Comandi
 
@@ -230,7 +285,8 @@ codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
   LORO segnaposto, serve ricaricare (o riavviare) quel plugin.
 - `/mpack item give <id> [giocatore]` / `/mpack item list` (permesso `magixpack.item.give`) — vedi
   "Oggetti custom" sopra.
-- `/mpack glyph list` (permesso `magixpack.glyph.list`) — vedi "Icone custom via font" sopra.
+- `/mpack glyph list` / `/mpack glyph show <id> [giocatore]` (permesso `magixpack.glyph.list`) — vedi
+  "Icone custom via font" e "L'avatar come glifo" sopra.
 
 ## Permessi
 
@@ -238,4 +294,4 @@ codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
 - `magixpack.bypass` (default op) — non viene mai espulso se il pacchetto obbligatorio non si
   carica (lo riceve comunque). Salvaguardia per non restare chiusi fuori dal proprio server.
 - `magixpack.item.give` (default op) — `/mpack item give` e `/mpack item list`.
-- `magixpack.glyph.list` (default op) — `/mpack glyph list`.
+- `magixpack.glyph.list` (default op) — `/mpack glyph list` e `/mpack glyph show`.

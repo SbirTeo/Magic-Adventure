@@ -1535,7 +1535,7 @@
       descrizione: [],
       incantesimi: [],
       luccica: false, indistruttibile: false, nascondi_dettagli: false,
-      modello_custom: null, modello_item: null, colore: null, testa: null, avanzate: null,
+      modello_custom: null, modello_item: null, colore: null, testa: null, magixpack: null, avanzate: null,
       attesa_fra_clic: 0,
       mostra_se: emptyRequirements(),
       azioni: {}, click_se: {}
@@ -2745,6 +2745,8 @@
       'Contro chi tempesta di clic un bottone che dà qualcosa.', 'cooldown'));
     f.appendChild(textField('Modello del pacchetto (item_model)', it.modello_item || '', function (v) { it.modello_item = v || null; segnaModificato(); },
       'es. magicadventure:moneta', false, 'item_model'));
+    f.appendChild(textField('Oggetto di MagixPack', it.magixpack || '', function (v) { it.magixpack = v || null; segnaModificato(); },
+      'id di items.yml di MagixPack (es. avatar): prende il posto dell\'item e viene costruito per chi guarda il menu.', false, 'magixpack'));
     f.appendChild(textField('Custom model data', it.modello_custom || '', function (v) { it.modello_custom = v || null; segnaModificato(); },
       'Il vecchio modo di puntare a un modello del pacchetto.', false, 'custom_model_data'));
     f.appendChild(textField('Colore', it.colore || '', function (v) { it.colore = v || null; segnaModificato(); },

@@ -4,18 +4,27 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.teolo.magixpack.avatar.AvatarService;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.profile.PlayerTextures;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -63,11 +72,16 @@ public final class ItemCatalog {
      *  material/nome/lore (fragile: due oggetti diversi possono condividere lo stesso material). */
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(NAMESPACE, "item-id");
 
+    /** {@code type} of an items.yml entry built per player: head + avatar (skin face glyph) in the lore. */
+    public static final String TYPE_PLAYER_AVATAR = "player-avatar";
+
     private final JavaPlugin plugin;
+    private final AvatarService avatars;
     private final Map<String, ItemEntry> entries = new LinkedHashMap<>();
 
-    public ItemCatalog(JavaPlugin plugin) {
+    public ItemCatalog(JavaPlugin plugin, AvatarService avatars) {
         this.plugin = plugin;
+        this.avatars = avatars;
     }
 
     /** Rilegge items.yml e la cartella items/ (texture) dal disco. */
@@ -82,6 +96,13 @@ public final class ItemCatalog {
         for (String id : new java.util.TreeSet<>(cfg.getKeys(false))) {
             ConfigurationSection sec = cfg.getConfigurationSection(id);
             if (sec == null) continue;
+            if (TYPE_PLAYER_AVATAR.equalsIgnoreCase(sec.getString("type", ""))) {
+                // No texture and no model: the look comes from the player's skin, at build time.
+                entries.put(id, new ItemEntry(id, Material.PLAYER_HEAD.name(), sec.getString("name", "{player}"),
+                        sec.getStringList("lore"), 0, false, false, true, 0.5, 1, false,
+                        Sound.BLOCK_WOOD_HIT, Sound.BLOCK_WOOD_BREAK, true));
+                continue;
+            }
             String materialName = sec.getString("material", "").trim().toUpperCase(java.util.Locale.ROOT);
             Material material = Material.matchMaterial(materialName);
             if (material == null || material.isAir()) {
@@ -108,7 +129,7 @@ public final class ItemCatalog {
                     id, "furniture-break-sound", Sound.BLOCK_WOOD_BREAK);
             entries.put(id, new ItemEntry(id, materialName, name, lore, nextCustomModelData,
                     furniture, furnitureSolid, furnitureShiftRequired, furnitureYOffset,
-                    furnitureHits, furnitureDrop, furnitureHitSound, furnitureBreakSound));
+                    furnitureHits, furnitureDrop, furnitureHitSound, furnitureBreakSound, false));
             nextCustomModelData++;
         }
         if (!entries.isEmpty()) {
@@ -200,8 +221,15 @@ public final class ItemCatalog {
 
     /** L'oggetto vero, pronto da dare: null se l'id non esiste nel catalogo. */
     public ItemStack build(String id) {
+        return build(id, null);
+    }
+
+    /** Like {@link #build(String)}; {@code owner} is the player a {@code player-avatar} item is
+     *  about (ignored by the other items). */
+    public ItemStack build(String id, Player owner) {
         ItemEntry e = entries.get(id);
         if (e == null) return null;
+        if (e.playerAvatar()) return buildAvatar(e, owner);
         Material material = Material.matchMaterial(e.material());
         if (material == null) return null;
         ItemStack stack = new ItemStack(material);
@@ -238,6 +266,56 @@ public final class ItemCatalog {
     }
 
     /**
+     * A {@code player-avatar} item: the owner's head as icon and their avatar (the flat face of
+     * the skin, as a glyph) at the bottom of the lore, visible on hover. {@code {player}} in name and lore
+     * becomes the owner's name. If the avatar is not downloaded yet the lore has no face (the
+     * download starts now: an item built a moment later has it).
+     */
+    private ItemStack buildAvatar(ItemEntry e, Player owner) {
+        ItemStack stack = new ItemStack(Material.PLAYER_HEAD);
+        if (!(stack.getItemMeta() instanceof SkullMeta meta)) return stack;
+        String name = owner != null ? owner.getName() : "";
+        meta.getPersistentDataContainer().set(ITEM_ID_KEY, PersistentDataType.STRING, e.id());
+        if (owner != null) meta.setPlayerProfile(profileWithSkin(owner));
+        if (e.name() != null && !e.name().isBlank()) {
+            meta.displayName(com.teolo.magixpack.util.Colors.component(e.name().replace("{player}", name))
+                    .decoration(TextDecoration.ITALIC, false));
+        }
+        List<Component> lore = new ArrayList<>();
+        for (String riga : e.lore()) {
+            lore.add(com.teolo.magixpack.util.Colors.component(riga.replace("{player}", name))
+                    .decoration(TextDecoration.ITALIC, false));
+        }
+        Component avatar = owner != null ? avatars.cached(owner) : null;
+        if (avatar != null) {
+            // Only a taller avatar (pixel-size > 1) sticks out: empty lines keep it in the tooltip.
+            for (int i = 0; i < avatars.emptyLinesAbove(10); i++) lore.add(Component.empty());
+            lore.add(avatar.decoration(TextDecoration.ITALIC, false));
+        }
+        if (!lore.isEmpty()) meta.lore(lore);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    /** The owner's profile, with the skin found by the avatar service when the profile has none
+     *  (offline mode): otherwise the head would show the default skin. */
+    private PlayerProfile profileWithSkin(Player owner) {
+        PlayerProfile profile = owner.getPlayerProfile().clone();
+        if (profile.getTextures().getSkin() != null) return profile;
+        AvatarService.Skin skin = avatars.skin(owner.getName());
+        if (skin == null) return profile;
+        try {
+            PlayerTextures textures = profile.getTextures();
+            textures.setSkin(URI.create(skin.url()).toURL(),
+                    skin.slim() ? PlayerTextures.SkinModel.SLIM : PlayerTextures.SkinModel.CLASSIC);
+            profile.setTextures(textures);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[Items] Skin di " + owner.getName() + " non applicata alla testa: " + ex.getMessage());
+        }
+        return profile;
+    }
+
+    /**
      * Contenuto da registrare nel pacchetto, per ogni oggetto valido, sotto il namespace proprio
      * {@value #NAMESPACE}:
      * <ul>
@@ -267,6 +345,7 @@ public final class ItemCatalog {
         Map<String, byte[]> out = new LinkedHashMap<>();
         Map<String, List<ItemEntry>> byMaterial = new LinkedHashMap<>();
         for (ItemEntry e : entries.values()) {
+            if (e.playerAvatar()) continue;
             try {
                 byte[] texture = Files.readAllBytes(textureFile(e.id()).toPath());
                 out.put("assets/" + NAMESPACE + "/textures/item/" + e.id() + ".png", texture);

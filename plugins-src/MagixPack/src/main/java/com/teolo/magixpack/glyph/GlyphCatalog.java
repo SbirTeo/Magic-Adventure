@@ -1,9 +1,11 @@
 package com.teolo.magixpack.glyph;
 
+import com.teolo.magixpack.avatar.AvatarService;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -43,11 +45,16 @@ public final class GlyphCatalog {
      *  conflitto con un carattere vero di nessuna lingua. */
     private static final int FIRST_CODEPOINT = 0xF0000;
 
+    /** {@code type} of a glyphs.yml entry that is the avatar of a player (the face of the skin). */
+    public static final String TYPE_PLAYER_AVATAR = "player-avatar";
+
     private final JavaPlugin plugin;
+    private final AvatarService avatars;
     private final Map<String, GlyphEntry> entries = new LinkedHashMap<>();
 
-    public GlyphCatalog(JavaPlugin plugin) {
+    public GlyphCatalog(JavaPlugin plugin, AvatarService avatars) {
         this.plugin = plugin;
+        this.avatars = avatars;
     }
 
     public void reload() {
@@ -60,6 +67,12 @@ public final class GlyphCatalog {
         // di codice di ognuna, non dall'ordine in cui compaiono nel file.
         TreeSet<String> ready = new TreeSet<>();
         for (String id : cfg.getKeys(false)) {
+            ConfigurationSection sec = cfg.getConfigurationSection(id);
+            if (sec != null && TYPE_PLAYER_AVATAR.equalsIgnoreCase(sec.getString("type", ""))) {
+                // Drawn per player by AvatarService: no texture, and no place in the icons font.
+                entries.put(id, new GlyphEntry(id, 0, 0, -1, true));
+                continue;
+            }
             if (textureFile(id).isFile()) ready.add(id);
             else plugin.getLogger().warning("[Glyphs] '" + id + "' in glyphs.yml: manca la texture glyphs/"
                     + id + ".png, icona ignorata.");
@@ -70,7 +83,7 @@ public final class GlyphCatalog {
             ConfigurationSection sec = cfg.getConfigurationSection(id);
             int height = sec != null ? sec.getInt("height", 8) : 8;
             int ascent = sec != null ? sec.getInt("ascent", 7) : 7;
-            entries.put(id, new GlyphEntry(id, height, ascent, codepoint));
+            entries.put(id, new GlyphEntry(id, height, ascent, codepoint, false));
             codepoint++;
         }
         if (!entries.isEmpty()) {
@@ -93,8 +106,15 @@ public final class GlyphCatalog {
     /** Il Component pronto per essere concatenato in un messaggio Adventure (chat, tablist...):
      *  null se l'id non e' nel catalogo. Chi lo usa non deve MAI scrivere il carattere a mano. */
     public Component component(String id) {
+        return component(id, null);
+    }
+
+    /** Like {@link #component(String)}; {@code player} is whose avatar a {@code player-avatar}
+     *  entry shows (null if not downloaded yet: the download starts now). */
+    public Component component(String id, Player player) {
         GlyphEntry e = entries.get(id);
         if (e == null) return null;
+        if (e.playerAvatar()) return player != null ? avatars.cached(player) : null;
         return Component.text(new String(Character.toChars(e.codepoint()))).font(FONT);
     }
 
@@ -102,11 +122,11 @@ public final class GlyphCatalog {
      *  della classe) con un provider bitmap per icona, piu' le texture lette da glyphs/<id>.png. */
     public Map<String, byte[]> packFiles() {
         Map<String, byte[]> out = new LinkedHashMap<>();
-        if (entries.isEmpty()) return out;
 
         StringBuilder providers = new StringBuilder();
         boolean first = true;
         for (GlyphEntry e : entries.values()) {
+            if (e.playerAvatar()) continue;
             try {
                 byte[] texture = Files.readAllBytes(textureFile(e.id()).toPath());
                 out.put("assets/" + NAMESPACE + "/textures/font/" + FONT_NAME + "/" + e.id() + ".png", texture);
@@ -124,6 +144,7 @@ public final class GlyphCatalog {
                     .append(",\"ascent\":").append(e.ascent())
                     .append(",\"chars\":[\"").append(glyph).append("\"]}");
         }
+        if (first) return out; // only avatar entries: their font is AvatarService's
         String font = "{\"providers\":[" + providers + "]}";
         out.put("assets/" + NAMESPACE + "/font/" + FONT_NAME + ".json", font.getBytes(StandardCharsets.UTF_8));
         return out;

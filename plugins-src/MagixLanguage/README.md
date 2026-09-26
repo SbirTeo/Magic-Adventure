@@ -53,8 +53,9 @@ sola al giro successivo, senza bisogno di intervenire.
 la descrizione dopo `::`. La sintassi del comando resta com'e', tranne le parole tra `< >` e `[ ]`
 elencate in `src/main/resources/argument-glossary.yml` (`words`: nomi degli argomenti, tradotti a
 mano); quelle in `keep` (`on|off`, `clear`, `pubblico`...) il giocatore le scrive cosi' e non si
-toccano. Un argomento nuovo va aggiunto al glossario: `check_config.py` [8] blocca il commit
-altrimenti.
+toccano. Lo stesso glossario traduce ogni `<...>` negli altri messaggi (`Uso: /f join <fazione>`):
+il traduttore lo protegge per intero e al ritorno lo rimette tradotto. Un argomento nuovo va
+aggiunto al glossario: `check_config.py` [8] blocca il commit altrimenti.
 
 **Quando si richiama MyMemory.** Due regole, condivise fra i plugin e il sito e salvate in
 `translation-pacing.properties` perche' un riavvio non le azzeri:

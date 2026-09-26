@@ -1,16 +1,22 @@
-# Nomi degli argomenti nelle righe di aiuto ("/f join <fazione> :: ..."), tradotti a mano.
+# Nomi degli argomenti dei comandi ("/f join <fazione>"), tradotti a mano.
 #
-# La parte di una riga di aiuto prima di "::" e' la SINTASSI del comando: non passa mai dal
-# traduttore automatico (MyMemory ci metteva parole di un'altra lingua, "[jugador|clear]" in un
-# testo inglese, e poteva tradurre un sottocomando che il giocatore deve scrivere cosi' com'e').
-# Dentro < > e [ ] si traducono solo le parole elencate qui sotto; tutto il resto resta identico.
+# Vale in due posti:
+#  - la SINTASSI delle righe di aiuto (la parte prima di "::"), che non passa mai dal traduttore
+#    automatico: MyMemory ci metteva parole di un'altra lingua ("[jugador|clear]" in un testo
+#    inglese) e poteva tradurre un sottocomando che il giocatore deve scrivere cosi' com'e'. Qui si
+#    traducono le parole dentro < > e [ ];
+#  - ogni <...> in qualunque altro messaggio ("Uso: /f join <fazione>"): il traduttore lo
+#    protegge per intero (senza, MyMemory lo scambiava per un tag HTML e mangiava gli spazi), e al
+#    ritorno lo si traduce con questo glossario invece di rimetterlo in italiano.
+# Si traducono solo le voci di "words"; tutto il resto resta identico.
 #
 # Letto dal jar, mai copiato nella cartella dati: si cambia qui, nel sorgente di MagixLanguage.
-# check_config.py [8] blocca il commit se una riga di aiuto di un plugin usa una parola tra < > o
-# [ ] che non e' ne' in "words" ne' in "keep".
+# check_config.py [8] blocca il commit se un messages.yml usa tra < > (o tra [ ] in una riga di
+# aiuto) una parola che non e' ne' in "words" ne' in "keep".
 
 # Una voce per nome di argomento: "it" e' la parola come compare in messages.yml, le altre lingue
-# la sostituiscono (una lingua mancante lascia la parola italiana).
+# la sostituiscono (una lingua mancante lascia la parola italiana). Una voce puo' essere una parola
+# col trattino ("blocchi-per-pixel") o di piu' parole ("codice a sei cifre"): conta intera.
 words:
   - {it: "nome", en: "name", es: "nombre", de: "Name"}
   - {it: "giocatore", en: "player", es: "jugador", de: "Spieler"}
@@ -36,9 +42,17 @@ words:
   - {it: "indirizzo", en: "address", es: "dirección", de: "Adresse"}
   - {it: "opzione", en: "option", es: "opción", de: "Option"}
   - {it: "nuovoNome", en: "newName", es: "nuevoNombre", de: "neuerName"}
+  - {it: "nuovonome", en: "newname", es: "nuevonombre", de: "neuername"}
+  - {it: "categoria", en: "category", es: "categoría", de: "Kategorie"}
+  - {it: "durata", en: "duration", es: "duración", de: "Dauer"}
+  - {it: "minMembri", en: "minMembers", es: "minMiembros", de: "minMitglieder"}
+  - {it: "maxMembri", en: "maxMembers", es: "maxMiembros", de: "maxMitglieder"}
+  - {it: "blocchi-per-pixel", en: "blocks-per-pixel", es: "bloques-por-píxel", de: "Blöcke-pro-Pixel"}
+  - {it: "codice a sei cifre", en: "six-digit code", es: "código de seis cifras", de: "sechsstelliger Code"}
 
 # Parole tra < > o [ ] che restano IDENTICHE in ogni lingua: opzioni che il giocatore scrive
 # davvero ("on|off", "clear", "pubblico" di /mg dossier...) e nomi gia' uguali ovunque ("nick").
-keep: ["on", "off", "it", "en", "es", "de", "public", "faction", "ally", "clear", "reset", "mirror",
-       "auto", "info", "migrate", "sqlite", "mariadb", "x", "y", "z", "rain", "storm", "nick",
-       "nick2", "displayname", "n", "a", "b", "zoom", "pubblico"]
+keep: ["on", "off", "it", "en", "es", "de", "public", "faction", "ally", "enemy", "clear", "reset",
+       "mirror", "auto", "info", "migrate", "sqlite", "mariadb", "x", "y", "z", "rain", "storm",
+       "nick", "nick2", "displayname", "n", "a", "b", "zoom", "pubblico", "add", "list", "remove",
+       "create", "disband", "fake", "home", "setmap", "setpower", "bypass", "id"]

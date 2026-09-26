@@ -211,6 +211,7 @@ function myaml_item(array $i, int $livello, bool $conCaselle = true): string
     $out .= myaml_riga('item_model', $i['modello_item'] ?? null, $livello);
     $out .= myaml_riga('color', $i['colore'] ?? null, $livello);
     $out .= myaml_riga('head', $i['testa'] ?? null, $livello);
+    $out .= myaml_riga('magixpack', $i['magixpack'] ?? null, $livello);
     $out .= myaml_riga('components', $i['avanzate'] ?? null, $livello);
     // Il negozio: tre chiavi al posto di un blocco di condizioni (vedi negozio/Negozio.java).
     $out .= myaml_riga('price', $i['prezzo'] ?? null, $livello);
