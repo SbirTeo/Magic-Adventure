@@ -2,7 +2,7 @@
 #  MagixPack - catalogo degli OGGETTI custom (texture e modello propri,
 #  come Oraxen: niente resource pack a parte, entrano in questo).
 #
-#  Per aggiungerne uno:
+#  Per aggiungerne uno base (icona 2D):
 #   1. Metti la texture in plugins/MagixPack/items/<id>.png (stesso nome
 #      della chiave qui sotto, es. flaming_sword.png).
 #   2. Aggiungi la voce qui sotto (material = l'item base di Minecraft:
@@ -11,30 +11,67 @@
 #   3. /mpack reload. Il modello (un semplice layer0, come le icone 2D
 #      vanilla) lo genera il plugin da solo: non serve scrivere JSON a mano.
 #
-#  Per un modello 3D vero (non la semplice icona piatta): metti anche
-#  items/<id>-model.json (un vero modello Minecraft con "elements"/"faces",
-#  export da Blockbench o scritto a mano) - viene usato cosi' com'e' al
-#  posto del layer0 generato.
-#
-#  In gioco: /mpack item give <id> [giocatore].
-#
-#  Per poterlo piazzare per terra (tasto destro su un blocco, si rompe
-#  attaccandolo): furniture: true. Chiunque tenga l'oggetto in mano lo
-#  puo' piazzare, nessun permesso a parte; la protezione la fa la
-#  regione/claim gia' presente sul server, come per un blocco normale.
-#  furniture-solid: true aggiunge collisione vera (blocca il passaggio),
-#  false (default) lo lascia attraversabile - scelta per oggetto.
-#  furniture-shift-required: false toglie l'obbligo di tenere premuto
-#  shift per piazzarlo (true di default, per non entrare in conflitto
-#  col click normale sul blocco cliccato, es. un baule) - scelta per
-#  oggetto.
-#  furniture-hits: quanti colpi servono per romperla (default 1).
-#  furniture-drop: true la fa cadere per terra all'ultimo colpo invece
-#  di darla direttamente a chi ha colpito (default false, come un blocco
-#  normale che dropperebbe). furniture-hit-sound/furniture-break-sound:
-#  nome di un Sound (es. BLOCK_WOOD_HIT, BLOCK_STONE_BREAK...) per il
-#  colpo che non rompe ancora e per quello che rompe davvero.
+#  In gioco: /mpack item give <id> [giocatore], /mpack item list.
 # =====================================================================
+
+# Esempio con TUTTE le chiavi disponibili, ognuna commentata sul posto (rimuovi il
+# commento e metti items/spada_esempio.png + items/spada_esempio-model.json per provarlo
+# davvero - senza il modello, l'icona resta una texture 2D piatta):
+#
+# spada_esempio:
+#   # Obbligatoria. L'item base di Minecraft: decide le meccaniche (danno, durabilita',
+#   # se e' impilabile...), MAI l'aspetto - quello viene sempre dalla texture.
+#   material: DIAMOND_SWORD
+#
+#   # Facoltativo (default: l'id stesso). Nome mostrato in gioco, colori con &.
+#   name: "&cSpada Esempio"
+#
+#   # Facoltativo (default: nessuna). Righe di lore, colori con &.
+#   lore:
+#     - "&7Forgiata nel fuoco del Nether"
+#     - "&7(oggetto di esempio, non esiste davvero)"
+#
+#   # Facoltativo. Se esiste items/<id>-model.json (un vero modello Minecraft con
+#   # "elements"/"faces", export da Blockbench o scritto a mano), viene usato COSI'
+#   # COM'E' al posto del semplice layer0 2D generato di default - vedi "Modelli 3D
+#   # veri" nel README. Non e' una chiave qui: e' il file stesso a fare la differenza.
+#
+#   # --- Da qui in giu', tutto SOLO furniture: piazzabile per terra invece di restare
+#   # --- solo in mano/inventario. Nessuna di queste chiavi serve per un oggetto normale.
+#
+#   # Facoltativo (default: false). true = piazzabile per terra (tasto destro su un
+#   # blocco). Chiunque tenga l'oggetto in mano lo puo' piazzare, nessun permesso a
+#   # parte; la protezione (chi puo' piazzare/rompere dove) la fa la regione/claim
+#   # gia' presente sul server, come per un blocco normale messo li'.
+#   furniture: true
+#
+#   # Facoltativo (default: false). true = collisione vera (blocca il passaggio, un
+#   # blocco invisibile); false = resta attraversabile.
+#   furniture-solid: true
+#
+#   # Facoltativo (default: true). Se il tasto destro per piazzarlo deve avvenire con
+#   # shift premuto (default si', per non entrare in conflitto con l'uso normale del
+#   # blocco cliccato, es. aprire un baule); false toglie l'obbligo.
+#   furniture-shift-required: true
+#
+#   # Facoltativo (default: 1). Quanti colpi (attaccarla) servono per romperla,
+#   # contati sulla singola copia piazzata: due copie della stessa furniture si
+#   # rompono in modo indipendente.
+#   furniture-hits: 3
+#
+#   # Facoltativo (default: false). Cosa succede all'oggetto all'ultimo colpo: false
+#   # = va direttamente nell'inventario di chi ha colpito (o cade a terra se non c'e'
+#   # posto); true = cade per terra come un blocco normale, senza darlo a nessuno in
+#   # particolare.
+#   furniture-drop: false
+#
+#   # Facoltativi (default: BLOCK_WOOD_HIT / BLOCK_WOOD_BREAK). Nome di un Sound di
+#   # Bukkit (es. BLOCK_STONE_HIT, ENTITY_VILLAGER_HURT...): il primo suona a ogni
+#   # colpo che non rompe ancora, il secondo solo su quello che rompe davvero. Un
+#   # nome sbagliato o inesistente usa il default con un avviso in console, non
+#   # blocca l'oggetto.
+#   furniture-hit-sound: BLOCK_STONE_HIT
+#   furniture-break-sound: BLOCK_STONE_BREAK
 
 # Oggetto di PROVA, per verificare che texture/modello/comando funzionino davvero end-to-end:
 # togli pure appena non serve piu'.
@@ -55,10 +92,3 @@ test_cube:
     - "&7(non la semplice icona piatta)"
   furniture: true
   furniture-solid: true
-
-# Esempio (rimuovi il commento e metti items/flaming_sword.png per provarlo):
-# flaming_sword:
-#   material: DIAMOND_SWORD
-#   name: "&cSpada Ardente"
-#   lore:
-#     - "&7Forgiata nel fuoco del Nether"
