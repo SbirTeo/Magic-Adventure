@@ -37,7 +37,13 @@ import java.util.regex.Pattern;
  * <ul>
  *   <li><b>Aggiunge</b> le chiavi del sorgente che sul disco non ci sono, col commento che le
  *       accompagna, nella posizione che hanno nel sorgente (dopo l'ultima sorella gia' presente).</li>
- *   <li><b>Non tocca</b> i valori scelti sul server, ne' i commenti, ne' l'ordine di cio' che c'e'.</li>
+ *   <li><b>Non tocca</b> i valori scelti sul server, ne' l'ordine di cio' che c'e'.</li>
+ *   <li><b>Riallinea i commenti</b> che vengono dal jar: l'intestazione del file, i titoli di
+ *       sezione e il commento sopra ogni chiave che esiste anche nel sorgente prendono il testo del
+ *       sorgente. Senza, un file nato con una versione vecchia si teneva per sempre la spiegazione
+ *       vecchia, anche dopo che la chiave aveva cambiato significato. Restano come sono i commenti
+ *       sopra le chiavi che il sorgente non ha (quelle aggiunte dallo staff), e i menu
+ *       ({@code menus/*.yml}), che lo staff riscrive da capo.</li>
  *   <li><b>Rinomina</b> le chiavi che nel codice hanno cambiato nome, portandosi dietro il valore
  *       scelto sul server e togliendo quella vecchia. Le rinomine non si indovinano: si dichiarano
  *       in {@code renames.yml} (un file per sezione, {@code vecchio.percorso: nuovo.percorso}) nello
@@ -84,9 +90,12 @@ public final class ConfigAlign {
         public final List<String> skipped = new ArrayList<>();
         /** Chiavi che sarebbero finite doppie: l'allineamento e' stato annullato. */
         public final List<String> duplicated = new ArrayList<>();
+        /** Chiavi il cui commento (o il blocco di commento sopra) e' stato riallineato al sorgente;
+         *  "(intestazione)" per quello in cima al file. */
+        public final List<String> comments = new ArrayList<>();
 
         public boolean changed() {
-            return !added.isEmpty() || !renamed.isEmpty() || !removed.isEmpty();
+            return !added.isEmpty() || !renamed.isEmpty() || !removed.isEmpty() || !comments.isEmpty();
         }
     }
 
@@ -106,7 +115,7 @@ public final class ConfigAlign {
         for (String name : ymlInJar(plugin)) {
             if (name.equals(RENAMES_FILE)) continue;
             if (!new File(plugin.getDataFolder(), name).isFile()) continue;
-            align(plugin, name, renames.getOrDefault(name, Map.of()), cleanable(name));
+            align(plugin, name, renames.getOrDefault(name, Map.of()), cleanable(name), commentsSynced(name));
         }
     }
 
@@ -130,6 +139,14 @@ public final class ConfigAlign {
     private static boolean cleanable(String fileName) {
         return !fileName.startsWith("menus/") && !fileName.equals("sanctions.yml")
                 && !fileName.equals("items.yml") && !fileName.equals("glyphs.yml");
+    }
+
+    /**
+     * Su quali file si riallineano i commenti al sorgente: tutti tranne i menu, che lo staff
+     * riscrive da capo (li' il file del jar e' solo l'esempio di partenza, e i commenti sono suoi).
+     */
+    private static boolean commentsSynced(String fileName) {
+        return !fileName.startsWith("menus/");
     }
 
     /**
@@ -189,11 +206,16 @@ public final class ConfigAlign {
      * @return l'esito, o null se non c'era niente da fare (file non nel jar, o appena creato)
      */
     public static Result align(JavaPlugin plugin, String fileName) {
-        return align(plugin, fileName, Map.of(), cleanable(fileName));
+        return align(plugin, fileName, Map.of(), cleanable(fileName), commentsSynced(fileName));
     }
 
     public static Result align(JavaPlugin plugin, String fileName,
                                Map<String, String> renames, boolean cleanable) {
+        return align(plugin, fileName, renames, cleanable, commentsSynced(fileName));
+    }
+
+    public static Result align(JavaPlugin plugin, String fileName,
+                               Map<String, String> renames, boolean cleanable, boolean syncComments) {
         String source = resource(plugin, fileName);
         if (source == null) return null;
 
@@ -203,7 +225,7 @@ public final class ConfigAlign {
         if (!onDisk.isFile()) return null;
         try {
             Result result = merge(source, Files.readString(onDisk.toPath(), StandardCharsets.UTF_8),
-                    renames, cleanable);
+                    renames, cleanable, syncComments);
             if (result.unreadable) {
                 plugin.getLogger().warning(fileName + ": non ci ho capito niente (nessuna chiave"
                         + " riconosciuta) e NON l'ho toccato. Va guardato a mano: e' il file che il"
@@ -236,6 +258,10 @@ public final class ConfigAlign {
                 plugin.getLogger().info(fileName + ": tolte le righe morte, che il codice non legge"
                         + " piu' (" + String.join(", ", result.removed) + "). La copia di prima e'"
                         + " nella cartella .bak/ del server, col nome che finisce in .bak-<data>.");
+            }
+            if (!result.comments.isEmpty()) {
+                plugin.getLogger().info(fileName + ": commenti aggiornati come nella versione nuova ("
+                        + String.join(", ", result.comments) + "). I valori non sono stati toccati.");
             }
             if (!result.unknown.isEmpty()) {
                 plugin.getLogger().info(fileName + ": sul server ci sono chiavi che il codice non legge"
@@ -327,6 +353,11 @@ public final class ConfigAlign {
 
     public static Result merge(String source, String disk,
                                Map<String, String> renames, boolean cleanable) {
+        return merge(source, disk, renames, cleanable, false);
+    }
+
+    public static Result merge(String source, String disk,
+                               Map<String, String> renames, boolean cleanable, boolean syncComments) {
         Result result = new Result();
         Node onDisk = parse(disk);
 
@@ -344,7 +375,7 @@ public final class ConfigAlign {
         applyRenames(onDisk, renames, result);
         // 2) aggiunte (e, dove si puo', via le righe morte).
         List<String> out = new ArrayList<>();
-        mergeNode(onDisk, parse(source), "", result, out, cleanable);
+        mergeNode(onDisk, parse(source), "", result, out, cleanable, syncComments);
         if (!result.removed.isEmpty()) squeezeBlanks(out);
         result.text = String.join(disk.contains("\r\n") ? "\r\n" : "\n", out);
 
@@ -355,6 +386,7 @@ public final class ConfigAlign {
             result.text = disk;
             result.duplicated.addAll(twice);
             result.added.clear();
+            result.comments.clear();
         }
         return result;
     }
@@ -379,7 +411,7 @@ public final class ConfigAlign {
      * esistono solo nel sorgente. Ricorsiva: vale per il documento intero e per ogni sezione.
      */
     private static void mergeNode(Node disk, Node source, String path, Result result,
-                                  List<String> out, boolean cleanable) {
+                                  List<String> out, boolean cleanable, boolean syncComments) {
         out.addAll(disk.heading);
         out.addAll(disk.own);
 
@@ -394,20 +426,39 @@ public final class ConfigAlign {
 
         int childIndent = disk.childIndent(source);
         boolean firstChildSeen = false;
+        // The loose lines before each child of the source (section titles, the file header): what
+        // the loose run before the same child on the disk becomes, when both are only comments.
+        Map<String, List<String>> sourceRuns = syncComments ? source.runsBefore() : Map.of();
+        List<String> run = new ArrayList<>();
 
         for (Object piece : disk.content) {
             if (piece instanceof String line) {
-                out.add(line);
+                run.add(line);
                 continue;
             }
             Node d = (Node) piece;
+            String sotto = path.isEmpty() ? d.key : path + "." + d.key;
+            Node s = source.children.get(d.key);
+            if (syncComments && s != null) {
+                List<String> fromSource = sourceRuns.get(d.key);
+                if (fromSource != null && onlyComments(run) && onlyComments(fromSource)
+                        && !sameComments(run, fromSource)) {
+                    run = new ArrayList<>(fromSource);
+                    result.comments.add(!firstChildSeen && path.isEmpty() ? "(intestazione)" : sotto);
+                }
+                if (!sameComments(d.heading, s.heading)) {
+                    d.heading.clear();
+                    d.heading.addAll(s.heading);
+                    if (!result.comments.contains(sotto)) result.comments.add(sotto);
+                }
+            }
+            out.addAll(run);
+            run.clear();
             if (!firstChildSeen) {
                 // Le chiavi nuove che nel sorgente vengono prima di tutte entrano qui.
                 writeNew(toInsert.remove(""), childIndent, path, result, out);
                 firstChildSeen = true;
             }
-            String sotto = path.isEmpty() ? d.key : path + "." + d.key;
-            Node s = source.children.get(d.key);
             if (s == null) {
                 if (cleanable) {
                     // Riga morta: il codice non la legge piu'. Si toglie, e la copia di prima
@@ -418,13 +469,34 @@ public final class ConfigAlign {
                     out.addAll(d.allLines());
                 }
             } else {
-                mergeNode(d, s, sotto, result, out, cleanable);
+                mergeNode(d, s, sotto, result, out, cleanable, syncComments);
             }
             writeNew(toInsert.remove(d.key), childIndent, path, result, out);
         }
+        out.addAll(run); // coda del blocco: resta com'e'
         // Sezione vuota sul disco (o tutte chiavi nuove): entrano in coda.
         writeNew(toInsert.remove(""), childIndent, path, result, out);
         for (List<Node> rest : toInsert.values()) writeNew(rest, childIndent, path, result, out);
+    }
+
+    /** true se le righe sono solo commenti e righe vuote (niente valori di un elenco o simili). */
+    private static boolean onlyComments(List<String> lines) {
+        for (String l : lines) {
+            if (!l.isBlank() && !l.stripLeading().startsWith("#")) return false;
+        }
+        return true;
+    }
+
+    /** Stessi commenti, a meno di spazi in fondo alle righe e di righe vuote in coda. */
+    private static boolean sameComments(List<String> a, List<String> b) {
+        return normalized(a).equals(normalized(b));
+    }
+
+    private static List<String> normalized(List<String> lines) {
+        List<String> out = new ArrayList<>();
+        for (String l : lines) out.add(l.stripTrailing());
+        while (!out.isEmpty() && out.get(out.size() - 1).isEmpty()) out.remove(out.size() - 1);
+        return out;
     }
 
     /**
@@ -555,6 +627,21 @@ public final class ConfigAlign {
             }
             children.clear();
             children.putAll(nuovi);
+        }
+
+        /** For every child, the loose lines right before it (since the previous child). */
+        Map<String, List<String>> runsBefore() {
+            Map<String, List<String>> out = new LinkedHashMap<>();
+            List<String> run = new ArrayList<>();
+            for (Object piece : content) {
+                if (piece instanceof String line) {
+                    run.add(line);
+                } else {
+                    out.put(((Node) piece).key, run);
+                    run = new ArrayList<>();
+                }
+            }
+            return out;
         }
 
         List<String> allLines() {
