@@ -522,9 +522,13 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
       ?>
       <div class="lingua-mobile">
+        <?php // data-no-tr: sono nomi propri (l'endonimo di ogni lingua), non frasi italiane da
+              // tradurre — senza questo il traduttore automatico del sito li prendeva per testo
+              // normale e li rimpiazzava con traduzioni sbagliate (es. "Italiano" diventato
+              // "Deutsch" nel menu tedesco). ?>
         <?php foreach (SITE_LANGUAGES as $__lang): ?>
           <a href="<?= h(language_switch_url($__lang)) ?>" title="<?= h($__nomeLingua[$__lang]) ?>"
-             aria-label="<?= h($__nomeLingua[$__lang]) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+             aria-label="<?= h($__nomeLingua[$__lang]) ?>" data-no-tr<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
             <?= language_flag_svg($__lang) ?>
           </a>
         <?php endforeach; ?>
@@ -557,8 +561,9 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <?= language_flag_svg($GLOBALS['__siteLang']) ?>
         </summary>
         <div class="cambia-lingua-menu">
+          <?php // data-no-tr: vedi il commento sullo stesso array in .lingua-mobile qui sopra. ?>
           <?php foreach (SITE_LANGUAGES as $__lang): ?>
-            <a href="<?= h(language_switch_url($__lang)) ?>"<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+            <a href="<?= h(language_switch_url($__lang)) ?>" data-no-tr<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
               <?= language_flag_svg($__lang) ?>
               <?= h($__nomeLingua[$__lang]) ?>
             </a>
