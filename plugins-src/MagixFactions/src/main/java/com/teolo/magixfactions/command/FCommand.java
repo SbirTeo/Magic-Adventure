@@ -183,7 +183,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             return true;
         }
         String name = a[1];
-        if (!nameOk(p, name, null)) return true;
+        if (!nameOk(p, name, null, false)) return true;
 
         Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("create-cost"));
         String unmet = req.checkUnmet(p);
@@ -203,8 +203,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      *
      * @param self la fazione che sta rinominando (per /f rename): un nome uguale al suo, se cambia solo
      *             maiuscole/minuscole, non conta come "gia' preso". Per /f create passare null.
+     * @param byAdmin /mf admin rename: salta tetto di cifre e parole vietate, scelte dello staff.
      */
-    private boolean nameOk(CommandSender p, String name, Faction self) {
+    private boolean nameOk(CommandSender p, String name, Faction self, boolean byAdmin) {
         int min = plugin.getConfig().getInt("faction-name.min-length", 3);
         int max = plugin.getConfig().getInt("faction-name.max-length", 15);
         int maxDigits = plugin.getConfig().getInt("faction-name.max-digits", 2);
@@ -213,8 +214,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         }
         if (!name.matches("[A-Za-z0-9]+")) { msgKey(p, "create.name-chars"); return false; }
         long digits = name.chars().filter(Character::isDigit).count();
-        if (digits > maxDigits) { msgKey(p, "create.name-digits", "max", String.valueOf(maxDigits)); return false; }
-        if (WordFilter.isForbidden(plugin.getConfig().getStringList("forbidden-words"), name)) {
+        if (!byAdmin && digits > maxDigits) { msgKey(p, "create.name-digits", "max", String.valueOf(maxDigits)); return false; }
+        if (!byAdmin && WordFilter.isForbidden(plugin.getConfig().getStringList("forbidden-words"), name)) {
             msgKey(p, "filter.blocked"); return false;
         }
         Faction taken = fm.getByName(name);
@@ -254,7 +255,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (a.length < 2) { msgKey(p, "rename.usage"); return true; }
         String name = a[1];
         if (name.equals(f.getName())) { msgKey(p, "rename.same-name"); return true; }
-        if (!nameOk(p, name, f)) return true;
+        if (!nameOk(p, name, f, false)) return true;
 
         // Attesa fra un cambio nome e il successivo (0 giorni = nessun limite).
         long cooldownDays = plugin.getConfig().getLong("rename.cooldown-days", 30);
@@ -1766,8 +1767,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
     }
 
     /**
-     * /mf admin rename &lt;fazione&gt; &lt;nuovonome&gt; - rinomina UNA FAZIONE QUALSIASI. Stesse regole del
-     * nome di /f create, ma senza costo ne' attesa: e' lo strumento per correggere un nome d'ufficio.
+     * /mf admin rename &lt;fazione&gt; &lt;nuovonome&gt; - rinomina UNA FAZIONE QUALSIASI, senza costo ne' attesa.
+     * Del nome restano solo le regole tecniche (lunghezza, lettere e numeri, non gia' usato): e' lo
+     * strumento per correggere un nome d'ufficio, quindi tetto di cifre e parole vietate li decide lo staff.
      */
     private boolean adminRename(CommandSender s, String[] a) {
         if (a.length < 4) { msgKey(s, "admin.rename-usage"); return true; }
@@ -1775,7 +1777,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (f == null) { msgKey(s, "admin.faction-not-found", "faction", a[2]); return true; }
         String name = a[3];
         if (name.equals(f.getName())) { msgKey(s, "rename.same-name"); return true; }
-        if (!nameOk(s, name, f)) return true;
+        if (!nameOk(s, name, f, true)) return true;
         String old = f.getName();
         fm.renameFaction(f, name);
         broadcast(f, "rename.broadcast", "old", old, "name", name);
