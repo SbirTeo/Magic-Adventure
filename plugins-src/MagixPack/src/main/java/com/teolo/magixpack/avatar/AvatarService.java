@@ -2,9 +2,8 @@ package com.teolo.magixpack.avatar;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.teolo.magixpack.glyph.BitmapFit;
+import com.teolo.magixpack.glyph.GlyphCatalog;
 import com.teolo.magixpack.glyph.GlyphEntry;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.ShadowColor;
@@ -39,8 +38,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <h2>Why a pixel font</h2>
  * A resource pack is the same for everyone, so it cannot contain one image per player. Instead the
- * pack carries a tiny font (one per {@code player-avatar} voice of glyphs.yml, {@code
- * magixpack:avatar/<id>}: each has its own scale and offsets) with 8 "pixel" characters — character
+ * pack carries, in the default font, 8 "pixel" characters per {@code player-avatar} voice of
+ * glyphs.yml (each voice has its own scale and offsets, so its own characters) — character
  * {@code i} is a single white pixel on row {@code i} of an 8 px tall cell — plus two space
  * characters (one steps back, one steps forward). The avatar is then drawn at runtime, column by
  * column: for every non-transparent pixel of the skin the right row character, COLORED with that
@@ -60,13 +59,13 @@ public final class AvatarService {
     public static final int WIDTH = 8;
     public static final int HEIGHT = 8;
 
-    /** Row characters U+E000..U+E007, then the spaces (back, step, offset-x before and after).
-     *  Own fonts: no clash with any other one. */
-    private static final int FIRST_ROW = 0xE000;
-    private static final char BACK = '\uE100';
-    private static final char STEP = '\uE101';
-    private static final char SHIFT_BEFORE = '\uE102';
-    private static final char SHIFT_AFTER = '\uE103';
+    /** Characters an avatar voice takes in the default font, from its codepoint: 8 rows, then the
+     *  step-back space, the step space, and the offset-x spaces before and after. */
+    public static final int CHARS = 12;
+    private static final int BACK = 8;
+    private static final int STEP = 9;
+    private static final int SHIFT_BEFORE = 10;
+    private static final int SHIFT_AFTER = 11;
 
     private final JavaPlugin plugin;
     private final HttpClient http = HttpClient.newBuilder()
@@ -103,53 +102,38 @@ public final class AvatarService {
 
     // -------------------------------------------------------------------------------------- pack
 
-    /** The font of a {@code player-avatar} voice of glyphs.yml. */
-    public static Key font(GlyphEntry e) {
-        return Key.key("magixpack", "avatar/" + fileName(e.id()));
-    }
-
-    /** Resource pack paths are lower case, [a-z0-9_.-]: anything else in an id becomes '_'. */
-    private static String fileName(String id) {
-        return id.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_.-]", "_");
-    }
-
-    /** Font and pixel texture of one {@code player-avatar} voice, with its scale and offsets. */
-    public Map<String, byte[]> packFiles(GlyphEntry e) {
-        Map<String, byte[]> out = new LinkedHashMap<>();
-        BitmapFit fit = e.fit();
-        String name = fileName(e.id());
-        // One column per row character, the pixel on its own row; padRows empty rows at the bottom
-        // let the voice sit higher than the client would otherwise allow (see BitmapFit).
-        BufferedImage atlas = new BufferedImage(HEIGHT, HEIGHT + fit.padRows(), BufferedImage.TYPE_INT_ARGB);
+    /** The pixel texture of a {@code player-avatar} voice: one column per row character, the pixel
+     *  on its own row; padRows empty rows at the bottom let the voice sit higher than the client
+     *  would otherwise allow (see BitmapFit). */
+    public byte[] atlas(GlyphEntry e) {
+        BufferedImage atlas = new BufferedImage(HEIGHT, HEIGHT + e.fit().padRows(), BufferedImage.TYPE_INT_ARGB);
         for (int i = 0; i < HEIGHT; i++) atlas.setRGB(i, i, 0xFFFFFFFF);
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             ImageIO.write(atlas, "png", bos);
-            out.put("assets/magixpack/textures/font/avatar/" + name + ".png", bos.toByteArray());
+            return bos.toByteArray();
         } catch (IOException ex) {
-            plugin.getLogger().warning("[Avatar] Impossibile generare la texture dei pixel: " + ex.getMessage());
-            return Map.of();
+            throw new IllegalStateException(ex);
         }
-        StringBuilder rows = new StringBuilder();
-        for (int i = 0; i < HEIGHT; i++) rows.append(String.format("\\u%04X", FIRST_ROW + i));
-        // Vanilla gives a bitmap glyph an advance of round(width * scale) + 1 (width = 1 here): the
-        // step-back space cancels exactly that, the step space moves on by one drawn pixel.
-        double k = fit.pixelScale();
-        int advance = (int) (0.5 + k) + 1;
-        String font = "{\"providers\":["
-                + "{\"type\":\"bitmap\",\"file\":\"magixpack:font/avatar/" + name + ".png\",\"height\":" + fit.height()
-                + ",\"ascent\":" + fit.ascent() + ",\"chars\":[\"" + rows + "\"]},"
-                + "{\"type\":\"space\",\"advances\":{"
-                + "\"" + esc(BACK) + "\":" + (-advance)
-                + ",\"" + esc(STEP) + "\":" + k
-                + ",\"" + esc(SHIFT_BEFORE) + "\":" + e.offsetX()
-                + ",\"" + esc(SHIFT_AFTER) + "\":" + (-e.offsetX()) + "}}"
-                + "]}";
-        out.put("assets/magixpack/font/avatar/" + name + ".json", font.getBytes(StandardCharsets.UTF_8));
-        return out;
     }
 
-    private static String esc(char c) {
-        return String.format("\\u%04X", (int) c);
+    /** The row characters of a voice, JSON-escaped, for its bitmap provider. */
+    public String rowChars(GlyphEntry e) {
+        StringBuilder rows = new StringBuilder();
+        for (int i = 0; i < HEIGHT; i++) rows.append(GlyphCatalog.esc(e.codepoint() + i));
+        return rows.toString();
+    }
+
+    /** The spaces of a voice: codepoint -> advance. Vanilla gives a bitmap glyph an advance of
+     *  round(width * scale) + 1 (width = 1 here): the step-back space cancels exactly that, the step
+     *  space moves on by one drawn pixel. */
+    public Map<Integer, Double> spaces(GlyphEntry e) {
+        double k = e.fit().pixelScale();
+        Map<Integer, Double> out = new LinkedHashMap<>();
+        out.put(e.codepoint() + BACK, (double) -((int) (0.5 + k) + 1));
+        out.put(e.codepoint() + STEP, k);
+        out.put(e.codepoint() + SHIFT_BEFORE, e.offsetX());
+        out.put(e.codepoint() + SHIFT_AFTER, -e.offsetX());
+        return out;
     }
 
     // --------------------------------------------------------------------------------------- API
@@ -300,22 +284,48 @@ public final class AvatarService {
         return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
-    /** The face as text, in the font of the {@code player-avatar} voice {@code e}. */
+    /** The face as a Component (default font, no shadow: pixel art with a drop shadow blurs). */
     public Component render(GlyphEntry e, int[][] px) {
-        TextComponent.Builder root = Component.text().font(font(e)).shadowColor(ShadowColor.none());
-        if (e.offsetX() != 0) root.append(Component.text(String.valueOf(SHIFT_BEFORE)));
+        TextComponent.Builder root = Component.text().shadowColor(ShadowColor.none());
+        int cp = e.codepoint();
+        if (e.offsetX() != 0) root.append(Component.text(String.valueOf((char) (cp + SHIFT_BEFORE))));
         for (int x = 0; x < WIDTH; x++) {
             for (int y = 0; y < HEIGHT; y++) {
                 int argb = px[y][x];
                 if (argb == 0) continue;
-                root.append(Component.text(new String(new char[]{(char) (FIRST_ROW + y), BACK}))
+                root.append(Component.text(new String(new char[]{(char) (cp + y), (char) (cp + BACK)}))
                         .color(TextColor.color(argb & 0xFFFFFF)));
             }
-            root.append(Component.text(String.valueOf(STEP)));
+            root.append(Component.text(String.valueOf((char) (cp + STEP))));
         }
-        if (e.offsetX() != 0) root.append(Component.text(String.valueOf(SHIFT_AFTER)));
-        // Wrapped in a plain parent: whatever a caller appends after the avatar (a name, a caption)
-        // must not inherit the pixel font, which has no letters (they would show as empty boxes).
+        if (e.offsetX() != 0) root.append(Component.text(String.valueOf((char) (cp + SHIFT_AFTER))));
+        // Wrapped in a plain parent: whatever is appended after the avatar keeps its own style.
         return Component.text().append(root.build()).build();
+    }
+
+    /** The face as a legacy string (section-sign hex colors), for PlaceholderAPI and every plugin
+     *  that takes plain text. Plain text cannot turn the shadow off: the client draws its usual
+     *  drop shadow, a thin dark edge at the bottom-right of the face. */
+    public String legacy(GlyphEntry e, int[][] px) {
+        StringBuilder sb = new StringBuilder();
+        int cp = e.codepoint();
+        if (e.offsetX() != 0) sb.append((char) (cp + SHIFT_BEFORE));
+        int last = -1;
+        for (int x = 0; x < WIDTH; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                int argb = px[y][x];
+                if (argb == 0) continue;
+                int rgb = argb & 0xFFFFFF;
+                if (rgb != last) {
+                    sb.append("\u00a7x");
+                    for (char c : String.format("%06x", rgb).toCharArray()) sb.append('\u00a7').append(c);
+                    last = rgb;
+                }
+                sb.append((char) (cp + y)).append((char) (cp + BACK));
+            }
+            sb.append((char) (cp + STEP));
+        }
+        if (e.offsetX() != 0) sb.append((char) (cp + SHIFT_AFTER));
+        return sb.append("\u00a7r").toString();
     }
 }

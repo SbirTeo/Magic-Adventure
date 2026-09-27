@@ -4,6 +4,8 @@ import com.teolo.magixpack.MagixPack;
 import com.teolo.magixpack.glyph.GlyphEntry;
 import com.teolo.magixpack.lang.Messages;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -149,16 +151,29 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(messages.get(sender, "glyph-list-empty"));
             return;
         }
-        sender.sendMessage(messages.get(sender, "glyph-list-header").replace("{count}", String.valueOf(ids.size())));
+        sender.sendMessage(messages.get(sender, "glyph-list-title").replace("{count}", String.valueOf(ids.size())));
         for (String id : ids) {
             GlyphEntry e = plugin.glyphCatalog().entry(id);
+            String placeholder = "%magixpack_glyph_" + id + "%";
+            // A click copies what can be pasted: the character of an icon (it works in any text),
+            // the placeholder of an avatar (it is a different drawing for every player).
+            String line;
+            String copy;
+            String hover;
             if (e.playerAvatar()) {
-                sender.sendMessage(messages.get(sender, "glyph-list-row-avatar").replace("{glyph}", id));
-                continue;
+                line = messages.get(sender, "glyph-list-entry-avatar");
+                copy = placeholder;
+                hover = messages.get(sender, "glyph-list-copy-placeholder");
+            } else {
+                copy = plugin.glyphCatalog().text(e);
+                line = messages.get(sender, "glyph-list-entry").replace("{char}", copy)
+                        .replace("{codepoint}", String.format("U+%04X", e.codepoint()));
+                hover = messages.get(sender, "glyph-list-copy-char");
             }
-            sender.sendMessage(messages.get(sender, "glyph-list-row")
-                    .replace("{glyph}", id)
-                    .replace("{codepoint}", String.format("U+%X", e.codepoint())));
+            line = line.replace("{glyph}", id).replace("{placeholder}", placeholder);
+            sender.sendMessage(LegacyComponentSerializer.legacySection().deserialize(line)
+                    .clickEvent(ClickEvent.copyToClipboard(copy))
+                    .hoverEvent(HoverEvent.showText(LegacyComponentSerializer.legacySection().deserialize(hover))));
         }
     }
 

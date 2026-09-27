@@ -121,7 +121,7 @@ gia' presenti sul server (es. CMI).
 Una voce di `items.yml` con `type: player-avatar` non ha texture ne' `material`: e' un oggetto
 costruito **per un giocatore**. L'icona e' la sua testa (con la sua skin vera) e, passandoci sopra,
 la descrizione finisce con il suo **avatar** — la faccia piatta della skin, secondo strato
-compreso, alta come una lettera, disegnata dal font `magixpack:avatar` (vedi "L'avatar come glifo" sotto). Nel catalogo
+compreso, alta come una lettera, disegnata con caratteri-pixel del pacchetto (vedi "L'avatar come glifo" sotto). Nel catalogo
 di default c'e' gia':
 
 ```yaml
@@ -239,15 +239,32 @@ non accetta il valore cosi' com'e': MagixPack aggiunge da solo righe trasparenti
 lettera sporge sopra la riga: `/mpack glyph show` e la descrizione dell'oggetto avatar lasciano da
 sole le righe vuote che servono.
 
-Il font e' custom (`magixpack:icons`), **mai** `minecraft:default`: quel file il client lo prende
-per intero dal pacchetto con priorita' piu' alta, non lo fonde — un provider aggiunto li' sopra
-cancellerebbe silenziosamente tutti i provider vanilla (e' il motivo per cui l'esperimento della
-cornice, prima di questa funzione, e' stato tolto). Con un font a parte questo rischio non c'e'.
+### Carattere, placeholder o API: tre modi di usarla
 
-Il **punto di codice** (dove vive l'icona nello spazio Unicode) non si sceglie a mano: viene
-assegnato in ordine alfabetico sugli id presenti, a partire da un'area privata Unicode dedicata
-(mai in conflitto con un carattere vero). Puo' quindi CAMBIARE se il catalogo cambia — ecco perche'
-un'icona si richiama sempre per NOME tramite l'API, mai scrivendo il carattere a mano:
+Le icone vivono nel font **normale** di Minecraft (`minecraft:default`), come in Oraxen: il loro
+carattere funziona in QUALUNQUE testo, non solo dove si puo' scegliere un font.
+
+- **Il carattere** — lo assegna il plugin a **ogni avvio/reload**, in ordine alfabetico sugli id,
+  nell'area privata Unicode da `U+E800` (sotto restano liberi per gli altri plugin: il logo del
+  tablist di MagixFactions e' `U+E010`). `/mpack glyph list` lo mostra per ogni icona e un **clic
+  sulla riga lo copia**: si incolla in un messaggio, un config di CMI, un cartello... Stesso catalogo,
+  stessi caratteri; ma se il catalogo cambia possono spostarsi.
+- **Il placeholder** (PlaceholderAPI) — `%magixpack_glyph_<id>%`: non cambia mai, anche se il
+  carattere si sposta. E' il modo giusto in un config che deve durare. Per una voce avatar da'
+  l'avatar di chi legge; `%magixpack_glyph_<id>:<giocatore>%` quello di un altro giocatore online.
+  Un'icona esce bianca (`§f`: il glifo prende il colore del testo prima di lui); un avatar finisce
+  con `§r`, quindi il testo dopo riparte dal colore di base.
+- **L'API** — `customGlyph(id)` / `customGlyph(id, giocatore)`, un `Component` Adventure.
+
+Il file `default.json` il client lo prende **per intero** dal pacchetto, non lo fonde col suo: un
+file con le sole icone cancellerebbe tutte le lettere (e' il motivo per cui l'esperimento della
+cornice, prima di questa funzione, era stato tolto). Per questo quello generato qui richiama anche
+i font vanilla (`include/space`, `include/default`, `include/unifont`), e il pacchetto **fonde** i
+`default.json` di tutti i plugin (quello del logo di MagixFactions compreso) invece di tenerne uno
+solo: prima tutti i caratteri custom, poi i font vanilla una volta sola. Se due plugin definiscono lo
+stesso carattere, vince il primo e il log lo segnala.
+
+Da un altro plugin:
 
 ```java
 Plugin mp = Bukkit.getPluginManager().getPlugin("MagixPack");
@@ -255,27 +272,28 @@ Component icona = (Component) mp.getClass().getMethod("customGlyph", String.clas
 if (icona != null) player.sendMessage(Component.text("Hai trovato una ").append(icona));
 ```
 
-`/mpack glyph list` (permesso `magixpack.glyph.list`) mostra il catalogo caricato col punto di
-codice di ognuna, utile per verificare cosa e' disponibile in questo momento.
+`/mpack glyph list` (permesso `magixpack.glyph.list`) mostra il catalogo caricato: per ogni icona il
+carattere (cliccabile per copiarlo), il suo codice Unicode e il placeholder.
 
 ## L'avatar come glifo (chat, tablist)
 
 In `glyphs.yml` c'e' la voce `avatar` (`type: player-avatar`, niente texture): compare in
 `/mpack glyph list` e `/mpack glyph show avatar [giocatore]` la mostra in chat. `scale`, `offset-x`,
 `offset-y` come ogni altra voce; se ne possono fare piu' di una con grandezze diverse (es.
-`avatar_big` con `scale: 2`), ognuna col suo font `magixpack:avatar/<id>`, e l'oggetto `avatar` di
+`avatar_big` con `scale: 2`), ognuna coi suoi caratteri, e l'oggetto `avatar` di
 `items.yml` sceglie quale usare con `glyph:` (default `avatar`). Da un altro plugin:
 `customGlyph("avatar", giocatore)`.
 
-La faccia della skin come **testo**, per chat e tablist (alta come una lettera): `playerAvatar(Player)` restituisce
+La faccia della skin come **testo**, per chat e tablist (alta come una lettera): ovunque ci sia
+PlaceholderAPI basta `%magixpack_glyph_avatar%`. Da codice, `playerAvatar(Player)` restituisce
 il `Component` pronto (null finche' non e' scaricato), `playerAvatarAsync(String nome)` un
 `CompletableFuture<Component>` che si completa su un thread in sottofondo (null se la skin non si
 trova). E' lo stesso che finisce nella descrizione dell'oggetto `avatar`.
 
 Come e' fatto: un resource pack e' uguale per tutti, quindi non puo' contenere un'immagine per
-giocatore. Il pacchetto contiene solo un font minuscolo (`magixpack:avatar`): 8 caratteri
-"pixel" (il carattere `i` e' un pixel bianco sulla riga `i`) piu' due spazi, uno che torna indietro
-e uno che avanza. L'avatar si compone a runtime colonna per colonna, un carattere-pixel COLORATO
+giocatore. Il pacchetto contiene solo, per ogni voce avatar, 8 caratteri "pixel" nel font normale
+(il carattere `i` e' un pixel bianco sulla riga `i`) piu' due spazi, uno che torna indietro e uno che
+avanza. L'avatar si compone a runtime colonna per colonna, un carattere-pixel COLORATO
 per ogni pixel della faccia: 8x8 pixel al posto di un carattere, dentro la riga di testo.
 
 Da dove arriva la skin: il server e' in offline-mode, quindi il profilo del giocatore di solito
