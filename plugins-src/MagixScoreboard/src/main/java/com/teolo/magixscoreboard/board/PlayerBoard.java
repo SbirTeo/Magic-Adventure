@@ -1,5 +1,6 @@
 package com.teolo.magixscoreboard.board;
 
+import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -147,6 +148,10 @@ final class PlayerBoard {
         Objective existing = target.getObjective(OBJECTIVE_NAME);
         this.objective = existing != null ? existing
                 : target.registerNewObjective(OBJECTIVE_NAME, Criteria.DUMMY, Component.empty());
+        // Il punteggio di ogni riga serve solo per l'ORDINE (vedi render()): il numero che
+        // mostrerebbe di suo la sidebar vanilla accanto a ogni riga non ha senso per noi, va
+        // nascosto.
+        objective.numberFormat(NumberFormat.blank());
         for (int i = 0; i < MAX_LINES; i++) {
             entries[i] = invisibleEntry(i);
             Team team = target.getTeam(TEAM_PREFIX + i);
