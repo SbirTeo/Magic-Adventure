@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Smaltisce, un lotto alla volta, le frasi che il sito ha accodato in {@code site_translations}
@@ -49,8 +50,28 @@ public final class SiteTranslationWorker {
         return true;
     }
 
-    /** Un giro: legge le frasi in attesa, le raggruppa per lingua e le traduce un lotto alla volta. */
+    /** Un giro alla volta: vedi {@link #run()}. */
+    private final AtomicBoolean running = new AtomicBoolean();
+
+    /**
+     * Un giro: legge le frasi in attesa, le raggruppa per lingua e le traduce un lotto alla volta.
+     * Il timer lo richiama ogni 30 secondi anche se il giro prima non e' finito: con MyMemory lento
+     * (4 secondi per frase in timeout) i giri si accavallavano, visto succedere davvero con sei
+     * thread insieme, e ognuno rileggeva le STESSE frasi in attesa: stessa frase tradotta piu'
+     * volte (quota sprecata) e piu' tentativi falliti contati per un solo timeout.
+     */
     public void run() {
+        if (!running.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            runOnce();
+        } finally {
+            running.set(false);
+        }
+    }
+
+    private void runOnce() {
         MagixLanguageAPI api = magixLanguage();
         if (api == null) {
             return;
