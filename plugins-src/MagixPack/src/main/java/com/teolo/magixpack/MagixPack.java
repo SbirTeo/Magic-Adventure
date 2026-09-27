@@ -388,6 +388,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixpack.hook.GlyphPlaceholders.DOCS)
                 .settings(
                         "public-host", "IP pubblico da cui i client scaricano il pacchetto. Vuoto = pacchetto disabilitato.",
                         "port", "Porta del server HTTP che serve lo zip: va aperta sul firewall del VPS.",

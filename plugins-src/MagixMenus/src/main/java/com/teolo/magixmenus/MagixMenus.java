@@ -243,6 +243,7 @@ public final class MagixMenus extends JavaPlugin {
                 .detailedCommands()
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixmenus.hook.Placeholders.DOCS)
                 .settings(
                         "actions.allow-op-commands", "Consente l'azione op_command. Da tenere spenta.",
                         "min-update-ticks", "Il minimo intervallo fra due ridisegni di un menu: "

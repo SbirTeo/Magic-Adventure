@@ -269,6 +269,7 @@ public final class MagixTime extends JavaPlugin {
                 .detailedCommands()
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixtime.hook.MagixTimePlaceholders.DOCS)
                 .settings(
                         "time.timezone", "Il fuso su cui si allinea l'ora. Il VPS è in UTC: qui ci va Europe/Rome.",
                         "time.enabled", "Spegnendolo, l'ora torna a scorrere come in un server normale.",

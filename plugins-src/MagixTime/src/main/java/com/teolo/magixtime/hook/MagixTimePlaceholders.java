@@ -31,6 +31,24 @@ import java.util.Locale;
  */
 public final class MagixTimePlaceholders extends PlaceholderExpansion {
 
+    /** Elenco per la guida staff (StaffGuide.placeholders): coppie placeholder, cosa mostra.
+     *  check_config.py [9] blocca il commit se qui manca un placeholder risolto sotto. */
+    public static final String[] DOCS = {
+            "%magixtime_season%", "Nome colorato della stagione (es. Inverno).",
+            "%magixtime_season_key%", "Chiave della stagione (winter, summer...).",
+            "%magixtime_next_season%", "Nome della prossima stagione.",
+            "%magixtime_days_to_next%", "Giorni reali al cambio di stagione.",
+            "%magixtime_time%", "Ora reale HH:mm (fuso del config).",
+            "%magixtime_time_seconds%", "Ora reale HH:mm:ss.",
+            "%magixtime_date%", "Data reale dd/MM/yyyy.",
+            "%magixtime_timezone%", "Fuso orario usato.",
+            "%magixtime_mc_time%", "Ora di gioco HH:mm (nel mondo del giocatore).",
+            "%magixtime_mc_ticks%", "Tick del mondo (0-23999).",
+            "%magixtime_weather%", "Meteo: Sereno / Pioggia / Temporale.",
+            "%magixtime_weather_next%", "Minuti al prossimo cambio di meteo.",
+            "%magixtime_snow%", "si/no: se la stagione accumula neve.",
+    };
+
     private final MagixTime plugin;
 
     public MagixTimePlaceholders(MagixTime plugin) {

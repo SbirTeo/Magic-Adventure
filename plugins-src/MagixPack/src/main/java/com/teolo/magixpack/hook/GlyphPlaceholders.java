@@ -21,6 +21,14 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public final class GlyphPlaceholders extends PlaceholderExpansion {
 
+    /** Elenco per la guida staff (StaffGuide.placeholders): coppie placeholder, cosa mostra.
+     *  check_config.py [9] blocca il commit se qui manca un placeholder risolto sotto. */
+    public static final String[] DOCS = {
+            "%magixpack_glyph_<id>%", "Il carattere di un glifo di glyphs.yml (icona bianca). Per una voce "
+                    + "player-avatar e' l'avatar del giocatore che legge. L'elenco degli id con /mpack glyph list.",
+            "%magixpack_glyph_<id>:<giocatore>%", "Come sopra, ma l'avatar di un altro giocatore (online).",
+    };
+
     private final JavaPlugin plugin;
     private final GlyphCatalog glyphs;
 

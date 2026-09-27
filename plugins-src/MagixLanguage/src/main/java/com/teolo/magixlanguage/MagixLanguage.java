@@ -470,6 +470,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 .detailedCommands()
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixlanguage.hook.MagixLanguagePlaceholders.DOCS)
                 .settings(
                         "default-language", "Lingua usata quando non se ne rileva nessuna.",
                         "geoip.enabled", "Spegnendolo, nessun IP esce verso il servizio GeoIP: tutti partono con default-language.",

@@ -151,6 +151,7 @@ public class MagixWeb extends JavaPlugin {
 
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixweb.rank.RankPlaceholders.DOCS)
                 .settings(
                         "chat.enabled", "Spegne la chat live in home senza toccare il resto.",
                         "chat.mirror-game-chat", "Se la chat del gioco si vede sul sito.",

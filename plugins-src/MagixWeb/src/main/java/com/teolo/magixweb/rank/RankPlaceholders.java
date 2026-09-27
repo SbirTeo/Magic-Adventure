@@ -15,6 +15,13 @@ import org.jetbrains.annotations.NotNull;
  */
 public class RankPlaceholders extends PlaceholderExpansion {
 
+    /** Staff guide list (StaffGuide.placeholders): pairs placeholder, what it shows.
+     *  check_config.py [9] blocks the commit if a placeholder resolved below is missing here. */
+    public static final String[] DOCS = {
+            "%magixweb_namecolor%", "Colore (&#RRGGBB) del gruppo di peso piu' alto del giocatore, lo stesso "
+                    + "con cui il sito scrive il suo nome: da mettere prima del nome nei formati di chat.",
+    };
+
     private final RankSync rankSync;
     private final String version;
 

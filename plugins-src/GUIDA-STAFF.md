@@ -87,6 +87,7 @@ StaffGuide.create(this, "MagixTime — ora, stagioni e meteo reali", 60)
         .section("Come funziona", "…")
         .commands()        // tabella da plugin.yml
         .permissions()     // tabella da plugin.yml
+        .placeholders(MagixTimePlaceholders.DOCS)   // i %placeholder% che il plugin offre
         .settings("time.timezone", "cosa cambia")   // TUTTE le chiavi, col valore ORA in uso
         .issue("Il problema tipico", "Cosa fare")
         .never("La trappola da non fare")
@@ -232,3 +233,8 @@ di trovare queste cose:
    altre compaiono comunque. Quindi **una chiave nuova nel config e' documentata dal momento in cui
    esiste**, e il commento che deve avere (regola 1) e' anche la sua voce di guida. Per un secondo file
    di config c'e' `.settingsFrom(conf, "titolo")` (le sanzioni di MagixGuard).
+7. **Placeholder nella guida staff**: ogni classe che estende `PlaceholderExpansion` tiene la
+   costante `DOCS` (coppie: placeholder com'e' da scrivere, cosa mostra), accanto al codice che li
+   risolve, e il plugin la passa a `.placeholders(...)`. `check_config.py` **[9]** blocca il commit
+   se l'espansione risponde a un placeholder che `DOCS` non elenca, se `DOCS` manca, o se non arriva
+   alla guida: un placeholder nuovo non puo' piu' restare invisibile allo staff.

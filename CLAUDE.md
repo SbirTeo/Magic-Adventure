@@ -357,7 +357,9 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    Sul fronte guide contano soprattutto due regole di `check_config.py`: **[6]** segnala i numeri
    scritti a mano nel tutorial che coincidono con un valore del config, **[7]** segnala una
    *modalità* (chiave che vale una parola fra più possibili) che il tutorial non racconta con un
-   blocco `{{se:...}}`. Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
+   blocco `{{se:...}}`, **[9]** segnala un placeholder PlaceholderAPI che il plugin risolve ma che
+   la guida staff non elenca (costante `DOCS` della classe dei placeholder, passata a
+   `StaffGuide.placeholders(...)`). Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
    `git config core.hooksPath .githooks`) e va lanciato prima di un rilascio.
 5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
    plugin e i `docs/` relativi, nello stesso commit della modifica.
