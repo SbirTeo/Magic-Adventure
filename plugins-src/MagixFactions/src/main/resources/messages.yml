@@ -390,7 +390,7 @@ db:
   usage: "&cUso: /mf db <info|migrate <sqlite|mariadb>>"
 
 admin:
-  usage: "&cUso: /mf admin <setpower|setmap|fake|bypass|home|disband> ..."
+  usage: "&cUso: /mf admin <setpower|setmap|fake|bypass|home|disband|rename> ..."
   not-found: "&cGiocatore &e{player}&c non trovato (dev'essere entrato almeno una volta)."
   faction-not-found: "&cFazione &e{faction}&c non trovata."
   bypass-usage: "&cUso: /mf admin bypass [on|off] &7(senza argomento: inverte lo stato attuale)"
@@ -400,6 +400,9 @@ admin:
   home-not-set: "&cLa fazione &e{faction}&c non ha una home impostata."
   disband-usage: "&cUso: /mf admin disband <fazione>"
   disband-ok: "&aFazione &e{faction}&a sciolta."
+  rename-usage: "&cUso: /mf admin rename <fazione> <nuovonome>"
+  # {old} = nome di prima, {name} = nome nuovo
+  rename-ok: "&aFazione &e{old}&a rinominata in &e{name}&a."
   bad-value: "&cValore non valido (usa un numero intero, oppure 'reset')."
   setpower-ok: "&aPotenza di &e{player}&a impostata a &e{value}&a."
   setpower-reset: "&aPotenza di &e{player}&a riportata al default (&e{value}&a)."
@@ -497,3 +500,4 @@ help:
         - "/mf admin bypass [on|off] :: attiva/disattiva IL TUO bypass costruzione"
         - "/mf admin home <fazione> :: teletrasporto alla home di una fazione qualsiasi"
         - "/mf admin disband <fazione> :: scioglie una fazione qualsiasi"
+        - "/mf admin rename <fazione> <nuovonome> :: rinomina una fazione qualsiasi"

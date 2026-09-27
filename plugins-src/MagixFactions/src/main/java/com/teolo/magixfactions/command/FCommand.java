@@ -204,7 +204,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * @param self la fazione che sta rinominando (per /f rename): un nome uguale al suo, se cambia solo
      *             maiuscole/minuscole, non conta come "gia' preso". Per /f create passare null.
      */
-    private boolean nameOk(Player p, String name, Faction self) {
+    private boolean nameOk(CommandSender p, String name, Faction self) {
         int min = plugin.getConfig().getInt("faction-name.min-length", 3);
         int max = plugin.getConfig().getInt("faction-name.max-length", 15);
         int maxDigits = plugin.getConfig().getInt("faction-name.max-digits", 2);
@@ -1430,11 +1430,12 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "admin":
                 if (!s.hasPermission("magixfactions.admin")) break;
                 if (args.length == 2)
-                    return filterPrefix(args[1], List.of("setpower", "setmap", "fake", "bypass", "home", "disband"));
+                    return filterPrefix(args[1], List.of("setpower", "setmap", "fake", "bypass", "home", "disband", "rename"));
                 if (args.length == 3) {
                     if (args[1].equalsIgnoreCase("fake"))
                         return filterPrefix(args[2], List.of("create", "clear", "info"));
-                    if (args[1].equalsIgnoreCase("home") || args[1].equalsIgnoreCase("disband"))
+                    if (args[1].equalsIgnoreCase("home") || args[1].equalsIgnoreCase("disband")
+                            || args[1].equalsIgnoreCase("rename"))
                         return filterPrefix(args[2], factionNames());
                     if (args[1].equalsIgnoreCase("bypass"))
                         return filterPrefix(args[2], List.of("on", "off"));
@@ -1566,6 +1567,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "bypass": return adminBypass(s, a);
             case "home": return adminHome(s, a);
             case "disband": return adminDisband(s, a);
+            case "rename": return adminRename(s, a);
             case "minimapdump": minimap.dumpMapPacketStructure(s); return true;
             case "minimaprptest": return adminMinimapResourcePackTest(s);
             case "minimapmarker": return adminMinimapMarkerTest(s);
@@ -1760,6 +1762,24 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         fm.disband(f);
         msgKey(s, "admin.disband-ok", "faction", name);
         broadcastAll("disband.announce", "name", name, "player", s.getName());
+        return true;
+    }
+
+    /**
+     * /mf admin rename &lt;fazione&gt; &lt;nuovonome&gt; - rinomina UNA FAZIONE QUALSIASI. Stesse regole del
+     * nome di /f create, ma senza costo ne' attesa: e' lo strumento per correggere un nome d'ufficio.
+     */
+    private boolean adminRename(CommandSender s, String[] a) {
+        if (a.length < 4) { msgKey(s, "admin.rename-usage"); return true; }
+        Faction f = fm.getByName(a[2]);
+        if (f == null) { msgKey(s, "admin.faction-not-found", "faction", a[2]); return true; }
+        String name = a[3];
+        if (name.equals(f.getName())) { msgKey(s, "rename.same-name"); return true; }
+        if (!nameOk(s, name, f)) return true;
+        String old = f.getName();
+        fm.renameFaction(f, name);
+        broadcast(f, "rename.broadcast", "old", old, "name", name);
+        msgKey(s, "admin.rename-ok", "old", old, "name", name);
         return true;
     }
 

@@ -190,6 +190,7 @@ comuni a tutti i plugin Magix: vedi `plugins-src/STILE-MAGIX.md`.
 | `/mf admin bypass [on\|off]` | (admin) attiva/disattiva il **tuo** bypass della protezione territori. Chi ha già `magixfactions.bypass`/`.admin` può spegnerlo un momento per testare come un giocatore normale, senza doversi togliere il permesso. Senza argomento: inverte lo stato attuale |
 | `/mf admin home <fazione>` | (admin) teletrasporto alla home di **una fazione qualsiasi**, non solo la propria |
 | `/mf admin disband <fazione>` | (admin) scioglie **una fazione qualsiasi**, senza doverne essere il leader |
+| `/mf admin rename <fazione> <nuovonome>` | (admin) rinomina **una fazione qualsiasi**, senza doverne essere il leader. Stesse regole del nome di `/f create`, ma senza costo né attesa (`rename.cost` e `rename.cooldown-days` valgono solo per il leader); da lì però riparte l'attesa del leader per il suo prossimo `/f rename` |
 | `/mf reload` | (admin) ricarica `config.yml` e `messages.yml` |
 
 Permessi Bukkit: `magixfactions.use` (default: tutti), `magixfactions.admin` (default: op).
