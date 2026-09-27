@@ -523,6 +523,10 @@ map:
     # Forma della minimap: "round" (rotonda, default) o "square" (quadrata).
     # NB: e' nello shader del pack -> cambiare richiede un RIAVVIO del server (rigenera il pack).
     shape: "square"
+    # Lato dello schermo in cui sta la minimap (col pannello info sotto): "right" (alto a destra) o
+    # "left" (alto a sinistra — utile se a destra c'e' gia' la scoreboard, che ci si accavallerebbe).
+    # NB: e' nello shader del pack -> cambiare richiede un RIAVVIO del server (rigenera il pack).
+    position: "left"
     # Cornice della minimap (spessore e colore). ANCHE QUESTE sono cotte nello shader del pack -> cambiarle
     # richiede un RIAVVIO del server e che i client riscarichino il pack.
     #  - border-size: spessore in pixel (0 = nessuna cornice). Consigliato 2-4; sulla minimap ROTONDA oltre

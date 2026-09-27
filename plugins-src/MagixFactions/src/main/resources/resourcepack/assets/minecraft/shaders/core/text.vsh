@@ -58,7 +58,7 @@ flat out vec4 arrows[ARROW_MAX];
 // minimap ha un HEADER MAGICO nei primi pixel della riga 0 (byte palette 18/4/49 -> colori 0xFF0000/
 // 0x597D27/0x3737DC, verificati): se lo shader lo riconosce, questo non e' testo/mappa nel mondo 3D ma
 // la minimap HUD, e la sua posizione a schermo viene sovrascritta con coordinate fisse (angolo alto a
-// destra). L'header (prime 2 righe) viene poi nascosto nel fragment per non mostrarlo.
+// destra o a sinistra, config map.minimap.position). L'header (prime 2 righe) viene poi nascosto nel fragment per non mostrarlo.
 //
 // texelFetch (coordinate intere) nel VERTEX shader FUNZIONA per la map texture in questo contesto,
 // mentre texture()/textureLod() nell'entity shader restituivano nero (verificato empiricamente).
@@ -71,6 +71,12 @@ flat out vec4 arrows[ARROW_MAX];
 // (frazione di schermo). Se il pack viene usato cosi' com'e' (senza sostituzione), resta 0.22.
 const vec2 MAP_SIZE = vec2(__MAP_SIZE__, __MAP_SIZE__);
 const vec2 MAP_OFFSET = vec2(0.03, 0.03);
+// Lato dello schermo: __MAP_LEFT__ e' sostituito dal plugin (0.0 = alto a destra, 1.0 = alto a
+// sinistra) da config map.minimap.position. MAP_X0 = bordo SINISTRO del riquadro sull'asse "map"
+// (a cui il main somma +1.0 per passare in NDC): a destra -MAP_OFFSET.x - s, a sinistra
+// MAP_OFFSET.x - 2.0 (cioe' NDC -1.0 + margine). Vale anche per il pannello info, che segue la minimap.
+const float MAP_LEFT = __MAP_LEFT__;
+const float MAP_X0 = mix(-MAP_OFFSET.x - __MAP_SIZE__, MAP_OFFSET.x - 2.0, MAP_LEFT);
 
 // --- Pannello info (orologio/coordinate/info) sotto la minimap -------------------------------------
 // Una SECONDA mappa finta (firma magica diversa, vedi sotto) viene piazzata come striscia larga quanto
@@ -149,9 +155,9 @@ void main() {
         ivec2 uv = ivec2(UV0 * texSize);
         ivec2 mapUV = uv - ivec2(cornerUV * 128.0);
         if (idAt(mapUV + ivec2(0, 0)) == MK0 && idAt(mapUV + ivec2(1, 0)) == MK1 && idAt(mapUV + ivec2(2, 0)) == MK2) {
-            // Riquadro in alto a DESTRA, quadrato (nessuna rotazione in questa fase).
+            // Riquadro in alto (a destra o a sinistra, vedi MAP_X0), quadrato (nessuna rotazione).
             vec2 map = cornerUV * MAP_SIZE;
-            map = map + MAP_OFFSET * vec2(-1.0, 1.0) - vec2(MAP_SIZE.x, 0.0);
+            map = map + vec2(MAP_X0, MAP_OFFSET.y);
             // z = 0.0 (piano vicino), NON piu' -0.9999. FIX 26.2 (2026-07-23, causa CONFERMATA del "non si
             // vede piu' NIENTE" dopo che il riconoscimento header ha ripreso a funzionare): da MC 26.2 il
             // client usa glClipControl ZERO_TO_ONE (verificato nel client jar: Projection.isZZeroToOne,
@@ -185,16 +191,16 @@ void main() {
             custom = 2;
             uvCoord = cornerUV * 128.0;
         } else if (idAt(mapUV + ivec2(0, 0)) == MK0 && idAt(mapUV + ivec2(1, 0)) == MK2 && idAt(mapUV + ivec2(2, 0)) == MK1) {
-            // Firma (18/49/4 = MK0/MK2/MK1) = PANNELLO INFO: striscia sotto la minimap, stesso bordo destro
+            // Firma (18/49/4 = MK0/MK2/MK1) = PANNELLO INFO: striscia sotto la minimap, stessi bordi
             // e stessa larghezza. Scritto da InfoPanelRenderer. La minimap occupa in NDC (asse "map"):
-            //   x in [-MAP_OFFSET.x - s, -MAP_OFFSET.x],  y in [MAP_OFFSET.y, MAP_OFFSET.y + s]
+            //   x in [MAP_X0, MAP_X0 + s],  y in [MAP_OFFSET.y, MAP_OFFSET.y + s]
             // (vedi il ramo minimap sopra). Il pannello parte quindi a y = MAP_OFFSET.y + s + PANEL_GAP e
             // alto s*(PANEL_ROWS/128) -> pixel quadrati come la minimap. La texture e' campionata solo sulle
             // prime PANEL_ROWS righe (uvCoord.y in [0, PANEL_ROWS]); il resto della mappa 128x128 non si usa.
             float s = MAP_SIZE.x;
             float panelH = s * (PANEL_ROWS / 128.0);
             vec2 mp;
-            mp.x = cornerUV.x * s - MAP_OFFSET.x - s;
+            mp.x = cornerUV.x * s + MAP_X0;
             mp.y = MAP_OFFSET.y + s + PANEL_GAP + cornerUV.y * panelH;
             gl_Position = vec4(vec2(1.0, -ProjMat[1][1] / ProjMat[0][0]) * mp + vec2(1.0, 1.0), 0.0, 1.0);
             vertexColor = vec4(1.0);
