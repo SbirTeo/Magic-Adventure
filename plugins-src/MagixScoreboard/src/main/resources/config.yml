@@ -11,11 +11,12 @@
 enabled: true
 
 # Ogni quanti tick (20 = 1 secondo) il plugin ricalcola la scoreboard giusta per
-# ogni giocatore online e fa avanzare le animazioni. Gli "interval-ticks" di
-# titolo e righe (piu' sotto) sono multipli di questo: metterli piu' bassi di
-# questo valore non li rende piu' fluidi, perche' l'avanzamento avviene solo a
-# ogni giro di questo orologio. Un valore piu' basso qui aggiorna tutto con piu'
-# precisione ma ricalcola le condizioni (permesso/mondo/regione) piu' spesso.
+# ogni giocatore online (condizioni e placeholder). Le animazioni NON dipendono
+# da questo valore: gli "interval-ticks" di titolo e righe (piu' sotto) possono
+# essere qualunque numero, anche piu' basso (es. 5 con questo a 10), e ogni
+# frame cambia esattamente al suo tempo. Un valore piu' basso qui aggiorna i
+# placeholder piu' spesso ma ricalcola le condizioni (permesso/mondo/regione)
+# piu' spesso.
 update-interval-ticks: 10
 
 # In caso di PARITA' di peso fra piu' scoreboard che corrispondono allo stesso
