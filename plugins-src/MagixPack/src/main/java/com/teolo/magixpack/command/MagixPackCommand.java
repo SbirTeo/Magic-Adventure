@@ -4,6 +4,8 @@ import com.teolo.magixpack.MagixPack;
 import com.teolo.magixpack.glyph.GlyphEntry;
 import com.teolo.magixpack.lang.Messages;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -149,16 +151,34 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(messages.get(sender, "glyph-list-empty"));
             return;
         }
-        sender.sendMessage(messages.get(sender, "glyph-list-header").replace("{count}", String.valueOf(ids.size())));
+        sender.sendMessage(messages.get(sender, "glyph-list-heading").replace("{count}", String.valueOf(ids.size())));
         for (String id : ids) {
             GlyphEntry e = plugin.glyphCatalog().entry(id);
+            String placeholder = "%magixpack_glyph_" + id + "%";
+            // What can be pasted: the character of an icon (it works in any text), the placeholder
+            // of an avatar (it is a different drawing for every player). Two buttons, because the
+            // clipboard is up to the client: the chat bar one always shows what it took.
+            String line;
+            String value;
             if (e.playerAvatar()) {
-                sender.sendMessage(messages.get(sender, "glyph-list-row-avatar").replace("{glyph}", id));
-                continue;
+                line = messages.get(sender, "glyph-list-entry-avatar");
+                value = placeholder;
+            } else {
+                value = plugin.glyphCatalog().text(e);
+                line = messages.get(sender, "glyph-list-entry").replace("{char}", value)
+                        .replace("{codepoint}", String.format("U+%04X", e.codepoint()));
             }
-            sender.sendMessage(messages.get(sender, "glyph-list-row")
-                    .replace("{glyph}", id)
-                    .replace("{codepoint}", String.format("U+%X", e.codepoint())));
+            LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
+            line = line.replace("{glyph}", id).replace("{placeholder}", placeholder);
+            Component copy = legacy.deserialize(messages.get(sender, "glyph-list-button-copy"))
+                    .clickEvent(ClickEvent.copyToClipboard(value))
+                    .hoverEvent(HoverEvent.showText(legacy.deserialize(
+                            messages.get(sender, "glyph-list-hover-copy").replace("{value}", value))));
+            Component chat = legacy.deserialize(messages.get(sender, "glyph-list-button-chat"))
+                    .clickEvent(ClickEvent.suggestCommand(value))
+                    .hoverEvent(HoverEvent.showText(legacy.deserialize(
+                            messages.get(sender, "glyph-list-hover-chat").replace("{value}", value))));
+            sender.sendMessage(legacy.deserialize(line).append(copy).append(chat));
         }
     }
 
@@ -182,20 +202,22 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
         Component caption = LegacyComponentSerializer.legacySection()
                 .deserialize(messages.get(viewer, "glyph-show-caption").replace("{glyph}", id));
         if (!e.playerAvatar()) {
+            for (int i = 0; i < e.emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
             viewer.sendMessage(plugin.glyphCatalog().component(id).append(caption));
             return;
         }
         String name = args.length >= 4 ? args[3] : viewer.getName();
-        CompletableFuture<Component> future = plugin.avatarService().fetch(name);
+        CompletableFuture<int[][]> future = plugin.avatarService().fetch(name);
         if (!future.isDone()) viewer.sendMessage(messages.get(viewer, "glyph-avatar-loading").replace("{player}", name));
-        future.thenAccept(avatar -> Bukkit.getScheduler().runTask(plugin, () -> {
+        future.thenAccept(face -> Bukkit.getScheduler().runTask(plugin, () -> {
             if (!viewer.isOnline()) return;
-            if (avatar == null) {
+            if (face == null) {
                 viewer.sendMessage(messages.get(viewer, "glyph-avatar-no-skin").replace("{player}", name));
                 return;
             }
-            // A taller avatar (pixel-size > 1) sticks out above its line: leave room for it.
-            for (int i = 0; i < plugin.avatarService().emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
+            Component avatar = plugin.avatarService().render(e, face);
+            // A glyph taller than a letter (scale, offset-y) sticks out above its line: leave room.
+            for (int i = 0; i < e.emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
             viewer.sendMessage(avatar.append(caption));
         }));
     }

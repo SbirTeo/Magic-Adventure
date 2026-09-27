@@ -209,6 +209,7 @@ public final class MagixMusic extends JavaPlugin {
                 .detailedCommands()
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixmusic.hook.Placeholders.DOCS)
                 .settings(
                         "world", "Mondo in cui si sente la radio: si sente in TUTTO il mondo, allo stesso volume.",
                         "default-volume", "Volume iniziale (0-100) per chi non l'ha ancora regolato con /radio.",

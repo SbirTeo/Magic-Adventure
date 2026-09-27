@@ -127,7 +127,8 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                 .commands()
                 .permissions()
                 .settings(
-                        "update-interval-ticks", "Ogni quanti tick si ricalcola la scoreboard giusta e si fa avanzare l'animazione.",
+                        "update-interval-ticks", "Ogni quanti tick si ricalcola la scoreboard giusta e si aggiornano i placeholder "
+                                + "(le animazioni seguono i propri interval-ticks, anche se piu' bassi).",
                         "priority-order", "Lo spareggio a parita' di peso: quale condizione conta di piu'.")
 
                 .issue("Un giocatore non vede nessuna scoreboard",
@@ -142,8 +143,6 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                         "PlaceholderAPI non e' installato. Senza, ne' i placeholder standard ne' quelli degli "
                                 + "altri plugin Magix vengono risolti: il testo resta letterale.")
 
-                .never("Non mettere interval-ticks piu' basso di update-interval-ticks: l'animazione avanza "
-                        + "comunque solo a ogni giro del refresh generale, un valore piu' fine non cambia niente.")
                 .never("Non affidarti all'ordine nel config per lo spareggio: usa priority-order (o un peso "
                         + "diverso), altrimenti un riordino accidentale delle scoreboard cambia chi vince.")
                 .write();

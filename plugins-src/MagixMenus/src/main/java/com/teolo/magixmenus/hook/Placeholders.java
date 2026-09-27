@@ -26,6 +26,17 @@ import java.util.Locale;
  */
 public final class Placeholders extends PlaceholderExpansion {
 
+    /** Elenco per la guida staff (StaffGuide.placeholders): coppie placeholder, cosa mostra.
+     *  check_config.py [9] blocca il commit se qui manca un placeholder risolto sotto. */
+    public static final String[] DOCS = {
+            "%magixmenus_aperto%", "Il menu che il giocatore ha aperto adesso (vuoto se nessuno).",
+            "%magixmenus_pagina%", "La pagina del menu in cui si trova.",
+            "%magixmenus_pagine%", "Quante pagine ha il menu aperto.",
+            "%magixmenus_quanti%", "Quanti menu esistono sul server.",
+            "%magixmenus_aperti%", "Quanti menu sono aperti in questo momento.",
+            "%magixmenus_esiste_<nome>%", "si/no: se esiste un menu con quel nome.",
+    };
+
     private final MagixMenus plugin;
 
     public Placeholders(MagixMenus plugin) {

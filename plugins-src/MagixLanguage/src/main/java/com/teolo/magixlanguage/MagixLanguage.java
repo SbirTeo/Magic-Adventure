@@ -335,6 +335,11 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     }
 
     @Override
+    public boolean autoTranslationAvailable() {
+        return getConfig().getBoolean("translations.auto-translate.enabled", true) && pacing.pausedUntil() == null;
+    }
+
+    @Override
     public void reportSiteTranslationStatus(Map<String, int[]> countsByLang) {
         this.siteTranslationStatus = countsByLang == null ? Map.of() : Map.copyOf(countsByLang);
     }
@@ -465,6 +470,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 .detailedCommands()
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixlanguage.hook.MagixLanguagePlaceholders.DOCS)
                 .settings(
                         "default-language", "Lingua usata quando non se ne rileva nessuna.",
                         "geoip.enabled", "Spegnendolo, nessun IP esce verso il servizio GeoIP: tutti partono con default-language.",

@@ -41,6 +41,9 @@ public final class BoardManager {
 
     private BukkitTask task;
     private long tick = 0;
+    /** Passo dell'orologio: MCD fra update-interval-ticks e gli interval-ticks delle righe animate
+     *  (vedi {@link #clockPeriod}). */
+    private int clockPeriod = 10;
 
     public BoardManager(JavaPlugin plugin, WorldGuardHook worldGuard) {
         this.plugin = plugin;
@@ -76,6 +79,7 @@ public final class BoardManager {
             }
         }
         definitions = List.copyOf(out);
+        clockPeriod = clockPeriod(updateIntervalTicks, definitions);
 
         if (anyRegionCondition && !worldGuard.enabled() && !warnedRegionsWithoutWorldGuard) {
             warnedRegionsWithoutWorldGuard = true;
@@ -132,8 +136,31 @@ public final class BoardManager {
 
     // ------------------------------------------------------------- ciclo di aggiornamento
 
+    /**
+     * Il passo dell'orologio. Prima era update-interval-ticks secco: con una riga animata piu' veloce
+     * (es. interval-ticks 5 con update 10) il contatore saltava 10, 20, 30... e (tick / 5) % 2 valeva
+     * sempre 0 — l'animazione restava ferma sul primo frame. Con l'MCD di tutti gli intervalli ogni
+     * cambio di frame cade esattamente su un giro dell'orologio.
+     */
+    private static int clockPeriod(int updateTicks, List<BoardDefinition> defs) {
+        int g = updateTicks;
+        for (BoardDefinition def : defs) {
+            if (!def.enabled()) continue;
+            g = gcdIfAnimated(g, def.title());
+            for (BoardLine line : def.lines()) g = gcdIfAnimated(g, line);
+        }
+        return Math.max(1, g);
+    }
+
+    private static int gcdIfAnimated(int g, BoardLine line) {
+        if (line.frames().size() < 2) return g;
+        int a = g, b = line.intervalTicks();
+        while (b != 0) { int t = a % b; a = b; b = t; }
+        return a;
+    }
+
     public void start() {
-        int period = updateIntervalTicks;
+        int period = clockPeriod;
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, period, period);
     }
 
@@ -151,8 +178,35 @@ public final class BoardManager {
     }
 
     private void tick() {
-        tick += updateIntervalTicks;
-        for (Player player : Bukkit.getOnlinePlayers()) refresh(player);
+        tick += clockPeriod;
+        // Il giro "pieno" (condizioni + placeholder) resta a update-interval-ticks; nei giri in mezzo
+        // si ridisegna solo chi ha davanti una riga il cui frame cambia proprio adesso.
+        boolean full = tick % updateIntervalTicks == 0;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (full) {
+                refresh(player);
+                continue;
+            }
+            PlayerBoard board = boards.get(player.getUniqueId());
+            BoardDefinition current = board == null ? null : byId(board.currentBoardId());
+            if (current != null && frameChangesNow(current)) refresh(player);
+        }
+    }
+
+    private BoardDefinition byId(String id) {
+        if (id == null) return null;
+        for (BoardDefinition def : definitions) if (def.id().equals(id)) return def;
+        return null;
+    }
+
+    private boolean frameChangesNow(BoardDefinition def) {
+        if (changesNow(def.title())) return true;
+        for (BoardLine line : def.lines()) if (changesNow(line)) return true;
+        return false;
+    }
+
+    private boolean changesNow(BoardLine line) {
+        return line.frames().size() > 1 && tick % line.intervalTicks() == 0;
     }
 
     private void refresh(Player player) {

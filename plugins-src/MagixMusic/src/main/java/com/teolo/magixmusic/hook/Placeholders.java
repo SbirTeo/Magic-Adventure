@@ -26,6 +26,24 @@ import org.bukkit.OfflinePlayer;
  */
 public final class Placeholders extends PlaceholderExpansion {
 
+    /** Elenco per la guida staff (StaffGuide.placeholders): coppie placeholder, cosa mostra.
+     *  check_config.py [9] blocca il commit se qui manca un placeholder risolto sotto. */
+    public static final String[] DOCS = {
+            "%magixmusic_volume%", "Volume personale del giocatore, 0-100 (0 = radio spenta per lui).",
+            "%magixmusic_bar%", "Barra a 10 segmenti del volume personale.",
+            "%magixmusic_state%", "Accesa se il volume personale e' sopra 0, altrimenti Spenta.",
+            "%magixmusic_enabled%", "1 se la radio e' accesa in generale (config), altrimenti 0.",
+            "%magixmusic_track%", "Brano in onda (— se nessuno).",
+            "%magixmusic_next%", "Brano successivo (— se nessuno).",
+            "%magixmusic_elapsed%", "Tempo trascorso del brano, m:ss.",
+            "%magixmusic_duration%", "Durata del brano, m:ss.",
+            "%magixmusic_remaining%", "Tempo rimanente del brano, m:ss.",
+            "%magixmusic_time%", "Trascorso / durata (es. 1:12 / 3:05).",
+            "%magixmusic_progress%", "Barra a 10 segmenti dell'avanzamento del brano.",
+            "%magixmusic_count%", "Quanti brani ha la scaletta.",
+            "%magixmusic_index%", "Posizione del brano in onda nella scaletta (da 1).",
+    };
+
     private static final int BAR_SEGMENTS = 10;
 
     private final MagixMusic plugin;

@@ -95,12 +95,24 @@ public final class TranslationPacing {
                     ? hint.plusMinutes(1)
                     : Duration.ofMinutes(Math.max(1, defaultPauseMinutes));
             Instant until = Instant.now().plus(wait);
+            // Sito e plugin se ne accorgono spesso insieme (stesso IP, stessa quota): la seconda
+            // volta la pausa e' gia' aperta e non serve ridirlo.
+            boolean alreadyPaused = pausedUntil() != null;
             Properties p = load();
             p.setProperty(PAUSED_UNTIL, until.toString());
             save(p);
-            log.warning("MagixLanguage: MyMemory ha bloccato le richieste, pausa di " + formatWait(wait)
-                    + (hint != null ? " (indicata da MyMemory)" : "")
-                    + ": poi si riprova da soli, o subito con /language sync force.");
+            if (alreadyPaused) {
+                return until;
+            }
+            if (hint != null) {
+                // Il caso normale, una volta al giorno: la quota gratuita e' finita e MyMemory dice
+                // quando torna. Non e' un guasto, quindi niente WARN.
+                log.info("MagixLanguage: quota giornaliera di MyMemory finita, traduzioni automatiche in pausa per "
+                        + formatWait(wait) + ": riprendono da sole (o subito con /language sync force).");
+            } else {
+                log.warning("MagixLanguage: MyMemory ha bloccato le richieste, pausa di " + formatWait(wait)
+                        + ": poi si riprova da soli, o subito con /language sync force.");
+            }
             return until;
         }
         if (translator.madeRequests()) {

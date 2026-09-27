@@ -289,12 +289,84 @@ public final class PackService {
      *  VINCONO sempre su tutto il resto). Un percorso gia' scritto da un contributo precedente (fra
      *  due plugin, non contro un override manuale) viene scartato con un avviso: e' un conflitto
      *  vero, non qualcosa da risolvere a caso. */
+    private static final java.util.regex.Pattern FONT_FILE =
+            java.util.regex.Pattern.compile("assets/[^/]+/font/[^/]+\\.json");
+
+    /**
+     * One font file out of two: all the bitmap/space providers of both (the first one's first:
+     * for a character defined twice the client uses the first provider that has it, and the
+     * conflict is logged), then the "reference" providers once each (the vanilla fonts, last, so
+     * that they never cover a custom character). Null if one of the two is not valid JSON.
+     */
+    private byte[] fuseFonts(String path, byte[] first, byte[] second, String secondOwner) {
+        try {
+            com.google.gson.JsonArray own = new com.google.gson.JsonArray();
+            java.util.LinkedHashMap<String, com.google.gson.JsonElement> refs = new java.util.LinkedHashMap<>();
+            java.util.Set<Integer> seen = new java.util.HashSet<>();
+            java.util.Set<String> clashes = new java.util.TreeSet<>();
+            for (byte[] file : new byte[][]{first, second}) {
+                com.google.gson.JsonObject root = com.google.gson.JsonParser.parseString(
+                        new String(file, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+                for (com.google.gson.JsonElement p : root.getAsJsonArray("providers")) {
+                    com.google.gson.JsonObject o = p.getAsJsonObject();
+                    String type = o.has("type") ? o.get("type").getAsString() : "";
+                    if (type.endsWith("reference")) {
+                        refs.putIfAbsent(o.get("id").getAsString(), o);
+                        continue;
+                    }
+                    for (int cp : providerChars(o)) {
+                        if (!seen.add(cp)) clashes.add(String.format("U+%04X", cp));
+                    }
+                    own.add(o);
+                }
+            }
+            if (!clashes.isEmpty()) {
+                plugin.getLogger().warning("[Pack] " + path + ": caratteri definiti due volte (vince il primo): "
+                        + String.join(", ", clashes));
+            }
+            for (com.google.gson.JsonElement r : refs.values()) own.add(r);
+            com.google.gson.JsonObject out = new com.google.gson.JsonObject();
+            out.add("providers", own);
+            plugin.getLogger().info("[Pack] " + path + ": fusi i caratteri di " + secondOwner
+                    + " con quelli gia' presenti.");
+            return out.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (RuntimeException ex) {
+            plugin.getLogger().warning("[Pack] " + path + " di " + secondOwner + " non fondibile ("
+                    + ex.getMessage() + ").");
+            return null;
+        }
+    }
+
+    /** The characters a bitmap ("chars") or space ("advances") provider defines. */
+    private static java.util.List<Integer> providerChars(com.google.gson.JsonObject o) {
+        java.util.List<Integer> out = new java.util.ArrayList<>();
+        if (o.has("chars")) {
+            for (com.google.gson.JsonElement row : o.getAsJsonArray("chars")) {
+                row.getAsString().codePoints().filter(c -> c != 0 && c != 32).forEach(out::add);
+            }
+        }
+        if (o.has("advances")) {
+            for (String k : o.getAsJsonObject("advances").keySet()) k.codePoints().forEach(out::add);
+        }
+        return out;
+    }
+
     private byte[] buildZip() throws IOException {
         Map<String, byte[]> merged = new LinkedHashMap<>();
         for (String path : OWN_FILES) merged.put(path, ownResource(path));
 
         for (Map.Entry<String, Map<String, byte[]>> e : contributions.entrySet()) {
             for (Map.Entry<String, byte[]> f : e.getValue().entrySet()) {
+                if (merged.containsKey(f.getKey()) && FONT_FILE.matcher(f.getKey()).matches()) {
+                    // Two plugins adding to the same font (e.g. minecraft:default: the tablist logo
+                    // of MagixFactions and the glyphs of MagixPack): the client takes the file
+                    // whole, so keeping only one would silently drop the other's characters.
+                    byte[] fused = fuseFonts(f.getKey(), merged.get(f.getKey()), f.getValue(), e.getKey());
+                    if (fused != null) {
+                        merged.put(f.getKey(), fused);
+                        continue;
+                    }
+                }
                 if (merged.containsKey(f.getKey())) {
                     plugin.getLogger().warning("[Pack] " + e.getKey() + " ha provato a registrare '"
                             + f.getKey() + "', gia' presente nel pacchetto: scartato.");

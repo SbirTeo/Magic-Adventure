@@ -55,4 +55,5 @@ words:
 keep: ["on", "off", "it", "en", "es", "de", "public", "faction", "ally", "enemy", "clear", "reset",
        "mirror", "auto", "info", "migrate", "sqlite", "mariadb", "x", "y", "z", "rain", "storm",
        "nick", "nick2", "displayname", "n", "a", "b", "zoom", "pubblico", "add", "list", "remove",
-       "create", "disband", "fake", "home", "setmap", "setpower", "bypass", "id"]
+       "create", "disband", "fake", "home", "setmap", "setpower", "bypass", "id", "rename",
+       "join", "promote", "demote"]

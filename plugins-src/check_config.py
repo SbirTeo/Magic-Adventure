@@ -26,6 +26,11 @@ What it reports, for each .yml config file:
       < > or [ ] of a help line ("/f join <fazione> :: ..."), or inside < > of any other message
       ("Uso: /f join <fazione>") -> it would stay in Italian in every other language.
       Add it to "words" (argument name, translated) or "keep" (typed as is: on|off, clear...).
+  [9] PlaceholderAPI placeholder resolved by the code but missing from the staff guide: every class
+      that extends PlaceholderExpansion keeps a DOCS list (placeholder, what it shows) that the
+      plugin passes to StaffGuide.placeholders(...). A literal the expansion answers to (case "x",
+      equals("x"), startsWith("x_")...) that no DOCS entry contains, a class without DOCS, or a
+      DOCS never passed to the guide -> the staff cannot know the placeholder exists.
 
 Exits with code 1 if it found anything: can be wired to a hook or to the build.
 """
@@ -310,6 +315,58 @@ def check(name):
             problems += hand_written_numbers(folder, keys)
             problems += modes_not_told(folder, keys, code)
     problems += help_arguments_unknown(name)
+    problems += placeholders_undocumented(name)
+    return problems
+
+
+PLACEHOLDER_LITERAL = re.compile(
+    r'(?:case\s+|equals(?:IgnoreCase)?\(\s*|startsWith\(\s*)"([^"]+)"|"([^"]+)"\.equals(?:IgnoreCase)?\(')
+
+
+def method_bodies(source, names):
+    """The bodies of the named methods, found by matching braces from the signature."""
+    bodies = []
+    for m in re.finditer(r'\b(?:' + "|".join(names) + r')\s*\([^)]*\)\s*\{', source):
+        depth, i = 1, m.end()
+        while i < len(source) and depth:
+            depth += {"{": 1, "}": -1}.get(source[i], 0)
+            i += 1
+        bodies.append(source[m.end():i])
+    return "\n".join(bodies)
+
+
+def placeholders_undocumented(name):
+    """
+    [9] Every placeholder a plugin exposes must be in its staff guide. The list lives next to the
+    code that resolves them (DOCS in the expansion class), and the plugin passes it to
+    StaffGuide.placeholders(...): before this rule no guide listed a single placeholder.
+    """
+    root = os.path.join(HERE, name, "src", "main", "java")
+    if not os.path.isdir(root):
+        return []
+    code = plugin_code(os.path.join(HERE, name))
+    problems = []
+    for folder, _, files in os.walk(root):
+        for f in files:
+            if not f.endswith(".java"):
+                continue
+            with open(os.path.join(folder, f), encoding="utf-8") as fh:
+                source = fh.read()
+            if "extends PlaceholderExpansion" not in source:
+                continue
+            docs = re.search(r'\bDOCS\s*=\s*\{(.*?)\};', source, re.S)
+            if not docs:
+                problems.append((f, 0, "[9] PlaceholderExpansion without a DOCS list for the staff guide", f))
+                continue
+            documented = " ".join(re.findall(r'%[^%\s"]+%', docs.group(1))).lower()
+            if not re.search(r'\.placeholders\([^)]*\b' + re.escape(f[:-5]) + r'\.DOCS', code):
+                problems.append((f, 0, "[9] DOCS never passed to StaffGuide.placeholders(...)", f[:-5]))
+            body = method_bodies(source, ["onRequest", "onPlaceholderRequest"])
+            for a, b in PLACEHOLDER_LITERAL.findall(body):
+                literal = (a or b).lower()
+                if literal not in documented:
+                    problems.append((f, 0, "[9] placeholder resolved but missing from DOCS (staff guide)",
+                                     literal))
     return problems
 
 

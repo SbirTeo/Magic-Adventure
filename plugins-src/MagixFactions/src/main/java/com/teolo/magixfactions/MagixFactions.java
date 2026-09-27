@@ -730,6 +730,7 @@ public final class MagixFactions extends JavaPlugin {
                 .detailedCommands()
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixfactions.hook.MagixPlaceholders.DOCS)
                 .settings(
                         "power.max", "Tetto di Potenza di un giocatore.",
                         "power.death-loss", "Quanta Potenza si perde morendo.",

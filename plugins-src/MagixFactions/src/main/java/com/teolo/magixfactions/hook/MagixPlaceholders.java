@@ -46,6 +46,33 @@ import java.util.Locale;
  */
 public final class MagixPlaceholders extends PlaceholderExpansion implements Relational {
 
+    /** Elenco per la guida staff (StaffGuide.placeholders): coppie placeholder, cosa mostra.
+     *  check_config.py [9] blocca il commit se qui manca un placeholder risolto sotto. */
+    public static final String[] DOCS = {
+            "%magixfactions_faction%", "Nome della fazione del giocatore (vuoto se non ne ha una).",
+            "%magixfactions_rank%", "Tag colorato del grado del giocatore nella sua fazione (es. [U], "
+                    + "[L]), preso da ranks.*.tag e leader.tag del config.",
+            "%magixfactions_leader%", "Nome del leader della fazione del giocatore.",
+            "%magixfactions_members%", "Quanti membri ha la fazione del giocatore.",
+            "%magixfactions_allies%", "Quante fazioni alleate ha.",
+            "%magixfactions_enemies%", "Quante fazioni nemiche ha.",
+            "%magixfactions_power%", "Potenza attuale della fazione.",
+            "%magixfactions_maxpower%", "Potenza massima della fazione.",
+            "%magixfactions_claims%", "Territori posseduti dalla fazione.",
+            "%magixfactions_maxclaims_fazione%", "Tetto di territori che la fazione puo' avere adesso.",
+            "%magixfactions_score%", "Punteggio della fazione in classifica.",
+            "%magixfactions_position%", "Posizione della fazione in classifica (1 = prima).",
+            "%magixfactions_power_player%", "Potenza del singolo giocatore.",
+            "%magixfactions_maxpower_player%", "Potenza massima del singolo giocatore.",
+            "%magixfactions_factionstot%", "Quante fazioni esistono sul server.",
+            "%magixfactions_top_<n>_name%", "Nome della n-esima fazione in classifica (es. top_1_name).",
+            "%magixfactions_top_<n>_score%", "Punteggio della n-esima fazione in classifica.",
+            "%magixfactions_relation_<fazione>%", "Relazione di chi legge con quella fazione, a parole "
+                    + "(relations.names del config).",
+            "%rel_magixfactions_relation_color%", "Placeholder relazionale (fra due giocatori): il colore "
+                    + "con cui chi legge vede l'altro, secondo la relazione (relations.colors del config).",
+    };
+
     private final JavaPlugin plugin;
     private final FactionManager fm;
     private final PowerManager power;

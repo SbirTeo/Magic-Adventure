@@ -73,10 +73,82 @@
 // anche cosi', come ci si aspetta da un menu a tendina qualsiasi.
 document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
   document.addEventListener('click', function (ev) {
+    // Il clic che il browser genera al rilascio di un trascinamento (vedi sotto) non e' un
+    // "clic altrove": senza questo il menu appena aperto si richiudeva da solo.
+    if (saltaClic) {
+      saltaClic = false;
+      return;
+    }
     if (dettagli.hasAttribute('open') && !dettagli.contains(ev.target)) {
       dettagli.removeAttribute('open');
     }
   });
+
+  // Trascinamento: si preme sulla bandiera e si tira giu', il menu si apre, la lingua sotto
+  // il dito si evidenzia e rilasciando ci si va. Il tocco semplice resta quello del <details>.
+  var summary = dettagli.querySelector('summary');
+  var menu = dettagli.querySelector('.cambia-lingua-menu');
+  if (!summary || !menu) return;
+  var SOGLIA = 10; // px di discesa prima che conti come trascinamento e non come tocco
+  var inizioY = null;
+  var trascina = false;
+  var saltaClic = false;
+  var evidenziata = null;
+
+  function optionAt(x, y) {
+    var el = document.elementFromPoint(x, y);
+    var voce = el && el.closest ? el.closest('.cambia-lingua-menu a') : null;
+    return voce && menu.contains(voce) ? voce : null;
+  }
+  function highlight(voce) {
+    if (evidenziata === voce) return;
+    if (evidenziata) evidenziata.classList.remove('sotto-dito');
+    evidenziata = voce;
+    if (voce) voce.classList.add('sotto-dito');
+  }
+  function reset() {
+    inizioY = null;
+    trascina = false;
+    highlight(null);
+  }
+
+  summary.addEventListener('pointerdown', function (ev) {
+    if (ev.button !== 0) return;
+    inizioY = ev.clientY;
+    trascina = false;
+    // Subito, non a soglia superata: se il puntatore esce dalla bandiera prima dei 10px
+    // (col mouse succede, col dito no) la bandiera non ne vedrebbe piu' i movimenti.
+    try { summary.setPointerCapture(ev.pointerId); } catch (e) { /* puntatore gia' sparito */ }
+  });
+  summary.addEventListener('pointermove', function (ev) {
+    if (inizioY === null) return;
+    if (!trascina) {
+      if (ev.clientY - inizioY < SOGLIA) return;
+      trascina = true;
+      dettagli.setAttribute('open', '');
+    }
+    ev.preventDefault();
+    highlight(optionAt(ev.clientX, ev.clientY));
+  });
+  summary.addEventListener('pointerup', function (ev) {
+    if (inizioY === null) return;
+    if (trascina) {
+      // Il clic che segue il rilascio richiuderebbe il <details> appena aperto.
+      saltaClic = true;
+      setTimeout(function () { saltaClic = false; }, 400);
+      var voce = optionAt(ev.clientX, ev.clientY);
+      if (voce) window.location.href = voce.href;
+      // Rilasciato fuori dalle voci: il menu resta aperto e si sceglie con un tocco.
+    }
+    reset();
+  });
+  summary.addEventListener('pointercancel', reset);
+  summary.addEventListener('click', function (ev) {
+    if (saltaClic) {
+      ev.preventDefault();
+      saltaClic = false;
+    }
+  }, true);
 });
 
 document.querySelectorAll('.ip-copy').forEach(function (btn) {

@@ -390,8 +390,13 @@ db:
   usage: "&cUso: /mf db <info|migrate <sqlite|mariadb>>"
 
 admin:
-  usage: "&cUso: /mf admin <setpower|setmap|fake|bypass|home|disband> ..."
+  usage: "&cUso: /mf admin <setpower|setmap|fake|bypass|home|disband|rename|join|promote|demote> ..."
   not-found: "&cGiocatore &e{player}&c non trovato (dev'essere entrato almeno una volta)."
+  no-faction: "&cIl giocatore &e{player}&c non e' in nessuna fazione."
+  join-usage: "&cUso: /mf admin join <fazione>"
+  join-already-in: "&cSei gia' in una fazione: esci prima con &e/f leave&c."
+  promote-usage: "&cUso: /mf admin promote <giocatore>"
+  demote-usage: "&cUso: /mf admin demote <giocatore>"
   faction-not-found: "&cFazione &e{faction}&c non trovata."
   bypass-usage: "&cUso: /mf admin bypass [on|off] &7(senza argomento: inverte lo stato attuale)"
   bypass-on: "&aBypass costruzione &2ATTIVO&a: puoi rompere/posare/interagire ovunque, anche in territorio nemico."
@@ -400,6 +405,9 @@ admin:
   home-not-set: "&cLa fazione &e{faction}&c non ha una home impostata."
   disband-usage: "&cUso: /mf admin disband <fazione>"
   disband-ok: "&aFazione &e{faction}&a sciolta."
+  rename-usage: "&cUso: /mf admin rename <fazione> <nuovonome>"
+  # {old} = nome di prima, {name} = nome nuovo
+  rename-ok: "&aFazione &e{old}&a rinominata in &e{name}&a."
   bad-value: "&cValore non valido (usa un numero intero, oppure 'reset')."
   setpower-ok: "&aPotenza di &e{player}&a impostata a &e{value}&a."
   setpower-reset: "&aPotenza di &e{player}&a riportata al default (&e{value}&a)."
@@ -497,3 +505,7 @@ help:
         - "/mf admin bypass [on|off] :: attiva/disattiva IL TUO bypass costruzione"
         - "/mf admin home <fazione> :: teletrasporto alla home di una fazione qualsiasi"
         - "/mf admin disband <fazione> :: scioglie una fazione qualsiasi"
+        - "/mf admin rename <fazione> <nuovonome> :: rinomina una fazione qualsiasi"
+        - "/mf admin join <fazione> :: entri in una fazione qualsiasi, senza invito"
+        - "/mf admin promote <giocatore> :: promuove di un grado un membro di qualsiasi fazione"
+        - "/mf admin demote <giocatore> :: degrada di un grado un membro di qualsiasi fazione"

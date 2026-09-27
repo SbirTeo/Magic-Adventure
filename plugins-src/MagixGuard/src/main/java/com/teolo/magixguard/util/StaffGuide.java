@@ -176,6 +176,33 @@ public final class StaffGuide {
         return this;
     }
 
+    /**
+     * I placeholder PlaceholderAPI che il plugin offre, da scrivere in scoreboard, tablist, chat,
+     * menu. L'elenco vive nella classe dei placeholder stessa (la costante {@code DOCS}), accanto al
+     * codice che li risolve: {@code check_config.py} [9] blocca il commit se uno e' risolto ma non
+     * elencato, cosi' la guida non puo' restare indietro come prima (nessuna guida li citava).
+     *
+     * @param placeholderAndExplanation coppie: il placeholder com'e' da scrivere, poi cosa mostra
+     */
+    public StaffGuide placeholders(String... placeholderAndExplanation) {
+        if (placeholderAndExplanation.length < 2) {
+            return this;
+        }
+        html.append("<h4>Placeholder</h4>\n");
+        md.append("## Placeholder\n\n");
+        String note = "Si scrivono cosi' come sono in qualunque testo che passa da PlaceholderAPI "
+                + "(scoreboard, tablist, chat, menu, CMI): senza PlaceholderAPI installato restano "
+                + "testo letterale.";
+        html.append("<p class=\"guida-nota\">").append(escapeHtml(note)).append("</p>\n");
+        md.append(note).append("\n\n");
+        openTable("Placeholder", "Cosa mostra");
+        for (int i = 0; i + 1 < placeholderAndExplanation.length; i += 2) {
+            row(code(placeholderAndExplanation[i]), placeholderAndExplanation[i + 1]);
+        }
+        closeTable();
+        return this;
+    }
+
     /** Tabella dei comandi dichiarati nel plugin.yml: comando, cosa fa, permesso. */
     public StaffGuide commands() {
         ConfigurationSection section = pluginYml == null ? null : pluginYml.getConfigurationSection("commands");

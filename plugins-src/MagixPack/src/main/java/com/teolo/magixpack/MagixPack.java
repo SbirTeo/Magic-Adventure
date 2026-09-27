@@ -77,8 +77,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
         packService = new PackService(this);
         avatarService = new AvatarService(this);
-        itemCatalog = new ItemCatalog(this, avatarService);
         glyphCatalog = new GlyphCatalog(this, avatarService);
+        itemCatalog = new ItemCatalog(this, avatarService, glyphCatalog);
         loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new PackListener(this, packService), this);
@@ -88,10 +88,19 @@ public final class MagixPack extends JavaPlugin implements Listener {
         getCommand("magixpack").setExecutor(cmd);
         getCommand("magixpack").setTabCompleter(cmd);
 
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) registerPlaceholders();
+
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         getLogger().info("MagixPack pronto: in attesa delle registrazioni degli altri plugin "
                 + "(il pacchetto si costruisce a fine avvio, quando tutti hanno avuto modo di registrarsi).");
+    }
+
+    /** In its own method: the expansion class touches PlaceholderAPI's classes, which exist only
+     *  when that plugin is installed. */
+    private void registerPlaceholders() {
+        new com.teolo.magixpack.hook.GlyphPlaceholders(this, glyphCatalog).register();
+        getLogger().info("Placeholder %magixpack_glyph_<id>% registrati su PlaceholderAPI.");
     }
 
     /**
@@ -147,7 +156,6 @@ public final class MagixPack extends JavaPlugin implements Listener {
         glyphCatalog.reload();
         Map<String, byte[]> files = new LinkedHashMap<>(itemCatalog.packFiles());
         files.putAll(glyphCatalog.packFiles());
-        files.putAll(avatarService.packFiles());
         packService.register(this, files);
     }
 
@@ -203,10 +211,9 @@ public final class MagixPack extends JavaPlugin implements Listener {
         return itemCatalog.build(id);
     }
 
-    /** Il Component Adventure di un'icona custom di glyphs.yml (font gia' impostato), pronto da
-     *  concatenare in un messaggio; null se {@code id} non e' nel catalogo. Non scrivere MAI il
-     *  carattere a mano: il punto di codice puo' cambiare se cambia il catalogo (vedi
-     *  {@link GlyphCatalog}). */
+    /** Il Component Adventure di un'icona custom di glyphs.yml, pronto da concatenare in un
+     *  messaggio; null se {@code id} non e' nel catalogo. Non scrivere MAI il carattere a mano nel
+     *  codice: puo' cambiare se cambia il catalogo (vedi {@link GlyphCatalog}). */
     public Component customGlyph(String id) {
         return glyphCatalog.component(id);
     }
@@ -235,14 +242,17 @@ public final class MagixPack extends JavaPlugin implements Listener {
      *  the background, and it is done at every join anyway) or if the player has no skin. It is
      *  As tall as a letter: it fits in any line of text (see README.md). */
     public Component playerAvatar(Player player) {
-        return avatarService.cached(player);
+        return glyphCatalog.component("avatar", player);
     }
 
     /** Like {@link #playerAvatar}, but waits for the download: completes on a BACKGROUND thread
      *  (hop back to the main thread before touching the world) with the avatar, or with null if
      *  no skin is found. Works for any name, online or not (Mojang lookup by name). */
     public CompletableFuture<Component> playerAvatarAsync(String name) {
-        return avatarService.fetch(name);
+        return avatarService.fetch(name).thenApply(face -> {
+            com.teolo.magixpack.glyph.GlyphEntry e = glyphCatalog.entry("avatar");
+            return face != null && e != null && e.playerAvatar() ? avatarService.render(e, face) : null;
+        });
     }
 
     // --------------------------------------------------------------------------------------------
@@ -328,9 +338,11 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "comando.",
                         "/mpack item list", "Elenca gli oggetti custom caricati da items.yml in questo momento "
                                 + "(quelli con la texture mancante in items/ non compaiono: vedi la console).",
-                        "/mpack glyph list", "Elenca le icone custom di glyphs.yml col loro punto di codice "
-                                + "attuale (font magixpack:icons) — utile per verificare cosa e' disponibile "
-                                + "prima di usarle da un altro plugin.",
+                        "/mpack glyph list", "Elenca le icone custom di glyphs.yml: per ognuna il CARATTERE "
+                                + "assegnato a questo avvio e il placeholder %magixpack_glyph_<id>%, con due pulsanti: "
+                                + "[copia] (negli appunti) e [in chat] (lo scrive nella barra della chat, da dove si "
+                                + "usa subito o si copia con Ctrl+A e Ctrl+C). Per un avatar i pulsanti danno il "
+                                + "placeholder.",
                         "/mpack glyph show <id> [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
                                 + "provarla. Per la voce avatar (type: player-avatar) mostra la FACCIA della "
                                 + "skin del giocatore indicato (di chi lancia il comando, se manca), dopo averne "
@@ -358,23 +370,30 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
                 .section("Icone custom via font (glyphs.yml)",
                         "Per simboli dentro un messaggio di chat o nel tablist, MAI per gli oggetti (quelli "
-                                + "hanno il loro modello vero, vedi sopra). Font PROPRIO (magixpack:icons), mai "
-                                + "minecraft:default: quel file vanilla il client lo sostituisce per intero, non "
-                                + "lo fonde, quindi toccarlo direttamente rischierebbe di cancellare tutti i "
-                                + "provider vanilla (e' il motivo per cui l'esperimento della cornice, prima di "
-                                + "questa funzione, e' stato tolto). Il punto di codice di ogni icona lo assegna "
-                                + "il plugin da solo, in ordine alfabetico: puo' cambiare se il catalogo cambia, "
-                                + "quindi un altro plugin la richiama sempre per NOME tramite l'API "
-                                + "(MagixPack.customGlyph(\"id\")), mai scrivendo il carattere a mano.")
+                                + "hanno il loro modello vero, vedi sopra). Le icone stanno nel font NORMALE di "
+                                + "Minecraft, quindi il loro carattere funziona in qualunque testo (messaggi, config "
+                                + "di CMI, cartelli). Il carattere lo assegna il plugin da solo a ogni avvio, in "
+                                + "ordine alfabetico: /mpack glyph list lo mostra e un clic lo copia. Puo' cambiare "
+                                + "se il catalogo cambia: in un config che deve durare si usa il placeholder "
+                                + "%magixpack_glyph_<id>% (PlaceholderAPI), che non cambia mai; per un avatar da' "
+                                + "la faccia di chi legge. Il default.json del pacchetto viene FUSO con quello degli "
+                                + "altri plugin (il logo del tablist di MagixFactions) e richiama i font vanilla: "
+                                + "le lettere normali restano.",
+                        "Ogni voce ha tre chiavi facoltative per grandezza e posizione: scale (2 = due volte "
+                                + "piu' grande, 0.8 = un quinto piu' piccola), offset-x (pixel a destra, negativo a "
+                                + "sinistra: il testo dopo non si sposta) e offset-y (pixel in su, negativo in giu'). "
+                                + "Valgono anche per l'avatar, e si possono fare piu' voci avatar di grandezze "
+                                + "diverse; l'oggetto avatar di items.yml sceglie quale usare con glyph:. Dopo "
+                                + "averle cambiate: /mpack reload, poi /mpack glyph show <id> per vederle.")
 
                 .commands()
                 .permissions()
+                .placeholders(com.teolo.magixpack.hook.GlyphPlaceholders.DOCS)
                 .settings(
                         "public-host", "IP pubblico da cui i client scaricano il pacchetto. Vuoto = pacchetto disabilitato.",
                         "port", "Porta del server HTTP che serve lo zip: va aperta sul firewall del VPS.",
                         "required", "Se il pacchetto e' obbligatorio (true, default) o facoltativo (false, nessuna espulsione).",
                         "watchdog-seconds", "Ogni quanti secondi si verifica che il pacchetto sia ancora scaricabile.",
-                        "avatar.pixel-size", "Grandezza dell'avatar: lato di un pixel della skin in pixel dello schermo (1 = alto 8, come una lettera).",
                         "avatar.mojang-lookup", "Se chiedere la skin a Mojang per nome quando il profilo del giocatore non la ha.")
 
                 .issue("Un giocatore e' stato espulso appena entrato",

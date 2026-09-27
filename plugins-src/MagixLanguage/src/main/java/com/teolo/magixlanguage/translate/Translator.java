@@ -135,9 +135,13 @@ public final class Translator {
             if (++consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
                 circuitOpen = true;
                 blocked = true;
-                log.warning("MagixLanguage: " + MAX_CONSECUTIVE_FAILURES + " traduzioni di fila fallite "
-                        + "(probabile limite del servizio raggiunto): interrotta la traduzione automatica per "
-                        + "il resto di questo giro, le chiavi restanti restano in italiano per ora.");
+                // Quota del giorno finita con "riprova fra X": lo dice gia' TranslationPacing in una
+                // riga sola, qui sarebbe solo rumore (il 26/09 ne uscivano decine in un secondo).
+                if (retryHint == null) {
+                    log.warning("MagixLanguage: " + MAX_CONSECUTIVE_FAILURES + " traduzioni di fila fallite "
+                            + "(probabile limite del servizio raggiunto): interrotta la traduzione automatica per "
+                            + "il resto di questo giro, le chiavi restanti restano in italiano per ora.");
+                }
             }
             return null;
         }
@@ -252,9 +256,12 @@ public final class Translator {
                     }
                 });
                 // Il corpo della risposta dice il perche' (quota finita, e fra quanto torna): senza
-                // stamparlo si poteva solo tirare a indovinare.
-                log.warning("MagixLanguage: traduzione verso " + targetLang + " rifiutata (risposta HTTP "
-                        + response.statusCode() + ": " + snippet(response.body()) + ").");
+                // stamparlo si poteva solo tirare a indovinare. Se pero' e' il solito "quota finita,
+                // riprova fra X" (retryHint letto qui sopra) lo riassume TranslationPacing, una volta.
+                if (retryHint == null) {
+                    log.warning("MagixLanguage: traduzione verso " + targetLang + " rifiutata (risposta HTTP "
+                            + response.statusCode() + ": " + snippet(response.body()) + ").");
+                }
                 return null;
             }
             return parse(response.body(), targetLang);
@@ -268,15 +275,19 @@ public final class Translator {
         Matcher status = RESPONSE_STATUS.matcher(json);
         if (status.find() && !"200".equals(status.group(1))) {
             noteRetryHint(json);
-            log.warning("MagixLanguage: MyMemory ha rifiutato la traduzione verso " + targetLang
-                    + " (responseStatus " + status.group(1) + ": " + snippet(json) + ").");
+            if (retryHint == null) {
+                log.warning("MagixLanguage: MyMemory ha rifiutato la traduzione verso " + targetLang
+                        + " (responseStatus " + status.group(1) + ": " + snippet(json) + ").");
+            }
             return null;
         }
         Matcher quota = QUOTA_FINISHED.matcher(json);
         if (quota.find() && Boolean.parseBoolean(quota.group(1))) {
             noteRetryHint(json);
-            log.warning("MagixLanguage: quota giornaliera di MyMemory esaurita per " + targetLang
-                    + " (resta il testo italiano nel frattempo).");
+            if (retryHint == null) {
+                log.warning("MagixLanguage: quota giornaliera di MyMemory esaurita per " + targetLang
+                        + " (resta il testo italiano nel frattempo).");
+            }
             return null;
         }
         Matcher text = TRANSLATED_TEXT.matcher(json);
@@ -287,8 +298,10 @@ public final class Translator {
         String translated = unescape(text.group(1));
         if (translated.toUpperCase(java.util.Locale.ROOT).contains("MYMEMORY WARNING")) {
             noteRetryHint(translated);
-            log.warning("MagixLanguage: MyMemory ha risposto con un avviso invece di una traduzione verso "
-                    + targetLang + ": " + translated);
+            if (retryHint == null) {
+                log.warning("MagixLanguage: MyMemory ha risposto con un avviso invece di una traduzione verso "
+                        + targetLang + ": " + translated);
+            }
             return null;
         }
         return translated;

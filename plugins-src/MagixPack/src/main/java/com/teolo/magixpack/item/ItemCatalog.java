@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.teolo.magixpack.avatar.AvatarService;
+import com.teolo.magixpack.glyph.GlyphCatalog;
+import com.teolo.magixpack.glyph.GlyphEntry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
@@ -77,11 +79,13 @@ public final class ItemCatalog {
 
     private final JavaPlugin plugin;
     private final AvatarService avatars;
+    private final GlyphCatalog glyphs;
     private final Map<String, ItemEntry> entries = new LinkedHashMap<>();
 
-    public ItemCatalog(JavaPlugin plugin, AvatarService avatars) {
+    public ItemCatalog(JavaPlugin plugin, AvatarService avatars, GlyphCatalog glyphs) {
         this.plugin = plugin;
         this.avatars = avatars;
+        this.glyphs = glyphs;
     }
 
     /** Rilegge items.yml e la cartella items/ (texture) dal disco. */
@@ -100,7 +104,8 @@ public final class ItemCatalog {
                 // No texture and no model: the look comes from the player's skin, at build time.
                 entries.put(id, new ItemEntry(id, Material.PLAYER_HEAD.name(), sec.getString("name", "{player}"),
                         sec.getStringList("lore"), 0, false, false, true, 0.5, 1, false,
-                        Sound.BLOCK_WOOD_HIT, Sound.BLOCK_WOOD_BREAK, true));
+                        Sound.BLOCK_WOOD_HIT, Sound.BLOCK_WOOD_BREAK, true,
+                        sec.getString("glyph", "avatar")));
                 continue;
             }
             String materialName = sec.getString("material", "").trim().toUpperCase(java.util.Locale.ROOT);
@@ -129,7 +134,7 @@ public final class ItemCatalog {
                     id, "furniture-break-sound", Sound.BLOCK_WOOD_BREAK);
             entries.put(id, new ItemEntry(id, materialName, name, lore, nextCustomModelData,
                     furniture, furnitureSolid, furnitureShiftRequired, furnitureYOffset,
-                    furnitureHits, furnitureDrop, furnitureHitSound, furnitureBreakSound, false));
+                    furnitureHits, furnitureDrop, furnitureHitSound, furnitureBreakSound, false, null));
             nextCustomModelData++;
         }
         if (!entries.isEmpty()) {
@@ -286,10 +291,12 @@ public final class ItemCatalog {
             lore.add(com.teolo.magixpack.util.Colors.component(riga.replace("{player}", name))
                     .decoration(TextDecoration.ITALIC, false));
         }
-        Component avatar = owner != null ? avatars.cached(owner) : null;
+        GlyphEntry glyph = glyphs.entry(e.avatarGlyph());
+        Component avatar = owner != null && glyph != null && glyph.playerAvatar()
+                ? glyphs.component(glyph.id(), owner) : null;
         if (avatar != null) {
-            // Only a taller avatar (pixel-size > 1) sticks out: empty lines keep it in the tooltip.
-            for (int i = 0; i < avatars.emptyLinesAbove(10); i++) lore.add(Component.empty());
+            // An avatar taller than a letter (scale, offset-y) sticks out: empty lines keep it in.
+            for (int i = 0; i < glyph.emptyLinesAbove(10); i++) lore.add(Component.empty());
             lore.add(avatar.decoration(TextDecoration.ITALIC, false));
         }
         if (!lore.isEmpty()) meta.lore(lore);

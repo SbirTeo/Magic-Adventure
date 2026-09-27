@@ -4,7 +4,7 @@ main: com.teolo.magixpack.MagixPack
 api-version: '26.1'
 author: teolo
 description: Server unico del resource pack del server, con API generica di registrazione per gli altri plugin Magix.
-softdepend: [MagixLanguage]
+softdepend: [MagixLanguage, PlaceholderAPI]
 
 commands:
   magixpack:
@@ -26,5 +26,5 @@ permissions:
     description: Dare a se stessi o a un altro giocatore un oggetto custom di items.yml (/mpack item give|list).
     default: op
   magixpack.glyph.list:
-    description: Vedere il catalogo delle icone custom di glyphs.yml e il loro punto di codice, e provarle in chat (/mpack glyph list|show).
+    description: Vedere il catalogo delle icone custom di glyphs.yml col loro carattere e placeholder, e provarle in chat (/mpack glyph list|show).
     default: op

@@ -17,6 +17,14 @@ import java.util.Locale;
  */
 public final class MagixLanguagePlaceholders extends PlaceholderExpansion {
 
+    /** Elenco per la guida staff (StaffGuide.placeholders): coppie placeholder, cosa mostra.
+     *  check_config.py [9] blocca il commit se qui manca un placeholder risolto sotto. */
+    public static final String[] DOCS = {
+            "%magixlanguage_lang%", "Codice della lingua del giocatore (it, en, es, de).",
+            "%magixlanguage_country%", "Paese rilevato dal GeoIP (- se nessuno o rilevazione spenta).",
+            "%magixlanguage_source%", "Da dove viene la lingua: geoip (rilevata) o manual (scelta dal giocatore).",
+    };
+
     private final MagixLanguage plugin;
 
     public MagixLanguagePlaceholders(MagixLanguage plugin) {

@@ -1,0 +1,12 @@
+-- Rimette in coda le frasi del sito segnate "failed" senza che MyMemory le avesse mai viste.
+--
+-- SiteTranslationWorker (MagixWeb) contava come tentativo fallito anche il giro in cui
+-- MagixLanguage non chiamava MyMemory (pausa dopo un blocco, prima il limite di un tentativo
+-- al giorno): ogni frase nuova diventava "failed" per sempre in due minuti. Il 26/09 erano
+-- 1435 (en 1201, es 160, de 74), zero tradotte. Dalla correzione (MagixWeb 0.12.11) un giro
+-- senza MyMemory disponibile non tocca piu' le frasi: si possono riprovare tutte.
+--
+-- Va applicata DOPO il deploy di MagixWeb 0.12.11, altrimenti il worker vecchio le ribrucia.
+-- Rilanciarla rimette in coda anche le frasi fallite davvero (5 tentativi veri): innocuo,
+-- ripartono da zero e se falliscono di nuovo tornano "failed".
+UPDATE site_translations SET status = 'pending', attempts = 0 WHERE status = 'failed';

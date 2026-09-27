@@ -175,6 +175,20 @@ jobs:
             fi
           fi
 
+          # La coda di traduzione del sito (site_translations) sta nel database del sito, non in
+          # un file: per MagixLanguage e MagixWeb se ne stampano i CONTEGGI per lingua e stato,
+          # con la stessa connessione del sito (includes/db.php). Mai testi ne' credenziali: un
+          # errore stampa solo il tipo e il codice, non il messaggio (puo' contenere l'utente DB).
+          if [ "$PLUGIN" = "MagixLanguage" ] || [ "$PLUGIN" = "MagixWeb" ]; then
+            echo
+            echo "=== CODA TRADUZIONI DEL SITO (site_translations, solo conteggi) ==="
+            echo "lingua  stato  righe  max-tentativi  ultimo-aggiornamento"
+            php -r 'try { require "/var/www/magicadventure/includes/db.php";
+                foreach (db()->query("SELECT lang, status, COUNT(*) AS n, MAX(attempts) AS att, MAX(updated_at) AS ultimo FROM site_translations GROUP BY lang, status ORDER BY lang, status") as $r) { echo implode("  ", $r), "\n"; }
+              } catch (Throwable $e) { echo "lettura fallita: ", get_class($e), " ", $e->getCode(), "\n"; }' 2>&1 \
+              || echo "(php da riga di comando non disponibile sul VPS)"
+          fi
+
           if [ -n "$FILE" ]; then
             echo
             echo "=== $FILE ($PLUGIN) ==="

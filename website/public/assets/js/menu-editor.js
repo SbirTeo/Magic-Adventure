@@ -2763,7 +2763,7 @@
     p.appendChild(textField('Argomenti del comando', (menu.argomenti || []).join(', '), function (v) {
       menu.argomenti = v.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
       segnaModificato();
-    }, 'Separati da virgola. /negozio armi con argomento "categoria" dà %arg_categoria%.', false, 'arguments'));
+    }, 'Separati da virgola. /shop weapons con argomento "category" dà %arg_category%.', false, 'arguments'));
 
     p.appendChild(campoSpunta('Si può chiudere con Esc', menu.chiusura_libera !== false, function (v) {
       menu.chiusura_libera = v;
