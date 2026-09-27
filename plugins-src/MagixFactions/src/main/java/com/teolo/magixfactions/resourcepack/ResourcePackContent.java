@@ -92,6 +92,9 @@ public final class ResourcePackContent {
         // Forma minimap: quadrata o rotonda (default rotonda) -> #define SQUARE nel fragment shader.
         boolean square = "square".equalsIgnoreCase(plugin.getConfig().getString("map.minimap.shape", "round"));
         String squareStr = square ? "1" : "0";
+        // Lato dello schermo della minimap (e del pannello info sotto): "right" (default) o "left".
+        boolean left = "left".equalsIgnoreCase(plugin.getConfig().getString("map.minimap.position", "right"));
+        String leftStr = left ? "1.0" : "0.0";
         // Cornice minimap: spessore (px) e colore, sostituiti nel fragment shader (BORDER_WIDTH / BORDER_INNER).
         double borderSize = plugin.getConfig().getDouble("map.minimap.border-size", 3.0);
         borderSize = Math.max(0.0, Math.min(10.0, borderSize));
@@ -125,6 +128,7 @@ public final class ResourcePackContent {
                 if (path.endsWith(".vsh")) { // il vertex shader ha i placeholder di minimap e pannello info
                     data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
                             .replace("__MAP_SIZE__", sizeStr)
+                            .replace("__MAP_LEFT__", leftStr)
                             .replace("__PANEL_ROWS__", panelRowsStr)
                             .replace("__PANEL_GAP__", panelGapStr)
                             .getBytes(java.nio.charset.StandardCharsets.UTF_8);

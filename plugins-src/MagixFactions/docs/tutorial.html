@@ -331,7 +331,7 @@
   nell'inventario, ma non si aggiorna da sola — cammina e <b>rilancia</b> <span class="cmd">/f map</span> per
   vedere la situazione nuova. La <b>minimap</b> sempre a schermo — un riquadro
   {{se:map.minimap.shape=round}}<b>rotondo</b>{{/se}}{{se:map.minimap.shape=square}}<b>quadrato</b>{{/se}}
-  in un angolo, quello sì che si aggiorna da solo mentre cammini — spetta a chi ha il permesso apposta.
+  in alto {{se:map.minimap.position=left}}a <b>sinistra</b>{{/se}}{{se:map.minimap.position!=left}}a <b>destra</b>{{/se}}, quello sì che si aggiorna da solo mentre cammini — spetta a chi ha il permesso apposta.
   Se ce l'hai puoi <b>accenderla o spegnerla</b> quando vuoi con <span class="cmd">/f minimap on</span> /
   <span class="cmd">/f minimap off</span>: anche da spenta, la mappa in chat con <span class="cmd">/f map</span>
   resta sempre a disposizione. La scelta resta salvata anche dopo il logout.{{se:map.minimap.info-panel.enabled=true}}
