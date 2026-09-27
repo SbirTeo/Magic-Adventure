@@ -392,7 +392,7 @@ require __DIR__ . '/../includes/header.php';
 <p class="profilo-nota" style="margin-top:22px;">
   La password e' la stessa che usi per entrare sul server: cambiandola da
   <a href="/cambia-password">Cambia password</a> cambia in tutti e due i posti.
-  In gioco puoi farlo con <span class="code-box">/cambiapassword</span>.
+  In gioco puoi farlo con <span class="code-box">/changepassword</span>.
 </p>
 
 <?php /* Il visualizzatore 3D pesa mezzo mega: si carica SOLO qui, in coda alla pagina e
