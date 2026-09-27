@@ -234,7 +234,12 @@ Cosa fa, in ordine, a ogni avvio e a ogni reload:
    `menus/*.yml` e `sanctions.yml`: li' le voci in piu' sono lavoro dello staff, non residui. La
    lista è per **esclusione** (cataloghi elencati, il resto si pulisce), perché i file a schema
    fisso crescono a ogni funzione nuova mentre i cataloghi sono quei due.
-4. Scrive nel log che cosa ha rinominato, aggiunto e tolto.
+4. **Riallinea i commenti** che vengono dal jar: l'intestazione del file, i titoli di sezione e il
+   commento sopra ogni chiave che esiste anche nel sorgente prendono il testo del sorgente (i valori
+   non si toccano). Restano come sono i commenti sopra le chiavi che il sorgente non ha (aggiunte
+   dallo staff) e i menu (`menus/*.yml`). Quindi un commento si corregge **nel repo**, mai a mano sul
+   VPS: al prossimo avvio verrebbe riscritto.
+5. Scrive nel log che cosa ha rinominato, aggiunto, tolto e di quali chiavi ha aggiornato i commenti.
 
 Regole che ne discendono:
 
