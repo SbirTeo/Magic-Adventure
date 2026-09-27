@@ -339,8 +339,9 @@ public final class MagixPack extends JavaPlugin implements Listener {
                         "/mpack item list", "Elenca gli oggetti custom caricati da items.yml in questo momento "
                                 + "(quelli con la texture mancante in items/ non compaiono: vedi la console).",
                         "/mpack glyph list", "Elenca le icone custom di glyphs.yml: per ognuna il CARATTERE "
-                                + "assegnato a questo avvio (clicca la riga per copiarlo e incollarlo in qualunque "
-                                + "testo) e il placeholder %magixpack_glyph_<id>%; per un avatar, clic = copia del "
+                                + "assegnato a questo avvio e il placeholder %magixpack_glyph_<id>%, con due pulsanti: "
+                                + "[copia] (negli appunti) e [in chat] (lo scrive nella barra della chat, da dove si "
+                                + "usa subito o si copia con Ctrl+A e Ctrl+C). Per un avatar i pulsanti danno il "
                                 + "placeholder.",
                         "/mpack glyph show <id> [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
                                 + "provarla. Per la voce avatar (type: player-avatar) mostra la FACCIA della "

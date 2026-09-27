@@ -246,8 +246,8 @@ carattere funziona in QUALUNQUE testo, non solo dove si puo' scegliere un font.
 
 - **Il carattere** — lo assegna il plugin a **ogni avvio/reload**, in ordine alfabetico sugli id,
   nell'area privata Unicode da `U+E800` (sotto restano liberi per gli altri plugin: il logo del
-  tablist di MagixFactions e' `U+E010`). `/mpack glyph list` lo mostra per ogni icona e un **clic
-  sulla riga lo copia**: si incolla in un messaggio, un config di CMI, un cartello... Stesso catalogo,
+  tablist di MagixFactions e' `U+E010`). `/mpack glyph list` lo mostra per ogni icona, coi pulsanti
+  **[copia]** e **[in chat]**: si incolla in un messaggio, un config di CMI, un cartello... Stesso catalogo,
   stessi caratteri; ma se il catalogo cambia possono spostarsi.
 - **Il placeholder** (PlaceholderAPI) — `%magixpack_glyph_<id>%`: non cambia mai, anche se il
   carattere si sposta. E' il modo giusto in un config che deve durare. Per una voce avatar da'
@@ -273,7 +273,9 @@ if (icona != null) player.sendMessage(Component.text("Hai trovato una ").append(
 ```
 
 `/mpack glyph list` (permesso `magixpack.glyph.list`) mostra il catalogo caricato: per ogni icona il
-carattere (cliccabile per copiarlo), il suo codice Unicode e il placeholder.
+carattere, il suo codice Unicode e il placeholder, con due pulsanti: `[copia]` (negli appunti)
+e `[in chat]` (lo scrive nella barra della chat, da dove si usa subito o si copia con Ctrl+A e
+Ctrl+C). Per un avatar i pulsanti danno il placeholder.
 
 ## L'avatar come glifo (chat, tablist)
 

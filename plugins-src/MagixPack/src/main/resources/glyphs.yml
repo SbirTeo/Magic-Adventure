@@ -10,7 +10,7 @@
 #      del testo rispetto al bordo alto dell'immagine).
 #   3. /mpack reload. Il CARATTERE dell'icona lo assegna il plugin da solo, a
 #      ogni avvio/reload, in ordine alfabetico: /mpack glyph list lo mostra
-#      (clic sulla riga = copiato), e si incolla in qualunque testo.
+#      (pulsanti [copia] e [in chat]), e si incolla in qualunque testo.
 #
 #  Per OGNI voce (icone e avatar), facoltative:
 #   scale: 2      -> si vede 2 volte piu' grande; 0.8 -> un quinto piu' piccola

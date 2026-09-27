@@ -151,29 +151,34 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(messages.get(sender, "glyph-list-empty"));
             return;
         }
-        sender.sendMessage(messages.get(sender, "glyph-list-title").replace("{count}", String.valueOf(ids.size())));
+        sender.sendMessage(messages.get(sender, "glyph-list-heading").replace("{count}", String.valueOf(ids.size())));
         for (String id : ids) {
             GlyphEntry e = plugin.glyphCatalog().entry(id);
             String placeholder = "%magixpack_glyph_" + id + "%";
-            // A click copies what can be pasted: the character of an icon (it works in any text),
-            // the placeholder of an avatar (it is a different drawing for every player).
+            // What can be pasted: the character of an icon (it works in any text), the placeholder
+            // of an avatar (it is a different drawing for every player). Two buttons, because the
+            // clipboard is up to the client: the chat bar one always shows what it took.
             String line;
-            String copy;
-            String hover;
+            String value;
             if (e.playerAvatar()) {
                 line = messages.get(sender, "glyph-list-entry-avatar");
-                copy = placeholder;
-                hover = messages.get(sender, "glyph-list-copy-placeholder");
+                value = placeholder;
             } else {
-                copy = plugin.glyphCatalog().text(e);
-                line = messages.get(sender, "glyph-list-entry").replace("{char}", copy)
+                value = plugin.glyphCatalog().text(e);
+                line = messages.get(sender, "glyph-list-entry").replace("{char}", value)
                         .replace("{codepoint}", String.format("U+%04X", e.codepoint()));
-                hover = messages.get(sender, "glyph-list-copy-char");
             }
+            LegacyComponentSerializer legacy = LegacyComponentSerializer.legacySection();
             line = line.replace("{glyph}", id).replace("{placeholder}", placeholder);
-            sender.sendMessage(LegacyComponentSerializer.legacySection().deserialize(line)
-                    .clickEvent(ClickEvent.copyToClipboard(copy))
-                    .hoverEvent(HoverEvent.showText(LegacyComponentSerializer.legacySection().deserialize(hover))));
+            Component copy = legacy.deserialize(messages.get(sender, "glyph-list-button-copy"))
+                    .clickEvent(ClickEvent.copyToClipboard(value))
+                    .hoverEvent(HoverEvent.showText(legacy.deserialize(
+                            messages.get(sender, "glyph-list-hover-copy").replace("{value}", value))));
+            Component chat = legacy.deserialize(messages.get(sender, "glyph-list-button-chat"))
+                    .clickEvent(ClickEvent.suggestCommand(value))
+                    .hoverEvent(HoverEvent.showText(legacy.deserialize(
+                            messages.get(sender, "glyph-list-hover-chat").replace("{value}", value))));
+            sender.sendMessage(legacy.deserialize(line).append(copy).append(chat));
         }
     }
 
