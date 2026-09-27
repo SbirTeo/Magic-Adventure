@@ -1431,12 +1431,13 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "admin":
                 if (!s.hasPermission("magixfactions.admin")) break;
                 if (args.length == 2)
-                    return filterPrefix(args[1], List.of("setpower", "setmap", "fake", "bypass", "home", "disband", "rename"));
+                    return filterPrefix(args[1], List.of("setpower", "setmap", "fake", "bypass", "home", "disband", "rename",
+                            "join", "promote", "demote"));
                 if (args.length == 3) {
                     if (args[1].equalsIgnoreCase("fake"))
                         return filterPrefix(args[2], List.of("create", "clear", "info"));
                     if (args[1].equalsIgnoreCase("home") || args[1].equalsIgnoreCase("disband")
-                            || args[1].equalsIgnoreCase("rename"))
+                            || args[1].equalsIgnoreCase("rename") || args[1].equalsIgnoreCase("join"))
                         return filterPrefix(args[2], factionNames());
                     if (args[1].equalsIgnoreCase("bypass"))
                         return filterPrefix(args[2], List.of("on", "off"));
@@ -1569,6 +1570,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             case "home": return adminHome(s, a);
             case "disband": return adminDisband(s, a);
             case "rename": return adminRename(s, a);
+            case "join": return adminJoin(s, a);
+            case "promote": return adminShiftRank(s, a, true);
+            case "demote": return adminShiftRank(s, a, false);
             case "minimapdump": minimap.dumpMapPacketStructure(s); return true;
             case "minimaprptest": return adminMinimapResourcePackTest(s);
             case "minimapmarker": return adminMinimapMarkerTest(s);
@@ -1782,6 +1786,59 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         fm.renameFaction(f, name);
         broadcast(f, "rename.broadcast", "old", old, "name", name);
         msgKey(s, "admin.rename-ok", "old", old, "name", name);
+        return true;
+    }
+
+    /**
+     * /mf admin join &lt;fazione&gt; - chi esegue il comando entra in UNA FAZIONE QUALSIASI, senza invito e
+     * anche oltre il tetto di membri, col grado piu' basso (come un /f join normale).
+     */
+    private boolean adminJoin(CommandSender s, String[] a) {
+        if (!(s instanceof Player p)) { msgKey(s, "errors.players-only"); return true; }
+        if (a.length < 3) { msgKey(s, "admin.join-usage"); return true; }
+        if (fm.getFaction(p.getUniqueId()) != null) { msgKey(s, "admin.join-already-in"); return true; }
+        Faction f = fm.getByName(a[2]);
+        if (f == null) { msgKey(s, "admin.faction-not-found", "faction", a[2]); return true; }
+        try {
+            fm.addMember(f, p.getUniqueId(), ranks.lowest().getId());
+        } catch (Exception e) {
+            msgKey(s, "errors.generic", "error", String.valueOf(e.getMessage()));
+            return true;
+        }
+        invites.remove(p.getUniqueId());
+        msgKey(p, "join.success", "name", cname(p, f));
+        broadcast(f, "join.broadcast", "player", p.getName());
+        return true;
+    }
+
+    /**
+     * /mf admin promote|demote &lt;giocatore&gt; - sposta di un grado il membro di UNA FAZIONE QUALSIASI,
+     * senza farne parte ne' avere un grado sopra il suo. Il leader non si tocca (si passa con /f transfer)
+     * e la promozione si ferma al grado piu' alto sotto il leader.
+     */
+    private boolean adminShiftRank(CommandSender s, String[] a, boolean up) {
+        String key = up ? "promote" : "demote";
+        if (a.length < 3) { msgKey(s, "admin." + key + "-usage"); return true; }
+        UUID target = resolveAdminTarget(a[2]);
+        if (target == null) { msgKey(s, "admin.not-found", "player", a[2]); return true; }
+        Faction f = fm.getFaction(target);
+        if (f == null) { msgKey(s, "admin.no-faction", "player", a[2]); return true; }
+        Member tm = f.getMember(target);
+        if (tm.isLeader()) { msgKey(s, key + ".cant-leader"); return true; }
+        int index = ranks.indexOf(tm.getRankId());
+        int newIndex = up ? index + 1 : index - 1;
+        if (up && newIndex > ranks.size() - 1) { msgKey(s, "promote.max"); return true; }
+        if (!up && newIndex < 0) { msgKey(s, "demote.min"); return true; }
+        try {
+            fm.setRank(f, target, ranks.byIndex(newIndex).getId());
+        } catch (Exception e) {
+            msgKey(s, "errors.generic", "error", String.valueOf(e.getMessage()));
+            return true;
+        }
+        String rank = ranks.byIndex(newIndex).getName();
+        msgKey(s, key + ".success", "player", a[2], "rank", rank);
+        Player tp = Bukkit.getPlayer(target);
+        if (tp != null) msgKey(tp, key + ".received", "rank", rank);
         return true;
     }
 
