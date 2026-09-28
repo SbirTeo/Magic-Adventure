@@ -243,7 +243,7 @@ require __DIR__ . '/../includes/header.php';
                 <?= $__tastoCrea ?>
                 <?php if (can('blog.edit')): ?>
                   <a href="/manage?section=blog_edit&id=<?= $featured['id'] ?>" class="card-azione">
-                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.6 2.9l2.5 2.5M3 13l.6-3L11 2.6a1.1 1.1 0 0 1 1.6 0l.8.8a1.1 1.1 0 0 1 0 1.6L6 12.4z"/></svg>
+                    <span aria-hidden="true">✎</span>
                     <span class="card-azione-etichetta">Modifica</span>
                   </a>
                 <?php endif; ?>

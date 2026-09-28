@@ -4122,47 +4122,46 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .tavolozza input[type=color] { height: 40px; padding: 3px; width: 100%; }
 
 /* Pulsanti dello staff sull'ultimo articolo della home: "+" (nuovo post) e matita (modifica),
-   uno accanto all'altro nell'angolo in alto a destra della copertina, identici: quadrati
-   bianchi con gli angoli dei pulsanti del sito. La scritta sta in una nuvoletta a sinistra
-   che compare passandoci sopra (o col fuoco, o tenendoli premuti da telefono). */
+   uno accanto all'altro nell'angolo in alto a destra della copertina, con lo STESSO aspetto
+   della matita di tutte le altre tessere (.card-edit-btn): tondo, velo scuro, bordo sottile,
+   viola al passaggio. La scritta sta in una nuvoletta a sinistra che compare passandoci
+   sopra (o col fuoco, o tenendoli premuti da telefono). */
 .card-azioni {
   position: absolute;
   z-index: 2;
   top: 10px;
   right: 10px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 /* Blog vuoto: il "+" da solo sopra la griglia, stesso pulsante. */
 .barra-crea { display: flex; justify-content: flex-end; margin: 0 0 14px; }
 .card-azioni-libere { position: static; }
 .card-azione {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: #fff;
-  color: #14161a;
-  border: 1px solid rgba(0, 0, 0, .12);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: var(--fs-base);
+  line-height: 1;
+  color: var(--contrasto);
+  background: var(--velo-scuro);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
   text-decoration: none;
-  transition: transform .15s ease, box-shadow .15s ease;
 }
 .card-azione:hover,
-.card-azione:focus-visible { color: #14161a; text-decoration: none; }
-.card-azione:hover { transform: scale(1.06); box-shadow: 0 6px 18px rgba(0, 0, 0, .34); }
-.card-azione:active { transform: scale(.96); }
+.card-azione:focus-visible { color: var(--purple); border-color: var(--purple); background: rgba(0, 0, 0, 0.75); text-decoration: none; }
 .card-azione svg {
-  width: 17px;
-  height: 17px;
+  width: 13px;
+  height: 13px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
+  stroke-width: 1.6;
   stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .card-azione-etichetta {
   position: absolute;
