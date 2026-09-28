@@ -146,7 +146,7 @@ require __DIR__ . '/../includes/header.php';
       <div class="status-pill <?= $status ? 'is-online' : 'is-unknown' ?>">
         <span class="dot"></span>
         <?php if ($status): ?>
-          <?= (int) $status['players_online'] ?> / <?= (int) $status['players_max'] ?> giocatori online
+          <?= (int) $status['players_online'] ?> / <?= (int) $status['players_max'] ?> giocatori connessi
         <?php else: ?>
           Stato server non disponibile
         <?php endif; ?>

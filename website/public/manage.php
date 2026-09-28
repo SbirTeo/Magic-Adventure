@@ -4364,7 +4364,7 @@ if ($section === 'dashboard') {
         </form>
         <div class="console-rapidi" id="consoleRapidi">
           <button type="button" class="btn btn-ghost btn-small" data-comando="save-all">Salva i mondi</button>
-          <button type="button" class="btn btn-ghost btn-small" data-comando="list">Chi è online</button>
+          <button type="button" class="btn btn-ghost btn-small" data-comando="list">Chi è connesso</button>
           <button type="button" class="btn btn-ghost btn-small" data-comando="tps">Prestazioni (tps)</button>
           <button type="button" class="btn btn-ghost btn-small" data-comando="whitelist on">Whitelist ON</button>
           <button type="button" class="btn btn-ghost btn-small" data-comando="whitelist off">Whitelist OFF</button>

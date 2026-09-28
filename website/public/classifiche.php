@@ -644,7 +644,7 @@ try {
 <?php else: ?>
   <div class="panel player-board">
     <h3>🕒 Tempo di gioco</h3>
-    <p class="board-note">I secondi totali passati online sul server.</p>
+    <p class="board-note">I secondi totali passati connessi al server.</p>
     <div class="rank-wrap">
       <table class="rank" data-paginate>
         <thead><tr><th>#</th><th>👤 Giocatore</th><th>🕒 Tempo di gioco</th></tr></thead>
@@ -662,7 +662,7 @@ try {
 
   <div class="panel player-board">
     <h3>💰 Ricchezza media</h3>
-    <p class="board-note">La giacenza media sul solo tempo online: parcheggiare soldi da offline non la gonfia.</p>
+    <p class="board-note">La giacenza media sul solo tempo da connessi: parcheggiare soldi da disconnessi non la gonfia.</p>
     <div class="rank-wrap">
       <table class="rank" data-paginate>
         <thead><tr><th>#</th><th>👤 Giocatore</th><th>💰 Ricchezza media</th></tr></thead>
