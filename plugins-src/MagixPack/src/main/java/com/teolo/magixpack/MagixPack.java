@@ -1,5 +1,6 @@
 package com.teolo.magixpack;
 
+import com.teolo.magixpack.avatar.AvatarGlyphRegistry;
 import com.teolo.magixpack.avatar.AvatarService;
 import com.teolo.magixpack.command.MagixPackCommand;
 import com.teolo.magixpack.furniture.FurnitureListener;
@@ -63,6 +64,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
     private ItemCatalog itemCatalog;
     private GlyphCatalog glyphCatalog;
     private AvatarService avatarService;
+    private AvatarGlyphRegistry avatarChars;
 
     @Override
     public void onEnable() {
@@ -77,7 +79,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
         packService = new PackService(this);
         avatarService = new AvatarService(this);
-        glyphCatalog = new GlyphCatalog(this, avatarService);
+        avatarChars = new AvatarGlyphRegistry();
+        glyphCatalog = new GlyphCatalog(this, avatarService, avatarChars);
         itemCatalog = new ItemCatalog(this, avatarService, glyphCatalog);
         loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
@@ -149,14 +152,33 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
     /** Rilegge items.yml/glyphs.yml (e le rispettive texture) e registra il risultato nel
      *  pacchetto sotto il PROPRIO nome (owner = MagixPack stesso, stessa API usata dagli altri
-     *  plugin): un'unica {@code register()}, perche' due chiamate con lo stesso owner si
-     *  sovrascriverebbero a vicenda invece di sommarsi (vedi {@link PackService#register}). */
+     *  plugin). */
     private void loadCatalogsAndRegister() {
         itemCatalog.reload();
         glyphCatalog.reload();
+        registerPackFiles();
+    }
+
+    /** Registra (owner = MagixPack) lo stato ATTUALE dei due cataloghi — items.yml/glyphs.yml gia'
+     *  in memoria, PIU' i caratteri avatar assegnati finora al volo da {@link AvatarGlyphRegistry}
+     *  — senza rileggere niente da disco: un'unica {@code register()}, perche' due chiamate con lo
+     *  stesso owner si sovrascriverebbero a vicenda invece di sommarsi (vedi
+     *  {@link PackService#register}). */
+    private void registerPackFiles() {
         Map<String, byte[]> files = new LinkedHashMap<>(itemCatalog.packFiles());
         files.putAll(glyphCatalog.packFiles());
         packService.register(this, files);
+    }
+
+    /** Da chiamare quando {@link AvatarGlyphRegistry} assegna un carattere NUOVO a runtime (una
+     *  faccia mai vista prima in questo avvio): ricostruisce il pacchetto con quel carattere in
+     *  piu' e lo rimanda a chi e' gia' online, esattamente come {@link #reload()} ma senza
+     *  rileggere niente da disco — nessun riavvio, nessuna azione manuale dello staff richiesta. */
+    public void resendDynamicPackContent() {
+        registerPackFiles();
+        if (packService.isAvailable()) {
+            for (Player p : Bukkit.getOnlinePlayers()) packService.sendTo(p);
+        }
     }
 
     // --------------------------------------------------------------------------------------------
@@ -228,6 +250,12 @@ public final class MagixPack extends JavaPlugin implements Listener {
      *  {@code player-avatar} items, to wait for the download before giving. */
     public AvatarService avatarService() {
         return avatarService;
+    }
+
+    /** The single-character-per-face registry (see the class): used by {@code /mpack glyph show}
+     *  to give a player a real, pasteable-in-chat character for their avatar. */
+    public AvatarGlyphRegistry avatarChars() {
+        return avatarChars;
     }
 
     /** Like {@link #customItem(String)}, built FOR {@code player}: a {@code player-avatar} item of
@@ -342,11 +370,16 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "assegnato a questo avvio e il placeholder %magixpack_glyph_<id>%, con due pulsanti: "
                                 + "[copia] (negli appunti) e [in chat] (lo scrive nella barra della chat, da dove si "
                                 + "usa subito o si copia con Ctrl+A e Ctrl+C). Per un avatar i pulsanti danno il "
-                                + "placeholder.",
+                                + "placeholder (serve in un menu/scoreboard/tablist, MAI incollato in un messaggio "
+                                + "di chat vero: la chat digitata non passa mai da PlaceholderAPI, apposta) e il "
+                                + "comando di anteprima vero (/mpack glyph show <id>).",
                         "/mpack glyph show <id> [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
                                 + "provarla. Per la voce avatar (type: player-avatar) mostra la FACCIA della "
                                 + "skin del giocatore indicato (di chi lancia il comando, se manca), dopo averne "
-                                + "scaricato la skin.")
+                                + "scaricato la skin, con un pulsante [copia] che da' un CARATTERE VERO (non un "
+                                + "placeholder): quello si puo' davvero incollare in un messaggio di chat normale "
+                                + "e si vede da chiunque abbia il pacchetto — assegnato al volo la prima volta che "
+                                + "serve, come una texture custom di Oraxen, senza bisogno di riavviare il server.")
 
                 .section("Oggetti custom (items.yml)",
                         "Catalogo staff-editable per oggetti con texture E MODELLO propri, non un semplice "

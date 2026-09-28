@@ -39,10 +39,14 @@ glyph-unknown: "&cNessuna icona '{glyph}' in glyphs.yml (o le manca la texture i
 glyph-player-only: "&cL'anteprima si vede solo in gioco: comando riservato ai giocatori."
 glyph-avatar-loading: "&7Scarico la skin di &f{player}&7..."
 glyph-avatar-no-skin: "&cNessuna skin trovata per '{player}' (account non premium, o Mojang non raggiungibile)."
+# Finiti i punti di codice per i caratteri-avatar (migliaia di skin diverse in un avvio: non
+# dovrebbe succedere mai davvero).
+glyph-avatar-chars-full: "&cTroppe skin diverse viste in questo avvio: nessun carattere libero per una nuova."
 # Scritto subito a destra dell'icona nell'anteprima di /mpack glyph show.
 glyph-show-caption: " &7{glyph}"
-# Solo per un avatar: pulsante che copia la faccia come TESTO VERO (font pixel + codici colore),
-# non un placeholder - incollato in un messaggio di chat vero funziona per chiunque, nessuna
+# Solo per un avatar: pulsante che copia UN CARATTERE VERO (una texture della faccia, assegnata al
+# volo - come Oraxen per le teste custom), non un placeholder ne' un trucco di codici colore -
+# incollato in un messaggio di chat vero funziona per chiunque veda il pacchetto, nessuna
 # risoluzione lato server necessaria.
 glyph-show-copy-button: " &a[copia]"
 glyph-show-copy-hover: "&7Copia negli appunti: funziona incollato in un vero messaggio di chat."

@@ -1,5 +1,6 @@
 package com.teolo.magixpack.glyph;
 
+import com.teolo.magixpack.avatar.AvatarGlyphRegistry;
 import com.teolo.magixpack.avatar.AvatarService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -64,11 +65,13 @@ public final class GlyphCatalog {
 
     private final JavaPlugin plugin;
     private final AvatarService avatars;
+    private final AvatarGlyphRegistry avatarChars;
     private final Map<String, GlyphEntry> entries = new LinkedHashMap<>();
 
-    public GlyphCatalog(JavaPlugin plugin, AvatarService avatars) {
+    public GlyphCatalog(JavaPlugin plugin, AvatarService avatars, AvatarGlyphRegistry avatarChars) {
         this.plugin = plugin;
         this.avatars = avatars;
+        this.avatarChars = avatarChars;
     }
 
     public void reload() {
@@ -197,7 +200,10 @@ public final class GlyphCatalog {
      *  spaces and the references to the vanilla fonts (see the class Javadoc). */
     public Map<String, byte[]> packFiles() {
         Map<String, byte[]> out = new LinkedHashMap<>();
-        if (entries.isEmpty()) return out;
+        // Non solo entries.isEmpty(): anche senza icone in glyphs.yml puo' esserci gia' qualche
+        // carattere avatar assegnato al volo da AvatarGlyphRegistry (vedi MagixPackCommand), che
+        // va comunque nel font.
+        if (entries.isEmpty() && avatarChars.packFiles(NAMESPACE).isEmpty()) return out;
         List<String> providers = new ArrayList<>();
         Map<Integer, Double> spaces = new LinkedHashMap<>();
         for (GlyphEntry e : entries.values()) {
@@ -234,6 +240,10 @@ public final class GlyphCatalog {
             }
             providers.add(sb.append("}}").toString());
         }
+        // I caratteri avatar assegnati al volo (vedi AvatarGlyphRegistry): stesso default.json,
+        // un secondo file allo stesso percorso lo scarterebbe il client (vedi PackService).
+        out.putAll(avatarChars.packFiles(NAMESPACE));
+        providers.addAll(avatarChars.providers(NAMESPACE));
         // The vanilla default.json, verbatim: without these the client would lose every letter.
         providers.add("{\"type\":\"reference\",\"id\":\"minecraft:include/space\"}");
         providers.add("{\"type\":\"reference\",\"id\":\"minecraft:include/default\",\"filter\":{\"uniform\":false}}");

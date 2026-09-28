@@ -1,6 +1,7 @@
 package com.teolo.magixpack.command;
 
 import com.teolo.magixpack.MagixPack;
+import com.teolo.magixpack.avatar.AvatarGlyphRegistry;
 import com.teolo.magixpack.glyph.GlyphEntry;
 import com.teolo.magixpack.lang.Messages;
 import net.kyori.adventure.text.Component;
@@ -236,13 +237,23 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             Component avatar = plugin.avatarService().render(e, face);
             // A glyph taller than a letter (scale, offset-y) sticks out above its line: leave room.
             for (int i = 0; i < e.emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
-            // legacy(): la STESSA faccia come testo puro (font pixel + codici colore &sect;), non un
-            // placeholder PAPI - copiata e incollata in un vero messaggio di chat funziona per
-            // chiunque veda il pacchetto, senza bisogno che niente la risolva lato server.
-            String pasteable = plugin.avatarService().legacy(e, face);
+            // Un codice colore & sect; incollato/digitato in un vero messaggio di chat resta testo
+            // letterale (chat firmata dal 1.19: verificato in gioco, non e' una supposizione) - MAI
+            // il colore. Serve un carattere VERO, senza nessun codice di formattazione: come
+            // Oraxen per le teste custom, la faccia intera diventa una texture assegnata al volo a
+            // UN punto di codice (AvatarGlyphRegistry), non piu' 8 caratteri riga + colore.
+            AvatarGlyphRegistry chars = plugin.avatarChars();
+            boolean isNewFace = chars.isNew(face);
+            char glyph = chars.glyphFor(face);
+            if (glyph == 0) {
+                viewer.sendMessage(messages.get(viewer, "glyph-avatar-chars-full"));
+                viewer.sendMessage(avatar.append(caption));
+                return;
+            }
+            if (isNewFace) plugin.resendDynamicPackContent();
             Component copy = LegacyComponentSerializer.legacySection()
                     .deserialize(messages.get(viewer, "glyph-show-copy-button"))
-                    .clickEvent(ClickEvent.copyToClipboard(pasteable))
+                    .clickEvent(ClickEvent.copyToClipboard(String.valueOf(glyph)))
                     .hoverEvent(HoverEvent.showText(LegacyComponentSerializer.legacySection()
                             .deserialize(messages.get(viewer, "glyph-show-copy-hover"))));
             viewer.sendMessage(avatar.append(caption).append(copy));
