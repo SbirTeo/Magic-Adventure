@@ -229,8 +229,11 @@ body.pagina-store {
   animation: drop-spin 2.4s linear infinite;
 }
 .auth-box { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-/* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata. */
-.cambia-tema {
+/* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata.
+   ".btn.cambia-tema" e non solo ".cambia-tema": .btn e' definito piu' sotto nel file e a pari
+   peso vinceva lui (display: inline-block, il suo padding), quindi niente centratura e l'icona
+   si posava sulla riga del testo, fuori centro. */
+.btn.cambia-tema {
   /* Stessa altezza di Gestione/Esci: "stretch" (come su a.who-link piu' sotto) lo allunga
      fino alla riga piu' alta di .auth-box invece di fermarsi al contenuto suo (un'icona e una
      parola sono piu' corte della riga di testo degli altri pulsanti, restava piu' basso). */
@@ -241,10 +244,22 @@ body.pagina-store {
   align-self: stretch;
   text-transform: capitalize;
 }
-.cambia-tema-icona { font-size: 15px; }
+.cambia-tema-icona { display: inline-flex; align-items: center; justify-content: center; }
+.cambia-tema-icona svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cambia-tema-icona svg[hidden] { display: none; }
+.cambia-tema-icona svg[data-icona="scuro"] { fill: currentColor; stroke: none; }
 .cambia-tema-testo { font-size: 12.5px; }
 @media (max-width: 900px) {
-  .cambia-tema { padding: 0; width: 34px; height: 34px; justify-content: center; }
+  .btn.cambia-tema { padding: 0; width: 34px; height: 34px; justify-content: center; }
   .cambia-tema-testo { display: none; }
 }
 
@@ -546,6 +561,9 @@ a.who-link {
   .auth-box .btn { padding: 7px 12px; font-size: 12.5px; }
   /* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
   .auth-box .who-link { padding: 3px 12px 3px 3px; }
+  /* Idem per i due pulsanti quadrati (tema e lingua): col padding di .auth-box .btn restavano
+     8px di spazio utile in 34px e l'icona, piu' larga, finiva spinta fuori centro. */
+  .auth-box .cambia-tema, .auth-box .cambia-lingua > summary { padding: 0; }
   .who-avatar { width: 24px; height: 24px; }
   /* Da telefono "Gestione" lascia la barra e passa nel menu ad hamburger (.nav-gestione): il
      suo posto lo prende la bandiera della lingua, un quadrato piu' stretto di lui. */

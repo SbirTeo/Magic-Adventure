@@ -361,7 +361,6 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
    giusto nell'HTML della pagina dopo e non si vede nessun lampo di colore sbagliato. */
 (function () {
   var ORDINE = ['scuro', 'chiaro', 'auto'];
-  var ICONE = { scuro: '☾', chiaro: '☀', auto: '◐' };
   var NOMI = { scuro: 'Tema scuro', chiaro: 'Tema chiaro', auto: 'Tema automatico' };
   var radice = document.documentElement;
   var chiaroDiSistema = window.matchMedia('(prefers-color-scheme: light)');
@@ -388,7 +387,10 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
     ricorda(scelta);
 
     if (bottone) {
-      bottone.querySelector('.cambia-tema-icona').textContent = ICONE[scelta];
+      // Le tre icone sono gia' nella pagina (header.php): si mostra quella della scelta.
+      bottone.querySelectorAll('.cambia-tema-icona [data-icona]').forEach(function (icona) {
+        icona.hidden = icona.getAttribute('data-icona') !== scelta;
+      });
       var etichetta = bottone.querySelector('.cambia-tema-testo');
       if (etichetta) etichetta.textContent = NOMI[scelta].replace('Tema ', '');
       bottone.title = NOMI[scelta] + ' — clicca per cambiare';

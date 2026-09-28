@@ -536,13 +536,25 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         // la scrive il server (niente sfarfallio); da li' in poi la cambia assets/js/site.js,
         // che salva la scelta in un cookie valido un anno.
         $__temaOra = tema_scelto();
-        $__iconaTema = ['scuro' => '☾', 'chiaro' => '☀', 'auto' => '◐'];
+        // Icone disegnate (SVG), non i caratteri ☾ ☀ ◐: quelli li disegna il font del telefono,
+        // ognuno con i suoi margini, e nel pulsante quadrato uscivano fuori centro (il sole
+        // visibilmente, su Android). Tutte e tre nella pagina, si vede solo quella attiva.
+        $__iconaTema = [
+            'scuro' => '<path d="M13.2 10.4A5.6 5.6 0 0 1 5.6 2.8a5.6 5.6 0 1 0 7.6 7.6Z"/>',
+            'chiaro' => '<circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6'
+                . 'M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"/>',
+            'auto' => '<circle cx="8" cy="8" r="5.6"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2Z" fill="currentColor"/>',
+        ];
         $__nomeTema = ['scuro' => 'Tema scuro', 'chiaro' => 'Tema chiaro', 'auto' => 'Tema automatico'];
       ?>
       <button type="button" class="btn btn-ghost cambia-tema" id="cambiaTema"
               title="<?= h($__nomeTema[$__temaOra]) ?> — clicca per cambiare"
               aria-label="<?= h($__nomeTema[$__temaOra]) ?>">
-        <span class="cambia-tema-icona"><?= $__iconaTema[$__temaOra] ?></span>
+        <span class="cambia-tema-icona">
+          <?php foreach ($__iconaTema as $__t => $__disegno): ?>
+            <svg viewBox="0 0 16 16" data-icona="<?= $__t ?>" aria-hidden="true"<?= $__t === $__temaOra ? '' : ' hidden' ?>><?= $__disegno ?></svg>
+          <?php endforeach; ?>
+        </span>
         <?php /* La parola sparisce su schermo stretto: resta la sola icona. */ ?>
         <span class="cambia-tema-testo"><?= h(str_replace('Tema ', '', $__nomeTema[$__temaOra])) ?></span>
       </button>
