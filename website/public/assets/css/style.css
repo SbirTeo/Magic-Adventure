@@ -896,8 +896,12 @@ body.menu-aperto .site-header { backdrop-filter: none; }
     .hero-slogan { white-space: normal; -webkit-mask-image: none; mask-image: none; }
     .hero-slogan-testo { padding-left: 0; animation: none; }
   }
-  /* Le particelle erano pensate per il logo grande: accanto al testo sono solo puntini sparsi. */
-  .hero-logo-col .logo-particles { display: none; }
+  /* Animato come su schermo largo: il logo pulsa piano e ha le sue particelle intorno. La
+     colonna del logo e' "sciolta" (display: contents), quindi la pulsazione va sull'immagine
+     e le particelle si appoggiano all'area "logo" della griglia (un elemento assoluto con
+     un'area di griglia usa quella come riquadro). */
+  .hero-logo-pulse picture { animation: logo-pulse 4.5s ease-in-out infinite; }
+  .hero-logo-col .logo-particles { grid-area: logo; }
   /* Senza il riquadro della colonna la matita dell'admin si appoggia alla hero: in alto a destra. */
   .hero-logo-col .hero-logo-edit { top: -8px; right: 0; }
   .status-pill { padding: 5px 12px; gap: 7px; font-size: var(--fs-xs); }
