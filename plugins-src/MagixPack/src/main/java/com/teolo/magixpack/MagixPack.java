@@ -246,6 +246,20 @@ public final class MagixPack extends JavaPlugin implements Listener {
         return glyphCatalog.component(id, player);
     }
 
+    /** Several glyphs of glyphs.yml stacked in the same spot, the one with the highest
+     *  {@code priority} on top (e.g. List.of("avatar", "cornice")); {@code player} is whose avatar
+     *  a player-avatar voice shows. Null if an id is unknown or the avatar is not downloaded yet. */
+    public Component customGlyphStack(List<String> ids, Player player) {
+        List<com.teolo.magixpack.glyph.GlyphEntry> order = glyphCatalog.stackOrder(ids);
+        if (order == null || order.isEmpty()) return null;
+        int[][] face = null;
+        if (GlyphCatalog.needsFace(order)) {
+            face = player != null ? avatarService.cachedFace(player) : null;
+            if (face == null) return null;
+        }
+        return glyphCatalog.stackComponent(order, face);
+    }
+
     /** Fixed, always-available transparent characters (like Oraxen's shifts.yml) that move
      *  whatever comes after them {@code pixels} GUI pixels right (or left, if negative) — for
      *  nudging an icon/avatar precisely in a line without a glyphs.yml entry of its own. Safe to
@@ -381,8 +395,9 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "placeholder (serve in un menu/scoreboard/tablist, MAI incollato in un messaggio "
                                 + "di chat vero: la chat digitata non passa mai da PlaceholderAPI, apposta) e il "
                                 + "comando di anteprima vero (/mpack glyph show <id>).",
-                        "/mpack glyph show <id> [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
-                                + "provarla. Per la voce avatar (type: player-avatar) mostra la FACCIA della "
+                        "/mpack glyph show <id>[,<id>...] [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
+                                + "provarla; con piu' id separati da virgola (es. avatar,cornice) li mostra impilati "
+                                + "nello stesso punto, sopra quello con priority piu' alta. Per la voce avatar (type: player-avatar) mostra la FACCIA della "
                                 + "skin del giocatore indicato (di chi lancia il comando, se manca), dopo averne "
                                 + "scaricato la skin, con un pulsante [copia] che da' un CARATTERE VERO (non un "
                                 + "placeholder): quello si puo' davvero incollare in un messaggio di chat normale "
@@ -432,6 +447,13 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "gioco). Per l'avatar l'unico che funziona davvero incollato e' il carattere del "
                                 + "pulsante [copia] di /mpack glyph show avatar — una texture vera assegnata al "
                                 + "volo (come Oraxen per le teste custom), non un trucco di colori.",
+                        "Chi sta SOPRA quando due glifi si sovrappongono lo decide priority in glyphs.yml "
+                                + "(numero piu' alto = sopra, default 0): il placeholder "
+                                + "%magixpack_stack_avatar,cornice% (o /mpack glyph show avatar,cornice) li disegna "
+                                + "nello stesso punto, in ordine di priority — in Minecraft vince sempre il carattere "
+                                + "scritto per ultimo, e lo stack scrive per ultimo quello con priority piu' alta. "
+                                + "Partono tutti dallo stesso bordo sinistro: per centrare un glifo piu' stretto "
+                                + "dentro uno piu' largo si usa il suo offset-x.",
                         "GlyphCatalog.shift(pixel) da' invece caratteri FISSI (come lo shifts.yml di Oraxen, "
                                 + "generati non configurati) che spostano quello che li segue senza bisogno di una "
                                 + "voce in glyphs.yml: utili per allineare un'icona/avatar in un testo composto a "

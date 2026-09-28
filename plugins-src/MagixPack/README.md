@@ -320,6 +320,36 @@ Incollato in un messaggio normale funziona per chiunque veda il pacchetto: nessu
 lato server necessaria, e non serve riavviare — il pacchetto si ricostruisce e si rimanda da solo
 a chi e' gia' online (vedi `avatar.AvatarGlyphRegistry`).
 
+## Impilare piu' glifi: chi sta sopra (priority)
+
+Due immagini si sovrappongono solo se sono nello stesso punto, e in Minecraft il font non ha uno
+"z-index": un carattere scritto DOPO in una riga si disegna SOPRA quelli prima. MagixPack sfrutta
+questo: ogni voce di `glyphs.yml` ha `priority` (numero, default 0), e uno **stack** disegna i
+glifi uno sopra l'altro nello stesso punto, in ordine di `priority` crescente — quello col numero
+piu' alto e' scritto per ultimo, quindi sta sopra. A parita' vale l'ordine in cui li scrivi.
+
+```yaml
+avatar:
+  type: player-avatar
+  priority: 1
+cornice:          # glyphs/cornice.png: bordo opaco, centro trasparente
+  height: 8
+  ascent: 7
+  priority: 2     # sopra l'avatar; con 0 finirebbe sotto
+```
+
+- Placeholder: `%magixpack_stack_avatar,cornice%` (anche `...:<giocatore>` per l'avatar di un
+  altro giocatore).
+- Anteprima: `/mpack glyph show avatar,cornice [giocatore]`.
+- API: `customGlyphStack(List.of("avatar", "cornice"), giocatore)`.
+
+Come funziona: ogni voce ha nel font due spazi in piu', uno che torna indietro esattamente della
+sua larghezza e uno che avanza della stessa (larghezza calcolata come fa il client: ultima colonna
+non trasparente dell'immagine per la scala, +1). Nello stack ogni glifo e' seguito dal suo "torna
+indietro", cosi' il successivo parte dallo stesso punto; alla fine l'"avanti" del piu' largo, cosi'
+il testo dopo riparte dopo di lui. I glifi partono tutti dallo stesso bordo SINISTRO: se la cornice
+e' piu' larga dell'avatar (es. 10 px contro 8), centralo con `offset-x: 1` sull'avatar.
+
 ## Spostare un carattere senza un glyphs.yml (shift)
 
 Un set fisso di caratteri trasparenti, sempre disponibili, come lo `shifts.yml` di Oraxen — ma

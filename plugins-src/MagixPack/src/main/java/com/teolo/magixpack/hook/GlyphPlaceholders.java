@@ -27,6 +27,8 @@ public final class GlyphPlaceholders extends PlaceholderExpansion {
             "%magixpack_glyph_<id>%", "Il carattere di un glifo di glyphs.yml (icona bianca). Per una voce "
                     + "player-avatar e' l'avatar del giocatore che legge. L'elenco degli id con /mpack glyph list.",
             "%magixpack_glyph_<id>:<giocatore>%", "Come sopra, ma l'avatar di un altro giocatore (online).",
+            "%magixpack_stack_<id>,<id>%", "Piu' glifi uno SOPRA l'altro nello stesso punto (es. avatar,cornice): "
+                    + "sopra finisce quello con priority piu' alta in glyphs.yml. Anche con :<giocatore> in fondo.",
     };
 
     private final JavaPlugin plugin;
@@ -59,13 +61,20 @@ public final class GlyphPlaceholders extends PlaceholderExpansion {
 
     @Override
     public String onRequest(OfflinePlayer who, String params) {
-        if (!params.startsWith("glyph_")) return null;
-        String rest = params.substring("glyph_".length());
+        boolean stack = params.startsWith("stack_");
+        if (!stack && !params.startsWith("glyph_")) return null;
+        String rest = params.substring(stack ? "stack_".length() : "glyph_".length());
         Player player = who != null ? who.getPlayer() : null;
         int colon = rest.indexOf(':');
         if (colon >= 0) {
             player = Bukkit.getPlayerExact(rest.substring(colon + 1));
             rest = rest.substring(0, colon);
+        }
+        if (stack) {
+            java.util.List<String> ids = java.util.Arrays.asList(rest.split(","));
+            if (glyphs.stackOrder(ids) == null) return null;
+            String text = glyphs.stackLegacy(ids, player);
+            return text != null ? text : "";
         }
         if (glyphs.entry(rest) == null) return null;
         String text = glyphs.legacy(rest, player);

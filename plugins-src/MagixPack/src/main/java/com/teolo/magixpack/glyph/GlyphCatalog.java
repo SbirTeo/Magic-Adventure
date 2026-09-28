@@ -3,6 +3,7 @@ package com.teolo.magixpack.glyph;
 import com.teolo.magixpack.avatar.AvatarGlyphRegistry;
 import com.teolo.magixpack.avatar.AvatarService;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -73,6 +74,10 @@ public final class GlyphCatalog {
     /** Characters an icon takes: itself, then the invisible space before and after it (offset-x). */
     public static final int ICON_CHARS = 3;
 
+    /** Two more characters after every voice's own block: a space that steps back over the whole
+     *  glyph and one that steps forward by it — what stacking glyphs in one spot needs. */
+    private static final int STACK_CHARS = 2;
+
     /** {@code type} of a glyphs.yml entry that is the avatar of a player (the face of the skin). */
     public static final String TYPE_PLAYER_AVATAR = "player-avatar";
 
@@ -102,23 +107,29 @@ public final class GlyphCatalog {
             double offsetX = sec.getDouble("offset-x", 0);
             int offsetY = sec.getInt("offset-y", 0);
             boolean avatar = TYPE_PLAYER_AVATAR.equalsIgnoreCase(sec.getString("type", ""));
+            int priority = sec.getInt("priority", 0);
             int rows;
             BitmapFit fit;
+            double advance;
             if (avatar) {
                 // Drawn per player by AvatarService. Base size is the one of a letter (8 tall, 7
                 // above the baseline), then scale and offsets.
                 rows = AvatarService.HEIGHT;
                 fit = BitmapFit.of(rows, rows * scale, (int) Math.round(7 * scale) + offsetY);
+                // One step space per column (see AvatarService.spaces): 8 columns of pixelScale.
+                advance = AvatarService.WIDTH * fit.pixelScale();
             } else {
                 if (!textureFile(id).isFile()) {
                     plugin.getLogger().warning("[Glyphs] '" + id + "' in glyphs.yml: manca la texture glyphs/"
                             + id + ".png, icona ignorata.");
                     continue;
                 }
+                int contentWidth;
                 try {
                     BufferedImage img = ImageIO.read(textureFile(id));
                     if (img == null) throw new IOException("non e' un'immagine");
                     rows = img.getHeight();
+                    contentWidth = contentWidth(img);
                 } catch (IOException ex) {
                     plugin.getLogger().warning("[Glyphs] glyphs/" + id + ".png illeggibile (" + ex.getMessage()
                             + "): icona ignorata.");
@@ -127,14 +138,17 @@ public final class GlyphCatalog {
                 int height = sec.getInt("height", 8);
                 int ascent = sec.getInt("ascent", 7);
                 fit = BitmapFit.of(rows, height * scale, (int) Math.round(ascent * scale) + offsetY);
+                // Same rule as the vanilla client for a bitmap glyph: rightmost non-transparent
+                // column, times the scale, rounded, plus one pixel of spacing.
+                advance = (int) (0.5 + contentWidth * fit.pixelScale()) + 1;
             }
-            int size = avatar ? AvatarService.CHARS : ICON_CHARS;
+            int size = (avatar ? AvatarService.CHARS : ICON_CHARS) + STACK_CHARS;
             if (codepoint + size - 1 > LAST_CODEPOINT) {
                 plugin.getLogger().warning("[Glyphs] Finiti i caratteri disponibili: '" + id + "' e le icone "
                         + "dopo di lei in ordine alfabetico sono ignorate.");
                 break;
             }
-            entries.put(id, new GlyphEntry(id, codepoint, avatar, scale, offsetX, offsetY, rows, fit));
+            entries.put(id, new GlyphEntry(id, codepoint, avatar, scale, offsetX, offsetY, rows, fit, priority, advance));
             codepoint += size;
         }
         if (!entries.isEmpty()) {
@@ -177,6 +191,95 @@ public final class GlyphCatalog {
             sb.append((char) (SHIFT_FIRST + (left ? SHIFT_MAGNITUDES.length + i : i)));
         }
         return sb.toString();
+    }
+
+    /** Rightmost column with a non-transparent pixel, plus one (0 for an empty image): the width the
+     *  vanilla client measures for a bitmap glyph. */
+    private static int contentWidth(BufferedImage img) {
+        for (int x = img.getWidth() - 1; x >= 0; x--) {
+            for (int y = 0; y < img.getHeight(); y++) {
+                if ((img.getRGB(x, y) >>> 24) != 0) return x + 1;
+            }
+        }
+        return 0;
+    }
+
+    private static int baseSize(GlyphEntry e) {
+        return e.playerAvatar() ? AvatarService.CHARS : ICON_CHARS;
+    }
+
+    /** The space that steps back over the whole glyph (−advance). */
+    private static char back(GlyphEntry e) {
+        return (char) (e.codepoint() + baseSize(e));
+    }
+
+    /** The space that steps forward by the whole glyph (+advance). */
+    private static char forward(GlyphEntry e) {
+        return (char) (e.codepoint() + baseSize(e) + 1);
+    }
+
+    // ---------------------------------------------------------------------------------- stacking
+
+    /**
+     * The glyphs of {@code ids} in DRAWING order, lowest {@code priority} first: a character drawn
+     * later in a line is drawn over the ones before it, so the last one here ends up on top. Same
+     * priority: the order of {@code ids}. Null if an id is not in the catalog.
+     */
+    public List<GlyphEntry> stackOrder(List<String> ids) {
+        List<GlyphEntry> out = new ArrayList<>();
+        for (String id : ids) {
+            GlyphEntry e = entries.get(id.trim());
+            if (e == null) return null;
+            out.add(e);
+        }
+        out.sort(java.util.Comparator.comparingInt(GlyphEntry::priority));
+        return out;
+    }
+
+    /** true if one of the glyphs is a player avatar (then the face of a player is needed). */
+    public static boolean needsFace(List<GlyphEntry> order) {
+        for (GlyphEntry e : order) if (e.playerAvatar()) return true;
+        return false;
+    }
+
+    /**
+     * Several glyphs drawn one over the other in the same spot, as a Component: every glyph is
+     * followed by the space that steps back over it, so the next one starts where it started; at
+     * the end, the widest one's forward space, so the text after the stack starts after it.
+     * {@code face} is the avatar for the player-avatar voices (may be null if there are none).
+     */
+    public Component stackComponent(List<GlyphEntry> order, int[][] face) {
+        TextComponent.Builder root = Component.text();
+        GlyphEntry widest = null;
+        for (GlyphEntry e : order) {
+            root.append(e.playerAvatar()
+                    ? avatars.render(e, face)
+                    : Component.text(text(e)).color(NamedTextColor.WHITE));
+            root.append(Component.text(String.valueOf(back(e))));
+            if (widest == null || e.advance() > widest.advance()) widest = e;
+        }
+        if (widest != null) root.append(Component.text(String.valueOf(forward(widest))));
+        return Component.text().append(root.build()).build();
+    }
+
+    /** Same as {@link #stackComponent} as a legacy string, for PlaceholderAPI; null if an id is
+     *  unknown or the avatar of {@code player} is not downloaded yet. */
+    public String stackLegacy(List<String> ids, Player player) {
+        List<GlyphEntry> order = stackOrder(ids);
+        if (order == null || order.isEmpty()) return null;
+        int[][] face = null;
+        if (needsFace(order)) {
+            face = player != null ? avatars.cachedFace(player) : null;
+            if (face == null) return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        GlyphEntry widest = null;
+        for (GlyphEntry e : order) {
+            sb.append(e.playerAvatar() ? avatars.legacy(e, face) : "§f" + text(e));
+            sb.append(back(e));
+            if (widest == null || e.advance() > widest.advance()) widest = e;
+        }
+        return sb.append(forward(widest)).toString();
     }
 
     // ---------------------------------------------------------------------------------- the text
@@ -241,6 +344,9 @@ public final class GlyphCatalog {
         }
         for (GlyphEntry e : entries.values()) {
             BitmapFit fit = e.fit();
+            // Step back over / forward by the whole glyph: what stacking needs (see stackComponent).
+            spaces.put((int) back(e), -e.advance());
+            spaces.put((int) forward(e), e.advance());
             if (e.playerAvatar()) {
                 out.put("assets/" + NAMESPACE + "/textures/font/avatar/" + fileName(e.id()) + ".png",
                         avatars.atlas(e));

@@ -213,6 +213,10 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             return;
         }
         String id = args[2];
+        if (id.contains(",")) {
+            glyphShowStack(viewer, id, args.length >= 4 ? args[3] : viewer.getName());
+            return;
+        }
         GlyphEntry e = plugin.glyphCatalog().entry(id);
         if (e == null) {
             sender.sendMessage(messages.get(sender, "glyph-unknown").replace("{glyph}", id));
@@ -257,6 +261,38 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                     .hoverEvent(HoverEvent.showText(LegacyComponentSerializer.legacySection()
                             .deserialize(messages.get(viewer, "glyph-show-copy-hover"))));
             viewer.sendMessage(avatar.append(caption).append(copy));
+        }));
+    }
+
+    /** {@code /mpack glyph show a,b [giocatore]}: the glyphs stacked in one spot, the one with the
+     *  highest priority on top (see GlyphCatalog#stackOrder). */
+    private void glyphShowStack(Player viewer, String ids, String name) {
+        List<String> list = List.of(ids.split(","));
+        List<GlyphEntry> order = plugin.glyphCatalog().stackOrder(list);
+        if (order == null || order.isEmpty()) {
+            viewer.sendMessage(messages.get(viewer, "glyph-unknown").replace("{glyph}", ids));
+            return;
+        }
+        int lines = 0;
+        for (GlyphEntry e : order) lines = Math.max(lines, e.emptyLinesAbove(9));
+        final int emptyLines = lines;
+        Component caption = LegacyComponentSerializer.legacySection()
+                .deserialize(messages.get(viewer, "glyph-show-caption").replace("{glyph}", ids));
+        if (!com.teolo.magixpack.glyph.GlyphCatalog.needsFace(order)) {
+            for (int i = 0; i < emptyLines; i++) viewer.sendMessage(Component.empty());
+            viewer.sendMessage(plugin.glyphCatalog().stackComponent(order, null).append(caption));
+            return;
+        }
+        CompletableFuture<int[][]> future = plugin.avatarService().fetch(name);
+        if (!future.isDone()) viewer.sendMessage(messages.get(viewer, "glyph-avatar-loading").replace("{player}", name));
+        future.thenAccept(face -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!viewer.isOnline()) return;
+            if (face == null) {
+                viewer.sendMessage(messages.get(viewer, "glyph-avatar-no-skin").replace("{player}", name));
+                return;
+            }
+            for (int i = 0; i < emptyLines; i++) viewer.sendMessage(Component.empty());
+            viewer.sendMessage(plugin.glyphCatalog().stackComponent(order, face).append(caption));
         }));
     }
 

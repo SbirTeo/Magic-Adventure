@@ -18,6 +18,11 @@
 #   offset-x: 3   -> spostata di 3 pixel a DESTRA (negativo = a sinistra; anche
 #                    decimali). Il testo che la segue NON si sposta.
 #   offset-y: 2   -> spostata di 2 pixel in SU (negativo = in giu').
+#   priority: 1   -> chi sta SOPRA quando piu' glifi sono impilati nello stesso
+#                    punto (numero piu' alto = sopra; default 0). Si impilano
+#                    col placeholder %magixpack_stack_<id>,<id>% (es.
+#                    %magixpack_stack_avatar,cornice%) o /mpack glyph show avatar,cornice.
+#                    A parita' di priority vale l'ordine scritto.
 #  Provale con /mpack glyph show <id> dopo /mpack reload.
 #
 #  Il carattere puo' cambiare se cambia il catalogo: in un config che deve
@@ -35,8 +40,17 @@ avatar:
   scale: 1
   offset-x: 0
   offset-y: 0
+  priority: 1
 
 # Esempio (rimuovi il commento e metti glyphs/star.png per provarlo):
 # star:
 #   height: 8
 #   ascent: 7
+
+# Esempio di CORNICE da mettere sopra l'avatar (glyphs/cornice.png, bordo opaco e centro
+# trasparente, stessa altezza dell'avatar): priority 2 > 1 dell'avatar, quindi sta sopra; metti 0
+# e finisce sotto. Poi %magixpack_stack_avatar,cornice% o /mpack glyph show avatar,cornice.
+# cornice:
+#   height: 8
+#   ascent: 7
+#   priority: 2

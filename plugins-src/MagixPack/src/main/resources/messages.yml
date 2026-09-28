@@ -14,7 +14,7 @@ item-list-empty: "&7Nessun oggetto custom in items.yml."
 item-list-header: "&e{count} oggetto/i custom in items.yml:"
 item-list-row: "&7 - &f{item}"
 
-glyph-usage: "&eUso: &a/mpack glyph list &7| &a/mpack glyph show <id> [giocatore]"
+glyph-usage: "&eUso: &a/mpack glyph list &7| &a/mpack glyph show <id>[,<id>...] [giocatore]"
 glyph-list-empty: "&7Nessuna icona custom in glyphs.yml."
 glyph-list-heading: "&e{count} icona/e custom in glyphs.yml &7(i caratteri si riassegnano a ogni avvio):"
 # {char} = il carattere dell'icona (incollabile in qualunque testo), {placeholder} = quello di PlaceholderAPI.
