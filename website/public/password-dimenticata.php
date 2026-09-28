@@ -75,7 +75,7 @@ require __DIR__ . '/../includes/header.php';
 
 <div class="panel">
   <p>Se hai attivato la <strong>verifica in due passaggi</strong>, puoi reimpostare la password da solo: inserisci il tuo nome e il codice a sei cifre della tua app di autenticazione.</p>
-  <p style="color:var(--text-dim); font-size:14px;">Al posto del codice puoi usare uno dei <strong>codici di recupero</strong> che hai salvato quando l'hai attivata.</p>
+  <p style="color:var(--text-dim); font-size: var(--fs-base);">Al posto del codice puoi usare uno dei <strong>codici di recupero</strong> che hai salvato quando l'hai attivata.</p>
 </div>
 
 <?php if ($error): ?><div class="alert alert-error"><?= h($error) ?></div><?php endif; ?>
@@ -96,7 +96,7 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="panel">
-  <p style="color:var(--text-dim); font-size:14px;">
+  <p style="color:var(--text-dim); font-size: var(--fs-base);">
     <strong>Non hai la verifica in due passaggi?</strong><br>
     Allora non c'e' modo di dimostrare da qui che l'account e' tuo. Chiedi a un amministratore
     in gioco: puo' azzerare la password, e al tuo prossimo ingresso ne sceglierai una nuova.

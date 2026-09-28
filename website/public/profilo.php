@@ -250,7 +250,7 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
   </p>
 
-  <p style="color:var(--text-dim); font-size:14px;">
+  <p style="color:var(--text-dim); font-size: var(--fs-base);">
     Lo stesso codice a sei cifre serve per entrare nel gestionale del sito e per entrare
     in gioco su <strong>mc.magicadventure.it</strong>.
   </p>
@@ -263,7 +263,7 @@ require __DIR__ . '/../includes/header.php';
   <?php elseif (otp_enabled($me)): ?>
     <details class="otp-recupero">
       <summary>Rigenera i codici di recupero</summary>
-      <p style="color:var(--text-dim); font-size:14px;">Te ne restituisce dieci nuovi e cancella
+      <p style="color:var(--text-dim); font-size: var(--fs-base);">Te ne restituisce dieci nuovi e cancella
          quelli di prima. Fallo se li hai finiti o se pensi che qualcuno li abbia visti.</p>
       <form method="post" class="stack">
         <?= csrf_field() ?>
@@ -287,7 +287,7 @@ require __DIR__ . '/../includes/header.php';
     <div class="otp-sessione">
       <h3>Sessione di gioco</h3>
       <?php if ($__sessioniGioco): ?>
-        <p style="font-size:14px; margin:0 0 10px;">
+        <p style="font-size: var(--fs-base); margin:0 0 10px;">
           Su <strong>mc.magicadventure.it</strong> il codice non viene richiesto a ogni
           ingresso: dopo una verifica riuscita il server si fida di te per 12 ore, da quella
           stessa rete. Adesso risulta:
@@ -307,13 +307,13 @@ require __DIR__ . '/../includes/header.php';
           <input type="hidden" name="azione" value="otp-esci-gioco">
           <button type="submit" class="btn btn-ghost">Chiudi la sessione di gioco</button>
         </form>
-        <p style="color:var(--text-dim); font-size:13px; margin:10px 0 0;">
+        <p style="color:var(--text-dim); font-size: var(--fs-sm); margin:10px 0 0;">
           Fallo se hai giocato dal computer di qualcun altro, da una rete che non e&#39; tua, o se
           sospetti che qualcuno stia usando il tuo account: chi e&#39; in partita in quel momento
           viene bloccato sul posto e senza codice non prosegue.
         </p>
       <?php else: ?>
-        <p style="font-size:14px; margin:0; color:var(--text-dim);">
+        <p style="font-size: var(--fs-base); margin:0; color:var(--text-dim);">
           Nessuna verifica in corso sul server di gioco: al prossimo ingresso su
           <strong>mc.magicadventure.it</strong> ti verra&#39; chiesto il codice.
         </p>
@@ -321,7 +321,7 @@ require __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <p style="color:var(--text-dim); font-size:13px; margin-bottom:0;">
+  <p style="color:var(--text-dim); font-size: var(--fs-sm); margin-bottom:0;">
     Cambiato telefono? Entra con un codice di recupero, poi fatti azzerare la verifica da un
     altro web-admin (<em>Gestione &rarr; Sicurezza</em>): al primo accesso dopo la riconfiguri
     sul telefono nuovo.
@@ -333,7 +333,7 @@ require __DIR__ . '/../includes/header.php';
          vale solo per lui. Lo stesso interruttore e' anche nella barra in alto (☾). */ ?>
 <h2>🎨 Aspetto del sito</h2>
 <div class="panel">
-  <p style="margin:0; color:var(--text-dim); font-size:14px;">
+  <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
     Vale solo per te, su questo browser, e <strong>non scade</strong>: resta finché non lo cambi tu.
     <strong>Automatico</strong> segue le impostazioni del tuo telefono o computer.
   </p>

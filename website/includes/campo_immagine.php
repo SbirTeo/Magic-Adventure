@@ -32,7 +32,7 @@ if (!function_exists('campo_immagine')) {
             <img src="<?= h($valore) ?>" alt="" data-img>
           </div>
           <?php if ($aiuto !== ''): ?>
-            <p style="color:var(--text-dim); font-size:12px; margin:6px 0 0;"><?= $aiuto ?></p>
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:6px 0 0;"><?= $aiuto ?></p>
           <?php endif; ?>
         </div>
         <?php

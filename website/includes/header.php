@@ -14,6 +14,9 @@ require_once __DIR__ . '/translate.php';
 // finche' il buffer non si svuota.
 ob_start();
 $GLOBALS['__siteLang'] = site_language();
+// Un indirizzo senza /en (o con ?lingua= dopo una scelta) porta a quello giusto per la lingua:
+// la lingua sta nell'indirizzo, vedi includes/url-language.php.
+language_redirect($GLOBALS['__siteLang']);
 
 $__siteName = site_setting('site_name', 'MAGICADVENTURE');
 $__logo = site_setting('logo_url', '/assets/img/logo.png');
@@ -149,6 +152,10 @@ $__description = $page_description ?? site_setting('meta_description', '');
 
 // ---- MOTORI DI RICERCA E ANTEPRIME SOCIAL (vedi includes/seo.php) -------------------
 $__canonical = seo_canonical($page_canonical ?? null);
+// Una versione per lingua (/en/..., /es/..., /de/...): ognuna e' canonica di se stessa, e le
+// altre le sono "alternate" (hreflang). seo_canonical() ragiona sul percorso italiano.
+$__alternate = language_alternates($__canonical);
+$__canonical = $__alternate[$GLOBALS['__siteLang']] ?? $__canonical;
 $__noindex = seo_da_nascondere(!empty($page_noindex));
 $__ogType = $page_type ?? 'website';
 $__ogImage = seo_url($page_image ?? (trim(site_setting('og_image', '')) ?: $__logoPiccolo));
@@ -201,6 +208,14 @@ $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 <?php /* Indirizzo ufficiale della pagina: senza, le versioni con www/.php/?utm_ si fanno
          concorrenza fra loro su Google e nessuna guadagna posizioni. */ ?>
 <link rel="canonical" href="<?= h($__canonical) ?>">
+<?php /* La stessa pagina nelle altre lingue: Google le mostra a chi cerca in quella lingua,
+         invece di considerarle doppioni. x-default: l'italiano, lingua di casa. */ ?>
+<?php if (!$__noindex && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'manage.php'): ?>
+<?php foreach ($__alternate as $__l => $__url): ?>
+<link rel="alternate" hreflang="<?= h($__l) ?>" href="<?= h($__url) ?>">
+<?php endforeach; ?>
+<link rel="alternate" hreflang="x-default" href="<?= h($__alternate['it']) ?>">
+<?php endif; ?>
 <?php
 // Codice di verifica di Google Search Console: e' Google che lo assegna, e serve solo a
 // dimostrargli che il sito e' nostro. Sta nelle impostazioni (Aspetto) e non nel codice,
@@ -251,10 +266,11 @@ $__verificaGoogle = trim(site_setting('google_site_verification', ''));
 // altro viaggio al server proprio nel momento peggiore, quando c'e' solo da disegnare.
 $__caratteri = __DIR__ . '/../public/assets/css/caratteri.css';
 ?>
-<?php /* I due file di partenza si chiedono subito, in parallelo al foglio di stile: sono
-         quelli del testo normale e dei titoli, servono comunque entro il primo istante. */ ?>
+<?php /* Il file del carattere si chiede subito, in parallelo al foglio di stile: serve
+         comunque entro il primo istante. Uno solo: tutto il sito usa Inter (style.css,
+         TIPOGRAFIA); Space Grotesk resta dichiarato ma nessuna regola lo usa, quindi il
+         browser non lo scarica. */ ?>
 <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style><?= @file_get_contents($__caratteri) ?: '' ?></style>
 <?php
 // La versione e' la data di modifica del file: cambia a ogni deploy, cosi' il browser
@@ -521,13 +537,25 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         // la scrive il server (niente sfarfallio); da li' in poi la cambia assets/js/site.js,
         // che salva la scelta in un cookie valido un anno.
         $__temaOra = tema_scelto();
-        $__iconaTema = ['scuro' => '☾', 'chiaro' => '☀', 'auto' => '◐'];
+        // Icone disegnate (SVG), non i caratteri ☾ ☀ ◐: quelli li disegna il font del telefono,
+        // ognuno con i suoi margini, e nel pulsante quadrato uscivano fuori centro (il sole
+        // visibilmente, su Android). Tutte e tre nella pagina, si vede solo quella attiva.
+        $__iconaTema = [
+            'scuro' => '<path d="M13.2 10.4A5.6 5.6 0 0 1 5.6 2.8a5.6 5.6 0 1 0 7.6 7.6Z"/>',
+            'chiaro' => '<circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6'
+                . 'M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"/>',
+            'auto' => '<circle cx="8" cy="8" r="5.6"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2Z" fill="currentColor"/>',
+        ];
         $__nomeTema = ['scuro' => 'Tema scuro', 'chiaro' => 'Tema chiaro', 'auto' => 'Tema automatico'];
       ?>
       <button type="button" class="btn btn-ghost cambia-tema" id="cambiaTema"
               title="<?= h($__nomeTema[$__temaOra]) ?> — clicca per cambiare"
               aria-label="<?= h($__nomeTema[$__temaOra]) ?>">
-        <span class="cambia-tema-icona"><?= $__iconaTema[$__temaOra] ?></span>
+        <span class="cambia-tema-icona">
+          <?php foreach ($__iconaTema as $__t => $__disegno): ?>
+            <svg viewBox="0 0 16 16" data-icona="<?= $__t ?>" aria-hidden="true"<?= $__t === $__temaOra ? '' : ' hidden' ?>><?= $__disegno ?></svg>
+          <?php endforeach; ?>
+        </span>
         <?php /* La parola sparisce su schermo stretto: resta la sola icona. */ ?>
         <span class="cambia-tema-testo"><?= h(str_replace('Tema ', '', $__nomeTema[$__temaOra])) ?></span>
       </button>
@@ -544,6 +572,9 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
       <details class="cambia-lingua">
         <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
           <?= language_flag_svg($GLOBALS['__siteLang']) ?>
+          <?php // Freccina ricurva in basso a destra sulla bandiera: dice che la si puo' tirare
+                // giu' (vedi site.js). Solo da tocco, sempre (style.css). ?>
+          <svg class="cambia-lingua-freccia" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2.2 Q8.5 2.2 8.5 9.2 M6 6.9 L8.5 9.6 L11 6.9"/></svg>
         </summary>
         <div class="cambia-lingua-menu">
           <?php // data-no-tr: sono nomi propri (l'endonimo di ogni lingua), non frasi italiane da
@@ -551,20 +582,16 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
                 // normale e li rimpiazzava con traduzioni sbagliate (es. "Italiano" diventato
                 // "Deutsch" nel menu tedesco). ?>
           <?php foreach (SITE_LANGUAGES as $__lang): ?>
-            <a href="<?= h(language_switch_url($__lang)) ?>" data-no-tr<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+            <a href="<?= h(language_switch_url($__lang)) ?>" data-lang="<?= h($__lang) ?>" data-no-tr<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
               <?= language_flag_svg($__lang) ?>
               <?= h($__nomeLingua[$__lang]) ?>
             </a>
           <?php endforeach; ?>
-          <?php // "Automatica": cancella una scelta fatta a mano in precedenza e torna a seguire
-                // la lingua di gioco (o il browser). Visibile solo quando c'e' davvero una scelta
-                // manuale da togliere: altrimenti non farebbe nulla di diverso da quella attiva. ?>
-          <?php if ($GLOBALS['__siteLangManual'] ?? false): ?>
-            <a href="<?= h(language_switch_url('auto')) ?>" title="Segui la lingua scelta in gioco">
-              <?= language_auto_icon_svg() ?>
-              Automatica
-            </a>
-          <?php endif; ?>
+          <?php // Niente voce "Automatica" nel menu (tolta su richiesta): ?lingua=auto funziona
+                // ancora (language.php) per chi ha un vecchio link, ma non si offre piu'. ?>
+          <?php // Solo da telefono e finche' non l'ha usato (vedi style.css e site.js): il tocco
+                // apre questa tendina, e qui si scopre che si puo' anche trascinare. ?>
+          <p class="cambia-lingua-suggerimento">Puoi anche trascinare giù la bandiera.</p>
         </div>
       </details>
       <?php if ($__u): ?>

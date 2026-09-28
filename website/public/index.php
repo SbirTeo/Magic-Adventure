@@ -78,7 +78,10 @@ $righeHtml = function (string $testo, bool $accentoUltimaRiga = false): string {
         $righe = array_map(fn($r) => str_starts_with($r, '<span') ? $r : h($r), $righe);
         return implode('<br>', $righe);
     }
-    return implode('<br>', array_map('h', $righe));
+    // "<br>" + a capo: dove l'a capo si vede non cambia niente (lo spazio a inizio riga non
+    // conta), e dove il CSS lo nasconde (lo slogan da telefono) le due righe restano due
+    // parole separate invece di attaccarsi ("HARDCOREIN").
+    return implode("<br>\n", array_map('h', $righe));
 };
 
 // La colonna di destra (chat, scheda giocatore, "sul sito ora") se la calcola da sola:
@@ -116,12 +119,26 @@ require __DIR__ . '/../includes/header.php';
                  dichiarano le misure, cosi' il posto e' gia' riservato e il testo sotto
                  non salta quando arriva. */ ?>
         <?php $__misureLogo = immagine_misure($__logoHome); ?>
-        <img src="<?= h($__logoHome) ?>"
-             alt="<?= h(site_setting('site_name', 'MAGICADVENTURE')) ?>" class="hero-logo-v2"
-             <?= $__misureLogo ? 'width="' . $__misureLogo[0] . '" height="' . $__misureLogo[1] . '" ' : '' ?>
-             fetchpriority="high" decoding="async">
+        <?php
+          // Da telefono (sotto i 720px, come in style.css) la hero mostra il logo PICCOLO, a
+          // sinistra dello slogan: con <picture> il telefono scarica direttamente quello e non
+          // il logo grande che poi non vedrebbe. Se il logo piccolo non c'e', resta il grande.
+          $__logoHomePiccolo = trim(site_setting('logo_small_url', ''));
+          $__misureLogoPiccolo = $__logoHomePiccolo !== '' ? immagine_misure($__logoHomePiccolo) : null;
+        ?>
+        <picture>
+          <?php if ($__logoHomePiccolo !== ''): ?>
+            <source media="(max-width: 720px)" srcset="<?= h($__logoHomePiccolo) ?>"
+                    <?= $__misureLogoPiccolo ? 'width="' . $__misureLogoPiccolo[0] . '" height="' . $__misureLogoPiccolo[1] . '"' : '' ?>>
+          <?php endif; ?>
+          <img src="<?= h($__logoHome) ?>"
+               alt="<?= h(site_setting('site_name', 'MAGICADVENTURE')) ?>" class="hero-logo-v2"
+               <?= $__misureLogo ? 'width="' . $__misureLogo[0] . '" height="' . $__misureLogo[1] . '" ' : '' ?>
+               fetchpriority="high" decoding="async">
+        </picture>
         <?php if ($heroSlogan !== ''): ?>
-          <p class="hero-slogan"><?= $righeHtml($heroSlogan) ?></p>
+          <?php /* .hero-slogan-testo: da telefono e' la riga che scorre (style.css). */ ?>
+          <p class="hero-slogan"><span class="hero-slogan-testo"><?= $righeHtml($heroSlogan) ?></span></p>
         <?php endif; ?>
       </a>
     </div>
@@ -129,7 +146,7 @@ require __DIR__ . '/../includes/header.php';
       <div class="status-pill <?= $status ? 'is-online' : 'is-unknown' ?>">
         <span class="dot"></span>
         <?php if ($status): ?>
-          <?= (int) $status['players_online'] ?> / <?= (int) $status['players_max'] ?> giocatori online
+          <?= (int) $status['players_online'] ?> / <?= (int) $status['players_max'] ?> giocatori connessi
         <?php else: ?>
           Stato server non disponibile
         <?php endif; ?>
@@ -169,15 +186,22 @@ require __DIR__ . '/../includes/header.php';
     <?php /* L'obiettivo in home si accende a parte: c'e' chi lo vuole solo nello store. */ ?>
     <?php if (site_setting('goal_home', '0') === '1') { obiettivo_sezione(); } ?>
 
-    <?php /* Scorciatoia per chi scrive sul blog: sta qui, sopra agli articoli, perche' e'
-             da qui che si guarda la home per vedere cosa manca. Chi non ha il permesso non
-             la vede nemmeno. */ ?>
-    <?php if (can('blog.create')): ?>
-      <div class="barra-crea">
-        <a href="/blog/new" class="btn btn-green btn-small">
-          <span class="barra-crea-piu" aria-hidden="true">+</span> Crea nuovo articolo
-        </a>
-      </div>
+    <?php
+      // Pulsanti dello staff sull'ultimo articolo: "+" (nuovo post) e matita (modifica), uno
+      // accanto all'altro nell'angolo della copertina, identici. Solo icona: la scritta sta in
+      // una nuvoletta che compare passandoci sopra, col fuoco da tastiera o tenendolo premuto.
+      // E' un elemento vero e non un title, cosi' la traduce il traduttore del sito ed e' anche
+      // il nome del pulsante per i lettori di schermo. Chi non ha il permesso non li vede.
+      $__tastoCrea = can('blog.create')
+          ? '<a href="/blog/new" class="card-azione">'
+            . '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg>'
+            . '<span class="card-azione-etichetta">Crea un nuovo post</span></a>'
+          : '';
+    ?>
+    <?php /* Senza un ultimo articolo (blog vuoto) il "+" sta da solo sopra la griglia, se no
+             non ci sarebbe modo di scrivere il primo. */ ?>
+    <?php if ($__tastoCrea !== '' && !$featured): ?>
+      <div class="barra-crea"><div class="card-azioni card-azioni-libere"><?= $__tastoCrea ?></div></div>
     <?php endif; ?>
 
     <?php if (!$posts && !$featured): ?>
@@ -214,8 +238,16 @@ require __DIR__ . '/../includes/header.php';
               <div class="meta"><span class="card-numero">#<?= $n ?></span><?= time_ago($featured['created_at']) ?><?= $featured['mc_username'] ? ' · di ' . player_name($featured, $featured['mc_username']) : '' ?></div>
               <span class="card-cta">Leggi tutto →</span>
             </a>
-            <?php if (can('blog.edit')): ?>
-              <a href="/manage?section=blog_edit&id=<?= $featured['id'] ?>" class="card-edit-btn" title="Modifica" aria-label="Modifica">✎</a>
+            <?php if ($__tastoCrea !== '' || can('blog.edit')): ?>
+              <div class="card-azioni">
+                <?= $__tastoCrea ?>
+                <?php if (can('blog.edit')): ?>
+                  <a href="/manage?section=blog_edit&id=<?= $featured['id'] ?>" class="card-azione">
+                    <span aria-hidden="true">✎</span>
+                    <span class="card-azione-etichetta">Modifica</span>
+                  </a>
+                <?php endif; ?>
+              </div>
             <?php endif; ?>
           </div>
         <?php endif; ?>

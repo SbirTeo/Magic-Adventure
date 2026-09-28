@@ -144,3 +144,26 @@ nginx-magicadventure.conf         HTTP/2, gzip, cache, WebP, indirizzi parlanti,
 nginx-intestazioni-sicurezza.conf NUOVO — snippet delle intestazioni
 migrazioni/2026-08-22-seo-titolo-home-e-immagine-social.sql
 ```
+
+## Lingua nell'indirizzo (/en, /es, /de)
+
+Ogni pagina esiste in quattro lingue a quattro indirizzi: `/regolamento` (italiano, senza
+prefisso), `/en/regolamento`, `/es/regolamento`, `/de/regolamento`.
+
+- **nginx** (`nginx-magicadventure.conf`, blocco "LINGUA NELL'INDIRIZZO") toglie il prefisso e
+  serve lo stesso file `.php`; le riscritture di blog e forum accettano il prefisso da sole.
+- **PHP**: `includes/url-language.php` (caricato da `db.php`, quindi da ogni pagina) toglie il
+  prefisso anche da `REQUEST_URI` e lo ricorda in `$GLOBALS['__urlLang']`: il resto del sito
+  ragiona sempre sul percorso italiano. Il prefisso decide la lingua della richiesta (vince su
+  cookie, lingua di gioco e browser) senza cambiare la scelta salvata.
+- Un indirizzo **senza** prefisso che si risolve in un'altra lingua (cookie, gioco, browser)
+  viene mandato (302) alla sua versione col prefisso: `language_redirect()` in `language.php`.
+  Il selettore porta a `/en/...?lingua=en`, che salva la scelta e toglie subito il parametro.
+- I link interni e le azioni dei moduli prendono il prefisso nella stessa passata che traduce la
+  pagina (`localize_links()` in `translate.php`), i redirect `Location: /...` scritti dalle pagine
+  nel callback di `url-language.php`. Restano senza prefisso `/assets`, `/api`, la gestionale
+  (sempre in italiano) e i file veri (`/sitemap.xml`...).
+- **SEO**: ogni versione e' canonica di se stessa e dichiara le altre con
+  `<link rel="alternate" hreflang>` (`x-default` = italiano). Googlebot non manda la lingua del
+  browser, quindi vede l'italiano senza prefisso e trova le altre versioni dagli hreflang.
+

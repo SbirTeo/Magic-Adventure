@@ -199,7 +199,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
       <a href="/logout" class="btn btn-ghost btn-small player-sidebar-btn">Esci</a>
     <?php else: ?>
       <div class="player-name">Non hai effettuato l'accesso</div>
-      <p style="color:var(--text-dim); font-size:13px; margin:8px 0 16px;">Accedi per vedere il tuo profilo, la tua fazione e le tue statistiche.</p>
+      <p style="color:var(--text-dim); font-size: var(--fs-sm); margin:8px 0 16px;">Accedi per vedere il tuo profilo, la tua fazione e le tue statistiche.</p>
       <a href="/login" class="btn btn-accent player-sidebar-btn">Accedi</a>
     <?php endif; ?>
     </aside>

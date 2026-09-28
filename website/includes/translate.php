@@ -6,6 +6,7 @@
 // visita successiva la trova gia' pronta. Stessa quota giornaliera del plugin di gioco: vedi
 // MagixLanguage/config.yml, translations.auto-translate.
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/translation-glossary.php';
 
 // Oltre questa lunghezza una frase non viene ne' tradotta ne' accodata: resta in italiano.
 // Un paragrafo lungo o un blocco di codice finito per errore in un nodo di testo non deve
@@ -53,6 +54,13 @@ function translate_html(string $html, string $lang): string {
         }
 
         $xpath = new DOMXPath($dom);
+        // Prima dei testi, i link: una pagina in inglese porta a pagine in inglese (/en/...).
+        $linkCambiati = localize_links($xpath, $lang);
+        $serialize = function () use ($dom, $html): string {
+            $out = $dom->saveHTML();
+            return $out !== false ? restore_script_characters($out) : $html;
+        };
+
         // Vale sia per i nodi di testo che per gli attributi: l'asse "ancestor" di un attributo
         // e' quello del suo elemento (che pero' NON include l'elemento stesso, per questo si
         // aggiunge anche "parent::*[...]" per chi mette data-no-tr sullo stesso tag).
@@ -82,12 +90,12 @@ function translate_html(string $html, string $lang): string {
             }
         }
         if (empty($phrases)) {
-            return $html;
+            return $linkCambiati ? $serialize() : $html;
         }
 
         $translated = translate_batch(array_keys($phrases), $lang);
         if (empty($translated)) {
-            return $html;
+            return $linkCambiati ? $serialize() : $html;
         }
 
         foreach ([$textNodes, $attrNodes] as $lista) {
@@ -105,17 +113,70 @@ function translate_html(string $html, string $lang): string {
             }
         }
 
-        $out = $dom->saveHTML();
-        return $out !== false ? $out : $html;
+        return $serialize();
     } catch (\Throwable $e) {
         error_log('translate_html: ' . $e->getMessage());
         return $html;
     }
 }
 
-/** Almeno una lettera dentro, e non spropositatamente lunga: filtra numeri, simboli, spazi soli. */
+/**
+ * Mette il prefisso della lingua (/en, /es, /de) ai link interni della pagina e alle azioni dei
+ * moduli, cosi' chi naviga in inglese resta in inglese senza un redirect a ogni clic. Non tocca
+ * i link del selettore di lingua (portano gia' dove devono) ne' quello che non e' una pagina (vedi
+ * localizable_path). true se ha cambiato qualcosa.
+ */
+function localize_links(DOMXPath $xpath, string $lang): bool {
+    $cambiati = false;
+    foreach ($xpath->query('//a[not(@data-lang)]/@href | //area/@href | //form/@action') as $attr) {
+        $valore = $attr->nodeValue;
+        if (str_contains($valore, 'lingua=')) {
+            continue;
+        }
+        $nuovo = localized_path($lang, $valore);
+        if ($nuovo !== $valore) {
+            $attr->value = $nuovo;
+            $cambiati = true;
+        }
+    }
+    return $cambiati;
+}
+
+/**
+ * Almeno una lettera dentro, e non spropositatamente lunga: filtra numeri, simboli, spazi soli.
+ * Fuori anche le misure: cifre con al piu' tre lettere di unita' ("0m", "2g", "1h 5m", "100
+ * EUR"). Non sono frasi, e MyMemory le rovinava: "0m" era tornato "%0M" nelle classifiche.
+ */
 function translatable_text(string $text): bool {
-    return strlen($text) <= TRANSLATABLE_MAX_LENGTH && preg_match('/\p{L}/u', $text) === 1;
+    if (strlen($text) > TRANSLATABLE_MAX_LENGTH || preg_match('/\p{L}/u', $text) !== 1) {
+        return false;
+    }
+    if (preg_match('/\d/', $text) && preg_match_all('/\p{L}/u', $text) <= 3) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * DOMDocument (libxml) scrive ogni carattere non ASCII come entita' (&egrave;, &lsaquo;...),
+ * anche DENTRO <script> e <style>, dove il browser non le riconverte: la freccia '‹' scritta
+ * nel copione della paginazione delle classifiche arrivava come il testo "&lsaquo;" (solo
+ * nelle pagine tradotte, che passano da qui). Qui, solo dentro script e stili, le entita' che
+ * stanno per un carattere non ASCII tornano il carattere vero; &amp; &lt; e simili restano.
+ */
+function restore_script_characters(string $html): string {
+    return preg_replace_callback(
+        '#(<(script|style)\b[^>]*>)(.*?)(</\2>)#is',
+        fn(array $m): string => $m[1] . preg_replace_callback(
+            '/&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i',
+            function (array $e): string {
+                $c = html_entity_decode($e[0], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return $c !== $e[0] && strlen($c) > 1 ? $c : $e[0];
+            },
+            $m[3]
+        ) . $m[4],
+        $html
+    ) ?? $html;
 }
 
 /**
@@ -124,8 +185,18 @@ function translatable_text(string $text): bool {
  */
 function translate_batch(array $texts, string $lang): array {
     $texts = array_values(array_unique($texts));
+    // Prima il glossario scritto a mano (translation-glossary.php): per quelle parole MyMemory
+    // non si interpella nemmeno, e una traduzione sbagliata gia' in cache non conta piu'.
+    $dalGlossario = [];
+    foreach ($texts as $i => $t) {
+        if (isset(TRANSLATION_GLOSSARY[$t][$lang])) {
+            $dalGlossario[$t] = TRANSLATION_GLOSSARY[$t][$lang];
+            unset($texts[$i]);
+        }
+    }
+    $texts = array_values($texts);
     if (empty($texts)) {
-        return [];
+        return $dalGlossario;
     }
     try {
         $hashToText = [];
@@ -166,9 +237,9 @@ function translate_batch(array $texts, string $lang): array {
             )->execute($valori);
         }
 
-        return $out;
+        return $out + $dalGlossario;
     } catch (\Throwable $e) {
         error_log('translate_batch: ' . $e->getMessage());
-        return [];
+        return $dalGlossario;
     }
 }

@@ -170,6 +170,19 @@ solo sul server, a differenza delle chiavi di config che `ConfigAlign` allinea d
 caso si mette il file in `plugins-src/MagixMenus/overrides-vps/` (stessa cartella di staging,
 percorso relativo a `menus/` invece che a `overrides/`) e si lancia con `dest_subdir: menus`.
 
+## Configurazione di nginx sul VPS (manuale, anche da cloud)
+
+`website/nginx-magicadventure.conf` e `website/nginx-intestazioni-sicurezza.conf` vivono in
+`/etc/nginx`, non in `/var/www`: l'auto-deploy del sito **non** li porta sul VPS. Dopo averli
+cambiati si lancia il workflow manuale `.github/workflows/deploy-nginx.yml`: con `applica=no`
+mostra le differenze fra il file vivo e quello del repo (da fare prima, per non sovrascrivere
+modifiche fatte a mano sul VPS); con `applica=si` fa il backup in `~/.bak/nginx/`, sostituisce,
+lancia `nginx -t` e ricarica solo se passa, altrimenti rimette il file di prima.
+
+Se una modifica al sito **dipende** da una regola nginx nuova (es. un indirizzo che prima non
+esisteva), l'ordine e': prima il commit della regola nginx su `main` + `deploy-nginx.yml`, poi il
+push del PHP che la usa.
+
 ## Diagnostica del VPS da sessione cloud (sola lettura, sempre disponibile)
 
 **Una sessione cloud NON è senza occhi sul VPS.** Non ha SSH diretto (vedi sopra), ma il

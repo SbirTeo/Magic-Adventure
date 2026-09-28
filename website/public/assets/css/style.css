@@ -33,12 +33,32 @@
      solo il ripiego per il primo istante, prima che il copione giri. Ci si appoggia tutto
      cio' che deve fermarsi SOTTO la barra invece che finirci sotto. */
   --h-testata: 98px;
-  --font-heading: "Space Grotesk", "Segoe UI", Roboto, Arial, sans-serif;
-  /* Un carattere solo per tutto il sito: quello della barra di navigazione (Space Grotesk).
-     Prima il corpo del testo era in Inter e solo titoli, pulsanti e barra usavano questo:
-     due caratteri diversi nella stessa pagina. Inter resta come ripiego se il primo non
-     arriva. */
-  --font-body: "Space Grotesk", "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  /* ---- TIPOGRAFIA: un carattere, tre pesi, sei grandezze, una spaziatura -------------
+     Un solo carattere per tutto il sito, Inter: titoli, barra, pulsanti, etichette e testo.
+     Prima erano due (Space Grotesk per titoli e pulsanti, Inter o lo stesso Space Grotesk per
+     il testo), con cinque pesi e una trentina di spaziature fra le lettere diverse, e i testi
+     sembravano tutti diversi fra loro. --font-heading resta come nome (lo usano decine di
+     regole) ma vale lo stesso carattere del testo. Pesi: 400 testo, 600 pulsanti ed
+     etichette, 700 titoli. Il carattere a spaziatura fissa solo per IP e codice. */
+  --font-heading: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-body: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  /* Le grandezze del testo sono SOLO queste sette: prima nel foglio c'erano una sessantina di
+     misure diverse (11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5px...), scelte a occhio caso per
+     caso, e l'insieme sembrava scritto a caso. Una grandezza nuova si sceglie fra queste;
+     sopra i 24px (titoli grandi, hero) si usano i clamp() dei singoli titoli. */
+  --fs-2xs: 12px;   /* etichette minime: badge, contatori (uguale a --fs-xs: sotto i 12px
+                       non si scende) */
+  --fs-xs: 12px;    /* note, date, didascalie */
+  --fs-sm: 13px;    /* testo secondario, pulsanti, voci di menu */
+  --fs-base: 15px;  /* testo corrente */
+  --fs-md: 17px;    /* testo in evidenza, titoli piccoli */
+  --fs-lg: 20px;    /* titoli di scheda */
+  --fs-xl: 24px;    /* titoli di sezione */
+  /* Una sola spaziatura fra le lettere, per le scritte in maiuscolo (etichette, sezioni):
+     prima ognuna aveva la sua (0.4px, 1px, 1.5px, 0.06em, 0.08em...). Il testo normale non
+     ne ha. */
+  --tracking-caps: 0.06em;
 }
 
 /* ============ TEMA CHIARO ============
@@ -89,6 +109,7 @@ body {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-size: var(--fs-base);
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
@@ -108,7 +129,7 @@ body {
    diventerebbero faticose da leggere. Oltre questa misura restano i margini vuoti ai lati. */
 @media (min-width: 1600px) { :root { --wrap-max: 1480px; } }
 
-h1, h2, h3, h4 { font-family: var(--font-heading); color: var(--text); font-weight: 700; letter-spacing: -0.01em; }
+h1, h2, h3, h4 { font-family: var(--font-heading); color: var(--text); font-weight: 700; letter-spacing: -0.02em; }
 
 /* Nessuna sottolineatura sui link, in tutto il sito (scelta esplicita): a distinguerli
    restano colore e cambio di colore al passaggio del mouse. */
@@ -182,8 +203,8 @@ body.pagina-store {
   color: var(--text-dim);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13.5px;
-  letter-spacing: 0.2px;
+  font-size: var(--fs-sm);
+  letter-spacing: 0;
   text-decoration: none;
   padding: 6px 1px 10px;
   border-bottom: 2px solid transparent;
@@ -210,7 +231,7 @@ body.pagina-store {
   border-bottom-width: 1px !important;
   border-bottom-style: solid !important;
 }
-.btn.btn-nav { padding: 7px 16px; font-size: 13px; color: var(--testo-su-oro, #2a1c02) !important; }
+.btn.btn-nav { padding: 7px 16px; font-size: var(--fs-sm); color: var(--testo-su-oro, #2a1c02) !important; }
 .btn.btn-nav:hover { color: var(--testo-su-oro, #2a1c02) !important; }
 .btn-nav.active { outline: 2px solid var(--gold-dark); outline-offset: 1px; }
 .btn-nav.has-border-anim::before {
@@ -228,9 +249,12 @@ body.pagina-store {
   filter: drop-shadow(0 0 4px var(--gold-glow));
   animation: drop-spin 2.4s linear infinite;
 }
-.auth-box { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-/* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata. */
-.cambia-tema {
+.auth-box { display: flex; align-items: center; gap: 10px; font-size: var(--fs-base); }
+/* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata.
+   ".btn.cambia-tema" e non solo ".cambia-tema": .btn e' definito piu' sotto nel file e a pari
+   peso vinceva lui (display: inline-block, il suo padding), quindi niente centratura e l'icona
+   si posava sulla riga del testo, fuori centro. */
+.btn.cambia-tema {
   /* Stessa altezza di Gestione/Esci: "stretch" (come su a.who-link piu' sotto) lo allunga
      fino alla riga piu' alta di .auth-box invece di fermarsi al contenuto suo (un'icona e una
      parola sono piu' corte della riga di testo degli altri pulsanti, restava piu' basso). */
@@ -241,10 +265,22 @@ body.pagina-store {
   align-self: stretch;
   text-transform: capitalize;
 }
-.cambia-tema-icona { font-size: 15px; }
-.cambia-tema-testo { font-size: 12.5px; }
+.cambia-tema-icona { display: inline-flex; align-items: center; justify-content: center; }
+.cambia-tema-icona svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cambia-tema-icona svg[hidden] { display: none; }
+.cambia-tema-icona svg[data-icona="scuro"] { fill: currentColor; stroke: none; }
+.cambia-tema-testo { font-size: var(--fs-sm); }
 @media (max-width: 900px) {
-  .cambia-tema { padding: 0; width: 34px; height: 34px; justify-content: center; }
+  .btn.cambia-tema { padding: 0; width: 34px; height: 34px; justify-content: center; }
   .cambia-tema-testo { display: none; }
 }
 
@@ -266,11 +302,13 @@ body.pagina-store {
   /* Stesso padding di Gestione/Esci (arrivano da .btn, qui non si tocca). */
   list-style: none;
   cursor: pointer;
+  /* Riferimento dell'etichetta del rullo (vedi sotto), che vive qui dentro. */
+  position: relative;
   display: inline-flex;
   align-items: center;
   align-self: stretch;
-  /* Il trascinamento verso il basso apre il menu (vedi site.js): senza questo, su telefono,
-     lo stesso gesto farebbe scorrere la pagina invece di scegliere la lingua. */
+  /* Il trascinamento verso il basso fa scorrere le bandiere (vedi site.js): senza questo, su
+     telefono, lo stesso gesto farebbe scorrere la pagina invece di scegliere la lingua. */
   touch-action: none;
 }
 .cambia-lingua > summary::-webkit-details-marker { display: none; }
@@ -304,13 +342,111 @@ body.pagina-store {
   align-items: center;
   gap: 9px;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text);
   text-decoration: none;
 }
 .cambia-lingua-menu a:hover,
 .cambia-lingua-menu a.sotto-dito { background: var(--bg-hover, rgba(255,255,255,.06)); }
 .cambia-lingua-menu a.active { color: var(--purple); font-weight: 700; }
+
+/* Rullo delle bandiere (site.js): trascinando giu' la bandiera, quella della lingua dopo
+   scende dall'alto dentro lo stesso riquadro, e sotto il pulsante compare il suo nome. */
+.bandiera-rullo {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.bandiera-striscia {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* PASSO in site.js = 14px di bandiera + questo */
+  will-change: transform;
+}
+.bandiera-striscia.torna { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+/* L'invito delle prime visite: scende piano e torna su oltrepassando un filo, come una molla. */
+.bandiera-striscia.invito { transition: transform .45s cubic-bezier(.3, 1.6, .5, 1); }
+.bandiera-rullo.scelta { animation: bandiera-scelta .3s ease-out; }
+@keyframes bandiera-scelta {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.cambia-lingua-etichetta {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  padding: 4px 10px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--purple);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.3);
+  opacity: 0;
+  transform: translateY(-4px) scale(.95);
+  transition: opacity .15s ease, transform .15s ease;
+  pointer-events: none;
+}
+.cambia-lingua-etichetta.visibile { opacity: 1; transform: none; }
+/* Freccina ricurva sopra l'angolo in basso a destra della bandiera (header.php). Bianca con un
+   alone scuro, cosi' si legge su tutti i colori delle bandiere e su entrambi i temi. */
+.cambia-lingua-freccia {
+  display: none;
+  position: absolute;
+  right: calc(50% - 17px);
+  bottom: calc(50% - 15px);
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 1px rgba(0,0,0,.95)) drop-shadow(0 0 1px rgba(0,0,0,.6));
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+/* Durante l'invito delle prime visite la freccia accompagna il rullo con una spintarella. */
+.cambia-lingua.invito .cambia-lingua-freccia { animation: freccia-invito .9s ease-in-out; }
+@keyframes freccia-invito {
+  0%, 100% { transform: none; }
+  35% { transform: translateY(3px); }
+  60% { transform: translateY(-1px); }
+}
+/* Suggerimento in fondo alla tendina: solo sugli schermi a tocco (col mouse il gesto c'e' ma
+   non e' naturale) e solo finche' il visitatore non ha trascinato almeno una volta. */
+.cambia-lingua-suggerimento {
+  display: none;
+  max-width: 170px;
+  margin: 0;
+  padding: 7px 14px 9px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+@media (pointer: coarse) {
+  .cambia-lingua-suggerimento, .cambia-lingua-freccia { display: block; }
+  /* La freccina resta sempre; il suggerimento, piu' ingombrante, solo finche' serve. */
+  .cambia-lingua.rullo-usato .cambia-lingua-suggerimento { display: none; }
+}
+/* Ancora sulla lingua di adesso: rilasciando qui non cambia niente. */
+.cambia-lingua-etichetta.uguale { color: var(--text-dim); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  .bandiera-striscia.torna, .bandiera-striscia.invito, .cambia-lingua-etichetta { transition: none; }
+  .bandiera-rullo.scelta, .cambia-lingua.invito .cambia-lingua-freccia { animation: none; }
+}
 
 /* "Gestione" dentro il menu ad hamburger: esiste solo da telefono (vedi la media query sotto),
    su schermo largo resta il pulsante in .auth-box. */
@@ -373,7 +509,7 @@ a.who-link {
       radial-gradient(circle at 12% 0%, rgba(192, 79, 240, .22), transparent 45%),
       radial-gradient(circle at 100% 18%, rgba(163, 230, 53, .14), transparent 42%),
       var(--bg-panel);
-    padding: 88px 22px 32px;
+    padding: 84px 20px 28px;
     border-bottom: none;
     box-shadow: none;
     overflow-y: auto;
@@ -391,23 +527,26 @@ a.who-link {
     transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease;
   }
 
+  /* Griglia a due colonne, riquadri tutti uguali e piu' bassi (erano 68px, con molto vuoto
+     sotto); lo Store e "Gestione" occupano la riga intera, stessa altezza fra loro. Niente
+     logo in cima: c'e' gia' nella pagina, e spingeva tutte le voci in basso. */
   .main-nav {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 10px;
     flex: none;
   }
-  .main-nav .nav-logo { grid-column: 1 / -1; justify-self: center; margin-bottom: 10px; }
+  .main-nav .nav-logo { display: none; }
   .main-nav a {
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 68px;
+    min-height: 56px;
     border-radius: var(--radius);
     font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 14px;
+    font-weight: 600;
+    font-size: var(--fs-base);
   }
   /* Lo Store (.btn-gold) tiene il SUO oro: qui si tocca solo misura/posizione, mai i
      colori, altrimenti sparisce il motivo per cui e' colorato diverso da tutti gli altri. */
@@ -419,9 +558,18 @@ a.who-link {
   }
   .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
   .main-nav a:active { transform: scale(.95); }
-  .main-nav .btn-nav { grid-column: 1 / -1; margin: 4px 0 0; min-height: 56px; }
+  /* Stesso testo delle altre voci: come pulsante (.btn) avrebbe la grandezza dei pulsanti,
+     13px, e nel menu sembrava scritto diverso. */
+  .main-nav .btn-nav {
+    grid-column: 1 / -1;
+    margin: 0;
+    min-height: 56px;
+    font-size: var(--fs-base);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
   /* Ultima voce, a tutta larghezza: e' il pulsante dello staff, non una pagina del sito. */
-  .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; }
+  .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; border-style: dashed; }
 
   /* Le voci compaiono una dopo l'altra invece che tutte insieme: e' quel poco di movimento
      che fa sentire il menu vivo invece che un pannello che si accende di colpo. */
@@ -442,10 +590,13 @@ a.who-link {
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .auth-box { margin-left: auto; gap: 8px; font-size: 13px; }
-  .auth-box .btn { padding: 7px 12px; font-size: 12.5px; }
+  .auth-box { margin-left: auto; gap: 8px; font-size: var(--fs-sm); }
+  .auth-box .btn { padding: 7px 12px; font-size: var(--fs-sm); }
   /* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
   .auth-box .who-link { padding: 3px 12px 3px 3px; }
+  /* Idem per i due pulsanti quadrati (tema e lingua): col padding di .auth-box .btn restavano
+     8px di spazio utile in 34px e l'icona, piu' larga, finiva spinta fuori centro. */
+  .auth-box .cambia-tema, .auth-box .cambia-lingua > summary { padding: 0; }
   .who-avatar { width: 24px; height: 24px; }
   /* Da telefono "Gestione" lascia la barra e passa nel menu ad hamburger (.nav-gestione): il
      suo posto lo prende la bandiera della lingua, un quadrato piu' stretto di lui. */
@@ -470,8 +621,8 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   border-radius: var(--radius-sm);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13.5px;
-  letter-spacing: 0.2px;
+  font-size: var(--fs-sm);
+  letter-spacing: 0;
   border: 1px solid transparent;
   text-decoration: none;
   cursor: pointer;
@@ -500,7 +651,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   color: var(--text-dim);
 }
 .btn-ghost:hover { border-color: var(--border-strong); color: var(--text); background: var(--bg-panel-2); }
-.btn-small { padding: 6px 12px; font-size: 12px; }
+.btn-small { padding: 6px 12px; font-size: var(--fs-xs); }
 
 /* Zona "grotta": hero + divisorio uniti sotto un unico sfondo sfumato */
 .cave-zone {
@@ -598,10 +749,10 @@ body.menu-aperto .site-header { backdrop-filter: none; }
      finisce addosso. */
   margin: 10px 0 0;
   font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 17px;
+  font-weight: 700;
+  font-size: var(--fs-md);
   line-height: 1.3;
-  letter-spacing: 1px;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: #f0c75e;
   text-shadow: 0 0 8px #f0c75e, 0 0 22px rgba(240, 199, 94, 0.6), 0 0 40px rgba(240, 199, 94, 0.35);
@@ -617,7 +768,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   margin: 0 0 18px;
 }
 .hero-headline .accent-word { color: var(--purple); }
-.hero-sub { color: var(--text-dim); font-size: 17px; max-width: 480px; margin: 0 0 30px; }
+.hero-sub { color: var(--text-dim); font-size: var(--fs-md); max-width: 480px; margin: 0 0 30px; }
 
 .status-pill {
   display: inline-flex;
@@ -628,7 +779,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   border: 1px solid var(--border);
   background: var(--bg-panel);
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-dim);
   margin-bottom: 20px;
@@ -650,8 +801,8 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
-  font-family: Consolas, monospace;
-  font-size: 14px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
   color: var(--text);
   cursor: pointer;
   transition: border-color .15s;
@@ -662,7 +813,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   background: var(--green);
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
   border-radius: 999px;
   padding: 3px 9px;
@@ -671,6 +822,100 @@ body.menu-aperto .site-header { backdrop-filter: none; }
 @media (max-width: 720px) {
   .hero-grid { grid-template-columns: 1fr; text-align: center; justify-items: center; }
   .hero-actions { justify-content: center; }
+
+  /* Home da telefono, piu' composta: prima il logo occupava da solo tutto il primo schermo,
+     lo slogan era un secondo titolo luminoso e le scritte arrivavano solo scorrendo. Ora il
+     logo e' un marchio di misura, lo slogan una riga di sottotitolo, e logo, stato del
+     server e titolo stanno insieme nel primo schermo. "section.hero-v2" per passare sopra
+     al padding dei telefoni scritto piu' in basso nel file (".hero-v2", stesso peso). */
+  section.hero-v2 { padding: 26px 0 26px; }
+  .hero-grid { gap: 22px; }
+  /* Due colonne: a sinistra il logo piccolo, grande (index.php gli passa il file piccolo con
+     <picture>), e sotto di lui lo slogan che scorre come un'insegna; a destra titolo e
+     descrizione, allineati a sinistra. Sotto, centrati a tutta larghezza, i giocatori online
+     e poi l'IP. Le due colonne dell'HTML (logo e testi) si "sciolgono" (display: contents)
+     cosi' i loro pezzi si mettono direttamente nelle aree della griglia. */
+  .hero-grid {
+    grid-template-columns: minmax(110px, 38%) 1fr;
+    grid-template-areas:
+      "logo   titolo"
+      "slogan slogan"
+      "stato  stato"
+      "ip     ip";
+    column-gap: 16px;
+    row-gap: 0;
+    align-items: start;
+    justify-items: start;
+    text-align: left;
+  }
+  .hero-logo-col, .hero-logo-pulse, .hero-copy-col { display: contents; }
+  .hero-logo-pulse picture { grid-area: logo; align-self: center; width: 100%; }
+  .hero-logo-col img {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 12px var(--purple-glow)) drop-shadow(0 0 8px var(--green-glow));
+  }
+  /* Centrato sull'altezza del logo. La descrizione da telefono non c'e': il titolo basta, e
+     lo slogan sotto dice il resto. */
+  .hero-headline { grid-area: titolo; align-self: center; margin: 0; }
+  .hero-sub { display: none; }
+  .hero-copy-col .status-pill { grid-area: stato; justify-self: center; margin: 20px 0 0; }
+  .hero-actions { grid-area: ip; margin-top: 12px; }
+
+  /* Lo slogan sotto logo e titolo, a tutta larghezza, su una riga sola che scorre da destra
+     a sinistra all'infinito (index.php avvolge il testo in .hero-slogan-testo). Il padding
+     sinistro al 100% fa partire il testo appena fuori dal bordo destro; i bordi sfumano. */
+  .hero-slogan {
+    grid-area: slogan;
+    justify-self: stretch;
+    margin: 18px 0 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: left;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: var(--tracking-caps);
+    line-height: 1.6;
+    text-shadow: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  /* L'a capo scritto nel gestionale, pensato per la riga larga: qui la riga e' una sola. */
+  .hero-slogan br { display: none; }
+  .hero-slogan-testo {
+    display: inline-block;
+    padding-left: 100%;
+    animation: slogan-scorre 13s linear infinite;
+  }
+  @keyframes slogan-scorre {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+  /* Chi ha spento le animazioni lo legge fermo, su piu' righe. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-slogan { white-space: normal; -webkit-mask-image: none; mask-image: none; }
+    .hero-slogan-testo { padding-left: 0; animation: none; }
+  }
+  /* Animato come su schermo largo: il logo pulsa piano e ha le sue particelle intorno. La
+     colonna del logo e' "sciolta" (display: contents), quindi la pulsazione va sull'immagine
+     e le particelle si appoggiano all'area "logo" della griglia (un elemento assoluto con
+     un'area di griglia usa quella come riquadro). */
+  .hero-logo-pulse picture { animation: logo-pulse 4.5s ease-in-out infinite; }
+  .hero-logo-col .logo-particles { grid-area: logo; }
+  /* Senza il riquadro della colonna la matita dell'admin si appoggia alla hero: in alto a destra. */
+  .hero-logo-col .hero-logo-edit { top: -8px; right: 0; }
+  .status-pill { padding: 5px 12px; gap: 7px; font-size: var(--fs-xs); }
+  .hero-headline { font-size: clamp(22px, 7vw, 30px); line-height: 1.02; margin-bottom: 8px; }
+  .hero-sub { max-width: none; margin: 0; font-size: var(--fs-sm); line-height: 1.45; }
+  /* L'IP e' l'azione della pagina: un pulsante pieno e largo, facile da toccare. */
+  .hero-actions { width: 100%; justify-content: center; }
+  .ip-copy {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    padding: 13px 16px;
+    font-size: var(--fs-base);
+  }
 }
 
 /* Divisorio: linea piena a tutta larghezza, come la striscia sopra la navbar */
@@ -690,8 +935,8 @@ body.menu-aperto .site-header { backdrop-filter: none; }
 .card-wrap .bento-tile { height: 100%; }
 .post-grid .bento-feature { min-height: 240px; padding: 22px; }
 /* Titolo e riassunto della misura delle altre tessere (li' sono h3 + .post-tile-excerpt) */
-.post-grid .bento-feature h2 { font-size: 18px; line-height: 1.3; }
-.post-grid .bento-feature .bento-excerpt { font-size: 13.5px; }
+.post-grid .bento-feature h2 { font-size: var(--fs-md); line-height: 1.3; }
+.post-grid .bento-feature .bento-excerpt { font-size: var(--fs-sm); }
 @property --drop-angle {
   syntax: '<angle>';
   inherits: false;
@@ -730,7 +975,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   width: 30px;
   height: 30px;
   padding: 0;
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: var(--contrasto);
   background: var(--velo-scuro);
   border: 1px solid var(--border-strong);
@@ -738,7 +983,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   text-decoration: none;
 }
 .card-edit-btn:hover { color: var(--purple); border-color: var(--purple); background: rgba(0, 0, 0, 0.75); }
-.card-edit-btn-small { width: 26px; height: 26px; font-size: 12px; }
+.card-edit-btn-small { width: 26px; height: 26px; font-size: var(--fs-xs); }
 /* Pannello con la matita nell'angolo (pagine di testo: regolamento e simili) */
 .panel-modificabile { position: relative; }
 .panel-modificabile .card-edit-btn { top: 14px; right: 14px; }
@@ -784,10 +1029,10 @@ body.menu-aperto .site-header { backdrop-filter: none; }
 .bento-tag {
   display: inline-block;
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0;
   color: #fff;
   background: var(--purple);
   border-radius: var(--radius-sm); /* squadrata come il bottone Store, non a pillola */
@@ -799,18 +1044,18 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   align-self: flex-start;
   white-space: nowrap;
 }
-.bento-feature h2 { font-size: 26px; margin: 0 0 8px; }
+.bento-feature h2 { font-size: var(--fs-xl); margin: 0 0 8px; }
 .bento-excerpt {
   position: relative;
   z-index: 1;
   color: var(--tile-testo);
   opacity: 0.85;
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   line-height: 1.55;
   max-width: 480px;
   margin: 0 0 12px;
 }
-.bento-feature .meta { color: var(--tile-testo); opacity: 0.68; font-size: 13px; margin-bottom: 10px; }
+.bento-feature .meta { color: var(--tile-testo); opacity: 0.68; font-size: var(--fs-sm); margin-bottom: 10px; }
 
 /* Banner promozione VIP */
 /* Titolo che serve solo a chi legge con lo schermo vocale e ai motori di ricerca:
@@ -871,7 +1116,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   width: 30px;
   height: 30px;
   padding: 0;
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: rgba(240, 240, 238, 0.6);
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--gold-border);
@@ -931,17 +1176,17 @@ body.menu-aperto .site-header { backdrop-filter: none; }
 .vip-banner-pacchetto .nome {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: var(--text);
 }
 .vip-banner-pacchetto .prezzo {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--gold-light);
   white-space: nowrap;
 }
-.vip-banner-pacchetto .prezzo small { font-size: 10.5px; color: var(--text-dim); margin-left: 2px; }
+.vip-banner-pacchetto .prezzo small { font-size: var(--fs-2xs); color: var(--text-dim); margin-left: 2px; }
 .vip-banner-pacchetto:hover {
   border-color: var(--gold);
   background: rgba(12, 10, 4, 0.72);
@@ -952,21 +1197,21 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   display: inline-block;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: var(--tracking-caps);
   color: var(--gold);
   margin-bottom: 8px;
 }
 .vip-banner h3 {
   margin: 0 0 6px;
-  font-size: 25px;
+  font-size: var(--fs-xl);
   background: linear-gradient(135deg, var(--gold-light), var(--gold) 60%, var(--gold-dark));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-.vip-banner p { margin: 0; color: rgba(240, 240, 238, 0.82); font-size: 14.5px; }
+.vip-banner p { margin: 0; color: rgba(240, 240, 238, 0.82); font-size: var(--fs-base); }
 .btn-gold {
   position: relative;
   z-index: 1;
@@ -977,7 +1222,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   border: 1px solid var(--gold-dark, var(--gold-border));
   background: var(--gold);
   color: var(--testo-su-oro, #2a1c02);
-  font-size: 14px;
+  font-size: var(--fs-base);
   padding: 12px 26px;
   box-shadow: 0 6px 24px -6px var(--gold-glow);
   flex-shrink: 0;
@@ -1111,7 +1356,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .player-name {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--fs-md);
   margin-bottom: 4px;
 }
 .player-stats {
@@ -1127,7 +1372,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   align-items: center;
   padding: 8px 0;
   border-top: 1px solid var(--border);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 .player-stat span { color: var(--text-dim); }
 .player-stat strong { color: var(--text); font-family: var(--font-heading); }
@@ -1161,7 +1406,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   color: var(--text-dimmer);
   opacity: 0;
   transition: opacity .15s;
@@ -1186,7 +1431,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   line-height: 1.2;
 }
 .profilo-gradi { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.profilo-nota { color: var(--text-dim); font-size: 13px; margin: 10px 0 0; }
+.profilo-nota { color: var(--text-dim); font-size: var(--fs-sm); margin: 10px 0 0; }
 /* Riga dei comandi sopra al titolo: UNA riga sola, e se i pulsanti non ci stanno si
    scorre di lato col dito (come le schede del gestionale), invece di andare a capo. */
 .profilo-barra {
@@ -1224,8 +1469,8 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   padding: 9px 0;
   border-bottom: 1px solid var(--border);
 }
-.profilo-account dt { color: var(--text-dim); font-size: 12.5px; flex: 0 0 auto; }
-.profilo-account dd { margin: 0; font-size: 14px; font-weight: 600; text-align: right; min-width: 0; }
+.profilo-account dt { color: var(--text-dim); font-size: var(--fs-sm); flex: 0 0 auto; }
+.profilo-account dd { margin: 0; font-size: var(--fs-base); font-weight: 600; text-align: right; min-width: 0; }
 .profilo-griglia {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -1238,8 +1483,8 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   border-radius: var(--radius);
   padding: 16px 18px;
 }
-.profilo-dato span { display: block; color: var(--text-dim); font-size: 12.5px; margin-bottom: 6px; }
-.profilo-dato strong { font-family: var(--font-heading); font-size: 18px; }
+.profilo-dato span { display: block; color: var(--text-dim); font-size: var(--fs-sm); margin-bottom: 6px; }
+.profilo-dato strong { font-family: var(--font-heading); font-size: var(--fs-md); }
 @media (max-width: 620px) {
   /* Su telefono il personaggio va sopra, a tutta larghezza */
   /* NIENTE justify-items:center qui: farebbe dimensionare la colonna sul contenuto
@@ -1250,13 +1495,13 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   .profilo-avatar { width: 100%; max-width: 220px; }
   .profilo-intestazione { justify-content: center; }
   .profilo-account { text-align: left; width: 100%; }
-  .profilo-nome { font-size: 23px; }
+  .profilo-nome { font-size: var(--fs-xl); }
 }
 
 /* ---- "Sul sito ora" (colonna della home) --------------------------------------------- */
 .modulo-online { padding: 18px 20px 20px; }
 .online-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
-.online-head h3 { margin: 0; font-size: 15px; }
+.online-head h3 { margin: 0; font-size: var(--fs-base); }
 .online-dot {
   width: 8px;
   height: 8px;
@@ -1268,14 +1513,14 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .online-conta {
   margin-left: auto;
   font-family: var(--font-heading);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-dim);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 10px;
 }
 .online-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-.online-voce { display: flex; align-items: center; gap: 9px; font-size: 13.5px; min-width: 0; }
+.online-voce { display: flex; align-items: center; gap: 9px; font-size: var(--fs-sm); min-width: 0; }
 .online-avatar { width: 22px; height: 22px; border-radius: 5px; image-rendering: pixelated; flex-shrink: 0; }
 .online-nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .online-altri {
@@ -1285,7 +1530,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   border: none;
   color: var(--text-dim);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-decoration: underline dotted;
   text-underline-offset: 3px;
@@ -1296,10 +1541,10 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 /* --- "Sul sito ora": i nomi in fila, separati da virgola ------------------------------
    Con l'elenco a colonna bastavano dieci persone per far diventare il riquadro piu' alto
    dello schermo; cosi' ne stanno molte di piu' nello stesso spazio. */
-.online-nomi { margin: 0; font-size: 13.5px; line-height: 1.9; }
+.online-nomi { margin: 0; font-size: var(--fs-sm); line-height: 1.9; }
 .online-nomi .online-nome { font-weight: 600; }
 .online-virgola { color: var(--text-dimmer); }
-.online-ospiti { margin: 8px 0 0; color: var(--text-dim); font-size: 12.5px; }
+.online-ospiti { margin: 8px 0 0; color: var(--text-dim); font-size: var(--fs-sm); }
 
 /* Mini-scheda avatar al passaggio del mouse sui nomi "Sul sito ora" (come la live chat). */
 .online-nome-wrap { position: relative; display: inline-block; }
@@ -1313,7 +1558,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 }
 .online-nome-wrap:hover .online-card, .online-nome-wrap:focus-within .online-card { opacity: 1; visibility: visible; transform: translateY(0); }
 .online-card img { width: 44px; height: 44px; border-radius: 6px; border: 1px solid var(--border); display: block; }
-.online-card-name { font-weight: 700; font-size: 14px; }
+.online-card-name { font-weight: 700; font-size: var(--fs-base); }
 
 /* Finestrella con l'elenco completo */
 .online-finestra {
@@ -1334,7 +1579,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   gap: 10px;
   margin-bottom: 12px;
 }
-.online-finestra-testata h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.online-finestra-testata h3 { margin: 0; font-size: var(--fs-md); display: flex; align-items: center; gap: 8px; }
 .online-chiudi {
   margin-left: auto;
   width: 30px;
@@ -1343,7 +1588,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   border-radius: 50%;
   background: var(--bg-elevated);
   color: var(--text-dim);
-  font-size: 18px;
+  font-size: var(--fs-md);
   line-height: 1;
   cursor: pointer;
 }
@@ -1366,12 +1611,12 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 }
 .chat-head { display: flex; align-items: center; gap: 8px; }
 .chat-head h3 {
-  font-size: 15px;
+  font-size: var(--fs-base);
   margin: 0;
   font-family: var(--font-heading);
 }
 .chat-head-sub {
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   color: var(--text-dimmer);
   margin-left: auto;
   white-space: nowrap;
@@ -1414,8 +1659,8 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   padding: 20px 20px 16px;
 }
 /* L'elenco si prende tutta l'altezza che avanza, invece dei 280px del riquadro piccolo */
-.chat-module.is-ingrandita .chat-messages { max-height: none; flex: 1; font-size: 14px; }
-.chat-module.is-ingrandita .chat-head h3 { font-size: 17px; }
+.chat-module.is-ingrandita .chat-messages { max-height: none; flex: 1; font-size: var(--fs-base); }
+.chat-module.is-ingrandita .chat-head h3 { font-size: var(--fs-md); }
 @media (max-width: 900px) {
   /* Senza "ingrandisci" gli altri scalano di un posto verso destra. */
   .chat-ingrandisci { display: none; }
@@ -1442,7 +1687,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
      di padding qui dentro si sommano (18 in tutto): questo margine negativo toglie i 9 di
      troppo senza cambiare la spaziatura degli altri blocchi del pannello. */
   margin-bottom: -9px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   line-height: 1.4;
   /* Nessuna barra di scorrimento: in un riquadro cosi' piccolo quella di sistema e' chiara
      e larga, e stonava sul pannello scuro. Al suo posto una dissolvenza in ALTO, dove stanno
@@ -1481,7 +1726,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   margin-top: 3px;
 }
 .chat-msg-icona svg { width: 100%; height: 100%; display: block; }
-.chat-msg-ora { font-size: 10.5px; color: var(--text-dim); flex-shrink: 0; }
+.chat-msg-ora { font-size: var(--fs-2xs); color: var(--text-dim); flex-shrink: 0; }
 
 /* Targhetta con ora e provenienza: compare SOPRA il messaggio passandoci il mouse (o
    toccandolo). Prima quelle due informazioni stavano in chiaro davanti a ogni riga e
@@ -1513,7 +1758,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   background: var(--bg-panel);
   border: 1px solid var(--border-strong);
   box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.9);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   color: var(--text-dim);
   white-space: nowrap;
   opacity: 0;
@@ -1597,7 +1842,7 @@ a.chat-nome:hover,
   border: none;
   color: var(--text-dimmer);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   line-height: 1;
   padding: 2px 4px;
   opacity: 0;
@@ -1607,7 +1852,7 @@ a.chat-nome:hover,
 .chat-msg-del:hover { color: #e0733f; }
 .chat-vuoto {
   color: var(--text-dimmer);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-style: italic;
   margin: 6px 0;
   text-align: center;
@@ -1618,7 +1863,7 @@ a.chat-nome:hover,
   flex: 1;
   min-width: 0;
   padding: 9px 11px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1635,13 +1880,13 @@ a.chat-nome:hover,
      benissimo sul pannello scuro senza aggiungere un altro colore acceso. */
   background: var(--contrasto);
   color: var(--contrasto-testo);
-  font-size: 14px;
+  font-size: var(--fs-base);
   cursor: pointer;
 }
 .chat-send:hover { background: #e6e6e6; }
 .chat-send:disabled { opacity: 0.5; cursor: default; }
 .chat-login { display: block; width: 100%; text-align: center; }
-.chat-stato { font-size: 11.5px; color: var(--text-dimmer); margin: 0; min-height: 14px; }
+.chat-stato { font-size: var(--fs-xs); color: var(--text-dimmer); margin: 0; min-height: 14px; }
 .chat-stato.is-error { color: #e0733f; }
 
 /* Post grid (altri articoli) */
@@ -1682,9 +1927,9 @@ a.chat-nome:hover,
 .post-tile:hover { border-color: var(--border-strong); transform: translateY(-3px); }
 .post-tile:hover .card-cta { color: var(--green); }
 .bento-feature:hover .card-cta { color: var(--purple); }
-.post-tile h3 { font-size: 18px; margin: 0 0 8px; line-height: 1.3; }
-.post-tile-excerpt { color: var(--tile-testo); opacity: 0.85; font-size: 13.5px; line-height: 1.55; margin: 0 0 12px; }
-.post-tile .meta { color: var(--tile-testo); opacity: 0.68; font-size: 12px; margin-bottom: 10px; }
+.post-tile h3 { font-size: var(--fs-md); margin: 0 0 8px; line-height: 1.3; }
+.post-tile-excerpt { color: var(--tile-testo); opacity: 0.85; font-size: var(--fs-sm); line-height: 1.55; margin: 0 0 12px; }
+.post-tile .meta { color: var(--tile-testo); opacity: 0.68; font-size: var(--fs-xs); margin-bottom: 10px; }
 /* "Leggi tutto": condiviso da tessere della griglia e articolo in evidenza */
 /* Testo delle tessere (articoli e pacchetti): sta sopra una fotografia, quindi va piu'
    marcato del testo normale — a peso di libro si perde nei dettagli della copertina. */
@@ -1694,7 +1939,7 @@ a.chat-nome:hover,
 :is(.bento-feature, .post-tile, .store-card) .meta { font-weight: 600; }
 .card-cta {
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--tile-testo);
   opacity: 0.8;
@@ -1716,8 +1961,8 @@ a.chat-nome:hover,
   transition: border-color .15s, transform .15s, background-color .15s;
 }
 .card:hover { border-color: var(--border-strong); background: var(--bg-elevated); transform: translateY(-2px); }
-.card h3 { margin: 0 0 8px; font-size: 16px; }
-.card p { color: var(--text-dim); margin: 0 0 12px; font-size: 14px; }
+.card h3 { margin: 0 0 8px; font-size: var(--fs-md); }
+.card p { color: var(--text-dim); margin: 0 0 12px; font-size: var(--fs-base); }
 
 /* Panels / generic content boxes */
 .panel {
@@ -1778,21 +2023,21 @@ h1.page-title::before {
   margin-bottom: 22px;
 }
 .forum-testata .page-title { margin-bottom: 6px; }
-.forum-sottotitolo { color: var(--text-dim); font-size: 14px; margin: 0; max-width: 70ch; }
-.forum-numeri { display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-dimmer); font-size: 12.5px; }
-.forum-numeri strong { display: block; font-family: var(--font-heading); font-size: 20px; color: var(--text); }
+.forum-sottotitolo { color: var(--text-dim); font-size: var(--fs-base); margin: 0; max-width: 70ch; }
+.forum-numeri { display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-dimmer); font-size: var(--fs-sm); }
+.forum-numeri strong { display: block; font-family: var(--font-heading); font-size: var(--fs-lg); color: var(--text); }
 
 /* Briciole di pane. Il margine in alto e' lo stesso respiro che le altre pagine hanno
    grazie a h1.page-title: senza, restavano appiccicate alla barra di navigazione. */
-.briciole { color: var(--text-dimmer); font-size: 13px; margin: 30px 0 10px; }
+.briciole { color: var(--text-dimmer); font-size: var(--fs-sm); margin: 30px 0 10px; }
 .briciole span { margin: 0 6px; }
 
 /* Titoletto che divide le parti della pagina */
 .forum-sezione-titolo {
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
 }
@@ -1816,16 +2061,16 @@ h1.page-title::before {
 .forum-cat:hover { background: var(--bg-elevated); }
 /* il collegamento copre la tessera: il testo serve solo ai lettori di schermo */
 .forum-cat-link { position: absolute; inset: 0; z-index: 1; text-indent: -9999px; overflow: hidden; }
-.forum-cat-testo h2 { font-size: 17px; margin: 0 0 3px; }
-.forum-cat-testo p { color: var(--text-dim); font-size: 13.5px; margin: 0 0 8px; }
-.forum-cat-numeri { display: flex; gap: 16px; font-size: 12px; color: var(--text-dimmer); }
+.forum-cat-testo h2 { font-size: var(--fs-md); margin: 0 0 3px; }
+.forum-cat-testo p { color: var(--text-dim); font-size: var(--fs-sm); margin: 0 0 8px; }
+.forum-cat-numeri { display: flex; gap: 16px; font-size: var(--fs-xs); color: var(--text-dimmer); }
 .forum-cat-numeri strong { color: var(--text-dim); font-weight: 700; }
 .forum-cat-ultimo { min-width: 0; }
 .forum-etichetta {
   display: inline-block;
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
   margin-bottom: 5px;
@@ -1834,13 +2079,13 @@ h1.page-title::before {
 .forum-ultimo-titolo {
   display: block;
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.forum-ultimo-meta { display: block; color: var(--text-dim); font-size: 12px; }
-.forum-vuoto { color: var(--text-dimmer); font-size: 13px; }
+.forum-ultimo-meta { display: block; color: var(--text-dim); font-size: var(--fs-xs); }
+.forum-vuoto { color: var(--text-dimmer); font-size: var(--fs-sm); }
 .forum-faccia { border-radius: 7px; flex: 0 0 auto; background: var(--bg-elevated); image-rendering: pixelated; }
 
 /* --- elenco delle discussioni --- */
@@ -1861,11 +2106,11 @@ h1.page-title::before {
 .forum-riga.is-fissata { border-color: var(--border-strong); }
 .forum-riga.is-chiusa { opacity: 0.7; }
 .forum-riga-link { position: absolute; inset: 0; z-index: 1; text-indent: -9999px; overflow: hidden; }
-.forum-riga-titolo { font-weight: 600; font-size: 15px; margin-bottom: 3px; }
-.forum-riga-meta { color: var(--text-dim); font-size: 12.5px; }
-.forum-segno { margin-right: 5px; font-size: 13px; }
-.forum-riga-numeri { display: flex; gap: 18px; text-align: center; color: var(--text-dimmer); font-size: 11.5px; }
-.forum-riga-numeri strong { display: block; font-family: var(--font-heading); font-size: 15px; color: var(--text-dim); }
+.forum-riga-titolo { font-weight: 600; font-size: var(--fs-base); margin-bottom: 3px; }
+.forum-riga-meta { color: var(--text-dim); font-size: var(--fs-sm); }
+.forum-segno { margin-right: 5px; font-size: var(--fs-sm); }
+.forum-riga-numeri { display: flex; gap: 18px; text-align: center; color: var(--text-dimmer); font-size: var(--fs-xs); }
+.forum-riga-numeri strong { display: block; font-family: var(--font-heading); font-size: var(--fs-base); color: var(--text-dim); }
 
 /* --- messaggi di una discussione --- */
 .forum-messaggi { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -1893,7 +2138,7 @@ h1.page-title::before {
 .forum-msg-identita { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .forum-msg-chi { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
 .forum-msg-gradi { display: flex; flex-wrap: wrap; gap: 4px; }
-.forum-msg-autore { font-size: 12.5px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+.forum-msg-autore { font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; word-break: break-word; }
 .forum-msg-testata {
   display: flex;
   align-items: center;
@@ -1902,12 +2147,12 @@ h1.page-title::before {
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 /* "Apertura" e' un'etichetta che altrove sta SOPRA il suo contenuto (di li' il margine
    sotto). Qui sta in riga con l'ora: quel margine la faceva sedere piu' in alto del testo. */
 .forum-msg-testata .forum-etichetta { margin-bottom: 0; }
-.forum-msg-numero { margin-left: auto; color: var(--text-dimmer); text-decoration: none; font-size: 12px; }
+.forum-msg-numero { margin-left: auto; color: var(--text-dimmer); text-decoration: none; font-size: var(--fs-xs); }
 .forum-msg-numero:hover { color: var(--purple); }
 .forum-msg-testo { white-space: pre-wrap; word-wrap: break-word; line-height: 1.7; }
 
@@ -1924,13 +2169,13 @@ h1.page-title::before {
   flex-wrap: wrap;
   gap: 3px 12px;
   color: var(--text-dim);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   line-height: 1.4;
 }
 .forum-msg-stat li { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
 .forum-msg-stat strong {
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   color: var(--text);
 }
 
@@ -1947,7 +2192,7 @@ h1.page-title::before {
   background: transparent;
   color: var(--text-dim);
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   cursor: pointer;
   transition: border-color .16s, color .16s, background-color .16s;
@@ -1961,7 +2206,7 @@ h1.page-title::before {
 /* Chi non puo' premere (non collegato, o e' un suo messaggio) vede solo il numero */
 .forum-mipiace.is-fermo { cursor: default; }
 .forum-mipiace.is-fermo:hover { border-color: var(--border); color: var(--text-dim); background: transparent; }
-.forum-mipiace-icona { font-size: 13px; line-height: 1; }
+.forum-mipiace-icona { font-size: var(--fs-sm); line-height: 1; }
 /* Ancora invisibile per tornare al messaggio giusto dopo un mi piace */
 .forum-ancora { position: absolute; }
 
@@ -1996,7 +2241,7 @@ h1.page-title::before {
   .forum-cat-ultimo { grid-column: 1 / -1; border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 12px; }
   .forum-riga { grid-template-columns: auto minmax(0, 1fr); }
   .forum-riga-numeri { grid-column: 2 / -1; gap: 14px; text-align: left; }
-  .forum-riga-numeri strong { display: inline; font-size: 12.5px; margin-right: 3px; }
+  .forum-riga-numeri strong { display: inline; font-size: var(--fs-sm); margin-right: 3px; }
   .forum-msg { grid-template-columns: 1fr; gap: 12px; }
   .forum-msg-lato {
     border-right: 0;
@@ -2022,7 +2267,7 @@ h1.page-title::before {
 .blog-card-thumb img { width: 160px; height: 110px; object-fit: cover; display: block; transition: transform .2s; }
 .blog-card-thumb:hover img { transform: scale(1.04); }
 .blog-card-text { flex: 1; min-width: 0; }
-.blog-card h2 { margin: 0 0 6px; font-size: 19px; }
+.blog-card h2 { margin: 0 0 6px; font-size: var(--fs-lg); }
 .post-panel { position: relative; }
 .post-cover {
   display: block;
@@ -2053,7 +2298,7 @@ h1.page-title::before {
 }
 .blog-card h2 a { color: var(--text); text-decoration: none; }
 .blog-card h2 a:hover { color: var(--purple); }
-.blog-card .meta { color: var(--text-dim); font-size: 12px; margin-bottom: 10px; }
+.blog-card .meta { color: var(--text-dim); font-size: var(--fs-xs); margin-bottom: 10px; }
 .blog-body { white-space: pre-wrap; word-wrap: break-word; }
 .blog-body img, .blog-body video, .blog-body iframe { max-width: 100%; border-radius: var(--radius-sm); }
 .blog-body mark { background: var(--green); color: #14200a; padding: 0 4px; border-radius: 3px; }
@@ -2063,7 +2308,7 @@ form.stack { display: flex; flex-direction: column; gap: 14px; max-width: 560px;
 /* Il pulsante che salva non e' un campo del modulo: con i soli 14px di distanza sembrava
    attaccato all'ultima casella, quindi qui prende un po' d'aria in piu' (14 + 16 = 30px). */
 form.stack > button[type="submit"], form.stack > .btn { margin-top: 16px; }
-label { font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-dim); }
+label { font-weight: 600; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0; color: var(--text-dim); }
 /* Casella con testo accanto ("Resta collegato"): qui l'etichetta e' una frase, non il nome
    di un campo, quindi niente maiuscolo spaziato come sopra. */
 label.campo-check {
@@ -2072,8 +2317,8 @@ label.campo-check {
   gap: 10px;
   text-transform: none;
   letter-spacing: 0;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--fs-base);
+  font-weight: 600;
   color: var(--text);
   cursor: pointer;
 }
@@ -2089,7 +2334,7 @@ input[type=text], input[type=email], input[type=password], textarea, select {
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-family: inherit;
   width: 100%;
 }
@@ -2101,7 +2346,7 @@ input[type=text], input[type=email], input[type=password], textarea, select {
 @media (pointer: coarse) {
   input[type=text], input[type=email], input[type=password], input[type=number],
   input[type=search], input[type=url], input[type=tel], textarea, select {
-    font-size: 16px;
+    font-size: var(--fs-md);
   }
 }
 
@@ -2119,7 +2364,7 @@ textarea { min-height: 160px; resize: vertical; }
   border-radius: var(--radius-sm);
   padding: 12px 16px;
   margin-bottom: 16px;
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: var(--text);
 }
 .alert-error { border-left-color: #e05050; }
@@ -2138,16 +2383,16 @@ textarea { min-height: 160px; resize: vertical; }
 }
 table.rank { width: 100%; border-collapse: collapse; }
 table.rank th, table.rank td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
-table.rank th { color: var(--text-dim); text-transform: uppercase; font-size: 12px; font-family: var(--font-heading); }
+table.rank th { color: var(--text-dim); text-transform: uppercase; font-size: var(--fs-xs); font-family: var(--font-heading); }
 table.rank tr:hover td { background: var(--bg-panel-2); }
 /* Su schermo stretto si stringe quel che si puo', cosi' spesso lo scorrimento
    non serve nemmeno: il pannello resta a 24px di padding come ovunque. */
 @media (max-width: 560px) {
-  table.rank th, table.rank td { padding: 9px 8px; font-size: 13.5px; }
-  table.rank th { font-size: 11px; }
+  table.rank th, table.rank td { padding: 9px 8px; font-size: var(--fs-sm); }
+  table.rank th { font-size: var(--fs-2xs); }
   table.rank th:first-child, table.rank td:first-child { padding-left: 2px; }
 }
-.badge-soon { display:inline-block; background: var(--bg-panel-2); color: var(--text-dim); border: 1px solid var(--border); border-radius: 20px; padding: 3px 12px; font-size: 12px; text-transform: uppercase; }
+.badge-soon { display:inline-block; background: var(--bg-panel-2); color: var(--text-dim); border: 1px solid var(--border); border-radius: 20px; padding: 3px 12px; font-size: var(--fs-xs); text-transform: uppercase; }
 
 /* ============ STORE ============ */
 /* L'intestazione dello store e' il banner della promozione (.vip-banner.is-compatto),
@@ -2160,7 +2405,7 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   border: 1px solid var(--border-strong);
   background: var(--bg-elevated);
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   text-decoration: none;
 }
 .store-chip.is-ok { color: var(--green); border-color: rgba(163, 230, 53, 0.4); }
@@ -2178,7 +2423,7 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   color: var(--store-filtro-riposo-testo, var(--text-dim));
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   cursor: pointer;
   text-decoration: none;   /* the buttons are anchors that scroll to a category section */
   transition: border-color .15s, color .15s, background-color .15s;
@@ -2205,9 +2450,9 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
 .store-cat-titolo {
   margin: 0 0 16px;
   font-family: var(--font-heading);
-  font-size: 20px;
+  font-size: var(--fs-lg);
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 /* Sfumature sui bordi: dicono "la riga continua". Quella a destra sparisce arrivati in
    fondo, quella a sinistra compare solo quando c'e' qualcosa da cui si e' scorsi via. */
@@ -2245,7 +2490,7 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   border: 1px solid var(--gold-border);
   background: rgba(12, 12, 14, 0.82);
   color: var(--gold-light);
-  font-size: 20px;
+  font-size: var(--fs-lg);
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -2429,7 +2674,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   align-self: flex-start;
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--store-filtro-attivo-testo, #2a1c02);
   background: var(--store-filtro-attivo, var(--gold));
   border: 1px solid var(--store-filtro-attivo, var(--gold));
@@ -2444,7 +2689,7 @@ body.store-una-categoria .store-card-cat { display: none; }
      eredita l'interlinea larga del body ed e' 4px piu' alta a parita' di testo */
   line-height: normal;
 }
-.store-card h3 { margin: 0 0 10px; font-size: 19px; }
+.store-card h3 { margin: 0 0 10px; font-size: var(--fs-lg); }
 .store-card-voci { list-style: none; margin: 0 0 16px; padding: 0; }
 .store-card-voci li {
   position: relative;
@@ -2452,7 +2697,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   /* Era bianco fisso: sulle card SENZA copertina, dove non c'e' velo, sul tema chiaro
      finiva bianco su bianco. Ora segue il colore deciso per la card. */
   color: var(--store-card-testo);
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   margin-bottom: 4px;
 }
@@ -2477,15 +2722,15 @@ body.store-una-categoria .store-card-cat { display: none; }
   display: block;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 17px;
+  font-size: var(--fs-md);
   color: var(--text);
   text-decoration: none;
   margin-bottom: 4px;
 }
 .store-card-nome:hover { text-decoration: underline; }
-.store-card-prezzo-est .store-prezzo { font-size: 25px; font-weight: 800; }
-.store-card-prezzo-est .store-prezzo small { font-size: 13px; font-weight: 700; }
-.store-card-prezzo-est .store-prezzo-pieno { font-size: 15px; margin-right: 8px; }
+.store-card-prezzo-est .store-prezzo { font-size: var(--fs-xl); font-weight: 700; }
+.store-card-prezzo-est .store-prezzo small { font-size: var(--fs-sm); font-weight: 700; }
+.store-card-prezzo-est .store-prezzo-pieno { font-size: var(--fs-base); margin-right: 8px; }
 
 /* Discount as an angled corner ribbon in the top-right of the card. Colours come from the
    category/package settings (same variables as .store-sconto); overflow:hidden on the card
@@ -2509,9 +2754,9 @@ body.store-una-categoria .store-card-cat { display: none; }
     var(--sconto-fondo, var(--green));
   color: var(--sconto-testo, #14200a);
   font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 13.5px;
-  letter-spacing: 0.03em;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  letter-spacing: 0;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
   box-shadow:
     0 4px 10px rgba(0, 0, 0, 0.5),
@@ -2575,8 +2820,8 @@ body.store-una-categoria .store-card-cat { display: none; }
   color: #2a1c02;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   text-shadow: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -2595,22 +2840,22 @@ body.store-una-categoria .store-card-cat { display: none; }
   .store-fila > .store-card-cella { flex-basis: calc((100% - 2 * var(--store-fila-gap, 8px)) / 3); }
   .store-card { min-height: 122px; border-left-width: 2px; }
   .store-card-info { padding: 8px 2px 2px; }
-  .store-card-nome { font-size: 12px; margin-bottom: 2px; }
-  .store-card-prezzo-est .store-prezzo { font-size: 15px; }
+  .store-card-nome { font-size: var(--fs-xs); margin-bottom: 2px; }
+  .store-card-prezzo-est .store-prezzo { font-size: var(--fs-base); }
   .store-card-prezzo-est .store-prezzo small { font-size: 9.5px; }
-  .store-card-prezzo-est .store-prezzo-pieno { font-size: 10.5px; margin-right: 4px; }
+  .store-card-prezzo-est .store-prezzo-pieno { font-size: var(--fs-2xs); margin-right: 4px; }
   .store-card-sconto { width: 92px; right: -30px; top: 11px; padding: 3px 0; font-size: 9.5px; }
-  .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0.02em; }
+  .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0; }
   .store-card .store-card-modifica { bottom: 6px; right: 6px; }
-  .store-cat-titolo { font-size: 17px; }
-  .store-filtro { padding: 7px 12px; font-size: 12px; }
+  .store-cat-titolo { font-size: var(--fs-md); }
+  .store-filtro { padding: 7px 12px; font-size: var(--fs-xs); }
 }
 
-.store-prezzo { font-family: var(--font-heading); font-weight: 700; font-size: 22px; color: var(--gold-light); }
-.store-prezzo small { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-left: 2px; }
+.store-prezzo { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-xl); color: var(--gold-light); }
+.store-prezzo small { font-size: var(--fs-xs); font-weight: 600; color: var(--text-dim); margin-left: 2px; }
 /* Prezzo scontato: prima quello pieno barrato e spento, poi quello vero. */
 .store-prezzo-pieno {
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text-dimmer);
   margin-right: 6px;
@@ -2628,8 +2873,8 @@ body.store-una-categoria .store-card-cat { display: none; }
   color: var(--sconto-testo, #14200a);
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.02em;
+  font-size: var(--fs-xs);
+  letter-spacing: 0;
   vertical-align: middle;
   text-shadow: none;
 }
@@ -2645,16 +2890,16 @@ body.store-una-categoria .store-card-cat { display: none; }
 }
 .store-lato h3 {
   margin: 0 0 12px;
-  font-size: 14px;
-  letter-spacing: 0.02em;
+  font-size: var(--fs-base);
+  letter-spacing: 0;
 }
-.store-lato-nome { font-size: 13px; font-weight: 600; }
+.store-lato-nome { font-size: var(--fs-sm); font-weight: 600; }
 /* Player name links to their public page: it must read as plain text (the rank colour lives
    on the inner span) and only hint it is clickable on hover. */
 .store-lato-nome-link { color: inherit; text-decoration: none; }
 .store-lato-nome-link:hover { text-decoration: underline; }
-.store-lato-meta { font-size: 11.5px; color: var(--text-dim); }
-.store-lato-vuoto { font-size: 12.5px; color: var(--text-dimmer); font-style: italic; margin: 0; }
+.store-lato-meta { font-size: var(--fs-xs); color: var(--text-dim); }
+.store-lato-vuoto { font-size: var(--fs-sm); color: var(--text-dimmer); font-style: italic; margin: 0; }
 /* le teste sono pixel art: senza questo il ridimensionamento le sfoca */
 .store-skin {
   width: 32px;
@@ -2676,7 +2921,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   position: absolute;
   left: 50%;
   top: -13px;
-  font-size: 19px;
+  font-size: var(--fs-lg);
   line-height: 1;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
   animation: corona-ondeggia 3.4s ease-in-out infinite;
@@ -2716,11 +2961,11 @@ body.store-una-categoria .store-card-cat { display: none; }
 .store-top-cifra {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 20px;
+  font-size: var(--fs-lg);
   color: var(--gold-light);
   line-height: 1.2;
 }
-.store-top-cifra small { font-size: 11px; color: var(--text-dim); margin-left: 2px; }
+.store-top-cifra small { font-size: var(--fs-2xs); color: var(--text-dim); margin-left: 2px; }
 
 .store-acquisti { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .store-acquisti li { display: flex; align-items: center; gap: 10px; }
@@ -2729,13 +2974,13 @@ body.store-una-categoria .store-card-cat { display: none; }
 .store-acquisto-cifra {
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--gold-light);
   white-space: nowrap;
 }
-.store-acquisto-cifra small { font-size: 10px; color: var(--text-dim); margin-left: 1px; }
+.store-acquisto-cifra small { font-size: var(--fs-2xs); color: var(--text-dim); margin-left: 1px; }
 .store-lato-modifica,
-.colonna-modifica { font-size: 12px; color: var(--text-dimmer); align-self: flex-start; }
+.colonna-modifica { font-size: var(--fs-xs); color: var(--text-dimmer); align-self: flex-start; }
 .colonna-modifica { text-decoration: none; }
 .colonna-modifica:hover { color: var(--text-dim); }
 
@@ -2743,7 +2988,7 @@ body.store-una-categoria .store-card-cat { display: none; }
    (quello sta a z-index 1 dentro .store-card-corpo), altrimenti sarebbe incliccabile. */
 .store-card-modifica { z-index: 3; }
 
-.store-nota { color: var(--text-dimmer); font-size: 12.5px; line-height: 1.6; }
+.store-nota { color: var(--text-dimmer); font-size: var(--fs-sm); line-height: 1.6; }
 
 /* Footer */
 .site-footer {
@@ -2752,16 +2997,16 @@ body.store-una-categoria .store-card-cat { display: none; }
   padding: 30px 0;
   text-align: center;
   color: var(--text-dimmer);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .rules-section { margin-bottom: 26px; }
-.rules-section h2 { font-size: 17px; }
+.rules-section h2 { font-size: var(--fs-md); }
 .rules-section ol, .rules-section ul { padding-left: 22px; }
 .rules-section li { margin-bottom: 6px; }
 
 .code-box {
-  font-family: Consolas, monospace;
+  font-family: var(--font-mono);
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -2798,7 +3043,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   color: var(--text-dim);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   text-decoration: none;
 }
 .pagination a:hover { border-color: var(--border-strong); color: var(--text); }
@@ -2819,7 +3064,7 @@ body.store-una-categoria .store-card-cat { display: none; }
 .rank-tab-btn {
   padding: 10px 18px; background: var(--bg-elevated); color: var(--text-dim);
   border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-family: var(--font-heading); font-size: 15px; font-weight: 600; cursor: pointer;
+  font-family: var(--font-heading); font-size: var(--fs-base); font-weight: 600; cursor: pointer;
   transition: border-color .12s ease, color .12s ease, background .12s ease;
 }
 .rank-tab-btn:hover { color: var(--text); border-color: var(--border-strong); }
@@ -2829,7 +3074,7 @@ body.store-una-categoria .store-card-cat { display: none; }
 /* Nessun bordo ne' sfondo: la guida porta gia' i suoi riquadri per ogni capitolo, e
    incorniciarla di nuovo dava l'effetto "scatola dentro la scatola". */
 .guida-riquadro { margin-bottom: 24px; }
-.guida-intro { color: var(--text-dim); font-size: 14.5px; max-width: 76ch; margin: 0; padding-right: 40px; }
+.guida-intro { color: var(--text-dim); font-size: var(--fs-base); max-width: 76ch; margin: 0; padding-right: 40px; }
 .guida-riquadro iframe {
   display: block;
   width: 100%;
@@ -2853,8 +3098,8 @@ body.store-una-categoria .store-card-cat { display: none; }
   gap: 12px;
 }
 .guida-ia-testa { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.guida-ia-testa h2 { font-size: 15px; margin: 0; font-family: var(--font-heading); }
-.guida-ia-sub { font-size: 11.5px; color: var(--text-dimmer); margin-left: auto; }
+.guida-ia-testa h2 { font-size: var(--fs-base); margin: 0; font-family: var(--font-heading); }
+.guida-ia-sub { font-size: var(--fs-xs); color: var(--text-dimmer); margin-left: auto; }
 
 /* La conversazione NON allunga la pagina: scorre dentro il suo riquadro, come la chat del
    sito. Senza questo tetto, dieci domande spingevano la guida sempre piu' in basso e il
@@ -2892,7 +3137,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   background: var(--bg-elevated);
   border-radius: var(--radius-sm);
   padding: 9px 12px;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   line-height: 1.55;
 }
 /* Il nome di chi parla, come in chat: viola per la Guida (e' il server), normale per te. */
@@ -2918,9 +3163,9 @@ body.store-una-categoria .store-card-cat { display: none; }
 }
 .guida-ia-sotto {
   display: block;
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   color: var(--text-dimmer);
   margin-bottom: 4px;
 }
@@ -2930,13 +3175,13 @@ body.store-una-categoria .store-card-cat { display: none; }
   background: var(--bg-panel);
   border: 1px solid var(--border);
   color: var(--green);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   white-space: nowrap;
 }
-.guida-ia-apertura code { color: var(--green); font-size: 13px; }
+.guida-ia-apertura code { color: var(--green); font-size: var(--fs-sm); }
 .guida-ia mark { background: var(--purple-glow); color: inherit; border-radius: 3px; padding: 0 2px; }
 .guida-ia-vai { font-weight: 600; }
-.guida-ia-altri { margin: 8px 0 0; font-size: 12.5px; color: var(--text-dim); }
+.guida-ia-altri { margin: 8px 0 0; font-size: var(--fs-sm); color: var(--text-dim); }
 .guida-ia-nulla { margin: 0; }
 
 .guida-ia-form { display: flex; gap: 8px; }
@@ -2949,7 +3194,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   padding: 10px 12px;
   color: var(--text);
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
 }
 .guida-ia-form input:focus { outline: none; border-color: var(--bordo-fuoco); }
 .guida-ia-invia {
@@ -2960,14 +3205,14 @@ body.store-una-categoria .store-card-cat { display: none; }
   border-radius: var(--radius-sm);
   padding: 0 18px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   cursor: pointer;
 }
 .guida-ia-invia:disabled { opacity: 0.5; cursor: default; }
 
 .guida-ia-esempi { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.guida-ia-esempi span { font-size: 11.5px; color: var(--text-dimmer); }
+.guida-ia-esempi span { font-size: var(--fs-xs); color: var(--text-dimmer); }
 .guida-ia-esempi button {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -2975,11 +3220,11 @@ body.store-una-categoria .store-card-cat { display: none; }
   padding: 4px 11px;
   color: var(--text-dim);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   cursor: pointer;
 }
 .guida-ia-esempi button:hover { border-color: var(--border-strong); color: var(--text); }
-.guida-ia-nota { font-size: 11.5px; color: var(--text-dimmer); margin: 0; }
+.guida-ia-nota { font-size: var(--fs-xs); color: var(--text-dimmer); margin: 0; }
 
 /* Il capitolo raggiunto dal link lampeggia una volta: dopo lo scorrimento, senza, non si
    capisce quale dei riquadri fosse quello giusto. */
@@ -3002,7 +3247,7 @@ body.store-una-categoria .store-card-cat { display: none; }
 .campo-immagine-riga { display: flex; gap: 8px; align-items: center; }
 .campo-immagine-riga input[type=text] { flex: 1 1 auto; min-width: 0; }
 .campo-immagine-riga .btn { flex: 0 0 auto; }
-.campo-immagine-stato { font-size: 12px; margin: 6px 0 0; color: var(--text-dim); }
+.campo-immagine-stato { font-size: var(--fs-xs); margin: 6px 0 0; color: var(--text-dim); }
 .campo-immagine-stato.is-ok { color: var(--green); }
 .campo-immagine-stato.is-errore { color: #e0733f; }
 .campo-immagine-anteprima { margin-top: 8px; }
@@ -3038,7 +3283,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   color: var(--text-dim);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   text-decoration: none;
   white-space: nowrap;   /* nessuna scheda spezzata su due righe */
   flex: 0 0 auto;        /* e nessuna schiacciata per farle stare tutte */
@@ -3065,7 +3310,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
 }
-.barra-sezione h2 { margin: 0; font-size: 19px; }
+.barra-sezione h2 { margin: 0; font-size: var(--fs-lg); }
 /* Se e' la prima cosa sotto le schede non serve staccarla di nuovo */
 .tabs-row + .barra-sezione, .alert + .barra-sezione { margin-top: 4px; }
 .barra-sezione .btn { flex: 0 0 auto; }
@@ -3093,14 +3338,14 @@ body.store-una-categoria .store-card-cat { display: none; }
   vertical-align: baseline;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
 }
-.manage-row .sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+.manage-row .sub { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
 .manage-row .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .manage-row form { display: inline; }
 
 .badge-yes, .badge-no {
   border-radius: 20px;
   padding: 2px 10px;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
   border: 1px solid;
 }
@@ -3124,9 +3369,9 @@ body.store-una-categoria .store-card-cat { display: none; }
 }
 .perm-category-title {
   font-family: var(--font-heading);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-caps);
   color: var(--text-dim);
   margin-bottom: 10px;
 }
@@ -3135,13 +3380,13 @@ body.store-una-categoria .store-card-cat { display: none; }
   align-items: flex-start;
   gap: 9px;
   padding: 7px 0;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   line-height: 1.35;
   cursor: pointer;
   text-transform: none;
 }
 .perm-item input { width: auto; margin-top: 2px; flex: none; }
-.perm-code { font-size: 11px; color: var(--text-dim); opacity: 0.75; }
+.perm-code { font-size: var(--fs-2xs); color: var(--text-dim); opacity: 0.75; }
 
 /* Tag del grado in gioco: colore preso dal prefisso LuckPerms (variabili inline, vedi player_tag()) */
 /* Pallino "e' sul sito adesso", accanto al nome di un ALTRO giocatore: forum, firme degli
@@ -3166,9 +3411,9 @@ body.store-una-categoria .store-card-cat { display: none; }
   padding: 2px 8px;
   border-radius: var(--radius-sm); /* stessa forma dell'etichetta articolo e del bottone Store */
   font-family: var(--font-heading);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   line-height: 1.5;
   white-space: nowrap;
@@ -3211,7 +3456,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 30px; }
 .stat-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; text-align: center; }
 .stat-box .num { font-family: var(--font-heading); font-size: 32px; font-weight: 700; color: var(--text); }
-.stat-box .label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-top: 4px; }
+.stat-box .label { color: var(--text-dim); font-size: var(--fs-xs); text-transform: uppercase; margin-top: 4px; }
 
 .editor-toolbar {
   display: flex;
@@ -3275,9 +3520,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   background: var(--purple);
   color: var(--testo-su-magenta, #1a0426);
   font-family: var(--font-heading);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
 }
 .usato-da {
@@ -3287,7 +3532,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 
 /* Blocco del velo dentro il modulo categoria: staccato dal resto e spento finche'
@@ -3349,9 +3594,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 .store-sort-pacchetto .actions > * { flex-shrink: 0; }   /* mai schiacciati, si scorre invece */
 .store-sort-nome .title { font-weight: 600; }
-.store-sort-nome .sub { font-size: 12px; color: var(--text-dim); }
+.store-sort-nome .sub { font-size: var(--fs-xs); color: var(--text-dim); }
 /* la maniglia dice "questo si trascina" senza doverlo spiegare */
-.store-drag { color: var(--text-dimmer); cursor: grab; font-size: 15px; line-height: 1; }
+.store-drag { color: var(--text-dimmer); cursor: grab; font-size: var(--fs-base); line-height: 1; }
 .store-sort-gruppo[draggable="true"], .store-sort-pacchetto { cursor: grab; }
 .is-dragging { opacity: 0.45; }
 
@@ -3363,7 +3608,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   align-self: center;
   margin-right: 10px;
   color: var(--text-dimmer);
-  font-size: 15px;
+  font-size: var(--fs-base);
   letter-spacing: -3px;
   line-height: 1;
   user-select: none;
@@ -3372,14 +3617,14 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .store-sort-pacchetti.is-drop-target { outline: 2px dashed var(--purple); outline-offset: 4px; border-radius: var(--radius-sm); }
 .store-sort-vuoto {
   color: var(--text-dimmer);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-style: italic;
   padding: 12px;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
   text-align: center;
 }
-.store-sort-stato { font-size: 13px; color: var(--text-dim); }
+.store-sort-stato { font-size: var(--fs-sm); color: var(--text-dim); }
 .store-sort-stato.is-error { color: #e0733f; }
 
 /* ---------------------------------------------------------------------------
@@ -3388,7 +3633,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    --------------------------------------------------------------------------- */
 /* Il margine SOPRA serve: <main> non ha padding verticale proprio (lo mettono le pagine,
    es. h1.page-title ha 34px), quindi senza questo il link resta appiccicato alla navbar. */
-.pkg-torna { margin: 28px 0 16px; font-size: 13.5px; }
+.pkg-torna { margin: 28px 0 16px; font-size: var(--fs-sm); }
 .pkg-scheda {
   position: relative;
   overflow: hidden;
@@ -3429,9 +3674,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .pkg-intestazione { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pkg-evidenza {
   font-family: var(--font-heading);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--testo-su-oro, #2a1c02);
   background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
@@ -3440,10 +3685,10 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   margin-bottom: 10px;
 }
 .pkg-corpo h1 { margin: 0 0 14px; font-size: 34px; line-height: 1.15; }
-.pkg-testo { color: rgba(240, 240, 238, 0.86); font-size: 15px; line-height: 1.7; margin-bottom: 22px; }
+.pkg-testo { color: rgba(240, 240, 238, 0.86); font-size: var(--fs-base); line-height: 1.7; margin-bottom: 22px; }
 .pkg-sottotitolo {
-  font-size: 12px;
-  letter-spacing: 0.1em;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
   margin: 0 0 10px;
@@ -3466,8 +3711,8 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-size: 30px;
   color: var(--gold-light);
 }
-.pkg-prezzo small { font-size: 14px; font-weight: 600; color: var(--text-dim); margin-left: 3px; }
-.pkg-consegna { display: block; color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+.pkg-prezzo small { font-size: var(--fs-base); font-weight: 600; color: var(--text-dim); margin-left: 3px; }
+.pkg-consegna { display: block; color: var(--text-dim); font-size: var(--fs-sm); margin-top: 4px; }
 /* Stesso trattamento del "Prossimamente" nelle card: contorno spento ma leggibile */
 .pkg-acquisto .btn[disabled] {
   opacity: 1;
@@ -3478,14 +3723,14 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   color: var(--gold-light);
 }
 .pkg-acquisto .btn[disabled]:hover { filter: none; color: var(--gold-light); }
-.pkg-admin { margin: 18px 0 0; font-size: 13px; }
+.pkg-admin { margin: 18px 0 0; font-size: var(--fs-sm); }
 
 @media (max-width: 700px) {
   .pkg-copertina { height: 210px; }
   .pkg-corpo { padding: 150px 20px 24px; }
   .pkg-scheda.senza-immagine .pkg-copertina { height: 150px; }
   .pkg-scheda.senza-immagine .pkg-corpo { padding-top: 24px; }
-  .pkg-corpo h1 { font-size: 26px; }
+  .pkg-corpo h1 { font-size: var(--fs-xl); }
   .pkg-acquisto { flex-direction: column; align-items: stretch; }
 }
 
@@ -3649,13 +3894,13 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 .riga-categoria-testo { flex: 1; min-width: 0; }
 .riga-categoria .title { font-weight: 700; font-family: var(--font-heading); }
-.riga-categoria .sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+.riga-categoria .sub { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
 .riga-categoria .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .riga-categoria form { display: inline; }
 /* La manina del trascinamento */
-.manina { cursor: grab; color: var(--text-dimmer); font-size: 16px; line-height: 1; flex: 0 0 auto; }
+.manina { cursor: grab; color: var(--text-dimmer); font-size: var(--fs-md); line-height: 1; flex: 0 0 auto; }
 .forum-sort-gruppo:active .manina, .forum-sort-figlia:active .manina { cursor: grabbing; }
-.forum-sort-stato { min-height: 18px; font-size: 12.5px; color: var(--text-dim); margin: 10px 0 0; }
+.forum-sort-stato { min-height: 18px; font-size: var(--fs-sm); color: var(--text-dim); margin: 10px 0 0; }
 .forum-sort-stato.is-error { color: #e0733f; }
 
 @media (max-width: 620px) {
@@ -3713,7 +3958,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-weight: 600;
   /* Un filo piu' piccolo del titolo della categoria (che e' un h2): la gerarchia si legge
      anche solo dal peso del testo. */
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 /* Freccetta di rientro davanti al nome: sta DENTRO lo span, non come figlio della griglia,
    se no diventerebbe una quinta colonna e sfascerebbe l'impaginazione della riga. */
@@ -3728,11 +3973,11 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    vede. */
 .forum-sezioni-sole .forum-sezione-riga { padding-left: 18px; }
 .forum-sezioni-sole .forum-sezione-nome::before { content: none; }
-.forum-sezione-desc { display: block; color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
+.forum-sezione-desc { display: block; color: var(--text-dim); font-size: var(--fs-sm); margin-top: 2px; }
 .forum-sezione-numeri {
   display: flex;
   gap: 14px;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--text-dimmer);
   white-space: nowrap;
 }
@@ -3740,7 +3985,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .forum-sezione-ultimo { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .forum-sezione-ultimo-testo { min-width: 0; }
 .forum-sezione-freccia {
-  font-size: 18px;
+  font-size: var(--fs-md);
   line-height: 1;
   color: var(--text-dimmer);
   transition: transform .14s;
@@ -3760,7 +4005,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .forum-sorelle a {
   padding: 5px 12px;
   border-radius: 999px;
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-decoration: none;
   color: var(--text-dim);
@@ -3802,7 +4047,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .forum-ultima-titolo {
   display: block;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-base);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3811,7 +4056,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   display: block;
   margin-top: 3px;
   color: var(--text-dimmer);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
 }
 .forum-ultima-dove { color: var(--text-dim); font-weight: 600; margin-right: 6px; }
 
@@ -3821,7 +4066,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   width: auto;
   max-width: 210px;
   padding: 5px 8px;
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 @media (max-width: 620px) {
   .sposta-discussione { width: 100%; }
@@ -3836,9 +4081,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   flex-wrap: wrap;
   margin: 0 0 16px;
 }
-.filtri-discussioni select { width: auto; max-width: 260px; padding: 6px 10px; font-size: 13px; }
-.filtri-discussioni input[type=text] { width: auto; flex: 1; min-width: 160px; padding: 6px 10px; font-size: 13px; }
-.filtri-conteggio { color: var(--text-dim); font-size: 12.5px; margin-left: auto; }
+.filtri-discussioni select { width: auto; max-width: 260px; padding: 6px 10px; font-size: var(--fs-sm); }
+.filtri-discussioni input[type=text] { width: auto; flex: 1; min-width: 160px; padding: 6px 10px; font-size: var(--fs-sm); }
+.filtri-conteggio { color: var(--text-dim); font-size: var(--fs-sm); margin-left: auto; }
 @media (max-width: 620px) {
   .filtri-conteggio { margin-left: 0; width: 100%; }
 }
@@ -3858,33 +4103,95 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   padding-top: 14px;
   border-top: 1px solid var(--border);
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   color: var(--text);
 }
 .tavolozza-gruppo:first-of-type { margin-top: 4px; padding-top: 0; border-top: 0; }
 .tavolozza h4 {
   margin: 0 0 10px;
-  font-size: 13px;
-  letter-spacing: 0.04em;
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
 }
-.tavolozza label { display: block; margin: 10px 0 4px; font-size: 11.5px; }
+.tavolozza label { display: block; margin: 10px 0 4px; font-size: var(--fs-xs); }
 .tavolozza label:first-of-type { margin-top: 0; }
 .tavolozza input[type=color] { height: 40px; padding: 3px; width: 100%; }
 
-/* Scorciatoia "Crea nuovo articolo" sopra la griglia della home */
+/* Pulsanti dello staff sull'ultimo articolo della home: "+" (nuovo post) e matita (modifica),
+   uno accanto all'altro nell'angolo in alto a destra della copertina, con lo STESSO aspetto
+   della matita di tutte le altre tessere (.card-edit-btn): tondo, velo scuro, bordo sottile,
+   viola al passaggio. La scritta sta in una nuvoletta a sinistra che compare passandoci
+   sopra (o col fuoco, o tenendoli premuti da telefono). */
+.card-azioni {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+}
+/* Blog vuoto: il "+" da solo sopra la griglia, stesso pulsante. */
 .barra-crea { display: flex; justify-content: flex-end; margin: 0 0 14px; }
-.barra-crea .btn { display: inline-flex; align-items: center; gap: 7px; }
-.barra-crea-piu {
-  font-size: 15px;
+.card-azioni-libere { position: static; }
+.card-azione {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: var(--fs-base);
   line-height: 1;
-  font-weight: 700;
-  /* il segno + allineato al testo senza spostargli la linea di base */
-  transform: translateY(-1px);
+  color: var(--contrasto);
+  background: var(--velo-scuro);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  text-decoration: none;
+}
+.card-azione:hover,
+.card-azione:focus-visible { color: var(--purple); border-color: var(--purple); background: rgba(0, 0, 0, 0.75); text-decoration: none; }
+.card-azione svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.card-azione-etichetta {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translate(6px, -50%);
+  padding: 6px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+/* La nuvoletta del secondo pulsante passa sopra al primo, non gli finisce sotto. */
+.card-azione:hover, .card-azione:focus-visible, .card-azione:active { z-index: 1; }
+.card-azione:hover .card-azione-etichetta,
+.card-azione:focus-visible .card-azione-etichetta,
+.card-azione:active .card-azione-etichetta {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-azione, .card-azione-etichetta { transition: none; }
 }
 
 /* ---- Obiettivo di raccolta del server ---------------------------------------------- */
@@ -3904,17 +4211,17 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   flex-wrap: wrap;
   margin-bottom: 14px;
 }
-.obiettivo-titolo { margin: 0; font-size: 19px; }
-.obiettivo-periodo { margin: 3px 0 0; color: var(--text-dim); font-size: 13px; }
+.obiettivo-titolo { margin: 0; font-size: var(--fs-lg); }
+.obiettivo-periodo { margin: 3px 0 0; color: var(--text-dim); font-size: var(--fs-sm); }
 .obiettivo-numeri { display: flex; align-items: baseline; gap: 12px; }
 .obiettivo-percento {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 24px;
+  font-size: var(--fs-xl);
   color: var(--gold-light);
 }
-.obiettivo-importi { color: var(--text-dim); font-size: 13.5px; }
-.obiettivo-importi small { font-size: 11px; margin-left: 2px; }
+.obiettivo-importi { color: var(--text-dim); font-size: var(--fs-sm); }
+.obiettivo-importi small { font-size: var(--fs-2xs); margin-left: 2px; }
 /* Matita dell'admin sull'obiettivo: in riga in fondo alla testata, accanto ai numeri.
    Quella d'angolo delle card qui finirebbe sopra la percentuale. */
 .obiettivo-modifica { position: static; flex: 0 0 auto; align-self: flex-end; margin-bottom: 2px; }
@@ -4025,7 +4332,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   background: linear-gradient(90deg, var(--green), var(--gold-light));
 }
 .obiettivo.e-raggiunto .obiettivo-riempimento::after { animation: none; }
-.obiettivo-fatto { margin: 10px 0 0; color: var(--green); font-size: 13px; font-weight: 600; }
+.obiettivo-fatto { margin: 10px 0 0; color: var(--green); font-size: var(--fs-sm); font-weight: 600; }
 
 /* Chi ha chiesto meno animazioni vede la barra gia' piena, senza movimento */
 @media (prefers-reduced-motion: reduce) {
@@ -4042,7 +4349,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    l'elenco e' gia' tutto in vista e una riga di numeri in piu' sarebbe rumore. */
 .vai-articolo { display: block; margin: 18px 0 4px; }
 .card-numero { display: none; }
-.vai-articolo-errore { color: #e0733f; font-size: 12.5px; margin: 8px 0 0; }
+.vai-articolo-errore { color: #e0733f; font-size: var(--fs-sm); margin: 8px 0 0; }
 .vai-articolo label {
   display: block;
   margin-bottom: 8px;
@@ -4052,7 +4359,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   width: 92px;
   flex: 0 0 auto;
   padding: 9px 11px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   text-align: center;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -4060,7 +4367,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   color: var(--text);
 }
 .vai-articolo-riga input:focus { outline: none; border-color: var(--bordo-fuoco); }
-.vai-articolo-tot { color: var(--text-dim); font-size: 13px; }
+.vai-articolo-tot { color: var(--text-dim); font-size: var(--fs-sm); }
 /* Pulsante "in contrasto": bianco sul tema scuro, nero su quello chiaro. E' lo stesso
    dell'invio in chat — dove il gesto e' neutro ("manda", "carica ancora") il magenta del
    sito e' di troppo, e due colori diversi per la stessa cosa confondono. */
@@ -4186,6 +4493,20 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   }
   .post-grid .bento-feature,
   .post-tile { min-height: 208px; }
+  /* A tutta larghezza la copertina cominciava con un taglio netto (piu' la riga del bordo)
+     sotto il resto della pagina: ora in alto sfuma nel fondo del sito. E' un ::after e non il
+     velo (::before), cosi' resta anche quando i veli sono spenti dal gestionale. */
+  .post-grid :is(.bento-feature, .post-tile):not(.no-image):not(.copertina-intera) { border-top-width: 0; }
+  .post-grid :is(.bento-feature, .post-tile):not(.no-image):not(.copertina-intera)::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 14%;
+    background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 45%, transparent) 38%, transparent 100%);
+    pointer-events: none;
+  }
   /* Tutte le tessere del carosello alte uguali: il contenitore si allunga gia' da solo fino
      alla piu' alta (e' una riga flessibile), ma la tessera dentro seguiva il suo contenuto e
      l'ultimo articolo, che ha il riassunto piu' lungo, restava piu' alto degli altri. */
@@ -4297,7 +4618,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   /* --- ritmo verticale della pagina --- */
   .hero-v2 { padding: 44px 0 30px; }
   .section-divider { height: 3px; margin-top: 12px; margin-bottom: 22px; }
-  h1.page-title { font-size: 24px; margin-top: 22px; margin-bottom: 16px; }
+  h1.page-title { font-size: var(--fs-xl); margin-top: 22px; margin-bottom: 16px; }
   .site-footer { margin-top: 34px; }
 
   /* La barra "crea nuovo articolo" e la paginazione NON sono fasce: restano dentro al
@@ -4321,7 +4642,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    Le tessere sono volutamente basse e larghe: qui conta il nome, non la faccia.
    ========================================================================================== */
 .utenti-testata { display: flex; flex-direction: column; gap: 14px; }
-.utenti-intro { margin: 0; color: var(--text-dim); font-size: 14px; }
+.utenti-intro { margin: 0; color: var(--text-dim); font-size: var(--fs-base); }
 
 .utenti-cerca { position: relative; display: flex; align-items: center; }
 .utenti-cerca-lente {
@@ -4340,7 +4661,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   width: 100%;
   padding: 10px 44px 10px 42px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: var(--text);
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
@@ -4365,12 +4686,12 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text-dim);
-  font-size: 17px;
+  font-size: var(--fs-md);
   line-height: 1;
   cursor: pointer;
 }
 .utenti-cerca-pulisci:hover { color: var(--text); }
-.utenti-esito { margin: 0; color: var(--text-dim); font-size: 13px; }
+.utenti-esito { margin: 0; color: var(--text-dim); font-size: var(--fs-sm); }
 
 /* --- Filtri: pillole che accendono e spengono le tessere gia' in pagina ---------------- */
 .utenti-filtri { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -4382,7 +4703,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   gap: 7px;
   padding: 8px 14px;
   font-family: var(--font-heading);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-dim);
   background: var(--bg-elevated);
@@ -4399,7 +4720,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 /* Il numero dentro la pillola: sul filtro acceso si stacca dal fondo pieno */
 .utenti-filtro-conta {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--text-dimmer);
   background: var(--bg-panel);
@@ -4416,7 +4737,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   gap: 8px;
   margin: 18px 0 8px;
 }
-.utenti-quanti { margin: 0; color: var(--text-dimmer); font-size: 12.5px; }
+.utenti-quanti { margin: 0; color: var(--text-dimmer); font-size: var(--fs-sm); }
 
 .utenti-griglia {
   margin-top: 18px;
@@ -4462,14 +4783,14 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .utente-card-nome {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--fs-base);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .utente-card-gradi { display: flex; flex-wrap: wrap; gap: 4px; }
-.utente-card-nograde { color: var(--text-dimmer); font-size: 11.5px; }
-.utente-card-meta { color: var(--text-dim); font-size: 11.5px; }
+.utente-card-nograde { color: var(--text-dimmer); font-size: var(--fs-xs); }
+.utente-card-meta { color: var(--text-dim); font-size: var(--fs-xs); }
 .utente-card-online { color: var(--green); font-weight: 600; }
 [data-tema="chiaro"] .utente-card-online { color: var(--verde-leggibile); }
 .utenti-vuoto { color: var(--text-dim); font-style: italic; margin: 0; }
@@ -4484,9 +4805,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 .utente-card-top {
   font-family: var(--font-heading);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--testo-su-oro, #2a1c02);
   background: var(--gold);
@@ -4496,7 +4817,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 /* La corona qui poggia su una faccia piu' piccola di quella dello store: va rimpicciolita
    e riavvicinata, se no sembra appoggiata in aria. */
-.utente-card-avatar .store-top-corona { top: -10px; font-size: 15px; }
+.utente-card-avatar .store-top-corona { top: -10px; font-size: var(--fs-base); }
 
 /* ============ SCHEDA "SERVER" DEL GESTIONALE ============
    Console dei server e sessioni screen del VPS (/manage?section=console).
@@ -4523,14 +4844,14 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   gap: 10px;
   margin-bottom: 6px;
 }
-.console-card-testa h3 { margin: 0; font-size: 17px; }
+.console-card-testa h3 { margin: 0; font-size: var(--fs-md); }
 .console-card-dati { margin-bottom: 2px; }
-.console-card-tecnico { font-size: 12px; color: var(--text-dimmer); }
+.console-card-tecnico { font-size: var(--fs-xs); color: var(--text-dimmer); }
 .console-pill {
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   padding: 3px 9px;
   border-radius: 999px;
@@ -4555,7 +4876,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .console-schede { display: flex; flex-wrap: wrap; gap: 6px; }
 .console-scheda {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-dim);
   background: transparent;
   border: 1px solid var(--border);
@@ -4567,7 +4888,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .console-scheda.e-attiva { color: var(--text); border-color: var(--purple); background: var(--purple-glow); }
 .console-scheda.e-spenta { opacity: 0.6; }
 .console-strumenti { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.console-strumento { font-size: 12.5px; color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; }
+.console-strumento { font-size: var(--fs-sm); color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; }
 .console-strumento select {
   background: var(--bg-panel-2);
   color: var(--text);
@@ -4583,8 +4904,8 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   overflow: auto;
   background: #0a0b0d;
   color: #cfd3d8;
-  font-family: "Cascadia Mono", "Consolas", "SF Mono", "Menlo", monospace;
-  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -4603,7 +4924,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   background: #0a0b0d;
   border-top: 1px solid #1c1e22;
 }
-.console-prompt { color: var(--green); font-family: "Cascadia Mono", "Consolas", monospace; }
+.console-prompt { color: var(--green); font-family: var(--font-mono); }
 .console-comando input {
   flex: 1;
   min-width: 0;
@@ -4611,8 +4932,8 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   border: none;
   outline: none;
   color: #e8eaed;
-  font-family: "Cascadia Mono", "Consolas", monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
   padding: 4px 0;
 }
 .console-comando.e-bloccata { opacity: 0.55; }
@@ -4620,7 +4941,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .console-nota { padding: 10px 16px 16px; margin: 0; }
 
 @media (max-width: 620px) {
-  .console-schermo { height: 340px; font-size: 12px; }
+  .console-schermo { height: 340px; font-size: var(--fs-xs); }
   .console-testata { align-items: flex-start; flex-direction: column; }
 }
 
@@ -4649,15 +4970,15 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .otp-attivazione-testo li { margin-bottom: 6px; }
 .otp-segreto {
   display: inline-block;
-  letter-spacing: 0.12em;
-  font-size: 15px;
+  letter-spacing: var(--tracking-caps);
+  font-size: var(--fs-base);
   margin: 4px 0 16px;
   user-select: all;   /* un clic solo per selezionarla tutta */
 }
 /* Campo del codice: cifre grandi e spaziate, si controlla a colpo d'occhio se si e' sbagliato */
 .otp-input {
   font-family: var(--font-heading);
-  font-size: 26px;
+  font-size: var(--fs-xl);
   letter-spacing: 0.35em;
   text-align: center;
   max-width: 260px;
@@ -4671,9 +4992,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   gap: 8px;
 }
 .otp-codici li {
-  font-family: Consolas, monospace;
-  font-size: 16px;
-  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  letter-spacing: var(--tracking-caps);
   background: var(--panel-2, var(--panel));
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -4715,7 +5036,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-size: clamp(16px, 2.4vw, 21px);
   line-height: 1.4;
   color: var(--text-dim);
-  font-weight: 500;
+  font-weight: 600;
   margin: 0 0 22px;
   max-width: 62ch;
 }
@@ -4723,9 +5044,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 /* Etichettina sopra un blocco ("La modalita'", "In arrivo") */
 .art-occhiello {
   display: inline-block;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 1.4px;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   padding: 5px 11px;
   border-radius: 999px;
@@ -4739,7 +5060,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-size: clamp(17px, 2.2vw, 20px);
   line-height: 1.65;
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* Titoletti interni: una barretta colorata a sinistra invece del solito testo nudo */
@@ -4794,14 +5115,14 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   border-color: var(--purple);
   box-shadow: 0 10px 26px -14px var(--purple-glow);
 }
-.art-scheda .icona { font-size: 26px; line-height: 1; display: block; margin-bottom: 10px; }
+.art-scheda .icona { font-size: var(--fs-xl); line-height: 1; display: block; margin-bottom: 10px; }
 .art-scheda h3 {
-  font-size: 16px;
+  font-size: var(--fs-md);
   margin: 0 0 6px;
   font-family: var(--font-heading);
   color: var(--text);
 }
-.art-scheda p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--text-dim); }
+.art-scheda p { margin: 0; font-size: var(--fs-base); line-height: 1.6; color: var(--text-dim); }
 
 /* Il riquadro dell'anticipazione: stessa aria di un annuncio coperto a meta' */
 .art-spoiler {
@@ -4827,9 +5148,9 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   text-align: center;
 }
 .art-cta .etichetta {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
-  letter-spacing: 1.6px;
+  letter-spacing: var(--tracking-caps);
   color: var(--text-dim);
   font-weight: 700;
 }
@@ -4874,7 +5195,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .art-foto figcaption {
   margin-top: 10px;
   text-align: center;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   color: var(--text-dim);
 }
@@ -4960,7 +5281,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .art-manifesto .testo li {
   position: relative;
   padding-left: 18px;
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   line-height: 1.55;
   color: var(--text-dim);
 }
@@ -4997,7 +5318,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   display: grid;
   gap: 5px;
   margin-top: 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   color: var(--text-dim);
 }
 .art-mappa .legenda span { display: flex; align-items: center; gap: 7px; }
@@ -5022,11 +5343,11 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   margin: 16px 0;
   padding-top: 14px;
 }
-.otp-sessione h3 { margin: 0 0 8px; font-family: var(--font-heading); font-size: 16px; }
+.otp-sessione h3 { margin: 0 0 8px; font-family: var(--font-heading); font-size: var(--fs-md); }
 .otp-sessioni-elenco { list-style: none; margin: 0 0 12px; padding: 0; }
 .otp-sessioni-elenco li {
   display: flex; align-items: center; gap: 8px;
-  font-size: 14px; padding: 6px 0;
+  font-size: var(--fs-base); padding: 6px 0;
 }
 
 
@@ -5145,12 +5466,21 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   /* Cambia solo il punto del taglio: la fascia in alto ha la sua inquadratura, scelta a
      parte nel gestionale. Niente zoom, qui non c'e' un puntatore da passare sopra. */
   .tile-poster img { object-position: var(--fuoco-telefono, 50% 50%); transform: none; }
+  /* Sfuma anche in ALTO, nel fondo della pagina: la fascia cominciava con un taglio netto
+     sotto al resto del sito. Due strati: in alto verso --bg (la pagina), in basso verso
+     --bg-panel (il fondo del testo della tessera). */
   .tile-poster::after {
-    background: linear-gradient(180deg,
+    background:
+      linear-gradient(180deg,
+        var(--bg) 0%,
+        color-mix(in srgb, var(--bg) 45%, transparent) 5%,
+        color-mix(in srgb, var(--bg) 0%, transparent) 13%),
+      linear-gradient(180deg,
         color-mix(in srgb, var(--bg-panel) 0%, transparent) 45%,
         color-mix(in srgb, var(--bg-panel) 75%, transparent) 80%,
         var(--bg-panel) 100%);
   }
+  .post-grid :is(.bento-feature, .post-tile).copertina-intera { border-top-width: 0; }
 }
 
 
@@ -5167,8 +5497,8 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 .inquadratura-box { margin: 0; }
 .inquadratura-box figcaption {
-  font-size: 11.5px;
-  letter-spacing: 0.6px;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
   margin-top: 6px;
@@ -5236,13 +5566,13 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 }
 .sanzioni-campo { display: flex; flex-direction: column; gap: 4px; }
 .sanzioni-campo > span {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-dimmer);
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
 }
 .sanzioni-campo select { min-width: 150px; }
-.sanzioni-azzera { align-self: center; color: var(--text-dim); font-size: 13px; }
+.sanzioni-azzera { align-self: center; color: var(--text-dim); font-size: var(--fs-sm); }
 
 .sanzioni-elenco { display: flex; flex-direction: column; gap: 8px; }
 .sanzione-riga {
@@ -5267,28 +5597,28 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 
 .sanzione-chi { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sanzione-chi-testo { display: flex; flex-direction: column; min-width: 0; }
-.sanzione-nome { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
-.sanzione-quando { color: var(--text-dimmer); font-size: 12px; }
+.sanzione-nome { font-weight: 600; font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; }
+.sanzione-quando { color: var(--text-dimmer); font-size: var(--fs-xs); }
 
 .sanzione-cosa { min-width: 0; }
 .sanzione-titolo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 3px; }
 .sanzione-tipo {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--accento, var(--text-dim));
 }
-.sanzione-categoria { font-size: 14px; font-weight: 600; }
-.sanzione-motivo { margin: 0 0 5px; color: var(--text-dim); font-size: 13.5px; }
-.sanzione-meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-dimmer); font-size: 12px; }
+.sanzione-categoria { font-size: var(--fs-base); font-weight: 600; }
+.sanzione-motivo { margin: 0 0 5px; color: var(--text-dim); font-size: var(--fs-sm); }
+.sanzione-meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-dimmer); font-size: var(--fs-xs); }
 
 .sanzione-stato { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
 .sanzione-pallino {
   display: inline-block;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   border: 1px solid var(--border-strong);
   color: var(--text-dim);
@@ -5296,7 +5626,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 }
 .sanzione-attiva { color: var(--text); border-color: var(--accento, var(--border-strong)); background: var(--bg-panel-2); }
 .sanzione-revocata { color: var(--green); border-color: rgba(163, 230, 53, 0.4); }
-.sanzione-ricorso { font-size: 11.5px; color: var(--text-dimmer); }
+.sanzione-ricorso { font-size: var(--fs-xs); color: var(--text-dimmer); }
 .ricorso-accolto { color: var(--green); }
 .ricorso-respinto { color: var(--text-dim); }
 .ricorso-aperto { color: #f4c531; }
@@ -5308,36 +5638,36 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   justify-content: center;
   margin: 22px 0 10px;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 /* --- il singolo provvedimento --- */
 .sanzione-scheda { border-left: 3px solid var(--accento, var(--border-strong)); }
 .sanzione-scheda-testa { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-.sanzione-sottotitolo { margin: 0; color: var(--text-dim); font-size: 14px; }
+.sanzione-sottotitolo { margin: 0; color: var(--text-dim); font-size: var(--fs-base); }
 .sanzione-dati { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 24px; margin: 0; }
 .sanzione-dati dt {
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
   margin-bottom: 2px;
 }
-.sanzione-dati dd { margin: 0; font-size: 14.5px; }
-.sanzione-nota { color: var(--text-dimmer); font-size: 12.5px; }
+.sanzione-dati dd { margin: 0; font-size: var(--fs-base); }
+.sanzione-nota { color: var(--text-dimmer); font-size: var(--fs-sm); }
 .sanzione-impronta {
   margin: 16px 0 0;
   padding-top: 12px;
   border-top: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
 }
 .sanzione-impronta code { color: var(--text); }
-.sanzione-rapporto { font-size: 14.5px; line-height: 1.65; }
-.sanzione-ricorso-stato { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
-.sanzione-esito { margin: 0 0 12px; color: var(--text-dim); font-size: 14px; }
-.sanzione-ricorso-testo h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dimmer); margin: 16px 0 6px; }
-.sanzione-ricorso-testo p { margin: 0; font-size: 14.5px; line-height: 1.6; }
+.sanzione-rapporto { font-size: var(--fs-base); line-height: 1.65; }
+.sanzione-ricorso-stato { margin: 0 0 10px; font-size: var(--fs-base); font-weight: 600; }
+.sanzione-esito { margin: 0 0 12px; color: var(--text-dim); font-size: var(--fs-base); }
+.sanzione-ricorso-testo h3 { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-dimmer); margin: 16px 0 6px; }
+.sanzione-ricorso-testo p { margin: 0; font-size: var(--fs-base); line-height: 1.6; }
 
 /* --- gestionale: coda, ricorsi, archivio --- */
 .conta-badge {
@@ -5348,7 +5678,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   border-radius: 999px;
   background: var(--purple);
   color: #14151a;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-align: center;
 }
@@ -5361,26 +5691,26 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   border-radius: var(--radius-sm);
 }
 .ricorso-riga + .ricorso-riga { margin-top: 12px; }
-.coda-testa { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.coda-testa { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--fs-base); }
 .coda-tipo {
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--accento, var(--text-dim));
 }
-.coda-cat { font-size: 13.5px; color: var(--text); }
-.coda-durata, .coda-fonte { font-size: 12.5px; color: var(--text-dimmer); }
-.coda-motivo { margin: 6px 0 0; color: var(--text-dim); font-size: 13.5px; }
+.coda-cat { font-size: var(--fs-sm); color: var(--text); }
+.coda-durata, .coda-fonte { font-size: var(--fs-sm); color: var(--text-dimmer); }
+.coda-motivo { margin: 6px 0 0; color: var(--text-dim); font-size: var(--fs-sm); }
 .coda-prove { margin-top: 8px; }
-.coda-prove summary { cursor: pointer; font-size: 13px; color: var(--text-dim); }
+.coda-prove summary { cursor: pointer; font-size: var(--fs-sm); color: var(--text-dim); }
 .coda-prove pre {
   margin: 8px 0 0;
   padding: 10px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   white-space: pre-wrap;
   word-break: break-word;
   overflow-x: auto;
@@ -5391,10 +5721,10 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   padding: 10px 14px;
   border-left: 2px solid var(--border-strong);
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.6;
 }
-.revoche-attesa { margin: 0; padding-left: 20px; color: var(--text-dim); font-size: 13.5px; }
+.revoche-attesa { margin: 0; padding-left: 20px; color: var(--text-dim); font-size: var(--fs-sm); }
 .revoche-attesa li { margin-bottom: 4px; }
 .riga-cerca { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .archivio-elenco { display: flex; flex-direction: column; gap: 8px; }
@@ -5418,7 +5748,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-.guida-indice a { color: var(--text-dim); font-size: 13.5px; padding: 5px 0; }
+.guida-indice a { color: var(--text-dim); font-size: var(--fs-sm); padding: 5px 0; }
 .guida-indice a:hover { color: var(--text); }
 .guida-capitoli { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* Il salto dall'indice e' l'ancora nativa del browser: senza questo stacco il capitolo
@@ -5426,23 +5756,23 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
    Stessa altezza reale (misurata) e stesso margine usati dall'indice qui sopra. */
 .guida-capitoli > .panel { scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
 .guida-testa { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
-.guida-versione { color: var(--text-dimmer); font-size: 12px; }
+.guida-versione { color: var(--text-dimmer); font-size: var(--fs-xs); }
 .guida-avviso {
   margin: 0 0 12px;
   padding: 8px 12px;
   border-left: 3px solid #f4c531;
   background: var(--bg-panel-2);
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 /* Sottotitolo dei gruppi di comandi: sta dentro una sezione, quindi va piu' piccolo del suo
    titolo e piu' spento, altrimenti l'occhio legge due livelli allo stesso peso. */
-.guida-corpo { font-size: 14.5px; line-height: 1.65; }
+.guida-corpo { font-size: var(--fs-base); line-height: 1.65; }
 .guida-corpo h5 {
   margin: 14px 0 4px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
 }
@@ -5450,10 +5780,10 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 
 /* --- la tabella delle sanzioni innestata nel regolamento --- */
 .regolamento-sanzioni { margin: 22px 0; }
-.regolamento-sanzioni table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.regolamento-sanzioni table { width: 100%; border-collapse: collapse; font-size: var(--fs-base); }
 .regolamento-sanzioni th, .regolamento-sanzioni td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-.regolamento-sanzioni th { color: var(--text-dimmer); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-.regolamento-sanzioni-fonte { margin-top: 10px; color: var(--text-dimmer); font-size: 12.5px; }
+.regolamento-sanzioni th { color: var(--text-dimmer); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
+.regolamento-sanzioni-fonte { margin-top: 10px; color: var(--text-dimmer); font-size: var(--fs-sm); }
 
 @media (max-width: 860px) {
   .sanzione-riga { grid-template-columns: minmax(0, 1fr); gap: 10px; }
@@ -5468,7 +5798,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
    tipici diventano riquadri, le trappole hanno il filo rosso. */
 .guida-apertura {
   margin: 0 0 18px;
-  font-size: 16.5px;
+  font-size: var(--fs-md);
   line-height: 1.6;
   color: var(--text);
   padding-left: 14px;
@@ -5476,7 +5806,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 }
 .guida-corpo h4 {
   margin: 26px 0 8px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
   color: var(--purple);
   padding-bottom: 6px;
@@ -5485,14 +5815,14 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .guida-corpo h4:first-child { margin-top: 4px; }
 .guida-corpo p { margin: 0 0 10px; }
 .guida-corpo strong { color: var(--text); font-weight: 700; }
-.guida-nota { color: var(--text-dimmer); font-size: 13px; }
+.guida-nota { color: var(--text-dimmer); font-size: var(--fs-sm); }
 .guida-corpo code {
   padding: 1px 5px;
   border-radius: 5px;
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
   color: var(--green);
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   white-space: nowrap;
 }
 .guida-tag {
@@ -5503,17 +5833,17 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   background: var(--bg-panel-2);
   border: 1px solid var(--border-strong);
   color: var(--text-dim);
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: none;
 }
-.guida-corpo table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 13.5px; }
+.guida-corpo table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: var(--fs-sm); }
 .guida-corpo thead th {
   color: var(--text-dimmer);
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-align: left;
   padding: 6px 10px;
   border-bottom: 1px solid var(--border-strong);
@@ -5531,7 +5861,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   border-left: 3px solid #f4c531;
   border-radius: var(--radius-sm);
 }
-.guida-caso p { margin: 0; font-size: 13.5px; color: var(--text-dim); }
+.guida-caso p { margin: 0; font-size: var(--fs-sm); color: var(--text-dim); }
 .guida-caso-tit { font-weight: 700; color: var(--text) !important; margin-bottom: 3px !important; }
 
 /* Le trappole: filo rosso, perche' sono le cose che fanno danno */
@@ -5542,7 +5872,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   border: 1px solid var(--border);
   border-left: 3px solid #e05a5a;
   border-radius: var(--radius-sm);
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   color: var(--text-dim);
 }
 
@@ -5558,8 +5888,8 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .coda-decisione { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 .coda-decisione label { display: flex; flex-direction: column; gap: 3px; }
 .coda-decisione label > span {
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
 }
@@ -5589,25 +5919,25 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 
 .rischio-posto {
   font-family: var(--font-heading);
-  font-size: 18px;
+  font-size: var(--fs-md);
   font-weight: 700;
   color: var(--text-dimmer);
   text-align: right;
   padding-top: 4px;
 }
 .rischio-chi { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.rischio-nome { display: block; font-weight: 600; font-size: 15px; }
-.rischio-fascia { display: block; font-size: 11.5px; font-weight: 600; }
+.rischio-nome { display: block; font-weight: 600; font-size: var(--fs-base); }
+.rischio-fascia { display: block; font-size: var(--fs-xs); font-weight: 600; }
 
 .rischio-conto { min-width: 0; }
 .rischio-punteggio {
   font-family: var(--font-heading);
-  font-size: 26px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   line-height: 1;
   margin-bottom: 4px;
 }
-.rischio-dettaglio { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--text-dim); }
+.rischio-dettaglio { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-sm); color: var(--text-dim); }
 .rischio-grave { color: #e05a5a; font-weight: 600; }
 .rischio-categorie { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .rischio-categorie span {
@@ -5615,17 +5945,17 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   border-radius: 999px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   color: var(--text-dim);
 }
-.rischio-quando { margin-top: 6px; font-size: 12px; color: var(--text-dimmer); }
+.rischio-quando { margin-top: 6px; font-size: var(--fs-xs); color: var(--text-dimmer); }
 
 .rischio-azione { display: flex; flex-direction: column; gap: 8px; }
-.rischio-controllo { margin: 0; font-size: 12.5px; color: var(--text-dimmer); }
+.rischio-controllo { margin: 0; font-size: var(--fs-sm); color: var(--text-dimmer); }
 .rischio-controllo em { color: var(--text-dim); }
 .rischio-form { display: flex; flex-direction: column; gap: 6px; }
-.rischio-form input[type="text"] { font-size: 13px; }
-.rischio-form button { font-size: 13px; padding: 6px 12px; }
+.rischio-form input[type="text"] { font-size: var(--fs-sm); }
+.rischio-form button { font-size: var(--fs-sm); padding: 6px 12px; }
 
 @media (max-width: 1000px) {
   .rischio-riga { grid-template-columns: 30px minmax(0, 1fr); }
@@ -5657,12 +5987,12 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
 }
 .me-testata-sx { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0; }
-.me-testata-sx h3 { margin: 0; font-size: 1.05rem; }
+.me-testata-sx h3 { margin: 0; font-size: var(--fs-md); }
 .me-testata-dx { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.me-ordina { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.me-ordina { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); }
 .me-ordina .me-sel { width: auto; }
 .me-tag-data { color: var(--text-dimmer); }
-.me-card-chi { font-size: 0.78rem; margin-top: 2px; }
+.me-card-chi { font-size: var(--fs-sm); margin-top: 2px; }
 .me-campi-menu {
   flex: 1 1 100%;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 14px;
@@ -5670,7 +6000,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-anteprima-titolo {
   flex: 1 1 100%;
   padding: 6px 10px; border-radius: var(--radius-sm);
-  background: #100f14; font-family: var(--font-body); font-size: 0.95rem;
+  background: #100f14; font-family: var(--font-body); font-size: var(--fs-base);
 }
 
 .me-corpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 14px; align-items: start; }
@@ -5724,16 +6054,16 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 /* La quantita' dell'item, com'e' in gioco: in basso a destra, bianca su ombra nera. */
 .me-cella-quantita {
   position: absolute; right: 2px; bottom: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.72rem; font-weight: 700; color: #fff;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs); font-weight: 700; color: #fff;
   text-shadow: 1px 1px 0 #000; line-height: 1.2; pointer-events: none;
 }
 .me-icona { display: inline-block; border-radius: 3px; flex: none; image-rendering: pixelated; }
 .me-icona-testo {
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em; color: #fff; text-transform: uppercase;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0; color: #fff; text-transform: uppercase;
 }
-.me-legenda { margin-top: 10px; font-size: 0.85rem; }
+.me-legenda { margin-top: 10px; font-size: var(--fs-sm); }
 
 /* --- catalogo --- */
 .me-catalogo { padding: 14px 16px; }
@@ -5745,7 +6075,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-catalogo-voce {
   display: flex; align-items: center; gap: 8px; padding: 4px 6px;
   border: 1px solid transparent; border-radius: var(--radius-sm);
-  cursor: grab; font-size: 0.85rem; color: var(--text-dim);
+  cursor: grab; font-size: var(--fs-sm); color: var(--text-dim);
 }
 .me-catalogo-voce:hover { background: var(--bg-panel-2); border-color: var(--border); color: var(--text); }
 .me-catalogo-voce span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -5767,17 +6097,17 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-ordine-riga.scelto { background: var(--bg-panel-2); border-color: var(--purple); }
 .me-ordine-n {
   flex: none; width: 20px; text-align: right;
-  font-size: 0.72rem; color: var(--text-dimmer);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--fs-xs); color: var(--text-dimmer);
+  font-family: var(--font-mono);
 }
 .me-ordine-nome {
   flex: 1 1 90px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
 }
 .me-ordine-dove {
   flex: none; padding: 1px 6px; border-radius: var(--radius-sm);
   background: var(--bg-elevated); color: var(--text-dimmer);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.7rem;
+  font-family: var(--font-mono); font-size: var(--fs-2xs);
   max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .me-ordine-segni { display: flex; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
@@ -5794,11 +6124,11 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-posto {
   padding: 2px 7px; border-radius: var(--radius-sm); white-space: nowrap;
   background: var(--bg-panel-2); border: 1px solid var(--border);
-  font-size: 0.72rem; color: var(--text-dim);
+  font-size: var(--fs-xs); color: var(--text-dim);
 }
 .me-ordine {
   margin: -4px 0 10px; padding: 6px 9px; border-radius: var(--radius-sm);
-  background: var(--bg-panel-2); font-size: 0.78rem; color: var(--text-dim);
+  background: var(--bg-panel-2); font-size: var(--fs-sm); color: var(--text-dim);
 }
 .me-ordine.spento { color: var(--text-dimmer); }
 
@@ -5806,19 +6136,19 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   margin-bottom: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
   background: var(--bg-panel-2); border: 1px solid var(--border);
 }
-.me-conviventi-titolo { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 7px; }
+.me-conviventi-titolo { font-size: var(--fs-sm); color: var(--text-dim); margin-bottom: 7px; }
 .me-conviventi-fila { display: flex; flex-wrap: wrap; gap: 5px; }
 .me-convivente {
   display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 5px;
   background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--text-dim); cursor: pointer; font: inherit; font-size: 0.82rem;
+  color: var(--text-dim); cursor: pointer; font: inherit; font-size: var(--fs-sm);
 }
 .me-convivente:hover { color: var(--text); border-color: var(--purple); }
 .me-convivente.scelto { color: var(--text); border-color: var(--purple); box-shadow: inset 0 0 0 1px var(--purple); }
 /* Chi non ha condizioni e non e' l'ultimo copre per sempre quelli sotto: quasi sempre e' un
    ordine sbagliato, e conviene vederlo qui invece di scoprirlo in gioco. */
 .me-convivente.copre { border-style: dashed; border-color: #FFD166; }
-.me-conviventi-nota { margin-top: 7px; font-size: 0.78rem; color: var(--text-dimmer); }
+.me-conviventi-nota { margin-top: 7px; font-size: var(--fs-sm); color: var(--text-dimmer); }
 
 /* --- una riga di incantesimo: nome e livello --- */
 .me-riga-incanto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -5828,7 +6158,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-schede { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
 .me-scheda {
   border: 0; background: none; color: var(--text-dim); cursor: pointer;
-  padding: 6px 10px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; font: inherit; font-size: 0.9rem;
+  padding: 6px 10px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; font: inherit; font-size: var(--fs-base);
 }
 .me-scheda:hover { color: var(--text); }
 .me-scheda.attiva { color: var(--text); background: var(--bg-panel-2); box-shadow: inset 0 -2px 0 var(--purple); }
@@ -5838,26 +6168,26 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 /* I campi colorabili sono <div> e non <label> (vedi etichettato() nel copione): l'etichetta
    va vestita a mano, se no in mezzo alle altre si vedrebbe la differenza. */
 .me-campo > .me-etichetta {
-  font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.3px;
+  font-weight: 600; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0;
 }
-.me-etichetta { font-size: 0.85rem; color: var(--text-dim); }
-.me-aiuto { font-size: 0.78rem; color: var(--text-dimmer); }
+.me-etichetta { font-size: var(--fs-sm); color: var(--text-dim); }
+.me-aiuto { font-size: var(--fs-sm); color: var(--text-dimmer); }
 /* La chiave com'e' scritta nel file, accanto all'etichetta in italiano. Serve a collegare
    quello che si vede qui con quello che si legge nel .yml: senza, chi modifica dal sito e poi
    apre il file da SSH si trova davanti due vocabolari e nessun ponte fra i due. */
 .me-chiave {
   margin-left: 6px; padding: 1px 5px; border-radius: 4px;
   background: var(--bg-elevated); border: 1px solid var(--border);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.72rem; font-weight: 400; text-transform: none; letter-spacing: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs); font-weight: 400; text-transform: none; letter-spacing: 0;
   color: var(--purple);
 }
 .me-spunta .me-chiave { margin-left: 5px; }
 .me-inp, .me-sel { width: 100%; }
 .me-inp-corto { max-width: 110px; }
-.me-area { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85rem; }
+.me-area { font-family: var(--font-mono); font-size: var(--fs-sm); }
 .me-spunte { display: flex; flex-wrap: wrap; gap: 12px; }
-.me-spunta { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+.me-spunta { display: flex; align-items: center; gap: 6px; font-size: var(--fs-base); }
 .me-rapidi { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .me-blocco {
@@ -5865,7 +6195,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   background: var(--bg-panel-2); display: flex; flex-direction: column; gap: 8px;
 }
 .me-sotto-titolo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.me-sotto-titolo .muted { font-size: 0.8rem; }
+.me-sotto-titolo .muted { font-size: var(--fs-sm); }
 .me-riga-cond, .me-riga-azione { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .me-riga-cond .me-inp, .me-riga-azione .me-inp { flex: 1 1 140px; width: auto; }
 .me-riga-cond .me-sel, .me-riga-azione .me-sel { flex: 0 1 auto; width: auto; }
@@ -5905,8 +6235,8 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   min-height: 40px; padding: 10px 12px; padding-right: 74px;
   background: #100010; border: 1px solid var(--border);
   border-radius: var(--radius-sm); color: #DDDDDD;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.9rem; line-height: 1.6;
+  font-family: var(--font-mono);
+  font-size: var(--fs-base); line-height: 1.6;
   white-space: pre-wrap; overflow-wrap: anywhere; cursor: text;
 }
 /* Il suggerimento di un campo vuoto: un contenteditable non ha il placeholder, e senza
@@ -5922,7 +6252,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   position: absolute; top: 6px; right: 6px;
   padding: 2px 7px; border-radius: 4px; cursor: pointer;
   background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--text-dim);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.7rem;
+  font-family: var(--font-mono); font-size: var(--fs-2xs);
 }
 .me-interruttore:hover { color: var(--text); border-color: var(--purple); }
 
@@ -5950,7 +6280,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-formato {
   min-width: 24px; height: 22px; padding: 0 5px;
   background: var(--bg-panel-2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 4px; cursor: pointer; font-size: 0.8rem; line-height: 1;
+  border-radius: 4px; cursor: pointer; font-size: var(--fs-sm); line-height: 1;
 }
 .me-formato:hover { border-color: var(--purple); }
 .me-scelta-colore input[type="color"] {
@@ -5961,8 +6291,8 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
    avra' senza entrare in gioco a guardare. */
 .me-riga-colorata {
   margin-top: 4px; padding: 3px 8px; border-radius: 4px;
-  background: #100010; font-size: 0.85rem; line-height: 1.5;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: #100010; font-size: var(--fs-sm); line-height: 1.5;
+  font-family: var(--font-mono);
   overflow-x: auto; white-space: pre;
 }
 /* L'argomento di un'azione che scrive a schermo: va a capo da solo, per lasciare posto
@@ -5976,7 +6306,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-tooltip {
   margin-top: 8px; padding: 8px 10px; border-radius: 4px;
   background: #100010; border: 2px solid #2b0a4a;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85rem; line-height: 1.5;
+  font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.5;
 }
 .me-tooltip-nome { margin-bottom: 4px; }
 
@@ -5985,8 +6315,8 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-file-testo {
   margin: 10px 0 8px; padding: 10px 12px; max-height: 420px; overflow: auto;
   background: #0d0e11; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8rem; line-height: 1.5; white-space: pre; color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm); line-height: 1.5; white-space: pre; color: var(--text-dim);
 }
 [data-tema="chiaro"] .me-file-testo { background: #f4f5f8; }
 
@@ -6003,8 +6333,8 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 [data-tema="chiaro"] .me-tooltip-icona { background: #c6c8d0; }
 .me-tooltip-quantita {
   position: absolute; right: 3px; bottom: 1px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.75rem; font-weight: 700; color: #fff; text-shadow: 1px 1px 0 #000;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs); font-weight: 700; color: #fff; text-shadow: 1px 1px 0 #000;
 }
 /* Il luccichio incantato dell'anteprima: due strisce viola che scorrono in diagonale in versi
    opposti, come l'enchant glint del gioco. La forma la dà la maschera (l'immagine dell'item),
@@ -6056,15 +6386,15 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-anteprima-riga {
   margin-top: 4px; padding: 6px 9px; border-radius: var(--radius-sm);
   background: var(--bg-elevated); border-left: 3px solid var(--purple);
-  font-size: 0.84rem; color: var(--text-dim);
+  font-size: var(--fs-sm); color: var(--text-dim);
 }
 .me-anteprima-passi {
   margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm);
   background: var(--bg-elevated); border-left: 3px solid var(--green);
-  display: flex; flex-direction: column; gap: 4px; font-size: 0.84rem; color: var(--text-dim);
+  display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-sm); color: var(--text-dim);
 }
 .me-passi-titolo {
-  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0;
   color: var(--text-dimmer); margin-bottom: 2px;
 }
 .me-passo-manca { color: #FFD166; font-style: italic; }
@@ -6072,17 +6402,17 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-avviso-riga {
   padding: 6px 9px; border-radius: var(--radius-sm);
   background: rgba(255, 209, 102, 0.1); border-left: 3px solid #FFD166;
-  font-size: 0.82rem; color: var(--text-dim);
+  font-size: var(--fs-sm); color: var(--text-dim);
 }
 .me-passo { display: flex; align-items: baseline; gap: 7px; }
 .me-passo-n {
   flex: none; width: 17px; height: 17px; border-radius: 50%;
   background: var(--bg-panel-2); border: 1px solid var(--border);
-  font-size: 0.7rem; line-height: 15px; text-align: center; color: var(--text);
+  font-size: var(--fs-2xs); line-height: 15px; text-align: center; color: var(--text);
 }
 .me-passo-quando {
   margin-left: auto; padding: 0 6px; border-radius: var(--radius-sm);
-  background: var(--bg-panel-2); font-size: 0.72rem; color: var(--text-dimmer); white-space: nowrap;
+  background: var(--bg-panel-2); font-size: var(--fs-xs); color: var(--text-dimmer); white-space: nowrap;
 }
 
 /* dove finisce l'item, in piccolo */
@@ -6106,20 +6436,20 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   text-align: center; font-weight: 700; padding-bottom: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
-.me-finestra-testo { font-size: 0.86rem; line-height: 1.5; }
+.me-finestra-testo { font-size: var(--fs-base); line-height: 1.5; }
 .me-finestra-campo { display: flex; flex-direction: column; gap: 3px; }
-.me-finestra-etichetta { font-size: 0.8rem; }
+.me-finestra-etichetta { font-size: var(--fs-sm); }
 .me-finestra-input {
   padding: 4px 8px; min-height: 24px; border-radius: 3px;
   background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.18);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8rem; color: var(--su-media);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm); color: var(--su-media);
 }
 [data-tema="chiaro"] .me-finestra-input { background: #fff; color: #14161a; border-color: #b4b8c1; }
 .me-finestra-input.spunta { display: inline-block; width: auto; }
 .me-finestra-bottoni { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px; }
 .me-finestra-bottone {
-  padding: 5px 14px; border-radius: 3px; font-size: 0.85rem;
+  padding: 5px 14px; border-radius: 3px; font-size: var(--fs-sm);
   background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.25);
 }
 [data-tema="chiaro"] .me-finestra-bottone { background: rgba(0, 0, 0, 0.06); border-color: #b4b8c1; }
@@ -6134,18 +6464,18 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-card-errore { border-color: #ff6b6b; }
 .me-card-cima { display: flex; align-items: center; gap: 10px; }
 .me-card-titolo { display: flex; flex-direction: column; min-width: 0; }
-.me-card-titolo .muted { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me-card-titolo .muted { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me-card-righe { display: flex; flex-wrap: wrap; gap: 5px; }
 .me-tag {
-  font-size: 0.75rem; color: var(--text-dim); padding: 2px 7px;
+  font-size: var(--fs-xs); color: var(--text-dim); padding: 2px 7px;
   border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-panel-2);
 }
-.me-card-problemi { font-size: 0.82rem; color: #ff8f8f; display: flex; flex-direction: column; gap: 2px; }
+.me-card-problemi { font-size: var(--fs-sm); color: #ff8f8f; display: flex; flex-direction: column; gap: 2px; }
 .me-card-azioni { display: flex; gap: 6px; margin-top: auto; }
 .me-nota { margin-top: 14px; }
 .me-nota p { margin: 0 0 8px; }
 .me-problemi {
   padding: 12px 14px; margin-bottom: 14px; border-radius: var(--radius);
   border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.08);
-  display: flex; flex-direction: column; gap: 3px; font-size: 0.88rem;
+  display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-base);
 }

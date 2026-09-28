@@ -71,7 +71,7 @@ require __DIR__ . '/../includes/header.php';
 
 <div class="panel">
   <p>Account: <strong class="testo-verde"><?= h($pendingUser['mc_username']) ?></strong></p>
-  <p style="color:var(--text-dim); font-size:14px;">Questa password vale sia sul sito sia in gioco: userai lo stesso nome e la stessa password in tutti e due i posti.</p>
+  <p style="color:var(--text-dim); font-size: var(--fs-base);">Questa password vale sia sul sito sia in gioco: userai lo stesso nome e la stessa password in tutti e due i posti.</p>
 </div>
 
 <?php if ($error): ?><div class="alert alert-error"><?= h($error) ?></div><?php endif; ?>

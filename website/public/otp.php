@@ -157,7 +157,7 @@ require __DIR__ . '/../includes/header.php';
       <?php endforeach; ?>
     </ul>
 
-    <p style="color:var(--text-dim); font-size:13px;">
+    <p style="color:var(--text-dim); font-size: var(--fs-sm);">
       Stampali, o mettili nel gestore di password — non nella stessa app che genera i codici:
       se sparisce quella, spariscono insieme la chiave e la copia della chiave.
     </p>
@@ -179,7 +179,7 @@ require __DIR__ . '/../includes/header.php';
     <p>L'account <strong class="testo-verde"><?= h($utente['mc_username']) ?></strong> puo&#39; comandare il sito,
        quindi la password da sola non basta: serve anche un codice a sei cifre che cambia
        ogni trenta secondi.</p>
-    <p style="color:var(--text-dim); font-size:14px;">
+    <p style="color:var(--text-dim); font-size: var(--fs-base);">
       Ti serve un'app come <strong>Google Authenticator</strong>, <strong>Aegis</strong>,
       <strong>Bitwarden</strong> o <strong>1Password</strong>. Funziona anche senza rete.
       Lo stesso codice varra&#39; anche per entrare in gioco su mc.magicadventure.it.
@@ -208,7 +208,7 @@ require __DIR__ . '/../includes/header.php';
         <li>Scrivi qui sotto il codice a sei cifre che compare.</li>
       </ol>
 
-      <p style="font-size:13px; color:var(--text-dim);">Non riesci a inquadrare? Inserisci la chiave a mano:</p>
+      <p style="font-size: var(--fs-sm); color:var(--text-dim);">Non riesci a inquadrare? Inserisci la chiave a mano:</p>
       <p class="code-box otp-segreto"><?= h(otp_segreto_leggibile($segretoNuovo)) ?></p>
 
       <form method="post" class="stack">
@@ -250,7 +250,7 @@ require __DIR__ . '/../includes/header.php';
 
   <details class="panel otp-recupero">
     <summary>Non ho il telefono con me</summary>
-    <p style="color:var(--text-dim); font-size:14px;">Usa uno dei codici di recupero che hai
+    <p style="color:var(--text-dim); font-size: var(--fs-base);">Usa uno dei codici di recupero che hai
        salvato quando hai attivato la verifica. Ognuno vale una volta sola.</p>
     <form method="post" class="stack">
       <?= csrf_field() ?>
@@ -262,7 +262,7 @@ require __DIR__ . '/../includes/header.php';
       </div>
       <button type="submit" class="btn btn-ghost" <?= $blocco > 0 ? 'disabled' : '' ?>>Entra con il codice di recupero</button>
     </form>
-    <p style="color:var(--text-dim); font-size:13px;">Finiti anche quelli? Solo chi ha accesso al
+    <p style="color:var(--text-dim); font-size: var(--fs-sm);">Finiti anche quelli? Solo chi ha accesso al
        server puo&#39; azzerare la verifica (vedi la guida per gli amministratori).</p>
   </details>
 <?php endif; ?>
