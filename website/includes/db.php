@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/config.php';
+// Prima di tutto il resto: toglie /en, /es, /de dall'indirizzo (vedi url-language.php).
+require_once __DIR__ . '/url-language.php';
 
 function db(): PDO {
     static $pdo = null;

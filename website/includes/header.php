@@ -14,6 +14,9 @@ require_once __DIR__ . '/translate.php';
 // finche' il buffer non si svuota.
 ob_start();
 $GLOBALS['__siteLang'] = site_language();
+// Un indirizzo senza /en (o con ?lingua= dopo una scelta) porta a quello giusto per la lingua:
+// la lingua sta nell'indirizzo, vedi includes/url-language.php.
+language_redirect($GLOBALS['__siteLang']);
 
 $__siteName = site_setting('site_name', 'MAGICADVENTURE');
 $__logo = site_setting('logo_url', '/assets/img/logo.png');
@@ -149,6 +152,10 @@ $__description = $page_description ?? site_setting('meta_description', '');
 
 // ---- MOTORI DI RICERCA E ANTEPRIME SOCIAL (vedi includes/seo.php) -------------------
 $__canonical = seo_canonical($page_canonical ?? null);
+// Una versione per lingua (/en/..., /es/..., /de/...): ognuna e' canonica di se stessa, e le
+// altre le sono "alternate" (hreflang). seo_canonical() ragiona sul percorso italiano.
+$__alternate = language_alternates($__canonical);
+$__canonical = $__alternate[$GLOBALS['__siteLang']] ?? $__canonical;
 $__noindex = seo_da_nascondere(!empty($page_noindex));
 $__ogType = $page_type ?? 'website';
 $__ogImage = seo_url($page_image ?? (trim(site_setting('og_image', '')) ?: $__logoPiccolo));
@@ -201,6 +208,14 @@ $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 <?php /* Indirizzo ufficiale della pagina: senza, le versioni con www/.php/?utm_ si fanno
          concorrenza fra loro su Google e nessuna guadagna posizioni. */ ?>
 <link rel="canonical" href="<?= h($__canonical) ?>">
+<?php /* La stessa pagina nelle altre lingue: Google le mostra a chi cerca in quella lingua,
+         invece di considerarle doppioni. x-default: l'italiano, lingua di casa. */ ?>
+<?php if (!$__noindex && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'manage.php'): ?>
+<?php foreach ($__alternate as $__l => $__url): ?>
+<link rel="alternate" hreflang="<?= h($__l) ?>" href="<?= h($__url) ?>">
+<?php endforeach; ?>
+<link rel="alternate" hreflang="x-default" href="<?= h($__alternate['it']) ?>">
+<?php endif; ?>
 <?php
 // Codice di verifica di Google Search Console: e' Google che lo assegna, e serve solo a
 // dimostrargli che il sito e' nostro. Sta nelle impostazioni (Aspetto) e non nel codice,

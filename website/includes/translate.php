@@ -53,6 +53,13 @@ function translate_html(string $html, string $lang): string {
         }
 
         $xpath = new DOMXPath($dom);
+        // Prima dei testi, i link: una pagina in inglese porta a pagine in inglese (/en/...).
+        $linkCambiati = localize_links($xpath, $lang);
+        $serialize = function () use ($dom, $html): string {
+            $out = $dom->saveHTML();
+            return $out !== false ? $out : $html;
+        };
+
         // Vale sia per i nodi di testo che per gli attributi: l'asse "ancestor" di un attributo
         // e' quello del suo elemento (che pero' NON include l'elemento stesso, per questo si
         // aggiunge anche "parent::*[...]" per chi mette data-no-tr sullo stesso tag).
@@ -82,12 +89,12 @@ function translate_html(string $html, string $lang): string {
             }
         }
         if (empty($phrases)) {
-            return $html;
+            return $linkCambiati ? $serialize() : $html;
         }
 
         $translated = translate_batch(array_keys($phrases), $lang);
         if (empty($translated)) {
-            return $html;
+            return $linkCambiati ? $serialize() : $html;
         }
 
         foreach ([$textNodes, $attrNodes] as $lista) {
@@ -105,12 +112,33 @@ function translate_html(string $html, string $lang): string {
             }
         }
 
-        $out = $dom->saveHTML();
-        return $out !== false ? $out : $html;
+        return $serialize();
     } catch (\Throwable $e) {
         error_log('translate_html: ' . $e->getMessage());
         return $html;
     }
+}
+
+/**
+ * Mette il prefisso della lingua (/en, /es, /de) ai link interni della pagina e alle azioni dei
+ * moduli, cosi' chi naviga in inglese resta in inglese senza un redirect a ogni clic. Non tocca
+ * i link del selettore di lingua (portano gia' dove devono) ne' quello che non e' una pagina (vedi
+ * localizable_path). true se ha cambiato qualcosa.
+ */
+function localize_links(DOMXPath $xpath, string $lang): bool {
+    $cambiati = false;
+    foreach ($xpath->query('//a[not(@data-lang)]/@href | //area/@href | //form/@action') as $attr) {
+        $valore = $attr->nodeValue;
+        if (str_contains($valore, 'lingua=')) {
+            continue;
+        }
+        $nuovo = localized_path($lang, $valore);
+        if ($nuovo !== $valore) {
+            $attr->value = $nuovo;
+            $cambiati = true;
+        }
+    }
+    return $cambiati;
 }
 
 /** Almeno una lettera dentro, e non spropositatamente lunga: filtra numeri, simboli, spazi soli. */
