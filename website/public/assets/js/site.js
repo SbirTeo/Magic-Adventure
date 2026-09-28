@@ -150,10 +150,14 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
     if (inizioY !== null || dettagli.hasAttribute('open')) return;
     striscia.classList.remove('torna');
     striscia.classList.add('invito');
+    dettagli.classList.add('invito');
     moveStrip(0.6);
     setTimeout(function () {
       if (inizioY === null) moveStrip(0);
-      setTimeout(function () { striscia.classList.remove('invito'); }, 700);
+      setTimeout(function () {
+        striscia.classList.remove('invito');
+        dettagli.classList.remove('invito');
+      }, 700);
     }, 450);
   }
   var tocco = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;

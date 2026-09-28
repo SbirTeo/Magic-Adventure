@@ -363,6 +363,31 @@ body.pagina-store {
   pointer-events: none;
 }
 .cambia-lingua-etichetta.visibile { opacity: 1; transform: none; }
+/* Freccina ricurva sopra l'angolo in basso a destra della bandiera (header.php). Bianca con un
+   alone scuro, cosi' si legge su tutti i colori delle bandiere e su entrambi i temi. */
+.cambia-lingua-freccia {
+  display: none;
+  position: absolute;
+  right: calc(50% - 15px);
+  bottom: calc(50% - 13px);
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 1px rgba(0,0,0,.95)) drop-shadow(0 0 1px rgba(0,0,0,.6));
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+/* Durante l'invito delle prime visite la freccia accompagna il rullo con una spintarella. */
+.cambia-lingua.invito .cambia-lingua-freccia { animation: freccia-invito .9s ease-in-out; }
+@keyframes freccia-invito {
+  0%, 100% { transform: none; }
+  35% { transform: translateY(3px); }
+  60% { transform: translateY(-1px); }
+}
 /* Suggerimento in fondo alla tendina: solo sugli schermi a tocco (col mouse il gesto c'e' ma
    non e' naturale) e solo finche' il visitatore non ha trascinato almeno una volta. */
 .cambia-lingua-suggerimento {
@@ -376,14 +401,15 @@ body.pagina-store {
   color: var(--text-dim);
 }
 @media (pointer: coarse) {
-  .cambia-lingua-suggerimento { display: block; }
-  .cambia-lingua.rullo-usato .cambia-lingua-suggerimento { display: none; }
+  .cambia-lingua-suggerimento, .cambia-lingua-freccia { display: block; }
+  .cambia-lingua.rullo-usato .cambia-lingua-suggerimento,
+  .cambia-lingua.rullo-usato .cambia-lingua-freccia { display: none; }
 }
 /* Ancora sulla lingua di adesso: rilasciando qui non cambia niente. */
 .cambia-lingua-etichetta.uguale { color: var(--text-dim); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .bandiera-striscia.torna, .bandiera-striscia.invito, .cambia-lingua-etichetta { transition: none; }
-  .bandiera-rullo.scelta { animation: none; }
+  .bandiera-rullo.scelta, .cambia-lingua.invito .cambia-lingua-freccia { animation: none; }
 }
 
 /* "Gestione" dentro il menu ad hamburger: esiste solo da telefono (vedi la media query sotto),

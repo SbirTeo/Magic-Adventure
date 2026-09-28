@@ -544,6 +544,9 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
       <details class="cambia-lingua">
         <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
           <?= language_flag_svg($GLOBALS['__siteLang']) ?>
+          <?php // Freccina ricurva in basso a destra sulla bandiera: dice che la si puo' tirare
+                // giu' (vedi site.js). Solo da tocco e finche' non la si e' usata (style.css). ?>
+          <svg class="cambia-lingua-freccia" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2.2 Q8.5 2.2 8.5 9.2 M6 6.9 L8.5 9.6 L11 6.9"/></svg>
         </summary>
         <div class="cambia-lingua-menu">
           <?php // data-no-tr: sono nomi propri (l'endonimo di ogni lingua), non frasi italiane da
