@@ -28,7 +28,8 @@ public final class GlyphPlaceholders extends PlaceholderExpansion {
                     + "player-avatar e' l'avatar del giocatore che legge. L'elenco degli id con /mpack glyph list.",
             "%magixpack_glyph_<id>:<giocatore>%", "Come sopra, ma l'avatar di un altro giocatore (online).",
             "%magixpack_stack_<id>,<id>%", "Piu' glifi uno SOPRA l'altro nello stesso punto (es. avatar,cornice): "
-                    + "sopra finisce quello con priority piu' alta in glyphs.yml. Anche con :<giocatore> in fondo.",
+                    + "sopra finisce quello con priority piu' alta in glyphs.yml. Anche con :<giocatore> in fondo. "
+                    + "Va bene anche %magixpack_glyph_<id>,<id>%: con la virgola e' comunque uno stack.",
     };
 
     private final JavaPlugin plugin;
@@ -70,7 +71,8 @@ public final class GlyphPlaceholders extends PlaceholderExpansion {
             player = Bukkit.getPlayerExact(rest.substring(colon + 1));
             rest = rest.substring(0, colon);
         }
-        if (stack) {
+        // Several ids separated by commas are a stack also with glyph_ (an easy mistake to make).
+        if (stack || rest.contains(",")) {
             java.util.List<String> ids = java.util.Arrays.asList(rest.split(","));
             if (glyphs.stackOrder(ids) == null) return null;
             String text = glyphs.stackLegacy(ids, player);
