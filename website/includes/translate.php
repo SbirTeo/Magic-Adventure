@@ -57,7 +57,7 @@ function translate_html(string $html, string $lang): string {
         $linkCambiati = localize_links($xpath, $lang);
         $serialize = function () use ($dom, $html): string {
             $out = $dom->saveHTML();
-            return $out !== false ? $out : $html;
+            return $out !== false ? restore_script_characters($out) : $html;
         };
 
         // Vale sia per i nodi di testo che per gli attributi: l'asse "ancestor" di un attributo
@@ -141,9 +141,41 @@ function localize_links(DOMXPath $xpath, string $lang): bool {
     return $cambiati;
 }
 
-/** Almeno una lettera dentro, e non spropositatamente lunga: filtra numeri, simboli, spazi soli. */
+/**
+ * Almeno una lettera dentro, e non spropositatamente lunga: filtra numeri, simboli, spazi soli.
+ * Fuori anche le misure: cifre con al piu' tre lettere di unita' ("0m", "2g", "1h 5m", "100
+ * EUR"). Non sono frasi, e MyMemory le rovinava: "0m" era tornato "%0M" nelle classifiche.
+ */
 function translatable_text(string $text): bool {
-    return strlen($text) <= TRANSLATABLE_MAX_LENGTH && preg_match('/\p{L}/u', $text) === 1;
+    if (strlen($text) > TRANSLATABLE_MAX_LENGTH || preg_match('/\p{L}/u', $text) !== 1) {
+        return false;
+    }
+    if (preg_match('/\d/', $text) && preg_match_all('/\p{L}/u', $text) <= 3) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * DOMDocument (libxml) scrive ogni carattere non ASCII come entita' (&egrave;, &lsaquo;...),
+ * anche DENTRO <script> e <style>, dove il browser non le riconverte: la freccia '‹' scritta
+ * nel copione della paginazione delle classifiche arrivava come il testo "&lsaquo;" (solo
+ * nelle pagine tradotte, che passano da qui). Qui, solo dentro script e stili, le entita' che
+ * stanno per un carattere non ASCII tornano il carattere vero; &amp; &lt; e simili restano.
+ */
+function restore_script_characters(string $html): string {
+    return preg_replace_callback(
+        '#(<(script|style)\b[^>]*>)(.*?)(</\2>)#is',
+        fn(array $m): string => $m[1] . preg_replace_callback(
+            '/&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i',
+            function (array $e): string {
+                $c = html_entity_decode($e[0], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return $c !== $e[0] && strlen($c) > 1 ? $c : $e[0];
+            },
+            $m[3]
+        ) . $m[4],
+        $html
+    ) ?? $html;
 }
 
 /**
