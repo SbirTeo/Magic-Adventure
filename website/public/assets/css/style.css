@@ -266,11 +266,13 @@ body.pagina-store {
   /* Stesso padding di Gestione/Esci (arrivano da .btn, qui non si tocca). */
   list-style: none;
   cursor: pointer;
+  /* Riferimento dell'etichetta del rullo (vedi sotto), che vive qui dentro. */
+  position: relative;
   display: inline-flex;
   align-items: center;
   align-self: stretch;
-  /* Il trascinamento verso il basso apre il menu (vedi site.js): senza questo, su telefono,
-     lo stesso gesto farebbe scorrere la pagina invece di scegliere la lingua. */
+  /* Il trascinamento verso il basso fa scorrere le bandiere (vedi site.js): senza questo, su
+     telefono, lo stesso gesto farebbe scorrere la pagina invece di scegliere la lingua. */
   touch-action: none;
 }
 .cambia-lingua > summary::-webkit-details-marker { display: none; }
@@ -311,6 +313,60 @@ body.pagina-store {
 .cambia-lingua-menu a:hover,
 .cambia-lingua-menu a.sotto-dito { background: var(--bg-hover, rgba(255,255,255,.06)); }
 .cambia-lingua-menu a.active { color: var(--purple); font-weight: 700; }
+
+/* Rullo delle bandiere (site.js): trascinando giu' la bandiera, quella della lingua dopo
+   scende dall'alto dentro lo stesso riquadro, e sotto il pulsante compare il suo nome. */
+.bandiera-rullo {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.bandiera-striscia {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* PASSO in site.js = 14px di bandiera + questo */
+  will-change: transform;
+}
+.bandiera-striscia.torna { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+.bandiera-rullo.scelta { animation: bandiera-scelta .3s ease-out; }
+@keyframes bandiera-scelta {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.cambia-lingua-etichetta {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--purple);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.3);
+  opacity: 0;
+  transform: translateY(-4px) scale(.95);
+  transition: opacity .15s ease, transform .15s ease;
+  pointer-events: none;
+}
+.cambia-lingua-etichetta.visibile { opacity: 1; transform: none; }
+/* Ancora sulla lingua di adesso: rilasciando qui non cambia niente. */
+.cambia-lingua-etichetta.uguale { color: var(--text-dim); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  .bandiera-striscia.torna, .cambia-lingua-etichetta { transition: none; }
+  .bandiera-rullo.scelta { animation: none; }
+}
 
 /* "Gestione" dentro il menu ad hamburger: esiste solo da telefono (vedi la media query sotto),
    su schermo largo resta il pulsante in .auth-box. */

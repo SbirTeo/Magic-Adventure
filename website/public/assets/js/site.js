@@ -74,7 +74,7 @@
 document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
   document.addEventListener('click', function (ev) {
     // Il clic che il browser genera al rilascio di un trascinamento (vedi sotto) non e' un
-    // "clic altrove": senza questo il menu appena aperto si richiudeva da solo.
+    // "clic altrove" da gestire qui.
     if (saltaClic) {
       saltaClic = false;
       return;
@@ -84,32 +84,62 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
     }
   });
 
-  // Trascinamento: si preme sulla bandiera e si tira giu', il menu si apre, la lingua sotto
-  // il dito si evidenzia e rilasciando ci si va. Il tocco semplice resta quello del <details>.
+  // Trascinamento: si preme sulla bandiera e si tira giu'. La tendina NON si apre: le bandiere
+  // scorrono come un rullo dentro il pulsante (dall'alto scende quella della lingua dopo), sotto
+  // compare il nome della lingua che si sta per scegliere e rilasciando ci si va. Il tocco
+  // semplice resta quello del <details>, che apre la tendina.
   var summary = dettagli.querySelector('summary');
   var menu = dettagli.querySelector('.cambia-lingua-menu');
-  if (!summary || !menu) return;
+  var bandiera = summary ? summary.querySelector('.bandiera-lingua') : null;
+  if (!summary || !menu || !bandiera) return;
+  // Solo le lingue vere, non "Automatica" (che non ha data-lang).
+  var voci = Array.prototype.slice.call(menu.querySelectorAll('a[data-lang]'));
+  var attuale = voci.findIndex(function (a) { return a.classList.contains('active'); });
+  if (voci.length < 2 || attuale < 0) return;
   var SOGLIA = 10; // px di discesa prima che conti come trascinamento e non come tocco
+  var DITO = 40;   // px di dito per passare alla lingua dopo
+  var PASSO = 20;  // altezza di una bandiera (14px) + lo spazio fra una e l'altra nel rullo
+  var ultima = voci.length - 1;
   var inizioY = null;
   var trascina = false;
   var saltaClic = false;
-  var evidenziata = null;
+  var scelta = 0;
 
-  function optionAt(x, y) {
-    var el = document.elementFromPoint(x, y);
-    var voce = el && el.closest ? el.closest('.cambia-lingua-menu a') : null;
-    return voce && menu.contains(voce) ? voce : null;
+  // Il rullo: dall'alto in basso le lingue che vengono dopo quella attuale (la piu' vicina
+  // subito sopra), e in fondo la bandiera di adesso, l'unica visibile a riposo.
+  var rullo = document.createElement('span');
+  rullo.className = 'bandiera-rullo';
+  var striscia = document.createElement('span');
+  striscia.className = 'bandiera-striscia';
+  for (var k = ultima; k >= 1; k--) {
+    var copia = voci[(attuale + k) % voci.length].querySelector('.bandiera-lingua');
+    if (copia) striscia.appendChild(copia.cloneNode(true));
   }
-  function highlight(voce) {
-    if (evidenziata === voce) return;
-    if (evidenziata) evidenziata.classList.remove('sotto-dito');
-    evidenziata = voce;
-    if (voce) voce.classList.add('sotto-dito');
+  bandiera.parentNode.insertBefore(rullo, bandiera);
+  striscia.appendChild(bandiera);
+  rullo.appendChild(striscia);
+  var etichetta = document.createElement('span');
+  etichetta.className = 'cambia-lingua-etichetta';
+  etichetta.setAttribute('aria-hidden', 'true');
+  // Dentro il <summary>, non accanto: il resto di un <details> chiuso non si vede proprio.
+  summary.appendChild(etichetta);
+
+  function moveStrip(passi) {
+    striscia.style.transform = 'translateY(' + ((passi - ultima) * PASSO) + 'px)';
+  }
+  moveStrip(0);
+  function showLabel(indice) {
+    etichetta.textContent = voci[(attuale + indice) % voci.length].textContent.trim();
+    etichetta.classList.toggle('uguale', indice === 0);
+    etichetta.classList.add('visibile');
   }
   function reset() {
     inizioY = null;
     trascina = false;
-    highlight(null);
+    scelta = 0;
+    striscia.classList.add('torna');
+    moveStrip(0);
+    etichetta.classList.remove('visibile');
   }
 
   summary.addEventListener('pointerdown', function (ev) {
@@ -122,25 +152,44 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
   });
   summary.addEventListener('pointermove', function (ev) {
     if (inizioY === null) return;
+    var discesa = ev.clientY - inizioY;
     if (!trascina) {
-      if (ev.clientY - inizioY < SOGLIA) return;
+      if (discesa < SOGLIA) return;
       trascina = true;
-      dettagli.setAttribute('open', '');
+      dettagli.removeAttribute('open');
+      striscia.classList.remove('torna');
     }
     ev.preventDefault();
-    highlight(optionAt(ev.clientX, ev.clientY));
-  });
-  summary.addEventListener('pointerup', function (ev) {
-    if (inizioY === null) return;
-    if (trascina) {
-      // Il clic che segue il rilascio richiuderebbe il <details> appena aperto.
-      saltaClic = true;
-      setTimeout(function () { saltaClic = false; }, 400);
-      var voce = optionAt(ev.clientX, ev.clientY);
-      if (voce) window.location.href = voce.href;
-      // Rilasciato fuori dalle voci: il menu resta aperto e si sceglie con un tocco.
+    // Segue il dito passo passo; oltre l'ultima lingua (o sopra la prima) fa resistenza.
+    var passi = Math.max(0, discesa - SOGLIA) / DITO;
+    if (passi > ultima) passi = ultima + (passi - ultima) * 0.25;
+    moveStrip(passi);
+    var ora = Math.min(ultima, Math.round(passi));
+    if (ora !== scelta || !etichetta.classList.contains('visibile')) {
+      scelta = ora;
+      showLabel(scelta);
     }
-    reset();
+  });
+  summary.addEventListener('pointerup', function () {
+    if (inizioY === null) return;
+    if (!trascina) {
+      inizioY = null;
+      return;
+    }
+    // Il clic che segue il rilascio aprirebbe la tendina: qui non deve.
+    saltaClic = true;
+    setTimeout(function () { saltaClic = false; }, 400);
+    if (scelta === 0) {
+      reset();
+      return;
+    }
+    var voce = voci[(attuale + scelta) % voci.length];
+    inizioY = null;
+    trascina = false;
+    striscia.classList.add('torna');
+    moveStrip(scelta);
+    rullo.classList.add('scelta');
+    setTimeout(function () { window.location.href = voce.href; }, 260);
   });
   summary.addEventListener('pointercancel', reset);
   summary.addEventListener('click', function (ev) {

@@ -551,7 +551,7 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
                 // normale e li rimpiazzava con traduzioni sbagliate (es. "Italiano" diventato
                 // "Deutsch" nel menu tedesco). ?>
           <?php foreach (SITE_LANGUAGES as $__lang): ?>
-            <a href="<?= h(language_switch_url($__lang)) ?>" data-no-tr<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
+            <a href="<?= h(language_switch_url($__lang)) ?>" data-lang="<?= h($__lang) ?>" data-no-tr<?= $__lang === $GLOBALS['__siteLang'] ? ' class="active"' : '' ?>>
               <?= language_flag_svg($__lang) ?>
               <?= h($__nomeLingua[$__lang]) ?>
             </a>
