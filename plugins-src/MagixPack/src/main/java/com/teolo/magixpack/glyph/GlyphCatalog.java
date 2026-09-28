@@ -255,16 +255,41 @@ public final class GlyphCatalog {
      */
     public Component stackComponent(List<GlyphEntry> order, int[][] face) {
         TextComponent.Builder root = Component.text();
-        GlyphEntry widest = null;
+        double widestVisible = widestVisible(order);
         for (GlyphEntry e : order) {
+            int d = centering(e, widestVisible);
+            root.append(Component.text(shift(d)));
             root.append(e.playerAvatar()
                     ? avatars.render(e, face)
                     : Component.text(text(e)).color(NamedTextColor.WHITE));
-            root.append(Component.text(String.valueOf(back(e))));
-            if (widest == null || e.advance() > widest.advance()) widest = e;
+            root.append(Component.text(back(e) + shift(-d)));
         }
-        if (widest != null) root.append(Component.text(String.valueOf(forward(widest))));
+        root.append(Component.text(String.valueOf(forward(widest(order)))));
         return Component.text().append(root.build()).build();
+    }
+
+    /** Drawn width of a glyph: an icon's advance includes one pixel of spacing after the image,
+     *  an avatar's does not (its step spaces are exactly its pixels). */
+    private static double visibleWidth(GlyphEntry e) {
+        return e.playerAvatar() ? e.advance() : e.advance() - 1;
+    }
+
+    private static double widestVisible(List<GlyphEntry> order) {
+        double max = 0;
+        for (GlyphEntry e : order) max = Math.max(max, visibleWidth(e));
+        return max;
+    }
+
+    private static GlyphEntry widest(List<GlyphEntry> order) {
+        GlyphEntry widest = order.get(0);
+        for (GlyphEntry e : order) if (e.advance() > widest.advance()) widest = e;
+        return widest;
+    }
+
+    /** Pixels to move a glyph right so that its center meets the center of the widest one: the
+     *  stack is centered, not lined up on the left edge. Whole pixels (the shift characters are). */
+    private static int centering(GlyphEntry e, double widestVisible) {
+        return (int) Math.round((widestVisible - visibleWidth(e)) / 2);
     }
 
     /** Same as {@link #stackComponent} as a legacy string, for PlaceholderAPI; null if an id is
@@ -278,13 +303,14 @@ public final class GlyphCatalog {
             if (face == null) return null;
         }
         StringBuilder sb = new StringBuilder();
-        GlyphEntry widest = null;
+        double widestVisible = widestVisible(order);
         for (GlyphEntry e : order) {
+            int d = centering(e, widestVisible);
+            sb.append(shift(d));
             sb.append(e.playerAvatar() ? avatars.legacy(e, face) : "§f" + text(e));
-            sb.append(back(e));
-            if (widest == null || e.advance() > widest.advance()) widest = e;
+            sb.append(back(e)).append(shift(-d));
         }
-        return sb.append(forward(widest)).toString();
+        return sb.append(forward(widest(order))).toString();
     }
 
     // ---------------------------------------------------------------------------------- the text

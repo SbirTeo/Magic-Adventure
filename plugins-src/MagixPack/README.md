@@ -347,8 +347,9 @@ Come funziona: ogni voce ha nel font due spazi in piu', uno che torna indietro e
 sua larghezza e uno che avanza della stessa (larghezza calcolata come fa il client: ultima colonna
 non trasparente dell'immagine per la scala, +1). Nello stack ogni glifo e' seguito dal suo "torna
 indietro", cosi' il successivo parte dallo stesso punto; alla fine l'"avanti" del piu' largo, cosi'
-il testo dopo riparte dopo di lui. I glifi partono tutti dallo stesso bordo SINISTRO: se la cornice
-e' piu' larga dell'avatar (es. 10 px contro 8), centralo con `offset-x: 1` sull'avatar.
+il testo dopo riparte dopo di lui. I glifi sono CENTRATI uno sull'altro: ognuno piu' stretto del
+piu' largo viene spostato di meta' della differenza (pixel interi, i caratteri shift). Per ritoccare
+a mano la posizione di uno resta il suo `offset-x`.
 
 ## Spostare un carattere senza un glyphs.yml (shift)
 
