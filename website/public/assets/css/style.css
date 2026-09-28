@@ -558,7 +558,16 @@ a.who-link {
   }
   .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
   .main-nav a:active { transform: scale(.95); }
-  .main-nav .btn-nav { grid-column: 1 / -1; margin: 0; min-height: 56px; }
+  /* Stesso testo delle altre voci: come pulsante (.btn) avrebbe la grandezza dei pulsanti,
+     13px, e nel menu sembrava scritto diverso. */
+  .main-nav .btn-nav {
+    grid-column: 1 / -1;
+    margin: 0;
+    min-height: 56px;
+    font-size: var(--fs-base);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
   /* Ultima voce, a tutta larghezza: e' il pulsante dello staff, non una pagina del sito. */
   .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; border-style: dashed; }
 
