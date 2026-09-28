@@ -107,7 +107,7 @@ public final class GlyphCatalog {
             double offsetX = sec.getDouble("offset-x", 0);
             int offsetY = sec.getInt("offset-y", 0);
             boolean avatar = TYPE_PLAYER_AVATAR.equalsIgnoreCase(sec.getString("type", ""));
-            int priority = sec.getInt("priority", 0);
+            double priority = sec.getDouble("priority", 0);
             int rows;
             BitmapFit fit;
             double advance;
@@ -232,7 +232,7 @@ public final class GlyphCatalog {
             if (e == null) return null;
             out.add(e);
         }
-        out.sort(java.util.Comparator.comparingInt(GlyphEntry::priority));
+        out.sort(java.util.Comparator.comparingDouble(GlyphEntry::priority));
         return out;
     }
 

@@ -19,7 +19,7 @@
 #                    decimali). Il testo che la segue NON si sposta.
 #   offset-y: 2   -> spostata di 2 pixel in SU (negativo = in giu').
 #   priority: 1   -> chi sta SOPRA quando piu' glifi sono impilati nello stesso
-#                    punto (numero piu' alto = sopra; default 0). Si impilano
+#                    punto (numero piu' alto = sopra; default 0; anche decimali). Si impilano
 #                    col placeholder %magixpack_stack_<id>,<id>% (es.
 #                    %magixpack_stack_avatar,cornice%) o /mpack glyph show avatar,cornice.
 #                    A parita' di priority vale l'ordine scritto.
