@@ -78,6 +78,20 @@ priority-order:
 # (%player_name%, %server_online%...) sia quelli degli altri plugin Magix, che
 # si espongono ognuno come propria expansion (%magixfactions_...%,
 # %magixtime_...%, %magixweb_...%...) senza bisogno di configurarli qui.
+#
+# "scroll" (facoltativo, su titolo o riga): il testo SCORRE da destra verso
+# sinistra come un'insegna luminosa, in una finestra di caratteri fissa. Si
+# applica al testo gia' risolto e colorato, placeholder compresi, e ogni
+# carattere tiene il suo colore. Esempio, lo stato della fazione che scorre:
+#   - interval-ticks: 20
+#     frames:
+#       - "%magixfactions_status%"
+#     scroll:
+#       width: 24         # caratteri visibili alla volta (0 = niente scorrimento)
+#       gap: 6            # spazi vuoti fra la fine del testo e il suo nuovo inizio
+#       speed-ticks: 2    # ogni quanti tick avanza di un carattere (20 = 1 secondo)
+# La scoreboard si ridisegna da sola al passo dello scorrimento, qualunque sia
+# update-interval-ticks: non serve abbassarlo.
 scoreboards:
   default:
     enabled: true

@@ -28,7 +28,6 @@ import java.util.Locale;
  *   %magixfactions_members%             -> numero di membri della fazione
  *   %magixfactions_members_online%      -> membri della fazione connessi adesso
  *   %magixfactions_status%              -> stato della propria fazione (testo di /f info)
- *   %magixfactions_status_scroll%       -> come status, scorrevole da destra a sinistra
  *   %magixfactions_allies%              -> numero di fazioni alleate
  *   %magixfactions_enemies%             -> numero di fazioni nemiche
  *   %magixfactions_power%               -> Potenza attuale della fazione
@@ -60,9 +59,6 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                     + "Ufficiale, Leader), preso da ranks.*.name e leader.name del config.",
             "%magixfactions_status%", "Stato della fazione del giocatore, lo stesso testo di /f info sulla "
                     + "propria fazione (forte, debole o senza territori: info.status-*-self di messages.yml).",
-            "%magixfactions_status_scroll%", "Come status, ma la scritta scorre da destra verso sinistra in una "
-                    + "finestra di placeholders.status-scroll.width caratteri. La scoreboard deve ridisegnarsi "
-                    + "spesso (update-interval-ticks basso) perche' lo scorrimento si veda fluido.",
             "%magixfactions_leader%", "Nome del leader della fazione del giocatore.",
             "%magixfactions_members%", "Quanti membri ha la fazione del giocatore.",
             "%magixfactions_members_online%", "Quanti membri della fazione del giocatore sono connessi adesso.",
@@ -193,16 +189,6 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
             }
             case "status":
                 return f != null ? statusText(player, f) : "";
-            case "status_scroll": {
-                if (f == null) return "";
-                int width = plugin.getConfig().getInt("placeholders.status-scroll.width", 24);
-                int gap = plugin.getConfig().getInt("placeholders.status-scroll.gap", 6);
-                int speed = Math.max(1, plugin.getConfig().getInt("placeholders.status-scroll.speed-ticks", 2));
-                // Il passo dipende dal tick del server, non da quante volte si chiede il placeholder: due
-                // giocatori vedono la scritta allo stesso punto, e la velocita' non cambia con la scoreboard.
-                long step = Bukkit.getCurrentTick() / speed;
-                return com.teolo.magixfactions.util.Marquee.window(statusText(player, f), width, gap, step);
-            }
             case "rank_name": {
                 if (f == null) return "";
                 Member m = f.getMember(player.getUniqueId());

@@ -58,5 +58,20 @@ Tutto in `config.yml`, sotto `scoreboards:`. Vedi i commenti nel file per lo sch
 `lines`, `interval-ticks`, `frames`) e cinque scoreboard di esempio gia' pronte (`default`,
 `vip`, `spawn`, `faction`, `no-faction`).
 
+Un titolo o una riga possono **scorrere** da destra verso sinistra, come un'insegna: basta aggiungere
+`scroll:` con `width` (caratteri visibili), `gap` (spazi prima di ricominciare) e `speed-ticks`
+(ogni quanti tick avanza di un carattere). Scorre il testo gia' risolto, placeholder e colori
+compresi, e la scoreboard si ridisegna da sola a quel passo:
+
+```yaml
+- interval-ticks: 20
+  frames:
+    - "%magixfactions_status%"
+  scroll:
+    width: 24
+    gap: 6
+    speed-ticks: 2
+```
+
 La guida generata dal plugin (`plugins/MagixScoreboard/guida-staff.html`, anche nel gestionale
 del sito) elenca TUTTE le chiavi in uso col valore reale: e' la fonte piu' aggiornata.

@@ -1,10 +1,10 @@
-package com.teolo.magixfactions.util;
+package com.teolo.magixscoreboard.util;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Scrolling text ("marquee") for placeholders: a window of {@code width} visible characters that
+ * Scrolling text ("marquee") for a scoreboard line: a window of {@code width} visible characters that
  * slides over the text from right to left, one character every step, and starts again after a gap.
  *
  * <p>The text arrives already colored (§ codes, hex as §x§R§R§G§G§B§B): every visible character

@@ -121,7 +121,12 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                                 + "si alternano nello stesso posto.",
                         "L'avanzamento e' sincronizzato fra tutti i giocatori (un orologio comune, non uno a "
                                 + "testa): due giocatori che vedono la stessa riga animata la vedono nello stesso "
-                                + "fotogramma.")
+                                + "fotogramma.",
+                        "Con \"scroll\" (width, gap, speed-ticks) sotto un titolo o una riga, il testo scorre "
+                                + "da destra verso sinistra in una finestra di width caratteri, come un'insegna: "
+                                + "si applica al testo gia' risolto, placeholder e colori compresi (es. "
+                                + "%magixfactions_status% che scorre). La scoreboard si ridisegna da sola al passo "
+                                + "dello scorrimento, senza toccare update-interval-ticks.")
 
                 .detailedCommands()
                 .commands()

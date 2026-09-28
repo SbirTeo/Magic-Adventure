@@ -557,8 +557,7 @@ in **qualsiasi** plugin/config che usi PlaceholderAPI (CMI, scoreboard, tab, ecc
 | `%magixfactions_leader%` | Nome del leader della fazione |
 | `%magixfactions_members%` | Numero di membri della fazione |
 | `%magixfactions_members_online%` | Membri della fazione connessi adesso |
-| `%magixfactions_status%` | Stato della propria fazione, il testo di `/f info` (forte / debole / senza territori) |
-| `%magixfactions_status_scroll%` | Come `status`, ma scorre da destra a sinistra (config `placeholders.status-scroll`) |
+| `%magixfactions_status%` | Stato della propria fazione, il testo di `/f info` (forte / debole / senza territori). Per farlo scorrere: opzione `scroll` della riga in MagixScoreboard |
 | `%magixfactions_allies%` | Numero di fazioni alleate |
 | `%magixfactions_enemies%` | Numero di fazioni nemiche |
 | `%magixfactions_power%` | Potenza attuale della fazione |

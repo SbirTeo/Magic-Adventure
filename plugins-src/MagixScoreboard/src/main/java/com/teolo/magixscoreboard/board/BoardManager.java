@@ -5,6 +5,7 @@ import com.teolo.magixscoreboard.hook.WorldGuardHook;
 import com.teolo.magixscoreboard.model.BoardDefinition;
 import com.teolo.magixscoreboard.model.BoardLine;
 import com.teolo.magixscoreboard.util.Colors;
+import com.teolo.magixscoreboard.util.Marquee;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -112,7 +113,20 @@ public final class BoardManager {
         if (section == null) return new BoardLine(20, List.of(""));
         int interval = Math.max(1, section.getInt("interval-ticks", 20));
         List<String> frames = section.getStringList("frames");
-        return new BoardLine(interval, frames.isEmpty() ? List.of("") : frames);
+        ConfigurationSection sc = section.getConfigurationSection("scroll");
+        BoardLine.Scroll scroll = sc == null ? null
+                : scroll(sc.getInt("width", 24), sc.getInt("gap", 6), sc.getInt("speed-ticks", 2));
+        return new BoardLine(interval, frames.isEmpty() ? List.of("") : frames, scroll);
+    }
+
+    /** Uno scorrimento valido, o null se la larghezza e' 0 (= niente scorrimento). */
+    private static BoardLine.Scroll scroll(int width, int gap, int speedTicks) {
+        if (width <= 0) return null;
+        return new BoardLine.Scroll(width, Math.max(0, gap), Math.max(1, speedTicks));
+    }
+
+    private static int intOr(Object o, int def) {
+        return o instanceof Number n ? n.intValue() : def;
     }
 
     /** Una riga dentro l'elenco "lines" (letta come mappa: YAML non la vede come sotto-sezione). */
@@ -125,7 +139,11 @@ public final class BoardManager {
         if (rawFrames instanceof List<?> list) {
             for (Object f : list) frames.add(String.valueOf(f));
         }
-        return new BoardLine(interval, frames.isEmpty() ? List.of("") : frames);
+        BoardLine.Scroll scroll = null;
+        if (map.get("scroll") instanceof Map<?, ?> sc) {
+            scroll = scroll(intOr(sc.get("width"), 24), intOr(sc.get("gap"), 6), intOr(sc.get("speed-ticks"), 2));
+        }
+        return new BoardLine(interval, frames.isEmpty() ? List.of("") : frames, scroll);
     }
 
     private static Set<String> lowercaseSet(List<String> values) {
@@ -153,8 +171,13 @@ public final class BoardManager {
     }
 
     private static int gcdIfAnimated(int g, BoardLine line) {
+        if (line.scroll() != null) g = gcd(g, line.scroll().speedTicks());
         if (line.frames().size() < 2) return g;
-        int a = g, b = line.intervalTicks();
+        return gcd(g, line.intervalTicks());
+    }
+
+    private static int gcd(int g, int other) {
+        int a = g, b = other;
         while (b != 0) { int t = a % b; a = b; b = t; }
         return a;
     }
@@ -206,6 +229,7 @@ public final class BoardManager {
     }
 
     private boolean changesNow(BoardLine line) {
+        if (line.scroll() != null && tick % line.scroll().speedTicks() == 0) return true;
         return line.frames().size() > 1 && tick % line.intervalTicks() == 0;
     }
 
@@ -232,6 +256,14 @@ public final class BoardManager {
     private Component renderFrame(BoardLine line, Player player) {
         String raw = line.frameAt(tick);
         String resolved = Papi.resolve(player, raw);
+        BoardLine.Scroll scroll = line.scroll();
+        if (scroll != null) {
+            // Si fa scorrere il testo GIA' risolto e colorato: i placeholder dentro scorrono col resto,
+            // e ogni carattere si porta dietro il suo colore. Il passo segue l'orologio comune, quindi
+            // due giocatori vedono la scritta allo stesso punto.
+            resolved = Marquee.window(Colors.translate(resolved), scroll.width(), scroll.gap(),
+                    tick / scroll.speedTicks());
+        }
         return Colors.component(resolved);
     }
 
