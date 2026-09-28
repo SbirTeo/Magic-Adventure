@@ -4121,15 +4121,64 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .tavolozza label:first-of-type { margin-top: 0; }
 .tavolozza input[type=color] { height: 40px; padding: 3px; width: 100%; }
 
-/* Scorciatoia "Crea nuovo articolo" sopra la griglia della home */
+/* Scorciatoia "Crea un nuovo post" sopra la griglia della home: un tondo bianco col +, e la
+   scritta in una nuvoletta a sinistra che compare passandoci sopra (o col fuoco, o tenendolo
+   premuto da telefono). Bianco in tutti e due i temi: sul chiaro lo stacca il bordo. */
 .barra-crea { display: flex; justify-content: flex-end; margin: 0 0 14px; }
-.barra-crea .btn { display: inline-flex; align-items: center; gap: 7px; }
-.barra-crea-piu {
-  font-size: var(--fs-base);
-  line-height: 1;
-  font-weight: 700;
-  /* il segno + allineato al testo senza spostargli la linea di base */
-  transform: translateY(-1px);
+.barra-crea-tasto {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  color: #14161a;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.barra-crea-tasto:hover,
+.barra-crea-tasto:focus-visible { color: #14161a; }
+.barra-crea-tasto:hover { transform: scale(1.06); box-shadow: 0 6px 18px rgba(0, 0, 0, .34); text-decoration: none; }
+.barra-crea-tasto:active { transform: scale(.96); }
+.barra-crea-tasto svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.barra-crea-etichetta {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translate(6px, -50%);
+  padding: 6px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.barra-crea-tasto:hover .barra-crea-etichetta,
+.barra-crea-tasto:focus-visible .barra-crea-etichetta,
+.barra-crea-tasto:active .barra-crea-etichetta {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .barra-crea-tasto, .barra-crea-etichetta { transition: none; }
 }
 
 /* ---- Obiettivo di raccolta del server ---------------------------------------------- */
@@ -4431,6 +4480,20 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   }
   .post-grid .bento-feature,
   .post-tile { min-height: 208px; }
+  /* A tutta larghezza la copertina cominciava con un taglio netto (piu' la riga del bordo)
+     sotto il resto della pagina: ora in alto sfuma nel fondo del sito. E' un ::after e non il
+     velo (::before), cosi' resta anche quando i veli sono spenti dal gestionale. */
+  .post-grid :is(.bento-feature, .post-tile):not(.no-image):not(.copertina-intera) { border-top-width: 0; }
+  .post-grid :is(.bento-feature, .post-tile):not(.no-image):not(.copertina-intera)::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 35%, transparent 100%);
+    pointer-events: none;
+  }
   /* Tutte le tessere del carosello alte uguali: il contenitore si allunga gia' da solo fino
      alla piu' alta (e' una riga flessibile), ma la tessera dentro seguiva il suo contenuto e
      l'ultimo articolo, che ha il riassunto piu' lungo, restava piu' alto degli altri. */
@@ -5390,12 +5453,21 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   /* Cambia solo il punto del taglio: la fascia in alto ha la sua inquadratura, scelta a
      parte nel gestionale. Niente zoom, qui non c'e' un puntatore da passare sopra. */
   .tile-poster img { object-position: var(--fuoco-telefono, 50% 50%); transform: none; }
+  /* Sfuma anche in ALTO, nel fondo della pagina: la fascia cominciava con un taglio netto
+     sotto al resto del sito. Due strati: in alto verso --bg (la pagina), in basso verso
+     --bg-panel (il fondo del testo della tessera). */
   .tile-poster::after {
-    background: linear-gradient(180deg,
+    background:
+      linear-gradient(180deg,
+        var(--bg) 0%,
+        color-mix(in srgb, var(--bg) 50%, transparent) 14%,
+        color-mix(in srgb, var(--bg) 0%, transparent) 34%),
+      linear-gradient(180deg,
         color-mix(in srgb, var(--bg-panel) 0%, transparent) 45%,
         color-mix(in srgb, var(--bg-panel) 75%, transparent) 80%,
         var(--bg-panel) 100%);
   }
+  .post-grid :is(.bento-feature, .post-tile).copertina-intera { border-top-width: 0; }
 }
 
 

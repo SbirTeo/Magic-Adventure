@@ -191,8 +191,13 @@ require __DIR__ . '/../includes/header.php';
              la vede nemmeno. */ ?>
     <?php if (can('blog.create')): ?>
       <div class="barra-crea">
-        <a href="/blog/new" class="btn btn-green btn-small">
-          <span class="barra-crea-piu" aria-hidden="true">+</span> Crea nuovo articolo
+        <?php /* Solo l'icona: la scritta sta in una nuvoletta che compare sopra il pulsante
+                 (passandoci sopra, col fuoco da tastiera o tenendolo premuto). E' un elemento
+                 vero e non un title, cosi' la traduce il traduttore del sito ed e' anche il
+                 nome del pulsante per i lettori di schermo. */ ?>
+        <a href="/blog/new" class="barra-crea-tasto">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg>
+          <span class="barra-crea-etichetta">Crea un nuovo post</span>
         </a>
       </div>
     <?php endif; ?>
