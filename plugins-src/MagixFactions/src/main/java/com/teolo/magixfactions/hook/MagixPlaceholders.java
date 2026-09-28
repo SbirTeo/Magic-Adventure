@@ -23,6 +23,7 @@ import java.util.Locale;
  *   %magixfactions_faction%             -> nome della fazione del giocatore
  *   %magixfactions_factionstot%         -> numero totale di fazioni
  *   %magixfactions_rank%                -> tag del grado del giocatore
+ *   %magixfactions_rank_name%           -> nome per intero del grado del giocatore
  *   %magixfactions_leader%              -> nome del leader della fazione
  *   %magixfactions_members%             -> numero di membri della fazione
  *   %magixfactions_allies%              -> numero di fazioni alleate
@@ -52,6 +53,8 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
             "%magixfactions_faction%", "Nome della fazione del giocatore (vuoto se non ne ha una).",
             "%magixfactions_rank%", "Tag colorato del grado del giocatore nella sua fazione (es. [U], "
                     + "[L]), preso da ranks.*.tag e leader.tag del config.",
+            "%magixfactions_rank_name%", "Nome per intero del grado del giocatore nella sua fazione (es. "
+                    + "Ufficiale, Leader), preso da ranks.*.name e leader.name del config.",
             "%magixfactions_leader%", "Nome del leader della fazione del giocatore.",
             "%magixfactions_members%", "Quanti membri ha la fazione del giocatore.",
             "%magixfactions_allies%", "Quante fazioni alleate ha.",
@@ -170,6 +173,12 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                 Member m = f.getMember(player.getUniqueId());
                 if (m == null) return "";
                 return color(fm.ranks().resolve(m.getRankId()).getTag());
+            }
+            case "rank_name": {
+                if (f == null) return "";
+                Member m = f.getMember(player.getUniqueId());
+                if (m == null) return "";
+                return color(fm.ranks().resolve(m.getRankId()).getName());
             }
             default:
                 return null; // placeholder sconosciuto

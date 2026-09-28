@@ -78,9 +78,11 @@ faction-name:
   min-length: 3
   max-length: 15     # lunghezza massima
   max-digits: 2      # massimo numero di cifre nel nome
+  max-consecutive: 2 # quante volte DI FILA puo' comparire lo stesso carattere (0 = nessun limite)
 ```
 Caratteri ammessi: **solo lettere e numeri** (niente spazi, underscore, simboli o punteggiatura),
-al massimo **2 cifre**.
+al massimo **2 cifre**. La stessa lettera puo' comparire quante volte si vuole, ma **mai piu' di 2
+di fila** ("Assassini" si', "Dragooon" no). `/mf admin rename` salta questa regola come le cifre.
 
 ### Descrizione di default
 Le nuove fazioni ricevono la descrizione `faction-description.default` (config), visibile in `/f info`.
@@ -551,6 +553,7 @@ in **qualsiasi** plugin/config che usi PlaceholderAPI (CMI, scoreboard, tab, ecc
 | `%magixfactions_faction%` | Nome della fazione del giocatore (vuoto se nessuna) |
 | `%magixfactions_factionstot%` | Numero totale di fazioni |
 | `%magixfactions_rank%` | Tag del grado del giocatore |
+| `%magixfactions_rank_name%` | Nome per intero del grado del giocatore (es. Ufficiale) |
 | `%magixfactions_leader%` | Nome del leader della fazione |
 | `%magixfactions_members%` | Numero di membri della fazione |
 | `%magixfactions_allies%` | Numero di fazioni alleate |
