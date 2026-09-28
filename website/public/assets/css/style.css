@@ -797,41 +797,52 @@ body.menu-aperto .site-header { backdrop-filter: none; }
      al padding dei telefoni scritto piu' in basso nel file (".hero-v2", stesso peso). */
   section.hero-v2 { padding: 26px 0 26px; }
   .hero-grid { gap: 22px; }
-  /* Il marchio in una riga: logo piccolo a sinistra (index.php gli passa il file piccolo
-     con <picture>), slogan a destra, allineato a sinistra accanto a lui. */
-  .hero-logo-col { width: 100%; }
-  .hero-logo-pulse {
-    display: inline-flex;
+  /* Due colonne: a sinistra il logo piccolo, grande (index.php gli passa il file piccolo con
+     <picture>); a destra tutte le scritte, allineate a sinistra: slogan, giocatori online,
+     titolo e descrizione. Sotto, a tutta larghezza, l'IP. Le due colonne dell'HTML (logo e
+     testi) si "sciolgono" (display: contents) cosi' i loro pezzi si mettono direttamente
+     nella griglia, e lo slogan, che nell'HTML sta sotto il logo, passa a destra. */
+  .hero-grid {
+    grid-template-columns: minmax(110px, 38%) 1fr;
+    column-gap: 16px;
+    row-gap: 0;
     align-items: center;
-    gap: 14px;
-    max-width: 100%;
+    justify-items: start;
     text-align: left;
-    animation: none;
   }
-  .hero-logo-pulse picture { flex-shrink: 0; }
+  .hero-logo-col, .hero-logo-pulse, .hero-copy-col { display: contents; }
+  .hero-logo-pulse picture { grid-column: 1; grid-row: 1 / span 4; align-self: center; width: 100%; }
   .hero-logo-col img {
-    width: 68px;
+    width: 100%;
     height: auto;
-    filter: drop-shadow(0 0 10px var(--purple-glow)) drop-shadow(0 0 6px var(--green-glow));
+    filter: drop-shadow(0 0 12px var(--purple-glow)) drop-shadow(0 0 8px var(--green-glow));
   }
+  .hero-slogan { grid-column: 2; grid-row: 1; }
+  .hero-copy-col .status-pill { grid-column: 2; grid-row: 2; }
+  .hero-headline { grid-column: 2; grid-row: 3; }
+  .hero-sub { grid-column: 2; grid-row: 4; }
+  .hero-actions { grid-column: 1 / -1; grid-row: 5; margin-top: 20px; }
+  /* Lo slogan eredita il "center" della colonna del logo, da cui arriva nell'HTML; e l'a capo
+     scritto nel gestionale, pensato per la riga larga, qui lo spezzerebbe in tre. */
+  .hero-slogan br { display: none; }
   .hero-slogan {
-    margin: 0;
-    font-size: 11.5px;
+    text-align: left;
+    margin: 0 0 10px;
+    font-size: 10px;
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     line-height: 1.45;
     text-shadow: 0 0 10px rgba(240, 199, 94, 0.35);
   }
-  /* Le particelle erano pensate per il logo grande: attorno a una riga cosi' bassa sono solo
-     puntini sparsi. */
+  /* Le particelle erano pensate per il logo grande: accanto al testo sono solo puntini sparsi. */
   .hero-logo-col .logo-particles { display: none; }
-  /* La matita dell'admin non deve coprire la riga: sta a destra, in mezzo. */
-  .hero-logo-col .hero-logo-edit { top: 50%; transform: translateY(-50%); }
-  .status-pill { margin-bottom: 14px; padding: 6px 13px; font-size: 12px; }
-  .hero-headline { font-size: 36px; line-height: 1.02; margin-bottom: 12px; }
-  .hero-sub { max-width: 340px; margin: 0 auto 22px; font-size: 15px; line-height: 1.55; }
+  /* Senza il riquadro della colonna la matita dell'admin si appoggia alla hero: in alto a destra. */
+  .hero-logo-col .hero-logo-edit { top: -8px; right: 0; }
+  .status-pill { margin-bottom: 10px; padding: 4px 10px; gap: 7px; font-size: 11px; }
+  .hero-headline { font-size: clamp(22px, 7vw, 30px); line-height: 1.02; margin-bottom: 8px; }
+  .hero-sub { max-width: none; margin: 0; font-size: 13px; line-height: 1.45; }
   /* L'IP e' l'azione della pagina: un pulsante pieno e largo, facile da toccare. */
-  .hero-actions { width: 100%; }
+  .hero-actions { width: 100%; justify-content: center; }
   .ip-copy {
     width: 100%;
     max-width: 320px;

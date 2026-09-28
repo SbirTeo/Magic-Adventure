@@ -78,7 +78,10 @@ $righeHtml = function (string $testo, bool $accentoUltimaRiga = false): string {
         $righe = array_map(fn($r) => str_starts_with($r, '<span') ? $r : h($r), $righe);
         return implode('<br>', $righe);
     }
-    return implode('<br>', array_map('h', $righe));
+    // "<br>" + a capo: dove l'a capo si vede non cambia niente (lo spazio a inizio riga non
+    // conta), e dove il CSS lo nasconde (lo slogan da telefono) le due righe restano due
+    // parole separate invece di attaccarsi ("HARDCOREIN").
+    return implode("<br>\n", array_map('h', $righe));
 };
 
 // La colonna di destra (chat, scheda giocatore, "sul sito ora") se la calcola da sola:
