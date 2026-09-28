@@ -137,7 +137,8 @@ require __DIR__ . '/../includes/header.php';
                fetchpriority="high" decoding="async">
         </picture>
         <?php if ($heroSlogan !== ''): ?>
-          <p class="hero-slogan"><?= $righeHtml($heroSlogan) ?></p>
+          <?php /* .hero-slogan-testo: da telefono e' la riga che scorre (style.css). */ ?>
+          <p class="hero-slogan"><span class="hero-slogan-testo"><?= $righeHtml($heroSlogan) ?></span></p>
         <?php endif; ?>
       </a>
     </div>
