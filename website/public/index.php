@@ -116,10 +116,23 @@ require __DIR__ . '/../includes/header.php';
                  dichiarano le misure, cosi' il posto e' gia' riservato e il testo sotto
                  non salta quando arriva. */ ?>
         <?php $__misureLogo = immagine_misure($__logoHome); ?>
-        <img src="<?= h($__logoHome) ?>"
-             alt="<?= h(site_setting('site_name', 'MAGICADVENTURE')) ?>" class="hero-logo-v2"
-             <?= $__misureLogo ? 'width="' . $__misureLogo[0] . '" height="' . $__misureLogo[1] . '" ' : '' ?>
-             fetchpriority="high" decoding="async">
+        <?php
+          // Da telefono (sotto i 720px, come in style.css) la hero mostra il logo PICCOLO, a
+          // sinistra dello slogan: con <picture> il telefono scarica direttamente quello e non
+          // il logo grande che poi non vedrebbe. Se il logo piccolo non c'e', resta il grande.
+          $__logoHomePiccolo = trim(site_setting('logo_small_url', ''));
+          $__misureLogoPiccolo = $__logoHomePiccolo !== '' ? immagine_misure($__logoHomePiccolo) : null;
+        ?>
+        <picture>
+          <?php if ($__logoHomePiccolo !== ''): ?>
+            <source media="(max-width: 720px)" srcset="<?= h($__logoHomePiccolo) ?>"
+                    <?= $__misureLogoPiccolo ? 'width="' . $__misureLogoPiccolo[0] . '" height="' . $__misureLogoPiccolo[1] . '"' : '' ?>>
+          <?php endif; ?>
+          <img src="<?= h($__logoHome) ?>"
+               alt="<?= h(site_setting('site_name', 'MAGICADVENTURE')) ?>" class="hero-logo-v2"
+               <?= $__misureLogo ? 'width="' . $__misureLogo[0] . '" height="' . $__misureLogo[1] . '" ' : '' ?>
+               fetchpriority="high" decoding="async">
+        </picture>
         <?php if ($heroSlogan !== ''): ?>
           <p class="hero-slogan"><?= $righeHtml($heroSlogan) ?></p>
         <?php endif; ?>
