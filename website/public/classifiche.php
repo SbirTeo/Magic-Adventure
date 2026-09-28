@@ -367,27 +367,27 @@ function format_playtime(int $seconds): string {
   .score-pop col.c-p { width: 22%; }
   .score-pop .sp-l { white-space: normal; }
   .score-cell:hover .score-pop, .score-cell:focus-within .score-pop, .score-cell.pop-open .score-pop { opacity: 1; visibility: visible; transform: translateY(0); }
-  .score-pop .sp-head { font-family: var(--font-heading); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-  .score-pop .sp-intro { font-size: 12px; line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
+  .score-pop .sp-head { font-family: var(--font-heading); font-size: var(--fs-base); font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .score-pop .sp-intro { font-size: var(--fs-xs); line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
   .score-pop .sp-intro b { color: var(--text); font-weight: 600; }
   .score-pop table { width: 100%; border-collapse: collapse; }
-  .score-pop th { font-family: var(--font-heading); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+  .score-pop th { font-family: var(--font-heading); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em;
     color: var(--text-dimmer); font-weight: 600; text-align: left; padding: 0 0 6px; border-bottom: 1px solid var(--border); }
   .score-pop th:last-child, .score-pop td:last-child { text-align: right; }
-  .score-pop td { padding: 6px 0; font-size: 13px; border: 0; white-space: nowrap; vertical-align: middle; border-bottom: 1px solid var(--border); }
+  .score-pop td { padding: 6px 0; font-size: var(--fs-sm); border: 0; white-space: nowrap; vertical-align: middle; border-bottom: 1px solid var(--border); }
   .score-pop tbody tr:last-child td { border-bottom: 0; }
   .score-pop .sp-l { color: var(--text); padding-right: 10px; }
-  .score-pop .sp-l .sp-v { color: var(--text-dim); font-size: 12px; }
-  .score-pop .sp-best { display: block; color: var(--text-dimmer); font-size: 11px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .score-pop .sp-l .sp-v { color: var(--text-dim); font-size: var(--fs-xs); }
+  .score-pop .sp-best { display: block; color: var(--text-dimmer); font-size: var(--fs-2xs); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .score-pop .sp-best-self { color: var(--green); }
   .score-pop .sp-lvl { padding-right: 10px; }
   .score-pop .sp-lvl .sp-bar { display: inline-block; width: 54px; height: 6px; border-radius: 4px; background: var(--border); vertical-align: middle; overflow: hidden; }
   .score-pop .sp-lvl .sp-bar b { display: block; height: 100%; border-radius: 4px; background: var(--purple); min-width: 2px; }
-  .score-pop .sp-lvl span { color: var(--text-dim); font-size: 12px; margin-left: 7px; }
+  .score-pop .sp-lvl span { color: var(--text-dim); font-size: var(--fs-xs); margin-left: 7px; }
   .score-pop .sp-p b { color: var(--purple); font-weight: 700; }
-  .score-pop .sp-p .sp-max { color: var(--text-dimmer); font-size: 12px; }
+  .score-pop .sp-p .sp-max { color: var(--text-dimmer); font-size: var(--fs-xs); }
   .score-pop tfoot td { padding-top: 9px; border-top: 1px solid var(--border-strong); font-family: var(--font-heading); color: var(--text); }
-  .score-pop tfoot .sp-tot { color: var(--purple); font-size: 16px; }
+  .score-pop tfoot .sp-tot { color: var(--purple); font-size: var(--fs-md); }
   /* Uccisioni: morti e K/D non sono colonne, si leggono passando il mouse sul numero (tooltip nativo). */
   .kills-cell { border-bottom: 1px dotted var(--border-strong); cursor: help; }
   /* Nome fazione colorato per RELAZIONE in-game col visitatore (come nel gioco); punteggio in viola. */
@@ -413,8 +413,8 @@ function format_playtime(int $seconds): string {
   .rank .player-cell:hover .pl-card, .rank .player-cell:focus-within .pl-card, .rank .player-cell.pop-open .pl-card { opacity: 1; visibility: visible; transform: translateY(0); }
   .rank .pl-card img { border-radius: 6px; border: 1px solid var(--border); display: block; }
   .rank .pl-card-info { display: flex; flex-direction: column; gap: 2px; }
-  .rank .pl-card-name { font-weight: 700; font-size: 14px; }
-  .rank .pl-card-fac { font-size: 12px; }
+  .rank .pl-card-name { font-weight: 700; font-size: var(--fs-base); }
+  .rank .pl-card-fac { font-size: var(--fs-xs); }
   .rank .score-value { color: var(--text); font-weight: 700; }
   /* Popup "/f info" sul nome fazione (stessa meccanica del popup punteggio), stile schematico. */
   .fac-cell { position: relative; }
@@ -429,25 +429,25 @@ function format_playtime(int $seconds): string {
     transition: opacity .12s ease, transform .12s ease, visibility .12s;
   }
   .fac-cell:hover .fac-pop, .fac-cell:focus-within .fac-pop, .fac-cell.pop-open .fac-pop { opacity: 1; visibility: visible; transform: translateY(0); }
-  .fac-pop .fi-head { font-family: var(--font-heading); font-size: 15px; font-weight: 700; color: var(--text); padding: 13px 16px 0; }
-  .fac-pop .fi-desc { font-size: 12px; color: var(--text-dim); line-height: 1.45; padding: 3px 16px 0; }
+  .fac-pop .fi-head { font-family: var(--font-heading); font-size: var(--fs-base); font-weight: 700; color: var(--text); padding: 13px 16px 0; }
+  .fac-pop .fi-desc { font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.45; padding: 3px 16px 0; }
   /* Sezioni separate da un filo, così l'occhio le distingue subito. */
   .fac-pop .fi-block { padding: 11px 16px; border-top: 1px solid var(--border); margin-top: 12px; }
-  .fac-pop .fi-block-title { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-dimmer); margin-bottom: 8px; }
+  .fac-pop .fi-block-title { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .07em; color: var(--text-dimmer); margin-bottom: 8px; }
   /* Membri: etichetta grado a larghezza fissa + fila di avatar, allineati. */
   .fac-pop .fi-rank { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
-  .fac-pop .fi-rank-name { flex: none; width: 66px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .fac-pop .fi-rank-name { flex: none; width: 66px; font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
   .fac-pop .fi-avatars { display: flex; flex-wrap: wrap; gap: 4px; }
   .fac-pop .fi-av { display: inline-flex; }
   .fac-pop .fi-av img { width: 28px; height: 28px; border-radius: 5px; border: 1px solid var(--border); display: block; }
   .fac-pop .fi-av-noacct img { opacity: .7; }
   /* Dati: righe etichetta (sinistra) → valore (destra), come una scheda. */
   .fac-pop .fi-stats { margin-top: 0; }
-  .fac-pop .fi-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; padding: 3px 0; }
-  .fac-pop .fi-stat > span { color: var(--text-dimmer); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .fac-pop .fi-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: var(--fs-sm); padding: 3px 0; }
+  .fac-pop .fi-stat > span { color: var(--text-dimmer); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .05em; }
   .fac-pop .fi-stat > b { color: var(--text); font-weight: 600; text-align: right; }
   /* Stato: riga finale colorata (verde sicura / rossa raidabile). */
-  .fac-pop .fi-status { padding: 9px 16px 13px; font-size: 12.5px; font-weight: 600; }
+  .fac-pop .fi-status { padding: 9px 16px 13px; font-size: var(--fs-sm); font-weight: 600; }
   .fac-pop .fi-none { color: var(--text-dimmer); font-weight: 400; }
   /* Colori relazione anche dentro il popup (alleati). */
   .fac-pop .fac-own { color: var(--green); }
@@ -455,7 +455,7 @@ function format_playtime(int $seconds): string {
   .fac-pop .fac-enemy { color: #e05a5a; }
   .fac-pop .fac-guest { color: var(--text); }
   /* Timer sobrio del prossimo aggiornamento delle statistiche. */
-  .stats-refresh { color: var(--text-dimmer); font-size: 12.5px; margin: -6px 0 14px; }
+  .stats-refresh { color: var(--text-dimmer); font-size: var(--fs-sm); margin: -6px 0 14px; }
   .stats-refresh b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* Navbar a schede: sceglie tra Top Fazioni e Top Giocatori (le due viste sono separate, una alla volta). */
@@ -463,7 +463,7 @@ function format_playtime(int $seconds): string {
   .rank-tab-btn {
     padding: 10px 18px; background: var(--bg-elevated); color: var(--text-dim);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
-    font-family: var(--font-heading); font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: var(--font-heading); font-size: var(--fs-base); font-weight: 600; cursor: pointer;
     transition: border-color .12s ease, color .12s ease, background .12s ease;
   }
   .rank-tab-btn:hover { color: var(--text); border-color: var(--border-strong); }
@@ -473,7 +473,7 @@ function format_playtime(int $seconds): string {
   .player-board { margin-top: 16px; }
   .player-board h3 { margin-top: 0; }
   /* Nota descrittiva breve sotto il titolo di ogni sezione (sostituisce il vecchio blocco unico). */
-  .board-note { color: var(--text-dim); font-size: 13.5px; line-height: 1.5; margin: 0 0 14px; }
+  .board-note { color: var(--text-dim); font-size: var(--fs-sm); line-height: 1.5; margin: 0 0 14px; }
   .board-note b { color: var(--text); font-weight: 600; }
 
   /* Anti-lampo: prima che il JS prenda il controllo (data-ready), mostra SOLO le prime 10 righe. Senza
@@ -489,7 +489,7 @@ function format_playtime(int $seconds): string {
     min-width: 34px; height: 34px; padding: 0 9px; box-sizing: border-box;
     background: var(--bg-elevated); color: var(--text-dim);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
-    font-family: var(--font-heading); font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--font-heading); font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
     transition: border-color .12s ease, color .12s ease, background .12s ease;
   }
   .rank-pager button:hover:not([disabled]) { color: var(--text); border-color: var(--border-strong); }

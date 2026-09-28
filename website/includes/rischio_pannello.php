@@ -11,13 +11,13 @@
 ?>
 <div class="panel" id="da-controllare">
   <h3 style="margin-top:0;">Da controllare</h3>
-  <p style="margin:0; color:var(--text-dim); font-size:14px;">
+  <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
     I giocatori in ordine di <strong>quanto conviene andarli a guardare</strong>, non di quanto
     sono colpevoli. Il punteggio somma i punti delle violazioni registrate dal server, le
     segnalazioni dei giocatori ancora aperte e i provvedimenti già attivi — e accanto trovi
     sempre da cosa è fatto, perché un numero senza il suo perché non è una prova.
   </p>
-  <p style="margin:10px 0 0; color:var(--text-dimmer); font-size:13px;">
+  <p style="margin:10px 0 0; color:var(--text-dimmer); font-size: var(--fs-sm);">
     Quando ne hai guardato uno, segnalo come controllato: esce dalla lista per una settimana,
     così non lo ricontrolli tu domani e un altro dello staff dopodomani.
   </p>
@@ -30,14 +30,14 @@
     <?php else: ?>
       <a href="/manage?section=sanzioni&amp;tutti=1#da-controllare" class="btn btn-ghost">Mostra anche i controllati</a>
     <?php endif; ?>
-    <span style="color:var(--text-dimmer); font-size:13px;">
+    <span style="color:var(--text-dimmer); font-size: var(--fs-sm);">
       <?= count($elenco) ?> <?= count($elenco) === 1 ? 'giocatore' : 'giocatori' ?> in elenco
     </span>
     <a href="/sanzioni" target="_blank" rel="noopener" style="margin-left:auto;">Elenco pubblico delle sanzioni →</a>
   </div>
 
   <?php if (!$elenco): ?>
-    <p style="margin:0; color:var(--text-dim); font-size:14px;">
+    <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
       <?= $mostraTutti
             ? 'Nessuno ha ancora accumulato niente: non c\'è nessuno da controllare.'
             : 'Nessuno da controllare adesso. Chi era in lista è stato guardato di recente.' ?>

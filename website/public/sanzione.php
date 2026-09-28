@@ -183,13 +183,13 @@ require __DIR__ . '/../includes/header.php';
         <?php endif; ?>
       </div>
     <?php else: ?>
-      <p style="margin:0; color:var(--text-dim); font-size:14px;">
+      <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
         Il contenuto del ricorso è privato: lo vedono l'interessato e lo staff.
       </p>
     <?php endif; ?>
 
   <?php elseif ($sonoIo && $statoVero !== 'revocata'): ?>
-    <p style="color:var(--text-dim); font-size:14px; margin-top:0;">
+    <p style="color:var(--text-dim); font-size: var(--fs-base); margin-top:0;">
       Se ritieni che questo provvedimento sia sbagliato, scrivi qui la tua versione.
       Il ricorso resta privato fra te e lo staff; nell'elenco pubblico comparirà solo l'esito.
     </p>

@@ -73,14 +73,14 @@ require __DIR__ . '/../includes/header.php';
 <?php if ($fatto): ?>
   <div class="alert alert-success">Password cambiata. Vale anche in gioco, con lo stesso nome.</div>
   <div class="panel">
-    <p style="color:var(--text-dim); font-size:14px;">Gli altri dispositivi sono stati disconnessi, sul sito e in gioco: dovranno usare la password nuova.</p>
+    <p style="color:var(--text-dim); font-size: var(--fs-base);">Gli altri dispositivi sono stati disconnessi, sul sito e in gioco: dovranno usare la password nuova.</p>
     <a href="/profilo" class="btn btn-ghost btn-small">Torna al profilo</a>
   </div>
 <?php else: ?>
 
   <div class="panel">
     <p>Account: <strong class="testo-verde"><?= h($utente['mc_username']) ?></strong></p>
-    <p style="color:var(--text-dim); font-size:14px;">La password e' la stessa che usi per entrare sul server: cambiandola qui, cambia anche in gioco.</p>
+    <p style="color:var(--text-dim); font-size: var(--fs-base);">La password e' la stessa che usi per entrare sul server: cambiandola qui, cambia anche in gioco.</p>
   </div>
 
   <?php if ($error): ?><div class="alert alert-error"><?= h($error) ?></div><?php endif; ?>

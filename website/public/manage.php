@@ -1506,26 +1506,26 @@ if ($section === 'dashboard') {
           $vTS = $s['tile_text_color'] ?? '';
           $vTC = $s['tile_text_color_chiaro'] ?? '';
         ?>
-        <h3 id="velo" style="margin:22px 0 2px; font-size:15px; scroll-margin-top:96px;">Velo sulle copertine</h3>
+        <h3 id="velo" style="margin:22px 0 2px; font-size: var(--fs-base); scroll-margin-top:96px;">Velo sulle copertine</h3>
         <label class="campo-check" style="margin:8px 0 2px;">
           <input type="checkbox" name="card_overlay_blog" value="1"
                  <?= ($s['card_overlay_blog'] ?? '1') === '1' ? 'checked' : '' ?>>
           Velo acceso sulle tessere degli articoli
         </label>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 10px;">
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 10px;">
           Riguarda <strong>solo il blog</strong>: lo store ha il suo interruttore, in
           <a href="/manage?section=store#velo">Store</a>. Spento, le copertine si vedono pulite e
           al testo sopra arriva un&rsquo;ombra al posto della sfumatura.
         </p>
         <?= nota_interruttore_veli('blog') ?>
-        <p style="color:var(--text-dim); font-size:12.5px; margin:0 0 8px;">
+        <p style="color:var(--text-dim); font-size: var(--fs-sm); margin:0 0 8px;">
           La sfumatura che copre la copertina perch&eacute; il testo sopra si legga. Un velo giusto sul
           fondo nero pu&ograve; essere troppo (o troppo poco) su quello bianco, quindi i due temi si
           regolano a parte: finch&eacute; non tocchi la colonna del tema chiaro vale quella del tema scuro.
           La <strong>direzione</strong> &egrave; una sola per entrambi i temi.
         </p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
         <div class="tavolozze">
           <div class="tavolozza">
             <h4>&#9790; Tema scuro</h4>
@@ -1578,8 +1578,8 @@ if ($section === 'dashboard') {
           </div>
         </div>
 
-        <h3 style="margin:22px 0 2px; font-size:15px;">Testo sopra le copertine</h3>
-        <p style="color:var(--text-dim); font-size:12.5px; margin:0 0 12px;">
+        <h3 style="margin:22px 0 2px; font-size: var(--fs-base);">Testo sopra le copertine</h3>
+        <p style="color:var(--text-dim); font-size: var(--fs-sm); margin:0 0 12px;">
           Titolo, riassunto, riga dei dati e &ldquo;Leggi tutto&rdquo; delle tessere. Senza la spunta il
           colore lo decide il velo &mdash; nero sui veli chiari, bianco su quelli scuri &mdash; ed e' la
           <strong>stessa regola delle card dei pacchetti</strong>, cosi' le due famiglie di tessere si
@@ -1618,8 +1618,8 @@ if ($section === 'dashboard') {
           $vBFc = $s['featured_border_color_chiaro'] ?? $vBF;
           $vBGc = $s['grid_border_color_chiaro'] ?? $vBG;
         ?>
-        <h3 style="margin:22px 0 2px; font-size:15px;">Barretta laterale</h3>
-        <p style="color:var(--text-dim); font-size:12.5px; margin:0 0 12px;">
+        <h3 style="margin:22px 0 2px; font-size: var(--fs-base);">Barretta laterale</h3>
+        <p style="color:var(--text-dim); font-size: var(--fs-sm); margin:0 0 12px;">
           La riga di colore sul fianco sinistro della tessera. Un colore acceso che spicca sul fondo
           nero puo' sparire su quello bianco: anche qui i due temi si regolano a parte, e finche' non
           tocchi la colonna del tema chiaro vale quella del tema scuro.
@@ -1795,7 +1795,7 @@ if ($section === 'dashboard') {
             <div>
               <label for="subtitle">Sottotitolo (facoltativo)</label>
               <input type="text" id="subtitle" name="subtitle" maxlength="255" value="<?= h($post['subtitle'] ?? '') ?>">
-              <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Compare <strong>a capo, sotto il titolo</strong>. È anche la frase che Google mostra come descrizione dell'articolo.</p>
+              <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Compare <strong>a capo, sotto il titolo</strong>. È anche la frase che Google mostra come descrizione dell'articolo.</p>
             </div>
             <?php campo_immagine('cover_image', 'cover_image', (string) ($post['cover_image'] ?? ''),
                 'Immagine di presentazione (opzionale)',
@@ -1910,7 +1910,7 @@ if ($section === 'dashboard') {
         $giaElencate[] = '/pagina/' . $pg['slug'];
     }
     ?>
-    <h3 style="margin:26px 0 10px; font-size:15px; color:var(--text-dim);">Sezioni del sito</h3>
+    <h3 style="margin:26px 0 10px; font-size: var(--fs-base); color:var(--text-dim);">Sezioni del sito</h3>
     <div style="margin-bottom:6px;">
       <?php foreach ($vociMenu as $voce): ?>
         <?php if (in_array($voce['url'], $giaElencate, true)) continue; ?>
@@ -1959,7 +1959,7 @@ if ($section === 'dashboard') {
     ?>
     <h2 id="menu" style="margin-top:34px;">Barra di navigazione</h2>
     <div class="panel">
-      <p style="color:var(--text-dim); font-size:13px; margin:0;">
+      <p style="color:var(--text-dim); font-size: var(--fs-sm); margin:0;">
         Le voci del menu in alto, nell'ordine in cui compaiono. Per collegare una pagina creata qui sopra
         usa come URL <span class="code-box">/pagina/nome-pagina</span> (lo trovi sotto il titolo della pagina).
         La voce che punta a <span class="code-box">/store</span> viene disegnata come pulsante oro.
@@ -2065,7 +2065,7 @@ if ($section === 'dashboard') {
               <input type="text" id="title" name="title" value="<?= h($page['title']) ?>">
             </div>
             <?php if ($slug !== ''): ?>
-              <p style="color:var(--text-dim); font-size:13px;">URL: <?= $slug === 'regolamento' ? '/regolamento' : '/pagina/' . h($slug) ?> (non modificabile)</p>
+              <p style="color:var(--text-dim); font-size: var(--fs-sm);">URL: <?= $slug === 'regolamento' ? '/regolamento' : '/pagina/' . h($slug) ?> (non modificabile)</p>
             <?php endif; ?>
             <div>
               <label for="body">Testo</label>
@@ -2098,12 +2098,12 @@ if ($section === 'dashboard') {
           <?php /* Il titolo e' fisso: la pagina e' una sola e il menu la chiama "Guida". */ ?>
           <input type="text" value="Guida del server" disabled>
         </div>
-        <p style="color:var(--text-dim); font-size:13px;">URL: /tutorial (non modificabile)</p>
+        <p style="color:var(--text-dim); font-size: var(--fs-sm);">URL: /tutorial (non modificabile)</p>
         <div>
           <label for="tutorial_intro">Testo di apertura</label>
           <textarea id="tutorial_intro" name="tutorial_intro" rows="6" maxlength="600"
                     placeholder="<?= h(guide_intro()) ?>"><?= h($impGuida['tutorial_intro'] ?? '') ?></textarea>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             È il testo che apre la pagina, sopra la guida vera e propria. Lascia vuoto per
             rimettere quello predefinito (lo vedi in grigio qui sopra). Massimo 600 caratteri;
             gli a capo si vedono anche sulla pagina.
@@ -2114,7 +2114,7 @@ if ($section === 'dashboard') {
     </div>
     <div class="panel">
       <h3 style="margin-top:0;">I capitoli non si modificano da qui</h3>
-      <p style="margin:0; color:var(--text-dim); font-size:14px;">
+      <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
         Fazioni, potenza, territori, mappa, elenco comandi: quel testo arriva dal plugin
         MagixFactions ed è lo stesso che i giocatori leggono in gioco. Si aggiorna da solo:
         appena il server riscrive la sua guida, il sito la ricopia entro pochi secondi.
@@ -2215,7 +2215,7 @@ if ($section === 'dashboard') {
                    <?= ($impForum['forum_ultime_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
             Mostra il riquadro &ldquo;Ultime discussioni&rdquo; in cima al forum
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             &Egrave; la fascia con le discussioni pi&ugrave; recenti che sta sopra all&rsquo;elenco delle
             categorie. Spenta, il forum parte direttamente dalle categorie.
           </p>
@@ -2286,7 +2286,7 @@ if ($section === 'dashboard') {
               <option value="<?= (int) $p['id'] ?>" <?= $editCat && (int) $editCat['parent_id'] === (int) $p['id'] ? 'selected' : '' ?>><?= h($p['name']) ?></option>
             <?php endforeach; ?>
           </select>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             <?= $haFiglie
               ? 'Questa categoria ha gi&agrave; delle sotto-categorie, quindi non pu&ograve; entrare dentro un&rsquo;altra.'
               : 'Scegliendo una categoria superiore, questa diventa una sua sotto-categoria. Si pu&ograve; fare anche trascinandola nell&rsquo;elenco qui sopra.' ?>
@@ -2306,7 +2306,7 @@ if ($section === 'dashboard') {
                    <?= $coloreProprio ? 'checked' : '' ?>>
             <strong>Scegli tu il colore</strong>
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
             Senza la spunta la categoria prende da sola una delle tinte del sito e non cambia
             più. Il colore si vede sulla barretta a lato, sull'iniziale e sull'alone quando ci
             passi sopra col mouse.
@@ -2548,7 +2548,7 @@ if ($section === 'dashboard') {
           <label for="nav_logo_size">Altezza del logo nella barra (pixel)</label>
           <input type="number" id="nav_logo_size" name="nav_logo_size" min="20" max="64" step="2"
                  value="<?= h($s['nav_logo_size'] ?? '44') ?>" style="max-width:120px;">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Da 20 a 64. La larghezza si adatta da sola alle proporzioni dell&rsquo;immagine. Oltre i 48 pixel la barra in alto comincia a crescere.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Da 20 a 64. La larghezza si adatta da sola alle proporzioni dell&rsquo;immagine. Oltre i 48 pixel la barra in alto comincia a crescere.</p>
         </div>
         <?php campo_immagine('favicon_url', 'favicon_url', (string) ($s['favicon_url'] ?? ''),
             'Icona del sito (favicon)',
@@ -2556,19 +2556,19 @@ if ($section === 'dashboard') {
         <div>
           <label for="meta_description">Descrizione per i motori di ricerca (meta description)</label>
           <textarea id="meta_description" name="meta_description" rows="3" maxlength="300"><?= h($s['meta_description'] ?? '') ?></textarea>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Il testo che Google mostra sotto il titolo nei risultati di ricerca. Consigliati 140-160 caratteri circa.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Il testo che Google mostra sotto il titolo nei risultati di ricerca. Consigliati 140-160 caratteri circa.</p>
         </div>
         <div>
           <label for="meta_title_home">Titolo della home per i motori di ricerca</label>
           <input type="text" id="meta_title_home" name="meta_title_home" maxlength="70"
                  value="<?= h($s['meta_title_home'] ?? '') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">La riga blu cliccabile su Google per la pagina iniziale. Meglio se contiene le parole che la gente cerca davvero (&ldquo;server Minecraft italiano fazioni&rdquo;) e sta sotto i 60 caratteri. Vuoto = solo il nome del sito.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">La riga blu cliccabile su Google per la pagina iniziale. Meglio se contiene le parole che la gente cerca davvero (&ldquo;server Minecraft italiano fazioni&rdquo;) e sta sotto i 60 caratteri. Vuoto = solo il nome del sito.</p>
         </div>
         <div>
           <label for="google_site_verification">Codice di verifica di Google Search Console</label>
           <input type="text" id="google_site_verification" name="google_site_verification" maxlength="120"
                  value="<?= h($s['google_site_verification'] ?? '') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Serve a dimostrare a Google che il sito è nostro. In Search Console scegli <strong>Tag HTML</strong> e incolla qui solo il codice dopo <code>content=</code> (quello che comincia per <code>google-site-verification=</code> va bene lo stesso: la parte iniziale viene tolta).</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Serve a dimostrare a Google che il sito è nostro. In Search Console scegli <strong>Tag HTML</strong> e incolla qui solo il codice dopo <code>content=</code> (quello che comincia per <code>google-site-verification=</code> va bene lo stesso: la parte iniziale viene tolta).</p>
         </div>
         <?php campo_immagine('og_image', 'og_image', (string) ($s['og_image'] ?? ''),
             'Immagine per le anteprime dei link',
@@ -2576,12 +2576,12 @@ if ($section === 'dashboard') {
         <div>
           <label for="hero_slogan">Slogan sotto il logo</label>
           <textarea id="hero_slogan" name="hero_slogan" rows="2"><?= h($s['hero_slogan'] ?? '') ?></textarea>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Ogni riga va a capo così com'è scritta. Lascia vuoto per non mostrarlo.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Ogni riga va a capo così com'è scritta. Lascia vuoto per non mostrarlo.</p>
         </div>
         <div>
           <label for="hero_headline">Titolo grande a destra del logo</label>
           <textarea id="hero_headline" name="hero_headline" rows="3"><?= h($s['hero_headline'] ?? '') ?></textarea>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Una riga per riga. L'<strong>ultima</strong> riga viene colorata con il colore primario.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Una riga per riga. L'<strong>ultima</strong> riga viene colorata con il colore primario.</p>
         </div>
         <div>
           <label for="hero_sub">Testo sotto il titolo</label>
@@ -2595,7 +2595,7 @@ if ($section === 'dashboard') {
             <option value="chiaro" <?= $temaOra === 'chiaro' ? 'selected' : '' ?>>Chiaro</option>
             <option value="auto" <?= $temaOra === 'auto' ? 'selected' : '' ?>>Automatico (segue il browser)</option>
           </select>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Vale per chi arriva la prima volta. Ognuno poi se lo cambia dal pulsante ☾ nella
             barra in alto o dal proprio profilo, e quella scelta non scade più. Il colore qui sotto
             riguarda solo il tema scuro: sul chiaro il fondo è quello della tavolozza chiara.
@@ -2605,7 +2605,7 @@ if ($section === 'dashboard') {
                  tema, cosi' si vede subito che sono la stessa cosa in due versioni. */ ?>
         <div>
           <label>Tavolozza dei temi</label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 10px;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 10px;">
             Bastano tre colori per tema: <strong>sfondo</strong> della pagina, <strong>pannelli</strong>
             e <strong>testo</strong>. Bordi, fondi intermedi e testi tenui si ricavano da questi, e i
             testi tenui vengono scuriti (o schiariti) finché non superano la soglia di leggibilità:
@@ -2639,7 +2639,7 @@ if ($section === 'dashboard') {
             <option value="contrasto" <?= $btnStile === 'contrasto' ? 'selected' : '' ?>>Bianco e nero (come l&rsquo;invio della chat)</option>
             <option value="accento" <?= $btnStile === 'accento' ? 'selected' : '' ?>>Colore d&rsquo;accento del sito</option>
           </select>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Vale per tutti i pulsanti pieni del sito (&ldquo;Accedi&rdquo;, &ldquo;Salva&rdquo;, &ldquo;Vai&rdquo;&hellip;).
             <strong>Bianco e nero</strong> = bianco sul tema scuro e nero su quello chiaro, come il
             pulsante di invio della chat. <strong>Colore d&rsquo;accento</strong> = la sfumatura col
@@ -2648,7 +2648,7 @@ if ($section === 'dashboard') {
         </div>
         <div>
           <label>Colori d&rsquo;accento</label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 10px;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 10px;">
             Le due tinte del sito: la prima e' quella dei collegamenti, dei pulsanti e della striscia
             in cima, la seconda accompagna. Il testo che ci finisce sopra (nero o bianco) si sceglie
             da solo in base al contrasto.
@@ -2717,7 +2717,7 @@ if ($section === 'dashboard') {
             <input type="checkbox" name="follow_featured" value="1" style="width:auto;" <?= $seguiEvidenza ? 'checked' : '' ?>>
             Il pulsante porta al pacchetto in evidenza dello store
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             <?php if ($pkgEvidenza): ?>
               Adesso punta a <strong><?= h($pkgEvidenza['name']) ?></strong>
               (<span class="code-box">/store#<?= h($pkgEvidenza['slug']) ?></span>).
@@ -2731,7 +2731,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="button_url">Link del pulsante<?= $seguiEvidenza && $pkgEvidenza ? ' (di riserva)' : '' ?></label>
           <input type="text" id="button_url" name="button_url" placeholder="https://..." value="<?= h($s['vip_banner_button_url'] ?? '#') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Usato quando la spunta qui sopra è tolta, o quando nessun pacchetto è in evidenza.
           </p>
         </div>
@@ -2745,7 +2745,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="overlay_intensity">Intensità del velo dorato (<?= h($s['vip_banner_overlay_intensity'] ?? '85') ?>%)</label>
           <input type="range" id="overlay_intensity" name="overlay_intensity" min="0" max="100" value="<?= h($s['vip_banner_overlay_intensity'] ?? '85') ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             0% = trasparente (si vede solo l'immagine), 100% = colore pieno. Ha effetto soprattutto
             quando è impostata un'immagine di sfondo. Qui, a differenza di blog e store, il velo
             <strong>copre il banner in modo uniforme</strong>: non c'è sfumatura, quindi 100% vuol
@@ -2767,7 +2767,7 @@ if ($section === 'dashboard') {
             <input type="checkbox" name="glow_mobile" value="1" style="width:auto;" <?= ($s['vip_banner_glow_mobile'] ?? '0') === '1' ? 'checked' : '' ?>>
             Alone dorato sotto al banner anche su telefono
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:6px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:6px 0 0;">
             Sotto i 900px il banner diventa una fascia a tutta larghezza: li' il bordo luccicante e
             l&rsquo;alone dorato appesantiscono, quindi di serie restano spenti. Sul grande non cambia nulla.
           </p>
@@ -2793,7 +2793,7 @@ if ($section === 'dashboard') {
             <input type="checkbox" name="chat_show_game" value="1" style="width:auto;" <?= ($s['chat_show_game'] ?? '1') === '1' ? 'checked' : '' ?>>
             Mostra anche i messaggi scritti in gioco
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Se la togli, sul sito restano solo i messaggi scritti dal sito — ma quelli continuano comunque ad arrivare in gioco.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Se la togli, sul sito restano solo i messaggi scritti dal sito — ma quelli continuano comunque ad arrivare in gioco.</p>
         </div>
         <div>
           <label for="chat_history">Messaggi mostrati all'apertura</label>
@@ -2802,7 +2802,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="chat_slowmode">Attesa fra due messaggi (secondi)</label>
           <input type="number" id="chat_slowmode" name="chat_slowmode" min="0" max="120" value="<?= h($s['chat_slowmode'] ?? '3') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">0 = nessuna attesa. Oltre a questo, c'è comunque un tetto fisso di 12 messaggi al minuto per giocatore.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">0 = nessuna attesa. Oltre a questo, c'è comunque un tetto fisso di 12 messaggi al minuto per giocatore.</p>
         </div>
         <button type="submit" class="btn btn-accent">Salva chat</button>
       </form>
@@ -2896,7 +2896,7 @@ if ($section === 'dashboard') {
           <label for="goal_amount">Cifra da raggiungere (<?= h(site_setting('store_currency', 'EUR')) ?>)</label>
           <input type="text" id="goal_amount" name="goal_amount" style="max-width:160px;"
                  value="<?= h(number_format((float) ($g['goal_amount'] ?? 0), 2, ',', '')) ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             A zero la sezione non compare, anche se la spunta qui sopra è messa.
           </p>
         </div>
@@ -2908,7 +2908,7 @@ if ($section === 'dashboard') {
             <option value="mensile" <?= $periodoOra === 'mensile' ? 'selected' : '' ?>>Ogni mese (dal primo giorno)</option>
             <option value="annuale" <?= $periodoOra === 'annuale' ? 'selected' : '' ?>>Ogni anno (dal 1° gennaio)</option>
           </select>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Il conteggio riparte da solo: si sommano gli acquisti dall&rsquo;inizio del periodo in corso.
           </p>
         </div>
@@ -2917,7 +2917,7 @@ if ($section === 'dashboard') {
             <input type="checkbox" name="goal_show_amount" value="1" style="width:auto;" <?= ($g['goal_show_amount'] ?? '1') === '1' ? 'checked' : '' ?>>
             Mostra gli importi (raccolto / obiettivo)
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Togliendo la spunta resta solo la percentuale: la barra si vede, le cifre no.
           </p>
         </div>
@@ -2934,7 +2934,7 @@ if ($section === 'dashboard') {
           <label for="store_cols">Pacchetti per riga</label>
           <input type="number" id="store_cols" name="store_cols" min="2" max="6" style="max-width:120px;"
                  value="<?= h($imp['store_cols'] ?? '3') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Quante card affiancare su computer e tablet (da 2 a 6). Sui telefoni le card restano
             piccole e ordinate a prescindere.
           </p>
@@ -2959,7 +2959,7 @@ if ($section === 'dashboard') {
                  <?= ($imp['card_overlay_store'] ?? '1') === '1' ? 'checked' : '' ?>>
           Velo acceso sulle card dei pacchetti
         </label>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 10px;">
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 10px;">
           Riguarda <strong>solo lo store</strong> (card e pagina di un pacchetto): gli articoli hanno
           il loro interruttore, in <a href="/manage?section=blog#velo">Blog</a>. Qui il velo &egrave; anche
           quello che tiene leggibile il <strong>prezzo</strong> scritto sopra l&rsquo;immagine.
@@ -2973,8 +2973,8 @@ if ($section === 'dashboard') {
           $vSS = $imp['store_overlay_stop_chiaro'] ?? ($imp['store_overlay_stop'] ?? '55');
           $vSB = $imp['store_border_color_chiaro'] ?? ($imp['store_border_color'] ?? '#f0c75e');
         ?>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
         <div class="tavolozze">
           <div class="tavolozza">
             <h4>&#9790; Tema scuro</h4>
@@ -2996,7 +2996,7 @@ if ($section === 'dashboard') {
               <input type="checkbox" name="store_text_custom" value="1" style="width:auto;" <?= is_valid_hex_color($tsScuro) ? 'checked' : '' ?>>
               Scelgo io il colore
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
               Senza la spunta il colore lo decide il velo: nero sui veli chiari, bianco su quelli
               scuri. Vale per titolo, elenco e <strong>prezzo</strong> delle card con copertina.
             </p>
@@ -3008,14 +3008,14 @@ if ($section === 'dashboard') {
               <input type="checkbox" name="store_price_custom" value="1" style="width:auto;" <?= is_valid_hex_color($prScuro) ? 'checked' : '' ?>>
               Colore a parte per il prezzo
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
               Senza la spunta il prezzo segue il colore del testo qui sopra.
             </p>
             <input type="color" id="store_price_color" name="store_price_color" value="<?= h(is_valid_hex_color($prScuro) ? $prScuro : '#f8e6b7') ?>" style="height:44px; padding:4px;">
 
             <?php $scColore = $imp['store_sconto_color'] ?? ''; ?>
             <p class="tavolozza-gruppo">Targhetta dello sconto (vale per i due temi)</p>
-            <p style="color:var(--text-dim); font-size:12px; margin:0 0 8px;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 8px;">
               Il &ldquo;-5%&rdquo; accanto al prezzo: stessa tinta sulle card dello store, sulla pagina
               del pacchetto e sul <strong>banner VIP</strong>. Il testo sopra (nero o bianco) si sceglie
               da solo in base al contrasto, quindi un colore basta per entrambi i temi.
@@ -3055,7 +3055,7 @@ if ($section === 'dashboard') {
               <input type="checkbox" name="store_text_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color($tsChiaro) ? 'checked' : '' ?>>
               Scelgo io il colore
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
               Sul tema chiaro il velo e' spesso piu' tenue: se il testo automatico non ti convince,
               qui lo imposti a mano.
             </p>
@@ -3067,7 +3067,7 @@ if ($section === 'dashboard') {
               <input type="checkbox" name="store_price_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color($prChiaro) ? 'checked' : '' ?>>
               Colore a parte per il prezzo
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
               Senza la spunta il prezzo segue il colore del testo qui sopra.
             </p>
             <input type="color" id="store_price_color_chiaro" name="store_price_color_chiaro" value="<?= h(is_valid_hex_color($prChiaro) ? $prChiaro : '#7a5c00') ?>" style="height:44px; padding:4px;">
@@ -3126,7 +3126,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="store_sconto_valore">Valore dello sconto</label>
           <input type="text" id="store_sconto_valore" name="discount_value" value="<?= h($scStoreValore > 0 ? number_format($scStoreValore, 2, ',', '') : '') ?>" placeholder="es. 10">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Con la percentuale scrivi solo il numero (10 = 10%). Con l'importo fisso, quanto togliere dal prezzo.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Con la percentuale scrivi solo il numero (10 = 10%). Con l'importo fisso, quanto togliere dal prezzo.</p>
         </div>
         <button type="submit" class="btn btn-accent">Salva sconto</button>
       </form>
@@ -3152,7 +3152,7 @@ if ($section === 'dashboard') {
             <input type="checkbox" name="show_amount" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_amount'] ?? '1') === '1' ? 'checked' : '' ?>>
             Mostra gli importi
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Se la togli restano nomi, pacchetti e classifica, ma senza cifre.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Se la togli restano nomi, pacchetti e classifica, ma senza cifre.</p>
         </div>
         <div>
           <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
@@ -3165,21 +3165,21 @@ if ($section === 'dashboard') {
             <input type="checkbox" name="show_rank" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_rank'] ?? '1') === '1' ? 'checked' : '' ?>>
             …e anche il grado
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Senza questa spunta resta il solo nickname, senza tag colorato. Vale solo se il nickname è mostrato.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Senza questa spunta resta il solo nickname, senza tag colorato. Vale solo se il nickname è mostrato.</p>
         </div>
         <div>
           <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
             <input type="checkbox" name="show_package" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_package'] ?? '1') === '1' ? 'checked' : '' ?>>
             Mostra il nome del pacchetto
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Riguarda l'elenco degli ultimi acquisti: se la togli resta solo quanto tempo fa.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Riguarda l'elenco degli ultimi acquisti: se la togli resta solo quanto tempo fa.</p>
         </div>
         <div>
           <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
             <input type="checkbox" name="show_date" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_date'] ?? '1') === '1' ? 'checked' : '' ?>>
             Mostra quando è stato acquistato
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Il «2 h fa» accanto al pacchetto negli ultimi acquisti.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Il «2 h fa» accanto al pacchetto negli ultimi acquisti.</p>
         </div>
         <div>
           <label for="recent_title">Titolo del riquadro acquisti</label>
@@ -3188,7 +3188,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="recent_count">Quanti acquisti mostrare</label>
           <input type="number" id="recent_count" name="recent_count" min="0" max="20" value="<?= h($imp['store_sidebar_recent_count'] ?? '5') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">0 = nascondi del tutto il riquadro degli acquisti.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">0 = nascondi del tutto il riquadro degli acquisti.</p>
         </div>
         <div>
           <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
@@ -3203,14 +3203,14 @@ if ($section === 'dashboard') {
         <div>
           <label for="top_days">Periodo della classifica (giorni)</label>
           <input type="number" id="top_days" name="top_days" min="0" max="3650" value="<?= h($imp['store_sidebar_top_days'] ?? '0') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">0 = da sempre. Con 30 vince chi ha speso di più nell'ultimo mese.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">0 = da sempre. Con 30 vince chi ha speso di più nell'ultimo mese.</p>
         </div>
         <div>
           <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
             <input type="checkbox" name="include_manual" value="1" style="width:auto;" <?= ($imp['store_sidebar_include_manual'] ?? '0') === '1' ? 'checked' : '' ?>>
             Conta anche le consegne manuali
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Le consegne fatte da qui (regali, prove, rimborsi) non sono incassi: di norma vanno lasciate fuori.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Le consegne fatte da qui (regali, prove, rimborsi) non sono incassi: di norma vanno lasciate fuori.</p>
         </div>
         <button type="submit" class="btn btn-accent">Salva colonna laterale</button>
       </form>
@@ -3332,7 +3332,7 @@ if ($section === 'dashboard') {
                      <?= $veloProprio ? 'checked' : '' ?>>
               <strong>Aspetto proprio per questa categoria</strong>
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
               Senza la spunta questa categoria usa il velo predefinito. I campi qui sotto valgono
               <strong>solo per <?= $editCat ? h($editCat['name']) : 'questa categoria' ?></strong>,
               non per tutto lo store.
@@ -3347,8 +3347,8 @@ if ($section === 'dashboard') {
           $cVS = $editCat['overlay_stop_light'] ?? ($editCat['overlay_stop'] ?? ($imp['store_overlay_stop'] ?? '55'));
           $cVB = $editCat['border_color_light'] ?? ($editCat['border_color'] ?? ($imp['store_border_color'] ?? '#f0c75e'));
         ?>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size:12px; margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
+        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
         <div class="tavolozze">
           <div class="tavolozza">
             <h4>&#9790; Tema scuro</h4>
@@ -3370,7 +3370,7 @@ if ($section === 'dashboard') {
               <input type="checkbox" name="text_custom" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cTS) ? 'checked' : '' ?>>
               Colore solo per questa categoria
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
               Senza la spunta vale la scelta generale dello store e, se manca anche quella, il colore
               calcolato dal velo (nero sui veli chiari, bianco su quelli scuri).
             </p>
@@ -3390,7 +3390,7 @@ if ($section === 'dashboard') {
               <input type="checkbox" name="sconto_custom" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cSC) ? 'checked' : '' ?>>
               Colore solo per questa categoria
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 8px;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
               Il testo dentro la targhetta (nero o bianco) si sceglie da solo in base al contrasto.
             </p>
             <input type="color" id="discount_color" name="discount_color" value="<?= h(is_valid_hex_color((string) $cSC) ? (string) $cSC : ($imp['store_sconto_color'] ?: ($imp['color_green'] ?? '#a3e635'))) ?>" style="height:44px; padding:4px;">
@@ -3445,7 +3445,7 @@ if ($section === 'dashboard') {
                      <?= $filtroProprio ? 'checked' : '' ?>>
               <strong>Colori del filtro solo per questa categoria</strong>
             </label>
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
               Il pulsante di <?= $editCat ? h($editCat['name']) : 'questa categoria' ?> sopra la griglia dello store.
               Senza la spunta usa i colori generali.
             </p>
@@ -3480,7 +3480,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="cat_sconto_valore">Valore dello sconto</label>
           <input type="text" id="cat_sconto_valore" name="discount_value" value="<?= h($scValore > 0 ? number_format($scValore, 2, ',', '') : '') ?>" placeholder="es. 20">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Si applica a tutti i pacchetti della categoria che non hanno uno sconto proprio.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Si applica a tutti i pacchetti della categoria che non hanno uno sconto proprio.</p>
         </div>
         <button type="submit" class="btn btn-accent"><?= $editCat ? 'Salva categoria' : 'Crea categoria' ?></button>
       </form>
@@ -3526,12 +3526,12 @@ if ($section === 'dashboard') {
         <div>
           <label for="paypal_client_id">Client ID</label>
           <input type="text" id="paypal_client_id" name="paypal_client_id" value="<?= h($s['paypal_client_id'] ?? '') ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Si crea su developer.paypal.com creando un'app; il Client ID non e' segreto.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Si crea su developer.paypal.com creando un'app; il Client ID non e' segreto.</p>
         </div>
         <div>
           <label for="paypal_secret">Secret <?= $segretoImpostato ? '(già impostato)' : '(non impostato)' ?></label>
           <input type="password" id="paypal_secret" name="paypal_secret" value="" autocomplete="new-password" placeholder="<?= $segretoImpostato ? 'lascia vuoto per non cambiarlo' : 'incolla qui il secret' ?>">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Non viene mai rimandato al browser: il campo resta vuoto e si riscrive solo se digiti qualcosa.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Non viene mai rimandato al browser: il campo resta vuoto e si riscrive solo se digiti qualcosa.</p>
         </div>
         <div>
           <label for="store_currency">Valuta (codice a 3 lettere)</label>
@@ -3618,7 +3618,7 @@ if ($section === 'dashboard') {
             <input type="hidden" name="image_position_pc" value="<?= h($pkg['image_position_pc'] ?? '50% 50%') ?>">
           </div>
         <?php else: ?>
-          <p class="sub" style="margin:-6px 0 4px; color:var(--text-dim); font-size:12px;">
+          <p class="sub" style="margin:-6px 0 4px; color:var(--text-dim); font-size: var(--fs-xs);">
             Per scegliere l&rsquo;inquadratura della copertina (telefono e computer) lancia la migrazione
             <code>2026-09-14-store-inquadratura.sql</code> e ricarica.
           </p>
@@ -3626,14 +3626,14 @@ if ($section === 'dashboard') {
         <div>
           <label for="pkg_desc">Cosa ottieni (una voce per riga)</label>
           <textarea id="pkg_desc" name="description" rows="4"><?= h((string) $pkg['description']) ?></textarea>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Diventa l'elenco puntato che si vede sulla card e nella pagina del pacchetto.
           </p>
         </div>
         <div>
           <label for="pkg_long">Descrizione dettagliata (pagina del pacchetto)</label>
           <textarea id="pkg_long" name="long_description" rows="6"><?= h((string) ($pkg['long_description'] ?? '')) ?></textarea>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Testo esteso mostrato solo su <span class="code-box">/pacchetto/<?= h($pkg['slug'] ?? 'nome-pacchetto') ?></span>,
             la pagina che si apre cliccando la card. Se lo lasci vuoto, la pagina mostra solo l'elenco qui sopra.
           </p>
@@ -3641,7 +3641,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="pkg_commands">Comandi eseguiti all'acquisto</label>
           <textarea id="pkg_commands" name="commands" rows="5" placeholder="lp user {player} parent add vip&#10;give {player} diamond 64"><?= h((string) $pkg['commands']) ?></textarea>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Uno per riga, senza <code>/</code> iniziale, eseguiti dalla console del server.
             Usa <code>{player}</code> per il nome di chi acquista.
           </p>
@@ -3663,7 +3663,7 @@ if ($section === 'dashboard') {
                    <?= $altroInEvidenza !== null ? 'data-altro="' . h($altroInEvidenza) . '"' : '' ?>>
             Pacchetto in evidenza (promozione)
           </label>
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Ne esiste <strong>uno solo in tutto lo store</strong>, categorie comprese: fa da vetrina
             (la card larga in cima) ed è il pacchetto a cui punta il pulsante del banner promozione in home.
             <?php if ($altroInEvidenza !== null): ?>
@@ -3699,7 +3699,7 @@ if ($section === 'dashboard') {
         <div>
           <label for="pkg_sconto_valore">Valore dello sconto</label>
           <input type="text" id="pkg_sconto_valore" name="discount_value" value="<?= h($scValore > 0 ? number_format($scValore, 2, ',', '') : '') ?>" placeholder="es. 20">
-          <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">Vince sullo sconto della categoria e su quello generale. Lascia vuoto (o 0) per non scontare questo pacchetto.</p>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Vince sullo sconto della categoria e su quello generale. Lascia vuoto (o 0) per non scontare questo pacchetto.</p>
         </div>
         <button type="submit" class="btn btn-accent"><?= $id > 0 ? 'Salva pacchetto' : 'Crea pacchetto' ?></button>
       </form>
@@ -3720,7 +3720,7 @@ if ($section === 'dashboard') {
           <div>
             <label for="player">A chi</label>
             <input type="text" id="player" name="player" value="<?= h((string) $me['mc_username']) ?>" maxlength="32">
-            <p style="color:var(--text-dim); font-size:12px; margin:4px 0 0;">
+            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
               Nome Minecraft. Deve essere un giocatore già noto al sito: account collegato con
               entrato in partita almeno una volta.
             </p>
@@ -3862,7 +3862,7 @@ if ($section === 'dashboard') {
         ?>
         <div class="panel">
           <h3 style="margin-top:0;">Archivio non ancora attivo</h3>
-          <p style="margin:0; color:var(--text-dim); font-size:14px;">
+          <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
             Le tabelle delle sanzioni non ci sono ancora su questo database: lancia la migrazione
             <code>2026-08-29-sanzioni-e-guida-staff.sql</code> e ricarica la pagina.
           </p>
@@ -3914,7 +3914,7 @@ if ($section === 'dashboard') {
               <?php if ($coda): ?><span class="conta-badge"><?= count($coda) ?></span><?php endif; ?>
             </h3>
             <?php if (!$coda): ?>
-              <p style="margin:0; color:var(--text-dim); font-size:14px;">
+              <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
                 Niente in attesa. Ci finisce quello che il server non se la sente di decidere da solo
                 e quello che supera il tetto di durata di chi l'ha chiesto.
               </p>
@@ -3992,7 +3992,7 @@ if ($section === 'dashboard') {
               <?php if ($ricorsi): ?><span class="conta-badge"><?= count($ricorsi) ?></span><?php endif; ?>
             </h3>
             <?php if (!$ricorsi): ?>
-              <p style="margin:0; color:var(--text-dim); font-size:14px;">Nessun ricorso in attesa di risposta.</p>
+              <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">Nessun ricorso in attesa di risposta.</p>
             <?php else: ?>
               <?php foreach ($ricorsi as $r): ?>
                 <div class="ricorso-riga">
@@ -4030,7 +4030,7 @@ if ($section === 'dashboard') {
         <?php if ($daApplicare): ?>
           <div class="panel">
             <h3 style="margin-top:0;">Revoche in attesa del server <span class="conta-badge"><?= count($daApplicare) ?></span></h3>
-            <p style="margin:0 0 10px; color:var(--text-dim); font-size:14px;">
+            <p style="margin:0 0 10px; color:var(--text-dim); font-size: var(--fs-base);">
               Decise qui, ma in gioco il provvedimento c'è ancora: il server le esegue appena
               MagixGuard le legge. Se restano ferme, il server è spento o il plugin non gira.
             </p>
@@ -4059,7 +4059,7 @@ if ($section === 'dashboard') {
           </form>
 
           <?php if (!$archivio): ?>
-            <p style="margin:0; color:var(--text-dim); font-size:14px;">
+            <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
               <?= $cerca !== '' ? 'Nessuna sanzione per quel nome.' : 'Nessuna sanzione registrata.' ?>
             </p>
           <?php else: ?>
@@ -4104,7 +4104,7 @@ if ($section === 'dashboard') {
     ?>
     <div class="panel">
       <h3 style="margin-top:0;">Guida per amministratori</h3>
-      <p style="margin:0; color:var(--text-dim); font-size:14px;">
+      <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
         Il manuale dei nostri plugin: cosa fanno, quali comandi hanno, chi può usarli e cosa
         fare quando qualcosa non va. <strong>Non è scritta a mano</strong>: la riscrive ogni
         plugin a ogni avvio del server, quindi non può raccontare una versione che non esiste più.
@@ -4139,7 +4139,7 @@ if ($section === 'dashboard') {
 
     <?php if (!$capitoli): ?>
       <div class="panel">
-        <p style="margin:0; color:var(--text-dim); font-size:14px;">
+        <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
           Nessun capitolo ancora. I plugin lo pubblicano da soli al primo avvio dopo
           l'aggiornamento che introduce la guida; se il server è acceso e qui resta vuoto,
           controlla che MagixWeb sia attivo (è lui a raccogliere i capitoli).
@@ -4214,7 +4214,7 @@ if ($section === 'dashboard') {
 
     <div class="panel">
       <h2>Chi deve usarla</h2>
-      <p style="color:var(--text-dim); font-size:14px;">
+      <p style="color:var(--text-dim); font-size: var(--fs-base);">
         Sui <strong>web-admin</strong> e' sempre obbligatoria e non si puo' spegnere: sono
         gli account che possono cambiare prezzi, pagine e ruoli di tutti gli altri.
       </p>
@@ -4247,7 +4247,7 @@ if ($section === 'dashboard') {
               <?= $u['is_admin'] ? '<span class="badge-yes">web-admin</span>' : '<span class="sub">staff</span>' ?></div>
             <div class="otp-stato" style="margin-top:4px;">
               <span class="otp-pallino<?= $attiva ? '' : ' is-spento' ?>"></span>
-              <span style="font-size:13px; color:var(--text-dim);">
+              <span style="font-size: var(--fs-sm); color:var(--text-dim);">
                 <?php if ($attiva): ?>
                   attiva dal <?= date('d/m/Y', strtotime($u['totp_activated_at'])) ?>,
                   <?= (int) $u['codici'] ?> codici di recupero rimasti
@@ -4300,7 +4300,7 @@ if ($section === 'dashboard') {
 
     <div class="panel">
       <h2>Se un amministratore resta fuori</h2>
-      <ol style="margin:0 0 0 18px; padding:0; color:var(--text-dim); font-size:14px;">
+      <ol style="margin:0 0 0 18px; padding:0; color:var(--text-dim); font-size: var(--fs-base);">
         <li>Prima strada: entra con uno dei <strong>codici di recupero</strong> salvati all'attivazione.</li>
         <li>Seconda: un altro web-admin gli <strong>azzera la verifica</strong> qui sopra.</li>
         <li>Ultima, se non c'e' nessun altro web-admin: dal server, via SSH
