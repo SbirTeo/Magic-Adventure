@@ -587,15 +587,8 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
               <?= h($__nomeLingua[$__lang]) ?>
             </a>
           <?php endforeach; ?>
-          <?php // "Automatica": cancella una scelta fatta a mano in precedenza e torna a seguire
-                // la lingua di gioco (o il browser). Visibile solo quando c'e' davvero una scelta
-                // manuale da togliere: altrimenti non farebbe nulla di diverso da quella attiva. ?>
-          <?php if ($GLOBALS['__siteLangManual'] ?? false): ?>
-            <a href="<?= h(language_switch_url('auto')) ?>" title="Segui la lingua scelta in gioco">
-              <?= language_auto_icon_svg() ?>
-              Automatica
-            </a>
-          <?php endif; ?>
+          <?php // Niente voce "Automatica" nel menu (tolta su richiesta): ?lingua=auto funziona
+                // ancora (language.php) per chi ha un vecchio link, ma non si offre piu'. ?>
           <?php // Solo da telefono e finche' non l'ha usato (vedi style.css e site.js): il tocco
                 // apre questa tendina, e qui si scopre che si puo' anche trascinare. ?>
           <p class="cambia-lingua-suggerimento">Puoi anche trascinare giù la bandiera.</p>
