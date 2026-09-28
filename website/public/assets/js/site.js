@@ -97,9 +97,21 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
   var attuale = voci.findIndex(function (a) { return a.classList.contains('active'); });
   if (voci.length < 2 || attuale < 0) return;
   var SOGLIA = 10; // px di discesa prima che conti come trascinamento e non come tocco
-  var DITO = 40;   // px di dito per passare alla lingua dopo
+  var DITO = 30;   // px di dito per passare alla lingua dopo
   var PASSO = 20;  // altezza di una bandiera (14px) + lo spazio fra una e l'altra nel rullo
   var ultima = voci.length - 1;
+  // Le lingue in cui si puo' passare, nell'ordine in cui scendono: prima l'italiano (lingua di
+  // casa, la meta piu' probabile per chi e' finito in un'altra), poi le altre nell'ordine del
+  // menu a partire da quella attuale. Prima l'italiano era l'ultima, dopo 130px di dito: da
+  // telefono in pratica non ci si arrivava.
+  var seguenti = [];
+  for (var j = 1; j <= ultima; j++) seguenti.push(voci[(attuale + j) % voci.length]);
+  seguenti.sort(function (a, b) {
+    return (b.getAttribute('data-lang') === 'it') - (a.getAttribute('data-lang') === 'it');
+  });
+  function languageAt(indice) {
+    return indice === 0 ? voci[attuale] : seguenti[indice - 1];
+  }
   var inizioY = null;
   var trascina = false;
   var saltaClic = false;
@@ -112,7 +124,7 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
   var striscia = document.createElement('span');
   striscia.className = 'bandiera-striscia';
   for (var k = ultima; k >= 1; k--) {
-    var copia = voci[(attuale + k) % voci.length].querySelector('.bandiera-lingua');
+    var copia = languageAt(k).querySelector('.bandiera-lingua');
     if (copia) striscia.appendChild(copia.cloneNode(true));
   }
   bandiera.parentNode.insertBefore(rullo, bandiera);
@@ -129,7 +141,7 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
   }
   moveStrip(0);
   function showLabel(indice) {
-    etichetta.textContent = voci[(attuale + indice) % voci.length].textContent.trim();
+    etichetta.textContent = languageAt(indice).textContent.trim();
     etichetta.classList.toggle('uguale', indice === 0);
     etichetta.classList.add('visibile');
   }
@@ -223,7 +235,7 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
       reset();
       return;
     }
-    var voce = voci[(attuale + scelta) % voci.length];
+    var voce = languageAt(scelta);
     inizioY = null;
     trascina = false;
     striscia.classList.add('torna');
