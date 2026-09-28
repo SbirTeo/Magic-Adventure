@@ -221,7 +221,9 @@ function faction_info_popup(array $f, array $members, array $alliesList, int $vi
 
     // Sezione MEMBRI: una riga per grado (etichetta + avatar).
     $html .= '<div class="fi-block">';
-    $html .= '<div class="fi-block-title">Membri · ' . $membersCount . '</div>';
+    // "Membri" in un elemento suo, staccato dal numero: cosi' si traduce una volta sola (dal
+    // glossario del sito) invece di una frase diversa per ogni numero di membri.
+    $html .= '<div class="fi-block-title"><span>Membri</span> · ' . $membersCount . '</div>';
     $html .= $membersHtml;
     $html .= '</div>';
 

@@ -6,6 +6,7 @@
 // visita successiva la trova gia' pronta. Stessa quota giornaliera del plugin di gioco: vedi
 // MagixLanguage/config.yml, translations.auto-translate.
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/translation-glossary.php';
 
 // Oltre questa lunghezza una frase non viene ne' tradotta ne' accodata: resta in italiano.
 // Un paragrafo lungo o un blocco di codice finito per errore in un nodo di testo non deve
@@ -184,8 +185,18 @@ function restore_script_characters(string $html): string {
  */
 function translate_batch(array $texts, string $lang): array {
     $texts = array_values(array_unique($texts));
+    // Prima il glossario scritto a mano (translation-glossary.php): per quelle parole MyMemory
+    // non si interpella nemmeno, e una traduzione sbagliata gia' in cache non conta piu'.
+    $dalGlossario = [];
+    foreach ($texts as $i => $t) {
+        if (isset(TRANSLATION_GLOSSARY[$t][$lang])) {
+            $dalGlossario[$t] = TRANSLATION_GLOSSARY[$t][$lang];
+            unset($texts[$i]);
+        }
+    }
+    $texts = array_values($texts);
     if (empty($texts)) {
-        return [];
+        return $dalGlossario;
     }
     try {
         $hashToText = [];
@@ -226,9 +237,9 @@ function translate_batch(array $texts, string $lang): array {
             )->execute($valori);
         }
 
-        return $out;
+        return $out + $dalGlossario;
     } catch (\Throwable $e) {
         error_log('translate_batch: ' . $e->getMessage());
-        return [];
+        return $dalGlossario;
     }
 }
