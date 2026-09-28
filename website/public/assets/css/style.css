@@ -789,6 +789,43 @@ body.menu-aperto .site-header { backdrop-filter: none; }
 @media (max-width: 720px) {
   .hero-grid { grid-template-columns: 1fr; text-align: center; justify-items: center; }
   .hero-actions { justify-content: center; }
+
+  /* Home da telefono, piu' composta: prima il logo occupava da solo tutto il primo schermo,
+     lo slogan era un secondo titolo luminoso e le scritte arrivavano solo scorrendo. Ora il
+     logo e' un marchio di misura, lo slogan una riga di sottotitolo, e logo, stato del
+     server e titolo stanno insieme nel primo schermo. "section.hero-v2" per passare sopra
+     al padding dei telefoni scritto piu' in basso nel file (".hero-v2", stesso peso). */
+  section.hero-v2 { padding: 26px 0 26px; }
+  .hero-grid { gap: 22px; }
+  /* Il logo stretto, lo slogan sotto largo quanto lo schermo (se no andava a capo in tre
+     righe). Il riquadro del logo resta quello dell'immagine, per le particelle e la matita. */
+  .hero-logo-col { width: 100%; }
+  .hero-logo-col img {
+    width: 250px;
+    max-width: 70vw;
+    margin: 0 auto;
+    filter: drop-shadow(0 0 16px var(--purple-glow)) drop-shadow(0 0 10px var(--green-glow));
+  }
+  .hero-slogan {
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    line-height: 1.5;
+    text-shadow: 0 0 10px rgba(240, 199, 94, 0.35);
+  }
+  .status-pill { margin-bottom: 14px; padding: 6px 13px; font-size: 12px; }
+  .hero-headline { font-size: 36px; line-height: 1.02; margin-bottom: 12px; }
+  .hero-sub { max-width: 340px; margin: 0 auto 22px; font-size: 15px; line-height: 1.55; }
+  /* L'IP e' l'azione della pagina: un pulsante pieno e largo, facile da toccare. */
+  .hero-actions { width: 100%; }
+  .ip-copy {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    padding: 13px 16px;
+    font-size: 15px;
+  }
 }
 
 /* Divisorio: linea piena a tutta larghezza, come la striscia sopra la navbar */
