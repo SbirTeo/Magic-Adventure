@@ -108,6 +108,11 @@ public final class GlyphCatalog {
             int offsetY = sec.getInt("offset-y", 0);
             boolean avatar = TYPE_PLAYER_AVATAR.equalsIgnoreCase(sec.getString("type", ""));
             double priority = sec.getDouble("priority", 0);
+            if (priority < 0 || priority > 100) {
+                plugin.getLogger().warning("[Glyphs] '" + id + "' in glyphs.yml: priority " + priority
+                        + " fuori da 0-100, uso " + (priority < 0 ? 0 : 100) + ".");
+                priority = Math.max(0, Math.min(100, priority));
+            }
             int rows;
             BitmapFit fit;
             double advance;

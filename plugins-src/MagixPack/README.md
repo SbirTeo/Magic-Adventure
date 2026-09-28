@@ -324,7 +324,7 @@ a chi e' gia' online (vedi `avatar.AvatarGlyphRegistry`).
 
 Due immagini si sovrappongono solo se sono nello stesso punto, e in Minecraft il font non ha uno
 "z-index": un carattere scritto DOPO in una riga si disegna SOPRA quelli prima. MagixPack sfrutta
-questo: ogni voce di `glyphs.yml` ha `priority` (numero, default 0), e uno **stack** disegna i
+questo: ogni voce di `glyphs.yml` ha `priority` (da 0 a 100, anche decimali, default 0), e uno **stack** disegna i
 glifi uno sopra l'altro nello stesso punto, in ordine di `priority` crescente — quello col numero
 piu' alto e' scritto per ultimo, quindi sta sopra. A parita' vale l'ordine in cui li scrivi.
 

@@ -447,7 +447,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "gioco). Per l'avatar l'unico che funziona davvero incollato e' il carattere del "
                                 + "pulsante [copia] di /mpack glyph show avatar — una texture vera assegnata al "
                                 + "volo (come Oraxen per le teste custom), non un trucco di colori.",
-                        "Chi sta SOPRA quando due glifi si sovrappongono lo decide priority in glyphs.yml "
+                        "Chi sta SOPRA quando due glifi si sovrappongono lo decide priority in glyphs.yml, da 0 a 100 "
                                 + "(numero piu' alto = sopra, default 0): il placeholder "
                                 + "%magixpack_stack_avatar,cornice% (o /mpack glyph show avatar,cornice) li disegna "
                                 + "nello stesso punto, in ordine di priority — in Minecraft vince sempre il carattere "

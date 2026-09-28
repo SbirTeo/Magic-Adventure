@@ -12,7 +12,7 @@ package com.teolo.magixpack.glyph;
  * <p>{@code scale}, {@code offsetX}, {@code offsetY} are the staff's per-glyph adjustments (size,
  * GUI pixels to the right, GUI pixels up); {@code fit} is what they become in the font JSON.
  *
- * <p>{@code priority} (staff, default 0, decimals allowed) decides who is drawn on top when several glyphs are
+ * <p>{@code priority} (staff, 0-100, default 0, decimals allowed) decides who is drawn on top when several glyphs are
  * stacked in the same spot ({@link GlyphCatalog#stackLegacy}): higher = on top. {@code advance} is
  * how far the glyph moves the text on, in GUI pixels — computed, needed to step back over it.
  */
