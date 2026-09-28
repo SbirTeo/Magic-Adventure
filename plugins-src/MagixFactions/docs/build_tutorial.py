@@ -179,7 +179,8 @@ HTML = r"""<!DOCTYPE html>
   <h3>Regole del nome</h3>
   <ul>
     <li>solo <b>lettere e numeri</b> (niente spazi, simboli o punteggiatura);</li>
-    <li>da <b>{{cfg:faction-name.min-length}} a {{cfg:faction-name.max-length}}</b> caratteri, con al massimo <b>{{cfg:faction-name.max-digits}} cifre</b>;</li>
+    <li>da <b>{{cfg:faction-name.min-length}} a {{cfg:faction-name.max-length}}</b> caratteri, con al massimo <b>{{cfg:faction-name.max-digits}} cifre</b>;</li>{{se:faction-name.max-consecutive!=0}}
+    <li>la stessa lettera può comparire quante volte vuoi, ma al massimo <b>{{cfg:faction-name.max-consecutive}} volte di fila</b>;</li>{{/se}}
     <li>niente parolacce o termini offensivi: un <b>filtro</b> blocca nomi e descrizioni vietati.</li>
   </ul>
   <div class="tip">Ogni nuova fazione parte con una descrizione predefinita. Puoi cambiarla con

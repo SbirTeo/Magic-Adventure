@@ -21,6 +21,10 @@ faction-name:
   min-length: 3
   max-length: 15          # lunghezza massima
   max-digits: 2           # massimo numero di CIFRE ammesse nel nome
+  # Quante volte DI FILA puo' comparire lo stesso carattere (maiuscole e minuscole contano uguale).
+  # Con 2: "Rossetto" e "Assassini" vanno bene (lettere uguali, ma mai piu' di due attaccate),
+  # "Dragooon" no. Nel nome la stessa lettera puo' comparire quante volte si vuole. 0 = nessun limite.
+  max-consecutive: 2
 # Caratteri ammessi: SOLO lettere e numeri (niente spazi, underscore, punteggiatura o simboli).
 
 # ---------------------- DESCRIZIONE FAZIONE -----------------------

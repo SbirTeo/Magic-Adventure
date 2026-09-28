@@ -47,6 +47,8 @@ create:
   name-length: "&cIl nome deve avere tra &e{min}&c e &e{max}&c caratteri."
   name-chars: "&cIl nome puo' contenere solo lettere e numeri (niente spazi, simboli o punteggiatura)."
   name-digits: "&cIl nome puo' contenere al massimo &e{max}&c cifre."
+  # {max} = faction-name.max-consecutive del config
+  name-consecutive: "&cNel nome lo stesso carattere puo' ripetersi al massimo &e{max}&c volte di fila."
   name-taken: "&cEsiste gia' una fazione con questo nome."
   success: "&aFazione &e{name}&a creata! Sei il &6leader&a."
   # Annuncio a TUTTO il server quando nasce una nuova fazione. {name} = nome, {player} = fondatore.

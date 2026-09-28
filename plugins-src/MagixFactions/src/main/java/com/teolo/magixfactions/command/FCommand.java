@@ -215,12 +215,28 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (!name.matches("[A-Za-z0-9]+")) { msgKey(p, "create.name-chars"); return false; }
         long digits = name.chars().filter(Character::isDigit).count();
         if (!byAdmin && digits > maxDigits) { msgKey(p, "create.name-digits", "max", String.valueOf(maxDigits)); return false; }
+        int maxRun = plugin.getConfig().getInt("faction-name.max-consecutive", 2);
+        if (!byAdmin && maxRun > 0 && longestRun(name) > maxRun) {
+            msgKey(p, "create.name-consecutive", "max", String.valueOf(maxRun)); return false;
+        }
         if (!byAdmin && WordFilter.isForbidden(plugin.getConfig().getStringList("forbidden-words"), name)) {
             msgKey(p, "filter.blocked"); return false;
         }
         Faction taken = fm.getByName(name);
         if (taken != null && taken != self) { msgKey(p, "create.name-taken"); return false; }
         return true;
+    }
+
+    /** La serie piu' lunga dello stesso carattere di fila, senza distinguere maiuscole/minuscole. */
+    private static int longestRun(String name) {
+        int best = 0, run = 0;
+        for (int i = 0; i < name.length(); i++) {
+            boolean same = i > 0
+                    && Character.toLowerCase(name.charAt(i)) == Character.toLowerCase(name.charAt(i - 1));
+            run = same ? run + 1 : 1;
+            best = Math.max(best, run);
+        }
+        return best;
     }
 
     /**
