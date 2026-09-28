@@ -173,13 +173,31 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             Component copy = legacy.deserialize(messages.get(sender, "glyph-list-button-copy"))
                     .clickEvent(ClickEvent.copyToClipboard(value))
                     .hoverEvent(HoverEvent.showText(legacy.deserialize(
-                            messages.get(sender, "glyph-list-hover-copy").replace("{value}", value))));
-            Component chat = legacy.deserialize(messages.get(sender, "glyph-list-button-chat"))
-                    .clickEvent(ClickEvent.suggestCommand(value))
-                    .hoverEvent(HoverEvent.showText(legacy.deserialize(
-                            messages.get(sender, "glyph-list-hover-chat").replace("{value}", value))));
-            sender.sendMessage(legacy.deserialize(line).append(copy).append(chat));
+                            messages.get(sender, e.playerAvatar() ? "glyph-list-hover-copy-avatar" : "glyph-list-hover-copy")
+                                    .replace("{value}", value))));
+            // Un placeholder player-avatar non lo risolve mai la chat digitata (il testo del
+            // giocatore non passa da PlaceholderAPI): il secondo pulsante qui NON suggerisce il
+            // placeholder da incollare (resterebbe testo letterale), ma il comando di anteprima
+            // vero, l'unico modo in cui un giocatore lo vede davvero in chat.
+            Component second = e.playerAvatar()
+                    ? previewButton(sender, legacy, id)
+                    : legacy.deserialize(messages.get(sender, "glyph-list-button-chat"))
+                            .clickEvent(ClickEvent.suggestCommand(value))
+                            .hoverEvent(HoverEvent.showText(legacy.deserialize(
+                                    messages.get(sender, "glyph-list-hover-chat").replace("{value}", value))));
+            sender.sendMessage(legacy.deserialize(line).append(copy).append(second));
         }
+    }
+
+    /** Il pulsante di anteprima per una voce player-avatar: suggerisce {@code /mpack glyph show
+     *  <id>} (che risolve l'avatar lato server e lo manda in chat gia' pronto), non il placeholder
+     *  crudo — quello, digitato o incollato in chat, non verrebbe mai risolto. */
+    private Component previewButton(CommandSender sender, LegacyComponentSerializer legacy, String id) {
+        String command = "/mpack glyph show " + id;
+        return legacy.deserialize(messages.get(sender, "glyph-list-button-preview"))
+                .clickEvent(ClickEvent.suggestCommand(command))
+                .hoverEvent(HoverEvent.showText(legacy.deserialize(
+                        messages.get(sender, "glyph-list-hover-preview").replace("{command}", command))));
     }
 
     /** Shows a glyph in the sender's chat; for a player-avatar entry, the avatar of a player (the

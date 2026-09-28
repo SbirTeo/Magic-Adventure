@@ -26,6 +26,15 @@ glyph-list-button-copy: " &a[copia]"
 glyph-list-button-chat: " &b[in chat]"
 glyph-list-hover-copy: "&7Copia negli appunti: &f{value}"
 glyph-list-hover-chat: "&7Scrivi nella barra della chat: &f{value}"
+# Un'icona player-avatar e' un PLACEHOLDER (diverso per ogni giocatore, lo risolve
+# PlaceholderAPI): il testo digitato in chat NON passa mai da PlaceholderAPI (apposta, per non
+# far scrivere a un giocatore il grado di un altro), quindi incollato li' resterebbe testo
+# letterale, non l'avatar. Il pulsante [copia] resta (serve per un menu/scoreboard/tablist, dove
+# PAPI lo risolve davvero), ma [in chat] qui suggerisce il comando di anteprima vero, non il
+# placeholder da incollare.
+glyph-list-hover-copy-avatar: "&7Copia negli appunti (per un menu/scoreboard/tablist, non per la chat): &f{value}"
+glyph-list-button-preview: " &b[anteprima]"
+glyph-list-hover-preview: "&7Vedila in chat: &f{command}"
 glyph-unknown: "&cNessuna icona '{glyph}' in glyphs.yml (o le manca la texture in glyphs/)."
 glyph-player-only: "&cL'anteprima si vede solo in gioco: comando riservato ai giocatori."
 glyph-avatar-loading: "&7Scarico la skin di &f{player}&7..."
