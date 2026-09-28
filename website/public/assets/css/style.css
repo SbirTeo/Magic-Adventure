@@ -509,7 +509,7 @@ a.who-link {
       radial-gradient(circle at 12% 0%, rgba(192, 79, 240, .22), transparent 45%),
       radial-gradient(circle at 100% 18%, rgba(163, 230, 53, .14), transparent 42%),
       var(--bg-panel);
-    padding: 88px 22px 32px;
+    padding: 84px 20px 28px;
     border-bottom: none;
     box-shadow: none;
     overflow-y: auto;
@@ -527,22 +527,25 @@ a.who-link {
     transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease;
   }
 
+  /* Griglia a due colonne, riquadri tutti uguali e piu' bassi (erano 68px, con molto vuoto
+     sotto); lo Store e "Gestione" occupano la riga intera, stessa altezza fra loro. Niente
+     logo in cima: c'e' gia' nella pagina, e spingeva tutte le voci in basso. */
   .main-nav {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 10px;
     flex: none;
   }
-  .main-nav .nav-logo { grid-column: 1 / -1; justify-self: center; margin-bottom: 10px; }
+  .main-nav .nav-logo { display: none; }
   .main-nav a {
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 68px;
+    min-height: 56px;
     border-radius: var(--radius);
     font-family: var(--font-heading);
-    font-weight: 700;
+    font-weight: 600;
     font-size: var(--fs-base);
   }
   /* Lo Store (.btn-gold) tiene il SUO oro: qui si tocca solo misura/posizione, mai i
@@ -555,9 +558,9 @@ a.who-link {
   }
   .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
   .main-nav a:active { transform: scale(.95); }
-  .main-nav .btn-nav { grid-column: 1 / -1; margin: 4px 0 0; min-height: 56px; }
+  .main-nav .btn-nav { grid-column: 1 / -1; margin: 0; min-height: 56px; }
   /* Ultima voce, a tutta larghezza: e' il pulsante dello staff, non una pagina del sito. */
-  .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; }
+  .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; border-style: dashed; }
 
   /* Le voci compaiono una dopo l'altra invece che tutte insieme: e' quel poco di movimento
      che fa sentire il menu vivo invece che un pannello che si accende di colpo. */
