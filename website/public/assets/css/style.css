@@ -368,8 +368,8 @@ body.pagina-store {
 .cambia-lingua-freccia {
   display: none;
   position: absolute;
-  right: calc(50% - 15px);
-  bottom: calc(50% - 13px);
+  right: calc(50% - 17px);
+  bottom: calc(50% - 15px);
   width: 11px;
   height: 11px;
   fill: none;
