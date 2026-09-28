@@ -97,7 +97,9 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
   var attuale = voci.findIndex(function (a) { return a.classList.contains('active'); });
   if (voci.length < 2 || attuale < 0) return;
   var SOGLIA = 10; // px di discesa prima che conti come trascinamento e non come tocco
-  var DITO = 30;   // px di dito per passare alla lingua dopo
+  // px di dito per passare alla lingua dopo. Era 30: con un gesto veloce si scavalcavano due
+  // o tre lingue alla volta e non ci si fermava su quella voluta.
+  var DITO = 50;
   var PASSO = 20;  // altezza di una bandiera (14px) + lo spazio fra una e l'altra nel rullo
   var ultima = voci.length - 1;
   // Le lingue in cui si puo' passare, nell'ordine in cui scendono: prima l'italiano (lingua di
@@ -191,6 +193,9 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
 
   summary.addEventListener('pointerdown', function (ev) {
     if (ev.button !== 0) return;
+    // Solo da schermo a tocco: col mouse la bandiera e' un pulsante normale che apre la
+    // tendina (trascinare col mouse non e' un gesto che viene in mente, e dava solo sorprese).
+    if (ev.pointerType === 'mouse') return;
     inizioY = ev.clientY;
     trascina = false;
     // Subito, non a soglia superata: se il puntatore esce dalla bandiera prima dei 10px
@@ -216,7 +221,12 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
     var passi = Math.max(0, discesa - SOGLIA) / DITO;
     if (passi > ultima) passi = ultima + (passi - ultima) * 0.25;
     moveStrip(passi);
-    var ora = Math.min(ultima, Math.round(passi));
+    // Con un margine: si passa alla lingua dopo solo quando il dito l'ha superata di un buon
+    // tratto (65% del passo), e si torna indietro allo stesso modo. Prima bastava la meta' e,
+    // fermandosi fra due lingue, la scelta saltava avanti e indietro.
+    var ora = scelta;
+    while (ora < ultima && passi >= ora + 0.65) ora++;
+    while (ora > 0 && passi <= ora - 0.65) ora--;
     if (ora !== scelta || !etichetta.classList.contains('visibile')) {
       scelta = ora;
       showLabel(scelta);
