@@ -402,8 +402,8 @@ body.pagina-store {
 }
 @media (pointer: coarse) {
   .cambia-lingua-suggerimento, .cambia-lingua-freccia { display: block; }
-  .cambia-lingua.rullo-usato .cambia-lingua-suggerimento,
-  .cambia-lingua.rullo-usato .cambia-lingua-freccia { display: none; }
+  /* La freccina resta sempre; il suggerimento, piu' ingombrante, solo finche' serve. */
+  .cambia-lingua.rullo-usato .cambia-lingua-suggerimento { display: none; }
 }
 /* Ancora sulla lingua di adesso: rilasciando qui non cambia niente. */
 .cambia-lingua-etichetta.uguale { color: var(--text-dim); font-weight: 600; }
