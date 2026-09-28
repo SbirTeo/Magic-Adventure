@@ -61,6 +61,11 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                     + "propria fazione (forte, debole o senza territori: info.status-*-self di messages.yml).",
             "%magixfactions_leader%", "Nome del leader della fazione del giocatore.",
             "%magixfactions_members%", "Quanti membri ha la fazione del giocatore.",
+            "%magixfactions_status_raw%", "si/no: la fazione del giocatore e' al sicuro (non conquistabile)? "
+                    + "Valore fisso e non tradotto, adatto alle condizioni (es. == si). Senza territori: si.",
+            "%magixfactions_leaderboard_points%", "Punteggio della fazione in classifica (uguale a score).",
+            "%magixfactions_leaderboard_position%", "Posizione della fazione in classifica, 1 = prima "
+                    + "(uguale a position).",
             "%magixfactions_members_online%", "Quanti membri della fazione del giocatore sono connessi adesso.",
             "%magixfactions_allies%", "Quante fazioni alleate ha.",
             "%magixfactions_enemies%", "Quante fazioni nemiche ha.",
@@ -163,8 +168,10 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
             case "claims":
                 return f != null ? String.valueOf(claims.count(f.getId())) : "";
             case "score":
+            case "leaderboard_points":
                 return f != null ? score.formatScore(score.score(f)) : "";
             case "position":
+            case "leaderboard_position":
                 return f != null ? String.valueOf(score.position(f)) : "";
             case "maxclaims_fazione":
                 return f != null ? String.valueOf(claims.maxClaims(power.factionMaxPower(f))) : "";
@@ -186,6 +193,13 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                 Member m = f.getMember(player.getUniqueId());
                 if (m == null) return "";
                 return color(fm.ranks().resolve(m.getRankId()).getTag());
+            }
+            case "status_raw": {
+                // Valore tecnico fisso (non tradotto), pensato per le condizioni: es. in MagixScoreboard
+                // "%magixfactions_status_raw% == si". Senza territori non c'e' nulla da conquistare: sicura.
+                if (f == null) return "";
+                int owned = claims.count(f.getId());
+                return owned == 0 || power.factionPower(f) >= owned ? "si" : "no";
             }
             case "status":
                 return f != null ? statusText(player, f) : "";

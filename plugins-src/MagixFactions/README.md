@@ -557,6 +557,9 @@ in **qualsiasi** plugin/config che usi PlaceholderAPI (CMI, scoreboard, tab, ecc
 | `%magixfactions_leader%` | Nome del leader della fazione |
 | `%magixfactions_members%` | Numero di membri della fazione |
 | `%magixfactions_members_online%` | Membri della fazione connessi adesso |
+| `%magixfactions_status_raw%` | `si`/`no`: la fazione e' al sicuro (non conquistabile)? Valore fisso, per le condizioni |
+| `%magixfactions_leaderboard_points%` | Punteggio in classifica (come `score`) |
+| `%magixfactions_leaderboard_position%` | Posizione in classifica (come `position`) |
 | `%magixfactions_status%` | Stato della propria fazione, il testo di `/f info` (forte / debole / senza territori). Per farlo scorrere: opzione `scroll` della riga in MagixScoreboard |
 | `%magixfactions_allies%` | Numero di fazioni alleate |
 | `%magixfactions_enemies%` | Numero di fazioni nemiche |
