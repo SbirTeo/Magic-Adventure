@@ -36,7 +36,9 @@ import java.util.Map;
 public final class AvatarGlyphRegistry {
 
     private static final int FIRST_CODEPOINT = 0xF000;
-    private static final int LAST_CODEPOINT = 0xF8FF;
+    // Fino a 0xF8EF, non 0xF8FF: gli ultimi 16 punti di codice della zona privata (0xF8F0-0xF8FF)
+    // sono riservati ai caratteri "shift" fissi di GlyphCatalog — vedi la sua Javadoc.
+    private static final int LAST_CODEPOINT = 0xF8EF;
 
     private final Map<String, Character> byFace = new LinkedHashMap<>();
     private final Map<Character, byte[]> textures = new LinkedHashMap<>();

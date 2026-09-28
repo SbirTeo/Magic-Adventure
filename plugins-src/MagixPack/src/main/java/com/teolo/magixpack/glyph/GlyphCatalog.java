@@ -53,9 +53,22 @@ public final class GlyphCatalog {
     public static final String FONT_PATH = "assets/minecraft/font/default.json";
 
     /** First character assigned (Basic Multilingual Plane private use area: one char, not a
-     *  surrogate pair, so it can be pasted and typed like a letter). */
+     *  surrogate pair, so it can be pasted and typed like a letter). The WHOLE private use area is
+     *  only U+E000-U+F8FF (6400 codepoints, U+F900+ is real CJK, not private) split three ways —
+     *  icons here, {@link com.teolo.magixpack.avatar.AvatarGlyphRegistry}'s per-skin textures
+     *  (0xF000+), the fixed {@link #SHIFT_FIRST} shifters (the last 16, 0xF8F0+) — so none of them
+     *  may ever wander into another's: a catalog large enough to reach the old shared ceiling
+     *  (0xF8FF) would have silently collided with both of the others. */
     private static final int FIRST_CODEPOINT = 0xE800;
-    private static final int LAST_CODEPOINT = 0xF8FF;
+    private static final int LAST_CODEPOINT = 0xEFFF;
+
+    /** A fixed, always-available set of transparent "shift" characters — like Oraxen's shifts.yml,
+     *  but generated instead of configured: 8 magnitudes (powers of two, 1 to 128) in each
+     *  direction, a plain {@code space} font provider (no texture) — combine a few to
+     *  advance/step back by any whole number of pixels, the usual binary trick (10px right = the
+     *  +8 and +2 characters). Never move, never depend on glyphs.yml: safe to hardcode anywhere. */
+    private static final int SHIFT_FIRST = 0xF8F0;
+    private static final int[] SHIFT_MAGNITUDES = {1, 2, 4, 8, 16, 32, 64, 128};
 
     /** Characters an icon takes: itself, then the invisible space before and after it (offset-x). */
     public static final int ICON_CHARS = 3;
@@ -150,6 +163,22 @@ public final class GlyphCatalog {
         return entries.get(id);
     }
 
+    /** I caratteri "shift" fissi (vedi {@link #SHIFT_FIRST}) che, in fila, spostano il testo che
+     *  segue esattamente di {@code pixels} pixel GUI (negativo = a sinistra), scomponendo il
+     *  numero nelle potenze di due disponibili (il solito trucco binario): stringa vuota per 0.
+     *  Il valore viene troncato al massimo componibile, ±255 (somma di 1+2+4+...+128). */
+    public static String shift(int pixels) {
+        int magnitude = Math.min(Math.abs(pixels), 255);
+        boolean left = pixels < 0;
+        StringBuilder sb = new StringBuilder();
+        for (int i = SHIFT_MAGNITUDES.length - 1; i >= 0; i--) {
+            if (magnitude < SHIFT_MAGNITUDES[i]) continue;
+            magnitude -= SHIFT_MAGNITUDES[i];
+            sb.append((char) (SHIFT_FIRST + (left ? SHIFT_MAGNITUDES.length + i : i)));
+        }
+        return sb.toString();
+    }
+
     // ---------------------------------------------------------------------------------- the text
 
     /** The text of an icon (not an avatar): the character, wrapped in its offset-x spaces when it
@@ -199,13 +228,17 @@ public final class GlyphCatalog {
     /** Pack content: the textures and ONE default.json with every glyph (icons and avatars), their
      *  spaces and the references to the vanilla fonts (see the class Javadoc). */
     public Map<String, byte[]> packFiles() {
+        // Gli shift fissi (vedi SHIFT_FIRST) vanno SEMPRE nel pacchetto, anche a catalogo vuoto:
+        // niente early-return qui, a differenza delle versioni precedenti di questo metodo.
         Map<String, byte[]> out = new LinkedHashMap<>();
-        // Non solo entries.isEmpty(): anche senza icone in glyphs.yml puo' esserci gia' qualche
-        // carattere avatar assegnato al volo da AvatarGlyphRegistry (vedi MagixPackCommand), che
-        // va comunque nel font.
-        if (entries.isEmpty() && avatarChars.packFiles(NAMESPACE).isEmpty()) return out;
         List<String> providers = new ArrayList<>();
         Map<Integer, Double> spaces = new LinkedHashMap<>();
+        // Gli shift fissi (vedi la Javadoc di SHIFT_FIRST): SEMPRE presenti, non dipendono da cosa
+        // c'e' in glyphs.yml.
+        for (int i = 0; i < SHIFT_MAGNITUDES.length; i++) {
+            spaces.put(SHIFT_FIRST + i, (double) SHIFT_MAGNITUDES[i]);
+            spaces.put(SHIFT_FIRST + SHIFT_MAGNITUDES.length + i, (double) -SHIFT_MAGNITUDES[i]);
+        }
         for (GlyphEntry e : entries.values()) {
             BitmapFit fit = e.fit();
             if (e.playerAvatar()) {

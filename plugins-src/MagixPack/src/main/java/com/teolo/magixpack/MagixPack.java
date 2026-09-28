@@ -246,6 +246,14 @@ public final class MagixPack extends JavaPlugin implements Listener {
         return glyphCatalog.component(id, player);
     }
 
+    /** Fixed, always-available transparent characters (like Oraxen's shifts.yml) that move
+     *  whatever comes after them {@code pixels} GUI pixels right (or left, if negative) — for
+     *  nudging an icon/avatar precisely in a line without a glyphs.yml entry of its own. Safe to
+     *  hardcode: these never move, unlike an icon's own codepoint. */
+    public String shift(int pixels) {
+        return GlyphCatalog.shift(pixels);
+    }
+
     /** The avatar service (skin face glyph): used by {@code /mpack item give} for the
      *  {@code player-avatar} items, to wait for the download before giving. */
     public AvatarService avatarService() {
@@ -417,7 +425,17 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "sinistra: il testo dopo non si sposta) e offset-y (pixel in su, negativo in giu'). "
                                 + "Valgono anche per l'avatar, e si possono fare piu' voci avatar di grandezze "
                                 + "diverse; l'oggetto avatar di items.yml sceglie quale usare con glyph:. Dopo "
-                                + "averle cambiate: /mpack reload, poi /mpack glyph show <id> per vederle.")
+                                + "averle cambiate: /mpack reload, poi /mpack glyph show <id> per vederle.",
+                        "Uno di questi caratteri, incollato/digitato in un vero messaggio di chat (non un "
+                                + "Component costruito dal plugin), NON funziona: un codice colore nel testo "
+                                + "digitato dalla chat firmata (1.19+) resta letterale, mai colore (verificato in "
+                                + "gioco). Per l'avatar l'unico che funziona davvero incollato e' il carattere del "
+                                + "pulsante [copia] di /mpack glyph show avatar — una texture vera assegnata al "
+                                + "volo (come Oraxen per le teste custom), non un trucco di colori.",
+                        "GlyphCatalog.shift(pixel) da' invece caratteri FISSI (come lo shifts.yml di Oraxen, "
+                                + "generati non configurati) che spostano quello che li segue senza bisogno di una "
+                                + "voce in glyphs.yml: utili per allineare un'icona/avatar in un testo composto a "
+                                + "mano. Non cambiano mai, sicuri da scrivere a mano ovunque.")
 
                 .commands()
                 .permissions()

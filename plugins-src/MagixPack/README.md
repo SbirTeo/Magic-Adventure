@@ -304,6 +304,42 @@ non la ha. Si prova prima il profilo (un plugin di skin tipo SkinsRestorer ce la
 in sottofondo, in cache per nome, riscaricato a ogni ingresso; chi non ha skin viene ritentato
 solo dopo 10 minuti.
 
+### Incollarlo in un vero messaggio di chat (non solo in un Component del plugin)
+
+Gli 8 caratteri "pixel" + codici colore qui sopra funzionano SOLO dentro un `Component` che il
+plugin costruisce lui stesso (tablist, scoreboard, l'anteprima di un comando): un giocatore che
+scrive o incolla un messaggio di chat vero non puo' usarli — dalla chat firmata (1.19+) il testo
+digitato arriva come stringa semplice, e un codice colore al suo interno resta testo letterale
+invece di diventare colore (verificato in gioco).
+
+Per questo `/mpack glyph show avatar` ha un secondo pulsante, **[copia]**, che da' tutt'altra cosa:
+UN carattere vero (nessun codice colore), assegnato al volo la prima volta che quella faccia
+esatta serve — come fa Oraxen per le teste custom, la faccia intera diventa una texture mappata su
+un punto di codice, non piu' 8 caratteri riga colorati. Skin identiche riusano lo stesso carattere.
+Incollato in un messaggio normale funziona per chiunque veda il pacchetto: nessuna risoluzione
+lato server necessaria, e non serve riavviare — il pacchetto si ricostruisce e si rimanda da solo
+a chi e' gia' online (vedi `avatar.AvatarGlyphRegistry`).
+
+## Spostare un carattere senza un glyphs.yml (shift)
+
+Un set fisso di caratteri trasparenti, sempre disponibili, come lo `shifts.yml` di Oraxen — ma
+generati invece che configurati: spostano quello che li segue di un tot di pixel GUI (negativo =
+a sinistra), senza bisogno di una voce propria in `glyphs.yml` ne' del suo `offset-x` (che sposta
+solo QUELLA icona, non un testo qualunque). `GlyphCatalog.shift(int pixel)` combina il minimo
+numero di caratteri via il solito trucco binario (potenze di due: 1, 2, 4, 8, 16, 32, 64, 128 —
+quindi qualunque spostamento fino a ±255 pixel con al massimo 8 caratteri); negativo per
+spostare a sinistra.
+
+```java
+Plugin mp = Bukkit.getPluginManager().getPlugin("MagixPack");
+String destra10px = (String) mp.getClass().getMethod("shift", int.class).invoke(mp, 10);
+player.sendMessage(Component.text(destra10px + "testo spostato di 10px"));
+```
+
+Sono un'area di punti di codice a parte (gli ultimi 16 della zona privata Unicode, mai negli altri
+due usati da MagixPack per icone/avatar): non cambiano mai, sicuri da scrivere a mano in un
+messaggio o in un altro plugin.
+
 ## Config
 
 - `public-host` / `port` — da dove i client scaricano lo zip (la porta va aperta sul firewall).
