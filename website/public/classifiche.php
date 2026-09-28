@@ -371,7 +371,7 @@ function format_playtime(int $seconds): string {
   .score-pop .sp-intro { font-size: var(--fs-xs); line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
   .score-pop .sp-intro b { color: var(--text); font-weight: 600; }
   .score-pop table { width: 100%; border-collapse: collapse; }
-  .score-pop th { font-family: var(--font-heading); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em;
+  .score-pop th { font-family: var(--font-heading); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-caps);
     color: var(--text-dimmer); font-weight: 600; text-align: left; padding: 0 0 6px; border-bottom: 1px solid var(--border); }
   .score-pop th:last-child, .score-pop td:last-child { text-align: right; }
   .score-pop td { padding: 6px 0; font-size: var(--fs-sm); border: 0; white-space: nowrap; vertical-align: middle; border-bottom: 1px solid var(--border); }
@@ -433,10 +433,10 @@ function format_playtime(int $seconds): string {
   .fac-pop .fi-desc { font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.45; padding: 3px 16px 0; }
   /* Sezioni separate da un filo, così l'occhio le distingue subito. */
   .fac-pop .fi-block { padding: 11px 16px; border-top: 1px solid var(--border); margin-top: 12px; }
-  .fac-pop .fi-block-title { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .07em; color: var(--text-dimmer); margin-bottom: 8px; }
+  .fac-pop .fi-block-title { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-dimmer); margin-bottom: 8px; }
   /* Membri: etichetta grado a larghezza fissa + fila di avatar, allineati. */
   .fac-pop .fi-rank { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
-  .fac-pop .fi-rank-name { flex: none; width: 66px; font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .fac-pop .fi-rank-name { flex: none; width: 66px; font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0; }
   .fac-pop .fi-avatars { display: flex; flex-wrap: wrap; gap: 4px; }
   .fac-pop .fi-av { display: inline-flex; }
   .fac-pop .fi-av img { width: 28px; height: 28px; border-radius: 5px; border: 1px solid var(--border); display: block; }
@@ -444,7 +444,7 @@ function format_playtime(int $seconds): string {
   /* Dati: righe etichetta (sinistra) → valore (destra), come una scheda. */
   .fac-pop .fi-stats { margin-top: 0; }
   .fac-pop .fi-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: var(--fs-sm); padding: 3px 0; }
-  .fac-pop .fi-stat > span { color: var(--text-dimmer); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .05em; }
+  .fac-pop .fi-stat > span { color: var(--text-dimmer); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
   .fac-pop .fi-stat > b { color: var(--text); font-weight: 600; text-align: right; }
   /* Stato: riga finale colorata (verde sicura / rossa raidabile). */
   .fac-pop .fi-status { padding: 9px 16px 13px; font-size: var(--fs-sm); font-weight: 600; }

@@ -266,10 +266,11 @@ $__verificaGoogle = trim(site_setting('google_site_verification', ''));
 // altro viaggio al server proprio nel momento peggiore, quando c'e' solo da disegnare.
 $__caratteri = __DIR__ . '/../public/assets/css/caratteri.css';
 ?>
-<?php /* I due file di partenza si chiedono subito, in parallelo al foglio di stile: sono
-         quelli del testo normale e dei titoli, servono comunque entro il primo istante. */ ?>
+<?php /* Il file del carattere si chiede subito, in parallelo al foglio di stile: serve
+         comunque entro il primo istante. Uno solo: tutto il sito usa Inter (style.css,
+         TIPOGRAFIA); Space Grotesk resta dichiarato ma nessuna regola lo usa, quindi il
+         browser non lo scarica. */ ?>
 <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style><?= @file_get_contents($__caratteri) ?: '' ?></style>
 <?php
 // La versione e' la data di modifica del file: cambia a ogni deploy, cosi' il browser

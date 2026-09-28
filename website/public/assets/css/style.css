@@ -33,25 +33,32 @@
      solo il ripiego per il primo istante, prima che il copione giri. Ci si appoggia tutto
      cio' che deve fermarsi SOTTO la barra invece che finirci sotto. */
   --h-testata: 98px;
-  /* ---- TIPOGRAFIA: due caratteri, ognuno col suo lavoro, e una scala sola ----------
-     Space Grotesk (carattere "da titolo", forme particolari) per titoli, barra, pulsanti ed
-     etichette: e' la voce del sito. Inter (carattere da lettura) per il testo corrente:
-     paragrafi, descrizioni, messaggi. Prima tutto era in Space Grotesk, anche i paragrafi
-     lunghi, e stancava. Il carattere a spaziatura fissa solo per IP e codice. */
-  --font-heading: "Space Grotesk", "Segoe UI", Roboto, Arial, sans-serif;
+  /* ---- TIPOGRAFIA: un carattere, tre pesi, sei grandezze, una spaziatura -------------
+     Un solo carattere per tutto il sito, Inter: titoli, barra, pulsanti, etichette e testo.
+     Prima erano due (Space Grotesk per titoli e pulsanti, Inter o lo stesso Space Grotesk per
+     il testo), con cinque pesi e una trentina di spaziature fra le lettere diverse, e i testi
+     sembravano tutti diversi fra loro. --font-heading resta come nome (lo usano decine di
+     regole) ma vale lo stesso carattere del testo. Pesi: 400 testo, 600 pulsanti ed
+     etichette, 700 titoli. Il carattere a spaziatura fissa solo per IP e codice. */
+  --font-heading: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
   --font-body: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Consolas, monospace;
   /* Le grandezze del testo sono SOLO queste sette: prima nel foglio c'erano una sessantina di
      misure diverse (11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5px...), scelte a occhio caso per
      caso, e l'insieme sembrava scritto a caso. Una grandezza nuova si sceglie fra queste;
      sopra i 24px (titoli grandi, hero) si usano i clamp() dei singoli titoli. */
-  --fs-2xs: 11px;   /* etichette minime: badge, contatori */
+  --fs-2xs: 12px;   /* etichette minime: badge, contatori (uguale a --fs-xs: sotto i 12px
+                       non si scende) */
   --fs-xs: 12px;    /* note, date, didascalie */
   --fs-sm: 13px;    /* testo secondario, pulsanti, voci di menu */
   --fs-base: 15px;  /* testo corrente */
   --fs-md: 17px;    /* testo in evidenza, titoli piccoli */
   --fs-lg: 20px;    /* titoli di scheda */
   --fs-xl: 24px;    /* titoli di sezione */
+  /* Una sola spaziatura fra le lettere, per le scritte in maiuscolo (etichette, sezioni):
+     prima ognuna aveva la sua (0.4px, 1px, 1.5px, 0.06em, 0.08em...). Il testo normale non
+     ne ha. */
+  --tracking-caps: 0.06em;
 }
 
 /* ============ TEMA CHIARO ============
@@ -122,7 +129,7 @@ body {
    diventerebbero faticose da leggere. Oltre questa misura restano i margini vuoti ai lati. */
 @media (min-width: 1600px) { :root { --wrap-max: 1480px; } }
 
-h1, h2, h3, h4 { font-family: var(--font-heading); color: var(--text); font-weight: 700; letter-spacing: -0.01em; }
+h1, h2, h3, h4 { font-family: var(--font-heading); color: var(--text); font-weight: 700; letter-spacing: -0.02em; }
 
 /* Nessuna sottolineatura sui link, in tutto il sito (scelta esplicita): a distinguerli
    restano colore e cambio di colore al passaggio del mouse. */
@@ -197,7 +204,7 @@ body.pagina-store {
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: var(--fs-sm);
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   text-decoration: none;
   padding: 6px 1px 10px;
   border-bottom: 2px solid transparent;
@@ -603,7 +610,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: var(--fs-sm);
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   border: 1px solid transparent;
   text-decoration: none;
   cursor: pointer;
@@ -730,10 +737,10 @@ body.menu-aperto .site-header { backdrop-filter: none; }
      finisce addosso. */
   margin: 10px 0 0;
   font-family: var(--font-heading);
-  font-weight: 800;
+  font-weight: 700;
   font-size: var(--fs-md);
   line-height: 1.3;
-  letter-spacing: 1px;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: #f0c75e;
   text-shadow: 0 0 8px #f0c75e, 0 0 22px rgba(240, 199, 94, 0.6), 0 0 40px rgba(240, 199, 94, 0.35);
@@ -843,8 +850,8 @@ body.menu-aperto .site-header { backdrop-filter: none; }
     text-align: left;
     margin: 0 0 10px;
     font-size: var(--fs-2xs);
-    font-weight: 800;
-    letter-spacing: 0.8px;
+    font-weight: 700;
+    letter-spacing: var(--tracking-caps);
     line-height: 1.45;
     text-shadow: 0 0 10px rgba(240, 199, 94, 0.35);
   }
@@ -980,7 +987,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0;
   color: #fff;
   background: var(--purple);
   border-radius: var(--radius-sm); /* squadrata come il bottone Store, non a pillola */
@@ -1147,7 +1154,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   font-weight: 700;
   font-size: var(--fs-xs);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: var(--tracking-caps);
   color: var(--gold);
   margin-bottom: 8px;
 }
@@ -1985,7 +1992,7 @@ h1.page-title::before {
   margin: 0 0 10px;
   font-size: var(--fs-sm);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
 }
@@ -2018,7 +2025,7 @@ h1.page-title::before {
   display: inline-block;
   font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
   margin-bottom: 5px;
@@ -2256,7 +2263,7 @@ form.stack { display: flex; flex-direction: column; gap: 14px; max-width: 560px;
 /* Il pulsante che salva non e' un campo del modulo: con i soli 14px di distanza sembrava
    attaccato all'ultima casella, quindi qui prende un po' d'aria in piu' (14 + 16 = 30px). */
 form.stack > button[type="submit"], form.stack > .btn { margin-top: 16px; }
-label { font-weight: 600; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-dim); }
+label { font-weight: 600; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0; color: var(--text-dim); }
 /* Casella con testo accanto ("Resta collegato"): qui l'etichetta e' una frase, non il nome
    di un campo, quindi niente maiuscolo spaziato come sopra. */
 label.campo-check {
@@ -2266,7 +2273,7 @@ label.campo-check {
   text-transform: none;
   letter-spacing: 0;
   font-size: var(--fs-base);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text);
   cursor: pointer;
 }
@@ -2400,7 +2407,7 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   font-family: var(--font-heading);
   font-size: var(--fs-lg);
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 /* Sfumature sui bordi: dicono "la riga continua". Quella a destra sparisce arrivati in
    fondo, quella a sinistra compare solo quando c'e' qualcosa da cui si e' scorsi via. */
@@ -2676,7 +2683,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   margin-bottom: 4px;
 }
 .store-card-nome:hover { text-decoration: underline; }
-.store-card-prezzo-est .store-prezzo { font-size: var(--fs-xl); font-weight: 800; }
+.store-card-prezzo-est .store-prezzo { font-size: var(--fs-xl); font-weight: 700; }
 .store-card-prezzo-est .store-prezzo small { font-size: var(--fs-sm); font-weight: 700; }
 .store-card-prezzo-est .store-prezzo-pieno { font-size: var(--fs-base); margin-right: 8px; }
 
@@ -2702,9 +2709,9 @@ body.store-una-categoria .store-card-cat { display: none; }
     var(--sconto-fondo, var(--green));
   color: var(--sconto-testo, #14200a);
   font-family: var(--font-heading);
-  font-weight: 800;
+  font-weight: 700;
   font-size: var(--fs-sm);
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
   box-shadow:
     0 4px 10px rgba(0, 0, 0, 0.5),
@@ -2769,7 +2776,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   text-shadow: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -2793,7 +2800,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   .store-card-prezzo-est .store-prezzo small { font-size: 9.5px; }
   .store-card-prezzo-est .store-prezzo-pieno { font-size: var(--fs-2xs); margin-right: 4px; }
   .store-card-sconto { width: 92px; right: -30px; top: 11px; padding: 3px 0; font-size: 9.5px; }
-  .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0.02em; }
+  .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0; }
   .store-card .store-card-modifica { bottom: 6px; right: 6px; }
   .store-cat-titolo { font-size: var(--fs-md); }
   .store-filtro { padding: 7px 12px; font-size: var(--fs-xs); }
@@ -2822,7 +2829,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: var(--fs-xs);
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   vertical-align: middle;
   text-shadow: none;
 }
@@ -2839,7 +2846,7 @@ body.store-una-categoria .store-card-cat { display: none; }
 .store-lato h3 {
   margin: 0 0 12px;
   font-size: var(--fs-base);
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 .store-lato-nome { font-size: var(--fs-sm); font-weight: 600; }
 /* Player name links to their public page: it must read as plain text (the rank colour lives
@@ -3113,7 +3120,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   display: block;
   font-size: var(--fs-2xs);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   color: var(--text-dimmer);
   margin-bottom: 4px;
 }
@@ -3319,7 +3326,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   font-family: var(--font-heading);
   font-size: var(--fs-sm);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-caps);
   color: var(--text-dim);
   margin-bottom: 10px;
 }
@@ -3361,7 +3368,7 @@ body.store-una-categoria .store-card-cat { display: none; }
   font-family: var(--font-heading);
   font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   line-height: 1.5;
   white-space: nowrap;
@@ -3470,7 +3477,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-family: var(--font-heading);
   font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
 }
 .usato-da {
@@ -3624,7 +3631,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-family: var(--font-heading);
   font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--testo-su-oro, #2a1c02);
   background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
@@ -3636,7 +3643,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .pkg-testo { color: rgba(240, 240, 238, 0.86); font-size: var(--fs-base); line-height: 1.7; margin-bottom: 22px; }
 .pkg-sottotitolo {
   font-size: var(--fs-xs);
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
   margin: 0 0 10px;
@@ -4054,14 +4061,14 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-size: var(--fs-sm);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   color: var(--text);
 }
 .tavolozza-gruppo:first-of-type { margin-top: 4px; padding-top: 0; border-top: 0; }
 .tavolozza h4 {
   margin: 0 0 10px;
   font-size: var(--fs-sm);
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
 }
@@ -4679,7 +4686,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-family: var(--font-heading);
   font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--testo-su-oro, #2a1c02);
   background: var(--gold);
@@ -4723,7 +4730,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-family: var(--font-heading);
   font-size: var(--fs-2xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   padding: 3px 9px;
   border-radius: 999px;
@@ -4842,7 +4849,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .otp-attivazione-testo li { margin-bottom: 6px; }
 .otp-segreto {
   display: inline-block;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-caps);
   font-size: var(--fs-base);
   margin: 4px 0 16px;
   user-select: all;   /* un clic solo per selezionarla tutta */
@@ -4866,7 +4873,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .otp-codici li {
   font-family: var(--font-mono);
   font-size: var(--fs-md);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-caps);
   background: var(--panel-2, var(--panel));
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -4908,7 +4915,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-size: clamp(16px, 2.4vw, 21px);
   line-height: 1.4;
   color: var(--text-dim);
-  font-weight: 500;
+  font-weight: 600;
   margin: 0 0 22px;
   max-width: 62ch;
 }
@@ -4918,7 +4925,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   display: inline-block;
   font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 1.4px;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   padding: 5px 11px;
   border-radius: 999px;
@@ -4932,7 +4939,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   font-size: clamp(17px, 2.2vw, 20px);
   line-height: 1.65;
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* Titoletti interni: una barretta colorata a sinistra invece del solito testo nudo */
@@ -5022,7 +5029,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .art-cta .etichetta {
   font-size: var(--fs-xs);
   text-transform: uppercase;
-  letter-spacing: 1.6px;
+  letter-spacing: var(--tracking-caps);
   color: var(--text-dim);
   font-weight: 700;
 }
@@ -5361,7 +5368,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .inquadratura-box { margin: 0; }
 .inquadratura-box figcaption {
   font-size: var(--fs-xs);
-  letter-spacing: 0.6px;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
   margin-top: 6px;
@@ -5431,7 +5438,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzioni-campo > span {
   font-size: var(--fs-xs);
   color: var(--text-dimmer);
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
 }
 .sanzioni-campo select { min-width: 150px; }
@@ -5468,7 +5475,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-tipo {
   font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--accento, var(--text-dim));
 }
@@ -5511,7 +5518,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-dati { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 24px; margin: 0; }
 .sanzione-dati dt {
   font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
   margin-bottom: 2px;
@@ -5529,7 +5536,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-rapporto { font-size: var(--fs-base); line-height: 1.65; }
 .sanzione-ricorso-stato { margin: 0 0 10px; font-size: var(--fs-base); font-weight: 600; }
 .sanzione-esito { margin: 0 0 12px; color: var(--text-dim); font-size: var(--fs-base); }
-.sanzione-ricorso-testo h3 { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dimmer); margin: 16px 0 6px; }
+.sanzione-ricorso-testo h3 { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-dimmer); margin: 16px 0 6px; }
 .sanzione-ricorso-testo p { margin: 0; font-size: var(--fs-base); line-height: 1.6; }
 
 /* --- gestionale: coda, ricorsi, archivio --- */
@@ -5558,7 +5565,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .coda-tipo {
   font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--accento, var(--text-dim));
 }
@@ -5635,7 +5642,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   margin: 14px 0 4px;
   font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dim);
 }
@@ -5645,7 +5652,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .regolamento-sanzioni { margin: 22px 0; }
 .regolamento-sanzioni table { width: 100%; border-collapse: collapse; font-size: var(--fs-base); }
 .regolamento-sanzioni th, .regolamento-sanzioni td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-.regolamento-sanzioni th { color: var(--text-dimmer); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.05em; }
+.regolamento-sanzioni th { color: var(--text-dimmer); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
 .regolamento-sanzioni-fonte { margin-top: 10px; color: var(--text-dimmer); font-size: var(--fs-sm); }
 
 @media (max-width: 860px) {
@@ -5698,7 +5705,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   color: var(--text-dim);
   font-size: var(--fs-2xs);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-caps);
   text-transform: none;
 }
 .guida-corpo table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: var(--fs-sm); }
@@ -5706,7 +5713,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   color: var(--text-dimmer);
   font-size: var(--fs-2xs);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-align: left;
   padding: 6px 10px;
   border-bottom: 1px solid var(--border-strong);
@@ -5752,7 +5759,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .coda-decisione label { display: flex; flex-direction: column; gap: 3px; }
 .coda-decisione label > span {
   font-size: var(--fs-2xs);
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-dimmer);
 }
@@ -5924,7 +5931,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .me-icona { display: inline-block; border-radius: 3px; flex: none; image-rendering: pixelated; }
 .me-icona-testo {
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em; color: #fff; text-transform: uppercase;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0; color: #fff; text-transform: uppercase;
 }
 .me-legenda { margin-top: 10px; font-size: var(--fs-sm); }
 
@@ -6031,7 +6038,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 /* I campi colorabili sono <div> e non <label> (vedi etichettato() nel copione): l'etichetta
    va vestita a mano, se no in mezzo alle altre si vedrebbe la differenza. */
 .me-campo > .me-etichetta {
-  font-weight: 600; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.3px;
+  font-weight: 600; font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0;
 }
 .me-etichetta { font-size: var(--fs-sm); color: var(--text-dim); }
 .me-aiuto { font-size: var(--fs-sm); color: var(--text-dimmer); }
@@ -6257,7 +6264,7 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-sm); color: var(--text-dim);
 }
 .me-passi-titolo {
-  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.4px;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0;
   color: var(--text-dimmer); margin-bottom: 2px;
 }
 .me-passo-manca { color: #FFD166; font-style: italic; }
