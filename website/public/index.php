@@ -186,20 +186,22 @@ require __DIR__ . '/../includes/header.php';
     <?php /* L'obiettivo in home si accende a parte: c'e' chi lo vuole solo nello store. */ ?>
     <?php if (site_setting('goal_home', '0') === '1') { obiettivo_sezione(); } ?>
 
-    <?php /* Scorciatoia per chi scrive sul blog: sta qui, sopra agli articoli, perche' e'
-             da qui che si guarda la home per vedere cosa manca. Chi non ha il permesso non
-             la vede nemmeno. */ ?>
-    <?php if (can('blog.create')): ?>
-      <div class="barra-crea">
-        <?php /* Solo l'icona: la scritta sta in una nuvoletta che compare sopra il pulsante
-                 (passandoci sopra, col fuoco da tastiera o tenendolo premuto). E' un elemento
-                 vero e non un title, cosi' la traduce il traduttore del sito ed e' anche il
-                 nome del pulsante per i lettori di schermo. */ ?>
-        <a href="/blog/new" class="barra-crea-tasto">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg>
-          <span class="barra-crea-etichetta">Crea un nuovo post</span>
-        </a>
-      </div>
+    <?php
+      // Pulsanti dello staff sull'ultimo articolo: "+" (nuovo post) e matita (modifica), uno
+      // accanto all'altro nell'angolo della copertina, identici. Solo icona: la scritta sta in
+      // una nuvoletta che compare passandoci sopra, col fuoco da tastiera o tenendolo premuto.
+      // E' un elemento vero e non un title, cosi' la traduce il traduttore del sito ed e' anche
+      // il nome del pulsante per i lettori di schermo. Chi non ha il permesso non li vede.
+      $__tastoCrea = can('blog.create')
+          ? '<a href="/blog/new" class="card-azione">'
+            . '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg>'
+            . '<span class="card-azione-etichetta">Crea un nuovo post</span></a>'
+          : '';
+    ?>
+    <?php /* Senza un ultimo articolo (blog vuoto) il "+" sta da solo sopra la griglia, se no
+             non ci sarebbe modo di scrivere il primo. */ ?>
+    <?php if ($__tastoCrea !== '' && !$featured): ?>
+      <div class="barra-crea"><div class="card-azioni card-azioni-libere"><?= $__tastoCrea ?></div></div>
     <?php endif; ?>
 
     <?php if (!$posts && !$featured): ?>
@@ -236,8 +238,16 @@ require __DIR__ . '/../includes/header.php';
               <div class="meta"><span class="card-numero">#<?= $n ?></span><?= time_ago($featured['created_at']) ?><?= $featured['mc_username'] ? ' · di ' . player_name($featured, $featured['mc_username']) : '' ?></div>
               <span class="card-cta">Leggi tutto →</span>
             </a>
-            <?php if (can('blog.edit')): ?>
-              <a href="/manage?section=blog_edit&id=<?= $featured['id'] ?>" class="card-edit-btn" title="Modifica" aria-label="Modifica">✎</a>
+            <?php if ($__tastoCrea !== '' || can('blog.edit')): ?>
+              <div class="card-azioni">
+                <?= $__tastoCrea ?>
+                <?php if (can('blog.edit')): ?>
+                  <a href="/manage?section=blog_edit&id=<?= $featured['id'] ?>" class="card-azione">
+                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.6 2.9l2.5 2.5M3 13l.6-3L11 2.6a1.1 1.1 0 0 1 1.6 0l.8.8a1.1 1.1 0 0 1 0 1.6L6 12.4z"/></svg>
+                    <span class="card-azione-etichetta">Modifica</span>
+                  </a>
+                <?php endif; ?>
+              </div>
             <?php endif; ?>
           </div>
         <?php endif; ?>

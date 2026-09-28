@@ -4121,41 +4121,52 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .tavolozza label:first-of-type { margin-top: 0; }
 .tavolozza input[type=color] { height: 40px; padding: 3px; width: 100%; }
 
-/* Scorciatoia "Crea un nuovo post" sopra la griglia della home: un quadrato bianco col +, e la
-   scritta in una nuvoletta a sinistra che compare passandoci sopra (o col fuoco, o tenendolo
-   premuto da telefono). Bianco in tutti e due i temi: sul chiaro lo stacca il bordo. */
+/* Pulsanti dello staff sull'ultimo articolo della home: "+" (nuovo post) e matita (modifica),
+   uno accanto all'altro nell'angolo in alto a destra della copertina, identici: quadrati
+   bianchi con gli angoli dei pulsanti del sito. La scritta sta in una nuvoletta a sinistra
+   che compare passandoci sopra (o col fuoco, o tenendoli premuti da telefono). */
+.card-azioni {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+}
+/* Blog vuoto: il "+" da solo sopra la griglia, stesso pulsante. */
 .barra-crea { display: flex; justify-content: flex-end; margin: 0 0 14px; }
-.barra-crea-tasto {
+.card-azioni-libere { position: static; }
+.card-azione {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  /* Quadrato con gli angoli dei pulsanti del sito, non un tondo. */
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   background: #fff;
   color: #14161a;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(0, 0, 0, .12);
   box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
   text-decoration: none;
   transition: transform .15s ease, box-shadow .15s ease;
 }
-.barra-crea-tasto:hover,
-.barra-crea-tasto:focus-visible { color: #14161a; }
-.barra-crea-tasto:hover { transform: scale(1.06); box-shadow: 0 6px 18px rgba(0, 0, 0, .34); text-decoration: none; }
-.barra-crea-tasto:active { transform: scale(.96); }
-.barra-crea-tasto svg {
-  width: 18px;
-  height: 18px;
+.card-azione:hover,
+.card-azione:focus-visible { color: #14161a; text-decoration: none; }
+.card-azione:hover { transform: scale(1.06); box-shadow: 0 6px 18px rgba(0, 0, 0, .34); }
+.card-azione:active { transform: scale(.96); }
+.card-azione svg {
+  width: 17px;
+  height: 17px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 1.9;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.barra-crea-etichetta {
+.card-azione-etichetta {
   position: absolute;
-  right: calc(100% + 10px);
+  right: calc(100% + 8px);
   top: 50%;
   transform: translate(6px, -50%);
   padding: 6px 11px;
@@ -4172,14 +4183,16 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   pointer-events: none;
   transition: opacity .15s ease, transform .15s ease;
 }
-.barra-crea-tasto:hover .barra-crea-etichetta,
-.barra-crea-tasto:focus-visible .barra-crea-etichetta,
-.barra-crea-tasto:active .barra-crea-etichetta {
+/* La nuvoletta del secondo pulsante passa sopra al primo, non gli finisce sotto. */
+.card-azione:hover, .card-azione:focus-visible, .card-azione:active { z-index: 1; }
+.card-azione:hover .card-azione-etichetta,
+.card-azione:focus-visible .card-azione-etichetta,
+.card-azione:active .card-azione-etichetta {
   opacity: 1;
   transform: translate(0, -50%);
 }
 @media (prefers-reduced-motion: reduce) {
-  .barra-crea-tasto, .barra-crea-etichetta { transition: none; }
+  .card-azione, .card-azione-etichetta { transition: none; }
 }
 
 /* ---- Obiettivo di raccolta del server ---------------------------------------------- */
