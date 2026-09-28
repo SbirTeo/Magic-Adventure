@@ -30,6 +30,9 @@ public final class GlyphPlaceholders extends PlaceholderExpansion {
             "%magixpack_stack_<id>,<id>%", "Piu' glifi uno SOPRA l'altro nello stesso punto (es. avatar,cornice): "
                     + "sopra finisce quello con priority piu' alta in glyphs.yml. Anche con :<giocatore> in fondo. "
                     + "Va bene anche %magixpack_glyph_<id>,<id>%: con la virgola e' comunque uno stack.",
+            "%magixpack_shift_<pixel>%", "Carattere invisibile che sposta il testo che segue di <pixel> "
+                    + "pixel (negativo = a sinistra, da -255 a 255). Con -1 dopo ogni blocco una barra di "
+                    + "█ diventa un pezzo unico, senza lo stacco di 1 pixel fra un carattere e l'altro.",
     };
 
     private final JavaPlugin plugin;
@@ -62,6 +65,16 @@ public final class GlyphPlaceholders extends PlaceholderExpansion {
 
     @Override
     public String onRequest(OfflinePlayer who, String params) {
+        if (params.startsWith("shift_")) {
+            // Transparent characters that move what follows by N pixels (negative = left): always in
+            // the pack, whatever glyphs.yml holds. -1 after each block of a bar closes the 1px gap the
+            // font leaves after every character, so the bar looks like one piece.
+            try {
+                return GlyphCatalog.shift(Integer.parseInt(params.substring("shift_".length())));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
         boolean stack = params.startsWith("stack_");
         if (!stack && !params.startsWith("glyph_")) return null;
         String rest = params.substring(stack ? "stack_".length() : "glyph_".length());

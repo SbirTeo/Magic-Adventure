@@ -375,6 +375,14 @@ Sono un'area di punti di codice a parte (gli ultimi 16 della zona privata Unicod
 due usati da MagixPack per icone/avatar): non cambiano mai, sicuri da scrivere a mano in un
 messaggio o in un altro plugin.
 
+Da qualunque testo che passa da PlaceholderAPI (scoreboard, tablist, menu...) si scrivono con
+**`%magixpack_shift_<pixel>%`**, es. `%magixpack_shift_-1%`. Uso tipico: una barra di `█` che sembri
+un pezzo unico. Il font lascia 1 pixel vuoto dopo ogni carattere; un `-1` dopo ogni blocco lo chiude:
+
+```yaml
+- "&a█%magixpack_shift_-1%█%magixpack_shift_-1%&c█%magixpack_shift_-1%█"
+```
+
 ## Config
 
 - `public-host` / `port` — da dove i client scaricano lo zip (la porta va aperta sul firewall).
