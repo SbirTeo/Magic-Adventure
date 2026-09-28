@@ -477,33 +477,6 @@ if ($__classeBody !== '') $__classiBody[] = 'pagina-' . $__classeBody;
 if ($__senzaVeloBlog) $__classiBody[] = 'senza-veli-blog';
 if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
 ?>
-<?php
-// Logo piccolo: nel menu (schermo largo) e, da telefono, nella barra accanto all'hamburger.
-// Altezza scelta nel gestionale; la larghezza si ricava dalle proporzioni vere del file, cosi'
-// un logo disteso occupa quello che gli serve e uno quadrato resta quadrato. Dichiararle
-// entrambe evita che la barra sobbalzi mentre l'immagine arriva.
-$__logoNavAcceso = site_setting('nav_logo_enabled', '1') === '1';
-$__hLogoNav = max(20, min(64, (int) site_setting('nav_logo_size', '44')));
-$__misureLogoNav = immagine_misure($__logoPiccolo);
-$__wLogoNav = $__misureLogoNav && $__misureLogoNav[1] > 0
-    ? min(160, (int) round($__hLogoNav * $__misureLogoNav[0] / $__misureLogoNav[1]))
-    : $__hLogoNav;
-// Tema: stesso stato per il pulsante della barra (schermo largo) e per le scelte nel menu a
-// hamburger (telefono). L'etichetta di partenza la scrive il server (niente sfarfallio); da li'
-// in poi la cambia assets/js/site.js, che salva la scelta in un cookie valido un anno.
-$__temaOra = tema_scelto();
-// Icone disegnate (SVG), non i caratteri ☾ ☀ ◐: quelli li disegna il font del telefono,
-// ognuno con i suoi margini, e nel pulsante quadrato uscivano fuori centro (il sole
-// visibilmente, su Android).
-$__iconaTema = [
-    'scuro' => '<path d="M13.2 10.4A5.6 5.6 0 0 1 5.6 2.8a5.6 5.6 0 1 0 7.6 7.6Z"/>',
-    'chiaro' => '<circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6'
-        . 'M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"/>',
-    'auto' => '<circle cx="8" cy="8" r="5.6"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2Z" fill="currentColor"/>',
-];
-$__nomeTema = ['scuro' => 'Tema scuro', 'chiaro' => 'Tema chiaro', 'auto' => 'Tema automatico'];
-$__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
-?>
 <body<?= $__classiBody ? ' class="' . implode(' ', $__classiBody) . '"' : '' ?>>
 <div class="top-accent"></div>
 <header class="site-header">
@@ -511,21 +484,24 @@ $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de'
     <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navCollapse" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
-    <?php /* Solo da telefono (vedi style.css): il logo sta qui, nella barra, invece che in
-             cima al menu a hamburger. */ ?>
-    <?php if ($__logoNavAcceso): ?>
-      <a href="/" class="logo-barra" aria-label="<?= h($__siteName) ?> — vai alla home">
-        <img src="<?= h($__logoPiccolo) ?>" alt=""
-             width="<?= $__wLogoNav ?>" height="<?= $__hLogoNav ?>" decoding="async">
-      </a>
-    <?php endif; ?>
     <div class="nav-collapse" id="navCollapse">
       <nav class="main-nav">
         <?php /* Il logo in piccolo apre la home: e' il segnaposto del sito, sta prima di
                  tutte le voci ed e' cliccabile come un normale collegamento. Si accende e
                  si spegne dal gestionale (Aspetto), perche' su una barra con molte voci
                  puo' diventare un ingombro. */ ?>
-        <?php if ($__logoNavAcceso): ?>
+        <?php if (site_setting('nav_logo_enabled', '1') === '1'): ?>
+          <?php
+            // Altezza scelta nel gestionale; la larghezza si ricava dalle proporzioni vere
+            // del file, cosi' un logo disteso occupa quello che gli serve e uno quadrato
+            // resta quadrato. Dichiararle entrambe evita che la barra sobbalzi mentre
+            // l'immagine arriva.
+            $__hLogoNav = max(20, min(64, (int) site_setting('nav_logo_size', '44')));
+            $__misureLogoNav = immagine_misure($__logoPiccolo);
+            $__wLogoNav = $__misureLogoNav && $__misureLogoNav[1] > 0
+                ? min(160, (int) round($__hLogoNav * $__misureLogoNav[0] / $__misureLogoNav[1]))
+                : $__hLogoNav;
+          ?>
           <a href="/" class="nav-logo" aria-label="<?= h($__siteName) ?> — vai alla home"
              style="--nav-logo-h:<?= $__hLogoNav ?>px">
             <img src="<?= h($__logoPiccolo) ?>" alt=""
@@ -553,46 +529,24 @@ $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de'
           <a href="/manage" class="nav-gestione">Gestione</a>
         <?php endif; ?>
       </nav>
-      <?php /* Solo da telefono (vedi style.css): tema e lingua stanno qui, nel menu a
-               hamburger, invece che nella barra. Stesse scelte dei pulsanti della barra: il
-               tema passa da site.js (data-tema-scelta), la lingua dagli stessi link. */ ?>
-      <div class="menu-preferenze">
-        <div class="menu-preferenza">
-          <span class="menu-preferenza-titolo">Tema</span>
-          <div class="menu-preferenza-scelte">
-            <?php foreach (['scuro' => 'Scuro', 'chiaro' => 'Chiaro', 'auto' => 'Automatico'] as $__t => $__nomeBreve): ?>
-              <button type="button" class="menu-scelta<?= $__t === $__temaOra ? ' is-attivo' : '' ?>"
-                      data-tema-scelta="<?= $__t ?>" aria-pressed="<?= $__t === $__temaOra ? 'true' : 'false' ?>">
-                <svg viewBox="0 0 16 16" class="menu-scelta-icona tema-<?= $__t ?>" aria-hidden="true"><?= $__iconaTema[$__t] ?></svg>
-                <?= $__nomeBreve ?>
-              </button>
-            <?php endforeach; ?>
-          </div>
-        </div>
-        <div class="menu-preferenza">
-          <span class="menu-preferenza-titolo">Lingua</span>
-          <div class="menu-preferenza-scelte">
-            <?php foreach (SITE_LANGUAGES as $__lang): ?>
-              <a href="<?= h(language_switch_url($__lang)) ?>" data-no-tr
-                 class="menu-scelta<?= $__lang === $GLOBALS['__siteLang'] ? ' is-attivo' : '' ?>">
-                <?= language_flag_svg($__lang) ?>
-                <?= h($__nomeLingua[$__lang]) ?>
-              </a>
-            <?php endforeach; ?>
-            <?php if ($GLOBALS['__siteLangManual'] ?? false): ?>
-              <a href="<?= h(language_switch_url('auto')) ?>" class="menu-scelta" title="Segui la lingua scelta in gioco">
-                <?= language_auto_icon_svg() ?>
-                Automatica
-              </a>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
     </div>
     <div class="auth-box">
-      <?php /* Interruttore del tema: gira fra scuro, chiaro e automatico (schermo largo; da
-               telefono le stesse scelte stanno nel menu a hamburger). Tutte e tre le icone
-               nella pagina, si vede solo quella attiva. */ ?>
+      <?php
+        // Interruttore del tema: gira fra scuro, chiaro e automatico. L'etichetta di partenza
+        // la scrive il server (niente sfarfallio); da li' in poi la cambia assets/js/site.js,
+        // che salva la scelta in un cookie valido un anno.
+        $__temaOra = tema_scelto();
+        // Icone disegnate (SVG), non i caratteri ☾ ☀ ◐: quelli li disegna il font del telefono,
+        // ognuno con i suoi margini, e nel pulsante quadrato uscivano fuori centro (il sole
+        // visibilmente, su Android). Tutte e tre nella pagina, si vede solo quella attiva.
+        $__iconaTema = [
+            'scuro' => '<path d="M13.2 10.4A5.6 5.6 0 0 1 5.6 2.8a5.6 5.6 0 1 0 7.6 7.6Z"/>',
+            'chiaro' => '<circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6'
+                . 'M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"/>',
+            'auto' => '<circle cx="8" cy="8" r="5.6"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2Z" fill="currentColor"/>',
+        ];
+        $__nomeTema = ['scuro' => 'Tema scuro', 'chiaro' => 'Tema chiaro', 'auto' => 'Tema automatico'];
+      ?>
       <button type="button" class="btn btn-ghost cambia-tema" id="cambiaTema"
               title="<?= h($__nomeTema[$__temaOra]) ?> — clicca per cambiare"
               aria-label="<?= h($__nomeTema[$__temaOra]) ?>">
@@ -610,8 +564,9 @@ $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de'
         // funziona anche con JS disattivato, come il resto della navigazione del sito.
         // La bandiera sta per la lingua (convenzione comune: UK per l'inglese, non gli USA), come
         // SVG e non come emoji: Windows non ha i disegni delle bandiere e mostrerebbe di nuovo
-        // due lettere al loro posto (vedi language_flag_svg). Da telefono la barra non lo
-        // mostra: la lingua si sceglie dal menu a hamburger (.menu-preferenze).
+        // due lettere al loro posto (vedi language_flag_svg). Resta nella barra anche da
+        // telefono: il posto glielo lascia "Gestione", che li' passa nel menu ad hamburger.
+        $__nomeLingua = ['it' => 'Italiano', 'en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
       ?>
       <details class="cambia-lingua">
         <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
