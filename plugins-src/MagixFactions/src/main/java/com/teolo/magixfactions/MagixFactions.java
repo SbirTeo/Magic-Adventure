@@ -252,7 +252,7 @@ public final class MagixFactions extends JavaPlugin {
 
         // Placeholder propri (registra l'espansione %magixfactions_...%)
         if (Papi.enabled()) {
-            new MagixPlaceholders(this, factionManager, powerManager, claimManager, scoreManager).register();
+            new MagixPlaceholders(this, factionManager, powerManager, claimManager, scoreManager, messages).register();
             getLogger().info("Placeholder %magixfactions_...% registrati in PlaceholderAPI.");
         }
 

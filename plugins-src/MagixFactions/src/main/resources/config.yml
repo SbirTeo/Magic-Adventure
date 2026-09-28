@@ -664,6 +664,20 @@ territory-titles:
     title: "&7&lZONA NEUTRALE"
     subtitle: "&7Sei entrato in zona neutrale"
 
+# ------------------------ PLACEHOLDER -----------------------------
+# Impostazioni dei placeholder %magixfactions_...% che non si esauriscono in un testo di messages.yml.
+placeholders:
+  # %magixfactions_status_scroll%: la riga di stato di /f info (forte / debole / senza territori) che
+  # SCORRE da destra verso sinistra, come un'insegna luminosa. Il testo e' quello di messages.yml
+  # (info.status-*-self), colori compresi.
+  status-scroll:
+    width: 24             # quanti caratteri si vedono alla volta (la larghezza della "finestra")
+    gap: 6                # spazi vuoti fra la fine della scritta e il suo nuovo inizio
+    # Ogni quanti tick (20 = 1 secondo) la scritta avanza di un carattere. Perche' si veda fluida la
+    # scoreboard che la mostra deve ridisegnarsi almeno cosi' spesso: in MagixScoreboard,
+    # update-interval-ticks uguale a questo valore (o piu' basso).
+    speed-ticks: 2
+
 # ------------------------- RELAZIONI ------------------------------
 # Esistono solo due relazioni: NEMICO (default: ogni fazione e' nemica di tutte) e ALLEATO.
 # L'alleanza richiede il consenso di entrambe le fazioni (/f ally su entrambi i lati).

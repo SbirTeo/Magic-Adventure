@@ -26,6 +26,9 @@ import java.util.Locale;
  *   %magixfactions_rank_name%           -> nome per intero del grado del giocatore
  *   %magixfactions_leader%              -> nome del leader della fazione
  *   %magixfactions_members%             -> numero di membri della fazione
+ *   %magixfactions_members_online%      -> membri della fazione connessi adesso
+ *   %magixfactions_status%              -> stato della propria fazione (testo di /f info)
+ *   %magixfactions_status_scroll%       -> come status, scorrevole da destra a sinistra
  *   %magixfactions_allies%              -> numero di fazioni alleate
  *   %magixfactions_enemies%             -> numero di fazioni nemiche
  *   %magixfactions_power%               -> Potenza attuale della fazione
@@ -55,8 +58,14 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                     + "[L]), preso da ranks.*.tag e leader.tag del config.",
             "%magixfactions_rank_name%", "Nome per intero del grado del giocatore nella sua fazione (es. "
                     + "Ufficiale, Leader), preso da ranks.*.name e leader.name del config.",
+            "%magixfactions_status%", "Stato della fazione del giocatore, lo stesso testo di /f info sulla "
+                    + "propria fazione (forte, debole o senza territori: info.status-*-self di messages.yml).",
+            "%magixfactions_status_scroll%", "Come status, ma la scritta scorre da destra verso sinistra in una "
+                    + "finestra di placeholders.status-scroll.width caratteri. La scoreboard deve ridisegnarsi "
+                    + "spesso (update-interval-ticks basso) perche' lo scorrimento si veda fluido.",
             "%magixfactions_leader%", "Nome del leader della fazione del giocatore.",
             "%magixfactions_members%", "Quanti membri ha la fazione del giocatore.",
+            "%magixfactions_members_online%", "Quanti membri della fazione del giocatore sono connessi adesso.",
             "%magixfactions_allies%", "Quante fazioni alleate ha.",
             "%magixfactions_enemies%", "Quante fazioni nemiche ha.",
             "%magixfactions_power%", "Potenza attuale della fazione.",
@@ -81,14 +90,16 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
     private final PowerManager power;
     private final ClaimManager claims;
     private final ScoreManager score;
+    private final com.teolo.magixfactions.lang.Messages messages;
 
     public MagixPlaceholders(JavaPlugin plugin, FactionManager fm, PowerManager power, ClaimManager claims,
-                             ScoreManager score) {
+                             ScoreManager score, com.teolo.magixfactions.lang.Messages messages) {
         this.plugin = plugin;
         this.fm = fm;
         this.power = power;
         this.claims = claims;
         this.score = score;
+        this.messages = messages;
     }
 
     @Override
@@ -143,6 +154,12 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                 return f != null ? f.getName() : "";
             case "members":
                 return f != null ? String.valueOf(f.size()) : "";
+            case "members_online": {
+                if (f == null) return "";
+                int online = 0;
+                for (java.util.UUID u : f.getMembers().keySet()) if (Bukkit.getPlayer(u) != null) online++;
+                return String.valueOf(online);
+            }
             case "power":
                 return f != null ? String.valueOf(power.factionPower(f)) : "";
             case "maxpower":
@@ -173,6 +190,18 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                 Member m = f.getMember(player.getUniqueId());
                 if (m == null) return "";
                 return color(fm.ranks().resolve(m.getRankId()).getTag());
+            }
+            case "status":
+                return f != null ? statusText(player, f) : "";
+            case "status_scroll": {
+                if (f == null) return "";
+                int width = plugin.getConfig().getInt("placeholders.status-scroll.width", 24);
+                int gap = plugin.getConfig().getInt("placeholders.status-scroll.gap", 6);
+                int speed = Math.max(1, plugin.getConfig().getInt("placeholders.status-scroll.speed-ticks", 2));
+                // Il passo dipende dal tick del server, non da quante volte si chiede il placeholder: due
+                // giocatori vedono la scritta allo stesso punto, e la velocita' non cambia con la scoreboard.
+                long step = Bukkit.getCurrentTick() / speed;
+                return com.teolo.magixfactions.util.Marquee.window(statusText(player, f), width, gap, step);
             }
             case "rank_name": {
                 if (f == null) return "";
@@ -221,6 +250,15 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
         else if (own.getId() == target.getId()) key = "member";
         else key = fm.effectiveRelation(own.getId(), target.getId()).name().toLowerCase(Locale.ROOT);
         return color(plugin.getConfig().getString("relations.names." + key, defaultName(key)));
+    }
+
+    /** La riga di /f info sullo stato della PROPRIA fazione, nella lingua del giocatore se e' online. */
+    private String statusText(OfflinePlayer player, Faction f) {
+        int owned = claims.count(f.getId());
+        String key = owned == 0 ? "info.status-none-self"
+                : power.factionPower(f) >= owned ? "info.status-strong-self" : "info.status-weak-self";
+        Player online = player.getPlayer();
+        return online != null ? messages.get(online, key) : messages.get(key);
     }
 
     private static String defaultColor(String key) {
