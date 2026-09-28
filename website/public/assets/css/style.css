@@ -827,7 +827,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
     grid-template-columns: minmax(110px, 38%) 1fr;
     grid-template-areas:
       "logo   titolo"
-      "slogan testo"
+      "slogan slogan"
       "stato  stato"
       "ip     ip";
     column-gap: 16px;
@@ -843,19 +843,20 @@ body.menu-aperto .site-header { backdrop-filter: none; }
     height: auto;
     filter: drop-shadow(0 0 12px var(--purple-glow)) drop-shadow(0 0 8px var(--green-glow));
   }
-  /* In basso, a filo del logo: la descrizione (riga sotto) lo segue senza vuoto in mezzo. */
-  .hero-headline { grid-area: titolo; align-self: end; }
-  .hero-sub { grid-area: testo; }
+  /* Centrato sull'altezza del logo. La descrizione da telefono non c'e': il titolo basta, e
+     lo slogan sotto dice il resto. */
+  .hero-headline { grid-area: titolo; align-self: center; margin: 0; }
+  .hero-sub { display: none; }
   .hero-copy-col .status-pill { grid-area: stato; justify-self: center; margin: 20px 0 0; }
   .hero-actions { grid-area: ip; margin-top: 12px; }
 
-  /* Lo slogan sotto il logo, largo quanto lui, su una riga sola che scorre da destra a
-     sinistra all'infinito (index.php avvolge il testo in .hero-slogan-testo). Il padding
+  /* Lo slogan sotto logo e titolo, a tutta larghezza, su una riga sola che scorre da destra
+     a sinistra all'infinito (index.php avvolge il testo in .hero-slogan-testo). Il padding
      sinistro al 100% fa partire il testo appena fuori dal bordo destro; i bordi sfumano. */
   .hero-slogan {
     grid-area: slogan;
     justify-self: stretch;
-    margin: 12px 0 0;
+    margin: 18px 0 0;
     overflow: hidden;
     white-space: nowrap;
     text-align: left;
@@ -864,15 +865,15 @@ body.menu-aperto .site-header { backdrop-filter: none; }
     letter-spacing: var(--tracking-caps);
     line-height: 1.6;
     text-shadow: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   }
   /* L'a capo scritto nel gestionale, pensato per la riga larga: qui la riga e' una sola. */
   .hero-slogan br { display: none; }
   .hero-slogan-testo {
     display: inline-block;
     padding-left: 100%;
-    animation: slogan-scorre 11s linear infinite;
+    animation: slogan-scorre 13s linear infinite;
   }
   @keyframes slogan-scorre {
     from { transform: translateX(0); }
