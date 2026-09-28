@@ -133,6 +133,37 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
     etichetta.classList.toggle('uguale', indice === 0);
     etichetta.classList.add('visibile');
   }
+  // Come far scoprire il gesto: le prime volte, da telefono, il rullo scende da solo di mezza
+  // bandiera e torna su come una molla (vedi playHint). Smette per sempre la prima volta che il
+  // visitatore trascina davvero; da quel momento sparisce anche il suggerimento nella tendina.
+  var INVITI = 3;
+  var memoria = { visite: 0, usato: false };
+  try {
+    var salvata = JSON.parse(localStorage.getItem('lingua-rullo') || 'null');
+    if (salvata) memoria = salvata;
+  } catch (e) { /* niente memoria: si comporta come alla prima visita */ }
+  function remember() {
+    try { localStorage.setItem('lingua-rullo', JSON.stringify(memoria)); } catch (e) { /* navigazione privata */ }
+  }
+  if (memoria.usato) dettagli.classList.add('rullo-usato');
+  function playHint() {
+    if (inizioY !== null || dettagli.hasAttribute('open')) return;
+    striscia.classList.remove('torna');
+    striscia.classList.add('invito');
+    moveStrip(0.6);
+    setTimeout(function () {
+      if (inizioY === null) moveStrip(0);
+      setTimeout(function () { striscia.classList.remove('invito'); }, 700);
+    }, 450);
+  }
+  var tocco = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  var calma = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (tocco && !calma && !memoria.usato && (memoria.visite || 0) < INVITI) {
+    memoria.visite = (memoria.visite || 0) + 1;
+    remember();
+    setTimeout(playHint, 1800);
+  }
+
   function reset() {
     inizioY = null;
     trascina = false;
@@ -157,7 +188,12 @@ document.querySelectorAll('.cambia-lingua').forEach(function (dettagli) {
       if (discesa < SOGLIA) return;
       trascina = true;
       dettagli.removeAttribute('open');
-      striscia.classList.remove('torna');
+      striscia.classList.remove('torna', 'invito');
+      if (!memoria.usato) {
+        memoria.usato = true;
+        remember();
+        dettagli.classList.add('rullo-usato');
+      }
     }
     ev.preventDefault();
     // Segue il dito passo passo; oltre l'ultima lingua (o sopra la prima) fa resistenza.

@@ -565,6 +565,9 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
               Automatica
             </a>
           <?php endif; ?>
+          <?php // Solo da telefono e finche' non l'ha usato (vedi style.css e site.js): il tocco
+                // apre questa tendina, e qui si scopre che si puo' anche trascinare. ?>
+          <p class="cambia-lingua-suggerimento">Puoi anche trascinare giù la bandiera.</p>
         </div>
       </details>
       <?php if ($__u): ?>
