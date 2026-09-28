@@ -236,7 +236,16 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             Component avatar = plugin.avatarService().render(e, face);
             // A glyph taller than a letter (scale, offset-y) sticks out above its line: leave room.
             for (int i = 0; i < e.emptyLinesAbove(9); i++) viewer.sendMessage(Component.empty());
-            viewer.sendMessage(avatar.append(caption));
+            // legacy(): la STESSA faccia come testo puro (font pixel + codici colore &sect;), non un
+            // placeholder PAPI - copiata e incollata in un vero messaggio di chat funziona per
+            // chiunque veda il pacchetto, senza bisogno che niente la risolva lato server.
+            String pasteable = plugin.avatarService().legacy(e, face);
+            Component copy = LegacyComponentSerializer.legacySection()
+                    .deserialize(messages.get(viewer, "glyph-show-copy-button"))
+                    .clickEvent(ClickEvent.copyToClipboard(pasteable))
+                    .hoverEvent(HoverEvent.showText(LegacyComponentSerializer.legacySection()
+                            .deserialize(messages.get(viewer, "glyph-show-copy-hover"))));
+            viewer.sendMessage(avatar.append(caption).append(copy));
         }));
     }
 

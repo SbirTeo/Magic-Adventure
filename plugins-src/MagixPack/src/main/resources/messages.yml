@@ -41,4 +41,9 @@ glyph-avatar-loading: "&7Scarico la skin di &f{player}&7..."
 glyph-avatar-no-skin: "&cNessuna skin trovata per '{player}' (account non premium, o Mojang non raggiungibile)."
 # Scritto subito a destra dell'icona nell'anteprima di /mpack glyph show.
 glyph-show-caption: " &7{glyph}"
+# Solo per un avatar: pulsante che copia la faccia come TESTO VERO (font pixel + codici colore),
+# non un placeholder - incollato in un messaggio di chat vero funziona per chiunque, nessuna
+# risoluzione lato server necessaria.
+glyph-show-copy-button: " &a[copia]"
+glyph-show-copy-hover: "&7Copia negli appunti: funziona incollato in un vero messaggio di chat."
 
