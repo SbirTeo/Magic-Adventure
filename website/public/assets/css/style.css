@@ -4121,7 +4121,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 .tavolozza label:first-of-type { margin-top: 0; }
 .tavolozza input[type=color] { height: 40px; padding: 3px; width: 100%; }
 
-/* Scorciatoia "Crea un nuovo post" sopra la griglia della home: un tondo bianco col +, e la
+/* Scorciatoia "Crea un nuovo post" sopra la griglia della home: un quadrato bianco col +, e la
    scritta in una nuvoletta a sinistra che compare passandoci sopra (o col fuoco, o tenendolo
    premuto da telefono). Bianco in tutti e due i temi: sul chiaro lo stacca il bordo. */
 .barra-crea { display: flex; justify-content: flex-end; margin: 0 0 14px; }
@@ -4132,7 +4132,8 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  /* Quadrato con gli angoli dei pulsanti del sito, non un tondo. */
+  border-radius: var(--radius-sm);
   background: #fff;
   color: #14161a;
   border: 1px solid var(--border);
@@ -4490,8 +4491,8 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
     top: 0;
     left: 0;
     right: 0;
-    height: 40%;
-    background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 35%, transparent 100%);
+    height: 14%;
+    background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 45%, transparent) 38%, transparent 100%);
     pointer-events: none;
   }
   /* Tutte le tessere del carosello alte uguali: il contenitore si allunga gia' da solo fino
@@ -5460,8 +5461,8 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
     background:
       linear-gradient(180deg,
         var(--bg) 0%,
-        color-mix(in srgb, var(--bg) 50%, transparent) 14%,
-        color-mix(in srgb, var(--bg) 0%, transparent) 34%),
+        color-mix(in srgb, var(--bg) 45%, transparent) 5%,
+        color-mix(in srgb, var(--bg) 0%, transparent) 13%),
       linear-gradient(180deg,
         color-mix(in srgb, var(--bg-panel) 0%, transparent) 45%,
         color-mix(in srgb, var(--bg-panel) 75%, transparent) 80%,
