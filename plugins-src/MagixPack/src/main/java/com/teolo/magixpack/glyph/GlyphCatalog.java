@@ -85,6 +85,8 @@ public final class GlyphCatalog {
     private final AvatarService avatars;
     private final AvatarGlyphRegistry avatarChars;
     private final Map<String, GlyphEntry> entries = new LinkedHashMap<>();
+    /** The vertically centered copy of every voice, used only by stacks (see reload). */
+    private final Map<String, GlyphEntry> centered = new LinkedHashMap<>();
 
     public GlyphCatalog(JavaPlugin plugin, AvatarService avatars, AvatarGlyphRegistry avatarChars) {
         this.plugin = plugin;
@@ -92,8 +94,16 @@ public final class GlyphCatalog {
         this.avatarChars = avatarChars;
     }
 
+    /** How far a glyph moves the text on: an avatar one step space per column (see
+     *  AvatarService.spaces); an icon the vanilla rule for a bitmap glyph — rightmost
+     *  non-transparent column, times the scale, rounded, plus one pixel of spacing. */
+    private static double advance(boolean avatar, BitmapFit fit, int contentWidth) {
+        return avatar ? AvatarService.WIDTH * fit.pixelScale() : (int) (0.5 + contentWidth * fit.pixelScale()) + 1;
+    }
+
     public void reload() {
         entries.clear();
+        centered.clear();
         File file = new File(plugin.getDataFolder(), "glyphs.yml");
         if (!file.exists()) plugin.saveResource("glyphs.yml", false);
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
@@ -114,22 +124,21 @@ public final class GlyphCatalog {
                 priority = Math.max(0, Math.min(100, priority));
             }
             int rows;
-            BitmapFit fit;
-            double advance;
+            double wantHeight;
+            int ascent;
+            int contentWidth = 0;
             if (avatar) {
                 // Drawn per player by AvatarService. Base size is the one of a letter (8 tall, 7
                 // above the baseline), then scale and offsets.
                 rows = AvatarService.HEIGHT;
-                fit = BitmapFit.of(rows, rows * scale, (int) Math.round(7 * scale) + offsetY);
-                // One step space per column (see AvatarService.spaces): 8 columns of pixelScale.
-                advance = AvatarService.WIDTH * fit.pixelScale();
+                wantHeight = rows * scale;
+                ascent = (int) Math.round(7 * scale);
             } else {
                 if (!textureFile(id).isFile()) {
                     plugin.getLogger().warning("[Glyphs] '" + id + "' in glyphs.yml: manca la texture glyphs/"
                             + id + ".png, icona ignorata.");
                     continue;
                 }
-                int contentWidth;
                 try {
                     BufferedImage img = ImageIO.read(textureFile(id));
                     if (img == null) throw new IOException("non e' un'immagine");
@@ -140,21 +149,29 @@ public final class GlyphCatalog {
                             + "): icona ignorata.");
                     continue;
                 }
-                int height = sec.getInt("height", 8);
-                int ascent = sec.getInt("ascent", 7);
-                fit = BitmapFit.of(rows, height * scale, (int) Math.round(ascent * scale) + offsetY);
-                // Same rule as the vanilla client for a bitmap glyph: rightmost non-transparent
-                // column, times the scale, rounded, plus one pixel of spacing.
-                advance = (int) (0.5 + contentWidth * fit.pixelScale()) + 1;
+                wantHeight = sec.getInt("height", 8) * scale;
+                ascent = (int) Math.round(sec.getInt("ascent", 7) * scale);
             }
+            // Every voice takes TWO blocks: the normal glyph, and a copy centered on a common line
+            // that only the stacks use (see stackOrder) — in a font the vertical place of a glyph is
+            // fixed (its ascent), not something the text can move, so the centered version has to
+            // exist in the pack already. The common line is the middle of a letter-sized glyph
+            // (8 tall, ascent 7): a glyph H pixels tall gets ascent 3 + H/2.
             int size = (avatar ? AvatarService.CHARS : ICON_CHARS) + STACK_CHARS;
-            if (codepoint + size - 1 > LAST_CODEPOINT) {
+            if (codepoint + 2 * size - 1 > LAST_CODEPOINT) {
                 plugin.getLogger().warning("[Glyphs] Finiti i caratteri disponibili: '" + id + "' e le icone "
                         + "dopo di lei in ordine alfabetico sono ignorate.");
                 break;
             }
-            entries.put(id, new GlyphEntry(id, codepoint, avatar, scale, offsetX, offsetY, rows, fit, priority, advance));
-            codepoint += size;
+            int visibleHeight = Math.max(1, (int) Math.round(wantHeight));
+            BitmapFit fit = BitmapFit.of(rows, wantHeight, ascent + offsetY);
+            BitmapFit centeredFit = BitmapFit.of(rows, wantHeight,
+                    (int) Math.round(3 + visibleHeight / 2.0) + offsetY);
+            entries.put(id, new GlyphEntry(id, codepoint, avatar, scale, offsetX, offsetY, rows, fit, priority,
+                    advance(avatar, fit, contentWidth), false));
+            centered.put(id, new GlyphEntry(id, codepoint + size, avatar, scale, offsetX, offsetY, rows,
+                    centeredFit, priority, advance(avatar, centeredFit, contentWidth), true));
+            codepoint += 2 * size;
         }
         if (!entries.isEmpty()) {
             plugin.getLogger().info("[Glyphs] " + entries.size() + " icona/e custom caricate da glyphs.yml.");
@@ -233,7 +250,7 @@ public final class GlyphCatalog {
     public List<GlyphEntry> stackOrder(List<String> ids) {
         List<GlyphEntry> out = new ArrayList<>();
         for (String id : ids) {
-            GlyphEntry e = entries.get(id.trim());
+            GlyphEntry e = centered.get(id.trim());
             if (e == null) return null;
             out.add(e);
         }
@@ -373,28 +390,31 @@ public final class GlyphCatalog {
             spaces.put(SHIFT_FIRST + i, (double) SHIFT_MAGNITUDES[i]);
             spaces.put(SHIFT_FIRST + SHIFT_MAGNITUDES.length + i, (double) -SHIFT_MAGNITUDES[i]);
         }
-        for (GlyphEntry e : entries.values()) {
+        List<GlyphEntry> all = new ArrayList<>(entries.values());
+        all.addAll(centered.values());
+        for (GlyphEntry e : all) {
             BitmapFit fit = e.fit();
+            String file = fileName(e.id()) + (e.centered() ? "_stack" : "");
             // Step back over / forward by the whole glyph: what stacking needs (see stackComponent).
             spaces.put((int) back(e), -e.advance());
             spaces.put((int) forward(e), e.advance());
             if (e.playerAvatar()) {
-                out.put("assets/" + NAMESPACE + "/textures/font/avatar/" + fileName(e.id()) + ".png",
+                out.put("assets/" + NAMESPACE + "/textures/font/avatar/" + file + ".png",
                         avatars.atlas(e));
-                providers.add(bitmap("font/avatar/" + fileName(e.id()) + ".png", fit, avatars.rowChars(e)));
+                providers.add(bitmap("font/avatar/" + file + ".png", fit, avatars.rowChars(e)));
                 spaces.putAll(avatars.spaces(e));
                 continue;
             }
             try {
                 byte[] texture = Files.readAllBytes(textureFile(e.id()).toPath());
                 if (fit.padRows() > 0) texture = padBottom(texture, fit.padRows());
-                out.put("assets/" + NAMESPACE + "/textures/font/icons/" + fileName(e.id()) + ".png", texture);
+                out.put("assets/" + NAMESPACE + "/textures/font/icons/" + file + ".png", texture);
             } catch (IOException ex) {
                 plugin.getLogger().warning("[Glyphs] Impossibile leggere glyphs/" + e.id() + ".png ("
                         + ex.getMessage() + "): icona esclusa da questo pacchetto.");
                 continue;
             }
-            providers.add(bitmap("font/icons/" + fileName(e.id()) + ".png", fit, esc(e.codepoint())));
+            providers.add(bitmap("font/icons/" + file + ".png", fit, esc(e.codepoint())));
             if (e.offsetX() != 0) {
                 spaces.put(e.codepoint() + 1, e.offsetX());
                 spaces.put(e.codepoint() + 2, -e.offsetX());

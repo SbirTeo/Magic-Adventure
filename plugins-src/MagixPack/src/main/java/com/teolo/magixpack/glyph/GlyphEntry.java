@@ -15,9 +15,12 @@ package com.teolo.magixpack.glyph;
  * <p>{@code priority} (staff, 0-100, default 0, decimals allowed) decides who is drawn on top when several glyphs are
  * stacked in the same spot ({@link GlyphCatalog#stackLegacy}): higher = on top. {@code advance} is
  * how far the glyph moves the text on, in GUI pixels — computed, needed to step back over it.
+ * {@code centered}: this is the copy of the voice centered on a common vertical line, the one
+ * the stacks draw (same id and texture, its own characters and ascent).
  */
 public record GlyphEntry(String id, int codepoint, boolean playerAvatar, double scale, double offsetX,
-                         int offsetY, int imageRows, BitmapFit fit, double priority, double advance) {
+                         int offsetY, int imageRows, BitmapFit fit, double priority, double advance,
+                         boolean centered) {
 
     /** Empty lines to leave above the glyph so that it does not cover the text before it: a normal
      *  letter has ascent 7, anything higher sticks out by the difference. */

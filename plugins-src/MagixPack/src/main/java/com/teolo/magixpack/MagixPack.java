@@ -452,8 +452,9 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "%magixpack_stack_avatar,cornice% (o /mpack glyph show avatar,cornice) li disegna "
                                 + "nello stesso punto, in ordine di priority — in Minecraft vince sempre il carattere "
                                 + "scritto per ultimo, e lo stack scrive per ultimo quello con priority piu' alta. "
-                                + "Sono centrati uno sull'altro (il piu' stretto spostato di meta' della differenza "
-                                + "col piu' largo); per ritoccarne uno a mano resta il suo offset-x.",
+                                + "Sono centrati uno sull'altro in larghezza e in altezza (ogni voce ha nel pacchetto "
+                                + "anche una copia centrata su una linea comune, usata solo dagli stack); per ritoccarne "
+                                + "uno a mano restano offset-x e offset-y, quindi per un centraggio esatto lasciali a 0.",
                         "GlyphCatalog.shift(pixel) da' invece caratteri FISSI (come lo shifts.yml di Oraxen, "
                                 + "generati non configurati) che spostano quello che li segue senza bisogno di una "
                                 + "voce in glyphs.yml: utili per allineare un'icona/avatar in un testo composto a "

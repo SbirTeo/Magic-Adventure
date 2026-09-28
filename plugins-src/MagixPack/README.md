@@ -347,9 +347,13 @@ Come funziona: ogni voce ha nel font due spazi in piu', uno che torna indietro e
 sua larghezza e uno che avanza della stessa (larghezza calcolata come fa il client: ultima colonna
 non trasparente dell'immagine per la scala, +1). Nello stack ogni glifo e' seguito dal suo "torna
 indietro", cosi' il successivo parte dallo stesso punto; alla fine l'"avanti" del piu' largo, cosi'
-il testo dopo riparte dopo di lui. I glifi sono CENTRATI uno sull'altro: ognuno piu' stretto del
-piu' largo viene spostato di meta' della differenza (pixel interi, i caratteri shift). Per ritoccare
-a mano la posizione di uno resta il suo `offset-x`.
+il testo dopo riparte dopo di lui. I glifi sono CENTRATI uno sull'altro, in larghezza e in
+altezza. In larghezza: ognuno piu' stretto del piu' largo viene spostato di meta' della differenza
+(pixel interi, i caratteri shift). In altezza la posizione di un glifo la fissa il font (il suo
+ascent), non il testo: per questo ogni voce ha nel pacchetto anche una SECONDA copia, centrata su una
+linea comune (il centro di un glifo alto come una lettera), ed e' quella che usano gli stack — da
+sola la voce resta dov'e'. Per ritoccare a mano restano `offset-x` e `offset-y`, che valgono anche
+nello stack (quindi per un centraggio esatto lasciali a 0).
 
 ## Spostare un carattere senza un glyphs.yml (shift)
 
