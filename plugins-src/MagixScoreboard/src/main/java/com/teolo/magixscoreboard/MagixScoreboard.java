@@ -153,10 +153,11 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                                 + "in basso) con gli shader del pacchetto: lo sfondo lo sposta MagixScoreboard, le "
                                 + "scritte e le icone lo shader del testo di MagixFactions, che legge lo stesso valore "
                                 + "(serve MagixFactions installato, altrimenti si sposta solo lo sfondo).",
-                        "Lo shader del testo non sa quale scritta e' della sidebar: sposta tutte quelle che cadono "
-                                + "nella fascia destra dello schermo (larga zone-width) all'altezza in cui la sidebar "
-                                + "puo' stare. Se un menu aperto o un'altra scritta finisce li' si sposta anch'essa: "
-                                + "in quel caso si restringe zone-width, o si torna a 0.")
+                        "Lo shader del testo riconosce le scritte della sidebar da un marchio invisibile nel colore "
+                                + "(MagixScoreboard sposta ogni colore della sidebar di pochissimo, al massimo 4 "
+                                + "sfumature su 255): tooltip degli oggetti, menu e chat restano al loro posto anche "
+                                + "se passano nella fascia destra. Per sicurezza sposta solo le scritte marchiate "
+                                + "che cadono in quella fascia (larga zone-width) all'altezza della sidebar.")
                 .detailedCommands()
                 .commands()
                 .permissions()

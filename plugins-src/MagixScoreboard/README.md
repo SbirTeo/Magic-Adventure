@@ -93,10 +93,12 @@ riconosce la sidebar dal colore vanilla (nero al 30% le righe, al 40% il titolo,
 Il client la mette sempre un po' sopra la meta' dello schermo: `sidebar-position.offset-y` la sposta
 di N pixel dell'interfaccia (positivo = in basso, 0 = vanilla). Lo sfondo lo sposta lo shader `gui`
 di MagixScoreboard; scritte e icone lo shader del testo di **MagixFactions**, che legge lo stesso
-valore da questo config (MagixPack tiene un solo `text.vsh`, ed e' di MagixFactions). Siccome quello
-shader non sa quale scritta sia della sidebar, sposta tutte quelle nella fascia destra larga
-`zone-width` all'altezza della sidebar: un menu che finisce li' si sposta anch'esso (si restringe
-`zone-width`). `/mscoreboard reload` ricostruisce sia il pezzo di MagixScoreboard sia quello di
+valore da questo config (MagixPack tiene un solo `text.vsh`, ed e' di MagixFactions). Lo shader
+riconosce le scritte della sidebar da un marchio nel colore: con `offset-y` diverso da 0
+MagixScoreboard porta ogni colore della sidebar a rosso, verde e blu = 3 modulo 8 (al massimo 4
+sfumature su 255, `util/SidebarMark`), cosa che nessun colore vanilla fa. Cosi' tooltip degli
+oggetti, menu e chat non si spostano piu' (prima scivolavano giu' fuori dal loro riquadro). In piu'
+devono cadere nella fascia destra larga `zone-width` all'altezza della sidebar. `/mscoreboard reload` ricostruisce sia il pezzo di MagixScoreboard sia quello di
 MagixFactions.
 
 La guida generata dal plugin (`plugins/MagixScoreboard/guida-staff.html`, anche nel gestionale

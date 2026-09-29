@@ -40,8 +40,8 @@ sidebar-background:
 # Posizione verticale della sidebar. Il client la mette sempre un po' sopra la meta' dello schermo
 # e non si puo' cambiare da server: la si SPOSTA con gli shader del pacchetto risorse (sfondo da
 # MagixScoreboard, scritte e icone dallo shader del testo di MagixFactions, che serve installato).
-# Si spostano tutte le scritte che cadono nella fascia destra dello schermo dove sta la sidebar: se
-# un menu o un'altra scritta finisce li', si sposta anch'essa (restringi zone-width). Si applica con
+# Si spostano solo le scritte della sidebar, riconosciute da un marchio invisibile nel colore:
+# tooltip degli oggetti, menu e chat restano fermi anche nella fascia destra. Si applica con
 # /mscoreboard reload; i giocatori gia' connessi lo vedono dal prossimo ingresso.
 sidebar-position:
   offset-y: 0             # pixel dell'interfaccia verso il BASSO (negativo = in alto), -200..200. 0 = vanilla

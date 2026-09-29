@@ -128,15 +128,20 @@ void main() {
 #ifdef IS_GUI
     // MagixScoreboard: sidebar spostata in verticale (config sidebar-position di MagixScoreboard, letto
     // da MagixFactions perche' questo file e' suo nel pacchetto unico). Il client la centra sempre un po'
-    // sopra la meta' dello schermo; qui si spostano le scritte (e le icone, che sono glifi di testo) che
-    // cadono nella fascia in cui la sidebar puo' stare: a destra, larga __SB_ZONE__ pixel, e in verticale
-    // fra meta' schermo - 101 e + 46 (15 righe al massimo, geometria letta dal client 26.2). Lo sfondo lo
-    // sposta lo shader gui di MagixScoreboard della stessa quantita'.
+    // sopra la meta' dello schermo; qui si spostano le scritte (e le icone, che sono glifi di testo) della
+    // sidebar. Le si riconosce dal MARCHIO nel colore che mette MagixScoreboard (SidebarMark): rosso,
+    // verde e blu tutti = 3 modulo 8, cosa che nessun colore vanilla fa. Senza marchio si spostavano
+    // anche i tooltip degli oggetti (sfondo fermo, lore fuori dal riquadro). In piu' devono cadere nella
+    // fascia in cui la sidebar puo' stare: a destra, larga __SB_ZONE__ pixel, e in verticale fra meta'
+    // schermo - 101 e + 46 (15 righe al massimo, geometria letta dal client 26.2). Lo sfondo lo sposta
+    // lo shader gui di MagixScoreboard della stessa quantita'.
     if (__SB_SHIFT__ != 0.0) {
         vec4 sbPos = ModelViewMat * vec4(Position, 1.0);
         float sbW = abs(2.0 / ProjMat[0][0]);
         float sbH = abs(2.0 / ProjMat[1][1]);
-        if (sbPos.x > sbW - __SB_ZONE__ && sbPos.y > sbH * 0.5 - 101.0 && sbPos.y < sbH * 0.5 + 46.0) {
+        ivec3 sbRgb = ivec3(round(Color.rgb * 255.0));
+        bool sbMarked = all(equal(sbRgb % 8, ivec3(3)));
+        if (sbMarked && sbPos.x > sbW - __SB_ZONE__ && sbPos.y > sbH * 0.5 - 101.0 && sbPos.y < sbH * 0.5 + 46.0) {
             gl_Position = ProjMat * vec4(sbPos.x, sbPos.y + __SB_SHIFT__, sbPos.z, sbPos.w);
         }
     }
