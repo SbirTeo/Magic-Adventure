@@ -32,7 +32,15 @@
 @media (min-width: 1101px) { .pj-tab[data-view="chat"] { display: none; } }
 
 /* Schede della pagina */
-.pj-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--pj-gap); }
+/* Sempre su una riga: se non ci sta (telefono) scorre di lato col dito, senza barra visibile,
+   e la scheda aperta viene portata in vista (vedi setView in project.js). */
+.pj-tabs {
+  position: relative; display: flex; gap: 6px; flex-wrap: nowrap; margin-bottom: var(--pj-gap);
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.pj-tabs::-webkit-scrollbar { display: none; }
+.pj-tabs .pj-tab { flex: 0 0 auto; white-space: nowrap; scroll-snap-align: start; }
 .pj-tab {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer;

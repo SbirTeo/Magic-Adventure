@@ -265,6 +265,11 @@
     state.view = id;
     savePref('view', id);
     tabsBox.querySelectorAll('.pj-tab').forEach(function (t) { t.classList.toggle('is-active', t.dataset.view === id); });
+    // Su telefono la barra scorre di lato: la scheda aperta non deve restare fuori vista.
+    const active = tabsBox.querySelector('.pj-tab.is-active');
+    if (active && tabsBox.scrollWidth > tabsBox.clientWidth) {
+      tabsBox.scrollTo({ left: Math.max(0, active.offsetLeft - (tabsBox.clientWidth - active.offsetWidth) / 2), behavior: silent ? 'auto' : 'smooth' });
+    }
     root.classList.toggle('show-chat', id === 'chat');
     if (id !== 'chat') renderView();
     if (id === 'chat') { scrollChatBottom(true); markRead(); }
