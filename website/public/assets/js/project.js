@@ -1,5 +1,5 @@
 /*
- * Scheda "Progetto" del gestionale: lo spazio di lavoro condiviso fra gli amministratori.
+ * Pagina /progetto (progetto.php): lo spazio di lavoro condiviso fra gli amministratori.
  * Legge e scrive tutto da /api/project.php. Viste: Panoramica (avanzamento, obiettivi,
  * andamento, prossimi appuntamenti), Bacheca (schede trascinabili fra le colonne, anche col
  * dito), Calendario (mese), Registro (chi ha fatto cosa) e la Chat, sempre accanto da schermo

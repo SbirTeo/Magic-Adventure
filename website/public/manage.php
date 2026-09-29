@@ -42,7 +42,13 @@ $sectionPermissions = [
  * (Le impostazioni del blog — articoli per pagina e colori dei veli — stanno dentro la
  * scheda Blog ma seguono questa stessa regola: il pannello si vede solo da web-admin.)
  */
-$adminOnlySections = ['pages', 'page_edit', 'guida_edit', 'nav', 'theme', 'perms', 'store', 'store_pkg_edit', 'payments', 'console', 'sicurezza', 'menu', 'project'];
+$adminOnlySections = ['pages', 'page_edit', 'guida_edit', 'nav', 'theme', 'perms', 'store', 'store_pkg_edit', 'payments', 'console', 'sicurezza', 'menu'];
+
+// Lo spazio di lavoro degli amministratori e' una pagina a se', /progetto: il vecchio indirizzo
+// della scheda ci porta.
+if ($section === 'project') {
+    redirect('/progetto');
+}
 
 // Il banner VIP era una scheda a se': ora vive dentro "Aspetto", i vecchi link restano validi.
 if ($section === 'vip_banner') {
@@ -1431,9 +1437,9 @@ require __DIR__ . '/../includes/header.php';
     <?php /* I menu che i giocatori aprono in gioco: si disegnano qui e si applicano al server. */ ?>
     <a href="/manage?section=menu" class="<?= $section === 'menu' ? 'active' : '' ?>">Menu di gioco</a>
     <?php
-      // Lo spazio di lavoro condiviso fra amministratori: il numero sono i messaggi della chat
-      // non ancora letti (scritti dagli altri). Se le tabelle non ci sono ancora (migrazione non
-      // lanciata) la scheda resta, senza numero.
+      // Lo spazio di lavoro condiviso fra amministratori: e' una pagina a se' (/progetto), qui
+      // solo il collegamento. Il numero sono i messaggi della chat non ancora letti (scritti
+      // dagli altri); se le tabelle non ci sono ancora, il collegamento resta senza numero.
       $__progettoNonLetti = 0;
       try {
           $__st = db()->prepare('SELECT COUNT(*) FROM project_messages m
@@ -1443,7 +1449,7 @@ require __DIR__ . '/../includes/header.php';
           $__progettoNonLetti = (int) $__st->fetchColumn();
       } catch (Throwable $e) { /* tabelle assenti: nessun numero */ }
     ?>
-    <a href="/manage?section=project" class="<?= $section === 'project' ? 'active' : '' ?>">Progetto<?php if ($__progettoNonLetti > 0): ?> <span class="tab-badge" id="progettoBadge"><?= $__progettoNonLetti ?></span><?php endif; ?></a>
+    <a href="/progetto">Progetto<?php if ($__progettoNonLetti > 0): ?> <span class="tab-badge" id="progettoBadge"><?= $__progettoNonLetti ?></span><?php endif; ?></a>
   <?php endif; ?>
 </div>
 
@@ -4327,17 +4333,6 @@ if ($section === 'dashboard') {
 // ---------------------------------------------------------------------
 // SERVER — console, avvio e arresto (scheda "Server")
 // ---------------------------------------------------------------------
-} elseif ($section === 'project') {
-    // Tutto il contenuto lo disegna assets/js/project.js leggendo api/project.php: qui solo il
-    // contenitore. data-no-tr: sono appunti di lavoro fra amministratori, non testo del sito da
-    // passare al traduttore automatico.
-    ?>
-    <link rel="stylesheet" href="/assets/css/project.css?v=<?= @filemtime(__DIR__ . '/assets/css/project.css') ?: time() ?>">
-    <div id="project" class="pj" data-no-tr
-         data-csrf="<?= h(csrf_token()) ?>" data-me="<?= (int) $me['id'] ?>">
-      <div class="pj-loading">Caricamento dello spazio di lavoro…</div>
-    </div>
-    <?php
 } elseif ($section === 'console') {
     require_once __DIR__ . '/../includes/console.php';
     // Primo stato disegnato dal server: la scheda si apre gia' piena, poi tocca al
@@ -4474,10 +4469,6 @@ if ($section === 'dashboard') {
 
 <?php if ($section === 'console'): ?>
 <script src="/assets/js/console-server.js?v=<?= @filemtime(__DIR__ . '/assets/js/console-server.js') ?: time() ?>"></script>
-<?php endif; ?>
-
-<?php if ($section === 'project'): ?>
-<script src="/assets/js/project.js?v=<?= @filemtime(__DIR__ . '/assets/js/project.js') ?: time() ?>"></script>
 <?php endif; ?>
 
 <?php if ($section === 'menu'): ?>

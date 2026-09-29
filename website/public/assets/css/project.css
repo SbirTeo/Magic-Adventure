@@ -1,5 +1,5 @@
 /* ==========================================================================================
-   Scheda "Progetto" del gestionale (solo web-admin): panoramica con grafici, bacheca delle
+   Pagina /progetto (solo web-admin, progetto.php): panoramica con grafici, bacheca delle
    attivita', calendario, registro e chat. Contenuto disegnato da assets/js/project.js.
    Usa le variabili del sito (style.css), quindi segue da sola il tema chiaro/scuro.
    ========================================================================================== */
@@ -45,12 +45,6 @@
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--purple); color: #fff; font-size: 11px; font-weight: 700;
-}
-.tab-badge[hidden] { display: none; }
-.tab-badge {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px;
-  padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--purple); color: #fff;
-  font-size: 11px; font-weight: 700; vertical-align: middle;
 }
 
 /* Riquadri */

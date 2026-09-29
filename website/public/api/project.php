@@ -1,6 +1,6 @@
 <?php
 /**
- * API della scheda "Progetto" del gestionale: lo spazio di lavoro condiviso fra i web-admin.
+ * API della pagina /progetto (progetto.php): lo spazio di lavoro condiviso fra i web-admin.
  * Bacheca delle attivita' (idee -> da fare -> in corso -> fatto), obiettivi con avanzamento,
  * calendario degli appuntamenti, chat privata (immagini, risposte, reazioni, modifiche,
  * messaggi fissati, "sta scrivendo", spunte di lettura) e registro di chi ha fatto cosa.
