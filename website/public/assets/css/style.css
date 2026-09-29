@@ -6529,3 +6529,13 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   .auth-box { --barra-h: 34px; }
   .auth-box > a.who-link { padding: 0 12px 0 4px; }
 }
+/* Da telefono "Gestione" sta SOLO nel menu ad hamburger (.nav-gestione): il display della regola
+   qui sopra aveva vinto sul suo display:none, lo rimetteva in barra e i quadrati, senza piu'
+   spazio, si schiacciavano uno sopra l'altro. E i pulsanti di sola icona non si restringono mai:
+   se manca posto si accorcia il nome del profilo (coi puntini), non una bandiera. */
+.auth-box > .vote-btn.vote-btn-nav,
+.auth-box > .btn.cambia-tema,
+.auth-box > .cambia-lingua { flex-shrink: 0; }
+@media (max-width: 960px) {
+  .auth-box > .btn.gestione-barra { display: none; }
+}
