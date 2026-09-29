@@ -15,7 +15,7 @@
   const root = document.getElementById('project');
   if (!root) return;
 
-  const API = '/api/project.php';
+  const API = '/api/project';   // senza .php, come /api/chat: nginx ci arriva da solo
   const CSRF = root.dataset.csrf;
   const ME = Number(root.dataset.me);
   const COLUMNS = [
