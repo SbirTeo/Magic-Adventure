@@ -52,6 +52,10 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
         }
         Bukkit.getPluginManager().registerEvents(this, this);
 
+        // Sfondo e bordo della sidebar: uno shader nel pacchetto risorse unico di MagixPack (softdepend,
+        // quindi e' gia' acceso). Senza MagixPack lo sfondo resta quello vanilla.
+        com.teolo.magixscoreboard.hook.MagixPackHook.register(this);
+
         // Puro I/O su file: non deve bloccare il tick di avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
@@ -63,6 +67,7 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         if (boardManager != null) boardManager.shutdown();
+        com.teolo.magixscoreboard.hook.MagixPackHook.unregister(this);
     }
 
     @EventHandler
@@ -76,6 +81,8 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
         reloadConfig();
         messages.reload();
         boardManager.reload();
+        // Colori e opacita' dello sfondo sono nello shader: si ricostruisce il pacchetto.
+        com.teolo.magixscoreboard.hook.MagixPackHook.register(this);
         getLogger().info("Configurazione ricaricata: " + boardManager.definitions().size() + " scoreboard configurate.");
     }
 
@@ -128,6 +135,16 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                                 + "%magixfactions_status% che scorre). La scoreboard si ridisegna da sola al passo "
                                 + "dello scorrimento, senza toccare update-interval-ticks.")
 
+                .section("Sfondo e bordo della sidebar",
+                        "Il riquadro semitrasparente dietro la sidebar lo disegna il client, non il plugin: "
+                                + "MagixScoreboard lo cambia con uno shader che registra nel pacchetto risorse di "
+                                + "MagixPack (senza MagixPack resta vanilla). Da sidebar-background si sceglie colore "
+                                + "e opacita' (uguali per titolo e righe) oppure lo si spegne del tutto, e si puo' "
+                                + "aggiungere un bordo sfumato da sinistra a destra sui lati sopra, sinistra e sotto.",
+                        "Le modifiche entrano con /mscoreboard reload, ma i giocatori gia' connessi le vedono solo "
+                                + "quando riscaricano il pacchetto (al prossimo ingresso). Lo shader riconosce la "
+                                + "sidebar dal suo colore vanilla: se un giocatore ha tolto \"Sfondo testo solo per la "
+                                + "chat\" nelle opzioni di accessibilita', per lui lo sfondo resta quello di serie.")
                 .detailedCommands()
                 .commands()
                 .permissions()

@@ -19,6 +19,24 @@ enabled: true
 # piu' spesso.
 update-interval-ticks: 10
 
+# Sfondo della sidebar (il riquadro semitrasparente dietro titolo e righe). Lo disegna il client,
+# non il plugin: lo si cambia con uno shader nel pacchetto risorse di MagixPack (serve MagixPack
+# installato; senza, resta quello vanilla). Titolo e righe hanno lo STESSO colore e la stessa
+# opacita' (in vanilla il titolo e' un po' piu' scuro). Si applica con /mscoreboard reload; i
+# giocatori gia' connessi lo vedono dal prossimo ingresso (quando riscaricano il pacchetto).
+sidebar-background:
+  enabled: true           # false = nessuno sfondo: restano solo le scritte (e il bordo, se acceso)
+  color: "#000000"        # colore dello sfondo, "#RRGGBB"
+  opacity: 30             # opacita' dello sfondo in percentuale, 0-100 (vanilla: 30 le righe, 40 il titolo)
+  # Bordo sui lati sopra, sinistra e sotto (quello destro no), sfumato da sinistra a destra come i
+  # bordi del sito.
+  border:
+    enabled: true         # false = nessun bordo
+    width: 1              # spessore in pixel dell'interfaccia (1-8)
+    color-start: "#A3E635"  # colore a sinistra (verde del sito)
+    color-end: "#C04FF0"    # colore a destra (magenta del sito)
+    opacity: 100          # opacita' del bordo in percentuale, 0-100
+
 # In caso di PARITA' di peso fra piu' scoreboard che corrispondono allo stesso
 # giocatore, decide quale vince: l'elenco va dal piu' specifico al meno
 # specifico. Valori ammessi (uno o piu', in qualunque ordine):

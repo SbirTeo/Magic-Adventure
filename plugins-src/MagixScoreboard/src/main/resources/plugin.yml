@@ -4,7 +4,7 @@ main: com.teolo.magixscoreboard.MagixScoreboard
 api-version: '26.1'
 author: teolo
 description: Scoreboard laterale con placeholder Magix/PAPI, condizioni di permesso/mondo/regione WorldGuard e priorita' per peso.
-softdepend: [PlaceholderAPI, MagixLanguage, WorldGuard]
+softdepend: [PlaceholderAPI, MagixLanguage, WorldGuard, MagixPack]
 
 commands:
   magixscoreboard:

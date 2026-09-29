@@ -73,5 +73,20 @@ compresi, e la scoreboard si ridisegna da sola a quel passo:
     speed-ticks: 2
 ```
 
+### Sfondo e bordo della sidebar
+
+Il riquadro semitrasparente dietro la sidebar lo disegna il client: MagixScoreboard lo cambia con uno
+shader (`gui.vsh`/`gui.fsh`, registrati nel pacchetto unico di **MagixPack**; senza MagixPack resta
+vanilla). In `config.yml`, sezione `sidebar-background`:
+
+- `enabled` — `false` toglie lo sfondo (restano le scritte, e il bordo se acceso);
+- `color` / `opacity` — colore `#RRGGBB` e opacita' 0-100, **uguali per titolo e righe**;
+- `border.enabled`, `border.width` (pixel GUI), `border.color-start` / `border.color-end` (sfumato
+  da sinistra a destra, come i bordi del sito), `border.opacity` — bordo su sopra, sinistra e sotto.
+
+Si applica con `/mscoreboard reload`; chi e' gia' connesso lo vede al prossimo ingresso. Lo shader
+riconosce la sidebar dal colore vanilla (nero al 30% le righe, al 40% il titolo, verificato nel client
+26.2): chi ha disattivato "Sfondo testo solo per la chat" nelle opzioni la vede di serie.
+
 La guida generata dal plugin (`plugins/MagixScoreboard/guida-staff.html`, anche nel gestionale
 del sito) elenca TUTTE le chiavi in uso col valore reale: e' la fonte piu' aggiornata.
