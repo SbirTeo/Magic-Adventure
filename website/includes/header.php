@@ -533,6 +533,19 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
     </div>
     <div class="auth-box">
       <?php
+        // "Vota il server" su minecraft-italia.net, in barra su ogni pagina (in home c'e' anche
+        // quello grande nella hero). Stesso indirizzo (vote_url in site_settings, vuoto = niente
+        // tasto). Da schermo stretto resta la sola stella.
+        $__voteUrl = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magicadventure1789147678859');
+      ?>
+      <?php if ($__voteUrl !== ''): ?>
+        <a class="vote-btn vote-btn-nav" href="<?= h($__voteUrl) ?>" target="_blank" rel="noopener"
+           title="Vota il server su minecraft-italia.net" aria-label="Vota il server">
+          <span class="vote-btn-star" aria-hidden="true">★<span class="vote-btn-sparks"><i></i><i></i><i></i></span></span>
+          <span class="vote-btn-text">Vota</span>
+        </a>
+      <?php endif; ?>
+      <?php
         // Interruttore del tema: gira fra scuro, chiaro e automatico. L'etichetta di partenza
         // la scrive il server (niente sfarfallio); da li' in poi la cambia assets/js/site.js,
         // che salva la scelta in un cookie valido un anno.

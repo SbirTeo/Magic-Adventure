@@ -387,7 +387,22 @@ a.who-link {
   image-rendering: pixelated;
 }
 
-@media (max-width: 768px) {
+/* Fra 961 e 1279px (tablet, telefono in orizzontale, portatili piccoli) la barra a una riga non
+   ci stava piu': le voci andavano a capo su una seconda riga e i pulsanti di destra si
+   disallineavano. Qui si compatta: tema, "Vota" e profilo restano solo con l'icona (il nome lo
+   dice la nuvoletta), e le spaziature si stringono. Sotto i 960px c'e' il menu ad hamburger. */
+@media (min-width: 961px) and (max-width: 1279px) {
+  .main-nav { gap: 16px; }
+  .auth-box { gap: 6px; }
+  .btn.cambia-tema { padding: 0; width: 34px; height: 34px; justify-content: center; }
+  .cambia-tema-testo { display: none; }
+  .auth-box .who-link { padding: 3px; }
+  .auth-box .who-link .who { display: none; }
+  .auth-box .btn { padding: 7px 12px; }
+  .auth-box .cambia-tema, .auth-box .cambia-lingua > summary { padding: 0; }
+}
+
+@media (max-width: 960px) {
   /* Il bottone resta sopra al menu a schermo intero (z-index piu' alto, vedi .nav-collapse
      sotto): e' lui che, girando in una X, fa anche da tasto per richiuderlo. */
   .nav-toggle { display: flex; position: relative; z-index: 60; }
@@ -806,6 +821,22 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   0% { opacity: 0; transform: translate(0, 0) scale(.6); }
   20% { opacity: 1; }
   100% { opacity: 0; transform: translate(var(--dx, 2px), -26px) scale(.2); }
+}
+/* Versione compatta nella barra in alto: alta come gli altri pulsanti della barra, senza la
+   fluttuazione (in una barra fissa sembrerebbe un tremolio); riflesso, alone e stella restano.
+   Da schermo stretto solo la stella, quadrata come i tasti del tema e della lingua. */
+.vote-btn.vote-btn-nav {
+  gap: 7px;
+  padding: 7px 14px 7px 11px;
+  font-size: var(--fs-sm);
+  letter-spacing: .03em;
+  animation: vote-glow 2.4s ease-out infinite;
+  white-space: nowrap;
+}
+.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { transform: translateY(-1px) scale(1.04); }
+@media (max-width: 1279px) {
+  .vote-btn.vote-btn-nav { padding: 0; width: 34px; height: 34px; justify-content: center; flex-shrink: 0; }
+  .vote-btn.vote-btn-nav .vote-btn-text { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .vote-btn, .vote-btn::before, .vote-btn-star, .vote-btn-sparks i { animation: none; }
