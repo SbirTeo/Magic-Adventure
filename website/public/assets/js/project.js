@@ -751,7 +751,7 @@
   function colorField(name, value) {
     const input = el('input', { type: 'color', name: name, value: value });
     const row = el('div', { style: { display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' } }, [input].concat(SWATCHES.map(function (c) {
-      return el('button', { type: 'button', 'aria-label': 'Colore ' + c, style: { width: '22px', height: '22px', borderRadius: '6px', border: '1px solid var(--border)', background: c, cursor: 'pointer' },
+      return el('button', { type: 'button', 'aria-label': 'Colore ' + c, style: { width: '22px', height: '22px', borderRadius: 'calc(var(--radius-sm) - 2px)', border: '1px solid var(--border)', background: c, cursor: 'pointer' },
         onclick: function () { input.value = c; } });
     })));
     return row;
@@ -837,7 +837,7 @@
     chatHead = el('div', { class: 'pj-chat-head' });
     pinsBox = el('div', { class: 'pj-pins', hidden: true });
     searchInput = el('input', { type: 'search', placeholder: 'Cerca nei messaggi…', hidden: true,
-      style: { margin: '6px 12px 0', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-panel-2)', color: 'var(--text)' } });
+      style: { margin: '6px 12px 0', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg-panel-2)', color: 'var(--text)' } });
     searchInput.addEventListener('input', function () { state.search = searchInput.value.trim().toLowerCase(); renderMessages(); });
     msgsBox = el('div', { class: 'pj-msgs', 'aria-live': 'polite' });
     msgsBox.addEventListener('scroll', function () { if (nearBottom()) markRead(); });
@@ -1094,7 +1094,7 @@
   function emojiPop(anchor, onPick, list) {
     document.querySelectorAll('.pj-emoji-pop').forEach(function (p) { p.remove(); });
     const choices = list || ['😀', '😂', '😅', '😍', '🤔', '😎', '😢', '😡', '👍', '👎', '🙏', '👏', '🎉', '🔥', '❤️', '✅', '❌', '⚠️', '💡', '🚀', '👀', '💪'];
-    const pop = el('div', { class: 'pj-emoji-pop', style: list ? {} : { flexWrap: 'wrap', width: '252px', borderRadius: '12px' } }, choices.map(function (em) {
+    const pop = el('div', { class: 'pj-emoji-pop', style: list ? {} : { flexWrap: 'wrap', width: '252px', borderRadius: 'var(--radius-sm)' } }, choices.map(function (em) {
       return el('button', { type: 'button', onclick: function () { pop.remove(); onPick(em); } }, em);
     }));
     document.body.appendChild(pop);
