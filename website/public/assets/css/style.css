@@ -6488,3 +6488,44 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.08);
   display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-base);
 }
+
+/* ==========================================================================================
+   Barra in alto: TUTTI i pulsanti di .auth-box alti uguali e centrati sulla stessa riga.
+   Prima ognuno faceva a modo suo: stella e tema avevano 34px fissi, bandiera, profilo e
+   "Gestione" si allungavano ("stretch") fino all'elemento piu' alto della riga, e la bandiera
+   da sola non aveva ne' larghezza ne' margine: fra 961 e 1279px (telefono in orizzontale)
+   restava un pulsante alto 37px e largo 22, col bordo attaccato al disegno (misurato sul sito
+   vero). Ora un'unica altezza, --barra-h, e i pulsanti di sola icona sono quadrati.
+   In fondo al foglio apposta: vince su tutte le regole sparse sopra, senza !important.
+   ========================================================================================== */
+.auth-box { --barra-h: 36px; }
+.auth-box > .btn,
+.auth-box > .vote-btn.vote-btn-nav,
+.auth-box > .cambia-lingua > summary.btn {
+  box-sizing: border-box;
+  height: var(--barra-h);
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+}
+.auth-box > .cambia-lingua { align-self: center; }
+/* La bandiera: sempre un quadrato, col disegno al centro e aria tutto intorno. */
+.auth-box > .cambia-lingua > summary.btn { width: var(--barra-h); padding: 0; }
+.auth-box > a.who-link { padding: 0 14px 0 5px; }
+@media (max-width: 1279px) {
+  /* Da qui in giu' stella e tema sono solo icona: quadrati come la bandiera. */
+  .auth-box > .btn.cambia-tema,
+  .auth-box > .vote-btn.vote-btn-nav { width: var(--barra-h); padding: 0; }
+}
+@media (min-width: 961px) and (max-width: 1279px) {
+  /* Profilo senza nome (vedi sopra): quadrato anche lui, avatar al centro. */
+  .auth-box > a.who-link { width: var(--barra-h); padding: 0; }
+}
+@media (max-width: 960px) {
+  .auth-box { --barra-h: 34px; }
+  .auth-box > a.who-link { padding: 0 12px 0 4px; }
+}
