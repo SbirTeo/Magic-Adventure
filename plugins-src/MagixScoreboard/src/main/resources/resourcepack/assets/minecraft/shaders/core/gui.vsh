@@ -61,6 +61,9 @@ void main() {
         bool rightByPos = p.x > gw - 1.5;
         bool ok = right == rightByPos;
         if (body) ok = ok && (top == (p.y < gh * 0.5));
+        // Sidebar spostata in verticale (config sidebar-position.offset-y): le scritte le sposta della
+        // stessa quantita' lo shader del testo (text.vsh di MagixFactions).
+        gl_Position = ProjMat * vec4(p.x, p.y + __SB_SHIFT__, p.z, p.w);
         sbKind = body ? 1 : 2;
         sbUV = vec2(right ? 1.0 : 0.0, top ? 0.0 : 1.0);
         sbGui = p.xy;

@@ -49,6 +49,7 @@ public final class SidebarPack {
         values.put("__SB_C2_G__", f(end[1]));
         values.put("__SB_C2_B__", f(end[2]));
         values.put("__SB_BORDER_A__", f(borderAlpha));
+        values.put("__SB_SHIFT__", f(Math.max(-200, Math.min(200, c.getDouble("sidebar-position.offset-y", 0)))));
 
         Map<String, byte[]> out = new LinkedHashMap<>();
         for (String path : FILES) {

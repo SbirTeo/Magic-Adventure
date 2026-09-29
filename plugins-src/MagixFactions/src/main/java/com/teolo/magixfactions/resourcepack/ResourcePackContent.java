@@ -119,6 +119,18 @@ public final class ResourcePackContent {
         String logoHeightStr = String.valueOf(logoHeight);
         String logoAscentStr = String.valueOf(logoAscent);
 
+        // Sidebar spostata in verticale: l'impostazione e' di MagixScoreboard (sidebar-position), ma lo
+        // shader del testo nel pacchetto unico e' di MagixFactions (MagixPack tiene un solo text.vsh),
+        // quindi si legge dal config di MagixScoreboard. Senza MagixScoreboard: nessuno spostamento.
+        double sbShift = 0, sbZone = 200;
+        org.bukkit.plugin.Plugin sb = org.bukkit.Bukkit.getPluginManager().getPlugin("MagixScoreboard");
+        if (sb instanceof JavaPlugin sbPlugin) {
+            sbShift = Math.max(-200, Math.min(200, sbPlugin.getConfig().getDouble("sidebar-position.offset-y", 0)));
+            sbZone = Math.max(20, Math.min(400, sbPlugin.getConfig().getDouble("sidebar-position.zone-width", 200)));
+        }
+        String sbShiftStr = String.format(java.util.Locale.ROOT, "%.1f", sbShift);
+        String sbZoneStr = String.format(java.util.Locale.ROOT, "%.1f", sbZone);
+
         Map<String, byte[]> out = new LinkedHashMap<>();
         for (String path : BUNDLED_FILES) {
             try (InputStream in = ResourcePackContent.class.getClassLoader()
@@ -131,6 +143,8 @@ public final class ResourcePackContent {
                             .replace("__MAP_LEFT__", leftStr)
                             .replace("__PANEL_ROWS__", panelRowsStr)
                             .replace("__PANEL_GAP__", panelGapStr)
+                            .replace("__SB_SHIFT__", sbShiftStr)
+                            .replace("__SB_ZONE__", sbZoneStr)
                             .getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 } else if (path.endsWith(".fsh")) { // il fragment shader ha i placeholder di forma, cornice e pannello
                     data = new String(data, java.nio.charset.StandardCharsets.UTF_8)

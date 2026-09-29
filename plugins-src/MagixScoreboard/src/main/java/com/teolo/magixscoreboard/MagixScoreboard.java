@@ -55,6 +55,7 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
         // Sfondo e bordo della sidebar: uno shader nel pacchetto risorse unico di MagixPack (softdepend,
         // quindi e' gia' acceso). Senza MagixPack lo sfondo resta quello vanilla.
         com.teolo.magixscoreboard.hook.MagixPackHook.register(this);
+        com.teolo.magixscoreboard.hook.MagixPackHook.refreshFactionsPack(this);
 
         // Puro I/O su file: non deve bloccare il tick di avvio.
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
@@ -83,6 +84,7 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
         boardManager.reload();
         // Colori e opacita' dello sfondo sono nello shader: si ricostruisce il pacchetto.
         com.teolo.magixscoreboard.hook.MagixPackHook.register(this);
+        com.teolo.magixscoreboard.hook.MagixPackHook.refreshFactionsPack(this);
         getLogger().info("Configurazione ricaricata: " + boardManager.definitions().size() + " scoreboard configurate.");
     }
 
@@ -145,6 +147,16 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                                 + "quando riscaricano il pacchetto (al prossimo ingresso). Lo shader riconosce la "
                                 + "sidebar dal suo colore vanilla: se un giocatore ha tolto \"Sfondo testo solo per la "
                                 + "chat\" nelle opzioni di accessibilita', per lui lo sfondo resta quello di serie.")
+                .section("Posizione verticale della sidebar",
+                        "Il client mette la sidebar sempre un po' sopra la meta' dello schermo, e da server non "
+                                + "si cambia. sidebar-position.offset-y la SPOSTA (pixel dell'interfaccia, positivo = "
+                                + "in basso) con gli shader del pacchetto: lo sfondo lo sposta MagixScoreboard, le "
+                                + "scritte e le icone lo shader del testo di MagixFactions, che legge lo stesso valore "
+                                + "(serve MagixFactions installato, altrimenti si sposta solo lo sfondo).",
+                        "Lo shader del testo non sa quale scritta e' della sidebar: sposta tutte quelle che cadono "
+                                + "nella fascia destra dello schermo (larga zone-width) all'altezza in cui la sidebar "
+                                + "puo' stare. Se un menu aperto o un'altra scritta finisce li' si sposta anch'essa: "
+                                + "in quel caso si restringe zone-width, o si torna a 0.")
                 .detailedCommands()
                 .commands()
                 .permissions()

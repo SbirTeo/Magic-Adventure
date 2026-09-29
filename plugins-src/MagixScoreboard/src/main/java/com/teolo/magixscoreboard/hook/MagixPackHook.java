@@ -32,6 +32,24 @@ public final class MagixPackHook {
         }
     }
 
+    /**
+     * Le SCRITTE della sidebar le sposta (sidebar-position.offset-y) lo shader del testo, che nel
+     * pacchetto unico e' di MagixFactions (MagixPack tiene un solo text.vsh): MagixFactions legge il
+     * valore dal nostro config quando costruisce il suo pezzo. Qui gli si chiede di ricostruirlo, cosi'
+     * un /mscoreboard reload sposta scritte e sfondo insieme. Per riflessione: niente dipendenze Maven.
+     */
+    public static void refreshFactionsPack(JavaPlugin owner) {
+        Plugin mf = Bukkit.getPluginManager().getPlugin("MagixFactions");
+        if (mf == null || !mf.isEnabled()) return;
+        try {
+            Class<?> hook = mf.getClass().getClassLoader().loadClass("com.teolo.magixfactions.hook.MagixPackHook");
+            hook.getMethod("registerOwnPack", JavaPlugin.class).invoke(null, mf);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            owner.getLogger().warning("MagixFactions non ha potuto aggiornare lo spostamento delle scritte della "
+                    + "sidebar (" + e.getMessage() + "): si sposta solo lo sfondo. Aggiorna entrambi i plugin.");
+        }
+    }
+
     /** Da chiamare all'onDisable: toglie i file di MagixScoreboard dal pacchetto condiviso. */
     public static void unregister(JavaPlugin owner) {
         if (magixPack == null) return;

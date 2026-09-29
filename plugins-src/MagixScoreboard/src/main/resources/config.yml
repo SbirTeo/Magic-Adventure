@@ -37,6 +37,16 @@ sidebar-background:
     color-end: "#C04FF0"    # colore a destra (magenta del sito)
     opacity: 100          # opacita' del bordo in percentuale, 0-100
 
+# Posizione verticale della sidebar. Il client la mette sempre un po' sopra la meta' dello schermo
+# e non si puo' cambiare da server: la si SPOSTA con gli shader del pacchetto risorse (sfondo da
+# MagixScoreboard, scritte e icone dallo shader del testo di MagixFactions, che serve installato).
+# Si spostano tutte le scritte che cadono nella fascia destra dello schermo dove sta la sidebar: se
+# un menu o un'altra scritta finisce li', si sposta anch'essa (restringi zone-width). Si applica con
+# /mscoreboard reload; i giocatori gia' connessi lo vedono dal prossimo ingresso.
+sidebar-position:
+  offset-y: 0             # pixel dell'interfaccia verso il BASSO (negativo = in alto), -200..200. 0 = vanilla
+  zone-width: 200         # larghezza della fascia destra (pixel dell'interfaccia) in cui le scritte si spostano
+
 # In caso di PARITA' di peso fra piu' scoreboard che corrispondono allo stesso
 # giocatore, decide quale vince: l'elenco va dal piu' specifico al meno
 # specifico. Valori ammessi (uno o piu', in qualunque ordine):

@@ -125,6 +125,23 @@ void main() {
     // Default: comportamento vanilla identico allo stock, per ognuna delle tre varianti.
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
+#ifdef IS_GUI
+    // MagixScoreboard: sidebar spostata in verticale (config sidebar-position di MagixScoreboard, letto
+    // da MagixFactions perche' questo file e' suo nel pacchetto unico). Il client la centra sempre un po'
+    // sopra la meta' dello schermo; qui si spostano le scritte (e le icone, che sono glifi di testo) che
+    // cadono nella fascia in cui la sidebar puo' stare: a destra, larga __SB_ZONE__ pixel, e in verticale
+    // fra meta' schermo - 101 e + 46 (15 righe al massimo, geometria letta dal client 26.2). Lo sfondo lo
+    // sposta lo shader gui di MagixScoreboard della stessa quantita'.
+    if (__SB_SHIFT__ != 0.0) {
+        vec4 sbPos = ModelViewMat * vec4(Position, 1.0);
+        float sbW = abs(2.0 / ProjMat[0][0]);
+        float sbH = abs(2.0 / ProjMat[1][1]);
+        if (sbPos.x > sbW - __SB_ZONE__ && sbPos.y > sbH * 0.5 - 101.0 && sbPos.y < sbH * 0.5 + 46.0) {
+            gl_Position = ProjMat * vec4(sbPos.x, sbPos.y + __SB_SHIFT__, sbPos.z, sbPos.w);
+        }
+    }
+#endif
+
 #if !defined(IS_GUI) && !defined(IS_SEE_THROUGH)
     sphericalVertexDistance = fog_spherical_distance(Position);
     cylindricalVertexDistance = fog_cylindrical_distance(Position);
