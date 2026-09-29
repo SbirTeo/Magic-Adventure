@@ -716,6 +716,102 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   padding: 3px 9px;
 }
 
+/* Tasto "Vota il server" (minecraft-italia.net): pieno, dorato, accanto all'IP. Per farsi notare
+   senza urlare: fluttua piano, un riflesso gli passa sopra ogni tanto, un alone pulsa attorno
+   e la stella brilla lanciando qualche scintilla. Chi ha spento le animazioni lo vede fermo. */
+.vote-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px 10px 16px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--gold-light), var(--gold) 55%, var(--gold-dark));
+  border: 1px solid var(--gold-dark);
+  color: #1a1206;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: var(--fs-base);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  text-decoration: none;
+  overflow: hidden;
+  isolation: isolate;
+  animation: vote-float 3.2s ease-in-out infinite, vote-glow 2.4s ease-out infinite;
+  transition: transform .15s, filter .15s;
+}
+.vote-btn:hover, .vote-btn:focus-visible {
+  filter: brightness(1.08) saturate(1.1);
+  /* Senza la fluttuazione, che altrimenti terrebbe lei il transform. */
+  animation: vote-glow 2.4s ease-out infinite;
+  transform: translateY(-3px) scale(1.03);
+  color: #1a1206;
+}
+.vote-btn:active { transform: translateY(0) scale(.98); }
+/* Il riflesso: una banda chiara in diagonale che attraversa il tasto ogni 3,5 secondi. */
+.vote-btn::before {
+  content: "";
+  position: absolute;
+  inset: -40% auto -40% -60%;
+  width: 45%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
+  animation: vote-shine 3.5s ease-in-out infinite;
+  z-index: -1;
+}
+.vote-btn-star {
+  position: relative;
+  display: inline-block;
+  font-size: 1.25em;
+  line-height: 1;
+  color: #fff8dc;
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--gold-glow);
+  animation: vote-star 2.4s ease-in-out infinite;
+}
+.vote-btn-text { position: relative; }
+/* Tre scintille che salgono dalla stella e si spengono, sfalsate. */
+.vote-btn-sparks { position: absolute; left: 50%; top: 40%; width: 0; height: 0; pointer-events: none; }
+.vote-btn-sparks i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
+  opacity: 0;
+  animation: vote-spark 2.4s ease-out infinite;
+}
+.vote-btn-sparks i:nth-child(2) { animation-delay: .8s; --dx: 10px; }
+.vote-btn-sparks i:nth-child(3) { animation-delay: 1.6s; --dx: -8px; }
+@keyframes vote-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes vote-glow {
+  0% { box-shadow: 0 0 0 0 var(--gold-glow), 0 6px 18px -8px var(--gold-glow); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
+}
+@keyframes vote-shine {
+  0%, 55% { left: -60%; }
+  100% { left: 130%; }
+}
+@keyframes vote-star {
+  0%, 100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-14deg) scale(1.2); }
+  50% { transform: rotate(0) scale(1); }
+  75% { transform: rotate(14deg) scale(1.15); }
+}
+@keyframes vote-spark {
+  0% { opacity: 0; transform: translate(0, 0) scale(.6); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx, 2px), -26px) scale(.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vote-btn, .vote-btn::before, .vote-btn-star, .vote-btn-sparks i { animation: none; }
+  .vote-btn::before, .vote-btn-sparks { display: none; }
+}
+
 @media (max-width: 720px) {
   .hero-grid { grid-template-columns: 1fr; text-align: center; justify-items: center; }
   .hero-actions { justify-content: center; }
@@ -791,6 +887,12 @@ body.menu-aperto .site-header { backdrop-filter: none; }
     justify-content: center;
     padding: 13px 16px;
     font-size: var(--fs-base);
+  }
+  .vote-btn {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    padding: 13px 16px;
   }
 }
 
