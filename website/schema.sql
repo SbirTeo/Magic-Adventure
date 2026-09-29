@@ -339,6 +339,8 @@ CREATE TABLE IF NOT EXISTS project_tasks (
     priority ENUM('low','normal','high') NOT NULL DEFAULT 'normal',
     assignee_id INT NULL,
     goal_id INT NULL,
+    -- Modalita' (project_boards): Factions, Hub, ... NULL = Generale.
+    board_id INT NULL,
     due_date DATE NULL,
     sort_order INT NOT NULL DEFAULT 0,
     created_by INT NULL,
@@ -348,6 +350,7 @@ CREATE TABLE IF NOT EXISTS project_tasks (
     completed_at DATETIME NULL,
     KEY idx_status (status, sort_order),
     KEY idx_goal (goal_id),
+    KEY idx_board (board_id),
     KEY idx_completed (completed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -402,5 +405,15 @@ CREATE TABLE IF NOT EXISTS project_activity (
     user_id INT NULL,
     text VARCHAR(255) NOT NULL,
     task_id INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Modalita' della pagina /progetto (vedi migrazioni/2026-09-30-progetto-modalita.sql)
+CREATE TABLE IF NOT EXISTS project_boards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(60) NOT NULL,
+    color CHAR(7) NOT NULL DEFAULT '#a3e635',
+    sort_order INT NOT NULL DEFAULT 0,
+    created_by INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

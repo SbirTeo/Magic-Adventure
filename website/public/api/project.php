@@ -1,7 +1,8 @@
 <?php
 /**
  * API della pagina /progetto (progetto.php): lo spazio di lavoro condiviso fra i web-admin.
- * Bacheca delle attivita' (idee -> da fare -> in corso -> fatto), obiettivi con avanzamento,
+ * Bacheca delle attivita' (idee -> da fare -> in corso -> fatto) divisa per modalita' (Factions,
+ * Hub, ...: ognuna col suo avanzamento, sommati nel totale del progetto), obiettivi con avanzamento,
  * calendario degli appuntamenti, chat privata (immagini, risposte, reazioni, modifiche,
  * messaggi fissati, "sta scrivendo", spunte di lettura) e registro di chi ha fatto cosa.
  *
@@ -200,7 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ];
     }
     $goals = db()->query('SELECT id, title, description, color, due_date, sort_order FROM project_goals ORDER BY sort_order, id')->fetchAll(PDO::FETCH_ASSOC);
-    $tasks = db()->query('SELECT id, title, notes, status, priority, assignee_id, goal_id, due_date, sort_order,
+    $boards = db()->query('SELECT id, name, color, sort_order FROM project_boards ORDER BY sort_order, id')->fetchAll(PDO::FETCH_ASSOC);
+    $tasks = db()->query('SELECT id, title, notes, status, priority, assignee_id, goal_id, board_id, due_date, sort_order,
                                  created_by, created_at, completed_at
                           FROM project_tasks ORDER BY sort_order, id')->fetchAll(PDO::FETCH_ASSOC);
     $events = db()->query('SELECT id, title, notes, starts_at, ends_at, all_day, color, created_by
@@ -226,7 +228,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'rev' => project_revision(),
         'admins' => $admins,
         'goals' => $ints($goals, ['id', 'sort_order']),
-        'tasks' => $ints($tasks, ['id', 'assignee_id', 'goal_id', 'sort_order', 'created_by']),
+        'boards' => $ints($boards, ['id', 'sort_order']),
+        'tasks' => $ints($tasks, ['id', 'assignee_id', 'goal_id', 'board_id', 'sort_order', 'created_by']),
         'events' => $ints($events, ['id', 'all_day', 'created_by']),
         'activity' => $ints($activity, ['id', 'user_id', 'task_id']),
         'activity_seen' => (int) ($myRead->fetchColumn() ?: 0),
@@ -258,14 +261,15 @@ switch ($action) {
         $status = in_array($_POST['status'] ?? '', PROJECT_STATUSES, true) ? $_POST['status'] : 'todo';
         $priority = in_array($_POST['priority'] ?? '', PROJECT_PRIORITIES, true) ? $_POST['priority'] : 'normal';
         $goal = (int) ($_POST['goal_id'] ?? 0) ?: null;
-        $fields = [$title, project_str('notes', 5000), $status, $priority, project_admin_id($_POST['assignee_id'] ?? 0), $goal, project_date('due_date')];
+        $board = (int) ($_POST['board_id'] ?? 0) ?: null;
+        $fields = [$title, project_str('notes', 5000), $status, $priority, project_admin_id($_POST['assignee_id'] ?? 0), $goal, $board, project_date('due_date')];
         if ($id > 0) {
             $old = db()->prepare('SELECT status FROM project_tasks WHERE id = ?');
             $old->execute([$id]);
             $oldStatus = $old->fetchColumn();
             if ($oldStatus === false) project_fail('Attività non trovata.', 404);
             $st = db()->prepare("UPDATE project_tasks SET title = ?, notes = ?, status = ?, priority = ?, assignee_id = ?,
-                                        goal_id = ?, due_date = ?,
+                                        goal_id = ?, board_id = ?, due_date = ?,
                                         completed_at = CASE WHEN ? = 'done' THEN COALESCE(completed_at, NOW()) ELSE NULL END
                                  WHERE id = ?");
             $st->execute(array_merge($fields, [$status, $id]));
@@ -274,9 +278,9 @@ switch ($action) {
                 : "$name ha modificato «{$title}»", $id);
         } else {
             $order = (int) db()->query('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM project_tasks')->fetchColumn();
-            $st = db()->prepare("INSERT INTO project_tasks (title, notes, status, priority, assignee_id, goal_id, due_date,
-                                                           sort_order, created_by, completed_at)
-                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'done' THEN NOW() ELSE NULL END)");
+            $st = db()->prepare("INSERT INTO project_tasks (title, notes, status, priority, assignee_id, goal_id, board_id,
+                                                           due_date, sort_order, created_by, completed_at)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'done' THEN NOW() ELSE NULL END)");
             $st->execute(array_merge($fields, [$order, $myId, $status]));
             $id = (int) db()->lastInsertId();
             project_log($myId, "$name ha aggiunto «{$title}» in " . project_status_label($status), $id);
@@ -314,6 +318,36 @@ switch ($action) {
         if ($title === false) project_fail('Attività non trovata.', 404);
         db()->prepare('DELETE FROM project_tasks WHERE id = ?')->execute([$id]);
         project_log($myId, "$name ha eliminato «{$title}»");
+        project_json(['ok' => true]);
+    }
+
+    // ---------------------------------------------------------------- modalita'
+    case 'board_save': {
+        $id = (int) ($_POST['id'] ?? 0);
+        $boardName = project_str('name', 60, true);
+        $color = project_color('color', '#a3e635');
+        if ($id > 0) {
+            db()->prepare('UPDATE project_boards SET name = ?, color = ? WHERE id = ?')->execute([$boardName, $color, $id]);
+            project_log($myId, "$name ha modificato la modalità «{$boardName}»");
+        } else {
+            $order = (int) db()->query('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM project_boards')->fetchColumn();
+            db()->prepare('INSERT INTO project_boards (name, color, sort_order, created_by) VALUES (?, ?, ?, ?)')
+                ->execute([$boardName, $color, $order, $myId]);
+            $id = (int) db()->lastInsertId();
+            project_log($myId, "$name ha creato la modalità «{$boardName}»");
+        }
+        project_json(['ok' => true, 'id' => $id]);
+    }
+    case 'board_delete': {
+        $id = (int) ($_POST['id'] ?? 0);
+        $cur = db()->prepare('SELECT name FROM project_boards WHERE id = ?');
+        $cur->execute([$id]);
+        $boardName = $cur->fetchColumn();
+        if ($boardName === false) project_fail('Modalità non trovata.', 404);
+        // Le attivita' restano: passano in "Generale" invece di sparire con la modalita'.
+        db()->prepare('UPDATE project_tasks SET board_id = NULL WHERE board_id = ?')->execute([$id]);
+        db()->prepare('DELETE FROM project_boards WHERE id = ?')->execute([$id]);
+        project_log($myId, "$name ha eliminato la modalità «{$boardName}» (le sue attività passano in Generale)");
         project_json(['ok' => true]);
     }
 

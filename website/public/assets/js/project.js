@@ -1,6 +1,8 @@
 /*
  * Pagina /progetto (progetto.php): lo spazio di lavoro condiviso fra gli amministratori.
- * Legge e scrive tutto da /api/project.php. Viste: Panoramica (avanzamento, obiettivi,
+ * Legge e scrive tutto da /api/project. Le attivita' sono divise per modalita' (Factions, Hub,
+ * ...): ognuna ha la sua bacheca e il suo avanzamento, e la panoramica li somma nel totale.
+ * Viste: Panoramica (avanzamento, obiettivi,
  * andamento, prossimi appuntamenti), Bacheca (schede trascinabili fra le colonne, anche col
  * dito), Calendario (mese), Registro (chi ha fatto cosa) e la Chat, sempre accanto da schermo
  * largo e scheda a se' da telefono.
@@ -32,10 +34,12 @@
   const DOW = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 
   const state = {
-    admins: new Map(), goals: [], tasks: [], events: [], activity: [], weekly: [],
+    admins: new Map(), goals: [], boards: [], tasks: [], events: [], activity: [], weekly: [],
     messages: new Map(), read: {}, typing: [], reactions: [],
     rev: null, since: '', lastMsg: 0, activitySeen: 0, skew: 0,
     view: loadPref('view', 'overview'),
+    // Modalita' mostrata in bacheca: 'all' = tutte, 'none' = Generale (nessuna), oppure l'id.
+    mode: loadPref('mode', 'all'),
     calMonth: null,
     filter: { who: 'all', goal: 'all', q: '' },
     reply: null, attach: null, editing: null, search: '',
@@ -61,7 +65,13 @@
         if (k === 'class') node.className = v;
         else if (k === 'text') node.textContent = v;
         else if (k === 'html') node.innerHTML = v;
-        else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+        else if (k === 'style' && typeof v === 'object') {
+          // Le variabili CSS (--c) vanno impostate con setProperty: Object.assign le ignora.
+          for (const prop in v) {
+            if (prop.startsWith('--')) node.style.setProperty(prop, v[prop]);
+            else node.style[prop] = v[prop];
+          }
+        }
         else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
         else if (k === 'dataset') Object.assign(node.dataset, v);
         else node.setAttribute(k, v === true ? '' : v);
@@ -129,6 +139,19 @@
   }
   function goal(id) { return state.goals.find(function (g) { return g.id === Number(id); }) || null; }
   function task(id) { return state.tasks.find(function (t) { return t.id === Number(id); }) || null; }
+  function board(id) { return state.boards.find(function (b) { return b.id === Number(id); }) || null; }
+  /** Le attivita' della modalita' indicata ('all', 'none' o un id). */
+  function inMode(list, mode) {
+    if (mode === 'all') return list;
+    if (mode === 'none') return list.filter(function (t) { return !t.board_id; });
+    return list.filter(function (t) { return t.board_id === Number(mode); });
+  }
+  function modeName(mode) {
+    if (mode === 'all') return 'Tutte le modalità';
+    if (mode === 'none') return 'Generale';
+    const b = board(mode);
+    return b ? b.name : 'Generale';
+  }
 
   function toast(message) {
     const t = el('div', { class: 'pj-toast', role: 'alert', text: message });
@@ -187,6 +210,9 @@
     state.skew = (parseDate(d.now) || new Date()) - Date.now();
     state.admins = new Map(d.admins.map(function (a) { return [a.id, a]; }));
     state.goals = d.goals;
+    state.boards = d.boards || [];
+    // Modalita' ricordata ma nel frattempo eliminata: si torna a "Tutte".
+    if (/^\d+$/.test(state.mode) && !board(state.mode)) state.mode = 'all';
     state.tasks = d.tasks;
     state.events = d.events;
     state.activity = d.activity;
@@ -315,14 +341,47 @@
       stat(late, late === 1 ? 'in ritardo ⚠' : 'in ritardo ⚠', late > 0), stat(ideas, 'idee in attesa'),
     ]);
     wrap.appendChild(el('section', { class: 'pj-card pj-hero' }, [
-      el('h3', {}, ['Avanzamento del progetto']),
+      el('h3', {}, ['Totale del progetto', el('span', { class: 'pj-sub', style: { fontWeight: 400 }, text: 'tutte le modalità' })]),
       el('div', { class: 'pj-hero-body' }, [ring, stats]),
     ]));
 
     wrap.appendChild(renderNext());
+    wrap.appendChild(renderModes());
     wrap.appendChild(renderGoals());
     wrap.appendChild(renderWeekly());
     return wrap;
+  }
+
+  /** Avanzamento di ogni modalita': la stessa formula del totale, sulle sue sole attivita'. */
+  function renderModes() {
+    const card = el('section', { class: 'pj-card pj-modes' }, [
+      el('h3', {}, ['Per modalità', el('span', { class: 'pj-h-actions' },
+        el('button', { type: 'button', class: 'pj-btn', onclick: function () { editBoard(null); } }, '+ Modalità'))]),
+    ]);
+    const modes = state.boards.map(function (b) { return { key: String(b.id), name: b.name, color: b.color, b: b }; });
+    if (state.tasks.some(function (t) { return !t.board_id; })) modes.push({ key: 'none', name: 'Generale', color: '#94959b' });
+    if (!state.boards.length) {
+      card.appendChild(el('p', { class: 'pj-empty', text: 'Crea una modalità per ogni parte del progetto (es. «Factions», «Hub»): ognuna avrà la sua bacheca e il suo avanzamento, e qui accanto il totale li somma tutti.' }));
+    }
+    modes.forEach(function (m) {
+      const all = inMode(state.tasks, m.key);
+      const work = committed(all);
+      const done = work.filter(function (t) { return t.status === 'done'; }).length;
+      const pct = work.length ? Math.round(done / work.length * 100) : 0;
+      const doing = all.filter(function (t) { return t.status === 'doing'; }).length;
+      const late = work.filter(function (t) { const d = dueLabel(t.due_date); return t.status !== 'done' && d && d.late; }).length;
+      const meta = done + '/' + work.length + ' · ' + pct + '%' + (doing ? ' · ' + doing + ' in corso' : '') + (late ? ' · ⚠ ' + late + ' in ritardo' : '');
+      card.appendChild(el('div', { class: 'pj-goal', title: 'Apri la bacheca di ' + m.name,
+        onclick: function () { state.mode = m.key; savePref('mode', m.key); setView('board'); } }, [
+        el('div', { class: 'pj-goal-top' }, [
+          el('span', { class: 'pj-goal-title' }, [el('span', { style: { color: m.color }, text: '● ' }), m.name]),
+          el('span', { class: 'pj-goal-meta' + (late ? ' is-late' : ''), text: meta }),
+        ]),
+        el('div', { class: 'pj-bar', role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-label': m.name },
+          el('i', { style: { width: pct + '%', '--c': m.color } })),
+      ]));
+    });
+    return card;
   }
 
   function stat(n, label, alert) {
@@ -462,6 +521,7 @@
 
   function renderBoard() {
     const wrap = el('div');
+    wrap.appendChild(renderModeBar());
     const who = el('select', { 'aria-label': 'Chi', onchange: function () { state.filter.who = who.value; renderView(); } }, [
       el('option', { value: 'all', text: 'Tutti' }),
       el('option', { value: 'me', text: 'Le mie' }),
@@ -489,7 +549,7 @@
     const board = el('div', { class: 'pj-board' });
     const q = state.filter.q.trim().toLowerCase();
     COLUMNS.forEach(function (col) {
-      const list = state.tasks.filter(function (t) {
+      const list = inMode(state.tasks, state.mode).filter(function (t) {
         if (t.status !== col.id) return false;
         const f = state.filter;
         if (f.who === 'me' && t.assignee_id !== ME) return false;
@@ -521,6 +581,7 @@
     const due = dueLabel(t.due_date);
     const meta = el('div', { class: 'pj-task-meta' }, [
       el('span', { class: 'pj-task-id', text: '#' + t.id }),
+      state.mode === 'all' && board(t.board_id) ? el('span', { class: 'pj-chip', title: 'Modalità' }, [el('span', { style: { color: board(t.board_id).color }, text: '◆' }), board(t.board_id).name]) : null,
       g ? el('span', { class: 'pj-chip', title: 'Obiettivo' }, [el('span', { style: { color: g.color }, text: '●' }), g.title]) : null,
       due && t.status !== 'done' ? el('span', { class: 'pj-chip' + (due.late ? ' is-late' : ''), title: 'Scadenza' }, (due.late ? '⚠ ' : '📅 ') + due.text) : null,
       t.priority === 'high' ? el('span', { class: 'pj-chip is-high' }, '▲ Alta') : null,
@@ -534,6 +595,28 @@
     }, [el('div', { class: 'pj-task-title', text: t.title }), meta]);
     card.addEventListener('pointerdown', function (e) { startDrag(e, card, t); });
     return card;
+  }
+
+  /** Le modalita' in cima alla bacheca: una alla volta, o tutte insieme. */
+  function renderModeBar() {
+    const bar = el('div', { class: 'pj-modebar', role: 'tablist', 'aria-label': 'Modalità' });
+    function openCount(mode) { return inMode(state.tasks, mode).filter(function (t) { return t.status === 'todo' || t.status === 'doing'; }).length; }
+    function chip(key, label, color, b) {
+      const active = state.mode === key;
+      const node = el('button', { type: 'button', class: 'pj-mode' + (active ? ' is-active' : ''), role: 'tab', 'aria-selected': active ? 'true' : 'false',
+        style: color ? { '--c': color } : {}, title: active && b ? 'Clic di nuovo per modificare la modalità' : label,
+        onclick: function () {
+          if (active && b) { editBoard(b); return; }
+          state.mode = key; savePref('mode', key); renderView();
+        } }, [color ? el('span', { class: 'dot' }) : null, label, el('span', { class: 'n', text: openCount(key) }),
+        active && b ? el('span', { class: 'edit', 'aria-hidden': 'true', text: '✎' }) : null]);
+      return node;
+    }
+    bar.appendChild(chip('all', 'Tutte', null, null));
+    state.boards.forEach(function (b) { bar.appendChild(chip(String(b.id), b.name, b.color, b)); });
+    if (state.tasks.some(function (t) { return !t.board_id; }) || !state.boards.length) bar.appendChild(chip('none', 'Generale', '#94959b', null));
+    bar.appendChild(el('button', { type: 'button', class: 'pj-mode is-add', onclick: function () { editBoard(null); } }, '+ Modalità'));
+    return bar;
   }
 
   /** Trascinamento con i pointer event: mouse, dito e penna allo stesso modo. */
@@ -764,7 +847,8 @@
 
   function editTask(t, status) {
     const isNew = !t;
-    t = t || { title: '', notes: '', status: status || 'todo', priority: 'normal', assignee_id: null, goal_id: null, due_date: null };
+    t = t || { title: '', notes: '', status: status || 'todo', priority: 'normal', assignee_id: null, goal_id: null,
+      board_id: /^\d+$/.test(state.mode) ? Number(state.mode) : null, due_date: null };
     const fields = [
       field('Titolo', el('input', { name: 'title', required: true, maxlength: 160, value: t.title })),
       el('div', { class: 'pj-row' }, [
@@ -775,7 +859,10 @@
         field('Chi se ne occupa', select('assignee_id', [['', 'Nessuno']].concat(Array.from(state.admins.values()).map(function (a) { return [String(a.id), a.name + (a.id === ME ? ' (tu)' : '')]; })), t.assignee_id)),
         field('Scadenza', el('input', { type: 'date', name: 'due_date', value: t.due_date || '' })),
       ]),
-      field('Obiettivo', select('goal_id', [['', 'Nessuno']].concat(state.goals.map(function (g) { return [String(g.id), g.title]; })), t.goal_id)),
+      el('div', { class: 'pj-row' }, [
+        field('Modalità', select('board_id', [['', 'Generale']].concat(state.boards.map(function (b) { return [String(b.id), b.name]; })), t.board_id)),
+        field('Obiettivo', select('goal_id', [['', 'Nessuno']].concat(state.goals.map(function (g) { return [String(g.id), g.title]; })), t.goal_id)),
+      ]),
       field('Note', el('textarea', { name: 'notes', maxlength: 5000 }, t.notes || '')),
     ];
     if (!isNew) {
@@ -786,6 +873,24 @@
       d.id = isNew ? '' : t.id;
       return (await act('task_save', d)) !== null;
     }, isNew ? null : function () { return act('task_delete', { id: t.id }); });
+  }
+
+  function editBoard(b) {
+    const isNew = !b;
+    b = b || { name: '', color: SWATCHES[state.boards.length % SWATCHES.length] };
+    const count = isNew ? 0 : state.tasks.filter(function (t) { return t.board_id === b.id; }).length;
+    modal(isNew ? 'Nuova modalità' : 'Modalità', [
+      field('Nome', el('input', { name: 'name', required: true, maxlength: 60, value: b.name, placeholder: 'Es. Factions, Hub…' })),
+      field('Colore', colorField('color', b.color)),
+      el('p', { class: 'pj-note', text: isNew
+        ? 'Ogni modalità ha la sua bacheca e il suo avanzamento; il totale del progetto in panoramica li somma tutti.'
+        : count + (count === 1 ? ' attività' : ' attività') + ' in questa modalità. Eliminandola non si perdono: passano in «Generale».' }),
+    ], async function (d) {
+      d.id = isNew ? '' : b.id;
+      const r = await act('board_save', d);
+      if (r && isNew) { state.mode = String(r.id); savePref('mode', state.mode); renderView(); }
+      return r !== null;
+    }, isNew ? null : function () { return act('board_delete', { id: b.id }); });
   }
 
   function editGoal(g) {

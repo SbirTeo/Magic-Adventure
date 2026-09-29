@@ -77,10 +77,11 @@
 .pj-overview > .pj-card { grid-column: span 12; }
 .pj-overview > .pj-hero { grid-column: span 5; }
 .pj-overview > .pj-next { grid-column: span 7; }
-.pj-overview > .pj-goals, .pj-overview > .pj-weekly { grid-column: span 6; }
+.pj-overview > .pj-modes, .pj-overview > .pj-goals { grid-column: span 6; }
+.pj-overview > .pj-weekly { grid-column: span 12; }
 @media (max-width: 760px) {
   .pj-overview > .pj-hero, .pj-overview > .pj-next,
-  .pj-overview > .pj-goals, .pj-overview > .pj-weekly { grid-column: span 12; }
+  .pj-overview > .pj-modes, .pj-overview > .pj-goals, .pj-overview > .pj-weekly { grid-column: span 12; }
 }
 .pj-hero-body { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
 .pj-ring { position: relative; width: 132px; height: 132px; flex: 0 0 auto; }
@@ -133,6 +134,21 @@
 .pj-when-soon { color: var(--green); font-weight: 700; }
 
 /* ---------------------------------------------------------------- bacheca */
+/* Le modalita' (Factions, Hub...): una riga sola, da telefono scorre di lato come le schede. */
+.pj-modebar { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+.pj-modebar::-webkit-scrollbar { display: none; }
+.pj-mode {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; cursor: pointer;
+  padding: 7px 12px; border-radius: var(--radius-sm); background: var(--bg-panel); border: 1px solid var(--border);
+  color: var(--text-dim); font-size: var(--fs-sm); font-weight: 600;
+}
+.pj-mode:hover { color: var(--text); border-color: var(--border-strong); }
+.pj-mode .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+.pj-mode .n { font-size: var(--fs-xs); color: var(--text-dimmer); font-weight: 600; }
+.pj-mode .edit { font-size: 12px; opacity: .7; }
+.pj-mode.is-active { color: var(--text); border-color: var(--c, var(--green)); background: color-mix(in srgb, var(--c, var(--green)) 14%, var(--bg-panel)); }
+.pj-mode.is-add { border-style: dashed; }
+
 .pj-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 .pj-filters select, .pj-filters input {
   width: auto; flex: 0 1 auto; max-width: 100%; margin: 0;
