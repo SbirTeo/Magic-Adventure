@@ -224,7 +224,12 @@ public final class MagixAuth extends JavaPlugin {
                                 + "ridigitarla, finché dura (login.session_hours). "
                                 + "Il pulsante del sito «chiudi la sessione di gioco» lo raccoglie il server dove il "
                                 + "giocatore si trova in quel momento; se non è su nessun server, la richiesta si "
-                                + "butta dopo un paio di minuti (la sessione il sito l'ha già chiusa comunque).")
+                                + "butta dopo un paio di minuti (la sessione il sito l'ha già chiusa comunque).",
+                        "MagixAuth sta su **ogni** server di gioco (hub, faction...), non sul proxy: se qualcuno "
+                                + "arrivasse a un server senza passare dall'hub, il login lo troverebbe comunque li'. "
+                                + "La posizione di chi esce mentre è fermo al cancello si salva **per mondo**, col "
+                                + "codice univoco del mondo: l'hub non riporta nessuno alle coordinate del faction e non "
+                                + "cancella la posizione salvata dal faction, anche se i due mondi si chiamano uguale.")
 
                 .subcommands("I comandi di amministrazione (/mauth)",
                         "/mauth info <nome>", "Stato di quell'account: se è registrato, quando è entrato l'ultima volta, se ha la verifica attiva.",

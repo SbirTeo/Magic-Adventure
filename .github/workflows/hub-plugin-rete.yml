@@ -1,4 +1,4 @@
-name: Hub - installa i plugin di rete (LuckPerms, MagixAuth, MagixLanguage)
+name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, MagixAuth, MagixLanguage)
 
 # Mette sull'hub i plugin che servono in OGNI server di gioco della rete, presi dal faction
 # (stessa versione gia' collaudata) insieme alla loro configurazione, che contiene le credenziali
@@ -9,6 +9,8 @@ name: Hub - installa i plugin di rete (LuckPerms, MagixAuth, MagixLanguage)
 #  - MagixAuth: stesso config del faction (database, OTP, sessioni). Il punto del cancello NON si
 #    copia: e' del faction. Sull'hub si fissa con /mauth setspawn.
 #  - MagixLanguage: stesso config (lingue, chiavi del traduttore).
+#  - PlaceholderAPI: i plugin Magix leggono la lista dei loro placeholder (DOCS) dalla classe
+#    dell'espansione, che senza PlaceholderAPI non si carica (visto sull'hub: MagixLanguage).
 #  - whitelist e op: con MagixAuth chi entra prende l'UUID del suo account del sito, non quello
 #    offline del nome; le voci di "giocatore" si aggiungono anche con quell'UUID (dal database).
 #
@@ -79,7 +81,7 @@ jobs:
 
           echo; echo "=== 2) JAR DAL FACTION ==="
           mkdir -p "$HUB/plugins" "$BAK"
-          for P in LuckPerms MagixAuth MagixLanguage; do
+          for P in LuckPerms PlaceholderAPI MagixAuth MagixLanguage; do
             J="$(ls "$FAZ"/plugins/"$P"*.jar 2>/dev/null | head -n1)"
             [ -n "$J" ] || { echo "::error::$P non trovato nel faction"; exit 1; }
             for old in "$HUB"/plugins/"$P"*.jar; do [ -e "$old" ] && mv "$old" "$BAK/"; done

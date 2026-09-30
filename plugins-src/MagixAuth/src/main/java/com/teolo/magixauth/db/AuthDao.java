@@ -293,11 +293,30 @@ public final class AuthDao {
     }
 
     /** @return {world, x, y, z, yaw, pitch} oppure null se non c'e' niente da ripristinare */
-    public Object[] readPosition(UUID uuid) throws SQLException {
+    /**
+     * La posizione salvata di questo giocatore in uno dei mondi di QUESTO server.
+     *
+     * Con piu' server (hub, faction...) ognuno ha le sue righe: la chiave e' (giocatore, mondo)
+     * e il mondo si scrive col suo UID, che e' diverso su ogni server anche quando il nome e'
+     * lo stesso ("world" c'e' sia sull'hub sia sul faction). Cosi' l'hub non riporta nessuno alle
+     * coordinate del faction, e non cancella una posizione che non e' sua.
+     *
+     * @param worlds le chiavi dei mondi di questo server (UID, e il nome per le righe salvate
+     *               prima che si usasse l'UID)
+     */
+    public Object[] readPosition(UUID uuid, java.util.Collection<String> worlds) throws SQLException {
+        if (worlds.isEmpty()) {
+            return null;
+        }
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT world, x, y, z, yaw, pitch FROM auth_positions WHERE mc_uuid = ?")) {
+                     "SELECT world, x, y, z, yaw, pitch FROM auth_positions WHERE mc_uuid = ? AND world IN ("
+                     + placeholders(worlds.size()) + ") ORDER BY saved_at DESC LIMIT 1")) {
             ps.setString(1, uuid.toString());
+            int i = 2;
+            for (String w : worlds) {
+                ps.setString(i++, w);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return null;
@@ -308,12 +327,25 @@ public final class AuthDao {
         }
     }
 
-    public void deletePosition(UUID uuid) throws SQLException {
+    /** Toglie le posizioni salvate di questo giocatore nei mondi di QUESTO server (vedi readPosition). */
+    public void deletePosition(UUID uuid, java.util.Collection<String> worlds) throws SQLException {
+        if (worlds.isEmpty()) {
+            return;
+        }
         try (Connection c = database.getConnection();
-             PreparedStatement ps = c.prepareStatement("DELETE FROM auth_positions WHERE mc_uuid = ?")) {
+             PreparedStatement ps = c.prepareStatement("DELETE FROM auth_positions WHERE mc_uuid = ? AND world IN ("
+                     + placeholders(worlds.size()) + ")")) {
             ps.setString(1, uuid.toString());
+            int i = 2;
+            for (String w : worlds) {
+                ps.setString(i++, w);
+            }
             ps.executeUpdate();
         }
+    }
+
+    private static String placeholders(int n) {
+        return String.join(", ", java.util.Collections.nCopies(n, "?"));
     }
 
     // -----------------------------------------------------------------------------

@@ -1,0 +1,11 @@
+-- MagixAuth 0.7.28: una posizione salvata per (giocatore, mondo), non piu' una sola per giocatore.
+--
+-- Con piu' server dietro a Velocity (hub + faction) la posizione vera di chi e' fermo al cancello
+-- la salva il server su cui si trova, e il mondo si scrive col suo UID (diverso su ogni server,
+-- anche quando il nome e' lo stesso: "world" c'e' su entrambi). Con la chiave sul solo giocatore
+-- la riga dell'hub sovrascriveva quella del faction, e il faction perdeva il punto dove riportare
+-- il giocatore.
+--
+-- Idempotente: rilanciarla toglie e rimette la stessa chiave. Le righe esistenti hanno gia' un
+-- solo mondo per giocatore, quindi la chiave nuova non trova doppioni.
+ALTER TABLE auth_positions DROP PRIMARY KEY, ADD PRIMARY KEY (mc_uuid, world);

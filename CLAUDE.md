@@ -121,7 +121,10 @@ a CMI.
   127.0.0.1** (nessun giocatore ci arriva finche' non c'e' Velocity davanti), heap 1G, mondo
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
-  `predisponi-hub.yml`. Non riceve i deploy automatici dei plugin.
+  `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, MagixAuth,
+  MagixLanguage, con i config copiati dal faction) installati da `hub-plugin-rete.yml`; poi gli
+  aggiornamenti di MagixAuth e MagixLanguage arrivano dal deploy automatico (`deploy.target` =
+  `faction hub`). L'hub non ha CMI: il deploy lo ferma con `stop` e `start.sh` lo rilancia.
   Per **costruirlo** prima di Velocity c'e' `hub-costruzione.yml`: `azione=apri` lo apre a UNA
   persona sola (firewall sulla 25566 solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
   dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
