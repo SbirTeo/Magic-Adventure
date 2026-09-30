@@ -145,10 +145,31 @@ jobs:
             nproc; free -h; df -h / "$BASE" 2>/dev/null
             echo; echo "=== PROCESSI JAVA (memoria) ==="
             ps -eo pid,rss,args --sort=-rss | grep -a '[j]ava' | cut -c1-220
-            echo; echo "=== PORTE TCP IN ASCOLTO ==="
-            ss -tln 2>/dev/null
-            echo; echo "=== FIREWALL (ufw, se leggibile senza password) ==="
+            echo; echo "=== PORTE IN ASCOLTO (TCP e UDP, con il processo) ==="
+            # 0.0.0.0 / * / [::] = raggiungibile da fuori se il firewall lo lascia passare;
+            # 127.0.0.1 / [::1] = solo dalla macchina stessa.
+            sudo -n ss -tulpn 2>/dev/null | sed -E 's/users:\(\("([^"]+)".*/\1/' || ss -tuln 2>/dev/null
+            echo; echo "=== FIREWALL (ufw) ==="
             sudo -n ufw status verbose 2>/dev/null || echo "(ufw non leggibile senza sudo)"
+            echo; echo "--- regole numerate (anche IPv6) ---"
+            sudo -n ufw status numbered 2>/dev/null
+            echo; echo "=== PORTE PUBBLICHE SENZA REGOLA ufw (ascoltano su tutte le interfacce) ==="
+            APERTE="$(sudo -n ufw status 2>/dev/null | awk 'NR>4 {print $1}' | cut -d/ -f1 | sort -u)"
+            sudo -n ss -tulnH 2>/dev/null | awk '{print $1, $5}' | grep -vE ' (127\.|\[::1\]|\[::ffff:127\.)' \
+              | while read -r proto addr; do
+                  porta="${addr##*:}"
+                  echo "$APERTE" | grep -qx "$porta" && stato="regola ufw presente" || stato="NESSUNA regola: bloccata (ufw nega di serie)"
+                  echo "  $proto $addr -> $stato"
+                done | sort -u
+            echo; echo "=== server.properties di tutti i server (rete, query, rcon) ==="
+            for d in /home/ubuntu/magicadventure/*/; do
+              [ -f "$d/server.properties" ] || continue
+              echo "## $d"
+              grep -E '^(server-ip|server-port|online-mode|enable-query|query.port|enable-rcon|rcon.port|white-list|enforce-whitelist)=' "$d/server.properties"
+            done
+            echo; echo "=== porte dei plugin che aprono servizi (MagixPack, Votifier, dynmap...) ==="
+            grep -rhE '^(port|public-host|host):' /home/ubuntu/magicadventure/*/plugins/MagixPack/config.yml 2>/dev/null
+            ls /home/ubuntu/magicadventure/*/plugins/ 2>/dev/null | grep -iE 'votifier|dynmap|bluemap|plan|geyser' || echo "(nessuno di quelli noti)"
             echo; echo "=== SERVIZIO magicadventure ==="
             systemctl cat magicadventure.service 2>/dev/null || echo "(unit non trovata)"
             echo; echo "=== ALTRE UNIT systemd personalizzate ==="
