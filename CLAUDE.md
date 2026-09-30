@@ -117,7 +117,7 @@ a CMI.
   si chiamava `mc`: i workflow accettano ancora entrambi i nomi), servizio
   `magicadventure.service`, porta 25565 raggiungibile solo da TCPShield (firewall ufw), heap 7G.
   Mirror nel repo: `server/`.
-- **hub** — `/home/ubuntu/hub`, screen `hub`, servizio `magix-hub.service`, porta 25566 **solo su
+- **hub** — `/home/ubuntu/magicadventure/hub` (dentro la cartella del server fazioni finche' anche le fazioni non si spostano in `magicadventure/faction`), screen `hub`, servizio `magix-hub.service`, porta 25566 **solo su
   127.0.0.1** (nessun giocatore ci arriva finche' non c'e' Velocity davanti), heap 1G, mondo
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente

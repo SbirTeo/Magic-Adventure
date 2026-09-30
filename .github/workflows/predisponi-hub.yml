@@ -9,7 +9,8 @@ name: Predisponi hub (swap, fazioni 7G, screen faction, server hub)
 #  2) start.sh delle fazioni: heap da 8G a 7G (vale dal prossimo riavvio, non ne forza uno).
 #  3) lo screen "mc" diventa "faction": rinominato a caldo, unit systemd, stop-service.sh e
 #     istanze.conf della console del sito. I workflow accettano gia' entrambi i nomi.
-#  4) hub in /home/ubuntu/hub: stesso paper.jar delle fazioni, start.sh e server.properties
+#  4) hub in /home/ubuntu/magicadventure/hub (dentro la cartella delle fazioni, finche' anche loro
+#     non si spostano in magicadventure/faction; se c'e' ancora in /home/ubuntu/hub lo sposta): stesso paper.jar delle fazioni, start.sh e server.properties
 #     da server-hub/ del repo, porta 25566 SOLO su 127.0.0.1 (nessun giocatore ci arriva),
 #     mondo vuoto, servizio magix-hub.service (screen "hub"), voce nella console del sito.
 #     Nessun plugin: si aggiungono dopo, a mano o con un workflow.
@@ -69,7 +70,8 @@ jobs:
           set -uo pipefail
           SRC=/tmp/magix-hub-src
           FAZ=/home/ubuntu/magicadventure
-          HUB=/home/ubuntu/hub
+          HUB=/home/ubuntu/magicadventure/hub
+          VECCHIO_HUB=/home/ubuntu/hub
           BAK=/home/ubuntu/.bak/sistema
           ORA=$(date +%Y%m%d-%H%M%S)
           mkdir -p "$BAK"
@@ -131,6 +133,12 @@ jobs:
           fi
 
           echo; echo "=== 4) HUB ==="
+          if [ -d "$VECCHIO_HUB" ] && [ ! -e "$HUB" ]; then
+            echo "sposto l'hub da $VECCHIO_HUB a $HUB"
+            sudo systemctl stop magix-hub.service 2>/dev/null || true
+            for i in $(seq 1 30); do screen -list | grep -qE '[0-9]+\.hub[[:space:]]' || break; sleep 2; done
+            mv "$VECCHIO_HUB" "$HUB"
+          fi
           mkdir -p "$HUB/cache"
           [ -f "$HUB/paper.jar" ] || cp -a "$FAZ/paper.jar" "$HUB/paper.jar"
           install -m 755 "$SRC/hub-start.sh" "$HUB/start.sh"
@@ -146,9 +154,11 @@ jobs:
             sudo systemctl daemon-reload
           fi
           sudo systemctl enable magix-hub.service 2>&1 | tail -n1
-          if [ -f "$CONF" ] && ! grep -q '^istanza hub ' "$CONF"; then
+          RIGA_HUB="$(grep '^istanza hub ' "$SRC/istanze.conf")"
+          if [ -f "$CONF" ] && ! grep -qxF "$RIGA_HUB" "$CONF"; then
             salva "$CONF"
-            grep '^istanza hub ' "$SRC/istanze.conf" | sudo tee -a "$CONF" >/dev/null
+            sudo sed -i '/^istanza hub /d' "$CONF"
+            printf '%s\n' "$RIGA_HUB" | sudo tee -a "$CONF" >/dev/null
           fi
           echo "--- istanze della console ---"; grep '^istanza ' "$CONF" || true
           ls -la "$HUB"

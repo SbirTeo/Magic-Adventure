@@ -1,0 +1,92 @@
+name: Backup completo del server fazioni
+
+# Copia completa di /home/ubuntu/magicadventure (mondi, plugin, config), fatta a server ACCESO ma
+# coerente: salvataggio forzato, salvataggi automatici sospesi durante la copia (save-off) e
+# riattivati alla fine in ogni caso (anche se la copia fallisce). Nessun giocatore viene
+# disconnesso. Esclusi: cache della JVM, log, e la sottocartella hub/ (e' un altro server).
+#
+# Finisce in /home/ubuntu/backups/faction-<data>.tar.zst (o .tar.gz se zstd manca).
+# Se ne tengono le ultime 3: le piu' vecchie vengono cancellate.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-plugin       # mai durante un deploy o un riavvio
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Backup
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEST" 'bash -s' <<'REMOTE'
+          set -uo pipefail
+          BASE=/home/ubuntu/magicadventure
+          OUT=/home/ubuntu/backups
+          ORA=$(date +%Y%m%d-%H%M%S)
+          mkdir -p "$OUT"
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          dì() { [ -n "$SCR" ] && screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; return 0; }
+
+          echo "=== spazio ==="
+          du -sh --exclude=cache --exclude=logs --exclude=hub "$BASE" 2>/dev/null
+          df -h /home
+
+          if [ -n "$SCR" ]; then
+            echo "server acceso (screen $SCR): salvo e sospendo i salvataggi automatici"
+            # save-on torna attivo in ogni caso, anche se tar si interrompe
+            trap 'dì "save-on"; echo "save-on inviato"' EXIT
+            RIGHE=$(wc -l < "$BASE/logs/latest.log")
+            dì "save-off"
+            dì "save-all flush"
+            for i in $(seq 1 60); do
+              sleep 2
+              tail -n +"$((RIGHE+1))" "$BASE/logs/latest.log" | grep -qiE 'Saved the game|salvat' && { echo "mondi salvati (~$((i*2))s)"; break; }
+            done
+            tail -n +"$((RIGHE+1))" "$BASE/logs/latest.log" | tail -n 8
+          else
+            echo "server spento: copia diretta"
+          fi
+
+          if command -v zstd >/dev/null; then
+            FILE="$OUT/faction-$ORA.tar.zst"
+            tar -C /home/ubuntu --exclude=magicadventure/cache --exclude=magicadventure/logs --exclude=magicadventure/hub \
+                -I 'zstd -T0 -3' -cf "$FILE" magicadventure
+          else
+            FILE="$OUT/faction-$ORA.tar.gz"
+            tar -C /home/ubuntu --exclude=magicadventure/cache --exclude=magicadventure/logs --exclude=magicadventure/hub \
+                -czf "$FILE" magicadventure
+          fi
+          ESITO=$?
+          echo "=== esito tar: $ESITO (0 = ok, 1 = file cambiati durante la copia, normale per i log) ==="
+          ls -la "$FILE"
+
+          echo "=== backup tenuti (ultimi 3) ==="
+          ls -1t "$OUT"/faction-*.tar.* 2>/dev/null | tail -n +4 | xargs -r rm -f
+          ls -la "$OUT"
+          [ "$ESITO" -le 1 ] || exit 1
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
