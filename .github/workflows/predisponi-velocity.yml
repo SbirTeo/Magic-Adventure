@@ -305,7 +305,7 @@ jobs:
             avvio_prova "a) senza TCPShield"
             [ -f "$VEL/forwarding.secret" ] && chmod 600 "$VEL/forwarding.secret" && echo "  forwarding.secret presente ($(wc -c < "$VEL/forwarding.secret") byte, non stampato)"
             echo "  ping al proxy (deve riportare la MOTD dell'hub):"; ping_mc 25577
-            echo "  ping diretto all'hub (confronto):"; ping_mc 25566
+            echo "  ping diretto all'hub (confronto):"; ping_mc 25600
             echo "  MagixProxy (UUID e skin decisi dal proxy):"
             grep -E 'magixproxy|MagixProxy' "$VEL/logs/latest.log" | grep -vE 'Hikari' | tail -n 6
             ATTESO="$(php -r 'try { require "/var/www/magicadventure/includes/db.php";
@@ -343,7 +343,7 @@ jobs:
           screen -list || true
           ps -eo rss,args | grep -a '[j]ava' | cut -c1-120
           free -h
-          ss -tln | grep -E ':(25565|25566|25567|25577)\b' || true
+          ss -tln | grep -E ':(25565|25577|25600|25701)\b' || true
           ls -la "$VEL"
           rm -rf "$SRC"
           exit 0

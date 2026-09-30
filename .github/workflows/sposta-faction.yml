@@ -174,7 +174,7 @@ jobs:
           screen -list || true
           ps -eo rss,args | grep -a '[j]ava' | cut -c1-120
           free -h
-          ss -tln | grep -E ':(25565|25566)\b' || true
+          ss -tln | grep -E ':(25565|25600|25701)\b' || true
           echo "--- riferimenti rimasti ---"
           cerca | sort -u || true
           exit 0

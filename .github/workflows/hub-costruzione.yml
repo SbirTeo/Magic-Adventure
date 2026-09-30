@@ -2,11 +2,11 @@ name: Hub - apri/chiudi per costruire (mondo vuoto + WorldEdit)
 
 # Finche' Velocity non e' collegato, l'hub ascolta solo su 127.0.0.1 e nessuno ci entra. Per
 # COSTRUIRLO serve entrarci: questo workflow lo apre a UNA persona sola, direttamente
-# (IP_DEL_VPS:25566), senza toccare il faction ne' TCPShield.
+# (IP_DEL_VPS:25600), senza toccare il faction ne' TCPShield.
 #
 # azione=apri
 #   1) IP ammesso: quello passato, o l'ultimo da cui "giocatore" ha fatto /login sul faction
-#      (tabella auth_sessions di MagixAuth). Il firewall (ufw) apre la 25566 SOLO a quell'IP.
+#      (tabella auth_sessions di MagixAuth). Il firewall (ufw) apre la porta dell'hub SOLO a quell'IP.
 #   2) ferma l'hub (e' vuoto: nessun giocatore), copia FastAsyncWorldEdit dal faction (stesso jar,
 #      gia' collaudato su questa versione di Paper), mette server-ip= (tutte le interfacce)
 #   3) mondo=nuovo: sposta il mondo attuale in /home/ubuntu/.bak/hub-mondo-<data>/ (niente viene
@@ -88,6 +88,8 @@ jobs:
           LOG="$HUB/logs/latest.log"
           ORA=$(date +%Y%m%d-%H%M%S)
           COMMENTO="hub-costruzione"
+          # Porta dell'hub (Velocity 25565, hub 25600, faction 25701): la si impone anche al file vivo.
+          PORTA=25600
           sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
 
           acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'; }
@@ -113,6 +115,9 @@ jobs:
               | while read -r n; do [ -n "$n" ] && sudo ufw --force delete "$n" >/dev/null && echo "tolta regola ufw $n"; done
             return 0
           }
+          metti_porta() {
+            grep -q "^server-port=$PORTA$" "$PROPS" || { sed -i "s/^server-port=.*/server-port=$PORTA/" "$PROPS"; echo "porta dell'hub: $PORTA"; }
+          }
           metti_ip() {  # <valore di server-ip>
             mkdir -p /home/ubuntu/.bak/sistema; cp -a "$PROPS" "/home/ubuntu/.bak/sistema/hub-server.properties.bak-$ORA"
             sed -i "s/^server-ip=.*/server-ip=$1/" "$PROPS"
@@ -122,9 +127,9 @@ jobs:
           if [ "$AZIONE" = "chiudi" ]; then
             echo "=== CHIUDI ==="
             togli_regole
-            ferma; metti_ip 127.0.0.1; avvia
-            ss -tln | grep -E ':25566\b'
-            echo "--- firewall ---"; sudo ufw status | grep -E '25566|25565' || true
+            ferma; metti_porta; metti_ip 127.0.0.1; avvia
+            ss -tln | grep -E ":$PORTA\b"
+            echo "--- firewall ---"; sudo ufw status | grep -E "$PORTA|25565" || true
             exit 0
           fi
 
@@ -150,6 +155,7 @@ jobs:
             echo "::warning::il faction non ha WorldEdit/FAWE: l'hub resta senza"
           fi
           if grep -q '^enforce-whitelist=' "$PROPS"; then sed -i 's/^enforce-whitelist=.*/enforce-whitelist=true/' "$PROPS"; else echo 'enforce-whitelist=true' >> "$PROPS"; fi
+          metti_porta
           metti_ip ""
 
           if [ "$MONDO" = "nuovo" ]; then
@@ -184,14 +190,14 @@ jobs:
           echo "--- plugin dell'hub ---"; ls -la "$HUB/plugins"
           grep -iE 'Enabling|FastAsyncWorldEdit' "$LOG" | tail -n 5 || true
 
-          echo; echo "=== 5) FIREWALL: 25566 SOLO PER $IP ==="
+          echo; echo "=== 5) FIREWALL: $PORTA SOLO PER $IP ==="
           togli_regole
-          sudo ufw allow from "$IP" to any port 25566 proto tcp comment "$COMMENTO" | tail -n1
-          sudo ufw status | grep -E '25566|25565' || true
-          ss -tln | grep -E ':25566\b'
+          sudo ufw allow from "$IP" to any port "$PORTA" proto tcp comment "$COMMENTO" | tail -n1
+          sudo ufw status | grep -E "$PORTA|25565" || true
+          ss -tln | grep -E ":$PORTA\b"
 
           echo; echo "=== FATTO ==="
-          echo "Entra con l'indirizzo $VPS_IP:25566 (connessione diretta, non il dominio del server)."
+          echo "Entra con l'indirizzo $VPS_IP:$PORTA (connessione diretta, non il dominio del server)."
           echo "Sei op: /gamemode creative per volare e costruire. Sotto lo spawn c'e' un solo blocco di vetro."
           exit 0
           REMOTE

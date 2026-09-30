@@ -11,7 +11,7 @@ name: Predisponi hub (swap, fazioni 7G, screen faction, server hub)
 #     istanze.conf della console del sito. I workflow accettano gia' entrambi i nomi.
 #  4) hub in /home/ubuntu/magicadventure/hub (dentro la cartella delle fazioni, finche' anche loro
 #     non si spostano in magicadventure/faction; se c'e' ancora in /home/ubuntu/hub lo sposta): stesso paper.jar delle fazioni, start.sh e server.properties
-#     da server-hub/ del repo, porta 25566 SOLO su 127.0.0.1 (nessun giocatore ci arriva),
+#     da server-hub/ del repo, porta 25600 SOLO su 127.0.0.1 (nessun giocatore ci arriva),
 #     mondo vuoto, servizio magix-hub.service (screen "hub"), voce nella console del sito.
 #     Nessun plugin: si aggiungono dopo, a mano o con un workflow.
 #
@@ -185,7 +185,7 @@ jobs:
           echo; echo "=== STATO FINALE ==="
           screen -list || true
           free -h
-          ss -tln | grep -E ':(25565|25566)\b' || true
+          ss -tln | grep -E ':(25565|25600)\b' || true
           rm -rf "$SRC"
           exit 0
           REMOTE

@@ -117,7 +117,7 @@ a CMI.
   si chiamava `mc`: i workflow accettano ancora entrambi i nomi), servizio
   `magicadventure.service`, porta 25565 raggiungibile solo da TCPShield (firewall ufw), heap 7G.
   Mirror nel repo: `server/`.
-- **hub** — `/home/ubuntu/magicadventure/hub`, screen `hub`, servizio `magix-hub.service`, porta 25566 **solo su
+- **hub** — `/home/ubuntu/magicadventure/hub`, screen `hub`, servizio `magix-hub.service`, porta 25600 **solo su
   127.0.0.1** (nessun giocatore ci arriva finche' non c'e' Velocity davanti), heap 1G, mondo
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
@@ -126,7 +126,7 @@ a CMI.
   aggiornamenti di MagixAuth e MagixLanguage arrivano dal deploy automatico (`deploy.target` =
   `faction hub`). L'hub non ha CMI: il deploy lo ferma con `stop` e `start.sh` lo rilancia.
   Per **costruirlo** prima di Velocity c'e' `hub-costruzione.yml`: `azione=apri` lo apre a UNA
-  persona sola (firewall sulla 25566 solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
+  persona sola (firewall sulla porta dell'hub solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
   dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
   `azione=chiudi` lo riporta solo su 127.0.0.1. **Va chiuso prima del passaggio a Velocity.**
 - Ogni server nuovo va anche in `website/vps/console/istanze.conf` (e in
@@ -140,7 +140,7 @@ a CMI.
   dal backend (ping-passthrough), `log-command-executions` **sempre false** (loggherebbe le
   password di /login). `forwarding.secret` lo genera Velocity e resta **solo sul VPS**.
   Il giorno del passaggio: Velocity su `0.0.0.0:25565` (TCPShield e firewall non cambiano), il
-  faction su `127.0.0.1:25567`, i backend con `proxies.velocity` in `paper-global.yml` e
+  faction su `127.0.0.1:25701`, i backend con `proxies.velocity` in `paper-global.yml` e
   `network-compression-threshold=-1`, TCPShield tolto dai backend. Il dettaglio e' in testa a
   `server-velocity/velocity.toml`.
 - **MagixProxy** (`plugins-src/MagixProxy`) e' il plugin Velocity della rete: decide UUID e skin
