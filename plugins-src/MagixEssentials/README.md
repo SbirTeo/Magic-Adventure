@@ -249,10 +249,14 @@ aggiunto alla lista in `nametag/NametagManager`.
 La riga della **chat pubblica** in gioco, su ogni server della rete (modulo `chat`, dalla 0.9.0; si
 regola in `chat.yml`). Prima la scriveva MagixFactions sul faction e CMI sull'hub.
 
-- `format` e' la riga di chi non ha una fazione da mostrare (sull'hub: di tutti); `faction-format`
-  quella di chi ha una fazione, solo dove c'e' MagixFactions: `{faction}`, `{relcolor}` e `{rank}`
-  li chiede a lui (`chatTokens(lettore, mittente)`, per riflessione). Ogni lettore riceve la sua
-  riga: il colore della relazione e' quello di chi legge.
+- **Riconosce da solo la modalita'** (0.9.1), come gli stili del nametag: con `style: auto` vince il
+  primo stile di `styles` i cui plugin (`requires`) sono tutti caricati. Sul faction esce `factions`
+  (c'e' MagixFactions), sull'hub `plain`. Lo stile scelto e' nel log all'avvio e nella guida staff.
+  Una modalita' nuova: una voce in `styles`, sopra `plain`. `custom-format`, se scritta, vince su tutto.
+- `{faction}`, `{relcolor}` e `{rank}` li chiede a MagixFactions (`chatTokens(lettore, mittente)`, per
+  riflessione). Ogni lettore riceve la sua riga: il colore della relazione e' quello di chi legge.
+- Pezzi facoltativi fra `[[ ]]`: spariscono se tutto quello che contengono risulta vuoto (chi non ha
+  una fazione non si ritrova `[]` davanti al nome).
 - `{name}`, `{message}` e tutti i placeholder di PlaceholderAPI (per chi scrive), compresi i
   relazionali `%rel_...%`. Il messaggio entra per ultimo, come testo semplice.
 - Suggerimento con ora e provenienza (`tooltip.*`), link cliccabili con `magixessentials.chat.links`

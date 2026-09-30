@@ -76,8 +76,18 @@ public final class ChatModule implements Listener {
             {"Settings/Modules.yml", "playerChatTag", "chatBubble"},
     };
 
+    /** [[ ... ]]: un pezzo che sparisce se tutto quello che contiene risulta vuoto. */
+    private static final Pattern OPTIONAL = Pattern.compile("\\[\\[(.*?)\\]\\]", Pattern.DOTALL);
+    private static final Pattern TOKEN = Pattern.compile("\\{(faction|relcolor|rank|name)\\}");
+    private static final Pattern PLACEHOLDER = Pattern.compile("%[^%\\s]+%");
+
     private final JavaPlugin plugin;
     private final YamlConfiguration cfg;
+
+    /** La riga scelta all'avvio: custom-format, o il format dello stile adatto a questo server. */
+    private String format = DEFAULT_FORMAT;
+    /** Il nome dello stile scelto, per il log e la guida. */
+    private String style = "nessuno";
 
     /** chatTokens di MagixFactions, cercato una volta per istanza del plugin (un /reload la cambia). */
     private Plugin tokensOwner;
@@ -89,10 +99,63 @@ public final class ChatModule implements Listener {
     }
 
     public void start() {
+        pickFormat();
         Bukkit.getPluginManager().registerEvents(this, plugin);
         disableCmiChat();
-        plugin.getLogger().info("[Chat] formato della chat pubblica attivo"
-                + (Bukkit.getPluginManager().getPlugin("MagixFactions") != null ? " (con le fazioni di MagixFactions)." : "."));
+        plugin.getLogger().info("[Chat] formato della chat pubblica attivo: " + describe() + ".");
+    }
+
+    /** Per il log e la guida: quale riga si usa su questo server e perche'. */
+    public String describe() {
+        return "custom-format".equals(style)
+                ? "riga scritta a mano (custom-format)"
+                : "stile «" + style + "»";
+    }
+
+    /**
+     * La riga di questo server: custom-format se c'e', altrimenti lo stile. Con style: auto vince il
+     * primo stile i cui plugin sono tutti CARICATI (come gli stili del nametag): e' cosi' che il
+     * modulo riconosce da solo la modalita' — fazioni sul faction, niente sull'hub — senza che
+     * nessuno debba scriverla. Gli stili sono un elenco: lo staff ne puo' aggiungere uno per una
+     * modalita' nuova, e l'allineamento dei config non lo tocca.
+     */
+    private void pickFormat() {
+        String custom = String.valueOf(cfg.getString("custom-format", "")).trim();
+        if (!custom.isEmpty()) {
+            format = custom;
+            style = "custom-format";
+            return;
+        }
+        String wanted = String.valueOf(cfg.getString("style", "auto")).trim();
+        boolean auto = wanted.isEmpty() || wanted.equalsIgnoreCase("auto");
+        for (Map<?, ?> entry : cfg.getMapList("styles")) {
+            String name = entry.get("name") == null ? "" : String.valueOf(entry.get("name")).trim();
+            if (auto ? !hasPlugins(entry.get("requires")) : !wanted.equalsIgnoreCase(name)) continue;
+            String f = entry.get("format") == null ? "" : String.valueOf(entry.get("format"));
+            if (f.isBlank()) continue;   // uno stile senza riga non e' una risposta: si guarda il prossimo
+            format = f;
+            style = name.isEmpty() ? "senza nome" : name;
+            return;
+        }
+        format = DEFAULT_FORMAT;
+        style = auto ? "nessuno" : wanted + " (che non esiste)";
+        plugin.getLogger().warning("[Chat] " + (auto
+                ? "nessuno stile va bene per questo server (manca quello senza requisiti?)"
+                : "lo stile «" + wanted + "» non e' nell'elenco degli stili")
+                + ": uso la riga di ripiego. Scrivila in chat.yml -> custom-format, o aggiungi lo stile che manca.");
+    }
+
+    /** Se i plugin richiesti ci sono TUTTI, fra quelli caricati (accesi o no: l'ordine non conta). */
+    private static boolean hasPlugins(Object requires) {
+        if (!(requires instanceof java.util.Collection<?> list)) {
+            return requires == null || String.valueOf(requires).isBlank()
+                    || Bukkit.getPluginManager().getPlugin(String.valueOf(requires).trim()) != null;
+        }
+        for (Object one : list) {
+            String name = one == null ? "" : String.valueOf(one).trim();
+            if (!name.isEmpty() && Bukkit.getPluginManager().getPlugin(name) == null) return false;
+        }
+        return true;
     }
 
     public void stop() {
@@ -150,17 +213,21 @@ public final class ChatModule implements Listener {
      */
     private Component row(Player viewer, Player senderOnline, UUID senderUuid, String senderName, String shownName,
                           String message, String prefix, boolean fromSite) {
-        Map<String, String> faction = factionTokens(viewer == null ? null : viewer.getUniqueId(), senderUuid);
-        String fmt = faction.isEmpty()
-                ? cfg.getString("format", DEFAULT_FORMAT)
-                : cfg.getString("faction-format", cfg.getString("format", DEFAULT_FORMAT));
-        if (fromSite) fmt = cfg.getString("web-prefix", "") + fmt;
-        for (Map.Entry<String, String> t : faction.entrySet()) {
-            fmt = fmt.replace("{" + t.getKey() + "}", t.getValue() == null ? "" : t.getValue());
+        Map<String, String> tokens = new java.util.HashMap<>();
+        tokens.put("faction", "");
+        tokens.put("relcolor", "");
+        tokens.put("rank", "");
+        for (Map.Entry<String, String> t : factionTokens(viewer == null ? null : viewer.getUniqueId(), senderUuid).entrySet()) {
+            tokens.put(t.getKey(), t.getValue() == null ? "" : t.getValue());
         }
-        fmt = fmt.replace("{faction}", "").replace("{relcolor}", "").replace("{rank}", "")
-                .replace("{name}", shownName);
+        tokens.put("name", shownName);
+        String fmt = format;
+        if (fromSite) fmt = cfg.getString("web-prefix", "") + fmt;
         if (prefix != null && !prefix.isEmpty()) fmt = fmt.replace("%luckperms_prefix%", prefix);
+        fmt = optionalParts(fmt, tokens, viewer, senderOnline, senderUuid);
+        for (Map.Entry<String, String> t : tokens.entrySet()) {
+            fmt = fmt.replace("{" + t.getKey() + "}", t.getValue());
+        }
         fmt = placeholders(viewer, senderOnline, senderUuid, fmt);
 
         int at = fmt.indexOf("{message}");
@@ -175,6 +242,37 @@ public final class ChatModule implements Listener {
         Component row = Component.empty().append(TextFormat.component(before)).append(text);
         if (!after.isEmpty()) row = row.append(TextFormat.component(after));
         return withHover(row, fromSite);
+    }
+
+    /**
+     * I pezzi fra [[ ]]: restano (senza le parentesi) se almeno un segnaposto o placeholder che
+     * contengono dice qualcosa, spariscono se dicono tutti niente. Un pezzo senza segnaposto, o con
+     * dentro {message}, resta sempre.
+     */
+    private static String optionalParts(String fmt, Map<String, String> tokens, Player viewer,
+                                        Player senderOnline, UUID senderUuid) {
+        if (!fmt.contains("[[")) return fmt;
+        java.util.regex.Matcher m = OPTIONAL.matcher(fmt);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            String part = m.group(1);
+            boolean keep = part.contains("{message}");
+            boolean markers = false;
+            java.util.regex.Matcher t = TOKEN.matcher(part);
+            while (!keep && t.find()) {
+                markers = true;
+                if (!tokens.getOrDefault(t.group(1), "").isEmpty()) keep = true;
+            }
+            java.util.regex.Matcher p = PLACEHOLDER.matcher(part);
+            while (!keep && p.find()) {
+                markers = true;
+                String value = placeholders(viewer, senderOnline, senderUuid, p.group());
+                if (!value.isEmpty() && !value.equals(p.group())) keep = true;
+            }
+            m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(keep || !markers ? part : ""));
+        }
+        m.appendTail(out);
+        return out.toString();
     }
 
     private static String placeholders(Player viewer, Player senderOnline, UUID senderUuid, String fmt) {

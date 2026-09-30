@@ -20,16 +20,45 @@
 #              (verde la tua, magenta un'alleata, rosso le altre: relations.colors di MagixFactions)
 #   {rank}     il tag del suo grado di fazione, nel colore della relazione
 #
+# PEZZI FACOLTATIVI: quello che sta fra [[ e ]] sparisce se TUTTI i segnaposto e i placeholder che
+# contiene risultano vuoti. Cosi' "[[&8[{faction}&8] ]]" mostra [Fazione] a chi ce l'ha e niente a chi
+# non ce l'ha (o la nasconde col permesso magixfactions.chat.hidefactions), senza bisogno di due righe.
+#
 # I canali di fazione e alleati (/f chat) restano a MagixFactions: sono una funzione delle fazioni,
 # e una riga scritta li' non arriva mai qui.
 
-# La riga di chi NON ha una fazione da mostrare: su un server senza MagixFactions (l'hub) e' la riga
-# di tutti.
-format: "%luckperms_prefix%&7%magixweb_namecolor%{name} &8» &f{message}"
+# La riga scritta a mano per QUESTO server: se c'e', vince su tutto (anche sugli stili qui sotto).
+# Vuota (di fabbrica) = decide lo stile: e' cosi' che lo stesso jar va bene su ogni modalita'.
+custom-format: ""
 
-# La riga di chi ha una fazione (solo sul faction). Chi ha il permesso
-# magixfactions.chat.hidefactions (lo staff) usa comunque format, senza fazione.
-faction-format: "&8[{rank}{relcolor}{faction}&8] %luckperms_prefix%&7%magixweb_namecolor%{name} &8» &f{message}"
+# Quale stile si usa quando custom-format e' vuota:
+#   auto          - (di fabbrica) il primo dell'elenco qui sotto i cui plugin ci sono TUTTI. E' la
+#                   rilevazione della modalita': sul faction (c'e' MagixFactions) esce lo stile
+#                   factions, sull'hub (non c'e') quello senza requisiti.
+#   <nome stile>  - quello e basta, che i suoi plugin ci siano o no.
+# Quale ha scelto lo scrive nel log all'avvio e a ogni /magixessentials reload.
+style: auto
+
+# Gli stili: una voce per modalita' di gioco, come gli stili del nametag (nametag.yml). Si leggono
+# dall'alto in basso e vince il primo che va bene: quelli con piu' pretese in cima, quello che non
+# chiede niente (requires vuoto) in fondo. Di ogni voce: 'name' il nome, 'requires' i plugin che
+# devono esserci TUTTI (e' una E: per due modalita' si scrivono due voci), 'format' la riga.
+# Fra i requisiti vanno solo i plugin senza cui lo stile non ha senso: MagixBridge
+# (%magixweb_namecolor%) no, se manca il nome resta senza colore; MagixFactions in uno stile che
+# scrive la fazione si'. I plugin si cercano fra quelli CARICATI (l'ordine di accensione non conta).
+# Per una modalita' NUOVA si aggiunge una voce qui, sopra quella senza requisiti: e' un elenco, e
+# l'allineamento dei config non tocca le voci in piu'.
+styles:
+  # Fazioni: [grado+fazione] nel colore della relazione di chi legge, poi grado di server e nome.
+  # Chi non ha una fazione perde da solo il pezzo fra [[ ]].
+  - name: factions
+    requires: [MagixFactions]
+    format: "[[&8[{rank}{relcolor}{faction}&8] ]]%luckperms_prefix%&7%magixweb_namecolor%{name} &8» &f{message}"
+  # Nessuna modalita' riconosciuta (l'hub): grado di server e nome col colore del grado. Non chiede
+  # niente, quindi va sempre bene: per questo sta in fondo.
+  - name: plain
+    requires: []
+    format: "%luckperms_prefix%&7%magixweb_namecolor%{name} &8» &f{message}"
 
 # Icona messa davanti ai messaggi che arrivano dalla chat del sito (plugin MagixBridge). Vuota di
 # serie: da dove arriva il messaggio lo dice il suggerimento qui sotto. Es. "&b☁ " per vederla sempre.

@@ -190,8 +190,9 @@ a CMI.
   messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
   in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).
 - **La chat pubblica in gioco la scrive MagixEssentials** (modulo `chat`, dalla 0.9.0, su faction e
-  hub): formato in `chat.yml` (`format` per tutti; sul faction `faction-format` per chi ha una
-  fazione, coi pezzi `{faction}`/`{relcolor}`/`{rank}` che gli da' MagixFactions con `chatTokens`),
+  hub): formato in `chat.yml`, scelto da solo come gli stili del nametag (`style: auto`: il primo
+  stile di `styles` i cui plugin `requires` ci sono tutti; `factions` sul faction, `plain` sull'hub;
+  pezzi facoltativi fra `[[ ]]`; `{faction}`/`{relcolor}`/`{rank}` glieli da' MagixFactions con `chatTokens`),
   suggerimento con ora e provenienza, link cliccabili, messaggi del sito (MagixBridge chiama il suo
   `broadcastWebChat`). MagixFactions tiene solo i canali fazione/alleati (`/f chat`). Ordine
   sull'evento: MagixGuard LOWEST (silenziati) e LOW (filtro), MagixFactions canali e MagixBridge

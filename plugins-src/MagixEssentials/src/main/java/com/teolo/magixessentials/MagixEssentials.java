@@ -153,6 +153,9 @@ public final class MagixEssentials extends JavaPlugin {
                         // Lo stile dei nametag non e' un valore del config: e' una SCELTA fatta
                         // all'avvio guardando quali plugin ci sono. Chiederlo al modulo e' l'unico
                         // modo di non raccontarne uno sbagliato.
+                        .extra("CHAT_STILE", chat == null
+                                ? "il modulo e' spento"
+                                : chat.describe())
                         .extra("NAMETAG_STILE", nametag == null
                                 ? "il modulo e' spento, quindi nessuno"
                                 : nametag.describe()))
@@ -165,11 +168,16 @@ public final class MagixEssentials extends JavaPlugin {
 
                 .section("La chat",
                         "Su ogni server della rete la riga della chat pubblica la scrive questo plugin, col "
-                                + "formato di **chat.yml**: grado, nome col colore del grado, messaggio. Sul "
-                                + "faction, dove c'e' MagixFactions, chi ha una fazione usa **faction-format**, "
-                                + "col tag [fazione] colorato secondo la relazione di chi LEGGE (verde la sua, "
-                                + "magenta un'alleata, rosso le altre): ogni giocatore riceve la sua riga. "
-                                + "Sull'hub vale **format** per tutti.",
+                                + "formato di **chat.yml**. Il formato lo sceglie da solo guardando quali plugin "
+                                + "ci sono, come gli stili del nametag: con style: auto vince il primo stile i cui "
+                                + "plugin (requires) sono tutti presenti. Su questo server: {{CHAT_STILE}}. "
+                                + "Sul faction (c'e' MagixFactions) esce lo stile factions, col tag [fazione] "
+                                + "colorato secondo la relazione di chi LEGGE (verde la sua, magenta un'alleata, "
+                                + "rosso le altre): ogni giocatore riceve la sua riga. Sull'hub esce plain: grado "
+                                + "e nome. Per una modalita' nuova basta aggiungere una voce in styles.",
+                        "Un pezzo scritto fra [[ ]] sparisce da solo se tutto quello che contiene risulta "
+                                + "vuoto: e' cosi' che chi non ha una fazione non si ritrova un [] davanti al nome. "
+                                + "custom-format, se scritta, vince su tutto.",
                         "Passando il mouse su una riga si vedono ora e provenienza (gioco o sito). I link sono "
                                 + "cliccabili per chi ha il permesso magixessentials.chat.links (vale anche il "
                                 + "vecchio magixfactions.chat.links). I messaggi scritti nella chat del sito "
@@ -433,8 +441,9 @@ public final class MagixEssentials extends JavaPlugin {
                         "chat", "Il formato della chat pubblica e dei messaggi del sito. Spento, la chat pubblica resta quella nuda del gioco.")
 
                 .settingsFrom(modules.configurazioneDi(Modules.CHAT), "Impostazioni della chat (chat.yml)",
-                        "format", "La riga di chi non ha una fazione da mostrare (sull'hub: di tutti). {name}, {message} e i placeholder.",
-                        "faction-format", "La riga di chi ha una fazione (solo con MagixFactions): in piu' {faction}, {relcolor}, {rank}.",
+                        "custom-format", "La riga scritta a mano per questo server: vince sugli stili. Vuota = decide lo stile.",
+                        "style", "Quale stile: auto (il primo i cui plugin ci sono tutti) o il nome di uno.",
+                        "styles", "Gli stili, uno per modalita': name, requires (i plugin che devono esserci), format. Pezzi fra [[ ]] facoltativi.",
                         "web-prefix", "Icona davanti ai messaggi scritti dal sito. Vuota = nessuna (lo dice il suggerimento).",
                         "tooltip.enabled", "Il suggerimento con ora e provenienza al passaggio del mouse.",
                         "tooltip.format", "Il testo del suggerimento: {ora} e {origine}.",
