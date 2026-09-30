@@ -1,0 +1,247 @@
+name: Velocity - LuckPerms sul proxy e permessi velocity.*
+
+# LuckPerms anche sul proxy (il jar per Velocity e' un altro: LuckPerms-Velocity), sullo stesso
+# database di faction e hub: stessi gruppi, stessi utenti, e una modifica fatta con /lp su un
+# server arriva da sola anche sul proxy (messaging-service: sql). Rilanciabile.
+#
+#  1) scarica LuckPerms-Velocity da Modrinth e ne verifica lo sha512 (versione fissata qui sotto)
+#  2) installa il jar in velocity/plugins/ e server-velocity/luckperms/config.yml in
+#     velocity/plugins/luckperms/ (con backup), scrivendoci le credenziali del database prese dal
+#     LuckPerms del faction (mai stampate). server: velocity = il contesto del proxy.
+#  3) permessi=si: i permessi dei comandi di Velocity (velocity.*) dati SOLO al gruppo admin.
+#     Si danno dalla console del faction con "lp", che li scrive nel database condiviso:
+#       - admin                      -> velocity.* true
+#       - i gruppi che ereditano admin (sopra di lui) -> niente: lo ereditano
+#       - tutti gli altri (default, helper, mod, vip...) -> velocity.* false. Serve scriverlo:
+#         /server di Velocity e' aperto a chi NON ha il permesso negato.
+#     Ogni altro nodo velocity... gia' presente nei gruppi viene tolto.
+#  4) prova=si: avvio breve di Velocity (solo 127.0.0.1:25577, nessun giocatore ci arriva): LuckPerms
+#     deve leggere il database (MARIADB) e dire, per ogni gruppo, se ha velocity.command.server.
+#     Poi lo rispegne.
+
+on:
+  workflow_dispatch:
+    inputs:
+      permessi:
+        description: "si = velocity.* solo ad admin, negato a tutti gli altri gruppi"
+        required: false
+        default: "si"
+      prova:
+        description: "si = avvio di prova del proxy (solo locale) e poi spegne"
+        required: false
+        default: "si"
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+env:
+  LPV_VERSION: "5.5.71"
+  LPV_URL: "https://cdn.modrinth.com/data/Vebnzrzj/versions/tamnmXad/LuckPerms-Velocity-5.5.71.jar"
+  LPV_SHA512: "a619da8804727bed7b2b2ee5383974329a3c09181a67745484fdffd0f4b6c5b13c44aa88e0d2b30d13f3068d9b0f3e26863abba9855f80a7eb5f9455ca6c40d4"
+
+jobs:
+  luckperms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+
+      - name: Scarica LuckPerms-Velocity e verifica lo sha512
+        run: |
+          set -euo pipefail
+          mkdir -p dl
+          curl -fsSL -A "MagicAdventure-deploy/1.0 (magicadventure.it)" -o "dl/LuckPerms-Velocity-$LPV_VERSION.jar" "$LPV_URL"
+          echo "$LPV_SHA512  dl/LuckPerms-Velocity-$LPV_VERSION.jar" | sha512sum -c -
+          cp server-velocity/luckperms/config.yml dl/luckperms-config.yml
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia i file sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          ssh -i ~/.ssh/deploy_key "$DEST" 'rm -rf /tmp/magix-lpv-src && mkdir -p /tmp/magix-lpv-src'
+          scp -i ~/.ssh/deploy_key dl/* "$DEST:/tmp/magix-lpv-src/"
+
+      - name: Installa, permessi e prova sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          PERMESSI: ${{ inputs.permessi }}
+          PROVA: ${{ inputs.prova }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEST" \
+            "PERMESSI='${PERMESSI:-si}' PROVA='${PROVA:-si}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          SRC=/tmp/magix-lpv-src
+          VEL=/home/ubuntu/magicadventure/velocity
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          FLOG="$FAZ/logs/latest.log"
+          BAK=/home/ubuntu/.bak/luckperms-velocity
+          ORA=$(date +%Y%m%d-%H%M%S)
+          mkdir -p "$BAK" "$VEL/plugins/luckperms"
+          acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.velocity[[:space:]]'; }
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          faction() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          proxy() { screen -S velocity -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+
+          echo "=== 1) JAR ==="
+          JAR="$(ls "$SRC"/LuckPerms-Velocity-*.jar)"
+          for old in "$VEL"/plugins/LuckPerms-Velocity-*.jar; do
+            [ -e "$old" ] && ! cmp -s "$old" "$JAR" && mv "$old" "$BAK/$(basename "$old").bak-$ORA" && echo "  tolto $(basename "$old")"
+          done
+          install -m 644 "$JAR" "$VEL/plugins/$(basename "$JAR")"
+          ls -la "$VEL/plugins" | grep -iE 'luckperms|magixproxy|tcpshield'
+
+          echo; echo "=== 2) CONFIG (credenziali dal LuckPerms del faction) ==="
+          CFG="$VEL/plugins/luckperms/config.yml"
+          [ -f "$CFG" ] && cp -a "$CFG" "$BAK/config.yml.bak-$ORA" && echo "  backup: $BAK/config.yml.bak-$ORA"
+          python3 - "$SRC/luckperms-config.yml" "$FAZ/plugins/LuckPerms/config.yml" "$CFG" <<'PY'
+          import re, sys
+          src, faction, dst = sys.argv[1:4]
+          f = open(faction, encoding="utf-8").read()
+          if not re.search(r"^storage-method:\s*['\"]?mariadb", f, re.M):
+              sys.exit("il LuckPerms del faction non e' su mariadb: prima luckperms-condiviso.yml")
+          # the raw lines of the faction's data: block, copied as they are (quoting included)
+          want = ("address", "database", "username", "password", "table-prefix")
+          got, in_data = {}, False
+          for line in f.split("\n"):
+              if re.match(r"^[A-Za-z]", line):
+                  in_data = line.startswith("data:")
+              elif in_data:
+                  m = re.match(r"^  ([a-z-]+):", line)
+                  if m and m.group(1) in want and m.group(1) not in got:
+                      got[m.group(1)] = line
+          missing = [k for k in want if k not in got]
+          if missing:
+              sys.exit("nel config del faction mancano: " + ", ".join(missing))
+          out, in_data = [], False
+          for line in open(src, encoding="utf-8").read().split("\n"):
+              if re.match(r"^[A-Za-z]", line):
+                  in_data = line.startswith("data:")
+              elif in_data:
+                  m = re.match(r"^  ([a-z-]+):", line)
+                  if m and m.group(1) in got:
+                      line = got.pop(m.group(1))
+              out.append(line)
+          if got:
+              sys.exit("nel config del repo mancano: " + ", ".join(got))
+          text = "\n".join(out)
+          if "INSTALLED_BY_WORKFLOW" in text:
+              sys.exit("credenziali non scritte")
+          open(dst, "w", encoding="utf-8").write(text)
+          PY
+          [ $? -eq 0 ] || { echo "::error::config di LuckPerms del proxy non scritto (vedi sopra)"; exit 1; }
+          chmod 600 "$CFG"
+          sed -E "s/^(  password: ).*/\1'[nascosta]'/" "$CFG" | grep -nE '^(server|storage-method|messaging-service):|^  (address|database|username|password|table-prefix):'
+
+          echo; echo "=== 3) GRUPPI E NODI velocity* NEL DATABASE ==="
+          php -r 'try { require "/var/www/magicadventure/includes/db.php";
+              $g = db()->query("SELECT name FROM luckperms_groups ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
+              $n = db()->query("SELECT name, permission, value, server, world FROM luckperms_group_permissions WHERE permission LIKE \"group.%\" OR permission LIKE \"velocity%\" OR permission LIKE \"weight.%\" OR permission IN (\"*\", \"luckperms.*\")")->fetchAll(PDO::FETCH_ASSOC);
+              echo json_encode(["groups" => $g, "nodes" => $n]);
+            } catch (Throwable $e) { echo "{\"error\": \"", get_class($e), " ", $e->getCode(), "\"}"; }' > /tmp/lpv-gruppi.json
+          python3 - /tmp/lpv-gruppi.json > /tmp/lpv-comandi.txt <<'PY'
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          if "error" in d:
+              sys.exit("lettura del database fallita: " + d["error"])
+          groups = [g.lower() for g in d["groups"]]
+          parents, weight, velocity, special = {g: set() for g in groups}, {}, {g: [] for g in groups}, {g: [] for g in groups}
+          for n in d["nodes"]:
+              g, p, v = n["name"].lower(), n["permission"], str(n["value"]) in ("1", "true")
+              if g not in parents:
+                  continue
+              if p.startswith("group."):
+                  if v: parents[g].add(p[6:].lower())
+              elif p.startswith("weight."):
+                  weight[g] = p[7:]
+              elif p.lower().startswith("velocity"):
+                  velocity[g].append(n)
+              else:
+                  special[g].append(f"{p}={'true' if v else 'false'}")
+          if "admin" not in groups:
+              sys.exit("nessun gruppo 'admin' nel database: gruppi = " + ", ".join(groups))
+          def ancestors(g, seen=None):
+              seen = set() if seen is None else seen
+              for p in parents.get(g, ()):
+                  if p not in seen:
+                      seen.add(p); ancestors(p, seen)
+              return seen
+          above = {g for g in groups if g != "admin" and "admin" in ancestors(g)}
+          print("#", "gruppo", "peso", "eredita da", "nodi velocity attuali", "altri (*, luckperms.*)", sep=" | ", file=sys.stderr)
+          for g in sorted(groups, key=lambda x: -int(weight.get(x, 0) or 0)):
+              role = "ADMIN" if g == "admin" else ("sopra admin: eredita" if g in above else "negato")
+              now = ", ".join(f"{n['permission']}={n['value']}@{n['server']}/{n['world']}" for n in velocity[g]) or "-"
+              print(f"  {g} | {weight.get(g, '-')} | {', '.join(sorted(parents[g])) or '-'} | {now} | {', '.join(special[g]) or '-'}  -> {role}", file=sys.stderr)
+          def ctx(n):
+              c = []
+              if n["server"] and n["server"] != "global": c.append("server=" + n["server"])
+              if n["world"] and n["world"] != "global": c.append("world=" + n["world"])
+              return (" " + " ".join(c)) if c else ""
+          for g in groups:
+              want = "true" if g == "admin" else (None if g in above else "false")
+              for n in velocity[g]:
+                  keep = (want is not None and n["permission"] == "velocity.*" and ctx(n) == ""
+                          and (str(n["value"]) in ("1", "true")) == (want == "true"))
+                  if not keep:
+                      print(f"lp group {g} permission unset {n['permission']}{ctx(n)}")
+              if want is not None:
+                  print(f"lp group {g} permission set velocity.* {want}")
+          PY
+          [ $? -eq 0 ] || { echo "::error::gruppi non letti (vedi sopra)"; exit 1; }
+          echo "--- comandi da dare sulla console del faction ---"; cat /tmp/lpv-comandi.txt
+
+          if [ "${PERMESSI:-si}" = "si" ]; then
+            echo; echo "=== 4) PERMESSI (console del faction, database condiviso) ==="
+            [ -n "$SCR" ] || { echo "::error::il faction non e' acceso: i permessi si danno dalla sua console"; exit 1; }
+            R=$(wc -l < "$FLOG")
+            while IFS= read -r c; do [ -n "$c" ] && faction "$c" && sleep 1; done < /tmp/lpv-comandi.txt
+            sleep 3
+            tail -n +"$((R + 1))" "$FLOG" | grep -iE 'LP\]|LuckPerms|velocity' | sed -E 's/\x1b\[[0-9;]*m//g' | tail -n 40
+          fi
+
+          if [ "${PROVA:-si}" = "si" ]; then
+            echo; echo "=== 5) PROVA DEL PROXY (solo 127.0.0.1:25577) ==="
+            if acceso; then
+              echo "::warning::Velocity e' gia' acceso: niente prova (non lo spengo io)"
+            else
+              VLOG="$VEL/logs/latest.log"
+              righe() { [ -f "$VLOG" ] && wc -l < "$VLOG" || echo 0; }
+              R=$(righe)
+              sudo systemctl start magix-velocity.service
+              for i in $(seq 1 45); do
+                sleep 2
+                L=$(righe); [ "$L" -lt "$R" ] && R=0
+                tail -n +"$((R + 1))" "$VLOG" 2>/dev/null | grep -q 'Done (' && { echo "  pronto dopo ~$((i*2))s"; break; }
+              done
+              for g in $(python3 -c "import json;print(' '.join(g.lower() for g in json.load(open('/tmp/lpv-gruppi.json'))['groups']))"); do
+                proxy "lpv group $g permission check velocity.command.server"; sleep 1
+              done
+              proxy "lpv user SbirTeo permission check velocity.command.send"; sleep 3
+              tail -n +"$((R + 1))" "$VLOG" 2>/dev/null | sed -E 's/\x1b\[[0-9;]*m//g' \
+                | grep -iE 'luckperms|lpv|velocity\.command|storage|error|exception|Done \(' | grep -vE 'bStats' | tail -n 40
+              sudo systemctl stop magix-velocity.service
+              for i in $(seq 1 15); do acceso || break; sleep 1; done
+              acceso && echo "::error::la screen velocity e' ancora aperta" || echo "  proxy rispento"
+            fi
+          fi
+          rm -rf "$SRC" /tmp/lpv-gruppi.json /tmp/lpv-comandi.txt
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

@@ -163,6 +163,13 @@ a CMI.
   server arriva da sola sugli altri), `server: faction` sul faction (sull'hub sara' `hub`, per
   i permessi diversi per server). Migrato con `luckperms-condiviso.yml`; il vecchio file H2 e il
   backup restano (`~/.bak/luckperms-<data>/`): per tornare indietro `storage-method: h2` e riavvio.
+  Anche il **proxy** ha LuckPerms (jar a parte, **LuckPerms-Velocity**, `server: velocity`), sullo
+  stesso database: lo installa `velocity-luckperms.yml` (versione e sha512 fissati li', config in
+  `server-velocity/luckperms/config.yml`, credenziali copiate dal faction). I comandi del proxy
+  (`/server`, `/send`, `/glist`, `/velocity ...`) li ha **solo il gruppo admin** (`velocity.*`
+  true); tutti gli altri gruppi hanno `velocity.*` **false scritto apposta**, perche' `/server` di
+  Velocity e' aperto a chi non ha il permesso negato. Un gruppo nuovo va negato allo stesso modo
+  (rilanciare il workflow lo fa da solo). I permessi si danno anche dal faction con `/lp`.
 - **MagixGuard e' su tutta la rete** (dalla 0.4.0, `deploy.target` = `faction hub`): archivio
   condiviso nel database del sito (tabelle `mg_*`, importate dal vecchio `magixguard.db` al primo
   avvio su mariadb), stesso `privacy.pepper` ovunque, `network.server-name` per server,
