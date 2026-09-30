@@ -39,11 +39,11 @@ import java.util.Set;
  * server, che lo marca consegnato. La pulizia dello storico la fa solo il server con i lavori del
  * sito (network.site-jobs).
  *
- * <p><b>La chat di fazione/alleati NON deve finire sul sito.</b> MagixFactions cancella
- * {@code AsyncChatEvent} a priorita' LOW per QUALSIASI canale, quindi qui si ascolta a
- * {@code LOWEST} (prima di lui) e si distingue il canale leggendo il metadata
- * {@code magixfactions:chat-channel} che quel plugin pubblica sul giocatore. Nessun metadata
- * (MagixFactions assente, o giocatore che non ha mai cambiato canale) = chat pubblica.
+ * <p><b>La chat di fazione/alleati NON deve finire sul sito.</b> MagixFactions annulla i messaggi
+ * dei suoi canali a priorita' NORMAL, la stessa di qui: l'ordine fra i due non e' garantito, quindi
+ * il canale si legge comunque dal metadata {@code magixfactions:chat-channel} che quel plugin
+ * pubblica sul giocatore. Nessun metadata (MagixFactions assente, o giocatore che non ha mai
+ * cambiato canale) = chat pubblica.
  */
 public class ChatBridge implements Listener {
 
@@ -86,7 +86,10 @@ public class ChatBridge implements Listener {
     // gioco -> sito
     // -----------------------------------------------------------------------------------------
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    // NORMAL: dopo il filtro di MagixGuard (LOW), cosi' pubblicita' e spam bloccati non arrivano
+    // sul sito e gli insulti ci arrivano censurati; prima di MagixEssentials, che a HIGH annulla
+    // l'evento per scrivere lui la riga.
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onChat(AsyncChatEvent e) {
         if (!specchiaGioco) return;
 
@@ -176,8 +179,8 @@ public class ChatBridge implements Listener {
     private void pubblica(List<Message> messages) {
         List<Long> fatti = new ArrayList<>();
         for (Message m : messages) {
-            if (!pubblicaConMagixFactions(m)) {
-                // Ripiego (MagixFactions assente o troppo vecchio): formato semplice nostro.
+            if (!pubblicaConFormato(m, "MagixEssentials") && !pubblicaConFormato(m, "MagixFactions")) {
+                // Ripiego (nessuno dei due, o troppo vecchi): formato semplice nostro.
                 // {message} si sostituisce per ULTIMO, dopo la traduzione dei colori, cosi' un
                 // messaggio scritto sul sito resta testo letterale e non puo' colorare la chat.
                 String row = ChatColor.translateAlternateColorCodes('&', formato.replace("{name}", m.name))
@@ -193,33 +196,34 @@ public class ChatBridge implements Listener {
     }
 
     /**
-     * Fa formattare e mandare il messaggio a MagixFactions, cosi' in gioco un messaggio dal
-     * sito appare ESATTAMENTE come uno normale (grado, {@code [fazione]} e nome col colore di
-     * relazione di chi legge) — logica che vive li' e non va duplicata qui.
+     * Fa formattare e mandare il messaggio al plugin che scrive la chat pubblica, cosi' in gioco un
+     * messaggio dal sito appare ESATTAMENTE come uno normale (grado, {@code [fazione]} e nome col
+     * colore di relazione di chi legge) — logica che vive li' e non va duplicata qui. Dalla 0.14.1
+     * e' MagixEssentials (modulo chat, su ogni server); MagixFactions fino alla 0.58 lo faceva lui.
      *
-     * <p>Chiamata via <b>reflection</b> di proposito: i due plugin restano indipendenti (nessuna
+     * <p>Chiamata via <b>reflection</b> di proposito: i plugin restano indipendenti (nessuna
      * dipendenza di compilazione, nessun ordine di caricamento da garantire) e se il metodo non
-     * c'e' si torna al formato semplice invece di rompersi.
+     * c'e' si passa al prossimo, o al formato semplice, invece di rompersi.
      */
-    private boolean pubblicaConMagixFactions(Message m) {
+    private boolean pubblicaConFormato(Message m, String pluginName) {
         if (m.uuid == null || m.uuid.isEmpty()) {
             return false;
         }
-        Object mf = Bukkit.getPluginManager().getPlugin("MagixFactions");
-        if (mf == null) {
+        Object target = Bukkit.getPluginManager().getPlugin(pluginName);
+        if (target == null) {
             return false;
         }
         try {
             java.util.UUID uuid = java.util.UUID.fromString(m.uuid);
-            Object outcome = mf.getClass()
+            Object outcome = target.getClass()
                     .getMethod("broadcastWebChat", java.util.UUID.class, String.class, String.class, String.class)
-                    .invoke(mf, uuid, m.name, m.text, m.prefisso == null ? "" : m.prefisso);
+                    .invoke(target, uuid, m.name, m.text, m.prefisso == null ? "" : m.prefisso);
             return Boolean.TRUE.equals(outcome);
         } catch (NoSuchMethodException e) {
-            return false; // versione di MagixFactions precedente a questa API
+            return false; // versione senza questa API
         } catch (Exception e) {
-            plugin.getLogger().warning("MagixBridge: MagixFactions non ha formattato il messaggio dal sito ("
-                    + e.getClass().getSimpleName() + "), uso il formato di ripiego.");
+            plugin.getLogger().warning("MagixBridge: " + pluginName + " non ha formattato il messaggio dal sito ("
+                    + e.getClass().getSimpleName() + "), provo il prossimo.");
             return false;
         }
     }

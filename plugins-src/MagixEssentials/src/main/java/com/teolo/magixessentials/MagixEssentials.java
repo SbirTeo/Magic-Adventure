@@ -1,5 +1,6 @@
 package com.teolo.magixessentials;
 
+import com.teolo.magixessentials.chat.ChatModule;
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.nametag.NametagManager;
@@ -33,6 +34,7 @@ public final class MagixEssentials extends JavaPlugin {
     private MotdListener motd;
     private NametagManager nametag;
     private TabCompleteFilter tabComplete;
+    private ChatModule chat;
 
     @Override
     public void onEnable() {
@@ -104,6 +106,26 @@ public final class MagixEssentials extends JavaPlugin {
             tabComplete = new TabCompleteFilter(this);
             tabComplete.start();
         }
+        if (modules.attivo(Modules.CHAT)) {
+            chat = new ChatModule(this, modules.configurazioneDi(Modules.CHAT));
+            chat.start();
+        }
+    }
+
+    /**
+     * API per altri plugin — la usa <b>MagixBridge</b> (chat live del sito) per riflessione, cosi'
+     * i plugin restano indipendenti: pubblica in chat un messaggio scritto dal SITO con lo stesso
+     * formato della chat pubblica (chat.yml). Va chiamata dal main thread.
+     *
+     * @param prefix il grado di chi scrive gia' risolto: prende il posto di %luckperms_prefix%
+     * @return false se il modulo chat e' spento (il chiamante usa il suo formato di ripiego)
+     */
+    public boolean broadcastWebChat(java.util.UUID senderUuid, String senderName, String message, String prefix) {
+        if (chat == null || senderUuid == null || senderName == null || message == null) {
+            return false;
+        }
+        chat.broadcastWeb(senderUuid, senderName, message, prefix);
+        return true;
     }
 
     /** Spegne tutto: al reload si riparte da zero, allo spegnimento non si lascia niente appeso. */
@@ -111,6 +133,7 @@ public final class MagixEssentials extends JavaPlugin {
         if (motd != null) { motd.stop(); motd = null; }
         if (nametag != null) { nametag.stop(); nametag = null; }
         if (tabComplete != null) { tabComplete.stop(); tabComplete = null; }
+        if (chat != null) { chat.stop(); chat = null; }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -126,17 +149,37 @@ public final class MagixEssentials extends JavaPlugin {
                 .values(new ConfigValues(this)
                         .also(modules.configurazioneDi(Modules.MOTD))
                         .also(modules.configurazioneDi(Modules.NAMETAG))
+                        .also(modules.configurazioneDi(Modules.CHAT))
                         // Lo stile dei nametag non e' un valore del config: e' una SCELTA fatta
                         // all'avvio guardando quali plugin ci sono. Chiederlo al modulo e' l'unico
                         // modo di non raccontarne uno sbagliato.
                         .extra("NAMETAG_STILE", nametag == null
                                 ? "il modulo e' spento, quindi nessuno"
                                 : nametag.describe()))
-                .intro("Raccoglie le utilita' di base del server. Oggi ne fa tre: la **MOTD**, le "
+                .intro("Raccoglie le utilita' di base del server. Oggi ne fa quattro: la **MOTD**, le "
                         + "righe che si leggono nella lista server prima di entrare, il **nametag**, "
-                        + "la targhetta sopra la testa dei giocatori, e il **filtro "
+                        + "la targhetta sopra la testa dei giocatori, la **chat** pubblica (come si "
+                        + "legge una riga, su ogni server della rete) e il **filtro "
                         + "dell'autocompletamento**, che pulisce l'elenco dei comandi che il client "
                         + "suggerisce col TAB. A lungo andare dovrebbe assorbire cio' che oggi fa CMI.")
+
+                .section("La chat",
+                        "Su ogni server della rete la riga della chat pubblica la scrive questo plugin, col "
+                                + "formato di **chat.yml**: grado, nome col colore del grado, messaggio. Sul "
+                                + "faction, dove c'e' MagixFactions, chi ha una fazione usa **faction-format**, "
+                                + "col tag [fazione] colorato secondo la relazione di chi LEGGE (verde la sua, "
+                                + "magenta un'alleata, rosso le altre): ogni giocatore riceve la sua riga. "
+                                + "Sull'hub vale **format** per tutti.",
+                        "Passando il mouse su una riga si vedono ora e provenienza (gioco o sito). I link sono "
+                                + "cliccabili per chi ha il permesso magixessentials.chat.links (vale anche il "
+                                + "vecchio magixfactions.chat.links). I messaggi scritti nella chat del sito "
+                                + "arrivano in gioco con lo stesso formato.",
+                        "Chi fa cosa, in ordine: MagixGuard toglie i silenziati e filtra pubblicita', spam e "
+                                + "insulti; MagixFactions porta via i messaggi dei canali fazione e alleati (/f "
+                                + "chat, restano suoi); MagixBridge copia la chat pubblica sul sito; per ultimo "
+                                + "questo modulo scrive la riga. La chat di **CMI** e' spenta: con "
+                                + "cmi.disable-module il modulo ne spegne formato, colori, filtri, menzioni e "
+                                + "fumetti nei suoi file (vale dal riavvio dopo). I messaggi privati restano a CMI.")
 
                 .section("I moduli: cosa e' acceso e cosa no",
                         "Come in CMI, ogni funzione ha il suo interruttore in un file a parte: "
@@ -386,7 +429,18 @@ public final class MagixEssentials extends JavaPlugin {
                 .settingsFrom(modules.configurazione(), "Moduli (modules.yml)",
                         "motd", "Le righe della lista server. Spento, vale la riga 'motd' di server.properties.",
                         "nametag", "La targhetta sopra la testa. Spento, resta quella di CMI (o il nome nudo del gioco).",
-                        "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.")
+                        "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.",
+                        "chat", "Il formato della chat pubblica e dei messaggi del sito. Spento, la chat pubblica resta quella nuda del gioco.")
+
+                .settingsFrom(modules.configurazioneDi(Modules.CHAT), "Impostazioni della chat (chat.yml)",
+                        "format", "La riga di chi non ha una fazione da mostrare (sull'hub: di tutti). {name}, {message} e i placeholder.",
+                        "faction-format", "La riga di chi ha una fazione (solo con MagixFactions): in piu' {faction}, {relcolor}, {rank}.",
+                        "web-prefix", "Icona davanti ai messaggi scritti dal sito. Vuota = nessuna (lo dice il suggerimento).",
+                        "tooltip.enabled", "Il suggerimento con ora e provenienza al passaggio del mouse.",
+                        "tooltip.format", "Il testo del suggerimento: {ora} e {origine}.",
+                        "tooltip.game", "Come si scrive «scritto in gioco» nel suggerimento.",
+                        "tooltip.web", "Come si scrive «scritto dal sito» nel suggerimento.",
+                        "cmi.disable-module", "Se all'avvio spegniamo noi i controlli della chat di CMI nei suoi file (serve un riavvio).")
 
                 .settingsFrom(modules.configurazioneDi(Modules.MOTD), "Impostazioni della MOTD (motd.yml)",
                         "selection", "Quale MOTD si vede: random (a caso), ordered (una dopo l'altra), fixed (sempre la prima).",

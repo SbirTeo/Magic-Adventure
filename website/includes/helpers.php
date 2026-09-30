@@ -637,8 +637,8 @@ function faction_allies(?int $factionId): array {
 
 /**
  * Il mittente di un messaggio di chat COME SI VEDE IN GIOCO: `[Fazione]` (colore della RELAZIONE di
- * chi legge), poi i tag dei GRADI, poi il nome (colore del GRADO piu' alto) — cioe' `chat.public-format`
- * di MagixFactions (`&8[{relcolor}{faction}&8] %luckperms_prefix%&7%magixweb_namecolor%{name}`). Chi non
+ * chi legge), poi i tag dei GRADI, poi il nome (colore del GRADO piu' alto) — cioe' `faction-format`
+ * del chat.yml di MagixEssentials (`&8[{rank}{relcolor}{faction}&8] %luckperms_prefix%&7%magixweb_namecolor%{name}`). Chi non
  * ha una fazione usa il formato senza fazione: solo i tag del grado + nome, sempre col colore del grado.
  *
  * <p>Regola chiave (allineata al server): SOLO il tag `[Fazione]` e' colorato per relazione (rosso ai
@@ -666,7 +666,7 @@ function chat_sender_html(array $riga, string $relazione): string {
         . h((string) $riga['mc_username']) . '</a>';
 
     if ($fazione === '') {
-        // Senza fazione: solo i tag del grado + nome (come public-format-no-faction in gioco).
+        // Senza fazione: solo i tag del grado + nome (come `format` del chat.yml di MagixEssentials in gioco).
         return player_tag($riga) . $nome;
     }
     // Tag del GRADO di fazione (es. ** per il Leader): come in gioco va DENTRO le parentesi,

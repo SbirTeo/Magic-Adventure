@@ -26,3 +26,8 @@ nametag: true
 # Spento, il client torna a suggerire tutti i comandi registrati sul server, permesso o no. Non ha
 # un file di impostazioni suo: non c'e' niente da regolare.
 tabcomplete: true
+
+# Chat: il formato della chat pubblica in gioco (grado, nome, fazione sul faction) e dei messaggi
+# che arrivano dalla chat del sito. Spento, nessuno formatta la chat pubblica: resta quella nuda del
+# gioco (i controlli della chat di CMI, una volta spenti, restano spenti). Si regola in chat.yml.
+chat: true

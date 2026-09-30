@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixBridge</artifactId>
-    <version>0.14.0</version>
+    <version>0.14.1</version>
     <packaging>jar</packaging>
 
     <name>MagixBridge</name>

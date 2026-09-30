@@ -188,7 +188,16 @@ a CMI.
   acquisto arriverebbe due volte). La chat in home del sito ha una **scheda per server** (Hub,
   Factions: `GAME_SERVERS` in `website/includes/helpers.php`, colonna `web_chat.server`): un
   messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
-  in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity). Il **ponte dei
+  in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).
+- **La chat pubblica in gioco la scrive MagixEssentials** (modulo `chat`, dalla 0.9.0, su faction e
+  hub): formato in `chat.yml` (`format` per tutti; sul faction `faction-format` per chi ha una
+  fazione, coi pezzi `{faction}`/`{relcolor}`/`{rank}` che gli da' MagixFactions con `chatTokens`),
+  suggerimento con ora e provenienza, link cliccabili, messaggi del sito (MagixBridge chiama il suo
+  `broadcastWebChat`). MagixFactions tiene solo i canali fazione/alleati (`/f chat`). Ordine
+  sull'evento: MagixGuard LOWEST (silenziati) e LOW (filtro), MagixFactions canali e MagixBridge
+  (copia sul sito) NORMAL, MagixEssentials HIGH. **La chat di CMI e' spenta** (formato, colori,
+  filtri, menzioni, fumetti): la spegne MagixEssentials nei file di CMI (`cmi.disable-module` in `chat.yml`); i
+  messaggi privati `/msg` restano a CMI. Il **ponte dei
   placeholder** porta i valori di una modalita' sulle altre via database (`network_presence`,
   `network_placeholders`): ogni server pubblica quelli di `bridge.player-placeholders` /
   `bridge.global-placeholders` che sa calcolare, gli altri li leggono come
@@ -218,7 +227,7 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
   così si colpisce `leader.tag` senza toccare i vari `tag:` dei ranks che vengono prima.
 - `mode`: `set` (default, sostituisce il valore), `insert-after` — inserisce `value`
   subito dopo `marker` nel valore esistente, senza riscriverlo (idempotente). Es. per aggiungere
-  `{rank}` dentro `public-format` senza perdere il resto del formato: `key=public-format`,
+  `{rank}` dentro `faction-format` (chat.yml di MagixEssentials) senza perdere il resto del formato: `key=faction-format`,
   `value={rank}`, `mode=insert-after`, `marker=[` — oppure `rename`, che cambia il **nome** della
   chiave (`value` = nome nuovo) lasciando il valore dov'e'.
 - **Quando si rinomina una chiave nel codice**, il file gia' sul VPS resta col nome vecchio: il

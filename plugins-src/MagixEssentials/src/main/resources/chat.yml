@@ -1,0 +1,54 @@
+# ============================================================
+#  MagixEssentials - Chat
+# ============================================================
+# Il FORMATO della chat pubblica: come si legge in gioco una riga scritta da un giocatore (o dalla
+# chat del sito). Su ogni server della rete e' questo modulo a scriverla: CMI la chat non la tocca
+# piu' (vedi cmi.disable-module in fondo).
+#
+# Questo file dice COM'E' FATTA la riga, non se c'e': l'interruttore sta nel modules.yml
+# (chat: true/false).
+#
+# Valgono i codici colore & e &#RRGGBB, i tag <bold>/<gradient:...> (MiniMessage) e TUTTI i
+# placeholder di PlaceholderAPI, risolti per chi scrive (%luckperms_prefix%, %magixweb_namecolor%...),
+# compresi quelli relazionali %rel_...% (fra chi legge e chi scrive). Segnaposto:
+#   {name}     il nome di chi scrive
+#   {message}  il messaggio, sempre come testo semplice: chi scrive non puo' metterci colori ne'
+#              placeholder
+# Solo con MagixFactions sullo stesso server (sul faction):
+#   {faction}  la fazione di chi scrive
+#   {relcolor} il colore della relazione fra la fazione di chi legge e quella di chi scrive
+#              (verde la tua, magenta un'alleata, rosso le altre: relations.colors di MagixFactions)
+#   {rank}     il tag del suo grado di fazione, nel colore della relazione
+#
+# I canali di fazione e alleati (/f chat) restano a MagixFactions: sono una funzione delle fazioni,
+# e una riga scritta li' non arriva mai qui.
+
+# La riga di chi NON ha una fazione da mostrare: su un server senza MagixFactions (l'hub) e' la riga
+# di tutti.
+format: "%luckperms_prefix%&7%magixweb_namecolor%{name} &8» &f{message}"
+
+# La riga di chi ha una fazione (solo sul faction). Chi ha il permesso
+# magixfactions.chat.hidefactions (lo staff) usa comunque format, senza fazione.
+faction-format: "&8[{rank}{relcolor}{faction}&8] %luckperms_prefix%&7%magixweb_namecolor%{name} &8» &f{message}"
+
+# Icona messa davanti ai messaggi che arrivano dalla chat del sito (plugin MagixBridge). Vuota di
+# serie: da dove arriva il messaggio lo dice il suggerimento qui sotto. Es. "&b☁ " per vederla sempre.
+web-prefix: ""
+
+# Il suggerimento che compare passando il mouse su una riga: ora e provenienza. In chiaro davanti
+# a ogni riga ruberebbero spazio; nel suggerimento si vedono solo quando servono.
+tooltip:
+  enabled: true
+  # {ora} = l'ora del messaggio, {origine} = una delle due righe sotto
+  format: "&7{ora}  &8•  {origine}"
+  game: "&a⛏ scritto in gioco"
+  web: "&b☁ scritto dal sito"
+
+# CMI ha una sua chat (formato, colori, filtri, menzioni, fumetti sopra la testa): con questo
+# modulo acceso non deve fare niente, altrimenti due plugin scrivono la stessa riga. Acceso, il
+# modulo spegne una volta per tutte i controlli della chat di CMI nei suoi file (Settings/Chat.yml,
+# Settings/ChatFilter.yml, Settings/Modules.yml), con una copia di scorta in .bak/. Il filtro della
+# chat (pubblicita', spam, insulti) lo fa MagixGuard. CMI quei file li legge all'avvio: vale dal
+# riavvio dopo. I messaggi privati (/msg) restano a CMI.
+cmi:
+  disable-module: true

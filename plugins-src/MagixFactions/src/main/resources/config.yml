@@ -114,44 +114,16 @@ forbidden-words:
   - satana
 
 # --------------------------- CHAT ---------------------------------
-# Chat PUBBLICA relazionale, resa da MagixFactions per OGNI destinatario: fazione e nome del mittente
-# colorati con la relazione che il LETTORE ha con lui (verde = tua fazione, magenta = alleato, rosso =
-# nemico, bianco = senza fazione). NB: CMI non puo' farlo (il suo motore non supporta i placeholder
-# relazionali %rel_...% — verificato nel jar), per questo il formato pubblico e' gestito qui.
-#
-# Token NOSTRI:  {rank} {relcolor} {faction} {name} {message}
-#   {rank} = tag del GRADO che il mittente ha nella sua fazione (config ranks[].tag / leader.tag,
-#            es. "**" per il Leader). Messo dentro le parentesi, subito prima del nome fazione,
-#            da' [**Fazione]. Vuoto se il mittente non e' in una fazione.
-# + QUALSIASI placeholder di PlaceholderAPI (es. %luckperms_prefix%, %vault_prefix%, %player_ping%),
-#   risolto nel contesto del MITTENTE — cosi' puoi tenere prefissi/gradi gestiti da CMI/LuckPerms e
-#   lasciare a noi solo la colorazione per relazione. Esempio con prefisso LuckPerms:
-#   public-format: "&8[{relcolor}{faction}&8] %luckperms_prefix%&7%magixweb_namecolor%{name}&7: &f{message}"
-#   (ordine consigliato: prima il TAG fazione, poi il prefisso del grado, poi il nome)
-# NB: solo il TAG fazione ({relcolor}{faction}) e' colorato per RELAZIONE (rosso ai nemici). Il NOME del
-# giocatore prende il colore del suo GRADO (%magixweb_namecolor%, lo stesso del sito): grado default ->
-# grigio (il &7 davanti fa da fallback), gradi colorati (es. helper verde, admin rosso) lo sovrascrivono.
-# I giocatori senza fazione appaiono come nome nel colore del proprio grado (default &7).
-# {message} resta SEMPRE l'ultimo a essere sostituito (dopo PAPI e i colori): il testo del giocatore
-# non puo' mai iniettare placeholder o codici colore, qualunque cosa scriva.
-# Disattivando relational-format, la chat pubblica torna al formato VANILLA (NON a CMI: la formattazione
-# chat di CMI e' disattivata su questo server, quindi senza il nostro formato non resta nessun altro
-# plugin a gestirla).
-# Chi ha il permesso magixfactions.chat.hidefactions (default: op) appare SENZA tag fazione, usando
-# sempre public-format-no-faction (es. per lo staff: %luckperms_prefix% mostra "Admin" al posto della
-# fazione — assegna un prefisso "Admin " al gruppo LuckPerms giusto per ottenere "Admin DorinoJ: msg").
+# Qui ci sono solo i canali di FAZIONE e ALLEATI (/f chat): un messaggio scritto li' va ai membri
+# (e agli alleati), non e' chat pubblica e non esce mai verso il sito.
+# La chat PUBBLICA (formato con [fazione] colorato secondo la relazione di chi legge, messaggi del
+# sito) dalla 0.59 la scrive MagixEssentials, su ogni server della rete: si regola nel suo chat.yml.
+# MagixFactions gli da' solo i pezzi di fazione della riga ({faction}, {relcolor}, {rank}).
+# Chi ha il permesso magixfactions.chat.hidefactions (default: op) appare nella chat pubblica SENZA
+# fazione (usa il format di MagixEssentials invece di faction-format).
 chat:
-  relational-format: true
-  public-format: "&8[{rank}{relcolor}{faction}&8] &7%magixweb_namecolor%{name}&7: &f{message}"
-  public-format-no-faction: "%luckperms_prefix%&7%magixweb_namecolor%{name}&7: &f{message}"
-  # Icona messa davanti ai messaggi che arrivano dalla chat del sito (plugin MagixBridge).
-  # VUOTA di serie: da dove arriva il messaggio lo dice il suggerimento qui sotto (basta
-  # passarci sopra il mouse), e un'icona fissa su ogni riga rubava spazio al messaggio.
-  # Rimettila (es. "&b☁ ") se preferisci vederla sempre.
-  web-prefix: ""
-  # Suggerimento che compare passando il mouse su un messaggio in chat: ora e provenienza.
-  # Sono informazioni che servono di rado: in chiaro davanti a ogni riga rubano spazio, nel
-  # suggerimento si vedono solo quando servono. Metti false per toglierlo del tutto.
+  # Suggerimento che compare passando il mouse su un messaggio dei canali fazione e alleati: ora e
+  # provenienza. Metti false per toglierlo. Quello della chat pubblica sta nel chat.yml di MagixEssentials.
   hover-info: true
   hover-format: "&7{ora}  &8•  {origine}"
   hover-gioco: "&a⛏ scritto in gioco"

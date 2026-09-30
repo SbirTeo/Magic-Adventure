@@ -29,7 +29,7 @@ Non ha comandi ne' permessi per i giocatori: e' infrastruttura.
 Nessuna dipendenza Maven: ogni plugin di questo repository si compila per conto suo (vedi
 `.github/workflows/deploy-plugin.yml`), quindi due plugin non condividono un'interfaccia a
 compile-time. Ci si parla per **riflessione** — stesso schema gia' usato per la chat live del sito
-verso MagixFactions (vedi `MagixFactions.broadcastWebChat`) e per l'hook di Vault (`hook.Econ`):
+verso MagixEssentials (vedi `MagixEssentials.broadcastWebChat`) e per l'hook di Vault (`hook.Econ`):
 
 ```java
 Plugin mp = Bukkit.getPluginManager().getPlugin("MagixPack");

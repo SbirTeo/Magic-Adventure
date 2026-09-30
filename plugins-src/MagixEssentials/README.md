@@ -244,6 +244,29 @@ aggiunto alla lista in `nametag/NametagManager`.
 
 ---
 
+## Chat
+
+La riga della **chat pubblica** in gioco, su ogni server della rete (modulo `chat`, dalla 0.9.0; si
+regola in `chat.yml`). Prima la scriveva MagixFactions sul faction e CMI sull'hub.
+
+- `format` e' la riga di chi non ha una fazione da mostrare (sull'hub: di tutti); `faction-format`
+  quella di chi ha una fazione, solo dove c'e' MagixFactions: `{faction}`, `{relcolor}` e `{rank}`
+  li chiede a lui (`chatTokens(lettore, mittente)`, per riflessione). Ogni lettore riceve la sua
+  riga: il colore della relazione e' quello di chi legge.
+- `{name}`, `{message}` e tutti i placeholder di PlaceholderAPI (per chi scrive), compresi i
+  relazionali `%rel_...%`. Il messaggio entra per ultimo, come testo semplice.
+- Suggerimento con ora e provenienza (`tooltip.*`), link cliccabili con `magixessentials.chat.links`
+  (vale anche il vecchio `magixfactions.chat.links`).
+- I messaggi della chat del sito: MagixBridge chiama `broadcastWebChat(uuid, nome, testo, grado)`
+  per riflessione; stesso formato, con `web-prefix` davanti.
+- Ordine sull'evento: MagixGuard LOWEST/LOW (silenziati, filtro), MagixFactions (canali fazione e
+  alleati, restano suoi) e MagixBridge (copia sul sito) NORMAL, questo modulo HIGH: annulla
+  l'evento e manda la riga a ciascuno come messaggio di sistema.
+- `cmi.disable-module: true` spegne la chat di CMI nei suoi file (`Settings/Chat.yml`: formato,
+  ClickHoverMessages, colori, [item], menzioni, fumetti; `Settings/ChatFilter.yml`: filtro, doppioni,
+  maiuscole, sostituzioni; `Settings/Modules.yml`: playerChatTag, chatBubble), con copia di scorta in
+  `.bak/CMI/Settings/`. CMI li rilegge al riavvio. I messaggi privati (`/msg`) restano a CMI.
+
 ## Filtro dell'autocompletamento
 
 Digitando `/` e premendo **TAB**, il client mostra un elenco di comandi da completare. Di suo il

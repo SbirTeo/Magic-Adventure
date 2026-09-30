@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixFactions</artifactId>
-    <version>0.58.15</version>
+    <version>0.59.0</version>
     <packaging>jar</packaging>
 
     <name>MagixFactions</name>

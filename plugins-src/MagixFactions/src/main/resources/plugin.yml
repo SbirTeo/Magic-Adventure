@@ -32,10 +32,10 @@ permissions:
   # Fra piu' permessi dello stesso tipo vince il piu' FAVOREVOLE al giocatore: il numero piu' alto per
   # tetto/recupero/membri, il piu' BASSO per la perdita/l'attesa. Dettagli e esempi in config.yml, sezione power.
   magixfactions.chat.hidefactions:
-    description: In chat pubblica non mostra il tag fazione del mittente (usa public-format-no-faction anche se e' in una fazione).
+    description: In chat pubblica non mostra il tag fazione del mittente (MagixEssentials usa format invece di faction-format).
     default: op
   magixfactions.chat.links:
-    description: I link scritti in chat (gioco, fazione/alleati o sito) diventano cliccabili (apribili col click, col link come suggerimento). Senza questo permesso restano testo semplice.
+    description: I link scritti nei canali fazione/alleati diventano cliccabili (apribili col click). Nella chat pubblica li gestisce MagixEssentials, che accetta anche questo permesso.
     default: op
   magixfactions.leaderboard.hide:
     description: Chi ha questo permesso NON compare nelle classifiche giocatori del sito (tempo, ricchezza, uccisioni) e OSCURA la propria fazione dalla Top Fazioni finche' ne fa parte. Pensato per lo staff, da assegnare al grado mod in su via LuckPerms.
