@@ -1,0 +1,180 @@
+name: Predisponi hub (swap, fazioni 7G, screen faction, server hub)
+
+# Passo 1 della rete con Velocity, SENZA effetti per i giocatori. Idempotente: rilanciarlo non
+# rompe niente, rifa' solo quello che manca. Ogni file di sistema toccato viene prima copiato
+# in /home/ubuntu/.bak/sistema/ con la data nel nome.
+#
+#  1) swap da 2 GB (/swapfile) con swappiness 10: rete di sicurezza, non memoria di lavoro.
+#     Senza swap, a RAM finita Linux uccide il processo piu' grosso: il server fazioni.
+#  2) start.sh delle fazioni: heap da 8G a 7G (vale dal prossimo riavvio, non ne forza uno).
+#  3) lo screen "mc" diventa "faction": rinominato a caldo, unit systemd, stop-service.sh e
+#     istanze.conf della console del sito. I workflow accettano gia' entrambi i nomi.
+#  4) hub in /home/ubuntu/hub: stesso paper.jar delle fazioni, start.sh e server.properties
+#     da server-hub/ del repo, porta 25566 SOLO su 127.0.0.1 (nessun giocatore ci arriva),
+#     mondo vuoto, servizio magix-hub.service (screen "hub"), voce nella console del sito.
+#     Nessun plugin: si aggiungono dopo, a mano o con un workflow.
+#
+# Velocity NON e' toccato qui: e' il passo 2.
+
+on:
+  workflow_dispatch:
+    inputs:
+      avvia_hub:
+        description: "si = accende l'hub a fine installazione, no = lo prepara soltanto"
+        required: false
+        default: "si"
+
+concurrency:
+  group: deploy-plugin       # mai insieme a un deploy dei plugin (stesso screen, stessi riavvii)
+  cancel-in-progress: false
+
+jobs:
+  predisponi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia i file dell'hub sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          ssh -i ~/.ssh/deploy_key "$DEST" 'rm -rf /tmp/magix-hub-src && mkdir -p /tmp/magix-hub-src'
+          scp -i ~/.ssh/deploy_key server-hub/server.properties server-hub/magix-hub.service \
+              website/vps/console/istanze.conf "$DEST:/tmp/magix-hub-src/"
+          # I due start.sh hanno lo stesso nome: ognuno con il suo.
+          scp -i ~/.ssh/deploy_key server-hub/start.sh "$DEST:/tmp/magix-hub-src/hub-start.sh"
+          scp -i ~/.ssh/deploy_key server/start.sh "$DEST:/tmp/magix-hub-src/faction-start.sh"
+
+      - name: Applica sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          AVVIA: ${{ inputs.avvia_hub }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" "AVVIA='${AVVIA:-si}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          SRC=/tmp/magix-hub-src
+          FAZ=/home/ubuntu/magicadventure
+          HUB=/home/ubuntu/hub
+          BAK=/home/ubuntu/.bak/sistema
+          ORA=$(date +%Y%m%d-%H%M%S)
+          mkdir -p "$BAK"
+          if ! sudo -n true 2>/dev/null; then
+            echo "::error::l'utente del deploy non ha sudo senza password: impossibile proseguire"; exit 1
+          fi
+          salva() { [ -e "$1" ] && sudo cp -a "$1" "$BAK/$(basename "$1").bak-$ORA" && echo "  backup: $BAK/$(basename "$1").bak-$ORA"; return 0; }
+
+          echo "=== 1) SWAP ==="
+          if swapon --show | grep -q '/swapfile'; then
+            echo "swap gia' attivo"
+          else
+            [ -f /swapfile ] || { sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile; }
+            sudo swapon /swapfile
+            grep -q '^/swapfile ' /etc/fstab || { salva /etc/fstab; echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null; }
+          fi
+          echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-magix-swap.conf >/dev/null
+          sudo sysctl -q -p /etc/sysctl.d/99-magix-swap.conf
+          swapon --show; free -h
+
+          echo; echo "=== 2) FAZIONI: start.sh a 7G ==="
+          echo "--- differenze fra start.sh VIVO delle fazioni e server/start.sh del repo (a parte MEM) ---"
+          diff <(sed 's/^MEM=.*//; /heap FISSO/d' "$FAZ/start.sh") <(sed 's/^MEM=.*//; /heap FISSO/d' "$SRC/faction-start.sh") \
+            && echo "(identici)" || echo "(ATTENZIONE: il repo non e' allineato al VPS, vedi sopra)"
+          if grep -q '^MEM="7G"' "$FAZ/start.sh"; then
+            echo "gia' a 7G"
+          else
+            cp -a "$FAZ/start.sh" "$BAK/faction-start.sh.bak-$ORA"
+            sed -i 's/^MEM="8G"$/MEM="7G"/' "$FAZ/start.sh"
+            grep -n '^MEM=' "$FAZ/start.sh"
+            echo "vale dal prossimo riavvio del server fazioni (non ne forzo uno)"
+          fi
+
+          echo; echo "=== 3) SCREEN mc -> faction ==="
+          if screen -list | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            screen -S mc -X sessionname faction && echo "screen rinominato a caldo"
+          fi
+          screen -list || true
+          UNIT=/etc/systemd/system/magicadventure.service
+          if grep -q 'screen -dmS mc ' "$UNIT"; then
+            salva "$UNIT"
+            sudo sed -i "s/screen -dmS mc /screen -dmS faction /; s/una screen 'mc'/una screen 'faction'/; s/screen -S mc -X/screen -S faction -X/" "$UNIT"
+            sudo systemctl daemon-reload
+            echo "unit aggiornata"
+          fi
+          grep -n 'ExecStart' "$UNIT"
+          echo "--- stop-service.sh delle fazioni (prima) ---"; cat "$FAZ/stop-service.sh"
+          if grep -qE '(-S|\.)mc([^A-Za-z0-9_]|$)' "$FAZ/stop-service.sh"; then
+            cp -a "$FAZ/stop-service.sh" "$BAK/faction-stop-service.sh.bak-$ORA"
+            sed -i -E 's/(-S[[:space:]]+|\\\.|\.)mc([^A-Za-z0-9_]|$)/\1faction\2/g' "$FAZ/stop-service.sh"
+            echo "--- stop-service.sh (dopo) ---"; cat "$FAZ/stop-service.sh"
+          fi
+          CONF=/etc/magicadventure/istanze.conf
+          if [ -f "$CONF" ]; then
+            if grep -q '^istanza mc .*screen=mc ' "$CONF"; then
+              salva "$CONF"
+              sudo sed -i 's/^istanza mc | nome=[^|]*| screen=mc |/istanza mc | nome=Faction | screen=faction |/' "$CONF"
+            fi
+          fi
+
+          echo; echo "=== 4) HUB ==="
+          mkdir -p "$HUB/cache"
+          [ -f "$HUB/paper.jar" ] || cp -a "$FAZ/paper.jar" "$HUB/paper.jar"
+          install -m 755 "$SRC/hub-start.sh" "$HUB/start.sh"
+          [ -f "$HUB/server.properties" ] || install -m 644 "$SRC/server.properties" "$HUB/server.properties"
+          echo 'eula=true' > "$HUB/eula.txt"
+          # Stop pulito come per le fazioni: stesso script, con cartella e screen dell'hub.
+          sed -e "s#$FAZ#$HUB#g" -E -e 's/(-S[[:space:]]+|\.)faction([^A-Za-z0-9_]|$)/\1hub\2/g' "$FAZ/stop-service.sh" > "$HUB/stop-service.sh"
+          chmod 755 "$HUB/stop-service.sh"
+          echo "--- stop-service.sh dell'hub ---"; cat "$HUB/stop-service.sh"
+          if ! cmp -s "$SRC/magix-hub.service" /etc/systemd/system/magix-hub.service 2>/dev/null; then
+            salva /etc/systemd/system/magix-hub.service
+            sudo install -o root -g root -m 644 "$SRC/magix-hub.service" /etc/systemd/system/magix-hub.service
+            sudo systemctl daemon-reload
+          fi
+          sudo systemctl enable magix-hub.service 2>&1 | tail -n1
+          if [ -f "$CONF" ] && ! grep -q '^istanza hub ' "$CONF"; then
+            salva "$CONF"
+            grep '^istanza hub ' "$SRC/istanze.conf" | sudo tee -a "$CONF" >/dev/null
+          fi
+          echo "--- istanze della console ---"; grep '^istanza ' "$CONF" || true
+          ls -la "$HUB"
+
+          if [ "${AVVIA:-si}" = "si" ]; then
+            if screen -list | grep -qE '[0-9]+\.hub[[:space:]]'; then
+              echo "hub gia' acceso"
+            else
+              sudo systemctl start magix-hub.service
+              echo "hub avviato, aspetto il primo avvio (genera il mondo)..."
+              for i in $(seq 1 36); do
+                sleep 5
+                grep -q 'Done (' "$HUB/logs/latest.log" 2>/dev/null && { echo "hub pronto dopo ~$((i*5))s"; break; }
+              done
+            fi
+            echo "--- coda del log dell'hub ---"; tail -n 25 "$HUB/logs/latest.log" 2>/dev/null
+          fi
+
+          echo; echo "=== STATO FINALE ==="
+          screen -list || true
+          free -h
+          ss -tln | grep -E ':(25565|25566)\b' || true
+          rm -rf "$SRC"
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

@@ -36,8 +36,8 @@ chmod +x start.sh
 Usa `screen` (o `tmux`):
 ```bash
 sudo apt install -y screen
-screen -S mc ./start.sh      # avvia dentro una sessione "mc"
-# stacca:  CTRL+A poi D       riattacca:  screen -r mc
+screen -S faction ./start.sh # avvia dentro una sessione "faction"
+# stacca:  CTRL+A poi D       riattacca:  screen -r faction
 ```
 Per un avvio automatico al boot, valuta un servizio **systemd** (posso crearlo io).
 

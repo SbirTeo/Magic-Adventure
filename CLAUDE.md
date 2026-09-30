@@ -98,11 +98,11 @@ Ogni volta che un riavvio del server Minecraft viene innescato — dall'auto-dep
 da **qualunque** altra automazione, presente o futura — lo **STOP** si fa mandando in console
 il comando CMI **`stopserverfast`** (salva tutto e chiude pulito), **non** con un
 `systemctl restart` "secco" (che manderebbe un SIGTERM al processo). Non serve fare altro per
-riportarlo su: lo screen `mc` esegue `server/start.sh` (`while true; do java ...; done`), che
+riportarlo su: lo screen `faction` (prima si chiamava `mc`) esegue `server/start.sh` (`while true; do java ...; done`), che
 **rilancia da solo** il server qualche secondo dopo qualsiasi stop (è lo stesso meccanismo del
 riavvio notturno, che manda solo `stop`) — e i jar nuovi, già copiati, vengono caricati.
 `systemctl restart magicadventure.service` si usa **solo** quando il server è **spento** (nessuno
-screen `mc`: non c'è nulla da fermare con `stopserverfast`, lo si avvia via systemd). Questo è
+screen `faction`: non c'è nulla da fermare con `stopserverfast`, lo si avvia via systemd). Questo è
 implementato in `deploy-plugin.yml`; qualsiasi nuovo meccanismo di riavvio deve seguire la stessa
 regola.
 
@@ -110,6 +110,24 @@ Gli **avvisi ai giocatori e il conto alla rovescia** sono già configurati **den
 CMI `stopserverfast`: l'automazione **non** deve aggiungere un proprio preavviso (`say`/countdown),
 altrimenti i giocatori vedono due countdown sovrapposti. Manda solo `stopserverfast` e lascia fare
 a CMI.
+
+## Server sul VPS: faction e hub (Velocity in preparazione)
+
+- **faction** — il server fazioni: `/home/ubuntu/magicadventure`, screen `faction` (fino al 30/09
+  si chiamava `mc`: i workflow accettano ancora entrambi i nomi), servizio
+  `magicadventure.service`, porta 25565 raggiungibile solo da TCPShield (firewall ufw), heap 7G.
+  Mirror nel repo: `server/`.
+- **hub** — `/home/ubuntu/hub`, screen `hub`, servizio `magix-hub.service`, porta 25566 **solo su
+  127.0.0.1** (nessun giocatore ci arriva finche' non c'e' Velocity davanti), heap 1G, mondo
+  vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
+  tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
+  `predisponi-hub.yml`. Non riceve i deploy automatici dei plugin.
+- Ogni server nuovo va anche in `website/vps/console/istanze.conf` (e in
+  `/etc/magicadventure/istanze.conf` sul VPS): e' cosi' che compare nella console del sito.
+- **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
+  (UUID e skin decisi dal proxy, non dal backend), i lavori periodici sul DB del sito di
+  MagixGuard/MagixWeb/MagixLanguage (devono girare su un solo server) e MagixPack (una sola
+  porta del pacchetto risorse per macchina).
 
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
@@ -216,7 +234,7 @@ Si lancia con `workflow_dispatch` passando:
 - `storico` (default `si`) — se cercare anche negli archivi `.log.gz` vecchi, non solo
   `latest.log` (i log ruotano a ogni riavvio, quindi quasi sempre serve `si`).
 
-Stampa sempre anche: jar del server e dei plugin installati (con date), se lo screen `mc` è
+Stampa sempre anche: jar del server e dei plugin installati (con date), se lo screen `faction` è
 attivo, la cartella dati e il `config.yml` vivo del plugin scelto, e le righe di log con errori/
 eccezioni dei plugin Magix. Non modifica nulla: è sicuro da lanciare quante volte serve.
 

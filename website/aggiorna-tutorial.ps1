@@ -46,7 +46,7 @@ scp -i $chiave (Join-Path $radice "server\plugins\$jar") "${vps}:/home/ubuntu/ma
 
 Write-Host '4/5  Riavvio il server (la guida risolta la scrive lui)...' -ForegroundColor Cyan
 # Il loop di start.sh fa ripartire tutto da solo: basta lo stop. Mai 'screen -X quit' con java vivo.
-ssh -i $chiave $vps "screen -S mc -X stuff 'stop^M'"
+ssh -i $chiave $vps "screen -S faction -X stuff 'stop^M'"
 Write-Host '     ...aspetto che risalga (~60s)' -ForegroundColor DarkGray
 Start-Sleep -Seconds 60
 

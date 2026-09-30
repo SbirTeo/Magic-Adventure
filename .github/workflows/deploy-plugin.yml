@@ -186,8 +186,9 @@ jobs:
           $SSH 'bash -s' <<'REMOTE'
           set -e
           # dì manda un COMANDO nella console del server (screen mc).
-          dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
-          if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
+          dì() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
             # REGOLA (CLAUDE.md): lo STOP si fa con il comando CMI `stopserverfast`, che salva tutto e
             # chiude pulito -- NON con un systemctl restart "secco" (SIGTERM). Gli AVVISI ai giocatori
             # e il conto alla rovescia sono gia' configurati DENTRO il comando stopserverfast (CMI),

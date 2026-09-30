@@ -142,8 +142,9 @@ jobs:
             $SSH "RELOAD_B64='$RELOAD_B64' bash -s" </dev/null <<'REMOTE'
           set -e
           CMD="$(printf '%s' "$RELOAD_B64" | base64 -d)"
-          if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
-            screen -S mc -p 0 -X stuff "$(printf '%s\r' "$CMD")"
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
+            screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$CMD")"
             echo "Reload inviato: $CMD"
           else
             echo "Server non in esecuzione: gli override verranno letti al prossimo avvio."

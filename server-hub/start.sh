@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ============================================================
-#  MAGICADVENTURE - Avvio server Paper 26.1.2 su Linux (VPS)
+#  MAGICADVENTURE - Avvio dell HUB (Paper) su Linux (VPS)
 # ============================================================
 #  Minecraft 26.x richiede Java 25 (sul VPS: Temurin 25).
-#  VPS: 11 GB RAM / 6 vCPU -> heap FISSO 7G (8G fino al 30/09: 1 GB lasciato a hub e Velocity) + Aikar's flags (G1GC).
+#  HUB: mondo vuoto e pochi plugin -> heap FISSO 1G (il resto della RAM e' delle fazioni).
 #
-#  NB: mondi rigenerati da zero in formato 26.1.2 (2026-06-29) per
-#  usare Paper 26.1.2. spigot-26.2.jar resta come fallback.
+#  Copia di server/start.sh (fazioni): cambiano solo MEM e i titoli.
+#  Se si tocca uno dei due, si allinea anche l'altro.
 #
 #  Il server riparte da solo dopo lo "stop". Per fermarlo
 #  DEFINITIVAMENTE premi CTRL+C durante il conto alla rovescia.
@@ -18,7 +18,7 @@ cd "$(dirname "$0")" || exit 1
 #   JAVA="/usr/lib/jvm/temurin-25-jdk/bin/java"
 JAVA="java"
 JAR="paper.jar"
-MEM="7G"
+MEM="1G"
 
 # --- Cache classi JVM (CDS): al primo stop pulito la JVM salva l'archivio delle classi caricate;
 #     dagli avvii successivi le carica gia' pronte -> il "riscaldamento" (tick lenti al primo join
@@ -42,7 +42,7 @@ AIKAR_FLAGS="-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 \
 
 while true; do
     echo
-    echo "=== Avvio MAGICADVENTURE su Paper ==="
+    echo "=== Avvio HUB su Paper ==="
     "$JAVA" -Xms"$MEM" -Xmx"$MEM" $AIKAR_FLAGS $CDS_FLAGS -jar "$JAR" nogui
 
     # --- Backup: se il plugin AutoBackup ha lasciato il file-segnale,
