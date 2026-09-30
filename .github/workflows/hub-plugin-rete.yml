@@ -1,4 +1,4 @@
-name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, CMI, MagixAuth, MagixLanguage)
+name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, CMI, MagixAuth, MagixLanguage, MagixGuard)
 
 # Mette sull'hub i plugin che servono in OGNI server di gioco della rete, presi dal faction
 # (stessa versione gia' collaudata) insieme alla loro configurazione, che contiene le credenziali
@@ -11,6 +11,11 @@ name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, CMI, MagixAuth
 #  - MagixLanguage: stesso config (lingue, chiavi del traduttore).
 #  - PlaceholderAPI: i plugin Magix leggono la lista dei loro placeholder (DOCS) dalla classe
 #    dell'espansione, che senza PlaceholderAPI non si carica (visto sull'hub: MagixLanguage).
+#  - MagixGuard: stesso config del faction (database condiviso, stesso privacy.pepper: senza, gli
+#    IP dei due server non si riconoscerebbero) e stesso sanctions.yml, ma network.server-name: hub
+#    e network.site-jobs: false (le decisioni del gestionale le raccoglie solo il faction).
+#    Va lanciato DOPO che il faction ha importato lo storico nel database condiviso
+#    (magixguard-rete.yml + riavvio del faction): su un database vuoto l'hub rifiuta di partire.
 #  - CMI (+ CMILib): config NUOVO, generato da CMI al primo avvio (warp, kit, economia del faction
 #    non c'entrano con l'hub). Dal faction si copiano SOLO gli alias dei comandi
 #    (Settings/Alias.yml e la cartella CustomAlias/) e le programmazioni (Settings/Schedules.yml),
@@ -86,7 +91,7 @@ jobs:
           echo; echo "=== 2) JAR DAL FACTION ==="
           mkdir -p "$HUB/plugins" "$BAK"
           # Schema del nome del jar: "CMI-*" e non "CMI*", che prenderebbe anche CMILib.
-          for P in 'LuckPerms-*' 'PlaceholderAPI*' 'CMI-*' 'CMILib*' 'MagixAuth-*' 'MagixLanguage-*'; do
+          for P in 'LuckPerms-*' 'PlaceholderAPI*' 'CMI-*' 'CMILib*' 'MagixAuth-*' 'MagixLanguage-*' 'MagixGuard-*'; do
             J="$(ls "$FAZ"/plugins/$P.jar 2>/dev/null | head -n1)"
             [ -n "$J" ] || { echo "::error::$P.jar non trovato nel faction"; exit 1; }
             for old in "$HUB"/plugins/$P.jar; do [ -e "$old" ] && mv "$old" "$BAK/"; done
@@ -109,6 +114,31 @@ jobs:
           [ -f "$FAZ/plugins/MagixAuth/messages.yml" ] && copia_cfg MagixAuth messages.yml
           [ -f "$FAZ/plugins/MagixAuth/skins.tsv" ] && copia_cfg MagixAuth skins.tsv
           copia_cfg MagixLanguage config.yml
+          copia_cfg MagixGuard config.yml
+          copia_cfg MagixGuard sanctions.yml
+          [ -f "$FAZ/plugins/MagixGuard/messages.yml" ] && copia_cfg MagixGuard messages.yml
+          python3 - "$HUB/plugins/MagixGuard/config.yml" <<'PY'
+          import re, sys
+          p = sys.argv[1]
+          s = open(p, encoding="utf-8").read()
+          if "storage:\n  type: mariadb" not in s and not re.search(r"^  type: mariadb", s, re.M):
+              sys.exit("sul faction MagixGuard non e' ancora su mariadb: lancia prima magixguard-rete.yml")
+          want = {"server-name": "hub", "site-jobs": "false"}
+          if re.search(r"^network:", s, re.M):
+              lines = s.split("\n"); block = None
+              for i, line in enumerate(lines):
+                  if re.match(r"^[A-Za-z]", line):
+                      block = line.split(":", 1)[0]; continue
+                  m = re.match(r"^  ([a-z-]+):", line)
+                  if block == "network" and m and m.group(1) in want:
+                      lines[i] = f"  {m.group(1)}: {want.pop(m.group(1))}"
+              s = "\n".join(lines)
+          if want:
+              s = s.rstrip("\n") + "\n\nnetwork:\n" + "".join(f"  {k}: {v}\n" for k, v in want.items())
+          open(p, "w", encoding="utf-8").write(s)
+          PY
+          [ $? -eq 0 ] || { echo "::error::MagixGuard dell'hub non configurato (vedi sopra)"; exit 1; }
+          sed -n '/^network:/,/^[a-z]/p' "$HUB/plugins/MagixGuard/config.yml" | grep -E '^  (server-name|site-jobs):'
           # CMI: solo alias e programmazioni, e solo se sull'hub non ci sono ancora.
           if [ ! -f "$HUB/plugins/CMI/Settings/Alias.yml" ]; then
             copia_cfg CMI Settings/Alias.yml
@@ -152,7 +182,7 @@ jobs:
             tail -n +"$((R + 1))" "$LOG" 2>/dev/null | grep -q 'Done (' && { echo "hub pronto dopo ~$((i*3))s"; break; }
           done
           echo "--- plugin e messaggi all'avvio ---"
-          tail -n +"$((R + 1))" "$LOG" | grep -E 'Enabling|LuckPerms\].*(storage|messaging)|MagixAuth\]|MagixLanguage\]|\[CMI\].*([Aa]lias|[Ss]chedul|licen|[Ee]rror)|ERROR|Exception|Done \(' | grep -v 'UpdateNotification' | head -n 50
+          tail -n +"$((R + 1))" "$LOG" | grep -E 'Enabling|LuckPerms\].*(storage|messaging)|MagixAuth\]|MagixLanguage\]|\[CMI\].*([Aa]lias|[Ss]chedul|licen|[Ee]rror)|\[MagixGuard\]|ERROR|Exception|Done \(' | grep -v 'UpdateNotification' | head -n 50
           ls -la "$HUB/plugins"
           exit 0
           REMOTE

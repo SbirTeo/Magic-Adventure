@@ -1,0 +1,144 @@
+name: MagixGuard sul database condiviso (faction)
+
+# Prepara il passaggio di MagixGuard del faction dal file SQLite locale al database del sito
+# (tabelle mg_*), che e' quello che rende possibile averlo anche sull'hub con gli stessi dati.
+# NON riavvia niente: cambia solo config.yml. Il passaggio vero lo fa MagixGuard (>= 0.4.0) al suo
+# prossimo avvio: vede type mariadb, tabelle vuote e il vecchio file magixguard.db, ci copia dentro
+# tutto con gli stessi id prima di accettare giocatori e rinomina il file *.importato.
+#
+#  prova=si (di serie) -> mostra lo stato e controlla il database, non tocca niente
+#  prova=no            -> backup di config.yml e magixguard.db in ~/.bak/, poi storage.type
+#                         mariadb e storage.mariadb.* con le credenziali di MagixAuth (stesso
+#                         database del sito). La password non viene mai stampata.
+#
+# ATTENZIONE all'ordine: sul faction deve girare MagixGuard 0.4.0 o successivo (quello che sa
+# importare). Con un jar piu' vecchio partirebbe su un database vuoto senza lo storico.
+
+on:
+  workflow_dispatch:
+    inputs:
+      prova:
+        description: "si = controlla soltanto, no = cambia config.yml (vale dal prossimo riavvio)"
+        required: false
+        default: "si"
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  prepara:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla i secret VPS
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          PROVA: ${{ inputs.prova }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" "PROVA='${PROVA:-si}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          MG="$FAZ/plugins/MagixGuard"
+          CFG="$MG/config.yml"
+          AUTH="$FAZ/plugins/MagixAuth/config.yml"
+          ORA=$(date +%Y%m%d-%H%M%S)
+          [ -f "$CFG" ] || { echo "::error::$CFG non trovato"; exit 1; }
+
+          echo "=== STATO ==="
+          ls -la "$FAZ"/plugins/MagixGuard-*.jar
+          sed -n '/^storage:/,/^[a-z]/p' "$CFG" | grep -E '^  type:|^    (host|port|database|user):'
+          ls -la "$MG"/magixguard.db* 2>/dev/null || echo "(nessun file sqlite)"
+          VER="$(ls "$FAZ"/plugins/MagixGuard-*.jar | sed -E 's/.*MagixGuard-([0-9.]+)\.jar/\1/')"
+
+          # Credenziali del database del sito da MagixAuth (mai stampate).
+          eval "$(python3 - "$AUTH" <<'PY'
+          import re, shlex, sys
+          txt = open(sys.argv[1], encoding="utf-8").read()
+          try:
+              import yaml
+              db = (yaml.safe_load(txt) or {}).get("database") or {}
+              vals = {k: "" if db.get(k) is None else str(db.get(k)) for k in ("host", "port", "name", "user", "password")}
+          except ImportError:
+              vals = {}
+              m = re.search(r"^database:\n((?:[ \t]+.*\n|[ \t]*\n)+)", txt, re.M)
+              for line in (m.group(1) if m else "").splitlines():
+                  mm = re.match(r"^  (host|port|name|user|password):\s*(.*)$", line)
+                  if not mm: continue
+                  v = mm.group(2).strip()
+                  if v[:1] in "'\"":
+                      v = v[1:v.find(v[0], 1)]
+                  else:
+                      v = re.sub(r"\s+#.*$", "", v).strip()
+                  vals[mm.group(1)] = v
+          for k in ("host", "port", "name", "user", "password"):
+              print(f"DB_{k.upper()}={shlex.quote(vals.get(k, ''))}")
+          PY
+          )"
+          export DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD
+          echo "database condiviso: ${DB_NAME} su ${DB_HOST}:${DB_PORT}, utente ${DB_USER}"
+          php -r '
+            try {
+              $pdo = new PDO("mysql:host=".getenv("DB_HOST").";port=".getenv("DB_PORT").";dbname=".getenv("DB_NAME"), getenv("DB_USER"), getenv("DB_PASSWORD"), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+              $t = $pdo->query("SHOW TABLES LIKE \"mg\\_%\"")->fetchAll(PDO::FETCH_COLUMN);
+              echo "tabelle mg_ gia presenti: ", count($t), "\n";
+              if (in_array("mg_players", $t)) { echo "  mg_players: ", $pdo->query("SELECT COUNT(*) FROM mg_players")->fetchColumn(), " righe\n"; }
+            } catch (Throwable $e) { echo "ERRORE: ", get_class($e), " ", $e->getCode(), "\n"; exit(1); }
+          ' || { echo "::error::database non raggiungibile con le credenziali di MagixAuth"; exit 1; }
+
+          if [ "${PROVA:-si}" = "si" ]; then echo; echo "PROVA: non ho toccato niente."; exit 0; fi
+
+          echo; echo "=== BACKUP ==="
+          BAK="/home/ubuntu/.bak/magixguard-$ORA"; mkdir -p "$BAK"
+          cp -a "$CFG" "$BAK/" && cp -a "$MG"/magixguard.db* "$BAK/" 2>/dev/null; ls -la "$BAK"
+
+          echo; echo "=== CONFIG ==="
+          python3 - "$CFG" <<'PY'
+          import os, re, sys
+          p = sys.argv[1]
+          lines = open(p, encoding="utf-8").read().split("\n")
+          def yq(v): return "'" + v.replace("'", "''") + "'"
+          want = {"host": yq(os.environ["DB_HOST"]), "port": os.environ["DB_PORT"] or "3306",
+                  "database": yq(os.environ["DB_NAME"]), "user": yq(os.environ["DB_USER"]),
+                  "password": yq(os.environ["DB_PASSWORD"])}
+          block = None; seen = set()
+          for i, line in enumerate(lines):
+              if re.match(r"^[A-Za-z]", line):
+                  block = line.split(":", 1)[0]; sub = None; continue
+              if block != "storage": continue
+              m2 = re.match(r"^  ([a-z-]+):", line)
+              if m2:
+                  sub = m2.group(1)
+                  if sub == "type":
+                      lines[i] = "  type: mariadb             # sqlite | mariadb"; seen.add("type")
+                  continue
+              m4 = re.match(r"^    ([a-z-]+):", line)
+              if m4 and sub == "mariadb" and m4.group(1) in want:
+                  lines[i] = f"    {m4.group(1)}: {want[m4.group(1)]}"; seen.add(m4.group(1))
+          missing = {"type", *want} - seen
+          if missing: sys.exit("chiavi non trovate in storage: " + ", ".join(sorted(missing)))
+          open(p, "w", encoding="utf-8").write("\n".join(lines))
+          PY
+          [ $? -eq 0 ] || { echo "::error::config non modificato"; exit 1; }
+          sed -n '/^storage:/,/^[a-z]/p' "$CFG" | sed -E "s/^(    password: ).*/\1'[nascosta]'/" | grep -vE '^\s*#'
+          echo
+          echo "Fatto. Vale dal prossimo avvio del faction, con MagixGuard >= 0.4.0 (ora: $VER)."
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
