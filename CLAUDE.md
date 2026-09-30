@@ -130,6 +130,9 @@ a CMI.
   con `stopserverfast` (c'e' CMI). MagixPack dell'hub serve il suo pacchetto sulla porta **8444**
   (8443 e' del faction); texture e menu dell'hub: `overrides-hub/` + `deploy-plugin-override.yml`
   con `server: hub`.
+  Per costruire l'hub ci sono FastAsyncWorldEdit (copiato dal faction) e **FastAsyncVoxelSniper**
+  (3.2.5, dal 30/09). I plugin di altri (non Magix) si installano con `install-external-plugin.yml`
+  (`server`, `url` da Modrinth o GitHub, `sha512` obbligatorio, riavvio con `stopserverfast`).
   Prima di Velocity per **costruirlo** c'era `hub-costruzione.yml`: `azione=apri` lo apriva a UNA
   persona sola (firewall sulla porta dell'hub solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
   dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
