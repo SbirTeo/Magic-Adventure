@@ -33,11 +33,11 @@ import java.util.Set;
  *       {@code delivered=0}; qui li leggiamo a intervalli, li mandiamo in chat e li marchiamo.</li>
  * </ul>
  *
- * <p><b>Con piu' server</b> (network.site-jobs): i messaggi del sito vanno in chat su TUTTI i
- * server, ma la marcatura {@code delivered=1}, lo scarto degli arretrati e la pulizia dello storico
- * li fa solo il server con i lavori del sito. Gli altri non marcano niente: ricordano l'ultimo id
- * letto e all'avvio partono dal piu' recente (quello che e' stato scritto a server spento non si
- * riversa in chat), cosi' nessuno ruba un messaggio all'altro.
+ * <p><b>Una chat per server</b> (colonna {@code server}, = network.server-name): sul sito c'e' una
+ * scheda per ogni server della rete. Quello che si scrive in gioco va nella scheda del server su
+ * cui lo si scrive; quello che si scrive in una scheda del sito lo ripubblica in gioco solo quel
+ * server, che lo marca consegnato. La pulizia dello storico la fa solo il server con i lavori del
+ * sito (network.site-jobs).
  *
  * <p><b>La chat di fazione/alleati NON deve finire sul sito.</b> MagixFactions cancella
  * {@code AsyncChatEvent} a priorita' LOW per QUALSIASI canale, quindi qui si ascolta a
@@ -58,10 +58,10 @@ public class ChatBridge implements Listener {
     private final String formato;
     private final int lotto;
     private final int oreDaTenere;
-    /** Il server che marca i messaggi consegnati e fa la manutenzione (network.site-jobs). */
+    /** Questo server nella rete (network.server-name): la sua scheda nella chat del sito. */
+    private final String server;
+    /** Il server che fa la pulizia dello storico (network.site-jobs). */
     private final boolean primario;
-    /** Solo sui server non primari: l'ultimo id del sito gia' mandato in chat; -1 = non ancora letto. */
-    private volatile long ultimoLetto = -1;
 
     /**
      * Id gia' presi in carico da un giro di consegna: la marcatura {@code delivered=1} avviene
@@ -71,13 +71,14 @@ public class ChatBridge implements Listener {
     private final Set<Long> inDelivery = Collections.synchronizedSet(new HashSet<>());
 
     public ChatBridge(MagixBridge plugin, Database database, boolean specchiaGioco,
-                      String formato, int lotto, int oreDaTenere, boolean primario) {
+                      String formato, int lotto, int oreDaTenere, String server, boolean primario) {
         this.plugin = plugin;
         this.database = database;
         this.specchiaGioco = specchiaGioco;
         this.formato = formato;
         this.lotto = Math.max(1, lotto);
         this.oreDaTenere = oreDaTenere;
+        this.server = server;
         this.primario = primario;
     }
 
@@ -119,11 +120,12 @@ public class ChatBridge implements Listener {
     private void save(String uuid, String name, String message) {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO web_chat (source, mc_uuid, mc_username, message, delivered) "
-                             + "VALUES ('game', ?, ?, ?, 1)")) {
-            ps.setString(1, uuid);
-            ps.setString(2, name);
-            ps.setString(3, message);
+                     "INSERT INTO web_chat (source, server, mc_uuid, mc_username, message, delivered) "
+                             + "VALUES ('game', ?, ?, ?, ?, 1)")) {
+            ps.setString(1, server);
+            ps.setString(2, uuid);
+            ps.setString(3, name);
+            ps.setString(4, message);
             ps.executeUpdate();
         } catch (SQLException ex) {
             plugin.getLogger().warning("MagixBridge: errore salvando un messaggio di chat per il sito: " + ex.getMessage());
@@ -144,46 +146,6 @@ public class ChatBridge implements Listener {
     }
 
     private List<Message> readToDeliver() {
-        return primario ? readUndelivered() : readAfterLastSeen();
-    }
-
-    /** Server non primari: i messaggi del sito dopo l'ultimo gia' mandato in chat, senza marcarli. */
-    private synchronized List<Message> readAfterLastSeen() {
-        List<Message> out = new ArrayList<>();
-        try (Connection c = database.getConnection()) {
-            if (ultimoLetto < 0) {
-                // Primo giro: si parte dal piu' recente, gli arretrati non si riversano in chat.
-                try (PreparedStatement ps = c.prepareStatement(
-                        "SELECT COALESCE(MAX(id), 0) FROM web_chat WHERE source = 'web'");
-                     ResultSet rs = ps.executeQuery()) {
-                    ultimoLetto = rs.next() ? rs.getLong(1) : 0;
-                }
-                return out;
-            }
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT c.id, c.mc_uuid, c.mc_username, c.message, r.prefix_raw "
-                            + "FROM web_chat c LEFT JOIN mc_ranks r "
-                            + "ON r.mc_uuid = c.mc_uuid COLLATE utf8mb4_unicode_ci "
-                            + "WHERE c.source = 'web' AND c.id > ? ORDER BY c.id LIMIT ?")) {
-                ps.setLong(1, ultimoLetto);
-                ps.setInt(2, lotto);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        long id = rs.getLong("id");
-                        ultimoLetto = Math.max(ultimoLetto, id);
-                        out.add(new Message(id, rs.getString("mc_uuid"),
-                                rs.getString("mc_username"), rs.getString("message"),
-                                rs.getString("prefix_raw")));
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("MagixBridge: errore leggendo la chat del sito: " + e.getMessage());
-        }
-        return out;
-    }
-
-    private List<Message> readUndelivered() {
         List<Message> out = new ArrayList<>();
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
@@ -193,8 +155,9 @@ public class ChatBridge implements Listener {
                      "SELECT c.id, c.mc_uuid, c.mc_username, c.message, r.prefix_raw "
                              + "FROM web_chat c LEFT JOIN mc_ranks r "
                              + "ON r.mc_uuid = c.mc_uuid COLLATE utf8mb4_unicode_ci "
-                             + "WHERE c.source = 'web' AND c.delivered = 0 ORDER BY c.id LIMIT ?")) {
-            ps.setInt(1, lotto);
+                             + "WHERE c.server = ? AND c.source = 'web' AND c.delivered = 0 ORDER BY c.id LIMIT ?")) {
+            ps.setString(1, server);
+            ps.setInt(2, lotto);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     long id = rs.getLong("id");
@@ -226,9 +189,7 @@ public class ChatBridge implements Listener {
             }
             fatti.add(m.id);
         }
-        if (primario) {
-            marcaConsegnati(fatti);
-        }
+        marcaConsegnati(fatti);
     }
 
     /**
@@ -291,13 +252,13 @@ public class ChatBridge implements Listener {
      * come consegnati quelli piu' vecchi di qualche minuto e si riparte da li'.
      */
     public void dropBacklog(int minuti) {
-        if (!primario) return;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Connection c = database.getConnection();
                  PreparedStatement ps = c.prepareStatement(
-                         "UPDATE web_chat SET delivered = 1 WHERE source = 'web' AND delivered = 0 "
+                         "UPDATE web_chat SET delivered = 1 WHERE server = ? AND source = 'web' AND delivered = 0 "
                                  + "AND created_at < DATE_SUB(NOW(), INTERVAL ? MINUTE)")) {
-                ps.setInt(1, minuti);
+                ps.setString(1, server);
+                ps.setInt(2, minuti);
                 int n = ps.executeUpdate();
                 if (n > 0) {
                     plugin.getLogger().info("MagixBridge: " + n + " messaggi del sito troppo vecchi non ripubblicati in chat.");

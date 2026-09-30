@@ -185,7 +185,10 @@ a CMI.
   `faction hub`) e' il ponte fra i server e il sito, su ogni modalita'. Stessa coppia di chiavi di
   MagixGuard: `network.server-name` e `network.site-jobs` (true SOLO sul faction: consegna degli
   acquisti, traduzione del sito, gruppi, guida staff, pulizia della chat — su due server un
-  acquisto arriverebbe due volte). La chat del sito arriva su tutti i server. Il **ponte dei
+  acquisto arriverebbe due volte). La chat in home del sito ha una **scheda per server** (Hub,
+  Factions: `GAME_SERVERS` in `website/includes/helpers.php`, colonna `web_chat.server`): un
+  messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
+  in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity). Il **ponte dei
   placeholder** porta i valori di una modalita' sulle altre via database (`network_presence`,
   `network_placeholders`): ogni server pubblica quelli di `bridge.player-placeholders` /
   `bridge.global-placeholders` che sa calcolare, gli altri li leggono come

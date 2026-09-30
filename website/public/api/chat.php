@@ -6,10 +6,15 @@
  * e il plugin MagixBridge li ripubblica nella chat del server; la chat pubblica del server
  * viene specchiata dallo stesso plugin con source='game' e la leggiamo qui.
  *
+ * Una scheda per server (hub, faction...): ogni messaggio porta la colonna `server`. Quelli del
+ * gioco vengono dal server su cui sono stati scritti; quelli del sito vanno al server della
+ * scheda, e li ripubblica in gioco solo quel server.
+ *
  * Risponde SEMPRE in JSON (anche sugli errori): il modulo in home e' interamente JS.
  *
- *   GET  ?after=<id>   messaggi nuovi (senza after: la coda piu' recente)
- *   POST action=send   invia un messaggio (login + CSRF + slowmode)
+ *   GET  ?server=<id>&after=<id>   messaggi nuovi di quel server (senza after: la coda piu'
+ *                                  recente); server = una chiave di GAME_SERVERS (helpers.php)
+ *   POST action=send   invia un messaggio al server della scheda aperta (login + CSRF + slowmode)
  *   POST action=delete elimina un messaggio (permesso chat.moderate)
  *   POST action=clear  svuota tutta la chat (permesso chat.clear)
  */
@@ -32,6 +37,12 @@ function chat_json(array $data, int $code = 200): void {
 
 function chat_errore(string $messaggio, int $code = 400): void {
     chat_json(['ok' => false, 'error' => $messaggio], $code);
+}
+
+/** Il server chiesto, se e' uno della rete; altrimenti il principale. */
+function chat_server(?string $richiesto): string {
+    $richiesto = strtolower(trim((string) $richiesto));
+    return isset(GAME_SERVERS[$richiesto]) ? $richiesto : GAME_SERVER_MAIN;
 }
 
 $chatAttiva = site_setting('chat_enabled', '1') === '1';
@@ -73,6 +84,10 @@ if ($metodo === 'GET') {
     }
 
     $after = max(0, (int) ($_GET['after'] ?? 0));
+    $server = chat_server($_GET['server'] ?? null);
+    // Il tag [Fazione] davanti al nome ha senso solo nella chat del faction: sugli altri
+    // server in gioco non c'e'.
+    $conFazione = $server === 'faction';
     $filtroSorgente = $mostraGioco ? '' : " AND c.source = 'web' ";
 
     // La chat si vede come in gioco: il tag della fazione e il nome prendono il colore della
@@ -97,10 +112,11 @@ if ($metodo === 'GET') {
         . ' LEFT JOIN mc_ranks r ON r.mc_uuid = c.mc_uuid COLLATE utf8mb4_unicode_ci'
         . ' LEFT JOIN factions_magixfactions.faction_members fm ON fm.uuid = c.mc_uuid COLLATE utf8mb4_unicode_ci'
         . ' LEFT JOIN factions_magixfactions.factions f ON f.id = fm.faction_id'
-        . ' WHERE c.id > :after' . $filtroSorgente
+        . ' WHERE c.server = :server AND c.id > :after' . $filtroSorgente
         . ' ORDER BY c.id DESC LIMIT :lim';
 
     $stmt = db()->prepare($sql);
+    $stmt->bindValue(':server', $server);
     $stmt->bindValue(':after', $after, PDO::PARAM_INT);
     // Con un `after` chiediamo solo il delta, ma teniamo comunque un tetto per non
     // rispondere con mille righe se la pagina e' rimasta aperta a lungo.
@@ -110,6 +126,9 @@ if ($metodo === 'GET') {
     $righe = array_reverse($stmt->fetchAll());
     $out = [];
     foreach ($righe as $r) {
+        if (!$conFazione) {
+            $r['faction_id'] = $r['faction_name'] = $r['faction_rank'] = null;
+        }
         $relazione = faction_relation(
             $miaFazione,
             $r['faction_id'] !== null ? (int) $r['faction_id'] : null,
@@ -142,6 +161,7 @@ if ($metodo === 'GET') {
     chat_json([
         'ok'        => true,
         'enabled'   => true,
+        'server'    => $server,
         'canDelete' => $puoModerare,
         'canClear'  => $puoSvuotare,
         'purge'     => $svuotataA,
@@ -242,9 +262,9 @@ if ((int) ($limiti['ultimo_minuto'] ?? 0) >= CHAT_MAX_PER_MINUTE) {
 }
 
 $ins = db()->prepare(
-    "INSERT INTO web_chat (source, mc_uuid, mc_username, message, delivered)
-     VALUES ('web', ?, ?, ?, 0)"
+    "INSERT INTO web_chat (source, server, mc_uuid, mc_username, message, delivered)
+     VALUES ('web', ?, ?, ?, ?, 0)"
 );
-$ins->execute([$me['mc_uuid'], $me['mc_username'], $testo]);
+$ins->execute([chat_server($_POST['server'] ?? null), $me['mc_uuid'], $me['mc_username'], $testo]);
 
 chat_json(['ok' => true, 'id' => (int) db()->lastInsertId()]);

@@ -57,7 +57,8 @@ $stmt->execute();
 $posts = $stmt->fetchAll();
 
 $featured = ($page === 1 && $posts) ? array_shift($posts) : null;
-$status = mc_server_status();
+// Il totale della rete (Velocity), non un server solo: vedi mc_network_status().
+$status = mc_network_status();
 
 // Testi della hero, configurabili da Aspetto. Ogni riga va a capo; nel titolo l'ULTIMA
 // riga prende il colore primario (classe .accent-word), com'era nella versione fissa.

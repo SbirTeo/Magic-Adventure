@@ -174,6 +174,11 @@ public class MagixBridge extends JavaPlugin {
                         "La chat **PUBBLICA** del gioco si vede nella home, e quello che si scrive nella home "
                                 + "ricompare in partita. Le chat di fazione e alleati non escono mai dal gioco: "
                                 + "quella è una scelta, non una dimenticanza.",
+                        "Nella home c'è una scheda per ogni server della rete (Hub, Factions...): ogni "
+                                + "scheda è la chat pubblica di quel server, e un messaggio scritto in una scheda "
+                                + "lo ripubblica in gioco solo quel server. Questo server è la scheda "
+                                + "{{cfg:network.server-name}}. Le schede le elenca il sito (GAME_SERVERS in "
+                                + "includes/helpers.php): una modalità nuova va aggiunta anche lì.",
                         "Quando il server è rimasto spento a lungo, i messaggi scritti sul sito nel frattempo non "
                                 + "vengono riversati tutti in chat all'avvio: oltre una certa età si scartano, "
                                 + "altrimenti chi entra troverebbe un muro di righe vecchie.")
@@ -192,8 +197,8 @@ public class MagixBridge extends JavaPlugin {
                                 + "fatti una volta sola (consegna degli acquisti, traduzione del sito, elenco dei "
                                 + "gruppi, guida per amministratori, pulizia della chat) li fa solo il server con "
                                 + "network.site-jobs: true, che e' {{cfg:network.server-name}} su questo. Tutti gli altri "
-                                + "fanno il resto: gradi e lingua di chi e' li', chat pubblica verso il sito e "
-                                + "messaggi del sito in chat.",
+                                + "fanno il resto: gradi e lingua di chi e' li', la propria chat pubblica verso il "
+                                + "sito e i messaggi scritti nella propria scheda della chat del sito.",
                         "Il ponte dei placeholder porta i valori di una modalita' sulle altre, passando dal "
                                 + "database del sito: ogni server scrive chi ha online e calcola i placeholder "
                                 + "elencati in bridge.player-placeholders (per i suoi giocatori e per quelli "
@@ -291,6 +296,7 @@ public class MagixBridge extends JavaPlugin {
                 getConfig().getString("chat.game-format", "&b☁ &f{name}&7: &f{message}"),
                 getConfig().getInt("chat.batch-size", 20),
                 getConfig().getInt("chat.keep-hours", 48),
+                serverName,
                 siteJobs);
 
         Bukkit.getPluginManager().registerEvents(bridge, this);

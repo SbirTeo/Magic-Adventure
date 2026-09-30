@@ -314,6 +314,44 @@ function mc_server_status(string $host = 'mc.magicadventure.it', int $port = 255
 }
 
 /**
+ * I server di gioco della rete, dietro a Velocity, nell'ordine in cui si mostrano (le schede
+ * della chat in home). La chiave e' il network.server-name di MagixBridge su quel server, la
+ * porta quella locale (127.0.0.1) del server. Una modalita' nuova: una riga qui.
+ */
+const GAME_SERVERS = [
+    'hub'     => ['label' => 'Hub',      'port' => 25600],
+    'faction' => ['label' => 'Factions', 'port' => 25701],
+];
+
+/** Il server principale: dove entrano i giocatori, e la scheda della chat aperta di serie. */
+const GAME_SERVER_MAIN = 'faction';
+
+/**
+ * Giocatori connessi a TUTTA la rete. Si chiede a Velocity, come fa un client dalla lista
+ * server (mc.magicadventure.it, via TCPShield): il suo conto e' quello dell'intera rete. Se
+ * quella strada non risponde, si sommano i server uno per uno, in locale.
+ */
+function mc_network_status(): ?array {
+    $proxy = mc_server_status();
+    if ($proxy !== null) {
+        return $proxy;
+    }
+    $online = 0;
+    $max = 0;
+    $any = false;
+    foreach (GAME_SERVERS as $server) {
+        $s = mc_server_status('127.0.0.1', $server['port'], 0.8);
+        if ($s === null) {
+            continue;
+        }
+        $any = true;
+        $online += (int) ($s['players_online'] ?? 0);
+        $max = max($max, (int) ($s['players_max'] ?? 0));
+    }
+    return $any ? ['online' => true, 'players_online' => $online, 'players_max' => $max] : null;
+}
+
+/**
  * Grado in gioco (LuckPerms) -> tag sul sito.
  *
  * I dati arrivano dalla tabella `mc_ranks`, scritta dal plugin MagixBridge a ogni join

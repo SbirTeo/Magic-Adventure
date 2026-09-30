@@ -1656,6 +1656,52 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .chat-head:has(.chat-edit) .chat-head-sub { margin-right: 58px; }
 .chat-head:has(.chat-svuota):has(.chat-edit) .chat-head-sub { margin-right: 90px; }
 
+/* ---- Schede dei server nella chat (Hub, Factions...) ----------------------------------
+   Una pillola sola con i nomi dei server; sotto a quello aperto scorre un fondo chiaro
+   (.chat-tab-slitta), che chat.js mette sotto la scheda giusta. */
+.chat-tabs {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.chat-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .2s;
+}
+.chat-tab:hover { color: var(--text); }
+.chat-tab[aria-selected="true"] { color: var(--contrasto-testo); }
+.chat-tab:focus-visible { outline: 2px solid var(--bordo-fuoco); outline-offset: 1px; }
+.chat-tab-slitta {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: 0;
+  border-radius: 999px;
+  background: var(--contrasto);
+  transition: transform .25s cubic-bezier(.2,.7,.3,1), width .25s cubic-bezier(.2,.7,.3,1);
+}
+/* Prima che chat.js la misuri, la scheda aperta si colora da se' (niente salto al caricamento). */
+.chat-tabs:not(.is-pronta) .chat-tab[aria-selected="true"] { background: var(--contrasto); }
+@media (prefers-reduced-motion: reduce) {
+  .chat-tab-slitta { transition: none; }
+}
+
 /* ---- Chat ingrandita ------------------------------------------------------------------
    Non e' una finestra sopra la pagina: la chat ESCE dalla colonna di destra e si mette in
    una riga tutta sua, larga quanto contenuto + colonna, sopra al banner e agli articoli —

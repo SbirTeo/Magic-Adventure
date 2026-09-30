@@ -91,14 +91,23 @@ public class Database {
             st.execute("CREATE TABLE IF NOT EXISTS web_chat (" +
                     "id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY," +
                     "source ENUM('web','game') NOT NULL DEFAULT 'web'," +
+                    "server VARCHAR(32) NOT NULL DEFAULT 'faction'," +
                     "mc_uuid CHAR(36) NULL," +
                     "mc_username VARCHAR(32) NOT NULL," +
                     "message VARCHAR(256) NOT NULL," +
                     "delivered TINYINT(1) NOT NULL DEFAULT 0," +
                     "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                     "KEY idx_consegna (delivered, source, id)," +
+                    "KEY idx_server_consegna (server, delivered, source, id)," +
+                    "KEY idx_server_id (server, id)," +
                     "KEY idx_data (created_at)" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            // One chat per server of the network (0.14.0): a table made before gets the column
+            // here (the site's migration 2026-09-30-chat-per-server.sql does the same thing).
+            st.execute("ALTER TABLE web_chat " +
+                    "ADD COLUMN IF NOT EXISTS server VARCHAR(32) NOT NULL DEFAULT 'faction' AFTER source, " +
+                    "ADD INDEX IF NOT EXISTS idx_server_consegna (server, delivered, source, id), " +
+                    "ADD INDEX IF NOT EXISTS idx_server_id (server, id)");
 
             // The administrators' guide: one chapter per plugin, rewritten at every startup.
             // The site's migration creates it too; having it here means the server can publish

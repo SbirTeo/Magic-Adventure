@@ -10,15 +10,15 @@ alla 0.12 si chiamava **MagixWeb**: dalla 0.13.0 gira su **ogni modalita'** (`de
 |---|---|
 | Gradi LuckPerms e colore del nome verso il sito (`mc_ranks`), a ogni ingresso e cambio | ogni server (per chi e' li') |
 | Lingua del giocatore verso il sito (MagixLanguage) | ogni server |
-| Chat pubblica del gioco verso la chat in home del sito | ogni server |
-| Messaggi scritti sul sito, in chat | ogni server |
+| Chat pubblica del gioco verso la chat in home del sito (nella scheda di quel server) | ogni server |
+| Messaggi scritti sul sito, in chat | il server della scheda in cui sono stati scritti |
 | Aureola VIP di MagixCosmetics sul sito | dove c'e' MagixCosmetics |
 | Ponte dei placeholder (`%network_<server>_<placeholder>%`) | ogni server |
 | Consegna degli acquisti dello store | solo `network.site-jobs: true` |
 | Traduzione automatica del sito (via MagixLanguage) | solo `network.site-jobs: true` |
 | Elenco dei gruppi (`web_groups`), primo accesso dei vecchi giocatori | solo `network.site-jobs: true` |
 | Guida per amministratori (raccoglie i `guida-staff.html`) | solo `network.site-jobs: true` |
-| Pulizia della chat del sito (arretrati, storico) | solo `network.site-jobs: true` |
+| Pulizia dello storico della chat del sito | solo `network.site-jobs: true` |
 
 ## La rete
 
@@ -27,9 +27,13 @@ alla 0.12 si chiamava **MagixWeb**: dalla 0.13.0 gira su **ogni modalita'** (`de
 - `network.site-jobs` — `true` su **un solo** server (oggi il faction). Su due server un acquisto
   verrebbe consegnato due volte. All'avvio il log dice "lavori del sito QUI" o "su un altro server".
 
-La chat del sito sui server senza `site-jobs`: si leggono i messaggi con id maggiore dell'ultimo
-visto, senza marcarli (la marcatura `delivered` la fa il faction). All'avvio si parte dal piu'
-recente: quello scritto a server spento non si riversa in chat.
+**La chat del sito ha una scheda per server** (dalla 0.14.0, colonna `web_chat.server` =
+`network.server-name`): quello che si scrive in gioco finisce nella scheda del server su cui lo
+si scrive, e un messaggio scritto in una scheda del sito lo ripubblica in gioco (e lo marca
+consegnato) solo quel server. L'elenco delle schede sta nel sito (`GAME_SERVERS` in
+`website/includes/helpers.php`): una modalita' nuova va aggiunta anche li'. Migrazione:
+`website/migrazioni/2026-09-30-chat-per-server.sql` (la stessa colonna la aggiunge il plugin
+all'avvio).
 
 ## Il ponte dei placeholder
 
