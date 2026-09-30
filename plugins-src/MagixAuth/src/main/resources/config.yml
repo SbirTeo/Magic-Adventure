@@ -84,7 +84,7 @@ gate:
   hide_from_others: true
   # true = lui non vede gli altri (ne' nel mondo ne' nella lista giocatori): al cancello non
   # puo' guardare chi c'e' e dove sta. false = vede gia' chi e' online mentre fa il login.
-  hide_others: false
+  hide_others: true
   # E non legge la chat finche' non e' dentro: chi entra col nick di un altro non deve
   # potersi mettere in ascolto senza autenticarsi.
   hide_chat: true
@@ -92,7 +92,7 @@ gate:
   # login non viene annunciato (ogni tentativo col nick di un altro resta muto).
   # false = gli annunci d'ingresso e d'uscita (quelli custom di CMI, se attivi) escono subito,
   # come senza MagixAuth.
-  delay_join_message: false
+  delay_join_message: true
 
 # Le vecchie sezioni "cartello", "tastierino" e "pacchetto" non ci sono piu': si entra
 # scrivendo un comando, e non c'e' piu' nessuna finestra da disegnare.
