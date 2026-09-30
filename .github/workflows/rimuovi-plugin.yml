@@ -82,7 +82,8 @@ jobs:
           SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes $DEST"
           $SSH "PLUGIN='$IN_PLUGIN' JAR='${IN_JAR:-si}' DATI='${IN_DATI:-no}' RIAVVIA='${IN_RIAVVIA:-si}' bash -s" <<'REMOTE'
           set -e
-          PLUGDIR=/home/ubuntu/magicadventure/plugins
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
+          PLUGDIR="$BASE/plugins"
           STAMP="$(date +%Y%m%d-%H%M%S)"
           cd "$PLUGDIR"
 

@@ -10,13 +10,13 @@
 # Installazione (una volta sola):  sudo bash installa-sync-guida.sh
 set -e
 
-SORGENTE=/home/ubuntu/magicadventure/plugins/MagixFactions/tutorial.html
+SORGENTE=/home/ubuntu/magicadventure/faction/plugins/MagixFactions/tutorial.html
 DESTINAZIONE=/var/www/magicadventure/public/assets/guida/magixfactions.html
 
 cat > /usr/local/bin/sync-guida-magixfactions.sh <<'FINE'
 #!/bin/bash
 # Copia la guida del plugin nella cartella pubblica del sito, solo se e' cambiata.
-SORGENTE=/home/ubuntu/magicadventure/plugins/MagixFactions/tutorial.html
+SORGENTE=/home/ubuntu/magicadventure/faction/plugins/MagixFactions/tutorial.html
 DESTINAZIONE=/var/www/magicadventure/public/assets/guida/magixfactions.html
 [ -f "$SORGENTE" ] || exit 0
 if ! cmp -s "$SORGENTE" "$DESTINAZIONE"; then

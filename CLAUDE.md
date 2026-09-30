@@ -43,7 +43,7 @@ esplicitamente all'utente cosa manca — vedi sotto).
 ### Dettagli VPS
 - Host: `ubuntu@141.94.123.249` · chiave SSH `~/.ssh/ovh_vps`
 - Sito web servito da nginx da `/var/www/magicadventure/public/` (dominio magicadventure.it)
-- Plugin: `/home/ubuntu/magicadventure/plugins/` (deploy del jar via SCP, rimuovendo la
+- Plugin: `/home/ubuntu/magicadventure/faction/plugins/` (deploy del jar via SCP, rimuovendo la
   versione vecchia)
 
 ## Sessioni CLOUD vs LOCALI (limite importante)
@@ -88,7 +88,7 @@ upload.
 
 Anche i plugin hanno un auto-deploy: ogni push su `main` che tocca `plugins-src/` compila i
 plugin cambiati (Maven/JDK 25) via GitHub Action (`.github/workflows/deploy-plugin.yml`),
-copia il jar sul VPS in `/home/ubuntu/magicadventure/plugins/` e **riavvia il server** (screen
+copia il jar sul VPS in `/home/ubuntu/magicadventure/faction/plugins/` e **riavvia il server** (screen
 `mc`, servizio `magicadventure.service`) con preavviso in chat ai giocatori. Stessi secret del
 sito + un sudoers per `systemctl restart magicadventure.service`. Setup: `website/vps/AUTO-DEPLOY.md`.
 
@@ -113,11 +113,11 @@ a CMI.
 
 ## Server sul VPS: faction e hub (Velocity in preparazione)
 
-- **faction** — il server fazioni: `/home/ubuntu/magicadventure`, screen `faction` (fino al 30/09
+- **faction** — il server fazioni: `/home/ubuntu/magicadventure/faction` (fino al 30/09 stava direttamente in `magicadventure/`: i workflow accettano ancora entrambe le cartelle, e `magicadventure/plugins` e `logs` sono link verso `faction/`), screen `faction` (fino al 30/09
   si chiamava `mc`: i workflow accettano ancora entrambi i nomi), servizio
   `magicadventure.service`, porta 25565 raggiungibile solo da TCPShield (firewall ufw), heap 7G.
   Mirror nel repo: `server/`.
-- **hub** — `/home/ubuntu/magicadventure/hub` (dentro la cartella del server fazioni finche' anche le fazioni non si spostano in `magicadventure/faction`), screen `hub`, servizio `magix-hub.service`, porta 25566 **solo su
+- **hub** — `/home/ubuntu/magicadventure/hub`, screen `hub`, servizio `magix-hub.service`, porta 25566 **solo su
   127.0.0.1** (nessun giocatore ci arriva finche' non c'e' Velocity davanti), heap 1G, mondo
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente

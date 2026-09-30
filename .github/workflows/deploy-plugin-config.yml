@@ -127,7 +127,8 @@ jobs:
           KEY=~/.ssh/deploy_key
           SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
 
-          REMOTE_PATH="/home/ubuntu/magicadventure/plugins/$IN_PLUGIN/$IN_FILE"
+          FAZ="$($SSH 'd=/home/ubuntu/magicadventure/faction; [ -d "$d/plugins" ] || d=/home/ubuntu/magicadventure; echo "$d"' </dev/null)"  # cartella del server fazioni (prima: magicadventure/)
+          REMOTE_PATH="$FAZ/plugins/$IN_PLUGIN/$IN_FILE"
           # base64 per passare chiave/valore/marker senza problemi di quoting (spazi, &, », ...).
           KEY_B64="$(printf '%s' "$IN_KEY" | base64 -w0)"
           VAL_B64="$(printf '%s' "$IN_VALUE" | base64 -w0)"

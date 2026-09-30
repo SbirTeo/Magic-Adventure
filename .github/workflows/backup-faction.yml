@@ -1,6 +1,6 @@
 name: Backup completo del server fazioni
 
-# Copia completa di /home/ubuntu/magicadventure (mondi, plugin, config), fatta a server ACCESO ma
+# Copia completa di /home/ubuntu/magicadventure/faction (mondi, plugin, config), fatta a server ACCESO ma
 # coerente: salvataggio forzato, salvataggi automatici sospesi durante la copia (save-off) e
 # riattivati alla fine in ogni caso (anche se la copia fallisce). Nessun giocatore viene
 # disconnesso. Esclusi: cache della JVM, log, e la sottocartella hub/ (e' un altro server).
@@ -41,7 +41,8 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEST" 'bash -s' <<'REMOTE'
           set -uo pipefail
-          BASE=/home/ubuntu/magicadventure
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure
+          SU=$(dirname "$BASE"); NOME=$(basename "$BASE")
           OUT=/home/ubuntu/backups
           ORA=$(date +%Y%m%d-%H%M%S)
           mkdir -p "$OUT"
@@ -70,12 +71,12 @@ jobs:
 
           if command -v zstd >/dev/null; then
             FILE="$OUT/faction-$ORA.tar.zst"
-            tar -C /home/ubuntu --exclude=magicadventure/cache --exclude=magicadventure/logs --exclude=magicadventure/hub \
-                -I 'zstd -T0 -3' -cf "$FILE" magicadventure
+            tar -C "$SU" --exclude="$NOME/cache" --exclude="$NOME/logs" --exclude="$NOME/hub" \
+                -I 'zstd -T0 -3' -cf "$FILE" "$NOME"
           else
             FILE="$OUT/faction-$ORA.tar.gz"
-            tar -C /home/ubuntu --exclude=magicadventure/cache --exclude=magicadventure/logs --exclude=magicadventure/hub \
-                -czf "$FILE" magicadventure
+            tar -C "$SU" --exclude="$NOME/cache" --exclude="$NOME/logs" --exclude="$NOME/hub" \
+                -czf "$FILE" "$NOME"
           fi
           ESITO=$?
           echo "=== esito tar: $ESITO (0 = ok, 1 = file cambiati durante la copia, normale per i log) ==="

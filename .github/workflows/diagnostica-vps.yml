@@ -85,7 +85,7 @@ jobs:
           FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
           CERCA="$(printf '%s' "$GREP_B64" | base64 -d)"
           [ -n "$CERCA" ] || CERCA="$PLUGIN"
-          BASE=/home/ubuntu/magicadventure
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
           LOG="$BASE/logs/latest.log"
 
           echo "=== SERVER ==="

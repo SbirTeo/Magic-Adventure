@@ -71,7 +71,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" "AVVIA='${AVVIA:-si}' bash -s" <<'REMOTE'
           set -uo pipefail
           SRC=/tmp/magix-hub-src
-          FAZ=/home/ubuntu/magicadventure
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
           HUB=/home/ubuntu/magicadventure/hub
           VECCHIO_HUB=/home/ubuntu/hub
           BAK=/home/ubuntu/.bak/sistema

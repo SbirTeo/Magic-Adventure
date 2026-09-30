@@ -2,7 +2,7 @@ name: Deploy plugin sul server Minecraft
 
 # Auto-deploy dei PLUGIN: a ogni push su main che tocca plugins-src/, i plugin cambiati
 # vengono compilati (Maven/JDK 25), il jar viene copiato sul VPS in
-# /home/ubuntu/magicadventure/plugins/ (togliendo la versione vecchia) e il server viene
+# /home/ubuntu/magicadventure/faction/plugins/ (togliendo la versione vecchia) e il server viene
 # riavviato PER CARICARLI, con un preavviso in chat ai giocatori online.
 #
 # REGOLA (CLAUDE.md): lo STOP del server si fa con il comando CMI `stopserverfast` in console
@@ -155,7 +155,8 @@ jobs:
           set -euo pipefail
           KEY=~/.ssh/deploy_key
           SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
-          PLUGDIR=/home/ubuntu/magicadventure/plugins
+          FAZ="$($SSH 'd=/home/ubuntu/magicadventure/faction; [ -d "$d/plugins" ] || d=/home/ubuntu/magicadventure; echo "$d"' </dev/null)"  # cartella del server fazioni (prima: magicadventure/)
+          PLUGDIR="$FAZ/plugins"
 
           # 1) Copia ogni jar; per ciascuno rimuove prima le vecchie versioni dello stesso
           #    plugin, poi mette al suo posto quello nuovo (copiato con nome temporaneo).
