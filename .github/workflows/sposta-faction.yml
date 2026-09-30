@@ -72,7 +72,7 @@ jobs:
           salva() { [ -e "$1" ] && sudo cp -a "$1" "$BAK/$(basename "$1").bak-$ORA"; return 0; }
 
           # Riferimenti al vecchio percorso che NON sono gia' faction/ o hub/.
-          VECCHIO='/home/ubuntu/magicadventure(/(?!faction/|hub/)|(?=["'"'"'\s,;:]|$))'
+          VECCHIO='/home/ubuntu/magicadventure(/(?!(faction|hub)(/|\b))|(?=["'"'"'\s,;:]|$))'
           cerca() {
             sudo grep -rIlP "$VECCHIO" /etc/systemd/system /usr/local/bin /etc/magicadventure /etc/nginx /etc/cron.d /etc/sudoers.d 2>/dev/null
             sudo grep -rIlP --include='*.php' --include='*.conf' --include='*.json' "$VECCHIO" /var/www/magicadventure 2>/dev/null
@@ -148,7 +148,7 @@ jobs:
               --exclude-dir=libraries --exclude-dir=cache --exclude-dir=logs --exclude-dir=.bak --exclude-dir=.rimossi \
               "$VECCHIO" "$NEW" 2>/dev/null | while read -r f; do
             cp -a "$f" "$BAK/$(echo "${f#$NEW/}" | tr '/' '_').bak-$ORA"
-            perl -pi -e 's#/home/ubuntu/magicadventure(?=/(?!faction/|hub/)|["'"'"'\s,;:]|$)#/home/ubuntu/magicadventure/faction#g' "$f"
+            perl -pi -e 's#/home/ubuntu/magicadventure(?=/(?!(faction|hub)(/|\b))|["'"'"'\s,;:]|$)#/home/ubuntu/magicadventure/faction#g' "$f"
             echo "corretto: $f"
           done
           sudo systemctl daemon-reload
