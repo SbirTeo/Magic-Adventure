@@ -21,6 +21,9 @@ name: Hub - apri/chiudi per costruire (mondo vuoto + WorldEdit)
 #   toglie la regola del firewall, rimette server-ip=127.0.0.1 e riavvia l'hub. Il mondo, i
 #   plugin, la whitelist e gli op restano come sono. Va fatto PRIMA del passaggio a Velocity.
 #
+# Con Velocity collegato (dal 30/09) "apri" si rifiuta: l'hub si raggiunge solo dal proxy,
+# con /server hub. Resta utilizzabile "chiudi".
+#
 # Se l'IP di casa cambia (router riavviato), basta rilanciare "apri" con mondo=tieni: la regola
 # vecchia viene tolta e ne viene messa una col nuovo IP.
 
@@ -91,6 +94,12 @@ jobs:
           # Porta dell'hub (Velocity 25565, hub 25600, faction 25701): la si impone anche al file vivo.
           PORTA=25600
           sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+          # Con Velocity collegato l'hub si raggiunge solo dal proxy (/server hub): aprirlo da fuori
+          # sarebbe una porta che scavalca TCPShield, il login sul server principale e i permessi.
+          if [ "$AZIONE" = "apri" ] && [ "$(systemctl is-enabled magix-velocity.service 2>/dev/null)" = "enabled" ]; then
+            echo "::error::Velocity e' collegato: l'hub non si apre piu' da fuori. Si entra dal gioco con /server hub."
+            exit 1
+          fi
 
           acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'; }
           console() { screen -S hub -p 0 -X stuff "$(printf '%s\r' "$1")"; sleep 1; }

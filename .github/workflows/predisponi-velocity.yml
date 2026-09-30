@@ -1,6 +1,8 @@
 name: Predisponi Velocity (proxy preparato, NON collegato)
 
-# Passo 2 della rete con Velocity, SENZA effetti per i giocatori. Idempotente: rilanciarlo
+# Passo 2 della rete con Velocity, SENZA effetti per i giocatori. Dopo il passaggio
+# (passaggio-velocity.yml, Velocity abilitato all'avvio) installa solo i file e non tocca il proxy
+# acceso: niente prova, niente spegnimento. Idempotente: rilanciarlo
 # riallinea i file al repo (con backup in /home/ubuntu/.bak/sistema/) e rifa' la prova.
 #
 #  1) scarica Velocity (versione scelta, ultima build) dall'API di PaperMC e ne verifica lo sha256
@@ -110,6 +112,10 @@ jobs:
           ORA=$(date +%Y%m%d-%H%M%S)
           mkdir -p "$BAK" "$VEL/plugins"
           sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+          # Dopo il passaggio (passaggio-velocity.yml) il proxy e' quello dei giocatori: qui si
+          # installano solo i file, senza spegnerlo, senza prove e senza toglierlo dall'avvio.
+          COLLEGATO=""; [ "$(systemctl is-enabled magix-velocity.service 2>/dev/null)" = "enabled" ] && COLLEGATO=1
+          [ -n "$COLLEGATO" ] && echo "Velocity e' COLLEGATO: installo i file e basta (niente prova, niente spegnimento)"
           salva() { [ -e "$1" ] && sudo cp -a "$1" "$BAK/$(basename "$1").bak-$ORA" && echo "  backup: $BAK/$(basename "$1").bak-$ORA"; return 0; }
           ha_velocity() { python3 -c "import zipfile,sys; sys.exit(0 if 'velocity-plugin.json' in zipfile.ZipFile(sys.argv[1]).namelist() else 1)" "$1" 2>/dev/null; }
           acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.velocity[[:space:]]'; }
@@ -239,7 +245,8 @@ jobs:
             echo "velocity.jar gia' identico"
           else
             [ -f "$VEL/velocity.jar" ] && cp -a "$VEL/velocity.jar" "$BAK/velocity.jar.bak-$ORA"
-            install -m 644 "$SRC/velocity.jar" "$VEL/velocity.jar"; echo "velocity.jar installato"
+            # file nuovo + rename: un proxy acceso tiene aperto il jar vecchio, non uno riscritto sotto i piedi
+            install -m 644 "$SRC/velocity.jar" "$VEL/.velocity.jar.new" && mv -f "$VEL/.velocity.jar.new" "$VEL/velocity.jar"; echo "velocity.jar installato"
           fi
 
           echo; echo "=== 2) CONFIG E SCRIPT ==="
@@ -258,8 +265,8 @@ jobs:
             sudo systemctl daemon-reload
             echo "unit installata"
           fi
-          sudo systemctl disable magix-velocity.service >/dev/null 2>&1 || true
-          echo "avvio automatico con la macchina: $(systemctl is-enabled magix-velocity.service 2>/dev/null || true) (deve essere disabled)"
+          [ -n "$COLLEGATO" ] || sudo systemctl disable magix-velocity.service >/dev/null 2>&1 || true
+          echo "avvio automatico con la macchina: $(systemctl is-enabled magix-velocity.service 2>/dev/null || true)"
           RIGA="$(grep '^istanza velocity ' "$SRC/istanze.conf")"
           if [ -f "$CONF" ] && ! grep -qxF "$RIGA" "$CONF"; then
             salva "$CONF"
@@ -274,6 +281,12 @@ jobs:
             echo "console del sito aggiornata"
           fi
           echo "--- istanze della console ---"; grep '^istanza ' "$CONF" || true
+
+          if [ -n "$COLLEGATO" ]; then
+            echo; echo "File installati. Valgono dal prossimo riavvio del proxy (velocity.toml anche subito, con"
+            echo "\"velocity reload\" nella sua console). Il proxy acceso non l'ho toccato."
+            rm -rf "$SRC"; exit 0
+          fi
 
           echo; echo "=== 3) TCPSHIELD ==="
           JAR_FAZ="$(ls "$FAZ"/plugins/*.jar 2>/dev/null | grep -i tcpshield | head -n1 || true)"

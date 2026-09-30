@@ -5,27 +5,27 @@
 #  /home/ubuntu/magicadventure/velocity/ e lo installa (con backup del precedente)
 #  il workflow predisponi-velocity.yml: si cambia QUI, mai a mano sul VPS.
 #
-#  STATO: PREPARATO, NON COLLEGATO. Ascolta solo su 127.0.0.1:25577, quindi nessun
-#  giocatore ci arriva; i giocatori entrano ancora direttamente sul faction (25565).
-#
-#  Il giorno del passaggio (vedi CLAUDE.md, "Server sul VPS"):
-#    - bind            -> "0.0.0.0:25565"  (stessa porta di oggi: TCPShield e il firewall
-#                         non cambiano, gia' aperti solo agli IP di TCPShield)
+#  STATO: COLLEGATO (dal 30/09). Velocity ascolta su 0.0.0.0:25565, la porta pubblica, aperta
+#  nel firewall solo agli IP di TCPShield; faction (127.0.0.1:25701) e hub (127.0.0.1:25600)
+#  si raggiungono solo passando da qui. Il passaggio (e il ritorno indietro) li fa il workflow
+#  passaggio-velocity.yml:
 #    - faction         -> server-ip=127.0.0.1, server-port=25701 in server.properties
 #    - hub e faction   -> paper-global.yml: proxies.velocity.enabled=true, online-mode=false,
 #                         secret = il contenuto di forwarding.secret (generato da Velocity,
-#                         resta SOLO sul VPS, mai nel repo)
-#    - TCPShield       -> resta solo qui su Velocity; sui backend va tolto (dietro al proxy
-#                         l'IP vero lo porta gia' il modern forwarding)
-#    - MagixAuth ecc.  -> i plugin adattati al proxy (passo 3) devono essere gia' live
+#                         resta SOLO sul VPS, mai nel repo); network-compression-threshold=-1
+#    - TCPShield       -> solo qui su Velocity; sui backend e' tolto (dietro al proxy l'IP vero
+#                         lo porta gia' il modern forwarding)
+#  Una modifica a questo file: commit, poi predisponi-velocity.yml (con Velocity acceso installa
+#  il file e basta: vale dal prossimo riavvio del proxy, o subito con "velocity reload").
 # ============================================================
 
 # Config version. Do not change this
 config-version = "2.9"
 
 # What port should the proxy be bound to? By default, we'll bind to all addresses on port 25565.
-# MAGICADVENTURE: solo locale finche' non si fa il passaggio (poi "0.0.0.0:25565").
-bind = "127.0.0.1:25577"
+# MAGICADVENTURE: la porta pubblica del gioco (prima era del faction). Il firewall la apre solo
+# agli IP di TCPShield, e il plugin TCPShield rifiuta qualunque altra connessione.
+bind = "0.0.0.0:25565"
 
 # What should be the MOTD? This gets displayed when the player adds your server to
 # their server list. Only MiniMessage format is accepted.
@@ -127,8 +127,7 @@ decompressed-bytes-per-second = 5242880
 [servers]
 # Configure your servers here. Each key represents the server's name, and the value
 # represents the IP address of the server to connect to.
-# MAGICADVENTURE: i due backend, solo su 127.0.0.1. Il faction e' gia' alla porta che avra'
-# DOPO il passaggio (oggi e' ancora su 25565, occupata dai giocatori che entrano diretti).
+# MAGICADVENTURE: i due backend, solo su 127.0.0.1: da fuori non si raggiungono.
 hub = "127.0.0.1:25600"
 faction = "127.0.0.1:25701"
 
