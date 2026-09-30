@@ -122,6 +122,10 @@ a CMI.
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
   `predisponi-hub.yml`. Non riceve i deploy automatici dei plugin.
+  Per **costruirlo** prima di Velocity c'e' `hub-costruzione.yml`: `azione=apri` lo apre a UNA
+  persona sola (firewall sulla 25566 solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
+  dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
+  `azione=chiudi` lo riporta solo su 127.0.0.1. **Va chiuso prima del passaggio a Velocity.**
 - Ogni server nuovo va anche in `website/vps/console/istanze.conf` (e in
   `/etc/magicadventure/istanze.conf` sul VPS): e' cosi' che compare nella console del sito.
 - **velocity** — il proxy, `/home/ubuntu/magicadventure/velocity`, screen `velocity`, servizio
