@@ -23,8 +23,8 @@ name: Deploy plugin sul server Minecraft
 # deploy.target, dice lui dove (una o piu' parole, separate da spazi):
 #   faction   -> magicadventure/faction/plugins/ (e riavvio del faction, come sempre)
 #   hub       -> magicadventure/hub/plugins/ (es. MagixAuth, MagixLanguage: "faction hub").
-#                L'hub non ha CMI: si ferma con "stop" nella sua screen e start.sh lo rilancia
-#                da solo (come il riavvio notturno). Nessun countdown: e' la sala d'attesa.
+#                Si ferma con "stopserverfast" di CMI come il faction (con "stop" se CMI non c'e'),
+#                e start.sh lo rilancia da solo.
 #   velocity  -> magicadventure/velocity/plugins/ (es. MagixProxy: un plugin Velocity sul
 #                faction non si caricherebbe). Il proxy NON viene riavviato da qui: finche' non
 #                e' collegato e' spento, e da collegato un riavvio butta fuori tutta la rete.
@@ -217,8 +217,9 @@ jobs:
           fi
           if cut -f3 "$RUNNER_TEMP/manifest" | grep -qx hub; then
             if $SSH "screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'" </dev/null; then
-              $SSH "screen -S hub -p 0 -X stuff \"\$(printf 'stop\r')\"" </dev/null
-              echo "Hub: mandato 'stop', start.sh lo rilancia con i jar nuovi."
+              CMD_HUB="$($SSH 'ls /home/ubuntu/magicadventure/hub/plugins/CMI-*.jar >/dev/null 2>&1 && echo stopserverfast || echo stop' </dev/null)"
+              $SSH "screen -S hub -p 0 -X stuff \"\$(printf '$CMD_HUB\r')\"" </dev/null
+              echo "Hub: mandato '$CMD_HUB', start.sh lo rilancia con i jar nuovi."
             else
               echo "Hub spento: i jar nuovi valgono dal suo prossimo avvio."
             fi

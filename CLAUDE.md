@@ -144,7 +144,10 @@ a CMI.
   `network-compression-threshold=-1`, TCPShield tolto dai backend. Il dettaglio e' in testa a
   `server-velocity/velocity.toml`.
 - **MagixProxy** (`plugins-src/MagixProxy`) e' il plugin Velocity della rete: decide UUID e skin
-  all'ingresso con le stesse regole di MagixAuth (vedi il suo README). Un plugin con il file
+  all'ingresso con le stesse regole di MagixAuth (vedi il suo README), e tiene il giro della rete:
+  **il server principale per ora e' il faction** (`network.main_server`, e `try = ["faction"]` in
+  velocity.toml): chi entra finisce li' e li' fa il login; hub e modalita' future si aprono solo
+  dopo il login (sessione MagixAuth valida). Nessun ripiego sull'hub se il faction e' giu'. Un plugin con il file
   `deploy.target` in `plugins-src/<Plugin>/` va dove dice lui (`faction`, `velocity`):
   `deploy-plugin.yml` riavvia il faction solo se un jar e' andato nel faction.
 - **LuckPerms e' condiviso** (dal 30/09): storage `mariadb` sul database del sito (tabelle

@@ -30,6 +30,9 @@ public final class ProxyConfig {
     public final int premiumTimeoutMillis;
     public final int skinCacheMinutes;
 
+    public final String mainServer;
+    public final boolean othersRequireLogin;
+
     private final Map<String, Object> messages;
     private final Map<String, Object> defaultMessages;
 
@@ -43,6 +46,8 @@ public final class ProxyConfig {
         this.skinFromMojang = Boolean.parseBoolean(string(cfg, defCfg, "premium.skin_from_mojang"));
         this.premiumTimeoutMillis = number(cfg, defCfg, "premium.timeout_ms");
         this.skinCacheMinutes = number(cfg, defCfg, "premium.skin_cache_minutes");
+        this.mainServer = string(cfg, defCfg, "network.main_server").trim();
+        this.othersRequireLogin = Boolean.parseBoolean(string(cfg, defCfg, "network.others_require_login"));
         this.messages = messages;
         this.defaultMessages = defaultMessages;
     }

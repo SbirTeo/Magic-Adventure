@@ -5,7 +5,7 @@ Plugin **Velocity** (non Paper) della rete MagicAdventure. Vive sul proxy, in
 (`velocity`) dice a `deploy-plugin.yml` di copiarlo li' invece che nel faction, e di **non**
 riavviare il faction per lui.
 
-## Cosa fa (0.1.0)
+## Cosa fa
 
 **Decide UUID e skin di chi entra, una volta sola, alla porta del proxy.** Con le stesse regole
 del gate di MagixAuth (`AuthGate.decide`):
@@ -26,6 +26,19 @@ sessione di MagixAuth (stesso computer, stesso indirizzo) fa entrare senza ridig
 
 `profile/MojangLookup` e' una **copia** di quella di MagixAuth (cambia solo il logger, slf4j su
 Velocity): una correzione a una va portata anche nell'altra.
+
+## Server principale e altre modalita' (0.2.0)
+
+`network.main_server` (di serie `faction`) e' la porta della rete: il **primo** server di ogni
+connessione e' sempre quello, qualunque cosa chieda il client o la lista `try` di velocity.toml.
+Li' si fa il login.
+
+Con `network.others_require_login: true` ogni altro server (hub, modalita' future) si apre solo a
+chi ha gia' fatto il login: una sessione valida di MagixAuth nel database (`auth_sessions`, stesso
+UUID e stesso indirizzo), cioe' la stessa cosa che MagixAuth controlla per farlo entrare senza
+password. Prima del login `/server`, i menu o qualunque altro cambio di server lo lasciano dov'e'
+con `network.login-first`. MagixAuth resta comunque su ogni server: questa e' la regola che tiene
+il giro della rete, non l'unica serratura.
 
 ## Configurazione
 

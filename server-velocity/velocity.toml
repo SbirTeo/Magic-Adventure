@@ -95,7 +95,8 @@ enable-player-address-logging = true
 # MAGICADVENTURE: la MOTD la scrive MagixEssentials sul server dietro; Velocity ne copia testo
 # e icona (description, favicon). Il conto dei giocatori resta quello del proxy, cioe' di TUTTA
 # la rete (players = false): quello di un solo server dietro sarebbe sbagliato.
-# Il server interrogato e' il primo di "try" che risponde. Quando serviranno anche la tendina e
+# Il server interrogato e' il primo di "try" che risponde: oggi il faction, quindi la MOTD e'
+# quella che si vede gia' adesso. Quando serviranno anche la tendina e
 # il "posto libero" di MagixEssentials, la strada e' un listener Velocity (README di
 # MagixEssentials, "Quando davanti ci sara' Velocity").
 [ping-passthrough]
@@ -134,13 +135,15 @@ hub = "127.0.0.1:25600"
 faction = "127.0.0.1:25701"
 
 # In what order we should try servers when a player logs in or is kicked from a server.
-# MAGICADVENTURE: si entra nell'hub; se l'hub e' spento, direttamente nel faction.
+# MAGICADVENTURE: per ora il server principale e' il FACTION: chi entra nella rete finisce li'
+# e li' fa il login. Niente ripiego sull'hub: se il faction e' giu' non si entra (MagixProxy,
+# network.main_server, impone comunque il faction come primo server qualunque cosa ci sia qui).
+# Gli altri server (hub, modalita' future) si aprono solo dopo il login (MagixProxy, ServerGuard).
 try = [
-    "hub",
     "faction"
 ]
 
-# MAGICADVENTURE: nessun dominio forzato: tutti gli indirizzi portano all'hub.
+# MAGICADVENTURE: nessun dominio forzato: tutti gli indirizzi portano al server principale.
 [forced-hosts]
 
 [advanced]

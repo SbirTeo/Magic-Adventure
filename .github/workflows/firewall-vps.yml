@@ -1,0 +1,78 @@
+name: Firewall del VPS (mostra / togli una porta)
+
+# Il firewall (ufw) del VPS, da qualsiasi sessione. Di serie mostra soltanto: regole, porte in
+# ascolto e quali porte hanno una regola ma nessun programma dietro (regole morte).
+#
+#  togli_porta=<numero> -> toglie TUTTE le regole ufw di quella porta (IPv4 e IPv6), dopo un
+#                          backup delle regole in ~/.bak/ufw-<data>/. Rifiuta le porte vitali:
+#                          22 (SSH: ci si chiuderebbe fuori), 80/443 (sito), 25565 (gioco).
+#
+# Le regole dell'hub in costruzione (25600) si gestiscono con hub-costruzione.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      togli_porta:
+        description: "Porta di cui togliere le regole (vuoto = mostra soltanto)"
+        required: false
+        default: ""
+
+concurrency:
+  group: firewall-vps
+  cancel-in-progress: false
+
+jobs:
+  firewall:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla input e secret VPS
+        env:
+          PORTA: ${{ inputs.togli_porta }}
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+          [ -z "$PORTA" ] || [[ "$PORTA" =~ ^[0-9]{1,5}$ ]] || { echo "::error::porta non valida"; exit 1; }
+          case "$PORTA" in 22|80|443|25565) echo "::error::la porta $PORTA non si toglie da qui (vitale)"; exit 1 ;; esac
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Firewall sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          PORTA: ${{ inputs.togli_porta }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" "PORTA='${PORTA:-}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+          regole_morte() {
+            echo "--- porte con una regola ufw ma nessun programma in ascolto ---"
+            local ascolto; ascolto="$(sudo ss -tulnH | awk '{print $5}' | sed -E 's/.*:([0-9]+)$/\1/' | sort -u)"
+            sudo ufw status | awk 'NR>4 && $1 ~ /^[0-9]+\// {print $1}' | cut -d/ -f1 | sort -u | while read -r p; do
+              echo "$ascolto" | grep -qx "$p" || echo "  $p: nessuno in ascolto"
+            done
+          }
+          if [ -n "$PORTA" ]; then
+            BAK="/home/ubuntu/.bak/ufw-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$BAK"
+            sudo cp -a /etc/ufw/user.rules /etc/ufw/user6.rules "$BAK/" && sudo chown -R ubuntu: "$BAK"
+            echo "backup delle regole in $BAK"
+            # Dal numero piu' alto al piu' basso: togliendo una regola le successive scalano.
+            sudo ufw status numbered | grep -E "^\[ *[0-9]+\] +$PORTA(/(tcp|udp))?( \(v6\))? " \
+              | grep -oE '^\[ *[0-9]+\]' | tr -dc '0-9\n' | sort -rn | while read -r n; do
+                sudo ufw --force delete "$n" >/dev/null && echo "tolta la regola $n (porta $PORTA)"
+              done
+          fi
+          echo; echo "=== REGOLE ==="; sudo ufw status numbered
+          echo; regole_morte
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

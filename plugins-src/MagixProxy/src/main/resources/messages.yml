@@ -8,3 +8,9 @@ login:
   # Il database del sito non risponde: non si puo' sapere chi e' il giocatore, quindi
   # si tiene fuori (meglio pochi minuti fuori che qualcuno dentro col nome di un altro).
   kick-database: "&cIl server non riesce a verificare il tuo account in questo momento.\n&7Riprova tra qualche minuto."
+
+network:
+  # Chiede un altro server prima di aver fatto il login sul server principale.
+  login-first: "&cPrima fai il login qui (&f/login&c), poi potrai cambiare server."
+  # Il server principale indicato in config.yml non esiste in velocity.toml (errore di configurazione).
+  main-missing: "&cIl server non e' raggiungibile in questo momento.\n&7Riprova tra qualche minuto."

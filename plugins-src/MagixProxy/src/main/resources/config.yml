@@ -31,3 +31,12 @@ premium:
   timeout_ms: 3000
   # Ogni quanti minuti una skin gia' presa viene richiesta di nuovo a Mojang.
   skin_cache_minutes: 360
+
+network:
+  # Il server principale: chi entra nella rete finisce SEMPRE qui (qualunque cosa chieda il
+  # client), ed e' qui che si fa il login. Dev'essere uno dei [servers] di velocity.toml.
+  main_server: faction
+  # true = gli altri server (hub, modalita' future) si aprono solo a chi ha gia' fatto il login
+  # con MagixAuth (sessione valida nel database, stesso indirizzo). Prima, "/server" e i menu
+  # lo lasciano dov'e'. MagixAuth c'e' comunque su ogni server: questo lo tiene sul principale.
+  others_require_login: true
