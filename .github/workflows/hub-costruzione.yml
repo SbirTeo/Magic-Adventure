@@ -174,7 +174,7 @@ jobs:
             console "execute unless block 0 -64 0 minecraft:air run say MONDO-VUOTO-NO"
             console "execute if block 0 63 0 minecraft:air run say SPAWN-VUOTO-SI"
             console "setworldspawn 0 64 0"
-            console "gamerule respawn_radius 0"
+            console "minecraft:gamerule respawn_radius 0"
             console "forceload remove 0 0"
             sleep 2
             echo "--- risposte della console ---"
@@ -237,7 +237,7 @@ jobs:
           console "execute unless block 0 -64 0 minecraft:air run say MONDO-VUOTO-NO"
           console "setworldspawn 0 64 0"
           console "setblock 0 63 0 minecraft:glass"
-          console "gamerule respawn_radius 0"
+          console "minecraft:gamerule respawn_radius 0"
           console "whitelist add $GIOCATORE"
           console "whitelist on"
           console "op $GIOCATORE"
