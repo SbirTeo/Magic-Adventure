@@ -285,12 +285,18 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
 CREATE TABLE IF NOT EXISTS web_chat (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     source ENUM('web','game') NOT NULL DEFAULT 'web',
+    -- Il server della rete (network.server-name di MagixBridge): per i messaggi 'game' quello
+    -- su cui sono stati scritti, per i 'web' quello della scheda aperta sul sito, che li
+    -- ripubblica in gioco (e solo lui).
+    server VARCHAR(32) NOT NULL DEFAULT 'faction',
     mc_uuid CHAR(36) NULL,
     mc_username VARCHAR(32) NOT NULL,
     message VARCHAR(256) NOT NULL,
     delivered TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_consegna (delivered, source, id),
+    KEY idx_server_consegna (server, delivered, source, id),
+    KEY idx_server_id (server, id),
     KEY idx_data (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
