@@ -141,7 +141,8 @@ jobs:
             JAR="$(ls -1 "plugins-src/$P/target/"*.jar 2>/dev/null | grep -vE '/(original-|.*-sources|.*-javadoc)' | head -n1)"
             if [ -z "$JAR" ]; then echo "::error::Nessun jar prodotto per $P"; exit 1; fi
             cp "$JAR" "$RUNNER_TEMP/jars/"
-            TARGETS="$(cat "plugins-src/$P/deploy.target" 2>/dev/null | tr -s ' \n' ' ' | sed 's/^ *//; s/ *$//')"
+            # (|| true: senza il file, con pipefail, il cat fallito fermerebbe tutto lo script)
+            TARGETS="$( { cat "plugins-src/$P/deploy.target" 2>/dev/null || true; } | tr -s ' \n' ' ' | sed 's/^ *//; s/ *$//')"
             TARGETS="${TARGETS:-faction}"
             for T in $TARGETS; do
               case "$T" in faction|velocity) ;; *) echo "::error::$P: destinazione '$T' sconosciuta in deploy.target"; exit 1 ;; esac
