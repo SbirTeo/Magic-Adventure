@@ -59,6 +59,8 @@ jobs:
           # I due start.sh hanno lo stesso nome: ognuno con il suo.
           scp -i ~/.ssh/deploy_key server-hub/start.sh "$DEST:/tmp/magix-hub-src/hub-start.sh"
           scp -i ~/.ssh/deploy_key server/start.sh "$DEST:/tmp/magix-hub-src/faction-start.sh"
+          scp -i ~/.ssh/deploy_key server/stop-service.sh "$DEST:/tmp/magix-hub-src/faction-stop-service.sh"
+          scp -i ~/.ssh/deploy_key server-hub/stop-service.sh "$DEST:/tmp/magix-hub-src/hub-stop-service.sh"
 
       - name: Applica sul VPS
         env:
@@ -118,11 +120,10 @@ jobs:
             echo "unit aggiornata"
           fi
           grep -n 'ExecStart' "$UNIT"
-          echo "--- stop-service.sh delle fazioni (prima) ---"; cat "$FAZ/stop-service.sh"
-          if grep -qE '(-S|\.)mc([^A-Za-z0-9_]|$)' "$FAZ/stop-service.sh"; then
+          if ! cmp -s "$SRC/faction-stop-service.sh" "$FAZ/stop-service.sh"; then
             cp -a "$FAZ/stop-service.sh" "$BAK/faction-stop-service.sh.bak-$ORA"
-            sed -i -E 's/(-S[[:space:]]+|\\\.|\.)mc([^A-Za-z0-9_]|$)/\1faction\2/g' "$FAZ/stop-service.sh"
-            echo "--- stop-service.sh (dopo) ---"; cat "$FAZ/stop-service.sh"
+            install -m 755 "$SRC/faction-stop-service.sh" "$FAZ/stop-service.sh"
+            echo "stop-service.sh delle fazioni sostituito con server/stop-service.sh del repo"
           fi
           CONF=/etc/magicadventure/istanze.conf
           if [ -f "$CONF" ]; then
@@ -135,8 +136,13 @@ jobs:
           echo; echo "=== 4) HUB ==="
           if [ -d "$VECCHIO_HUB" ] && [ ! -e "$HUB" ]; then
             echo "sposto l'hub da $VECCHIO_HUB a $HUB"
+            # Si ferma con lo script NUOVO: quello installato al primo giro cercava la screen "mc".
+            bash "$SRC/hub-stop-service.sh"
             sudo systemctl stop magix-hub.service 2>/dev/null || true
             for i in $(seq 1 30); do screen -list | grep -qE '[0-9]+\.hub[[:space:]]' || break; sleep 2; done
+            if screen -list | grep -qE '[0-9]+\.hub[[:space:]]'; then
+              echo "::error::l'hub non si e' fermato: non lo sposto"; exit 1
+            fi
             mv "$VECCHIO_HUB" "$HUB"
           fi
           mkdir -p "$HUB/cache"
@@ -144,10 +150,9 @@ jobs:
           install -m 755 "$SRC/hub-start.sh" "$HUB/start.sh"
           [ -f "$HUB/server.properties" ] || install -m 644 "$SRC/server.properties" "$HUB/server.properties"
           echo 'eula=true' > "$HUB/eula.txt"
-          # Stop pulito come per le fazioni: stesso script, con cartella e screen dell'hub.
-          sed -e "s#$FAZ#$HUB#g" -E -e 's/(-S[[:space:]]+|\.)faction([^A-Za-z0-9_]|$)/\1hub\2/g' "$FAZ/stop-service.sh" > "$HUB/stop-service.sh"
-          chmod 755 "$HUB/stop-service.sh"
-          echo "--- stop-service.sh dell'hub ---"; cat "$HUB/stop-service.sh"
+          install -m 755 "$SRC/hub-stop-service.sh" "$HUB/stop-service.sh"
+          # Un mondo vuoto non ha bisogno dell'End (il Nether e' gia' spento in server.properties).
+          [ -f "$HUB/bukkit.yml" ] && sed -i 's/^  allow-end: true$/  allow-end: false/' "$HUB/bukkit.yml"
           if ! cmp -s "$SRC/magix-hub.service" /etc/systemd/system/magix-hub.service 2>/dev/null; then
             salva /etc/systemd/system/magix-hub.service
             sudo install -o root -g root -m 644 "$SRC/magix-hub.service" /etc/systemd/system/magix-hub.service
