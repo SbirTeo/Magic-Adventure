@@ -1657,7 +1657,8 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .chat-head:has(.chat-svuota):has(.chat-edit) .chat-head-sub { margin-right: 90px; }
 
 /* ---- Schede dei server nella chat (Hub, Factions...) ----------------------------------
-   Una pillola sola con i nomi dei server; sotto a quello aperto scorre un fondo chiaro
+   Una barra sola con i nomi dei server, con lo stesso raggio del campo e del pulsante d'invio
+   (--radius-sm; dentro, il raggio meno i 3px di margine); sotto a quello aperto scorre un fondo chiaro
    (.chat-tab-slitta), che chat.js mette sotto la scheda giusta. */
 .chat-tabs {
   position: relative;
@@ -1666,7 +1667,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   padding: 3px;
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
 }
 .chat-tab {
   position: relative;
@@ -1674,7 +1675,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   flex: 1;
   padding: 6px 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(var(--radius-sm) - 3px);
   background: transparent;
   color: var(--text-dim);
   font: inherit;
@@ -1692,7 +1693,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   bottom: 3px;
   left: 3px;
   width: 0;
-  border-radius: 999px;
+  border-radius: calc(var(--radius-sm) - 3px);
   background: var(--contrasto);
   transition: transform .25s cubic-bezier(.2,.7,.3,1), width .25s cubic-bezier(.2,.7,.3,1);
 }
