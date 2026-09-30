@@ -313,7 +313,7 @@ Si lancia con `workflow_dispatch` passando:
 - `grep` (opzionale, default = nome del plugin) — regex estesa case-insensitive da cercare nel
   log; supporta l'alternanza (`overclaim|unclaimall|home`) per più indizi in un colpo solo.
 - `righe` (default 120) — quante righe di log mostrare per sorgente.
-- `server` (default `faction`) — `hub` per leggere cartella, log e config dei plugin dell'hub.
+- `server` (default `faction`) — `hub` o `velocity` per leggere cartella, log e config dei plugin di quel server.
 - `storico` (default `si`) — se cercare anche negli archivi `.log.gz` vecchi, non solo
   `latest.log` (i log ruotano a ogni riavvio, quindi quasi sempre serve `si`).
 

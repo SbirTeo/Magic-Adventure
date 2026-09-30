@@ -38,7 +38,7 @@ on:
         required: false
         default: "8"
       server:
-        description: "Quale server leggere: faction (di serie) o hub (cartella, log e config dei plugin dell'hub)"
+        description: "Quale server leggere: faction (di serie), hub o velocity (cartella, log e config dei plugin di quel server)"
         required: false
         default: "faction"
 
@@ -92,6 +92,7 @@ jobs:
           [ -n "$CERCA" ] || CERCA="$PLUGIN"
           BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
           [ "${SERVER:-faction}" = "hub" ] && BASE=/home/ubuntu/magicadventure/hub
+          [ "${SERVER:-faction}" = "velocity" ] && BASE=/home/ubuntu/magicadventure/velocity
           echo "server letto: ${SERVER:-faction} ($BASE)"
           LOG="$BASE/logs/latest.log"
 
