@@ -1,0 +1,21 @@
+[Unit]
+Description=MAGICADVENTURE Velocity (proxy)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/magicadventure/velocity
+# Avvia il loop start.sh dentro una screen 'velocity' (console per sito e workflow: screen -S velocity -X stuff ...)
+ExecStart=/usr/bin/screen -dmS velocity /home/ubuntu/magicadventure/velocity/start.sh
+# Stop pulito: scollega i giocatori e interrompe il loop di start.sh (vedi stop-service.sh)
+ExecStop=/home/ubuntu/magicadventure/velocity/stop-service.sh
+TimeoutStopSec=45
+
+# NB: finche' non si fa il passaggio al proxy la unit resta DISABILITATA (non parte all'avvio
+# della macchina): predisponi-velocity.yml la installa ma non la abilita.
+[Install]
+WantedBy=multi-user.target

@@ -111,7 +111,7 @@ CMI `stopserverfast`: l'automazione **non** deve aggiungere un proprio preavviso
 altrimenti i giocatori vedono due countdown sovrapposti. Manda solo `stopserverfast` e lascia fare
 a CMI.
 
-## Server sul VPS: faction e hub (Velocity in preparazione)
+## Server sul VPS: faction, hub e velocity (proxy preparato, non collegato)
 
 - **faction** — il server fazioni: `/home/ubuntu/magicadventure/faction` (fino al 30/09 stava direttamente in `magicadventure/`: i workflow accettano ancora entrambe le cartelle, e `magicadventure/plugins` e `logs` sono link verso `faction/`), screen `faction` (fino al 30/09
   si chiamava `mc`: i workflow accettano ancora entrambi i nomi), servizio
@@ -124,6 +124,18 @@ a CMI.
   `predisponi-hub.yml`. Non riceve i deploy automatici dei plugin.
 - Ogni server nuovo va anche in `website/vps/console/istanze.conf` (e in
   `/etc/magicadventure/istanze.conf` sul VPS): e' cosi' che compare nella console del sito.
+- **velocity** — il proxy, `/home/ubuntu/magicadventure/velocity`, screen `velocity`, servizio
+  `magix-velocity.service` **installato ma disabilitato** (non parte con la macchina), heap 512M.
+  Per ora ascolta solo su `127.0.0.1:25577`. Sorgente nel repo: `server-velocity/`
+  (`velocity.toml` si cambia li', mai a mano sul VPS: lo reinstalla con backup il workflow
+  idempotente `predisponi-velocity.yml`, che fa anche un avvio di prova solo locale e lo rispegne).
+  Offline mode (autentica MagixAuth), modern forwarding, TCPShield sul proxy, MOTD e icona presi
+  dal backend (ping-passthrough), `log-command-executions` **sempre false** (loggherebbe le
+  password di /login). `forwarding.secret` lo genera Velocity e resta **solo sul VPS**.
+  Il giorno del passaggio: Velocity su `0.0.0.0:25565` (TCPShield e firewall non cambiano), il
+  faction su `127.0.0.1:25567`, i backend con `proxies.velocity` in `paper-global.yml` e
+  `network-compression-threshold=-1`, TCPShield tolto dai backend. Il dettaglio e' in testa a
+  `server-velocity/velocity.toml`.
 - **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
   (UUID e skin decisi dal proxy, non dal backend), i lavori periodici sul DB del sito di
   MagixGuard/MagixWeb/MagixLanguage (devono girare su un solo server) e MagixPack (una sola
