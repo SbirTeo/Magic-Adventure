@@ -270,7 +270,7 @@ jobs:
             ls -la "$VEL/plugins"
             for d in "$VEL"/plugins/*/; do
               case "$(basename "$d")" in bStats) continue ;; esac
-              echo "## $d"; ls -la "$d"; cat "$d"config.yml 2>/dev/null | grep -vE '^\s*#|^\s*$' || true
+              echo "## $d"; ls -la "$d"; cat "$d"config.yml "$d"config.toml 2>/dev/null | grep -vE '^\s*#|^\s*$' || true
             done
           fi
 
