@@ -67,7 +67,7 @@ jobs:
           ACCOUNT="$(GIOCATORE="$GIOCATORE" php -r 'try { require "/var/www/magicadventure/includes/db.php";
               $s = db()->prepare("SELECT mc_uuid FROM users WHERE mc_username = ? LIMIT 1"); $s->execute([getenv("GIOCATORE")]);
               echo (string) $s->fetchColumn(); } catch (Throwable $e) { }' 2>/dev/null || true)"
-          echo "${ACCOUNT:-(nessun account: resta solo l'UUID offline)}"
+          if [ -n "$ACCOUNT" ]; then echo "$ACCOUNT"; else echo "(nessun account: resta solo l'UUID offline)"; fi
 
           echo; echo "=== 1) FERMO L'HUB ==="
           if acceso; then
