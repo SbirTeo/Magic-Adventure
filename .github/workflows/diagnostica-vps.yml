@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       plugin:
-        description: "Cartella del plugin (es. MagixEntities), oppure 'tutti' per l'elenco delle chiavi di tutti i Magix"
+        description: "Cartella del plugin (es. MagixEntities), 'tutti' per l'elenco delle chiavi di tutti i Magix, 'sistema' per risorse/porte/firewall/servizi della macchina"
         required: true
         default: "MagixEntities"
       file:
@@ -134,6 +134,39 @@ jobs:
           PYKEYS
               done
             done
+            exit 0
+          fi
+
+          # 'sistema': la macchina invece di un plugin. Serve a progettare altri server sullo
+          # stesso VPS (hub, proxy Velocity): risorse libere, porte in ascolto, firewall, servizi.
+          if [ "$PLUGIN" = "sistema" ]; then
+            echo "=== RISORSE ==="
+            nproc; free -h; df -h / "$BASE" 2>/dev/null
+            echo; echo "=== PROCESSI JAVA (memoria) ==="
+            ps -eo pid,rss,args --sort=-rss | grep -a '[j]ava' | cut -c1-220
+            echo; echo "=== PORTE TCP IN ASCOLTO ==="
+            ss -tln 2>/dev/null
+            echo; echo "=== FIREWALL (ufw, se leggibile senza password) ==="
+            sudo -n ufw status verbose 2>/dev/null || echo "(ufw non leggibile senza sudo)"
+            echo; echo "=== SERVIZIO magicadventure ==="
+            systemctl cat magicadventure.service 2>/dev/null || echo "(unit non trovata)"
+            echo; echo "=== ALTRE UNIT systemd personalizzate ==="
+            ls /etc/systemd/system/*.service 2>/dev/null
+            echo; echo "=== CARTELLE IN /home/ubuntu ==="
+            ls -la /home/ubuntu
+            echo; echo "=== JAVA INSTALLATI ==="
+            ls /usr/lib/jvm 2>/dev/null
+            echo; echo "=== server.properties (rete) ==="
+            grep -E '^(server-ip|server-port|online-mode|prevent-proxy-connections|network-compression-threshold|enforce-secure-profile|max-players)=' "$BASE/server.properties"
+            echo; echo "=== spigot.yml (bungeecord) ==="
+            grep -n 'bungeecord' "$BASE/spigot.yml"
+            echo; echo "=== paper-global.yml (proxies) ==="
+            sed -n '/^proxies:/,/^[a-z]/p' "$BASE/config/paper-global.yml" | grep -v -i 'secret'
+            echo; echo "=== TCPShield ==="
+            ls -la "$BASE/plugins/TCPShield" 2>/dev/null
+            [ -f "$BASE/plugins/TCPShield/config.yml" ] && grep -v '^[[:space:]]*#' "$BASE/plugins/TCPShield/config.yml" | grep -v '^[[:space:]]*$'
+            echo; echo "=== nginx: server_name ==="
+            grep -rh 'server_name' /etc/nginx/sites-enabled 2>/dev/null | sort -u
             exit 0
           fi
 
