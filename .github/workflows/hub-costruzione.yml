@@ -21,6 +21,11 @@ name: Hub - apri/chiudi per costruire (mondo vuoto + WorldEdit)
 #   toglie la regola del firewall, rimette server-ip=127.0.0.1 e riavvia l'hub. Il mondo, i
 #   plugin, la whitelist e gli op restano come sono. Va fatto PRIMA del passaggio a Velocity.
 #
+# azione=mondo-nuovo
+#   rigenera il mondo TOTALMENTE vuoto (nessun blocco, nemmeno sotto lo spawn) senza aprire niente:
+#   stopserverfast, il vecchio mondo in /home/ubuntu/.bak/hub-mondo-<data>/, riavvio, spawn in 0 64 0.
+#   Firewall, whitelist e porta non si toccano: con Velocity si entra con /server hub.
+#
 # Con Velocity collegato (dal 30/09) "apri" si rifiuta: l'hub si raggiunge solo dal proxy,
 # con /server hub. Resta utilizzabile "chiudi".
 #
@@ -31,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       azione:
-        description: "apri = accesso diretto per costruire, chiudi = di nuovo solo locale"
+        description: "apri = accesso diretto per costruire, chiudi = di nuovo solo locale, mondo-nuovo = rigenera il mondo vuoto (resta chiuso)"
         required: false
         default: "apri"
       giocatore:
@@ -132,6 +137,53 @@ jobs:
             sed -i "s/^server-ip=.*/server-ip=$1/" "$PROPS"
             grep -n '^server-ip=' "$PROPS"
           }
+
+          if [ "$AZIONE" = "mondo-nuovo" ]; then
+            echo "=== MONDO NUOVO, TOTALMENTE VUOTO (l'hub resta chiuso da fuori) ==="
+            # Il generatore del vuoto: flat con un solo strato d'aria, bioma the_void.
+            VOID_TYPE='level-type=minecraft\:flat'
+            VOID_GEN='generator-settings={"biome"\:"minecraft\:the_void","layers"\:[{"block"\:"minecraft\:air","height"\:1}]}'
+            mkdir -p /home/ubuntu/.bak/sistema; cp -a "$PROPS" "/home/ubuntu/.bak/sistema/hub-server.properties.bak-$ORA"
+            grep -qxF "$VOID_TYPE" "$PROPS" || { sed -i '/^level-type=/d' "$PROPS"; echo "$VOID_TYPE" >> "$PROPS"; echo "level-type rimesso a flat"; }
+            grep -qxF "$VOID_GEN" "$PROPS" || { sed -i '/^generator-settings=/d' "$PROPS"; echo "$VOID_GEN" >> "$PROPS"; echo "generator-settings rimesso al vuoto"; }
+            grep -nE '^(level-name|level-type|generator-settings|server-ip|server-port)=' "$PROPS"
+            # Stop con stopserverfast (regola del progetto), poi via lo screen prima che start.sh lo
+            # rilanci: il mondo si sposta a server spento.
+            if acceso; then
+              PID=$(screen -list | grep -oE '[0-9]+\.hub[[:space:]]' | grep -oE '^[0-9]+' | head -n1)
+              discendenti() { for c in $(pgrep -P "$1"); do echo "$c"; discendenti "$c"; done; }
+              java_vivo() { for p in $(discendenti "$PID"); do [ "$(cat /proc/$p/comm 2>/dev/null)" = java ] && return 0; done; return 1; }
+              console "stopserverfast"
+              for i in $(seq 1 300); do java_vivo || break; sleep 1; done
+              java_vivo && { echo "::error::l'hub non si e' fermato in 5 minuti: il mondo non l'ho toccato"; exit 1; }
+              screen -S hub -X quit 2>/dev/null || true
+              echo "hub fermato (stopserverfast)"
+            fi
+            NOME="$(grep -E '^level-name=' "$PROPS" | cut -d= -f2)"; NOME="${NOME:-world}"
+            DOVE="/home/ubuntu/.bak/hub-mondo-$ORA"; mkdir -p "$DOVE"
+            for d in "$NOME" "${NOME}_nether" "${NOME}_the_end"; do
+              [ -d "$HUB/$d" ] && mv "$HUB/$d" "$DOVE/" && echo "spostato $d in $DOVE (il vecchio mondo resta li')"
+            done
+            du -sh "$DOVE" 2>/dev/null
+            # Il servizio e' oneshot: stop (non trova niente da fermare) e start, cosi' riparte davvero.
+            sudo systemctl stop magix-hub.service 2>/dev/null || true
+            avvia
+            R=$(wc -l < "$LOG")
+            console "forceload add 0 0"
+            console "execute if block 0 -64 0 minecraft:air run say MONDO-VUOTO-SI"
+            console "execute unless block 0 -64 0 minecraft:air run say MONDO-VUOTO-NO"
+            console "execute if block 0 63 0 minecraft:air run say SPAWN-VUOTO-SI"
+            console "setworldspawn 0 64 0"
+            console "gamerule respawn_radius 0"
+            console "forceload remove 0 0"
+            sleep 2
+            echo "--- risposte della console ---"
+            tail -n +"$((R + 1))" "$LOG" | grep -vE 'UUID of player|logged in|joined the game' || true
+            tail -n +"$((R + 1))" "$LOG" | grep -q 'MONDO-VUOTO-NO' && echo "::warning::il mondo NON e' vuoto"
+            ls -la "$HUB"
+            ss -tln | grep -E ":$PORTA\b"
+            exit 0
+          fi
 
           if [ "$AZIONE" = "chiudi" ]; then
             echo "=== CHIUDI ==="

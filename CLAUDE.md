@@ -137,7 +137,8 @@ a CMI.
   persona sola (firewall sulla porta dell'hub solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
   dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
   `azione=chiudi` lo riporta solo su 127.0.0.1. Con Velocity collegato `apri` **si rifiuta**: l'hub
-  non si apre piu' da fuori.
+  non si apre piu' da fuori. `azione=mondo-nuovo` rigenera il mondo **totalmente vuoto** senza aprire niente
+  (stopserverfast, il vecchio mondo in `~/.bak/hub-mondo-<data>/`, spawn in 0 64 0).
 - Ogni server nuovo va anche in `website/vps/console/istanze.conf` (e in
   `/etc/magicadventure/istanze.conf` sul VPS): e' cosi' che compare nella console del sito.
 - **velocity** — il proxy, `/home/ubuntu/magicadventure/velocity`, screen `velocity`, servizio
