@@ -148,7 +148,7 @@ public final class AuthGate {
     /**
      * @return null se il giocatore puo' proseguire, altrimenti il motivo del rifiuto
      */
-    public String decide(UUID proposedUuid, String name, String ip,
+    public String decide(UUID proposedUuid, String name, String ip, boolean skinArrived,
                          PlayerLoginConnection conn, ProfileSetter prof) {
         try {
             java.time.LocalDateTime blocked = dao.blockedUntil(ip);
@@ -170,8 +170,12 @@ public final class AuthGate {
             // non ufficiale, con quella di uno sconosciuto che ha registrato questo nickname
             // sul servizio di skin del launcher. Le si passa anche l'UUID dell'account:
             // quando e' un UUID Mojang, la skin si chiede direttamente con quello.
+            //
+            // Dietro al proxy Velocity la skin arriva gia' messa (la decide MagixProxy con le
+            // stesse regole, e il modern forwarding la porta fin qui firmata): richiederla a
+            // Mojang sarebbe un secondo viaggio per la stessa risposta, a ogni cambio di server.
             String[] skin = null;
-            if (config.skinFromMojang) {
+            if (config.skinFromMojang && !skinArrived) {
                 MojangLookup.Found found = mojang.skinOf(uuid, name);
                 skin = found.skin();
                 if (found.failed()) {

@@ -140,8 +140,12 @@ a CMI.
   faction su `127.0.0.1:25567`, i backend con `proxies.velocity` in `paper-global.yml` e
   `network-compression-threshold=-1`, TCPShield tolto dai backend. Il dettaglio e' in testa a
   `server-velocity/velocity.toml`.
+- **MagixProxy** (`plugins-src/MagixProxy`) e' il plugin Velocity della rete: decide UUID e skin
+  all'ingresso con le stesse regole di MagixAuth (vedi il suo README). Un plugin con il file
+  `deploy.target` in `plugins-src/<Plugin>/` va dove dice lui (`faction`, `velocity`):
+  `deploy-plugin.yml` riavvia il faction solo se un jar e' andato nel faction.
 - **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
-  (UUID e skin decisi dal proxy, non dal backend), i lavori periodici sul DB del sito di
+  (UUID e skin decisi dal proxy: fatto con MagixProxy + MagixAuth 0.7.27), i lavori periodici sul DB del sito di
   MagixGuard/MagixWeb/MagixLanguage (devono girare su un solo server) e MagixPack (una sola
   porta del pacchetto risorse per macchina).
 

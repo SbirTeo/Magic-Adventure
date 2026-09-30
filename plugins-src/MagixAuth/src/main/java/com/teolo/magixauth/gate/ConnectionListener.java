@@ -55,7 +55,11 @@ public final class ConnectionListener implements Listener {
     public void alPreLogin(AsyncPlayerPreLoginEvent e) {
         String ip = e.getAddress() == null ? "" : e.getAddress().getHostAddress();
 
-        String refusal = gate.decide(e.getUniqueId(), e.getName(), ip, e.getConnection(), (uuid, skin) -> {
+        // Offline mode: il client non porta mai texture sue, quindi se ci sono le ha messe il
+        // proxy (MagixProxy), che ha gia' fatto la stessa ricerca su Mojang.
+        boolean skinArrived = e.getPlayerProfile().getProperties().stream()
+                .anyMatch(pp -> "textures".equals(pp.getName()));
+        String refusal = gate.decide(e.getUniqueId(), e.getName(), ip, skinArrived, e.getConnection(), (uuid, skin) -> {
             if (uuid == null && skin == null) {
                 return;
             }

@@ -157,6 +157,62 @@ jobs:
           PY
           }
 
+          # Ingresso simulato (handshake + login di un client 1.21.4, offline): stampa l'UUID che il
+          # proxy assegna, o il messaggio con cui rifiuta. Il giocatore non arriva mai su un server:
+          # dopo il login il proxy prova l'hub, che non accetta ancora il modern forwarding.
+          login_mc() {  # <nome>
+            python3 - "$1" <<'PY'
+          import socket, struct, sys, zlib, uuid
+          def vi(n):
+              n &= 0xffffffff; o = b""
+              while True:
+                  b = n & 0x7f; n >>= 7
+                  if n: o += bytes([b | 0x80])
+                  else: return o + bytes([b])
+          def vib(buf, i):
+              n = 0
+              for k in range(5):
+                  c = buf[i]; i += 1; n |= (c & 0x7f) << (7 * k)
+                  if not c & 0x80: return n, i
+          def rvi(s):
+              n = 0
+              for k in range(5):
+                  c = s.recv(1)
+                  if not c: raise EOFError("connessione chiusa")
+                  n |= (c[0] & 0x7f) << (7 * k)
+                  if not c[0] & 0x80: return n
+          def rd(s, n):
+              d = b""
+              while len(d) < n:
+                  c = s.recv(n - len(d))
+                  if not c: raise EOFError("connessione chiusa")
+                  d += c
+              return d
+          name = sys.argv[1]
+          try:
+              s = socket.create_connection(("127.0.0.1", 25577), timeout=15)
+              h = b"127.0.0.1"
+              hs = b"\x00" + vi(769) + vi(len(h)) + h + struct.pack(">H", 25577) + vi(2)
+              ls = b"\x00" + vi(len(name)) + name.encode() + uuid.uuid4().bytes
+              s.sendall(vi(len(hs)) + hs + vi(len(ls)) + ls)
+              comp = -1
+              while True:
+                  data = rd(s, rvi(s))
+                  if comp >= 0:
+                      dl, i = vib(data, 0); data = data[i:]
+                      if dl: data = zlib.decompress(data)
+                  pid, i = vib(data, 0)
+                  if pid == 0x03:
+                      comp, _ = vib(data, i); continue
+                  if pid == 0x00:
+                      l, j = vib(data, i); print(f"  {name}: RIFIUTATO -> {data[j:j+l].decode()[:200]}"); break
+                  if pid == 0x02:
+                      print(f"  {name}: entrato con UUID {uuid.UUID(bytes=data[i:i+16])}, skin firmata: {'si' if b'textures' in data else 'no'}"); break
+          except Exception as e:
+              print(f"  {name}: errore {type(e).__name__}: {e}")
+          PY
+          }
+
           righe_log() { [ -f "$VEL/logs/latest.log" ] && wc -l < "$VEL/logs/latest.log" || echo 0; }
           avvio_prova() {  # <titolo>
             echo; echo "--- avvio di prova: $1 ---"
@@ -250,6 +306,14 @@ jobs:
             [ -f "$VEL/forwarding.secret" ] && chmod 600 "$VEL/forwarding.secret" && echo "  forwarding.secret presente ($(wc -c < "$VEL/forwarding.secret") byte, non stampato)"
             echo "  ping al proxy (deve riportare la MOTD dell'hub):"; ping_mc 25577
             echo "  ping diretto all'hub (confronto):"; ping_mc 25566
+            echo "  MagixProxy (UUID e skin decisi dal proxy):"
+            grep -E 'magixproxy|MagixProxy' "$VEL/logs/latest.log" | grep -vE 'Hikari' | tail -n 6
+            ATTESO="$(php -r 'try { require "/var/www/magicadventure/includes/db.php";
+                $s = db()->prepare("SELECT mc_uuid FROM users WHERE mc_username = ? LIMIT 1"); $s->execute(["SbirTeo"]);
+                echo (string) $s->fetchColumn(); } catch (Throwable $e) { echo "?"; }' 2>/dev/null || true)"
+            echo "  UUID di SbirTeo nel database del sito: ${ATTESO:-(nessuno)}"
+            login_mc SbirTeo
+            login_mc "Prova$(date +%H%M%S)"
             spegni
           fi
 

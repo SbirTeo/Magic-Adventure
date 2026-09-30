@@ -1,0 +1,10 @@
+# ===========================================================================
+#  MagixProxy — i testi che un giocatore legge, arrivati dal proxy.
+#  Colori con & (come negli altri plugin Magix). Sul proxy non c'e' MagixLanguage:
+#  questi testi restano in italiano.
+# ===========================================================================
+
+login:
+  # Il database del sito non risponde: non si puo' sapere chi e' il giocatore, quindi
+  # si tiene fuori (meglio pochi minuti fuori che qualcuno dentro col nome di un altro).
+  kick-database: "&cIl server non riesce a verificare il tuo account in questo momento.\n&7Riprova tra qualche minuto."

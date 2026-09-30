@@ -213,6 +213,19 @@ public final class MagixAuth extends JavaPlugin {
                                 + "solo: **non va modificato a mano**, e cancellarlo non rompe niente — si "
                                 + "ricostruisce, ma torna il rischio del primo ingresso a freddo.")
 
+                .section("Con il proxy Velocity davanti (hub + faction)",
+                        "Quando i giocatori entrano da Velocity, **UUID e skin li decide il proxy** (plugin "
+                                + "MagixProxy), con le stesse regole di qui: l'UUID dell'account del sito se il nome "
+                                + "è registrato, altrimenti quello offline del nome, e la skin firmata di Mojang. "
+                                + "Il server riceve il profilo già giusto e non lo cambia; la skin non la richiede "
+                                + "di nuovo a Mojang, perché è già arrivata.",
+                        "La password si chiede **una volta sola**: fatto il login in un server, cambiando "
+                                + "server la sessione (stesso computer, stesso indirizzo) fa entrare senza "
+                                + "ridigitarla, finché dura (login.session_hours). "
+                                + "Il pulsante del sito «chiudi la sessione di gioco» lo raccoglie il server dove il "
+                                + "giocatore si trova in quel momento; se non è su nessun server, la richiesta si "
+                                + "butta dopo un paio di minuti (la sessione il sito l'ha già chiusa comunque).")
+
                 .subcommands("I comandi di amministrazione (/mauth)",
                         "/mauth info <nome>", "Stato di quell'account: se è registrato, quando è entrato l'ultima volta, se ha la verifica attiva.",
                         "/mauth setspawn", "Fissa il cancello di login dove sei: chi deve autenticarsi comparirà lì (utile se lo spawn è quello di CMI, diverso da /setworldspawn).",
@@ -328,10 +341,18 @@ public final class MagixAuth extends JavaPlugin {
         }
     }
 
+    /**
+     * Dopo quanto un "chiudi la sessione di gioco" che nessun server ha raccolto si butta: con
+     * Velocity ogni server raccoglie solo i biglietti di chi ha dentro (vedi AuthDao), e un
+     * giocatore non in partita da nessuna parte non deve lasciarne uno per sempre.
+     */
+    private static final int REVOCATION_ORPHAN_MINUTES = 2;
+
     /** Applica i "chiudi la sessione di gioco" chiesti dal sito. */
     private void collectRevocations() {
         try {
-            for (java.util.UUID uuid : dao.collectRevocations()) {
+            for (java.util.UUID uuid : dao.collectRevocations(
+                    u -> Bukkit.getPlayer(u) != null, REVOCATION_ORPHAN_MINUTES)) {
                 org.bukkit.entity.Player p = Bukkit.getPlayer(uuid);
                 if (p == null || !p.isOnline()) {
                     // Non e' in partita: la sessione l'abbiamo gia' cancellata, al prossimo
