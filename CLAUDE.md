@@ -111,14 +111,16 @@ CMI `stopserverfast`: l'automazione **non** deve aggiungere un proprio preavviso
 altrimenti i giocatori vedono due countdown sovrapposti. Manda solo `stopserverfast` e lascia fare
 a CMI.
 
-## Server sul VPS: faction, hub e velocity (proxy preparato, non collegato)
+## Server sul VPS: velocity davanti, faction e hub dietro (collegato dal 30/09)
 
 - **faction** — il server fazioni: `/home/ubuntu/magicadventure/faction` (fino al 30/09 stava direttamente in `magicadventure/`: i workflow accettano ancora entrambe le cartelle, e `magicadventure/plugins` e `logs` sono link verso `faction/`), screen `faction` (fino al 30/09
   si chiamava `mc`: i workflow accettano ancora entrambi i nomi), servizio
-  `magicadventure.service`, porta 25565 raggiungibile solo da TCPShield (firewall ufw), heap 7G.
+  `magicadventure.service`, porta **25701 solo su 127.0.0.1** (ci si arriva solo da Velocity; fino
+  al 30/09 era sulla 25565 pubblica), heap 7G. E' il **server principale**: chi entra finisce qui.
   Mirror nel repo: `server/`.
 - **hub** — `/home/ubuntu/magicadventure/hub`, screen `hub`, servizio `magix-hub.service`, porta 25600 **solo su
-  127.0.0.1** (nessun giocatore ci arriva finche' non c'e' Velocity davanti), heap 1G, mondo
+  127.0.0.1**, whitelist spenta: ci si arriva **solo** con `/server hub` dal proxy (cioe' solo il
+  gruppo admin, vedi LuckPerms), heap 1G, mondo
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
   `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, ProtocolLib, CMI,
@@ -128,23 +130,26 @@ a CMI.
   con `stopserverfast` (c'e' CMI). MagixPack dell'hub serve il suo pacchetto sulla porta **8444**
   (8443 e' del faction); texture e menu dell'hub: `overrides-hub/` + `deploy-plugin-override.yml`
   con `server: hub`.
-  Per **costruirlo** prima di Velocity c'e' `hub-costruzione.yml`: `azione=apri` lo apre a UNA
+  Prima di Velocity per **costruirlo** c'era `hub-costruzione.yml`: `azione=apri` lo apriva a UNA
   persona sola (firewall sulla porta dell'hub solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
   dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
-  `azione=chiudi` lo riporta solo su 127.0.0.1. **Va chiuso prima del passaggio a Velocity.**
+  `azione=chiudi` lo riporta solo su 127.0.0.1. Con Velocity collegato `apri` **si rifiuta**: l'hub
+  non si apre piu' da fuori.
 - Ogni server nuovo va anche in `website/vps/console/istanze.conf` (e in
   `/etc/magicadventure/istanze.conf` sul VPS): e' cosi' che compare nella console del sito.
 - **velocity** — il proxy, `/home/ubuntu/magicadventure/velocity`, screen `velocity`, servizio
-  `magix-velocity.service` **installato ma disabilitato** (non parte con la macchina), heap 512M.
-  Per ora ascolta solo su `127.0.0.1:25577`. Sorgente nel repo: `server-velocity/`
-  (`velocity.toml` si cambia li', mai a mano sul VPS: lo reinstalla con backup il workflow
-  idempotente `predisponi-velocity.yml`, che fa anche un avvio di prova solo locale e lo rispegne).
+  `magix-velocity.service` **abilitato** (parte con la macchina), heap 512M. Ascolta su
+  **`0.0.0.0:25565`**, la porta pubblica, che il firewall apre solo agli IP di TCPShield. Sorgente
+  nel repo: `server-velocity/` (`velocity.toml` si cambia li', mai a mano sul VPS: lo reinstalla
+  con backup `predisponi-velocity.yml`, che col proxy collegato installa solo i file, senza prove
+  ne' spegnimenti). Il deploy dei plugin **non** riavvia il proxy (butterebbe fuori tutta la rete).
   Offline mode (autentica MagixAuth), modern forwarding, TCPShield sul proxy, MOTD scritta da
   MagixProxy (stesso motd.yml di MagixEssentials), `log-command-executions` **sempre false** (loggherebbe le
   password di /login). `forwarding.secret` lo genera Velocity e resta **solo sul VPS**.
-  Il giorno del passaggio: Velocity su `0.0.0.0:25565` (TCPShield e firewall non cambiano), il
-  faction su `127.0.0.1:25701`, i backend con `proxies.velocity` in `paper-global.yml` e
-  `network-compression-threshold=-1`, TCPShield tolto dai backend. Il dettaglio e' in testa a
+  Il passaggio l'ha fatto `passaggio-velocity.yml` (`controlla` / `attiva` / `annulla`, backup in
+  `~/.bak/passaggio-velocity/<data>/`): faction su `127.0.0.1:25701`, backend con `proxies.velocity`
+  in `paper-global.yml` e `network-compression-threshold=-1`, TCPShield tolto dai backend (e'
+  nel backup). `annulla` rimette tutto com'era prima. Dettaglio in testa a
   `server-velocity/velocity.toml`.
 - **MagixProxy** (`plugins-src/MagixProxy`) e' il plugin Velocity della rete: decide UUID e skin
   all'ingresso con le stesse regole di MagixAuth (vedi il suo README), e tiene il giro della rete:
@@ -187,10 +192,9 @@ a CMI.
   `%network_<server>_<placeholder>%` (es. sull'hub `%network_faction_magixfactions_faction%`).
   `%magixweb_namecolor%` ha tenuto il vecchio nome apposta (e' nei formati di chat e nametag).
   La rinomina sul VPS l'ha fatta `deploy-plugin.yml` col file `replaces` (vedi li').
-- **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
-  (UUID e skin decisi dal proxy: fatto con MagixProxy + MagixAuth 0.7.27), MagixGuard (fatto,
-  vedi sopra), MagixBridge (fatto, vedi sopra) e MagixPack (una sola porta del pacchetto risorse
-  per macchina: fatto, l'hub usa la 8444).
+- **Velocity e' acceso dal 30/09.** I plugin adattati prima del passaggio: MagixAuth (UUID e skin
+  decisi dal proxy: MagixProxy + MagixAuth 0.7.27), MagixGuard, MagixBridge e MagixPack (l'hub
+  usa la porta 8444). Il cambio di pacchetto risorse fra faction e hub va ancora provato in gioco.
 
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
