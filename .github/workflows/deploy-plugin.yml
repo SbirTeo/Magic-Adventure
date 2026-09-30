@@ -22,10 +22,13 @@ name: Deploy plugin sul server Minecraft
 # DOVE va un plugin: di serie sul server fazioni. Se in plugins-src/<Plugin>/ c'e' il file
 # deploy.target, dice lui dove (una o piu' parole, separate da spazi):
 #   faction   -> magicadventure/faction/plugins/ (e riavvio del faction, come sempre)
+#   hub       -> magicadventure/hub/plugins/ (es. MagixAuth, MagixLanguage: "faction hub").
+#                L'hub non ha CMI: si ferma con "stop" nella sua screen e start.sh lo rilancia
+#                da solo (come il riavvio notturno). Nessun countdown: e' la sala d'attesa.
 #   velocity  -> magicadventure/velocity/plugins/ (es. MagixProxy: un plugin Velocity sul
 #                faction non si caricherebbe). Il proxy NON viene riavviato da qui: finche' non
 #                e' collegato e' spento, e da collegato un riavvio butta fuori tutta la rete.
-# Il faction si riavvia SOLO se almeno un jar e' andato nel faction.
+# Ogni server si riavvia SOLO se ha ricevuto almeno un jar.
 
 on:
   push:
@@ -145,7 +148,7 @@ jobs:
             TARGETS="$( { cat "plugins-src/$P/deploy.target" 2>/dev/null || true; } | tr -s ' \n' ' ' | sed 's/^ *//; s/ *$//')"
             TARGETS="${TARGETS:-faction}"
             for T in $TARGETS; do
-              case "$T" in faction|velocity) ;; *) echo "::error::$P: destinazione '$T' sconosciuta in deploy.target"; exit 1 ;; esac
+              case "$T" in faction|hub|velocity) ;; *) echo "::error::$P: destinazione '$T' sconosciuta in deploy.target"; exit 1 ;; esac
               printf '%s\t%s\t%s\n' "$P" "$(basename "$JAR")" "$T" >> "$RUNNER_TEMP/manifest"
             done
             echo "$P -> $(basename "$JAR") ($TARGETS)"
@@ -173,6 +176,7 @@ jobs:
           dir_di() {  # destinazione -> cartella plugins sul VPS
             case "$1" in
               faction)  echo "$FAZ/plugins" ;;
+              hub)      echo "/home/ubuntu/magicadventure/hub/plugins" ;;
               velocity) echo "/home/ubuntu/magicadventure/velocity/plugins" ;;
             esac
           }
@@ -209,6 +213,14 @@ jobs:
               echo "::warning::Velocity e' acceso: i plugin nuovi del proxy valgono dal suo prossimo riavvio (non lo riavvio da qui)."
             else
               echo "Velocity e' spento: i plugin nuovi del proxy valgono dal suo prossimo avvio."
+            fi
+          fi
+          if cut -f3 "$RUNNER_TEMP/manifest" | grep -qx hub; then
+            if $SSH "screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'" </dev/null; then
+              $SSH "screen -S hub -p 0 -X stuff \"\$(printf 'stop\r')\"" </dev/null
+              echo "Hub: mandato 'stop', start.sh lo rilancia con i jar nuovi."
+            else
+              echo "Hub spento: i jar nuovi valgono dal suo prossimo avvio."
             fi
           fi
           if ! cut -f3 "$RUNNER_TEMP/manifest" | grep -qx faction; then
