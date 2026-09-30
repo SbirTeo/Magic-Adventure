@@ -122,10 +122,12 @@ a CMI.
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
   `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, ProtocolLib, CMI,
-  MagixAuth, MagixLanguage, MagixGuard, MagixEssentials, con i config copiati dal faction)
-  installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin Magix con `deploy.target`
-  = `faction hub` arrivano dal deploy automatico (MagixEssentials: il suo `deploy.target` va aggiunto
-  col suo prossimo rilascio). Il deploy riavvia l'hub con `stopserverfast` (c'e' CMI).
+  MagixAuth, MagixLanguage, MagixGuard, MagixEssentials, MagixMenus, MagixPack, con i config
+  copiati dal faction) installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin
+  Magix con `deploy.target` = `faction hub` arrivano dal deploy automatico. Il deploy riavvia l'hub
+  con `stopserverfast` (c'e' CMI). MagixPack dell'hub serve il suo pacchetto sulla porta **8444**
+  (8443 e' del faction); texture e menu dell'hub: `overrides-hub/` + `deploy-plugin-override.yml`
+  con `server: hub`.
   Per **costruirlo** prima di Velocity c'e' `hub-costruzione.yml`: `azione=apri` lo apre a UNA
   persona sola (firewall sulla porta dell'hub solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
   dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
@@ -149,6 +151,9 @@ a CMI.
   **il server principale per ora e' il faction** (`network.main_server`, e `try = ["faction"]` in
   velocity.toml): chi entra finisce li' e li' fa il login; hub e modalita' future si aprono solo
   dopo il login (sessione MagixAuth valida). Nessun ripiego sull'hub se il faction e' giu'.
+  Chi esce da un server che NON e' il principale (chiusura, riavvio, kick) viene riportato sul
+  principale (`network.fallback_to_main`): oggi hub -> faction, domani (principale = hub) un riavvio
+  del faction porta tutti sull'hub.
   La **MOTD** dal proxy la scrive MagixProxy leggendo il `motd.yml` di MagixEssentials del faction
   (si modifica li', vale per entrambe le strade); `ping-passthrough` spento. Un plugin con il file
   `deploy.target` in `plugins-src/<Plugin>/` va dove dice lui (`faction`, `velocity`):

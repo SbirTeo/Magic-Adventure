@@ -4,6 +4,8 @@ import com.teolo.magixproxy.ProxyConfig;
 import com.teolo.magixproxy.db.Database;
 import com.velocitypowered.api.event.EventTask;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.PostOrder;
+import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -95,6 +97,36 @@ public final class ServerGuard {
             log.info("MagixProxy: {} ha chiesto {} senza aver fatto il login: resta dov'e'.",
                     player.getUsername(), wanted);
         }
+    }
+
+    /**
+     * Thrown out of a server that is not the main one (it is shutting down, restarting, or it kicked
+     * him): the player goes to the main server instead of being disconnected from the network.
+     *
+     * Today that means hub -> faction; the day the hub is the main server, a faction restart sends
+     * everyone to the hub. Out of the main server itself the player leaves the network (there is
+     * nowhere else to walk from), and a failed attempt to enter another server leaves him where
+     * he already is. A ban issued on the server he leaves still holds: the main server refuses him
+     * at its own door (MagixGuard checks bans at every login).
+     */
+    @Subscribe(order = PostOrder.LATE)
+    public void onKickedFromServer(KickedFromServerEvent event) {
+        if (!config.fallbackToMain || event.kickedDuringServerConnect()) {
+            return;
+        }
+        String from = event.getServer().getServerInfo().getName();
+        if (from.equalsIgnoreCase(config.mainServer)) {
+            return;
+        }
+        Optional<RegisteredServer> main = proxy.getServer(config.mainServer);
+        if (main.isEmpty()) {
+            return;
+        }
+        String message = config.message("network.moved-to-main").replace("{server}", from);
+        event.setResult(KickedFromServerEvent.RedirectPlayer.create(main.get(),
+                LegacyComponentSerializer.legacyAmpersand().deserialize(message)));
+        log.info("MagixProxy: {} e' uscito da {}: lo porto sul server principale {}.",
+                event.getPlayer().getUsername(), from, config.mainServer);
     }
 
     /** A valid MagixAuth session for this player, from the address he is connected from now. */

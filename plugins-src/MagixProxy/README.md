@@ -40,6 +40,14 @@ password. Prima del login `/server`, i menu o qualunque altro cambio di server l
 con `network.login-first`. MagixAuth resta comunque su ogni server: questa e' la regola che tiene
 il giro della rete, non l'unica serratura.
 
+## Chi esce da un altro server torna al principale (0.4.0)
+
+`network.fallback_to_main: true`: chi viene fatto uscire da un server che **non** e' il principale
+(si chiude, si riavvia, lo butta fuori) viene portato sul principale con `network.moved-to-main`,
+invece di essere scollegato. Oggi hub -> faction; il giorno che il principale sara' l'hub
+(`network.main_server: hub`), un riavvio del faction porta tutti sull'hub. Dal principale si esce
+dalla rete. Un ban dato sul server che lascia resta valido: il principale lo ferma all'ingresso.
+
 ## La MOTD della lista server (0.3.0)
 
 Con Velocity davanti al ping risponde il proxy: il server dietro non lo vede nemmeno. MagixProxy

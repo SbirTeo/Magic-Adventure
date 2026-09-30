@@ -14,3 +14,5 @@ network:
   login-first: "&cPrima fai il login qui (&f/login&c), poi potrai cambiare server."
   # Il server principale indicato in config.yml non esiste in velocity.toml (errore di configurazione).
   main-missing: "&cIl server non e' raggiungibile in questo momento.\n&7Riprova tra qualche minuto."
+  # Il server {server} (non il principale) si e' chiuso o l'ha fatto uscire: e' stato portato sul principale.
+  moved-to-main: "&eIl server &f{server}&e non e' piu' disponibile: ti ho riportato nel server principale."

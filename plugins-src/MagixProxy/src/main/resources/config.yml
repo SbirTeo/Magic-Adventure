@@ -40,6 +40,11 @@ network:
   # con MagixAuth (sessione valida nel database, stesso indirizzo). Prima, "/server" e i menu
   # lo lasciano dov'e'. MagixAuth c'e' comunque su ogni server: questo lo tiene sul principale.
   others_require_login: true
+  # true = chi esce da un server che NON e' il principale (si chiude, si riavvia, lo butta fuori)
+  # viene portato sul principale invece di essere scollegato dalla rete. Oggi: hub -> faction; il
+  # giorno che il principale sara' l'hub, un riavvio del faction porta tutti sull'hub. Dal
+  # principale, invece, si esce dalla rete (non c'e' un altro posto da cui ripartire).
+  fallback_to_main: true
 
 motd:
   # La MOTD della lista server la scrive il proxy (al ping risponde lui, il server dietro non lo

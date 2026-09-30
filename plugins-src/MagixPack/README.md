@@ -412,3 +412,11 @@ un pezzo unico. Il font lascia 1 pixel vuoto dopo ogni carattere; un `-1` dopo o
   carica (lo riceve comunque). Salvaguardia per non restare chiusi fuori dal proprio server.
 - `magixpack.item.give` (default op) — `/mpack item give` e `/mpack item list`.
 - `magixpack.glyph.list` (default op) — `/mpack glyph list` e `/mpack glyph show`.
+
+## Su piu' server (faction, hub)
+
+MagixPack gira su ogni server che ha contenuti da mostrare, ciascuno col **suo** pacchetto: il
+faction sulla porta 8443, l'hub sulla **8444** (due server HTTP sulla stessa porta non stanno; la
+regola ufw la mette `hub-network-plugins.yml`). Cambiando server il pacchetto viene sostituito, non
+aggiunto (`setResourcePack` toglie quelli di prima). Le texture a mano dell'hub stanno in
+`overrides-hub/` nel repo e si portano con `deploy-plugin-override.yml`, `server: hub`.

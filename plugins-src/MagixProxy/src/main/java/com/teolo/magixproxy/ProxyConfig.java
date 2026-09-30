@@ -32,6 +32,7 @@ public final class ProxyConfig {
 
     public final String mainServer;
     public final boolean othersRequireLogin;
+    public final boolean fallbackToMain;
 
     public final boolean motdEnabled;
     public final String motdFile;
@@ -52,6 +53,7 @@ public final class ProxyConfig {
         this.skinCacheMinutes = number(cfg, defCfg, "premium.skin_cache_minutes");
         this.mainServer = string(cfg, defCfg, "network.main_server").trim();
         this.othersRequireLogin = Boolean.parseBoolean(string(cfg, defCfg, "network.others_require_login"));
+        this.fallbackToMain = Boolean.parseBoolean(string(cfg, defCfg, "network.fallback_to_main"));
         this.motdEnabled = Boolean.parseBoolean(string(cfg, defCfg, "motd.enabled"));
         this.motdFile = string(cfg, defCfg, "motd.shared_with").trim();
         this.motdDefaultIcon = string(cfg, defCfg, "motd.default_icon").trim();

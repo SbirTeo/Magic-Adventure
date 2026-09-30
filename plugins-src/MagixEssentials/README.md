@@ -94,6 +94,14 @@ giocatori). Si entra lo stesso, ma spaventa.
 
 ### Quando davanti ci sara' Velocity
 
+**Fatto (30/09):** la MOTD dal proxy la scrive `MagixProxy` (0.3.0), che legge **questo stesso
+`motd.yml`** del faction e lo compone con le copie di `MotdText` e `MotdRotation` (vedi il suo
+README). Si continua a modificare qui: vale sia per chi entra diretto sia per chi passa dal proxy.
+MagixEssentials e' anche sull'hub (name tag, completamento dei comandi), con config suoi.
+Sotto, il ragionamento di allora.
+
+#### Il ragionamento
+
 La MOTD la scrive **chi risponde al ping**. Oggi risponde il server, perche' il client ci parla
 diretto. Con un proxy **Velocity** davanti, al ping risponde il proxy: il server dietro non lo vede
 nemmeno, e un plugin del server non puo' farci niente. Non e' un limite di questo modulo, e' come

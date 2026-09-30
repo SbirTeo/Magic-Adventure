@@ -29,7 +29,7 @@ import java.nio.file.Path;
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.3.0",
+        version = "0.4.0",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
         authors = {"teolo"}
@@ -87,9 +87,10 @@ public final class MagixProxy {
                     + "nessuno potra' entrare finche' non si corregge.", config.mainServer);
         }
         log.info("MagixProxy: attivo (UUID e skin decisi dal proxy, skin da Mojang {}; server principale {}, "
-                        + "altri server {}).",
+                        + "altri server {}, uscendo da un altro server si torna al principale: {}).",
                 config.skinFromMojang ? "accesa" : "spenta", config.mainServer,
-                config.othersRequireLogin ? "solo dopo il login" : "liberi");
+                config.othersRequireLogin ? "solo dopo il login" : "liberi",
+                config.fallbackToMain ? "si'" : "no");
     }
 
     @Subscribe

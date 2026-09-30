@@ -28,7 +28,7 @@ storage:
     # faction...) il database dev'essere lo STESSO per tutti: e' cosi' che gli account si incrociano.
     import-from-sqlite: true
 
-# ------------------------------ RETE ------------------------------
+# ------------------------------ NETWORK ------------------------------
 # Con piu' server dietro a Velocity (faction, hub...) MagixGuard gira su ognuno, con lo stesso
 # database e lo stesso privacy.pepper (senza, gli IP dei due server non si riconoscerebbero).
 network:
