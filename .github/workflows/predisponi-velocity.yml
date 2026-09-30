@@ -304,9 +304,8 @@ jobs:
             free -h | head -n2
             avvio_prova "a) senza TCPShield"
             [ -f "$VEL/forwarding.secret" ] && chmod 600 "$VEL/forwarding.secret" && echo "  forwarding.secret presente ($(wc -c < "$VEL/forwarding.secret") byte, non stampato)"
-            # La MOTD e' quella del server principale (faction). Prima del passaggio il faction non
-            # ascolta ancora su 25701, quindi qui risponde la MOTD di riserva di Velocity.
-            echo "  ping al proxy (MOTD del faction, o quella di riserva di Velocity prima del passaggio):"; ping_mc 25577
+            # La MOTD la scrive MagixProxy leggendo il motd.yml di MagixEssentials del faction.
+            echo "  ping al proxy (deve riportare la MOTD di MagixEssentials, con l'icona):"; ping_mc 25577
             echo "  ping diretto all'hub (confronto):"; ping_mc 25600
             echo "  MagixProxy (UUID e skin decisi dal proxy):"
             grep -E 'magixproxy|MagixProxy' "$VEL/logs/latest.log" | grep -vE 'Hikari' | tail -n 6

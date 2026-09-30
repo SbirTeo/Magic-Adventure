@@ -3,6 +3,7 @@ package com.teolo.magixproxy;
 import com.google.inject.Inject;
 import com.teolo.magixproxy.db.AccountDao;
 import com.teolo.magixproxy.db.Database;
+import com.teolo.magixproxy.motd.MotdListener;
 import com.teolo.magixproxy.network.ServerGuard;
 import com.teolo.magixproxy.profile.MojangLookup;
 import com.teolo.magixproxy.profile.ProfileListener;
@@ -22,12 +23,13 @@ import java.nio.file.Path;
  * It decides, once and at the proxy door, the UUID and the skin a player enters with, with the
  * same rules MagixAuth applies on the servers: the proxy and every server behind it must agree
  * on the UUID (see ProfileListener). And it keeps the network walked from the main server: first
- * entry there, other servers only after the MagixAuth login (see ServerGuard).
+ * entry there, other servers only after the MagixAuth login (see ServerGuard). And it answers the
+ * server-list ping with the MagixEssentials MOTD (see motd/MotdListener).
  */
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.2.0",
+        version = "0.3.0",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
         authors = {"teolo"}
@@ -75,6 +77,11 @@ public final class MagixProxy {
         proxy.getEventManager().register(this,
                 new ProfileListener(config, new AccountDao(database), mojang, log));
         proxy.getEventManager().register(this, new ServerGuard(proxy, config, database, log));
+        if (config.motdEnabled && !config.motdFile.isEmpty()) {
+            proxy.getEventManager().register(this, new MotdListener(proxy, log,
+                    Path.of(config.motdFile).toAbsolutePath().normalize(),
+                    config.motdDefaultIcon.isEmpty() ? null : Path.of(config.motdDefaultIcon).toAbsolutePath().normalize()));
+        }
         if (proxy.getServer(config.mainServer).isEmpty()) {
             log.error("MagixProxy: network.main_server \"{}\" non e' fra i [servers] di velocity.toml: "
                     + "nessuno potra' entrare finche' non si corregge.", config.mainServer);

@@ -40,3 +40,14 @@ network:
   # con MagixAuth (sessione valida nel database, stesso indirizzo). Prima, "/server" e i menu
   # lo lasciano dov'e'. MagixAuth c'e' comunque su ogni server: questo lo tiene sul principale.
   others_require_login: true
+
+motd:
+  # La MOTD della lista server la scrive il proxy (al ping risponde lui, il server dietro non lo
+  # vede). E' la STESSA di MagixEssentials: stesso file, stesse regole, stesse classi. Si modifica
+  # li' (plugins/MagixEssentials/motd.yml del faction) e vale da sola al ping successivo.
+  enabled: true
+  # Il motd.yml da leggere, relativo alla cartella di Velocity. Le icone di icons.files si cercano
+  # nella stessa cartella del file.
+  shared_with: "../faction/plugins/MagixEssentials/motd.yml"
+  # L'icona quando motd.yml non ne ha (icons.enabled: false): quella di sempre del faction.
+  default_icon: "../faction/server-icon.png"

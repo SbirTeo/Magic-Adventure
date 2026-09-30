@@ -40,6 +40,17 @@ password. Prima del login `/server`, i menu o qualunque altro cambio di server l
 con `network.login-first`. MagixAuth resta comunque su ogni server: questa e' la regola che tiene
 il giro della rete, non l'unica serratura.
 
+## La MOTD della lista server (0.3.0)
+
+Con Velocity davanti al ping risponde il proxy: il server dietro non lo vede nemmeno. MagixProxy
+risponde con la **stessa MOTD di MagixEssentials**: legge lo stesso `motd.yml`
+(`motd.shared_with`, di serie quello del faction) e la compone con le stesse classi (`motd/MotdText`
+e `motd/MotdRotation` sono **copie** di quelle di MagixEssentials: una correzione a una va portata
+anche nell'altra). Tendina, "posto libero", versione e icone compresi; il conto dei giocatori e'
+quello di tutta la rete. Il file si rilegge da solo quando cambia: la modifica si vede al ping
+dopo. Senza icone in `motd.yml` si usa `motd.default_icon` (il `server-icon.png` del faction).
+Il `ping-passthrough` di velocity.toml e' spento: non serve.
+
 ## Configurazione
 
 - `config.yml` — `database.shared_with` (di serie `../faction/plugins/MagixAuth/config.yml`,

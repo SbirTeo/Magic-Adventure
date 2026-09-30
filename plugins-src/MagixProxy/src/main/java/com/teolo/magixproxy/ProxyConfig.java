@@ -33,6 +33,10 @@ public final class ProxyConfig {
     public final String mainServer;
     public final boolean othersRequireLogin;
 
+    public final boolean motdEnabled;
+    public final String motdFile;
+    public final String motdDefaultIcon;
+
     private final Map<String, Object> messages;
     private final Map<String, Object> defaultMessages;
 
@@ -48,6 +52,9 @@ public final class ProxyConfig {
         this.skinCacheMinutes = number(cfg, defCfg, "premium.skin_cache_minutes");
         this.mainServer = string(cfg, defCfg, "network.main_server").trim();
         this.othersRequireLogin = Boolean.parseBoolean(string(cfg, defCfg, "network.others_require_login"));
+        this.motdEnabled = Boolean.parseBoolean(string(cfg, defCfg, "motd.enabled"));
+        this.motdFile = string(cfg, defCfg, "motd.shared_with").trim();
+        this.motdDefaultIcon = string(cfg, defCfg, "motd.default_icon").trim();
         this.messages = messages;
         this.defaultMessages = defaultMessages;
     }

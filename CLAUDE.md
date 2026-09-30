@@ -136,8 +136,8 @@ a CMI.
   Per ora ascolta solo su `127.0.0.1:25577`. Sorgente nel repo: `server-velocity/`
   (`velocity.toml` si cambia li', mai a mano sul VPS: lo reinstalla con backup il workflow
   idempotente `predisponi-velocity.yml`, che fa anche un avvio di prova solo locale e lo rispegne).
-  Offline mode (autentica MagixAuth), modern forwarding, TCPShield sul proxy, MOTD e icona presi
-  dal backend (ping-passthrough), `log-command-executions` **sempre false** (loggherebbe le
+  Offline mode (autentica MagixAuth), modern forwarding, TCPShield sul proxy, MOTD scritta da
+  MagixProxy (stesso motd.yml di MagixEssentials), `log-command-executions` **sempre false** (loggherebbe le
   password di /login). `forwarding.secret` lo genera Velocity e resta **solo sul VPS**.
   Il giorno del passaggio: Velocity su `0.0.0.0:25565` (TCPShield e firewall non cambiano), il
   faction su `127.0.0.1:25701`, i backend con `proxies.velocity` in `paper-global.yml` e
@@ -147,7 +147,9 @@ a CMI.
   all'ingresso con le stesse regole di MagixAuth (vedi il suo README), e tiene il giro della rete:
   **il server principale per ora e' il faction** (`network.main_server`, e `try = ["faction"]` in
   velocity.toml): chi entra finisce li' e li' fa il login; hub e modalita' future si aprono solo
-  dopo il login (sessione MagixAuth valida). Nessun ripiego sull'hub se il faction e' giu'. Un plugin con il file
+  dopo il login (sessione MagixAuth valida). Nessun ripiego sull'hub se il faction e' giu'.
+  La **MOTD** dal proxy la scrive MagixProxy leggendo il `motd.yml` di MagixEssentials del faction
+  (si modifica li', vale per entrambe le strade); `ping-passthrough` spento. Un plugin con il file
   `deploy.target` in `plugins-src/<Plugin>/` va dove dice lui (`faction`, `velocity`):
   `deploy-plugin.yml` riavvia il faction solo se un jar e' andato nel faction.
 - **LuckPerms e' condiviso** (dal 30/09): storage `mariadb` sul database del sito (tabelle

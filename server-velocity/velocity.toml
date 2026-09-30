@@ -34,8 +34,9 @@ motd = "<gradient:#f7b733:#fc4a1a><bold>MagicAdventure</bold></gradient>"
 
 # What should we display for the maximum number of players? (Velocity does not support a cap
 # on the number of players online.)
-# MAGICADVENTURE: come max-players del faction (server/server.properties).
-show-max-players = 20
+# MAGICADVENTURE: come max-players del faction sul VPS (100). La MOTD di MagixProxy lo usa per
+# {max}, salvo player-count.max / extra nel motd.yml di MagixEssentials.
+show-max-players = 100
 
 # Should we authenticate players with Mojang? By default, this is on.
 # MAGICADVENTURE: no. Il server e' offline-mode: l'autenticazione la fa MagixAuth (/login).
@@ -92,22 +93,19 @@ sample-players-in-ping = false
 # MAGICADVENTURE: si', la diagnostica (sessioni per IP di MagixAuth, sanzioni) li usa.
 enable-player-address-logging = true
 
-# MAGICADVENTURE: la MOTD la scrive MagixEssentials sul server dietro; Velocity ne copia testo
-# e icona (description, favicon). Il conto dei giocatori resta quello del proxy, cioe' di TUTTA
-# la rete (players = false): quello di un solo server dietro sarebbe sbagliato.
-# Il server interrogato e' il primo di "try" che risponde: oggi il faction, quindi la MOTD e'
-# quella che si vede gia' adesso. Quando serviranno anche la tendina e
-# il "posto libero" di MagixEssentials, la strada e' un listener Velocity (README di
-# MagixEssentials, "Quando davanti ci sara' Velocity").
+# MAGICADVENTURE: niente passthrough. Al ping risponde MagixProxy (motd/MotdListener) con la MOTD
+# di MagixEssentials: stesso motd.yml (quello del faction), stesse regole, tendina e "posto libero"
+# compresi, e il conto dei giocatori di tutta la rete. Il passthrough interrogherebbe il faction a
+# ogni ping per un testo che poi MagixProxy riscrive comunque.
 [ping-passthrough]
 # Should Velocity pass the version number from the backend server when responding to server list ping requests?
 version = false
 # Should Velocity pass the player count from the backend server when responding to server list ping requests?
 players = false
 # Should Velocity pass the description from the backend server when responding to server list ping requests?
-description = true
+description = false
 # Should Velocity pass the favicon (also known as the server icon) from the backend server when responding to server list ping requests?
-favicon = true
+favicon = false
 # Should Velocity pass the mod list from the backend server when responding to server list ping requests?
 modinfo = false
 
