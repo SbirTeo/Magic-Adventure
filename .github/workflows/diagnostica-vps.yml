@@ -37,6 +37,10 @@ on:
         description: "Quanti file .log.gz vecchi guardare (i riavvii ravvicinati ne consumano in fretta: alza questo numero per cercare piu' indietro nel tempo)"
         required: false
         default: "8"
+      server:
+        description: "Quale server leggere: faction (di serie) o hub (cartella, log e config dei plugin dell'hub)"
+        required: false
+        default: "faction"
 
 concurrency:
   group: diagnostica-vps
@@ -72,6 +76,7 @@ jobs:
           IN_RIGHE: ${{ inputs.righe }}
           IN_STORICO: ${{ inputs.storico }}
           IN_QUANTI_VECCHI: ${{ inputs.quanti_vecchi }}
+          IN_SERVER: ${{ inputs.server }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
@@ -79,13 +84,15 @@ jobs:
           FILE_B64="$(printf '%s' "${IN_FILE:-}" | base64 -w0)"
           GREP_B64="$(printf '%s' "${IN_GREP:-}" | base64 -w0)"
           ssh -i "$KEY" -o StrictHostKeyChecking=yes "$DEST" \
-            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' QUANTI_VECCHI='${IN_QUANTI_VECCHI:-8}' bash -s" <<'REMOTE'
+            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' QUANTI_VECCHI='${IN_QUANTI_VECCHI:-8}' SERVER='${IN_SERVER:-faction}' bash -s" <<'REMOTE'
           set -uo pipefail
           PLUGIN="$(printf '%s' "$PLUGIN_B64" | base64 -d)"
           FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
           CERCA="$(printf '%s' "$GREP_B64" | base64 -d)"
           [ -n "$CERCA" ] || CERCA="$PLUGIN"
           BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
+          [ "${SERVER:-faction}" = "hub" ] && BASE=/home/ubuntu/magicadventure/hub
+          echo "server letto: ${SERVER:-faction} ($BASE)"
           LOG="$BASE/logs/latest.log"
 
           echo "=== SERVER ==="
@@ -94,6 +101,10 @@ jobs:
           java -version 2>&1 | head -n1
           SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
           if screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then echo "screen $SCR: attivo"; else echo "screen fazioni: NON attivo"; fi
+          if [ "${SERVER:-faction}" = "hub" ]; then
+            SCR=hub
+            if screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'; then echo "screen hub: attivo"; else echo "screen hub: NON attivo"; fi
+          fi
           systemctl show magicadventure.service --property=Restart,RestartSec 2>/dev/null \
             || echo "(systemctl non raggiungibile o servizio magicadventure non installato con questo nome)"
           echo "Ora e fuso orario del VPS: $(date) ($(timedatectl show --property=Timezone --value 2>/dev/null || echo '?'))"
