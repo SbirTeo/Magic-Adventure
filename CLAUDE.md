@@ -142,7 +142,8 @@ a CMI.
   **`0.0.0.0:25565`**, la porta pubblica, che il firewall apre solo agli IP di TCPShield. Sorgente
   nel repo: `server-velocity/` (`velocity.toml` si cambia li', mai a mano sul VPS: lo reinstalla
   con backup `predisponi-velocity.yml`, che col proxy collegato installa solo i file, senza prove
-  ne' spegnimenti). Il deploy dei plugin **non** riavvia il proxy (butterebbe fuori tutta la rete).
+  ne' spegnimenti). Il deploy dei plugin **non** riavvia il proxy (butterebbe fuori tutta la rete). Dopo un MagixProxy nuovo
+  il proxy si riavvia con `velocity-restart.yml` (scollega tutti per una decina di secondi).
   Offline mode (autentica MagixAuth), modern forwarding, TCPShield sul proxy, MOTD scritta da
   MagixProxy (stesso motd.yml di MagixEssentials), `log-command-executions` **sempre false** (loggherebbe le
   password di /login). `forwarding.secret` lo genera Velocity e resta **solo sul VPS**.

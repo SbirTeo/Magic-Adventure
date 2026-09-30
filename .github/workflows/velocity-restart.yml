@@ -1,0 +1,58 @@
+name: Velocity - riavvia il proxy
+
+# Riavvia Velocity (per esempio dopo un MagixProxy nuovo: il deploy dei plugin copia il jar ma non
+# riavvia il proxy, perche' un riavvio scollega TUTTA la rete per qualche secondo). Chi e' in gioco
+# viene scollegato e rientra da solo appena il proxy e' su (una decina di secondi).
+#
+# Ferma col servizio (stop-service.sh manda "stop" nella console di Velocity, che chiude pulito) e
+# riaccende; poi controlla che ascolti sulla 25565 e stampa i plugin caricati e gli errori.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Riavvia Velocity
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -uo pipefail
+          VEL=/home/ubuntu/magicadventure/velocity
+          LOG="$VEL/logs/latest.log"
+          ascolta() { ss -tlnH 2>/dev/null | awk '{print $4}' | grep -qE '[:.]25565$'; }
+          I=$(stat -c %i "$LOG" 2>/dev/null || echo 0)
+          echo "plugin: $(ls "$VEL/plugins" | grep -E '\.jar$' | tr '\n' ' ')"
+          sudo systemctl restart magix-velocity.service
+          for i in $(seq 1 60); do
+            sleep 1
+            [ -f "$LOG" ] && [ "$(stat -c %i "$LOG")" != "$I" ] && grep -q 'Done (' "$LOG" && ascolta && { echo "Velocity di nuovo su dopo ~${i}s"; break; }
+          done
+          ascolta || { echo "::error::Velocity non ascolta sulla 25565"; tail -n 40 "$LOG"; exit 1; }
+          sed -E 's/\x1b\[[0-9;]*m//g' "$LOG" | grep -iE 'Loaded plugin|magixproxy|luckperms.*storage|ERROR|Exception|Done \(' | grep -v Hikari | tail -n 20
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
