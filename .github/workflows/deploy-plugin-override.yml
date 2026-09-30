@@ -9,6 +9,9 @@ name: Copia la cartella overrides-vps di un plugin sul VPS
 # il jar, deploy-plugin-config.yml cambia solo una riga di un file YAML gia'
 # esistente): questo workflow chiude quel buco, con gli stessi secret VPS.
 #
+# server=hub: stessa cosa per l'hub, con i file presi da plugins-src/<Plugin>/overrides-hub/ e copiati
+# in magicadventure/hub/plugins/<Plugin>/ (i due server hanno pacchetti e menu diversi).
+#
 # Convenzione: plugins-src/<Plugin>/overrides-vps/assets/... nel repo ->
 # plugins/<Plugin>/overrides/assets/... sul VPS. E' un'AGGIUNTA (scp -r senza
 # --delete): un file gia' sul VPS ma non piu' nella cartella del repo NON
@@ -32,6 +35,10 @@ name: Copia la cartella overrides-vps di un plugin sul VPS
 on:
   workflow_dispatch:
     inputs:
+      server:
+        description: "Server di destinazione: faction (file da overrides-vps/) o hub (file da overrides-hub/)"
+        required: false
+        default: "faction"
       plugin:
         description: "Cartella del plugin (es. MagixPack): deve avere plugins-src/<plugin>/overrides-vps/"
         required: true
@@ -77,9 +84,14 @@ jobs:
         id: src
         run: |
           set -euo pipefail
-          DIR="plugins-src/${{ inputs.plugin }}/overrides-vps"
+          case "${{ inputs.server }}" in
+            faction|"") SUB=overrides-vps ;;
+            hub) SUB=overrides-hub ;;
+            *) echo "::error::server deve essere faction o hub"; exit 1 ;;
+          esac
+          DIR="plugins-src/${{ inputs.plugin }}/$SUB"
           if [ ! -d "$DIR" ]; then
-            echo "::error::Non esiste $DIR nel repo. Crea plugins-src/${{ inputs.plugin }}/overrides-vps/ con dentro i file da copiare."
+            echo "::error::Non esiste $DIR nel repo. Crea plugins-src/${{ inputs.plugin }}/$SUB/ con dentro i file da copiare."
             exit 1
           fi
           N="$(find "$DIR" -type f | wc -l)"
@@ -108,6 +120,7 @@ jobs:
           IN_RELOAD: ${{ inputs.reload_cmd }}
           IN_REMOVE: ${{ inputs.remove_path }}
           IN_DEST_SUBDIR: ${{ inputs.dest_subdir }}
+          IN_SERVER: ${{ inputs.server }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
@@ -116,8 +129,12 @@ jobs:
           case "$DEST_SUBDIR" in
             *..*) echo "::error::dest_subdir non puo' contenere '..'"; exit 1 ;;
           esac
-          FAZ="$($SSH 'd=/home/ubuntu/magicadventure/faction; [ -d "$d/plugins" ] || d=/home/ubuntu/magicadventure; echo "$d"' </dev/null)"  # cartella del server fazioni (prima: magicadventure/)
-          REMOTE_DIR="$FAZ/plugins/$IN_PLUGIN/$DEST_SUBDIR"
+          if [ "${IN_SERVER:-faction}" = "hub" ]; then
+            BASE=/home/ubuntu/magicadventure/hub
+          else
+            BASE="$($SSH 'd=/home/ubuntu/magicadventure/faction; [ -d "$d/plugins" ] || d=/home/ubuntu/magicadventure; echo "$d"' </dev/null)"  # cartella del server fazioni (prima: magicadventure/)
+          fi
+          REMOTE_DIR="$BASE/plugins/$IN_PLUGIN/$DEST_SUBDIR"
 
           $SSH "mkdir -p '$REMOTE_DIR'" </dev/null
 
@@ -140,11 +157,12 @@ jobs:
 
           if [ -n "${IN_RELOAD:-}" ]; then
             RELOAD_B64="$(printf '%s' "$IN_RELOAD" | base64 -w0)"
-            $SSH "RELOAD_B64='$RELOAD_B64' bash -s" </dev/null <<'REMOTE'
+            $SSH "RELOAD_B64='$RELOAD_B64' SERVER='${IN_SERVER:-faction}' bash -s" </dev/null <<'REMOTE'
           set -e
           CMD="$(printf '%s' "$RELOAD_B64" | base64 -d)"
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
-          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
+          if [ "$SERVER" = "hub" ]; then NOMI='hub'; else NOMI='faction|mc'; fi  # screen del server (faction: vecchio nome mc)
+          SCR="$(screen -list 2>/dev/null | grep -oE "[0-9]+\.($NOMI)[[:space:]]" | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          if [ -n "$SCR" ]; then
             screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$CMD")"
             echo "Reload inviato: $CMD"
           else

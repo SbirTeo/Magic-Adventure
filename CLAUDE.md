@@ -216,7 +216,9 @@ aspettare un deploy dei jar. Funziona per qualunque plugin che legga file dalla 
 dati allo stesso modo.
 
 Lancialo con `workflow_dispatch` passando `plugin` (default `MagixPack`) e `reload_cmd` (default
-`mpack reload`, vuoto = nessun reload). Committa prima i file in `overrides-vps/`, poi lancia il
+`mpack reload`, vuoto = nessun reload). Con `server: hub` fa lo stesso per l'**hub**, prendendo i file
+da `plugins-src/<Plugin>/overrides-hub/` (l'hub ha pacchetto e menu suoi: texture e menu dell'hub
+vanno li', non in `overrides-vps/`). Committa prima i file in `overrides-vps/`, poi lancia il
 workflow: e' l'unico modo, da cloud, di far arrivare un'immagine o un JSON nuovo sul VPS senza
 passare dal jar del plugin.
 
