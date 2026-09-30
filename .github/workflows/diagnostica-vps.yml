@@ -244,6 +244,22 @@ jobs:
               || echo "(php da riga di comando non disponibile sul VPS)"
           fi
 
+          # Il ponte dei placeholder di MagixBridge: chi e' online dove, e i valori globali
+          # pubblicati (classifiche, totali: dati pubblici). Di quelli per giocatore solo i conteggi.
+          if [ "$PLUGIN" = "MagixBridge" ]; then
+            echo
+            echo "=== PONTE DEI PLACEHOLDER (network_presence, network_placeholders) ==="
+            php -r 'try { require "/var/www/magicadventure/includes/db.php";
+                echo "-- presenza (ultimi 60s): server  giocatori\n";
+                foreach (db()->query("SELECT server, COUNT(*) FROM network_presence WHERE seen_at > NOW() - INTERVAL 60 SECOND GROUP BY server") as $r) { echo implode("  ", $r), "\n"; }
+                echo "-- valori per giocatore: server  placeholder  giocatori  ultimo-aggiornamento\n";
+                foreach (db()->query("SELECT server, placeholder, COUNT(*), MAX(updated_at) FROM network_placeholders WHERE mc_uuid <> \"\" GROUP BY server, placeholder ORDER BY server, placeholder") as $r) { echo implode("  ", $r), "\n"; }
+                echo "-- valori globali: server  placeholder  valore  aggiornato\n";
+                foreach (db()->query("SELECT server, placeholder, value, updated_at FROM network_placeholders WHERE mc_uuid = \"\" ORDER BY server, placeholder") as $r) { echo implode("  ", $r), "\n"; }
+              } catch (Throwable $e) { echo "lettura fallita: ", get_class($e), " ", $e->getCode(), "\n"; }' 2>&1 \
+              || echo "(php da riga di comando non disponibile sul VPS)"
+          fi
+
           if [ -n "$FILE" ]; then
             echo
             echo "=== $FILE ($PLUGIN) ==="
