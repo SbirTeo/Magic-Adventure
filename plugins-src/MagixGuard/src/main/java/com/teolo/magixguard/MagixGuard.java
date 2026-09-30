@@ -94,7 +94,21 @@ public final class MagixGuard extends JavaPlugin {
                     type, getConfig().getConfigurationSection("storage"), getDataFolder().getAbsolutePath());
             database = new Database(type, ds);
             database.createSchema();
-            getLogger().info("Storage attivo: " + type + " - schema pronto.");
+            database.setNetwork(config.serverName, config.siteJobs);
+            if (type == Database.Type.MARIADB
+                    && getConfig().getBoolean("storage.mariadb.import-from-sqlite", true)) {
+                importFromSqlite();
+            }
+            if (type == Database.Type.MARIADB && !config.siteJobs && database.isEmpty()) {
+                // L'import dello storico lo fa il server principale al suo primo avvio, e solo se
+                // il database e' vuoto: se questo server cominciasse a scriverci prima, l'import
+                // non partirebbe piu' e lo storico resterebbe fuori per sempre.
+                throw new IllegalStateException("il database condiviso e' ancora vuoto: deve partire prima "
+                        + "il server principale (network.site-jobs: true), che ci importa lo storico. "
+                        + "Riavvia questo server dopo.");
+            }
+            getLogger().info("Storage attivo: " + type + " - schema pronto (server \"" + config.serverName
+                    + "\", lavori col sito " + (config.siteJobs ? "QUI" : "su un altro server") + ").");
         } catch (Exception e) {
             getLogger().severe("Errore inizializzazione database: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -111,7 +125,8 @@ public final class MagixGuard extends JavaPlugin {
         });
 
         // Anonimizzazione periodica: gli IP in chiaro non restano oltre la retention configurata.
-        if (config.retentionDays > 0) {
+        // Il database e' condiviso fra i server: basta che la faccia uno.
+        if (config.retentionDays > 0 && config.siteJobs) {
             long period = 20L * 60 * 60 * 6; // ogni 6 ore
             Bukkit.getScheduler().runTaskTimer(this, () -> {
                 long cutoff = System.currentTimeMillis() - config.retentionDays * 86_400_000L;
@@ -123,11 +138,41 @@ public final class MagixGuard extends JavaPlugin {
             }, 20L * 30, period);
         }
 
-        startSanctions();
+        startSanctions(config);
 
         getLogger().info("MagixGuard " + getPluginMeta().getVersion()
                 + " attivo: profilazione in osservazione, sanzioni "
                 + (sanctions != null ? "operative." : "NON attive (database del sito non raggiungibile)."));
+    }
+
+    /**
+     * Primo avvio su MariaDB: se il database e' ancora vuoto e il vecchio file SQLite c'e', ci si
+     * copia dentro tutto prima di accettare giocatori, poi il file si rinomina *.importato.
+     * Se la copia non riesce il plugin si ferma: ripartire con un database vuoto e cominciare a
+     * scriverci renderebbe impossibile riprovare (non sarebbe piu' vuoto) e perderebbe lo storico.
+     */
+    private void importFromSqlite() throws Exception {
+        String name = getConfig().getString("storage.sqlite.file", "magixguard.db");
+        java.io.File file = new java.io.File(getDataFolder(), name);
+        if (!file.isFile() || !database.isEmpty()) {
+            return;
+        }
+        getLogger().info("Importo il vecchio archivio " + name + " nel database condiviso...");
+        Database source = new Database(Database.Type.SQLITE, Database.buildDataSource(
+                Database.Type.SQLITE, getConfig().getConfigurationSection("storage"),
+                getDataFolder().getAbsolutePath()));
+        try {
+            source.createSchema();
+            java.util.Map<String, Integer> copied = database.importFrom(source);
+            getLogger().info("Import completato: " + copied);
+        } finally {
+            source.close();
+        }
+        java.io.File done = new java.io.File(getDataFolder(), name + ".importato");
+        if (!file.renameTo(done)) {
+            getLogger().warning("Import fatto, ma " + name + " non si e' potuto rinominare: toglilo a mano "
+                    + "(altrimenti resta li', inutilizzato).");
+        }
     }
 
     // ------------------------------------------------------------- SANZIONI
@@ -137,7 +182,7 @@ public final class MagixGuard extends JavaPlugin {
      * ma il resto del plugin continua a funzionare: la profilazione non deve fermarsi perche'
      * il sito e' giu', e un sistema sanzionatorio a meta' e' peggio di nessuno.
      */
-    private void startSanctions() {
+    private void startSanctions(GuardConfig network) {
         java.io.File file = new java.io.File(getDataFolder(), "sanctions.yml");
         if (!file.exists()) {
             saveResource("sanctions.yml", false);
@@ -195,14 +240,23 @@ public final class MagixGuard extends JavaPlugin {
         grabCommands(names);
         grabCommands(new String[] { "report" });
 
-        // Le decisioni prese sul sito (revoche, proposte confermate) arrivano di qui.
-        SiteSync sync = new SiteSync(this, dao, sanctions);
-        long ticks = cfg.controlloSecondi * 20L;
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, sync::pass, 200L, ticks);
+        // Le decisioni prese sul sito (revoche, proposte confermate) arrivano di qui. Con piu'
+        // server le raccoglie UNO solo (network.site-jobs): fatte due volte, una proposta
+        // confermata diventerebbe due sanzioni. Gli altri server le vedono arrivare nel database
+        // con la sincronizzazione di rete qui sotto.
+        if (network.siteJobs) {
+            SiteSync sync = new SiteSync(this, dao, sanctions);
+            long ticks = cfg.controlloSecondi * 20L;
+            Bukkit.getScheduler().runTaskTimerAsynchronously(this, sync::pass, 200L, ticks);
+        }
+
+        // Le sanzioni valgono su tutta la rete: ogni server fa valere ai suoi giocatori quelle
+        // date altrove (altro server, sito) e toglie i mute revocati altrove.
+        new com.teolo.magixguard.sanctions.NetworkSync(this, sanctions, dao).start(network.sanctionsSyncSeconds);
 
         // Il regolamento pubblico si rigenera da questa configurazione: la pagina del sito
         // non descrive le sanzioni, le rispecchia.
-        if (cfg.generateRules) {
+        if (cfg.generateRules && network.siteJobs) {
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 try {
                     dao.writeRules(Rulebook.generate(cfg), getPluginMeta().getVersion());
@@ -213,8 +267,10 @@ public final class MagixGuard extends JavaPlugin {
             });
         }
 
-        getLogger().info("Sanzioni attive (modo " + cfg.mode + ", controllo sito ogni "
-                + cfg.controlloSecondi + "s).");
+        getLogger().info("Sanzioni attive (modo " + cfg.mode + ", "
+                + (network.siteJobs ? "controllo sito ogni " + cfg.controlloSecondi + "s"
+                                    : "decisioni del sito raccolte da un altro server")
+                + ", sanzioni di rete ogni " + network.sanctionsSyncSeconds + "s).");
     }
 
     /** Costruisce (o ricostruisce, dopo un reload) tutta la catena di componenti. */
@@ -431,6 +487,19 @@ public final class MagixGuard extends JavaPlugin {
                         "Se nel gestionale una revoca resta ferma su «in attesa del server», vuol dire "
                                 + "che il server è spento o che il plugin non gira: in gioco quel ban c'è "
                                 + "ancora, ed è giusto che il gestionale lo dica invece di far finta.")
+
+                .section("Su tutti i server della rete (faction, hub...)",
+                        "MagixGuard gira su **ogni** server, con lo **stesso database** (le tabelle mg_* nel "
+                                + "database del sito) e lo stesso privacy.pepper: è così che un account visto "
+                                + "sull'hub e uno visto sul faction si incrociano. Ogni sessione dice su quale "
+                                + "server è avvenuta (network.server-name).",
+                        "**Le sanzioni valgono ovunque**: un ban dato sull'hub butta fuori il giocatore anche "
+                                + "se è sul faction, un mute lo zittisce su ogni server e una revoca lo libera "
+                                + "ovunque, entro pochi secondi (network.sanctions-sync-seconds).",
+                        "Le decisioni del gestionale (revoche, conferme dalla coda), il regolamento sul sito e la "
+                                + "pulizia degli IP vecchi le fa **un solo server**, quello con network.site-jobs "
+                                + "acceso (il faction). Se fossero due, una proposta confermata diventerebbe due "
+                                + "sanzioni.")
 
                 .section("Il filtro della chat",
                         "Quattro cose diverse, con quattro reazioni diverse — e la differenza non e' "

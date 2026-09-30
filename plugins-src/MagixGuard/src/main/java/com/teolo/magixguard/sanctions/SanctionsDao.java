@@ -57,6 +57,69 @@ public final class SanctionsDao {
         }
     }
 
+    // ------------------------------------------------------------------ rete (hub, faction...)
+
+    /** Il numero dell'ultima sanzione registrata (0 se nessuna): da qui parte la sincronizzazione. */
+    public int lastId() throws SQLException {
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT COALESCE(MAX(id), 0) FROM punishments");
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
+    /**
+     * Le sanzioni registrate dopo {@code id}, da qualunque server o dal sito, in ordine.
+     *
+     * @param seen in uscita, il numero piu' alto visto (anche di righe non piu' attive), cosi'
+     *               il giro dopo riparte da li' e non rilegge niente due volte
+     * @return solo quelle ancora attive
+     */
+    public List<Sanction> after(int id, int[] seen) throws SQLException {
+        List<Sanction> out = new ArrayList<>();
+        seen[0] = id;
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT * FROM punishments WHERE id > ? ORDER BY id LIMIT 500")) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    seen[0] = Math.max(seen[0], rs.getInt("id"));
+                    if ("attiva".equals(rs.getString("status"))) {
+                        out.add(read(rs));
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /** I mute in gioco attivi adesso di questi giocatori (uno per giocatore, il piu' recente). */
+    public java.util.Map<UUID, Sanction> activeMutes(java.util.Collection<UUID> players) throws SQLException {
+        java.util.Map<UUID, Sanction> out = new java.util.HashMap<>();
+        if (players.isEmpty()) {
+            return out;
+        }
+        String in = String.join(",", java.util.Collections.nCopies(players.size(), "?"));
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT * FROM punishments WHERE mc_uuid IN (" + in + ") AND type = ? AND status = 'attiva' "
+                     + "AND scope IN ('gioco','entrambi') AND (ends_at IS NULL OR ends_at > NOW()) ORDER BY id")) {
+            int i = 1;
+            for (UUID u : players) {
+                ps.setString(i++, u.toString());
+            }
+            ps.setString(i, Type.MUTE.code());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Sanction s = read(rs);
+                    out.put(s.uuid(), s);
+                }
+            }
+        }
+        return out;
+    }
+
     /** Revoca dal gioco (per esempio con /unban): la marca gia' come applicata. */
     public int revoke(int id, String staff, String reason) throws SQLException {
         String sql = "UPDATE punishments SET status = 'revocata', revoked_by = ?, revoked_at = NOW(), "

@@ -37,6 +37,12 @@ public final class SanctionsService {
      */
     private final Map<UUID, Sanction> muti = new ConcurrentHashMap<>();
 
+    /**
+     * Le sanzioni applicate da QUESTO server: la sincronizzazione di rete (NetworkSync) le rivede
+     * arrivare dal database e non deve farle valere una seconda volta (doppio messaggio, doppio kick).
+     */
+    private final java.util.Set<Integer> appliedHere = ConcurrentHashMap.newKeySet();
+
     public SanctionsService(JavaPlugin plugin, SanctionsConfig cfg, SanctionsDao dao,
                             PointsLog log, Policy policy, ViolationsDao violations, Messages messages) {
         this.plugin = plugin;
@@ -82,6 +88,7 @@ public final class SanctionsService {
             }
 
             int id = dao.inserisci(s);
+            appliedHere.add(id);
             Sanction applicata = s.conId(id);
             Bukkit.getScheduler().runTask(plugin, () -> faiValere(applicata));
 
@@ -124,6 +131,59 @@ public final class SanctionsService {
             case WARN -> {
                 if (p != null) {
                     p.sendMessage(Text.msg(messages.get(p, "service.warned", "motivo", s.reason())));
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ rete
+
+    /**
+     * Una sanzione nuova vista nel database (data da un altro server, dal sito, o confermata dal
+     * gestionale sul server che fa i lavori col sito): la si fa valere qui se il giocatore e' qui.
+     * Solo thread principale.
+     */
+    public void enforceFromNetwork(Sanction s) {
+        if (appliedHere.remove(s.id())) {
+            return;   // l'ha data questo server: e' gia' stata fatta valere
+        }
+        if (s.type().hasDuration() && !s.activate()) {
+            return;   // gia' scaduta
+        }
+        if (Bukkit.getPlayer(s.uuid()) == null) {
+            return;   // non e' qui: se entra, lo fermano il controllo all'ingresso e loadOnJoin
+        }
+        faiValere(s);
+    }
+
+    /**
+     * Riallinea i mute in memoria di chi e' collegato con quelli attivi nel database: un mute
+     * revocato altrove (altro server, sito) qui non deve continuare a zittire. Thread principale.
+     *
+     * @param seenUpTo il numero di sanzione piu' alto che esisteva quando si e' letto il database
+     */
+    public void refreshMutes(java.util.Collection<UUID> online, Map<UUID, Sanction> active, int seenUpTo) {
+        for (UUID uuid : online) {
+            Sanction current = active.get(uuid);
+            if (current != null) {
+                muti.put(uuid, current);
+                continue;
+            }
+            Sanction cached = muti.get(uuid);
+            if (cached == null) {
+                continue;
+            }
+            if (cached.id() > seenUpTo) {
+                // Dato dopo la lettura del database (per esempio su questo server, un istante fa):
+                // la lettura non poteva vederlo, non vuol dire che sia stato revocato.
+                continue;
+            }
+            muti.remove(uuid);
+            if (cached.activate()) {
+                // Non e' scaduto da solo: e' stato revocato.
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) {
+                    p.sendMessage(Text.msg(messages.get(p, "service.unmuted")));
                 }
             }
         }

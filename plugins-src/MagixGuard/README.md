@@ -125,6 +125,32 @@ Nessuna sanzione automatica. Fase 2, da decidere quando ci saranno abbastanza da
 tarare le soglie: limitazioni silenziose per gli account marchiati (niente reward, niente kit,
 niente fazione in comune col principale), oppure blocco al login.
 
+## Su piu' server (faction, hub...) — dalla 0.4.0
+
+MagixGuard gira su **ogni** server di gioco della rete, con:
+
+- **lo stesso database** (`storage.type: mariadb`, tabelle `mg_*` nel database del sito) e lo
+  **stesso** `privacy.pepper`: senza, gli account visti su due server non si incrocerebbero mai;
+- `network.server-name` diverso per server: ogni sessione dice dove e' avvenuta, e all'avvio un
+  server chiude solo le **sue** sessioni rimaste aperte (non quelle di chi gioca sull'altro);
+- `network.site-jobs: true` su **uno solo** (il faction): revoche e conferme dal gestionale,
+  regolamento sul sito, anonimizzazione. Fatti due volte, una proposta confermata diventerebbe due
+  sanzioni;
+- la **sincronizzazione delle sanzioni** (`network.sanctions-sync-seconds`): ogni server legge le
+  sanzioni nuove, date da chiunque, e le fa valere ai suoi giocatori (ban e kick fuori, mute,
+  avviso), e toglie i mute revocati altrove.
+
+Il **registro firmato** (`mg_audit`) con piu' server si scrive una riga alla volta per tutta la rete
+(`GET_LOCK` di MariaDB): due righe nello stesso istante prenderebbero la stessa "precedente" e la
+catena si spezzerebbe.
+
+**Passaggio da SQLite a MariaDB**: al primo avvio con `type: mariadb`, se le tabelle sono vuote e il
+vecchio file (`storage.sqlite.file`) c'e', il plugin ci copia dentro tutto con gli stessi id (la
+catena del registro resta valida) prima di accettare giocatori, e rinomina il file `*.importato`
+(`storage.mariadb.import-from-sqlite`). Se la copia fallisce il plugin non parte: ripartire vuoti
+renderebbe impossibile riprovare. Un server **non** principale (`site-jobs: false`) non parte su un
+database condiviso ancora vuoto: prima deve importare il principale.
+
 ## Installazione
 
 1. `mvn -q clean package` (serve **JDK 25**, vedi `pom.xml`)

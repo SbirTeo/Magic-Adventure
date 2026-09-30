@@ -45,6 +45,20 @@ public final class Database {
 
     public Type getType() { return type; }
 
+    /** Il nome di questo server nella rete (network.server-name): va su ogni sessione. */
+    private volatile String serverName = "faction";
+    /** Se questo server fa i lavori col sito (network.site-jobs): conta per le sessioni di prima. */
+    private volatile boolean primary = true;
+
+    public void setNetwork(String serverName, boolean primary) {
+        this.serverName = serverName;
+        this.primary = primary;
+    }
+
+    public String serverName() { return serverName; }
+
+    public boolean primary() { return primary; }
+
     public Connection getConnection() throws SQLException { return dataSource.getConnection(); }
 
     public void close() { if (dataSource != null && !dataSource.isClosed()) dataSource.close(); }
@@ -78,7 +92,89 @@ public final class Database {
     public void createSchema() throws SQLException {
         try (Connection c = getConnection(); Statement st = c.createStatement()) {
             for (String ddl : ddl(type)) st.execute(ddl);
+            // Aggiunta dopo: con piu' server ogni sessione dice dove e' avvenuta (vedi
+            // GuardDao.closeDanglingSessions). Le righe di prima restano senza (NULL).
+            if (!hasColumn(c, "mg_sessions", "server")) {
+                st.execute("ALTER TABLE mg_sessions ADD COLUMN server VARCHAR(32)");
+            }
         }
+    }
+
+    private static boolean hasColumn(Connection c, String table, String column) throws SQLException {
+        try (java.sql.ResultSet rs = c.getMetaData().getColumns(c.getCatalog(), null, table, null)) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** true se non c'e' ancora nessun giocatore: e' la condizione per importare da un altro archivio. */
+    public boolean isEmpty() throws SQLException {
+        try (Connection c = getConnection(); Statement st = c.createStatement();
+             java.sql.ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM mg_players")) {
+            return rs.next() && rs.getLong(1) == 0;
+        }
+    }
+
+    /**
+     * Copia qui TUTTE le righe di un altro archivio (il vecchio file SQLite del server), tabella
+     * per tabella, con gli stessi id: sessioni, indizi e collegamenti si riferiscono ai giocatori
+     * per id, e il registro firmato deve restare nello stesso ordine perche' la catena torni.
+     * Tutto in una transazione: o arriva tutto, o niente.
+     *
+     * @return righe copiate per tabella, nell'ordine di TABLES
+     */
+    public java.util.Map<String, Integer> importFrom(Database source) throws SQLException {
+        java.util.Map<String, Integer> copied = new java.util.LinkedHashMap<>();
+        try (Connection from = source.getConnection(); Connection to = getConnection()) {
+            boolean auto = to.getAutoCommit();
+            to.setAutoCommit(false);
+            try {
+                for (String table : TABLES) {
+                    // Solo le colonne che esistono da entrambe le parti: un file vecchio puo'
+                    // non avere quelle aggiunte dopo (per esempio "server").
+                    java.util.List<String> cols = new java.util.ArrayList<>();
+                    try (Statement st = from.createStatement();
+                         java.sql.ResultSet rs = st.executeQuery("SELECT * FROM " + table + " LIMIT 0")) {
+                        java.sql.ResultSetMetaData md = rs.getMetaData();
+                        for (int i = 1; i <= md.getColumnCount(); i++) {
+                            if (hasColumn(to, table, md.getColumnName(i))) {
+                                cols.add(md.getColumnName(i));
+                            }
+                        }
+                    }
+                    String list = String.join(", ", cols);
+                    String marks = String.join(", ", java.util.Collections.nCopies(cols.size(), "?"));
+                    int n = 0;
+                    try (Statement st = from.createStatement();
+                         java.sql.ResultSet rs = st.executeQuery("SELECT " + list + " FROM " + table + " ORDER BY id");
+                         java.sql.PreparedStatement ins = to.prepareStatement(
+                                 "INSERT INTO " + table + " (" + list + ") VALUES (" + marks + ")")) {
+                        while (rs.next()) {
+                            for (int i = 1; i <= cols.size(); i++) {
+                                ins.setObject(i, rs.getObject(i));
+                            }
+                            ins.addBatch();
+                            if (++n % 500 == 0) {
+                                ins.executeBatch();
+                            }
+                        }
+                        ins.executeBatch();
+                    }
+                    copied.put(table, n);
+                }
+                to.commit();
+            } catch (SQLException e) {
+                to.rollback();
+                throw e;
+            } finally {
+                to.setAutoCommit(auto);
+            }
+        }
+        return copied;
     }
 
     private static String[] ddl(Type type) {

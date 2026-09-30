@@ -155,10 +155,16 @@ a CMI.
   server arriva da sola sugli altri), `server: faction` sul faction (sull'hub sara' `hub`, per
   i permessi diversi per server). Migrato con `luckperms-condiviso.yml`; il vecchio file H2 e il
   backup restano (`~/.bak/luckperms-<data>/`): per tornare indietro `storage-method: h2` e riavvio.
+- **MagixGuard e' su tutta la rete** (dalla 0.4.0, `deploy.target` = `faction hub`): archivio
+  condiviso nel database del sito (tabelle `mg_*`, importate dal vecchio `magixguard.db` al primo
+  avvio su mariadb), stesso `privacy.pepper` ovunque, `network.server-name` per server,
+  `network.site-jobs: true` SOLO sul faction (decisioni del gestionale, regolamento, pulizia), e le
+  sanzioni sincronizzate fra server ogni pochi secondi (un ban dato sull'hub butta fuori anche dal
+  faction). Passaggio: `magixguard-rete.yml` (faction) poi `hub-plugin-rete.yml` (hub).
 - **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
-  (UUID e skin decisi dal proxy: fatto con MagixProxy + MagixAuth 0.7.27), i lavori periodici sul DB del sito di
-  MagixGuard/MagixWeb/MagixLanguage (devono girare su un solo server) e MagixPack (una sola
-  porta del pacchetto risorse per macchina).
+  (UUID e skin decisi dal proxy: fatto con MagixProxy + MagixAuth 0.7.27), MagixGuard (fatto,
+  vedi sopra), i lavori periodici sul DB del sito di MagixWeb/MagixLanguage (devono girare su un
+  solo server) e MagixPack (una sola porta del pacchetto risorse per macchina).
 
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
