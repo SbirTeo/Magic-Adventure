@@ -144,6 +144,11 @@ a CMI.
   all'ingresso con le stesse regole di MagixAuth (vedi il suo README). Un plugin con il file
   `deploy.target` in `plugins-src/<Plugin>/` va dove dice lui (`faction`, `velocity`):
   `deploy-plugin.yml` riavvia il faction solo se un jar e' andato nel faction.
+- **LuckPerms e' condiviso** (dal 30/09): storage `mariadb` sul database del sito (tabelle
+  `luckperms_*`, credenziali di MagixAuth), `messaging-service: sql` (una modifica fatta su un
+  server arriva da sola sugli altri), `server: faction` sul faction (sull'hub sara' `hub`, per
+  i permessi diversi per server). Migrato con `luckperms-condiviso.yml`; il vecchio file H2 e il
+  backup restano (`~/.bak/luckperms-<data>/`): per tornare indietro `storage-method: h2` e riavvio.
 - **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
   (UUID e skin decisi dal proxy: fatto con MagixProxy + MagixAuth 0.7.27), i lavori periodici sul DB del sito di
   MagixGuard/MagixWeb/MagixLanguage (devono girare su un solo server) e MagixPack (una sola
