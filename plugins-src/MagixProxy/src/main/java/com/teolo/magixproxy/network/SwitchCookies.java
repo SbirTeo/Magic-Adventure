@@ -46,7 +46,31 @@ public final class SwitchCookies {
     @Subscribe
     public void onConnected(ServerConnectedEvent event) {
         switching.remove(event.getPlayer().getUniqueId());
+        markOnNetwork(event.getPlayer());
     }
+
+    /**
+     * The profile property that tells the NEXT server the player is switching, not entering.
+     *
+     * Holding the request back (above) is not enough: Paper does not finish a login while a cookie
+     * request is unanswered, so the hub waited until "took too long to log in" (seen at 17:23). The
+     * clean way is that nobody asks: from the first server on, the profile Velocity forwards carries
+     * this property, and MagixAuth skips its cookie when it sees it (the address is enough right
+     * after the login on the main server). It travels inside modern forwarding, signed with the
+     * proxy secret: a client cannot fake it, and all it can change is "ask the cookie or not".
+     */
+    private static void markOnNetwork(com.velocitypowered.api.proxy.Player player) {
+        java.util.List<com.velocitypowered.api.util.GameProfile.Property> props =
+                new java.util.ArrayList<>(player.getGameProfileProperties());
+        for (com.velocitypowered.api.util.GameProfile.Property p : props) {
+            if (NETWORK_PROPERTY.equals(p.getName())) return;
+        }
+        props.add(new com.velocitypowered.api.util.GameProfile.Property(NETWORK_PROPERTY, "1", ""));
+        player.setGameProfileProperties(props);
+    }
+
+    /** Same name in MagixAuth (ConnectionListener). */
+    public static final String NETWORK_PROPERTY = "magixproxy_network";
 
     @Subscribe(order = PostOrder.LAST)
     public void onKicked(KickedFromServerEvent event) {

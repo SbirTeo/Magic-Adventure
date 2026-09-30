@@ -56,11 +56,14 @@ risposta arrivava li': il server di prima, che non l'aveva chiesta, buttava fuor
 "Ricevuti dal client dei dati personalizzati non previsti" (`unexpected_query_response`), e il
 nuovo aspettava invano ("Took too long to log in"). Successo il 30/09 al primo `/server hub`.
 
-`network/SwitchCookies`: durante un cambio server (dal `ServerPreConnectEvent` di chi e' gia' su un
-server fino a quando il nuovo e' collegato, o fallisce) le richieste di cookie non escono dal proxy.
-MagixAuth smette di aspettare dopo `login.cookie_wait_millis` (1,5 secondi) e riconosce il
-dispositivo dall'indirizzo, che subito dopo il login sul server principale va sempre. Il primo
-ingresso nella rete non cambia: li' il gettone funziona come prima.
+Trattenere la richiesta non bastava (0.5.0): Paper non chiude il login finche' una richiesta di
+cookie resta senza risposta, e l'hub aspettava fino al timeout. Dalla 0.5.1 la richiesta non parte
+proprio: dopo il primo server `network/SwitchCookies` aggiunge al profilo del giocatore la proprieta'
+`magixproxy_network`, che Velocity inoltra (firmata col segreto del proxy, quindi un client non la
+puo' inventare) a ogni server successivo; MagixAuth (0.7.29), se la vede, non chiede il gettone e
+riconosce il dispositivo dall'indirizzo, che subito dopo il login sul server principale va sempre.
+Il primo ingresso nella rete non cambia: li' il gettone funziona come prima. La richiesta trattenuta
+resta come rete di sicurezza per un altro plugin che chiedesse un cookie durante un cambio server.
 
 ## La MOTD della lista server (0.3.0)
 
