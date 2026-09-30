@@ -122,7 +122,7 @@ a CMI.
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
   `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, MagixAuth,
-  MagixLanguage, con i config copiati dal faction) installati da `hub-plugin-rete.yml`; poi gli
+  MagixLanguage, con i config copiati dal faction) installati da `hub-network-plugins.yml`; poi gli
   aggiornamenti di MagixAuth e MagixLanguage arrivano dal deploy automatico (`deploy.target` =
   `faction hub`). L'hub non ha CMI: il deploy lo ferma con `stop` e `start.sh` lo rilancia.
   Per **costruirlo** prima di Velocity c'e' `hub-costruzione.yml`: `azione=apri` lo apre a UNA
@@ -160,7 +160,7 @@ a CMI.
   avvio su mariadb), stesso `privacy.pepper` ovunque, `network.server-name` per server,
   `network.site-jobs: true` SOLO sul faction (decisioni del gestionale, regolamento, pulizia), e le
   sanzioni sincronizzate fra server ogni pochi secondi (un ban dato sull'hub butta fuori anche dal
-  faction). Passaggio: `magixguard-rete.yml` (faction) poi `hub-plugin-rete.yml` (hub).
+  faction). Passaggio: `magixguard-shared-db.yml` (faction) poi `hub-network-plugins.yml` (hub).
 - **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
   (UUID e skin decisi dal proxy: fatto con MagixProxy + MagixAuth 0.7.27), MagixGuard (fatto,
   vedi sopra), i lavori periodici sul DB del sito di MagixWeb/MagixLanguage (devono girare su un

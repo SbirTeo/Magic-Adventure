@@ -15,7 +15,7 @@ name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, CMI, MagixAuth
 #    IP dei due server non si riconoscerebbero) e stesso sanctions.yml, ma network.server-name: hub
 #    e network.site-jobs: false (le decisioni del gestionale le raccoglie solo il faction).
 #    Va lanciato DOPO che il faction ha importato lo storico nel database condiviso
-#    (magixguard-rete.yml + riavvio del faction): su un database vuoto l'hub rifiuta di partire.
+#    (magixguard-shared-db.yml + riavvio del faction): su un database vuoto l'hub rifiuta di partire.
 #  - CMI (+ CMILib): config NUOVO, generato da CMI al primo avvio (warp, kit, economia del faction
 #    non c'entrano con l'hub). Dal faction si copiano SOLO gli alias dei comandi
 #    (Settings/Alias.yml e la cartella CustomAlias/) e le programmazioni (Settings/Schedules.yml),
@@ -122,7 +122,7 @@ jobs:
           p = sys.argv[1]
           s = open(p, encoding="utf-8").read()
           if "storage:\n  type: mariadb" not in s and not re.search(r"^  type: mariadb", s, re.M):
-              sys.exit("sul faction MagixGuard non e' ancora su mariadb: lancia prima magixguard-rete.yml")
+              sys.exit("sul faction MagixGuard non e' ancora su mariadb: lancia prima magixguard-shared-db.yml")
           want = {"server-name": "hub", "site-jobs": "false"}
           if re.search(r"^network:", s, re.M):
               lines = s.split("\n"); block = None
