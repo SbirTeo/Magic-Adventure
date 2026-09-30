@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS link_codes (
     used TINYINT(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Grado di permessi in gioco (LuckPerms) di ogni giocatore: la scrive il plugin MagixWeb
+-- Grado di permessi in gioco (LuckPerms) di ogni giocatore: la scrive il plugin MagixBridge
 -- (a ogni join e a intervalli), il sito la legge per mostrare il tag col colore del prefisso.
 -- Il COLLATE esplicito serve a poterla joinare con users.mc_uuid.
 CREATE TABLE IF NOT EXISTS mc_ranks (
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS mc_ranks (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Elenco dei gruppi del gioco, specchiato dal plugin MagixWeb (non si creano dal sito).
+-- Elenco dei gruppi del gioco, specchiato dal plugin MagixBridge (non si creano dal sito).
 CREATE TABLE IF NOT EXISTS web_groups (
     name VARCHAR(64) NOT NULL PRIMARY KEY,
     display VARCHAR(64) NOT NULL,
@@ -278,7 +278,7 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
     ('store_sidebar_include_manual', '0');
 
 -- Chat live della home, in ponte con la chat pubblica del server.
--- I messaggi con source='game' li scrive il plugin MagixWeb (mirror della chat di gioco);
+-- I messaggi con source='game' li scrive il plugin MagixBridge (mirror della chat di gioco);
 -- quelli con source='web' li scrive il sito e il plugin li ripubblica in gioco quando
 -- delivered = 0, poi li marca come consegnati.
 -- COLLATE esplicito: mc_uuid va joinata con mc_ranks/users (vedi mc_ranks).

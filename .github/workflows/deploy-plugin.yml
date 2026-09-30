@@ -29,6 +29,12 @@ name: Deploy plugin sul server Minecraft
 #                faction non si caricherebbe). Il proxy NON viene riavviato da qui: finche' non
 #                e' collegato e' spento, e da collegato un riavvio butta fuori tutta la rete.
 # Ogni server si riavvia SOLO se ha ricevuto almeno un jar.
+#
+# RINOMINA di un plugin: il file replaces in plugins-src/<Plugin>/ elenca i nomi vecchi (es.
+# MagixBridge: "MagixWeb"). Prima di mettere il jar nuovo si tolgono i jar col nome vecchio (due
+# plugin uguali accesi insieme consegnerebbero due volte gli acquisti) e, se la cartella dati nuova
+# non c'e' ancora, si COPIA quella vecchia (cp -a, non mv: la vecchia resta come riserva). Il file
+# si puo' togliere quando nessun server ha piu' il nome vecchio.
 
 on:
   push:
@@ -192,6 +198,9 @@ jobs:
             PLUGDIR="$(dir_di "$T")"
             echo "Aggiorno $P -> $JARNAME ($T)"
             $SSH "mkdir -p '$PLUGDIR'" </dev/null
+            for O in $( { cat "plugins-src/$P/replaces" 2>/dev/null || true; } | tr -s ' \n' ' '); do
+              $SSH "cd '$PLUGDIR' && rm -fv '$O'-*.jar '$O'.jar && if [ -d '$O' ] && [ ! -e '$P' ]; then cp -a '$O' '$P' && echo '  cartella dati $O copiata in $P'; fi" </dev/null
+            done
             scp -i "$KEY" -o StrictHostKeyChecking=yes "$RUNNER_TEMP/jars/$JARNAME" \
                 "$DEST:$PLUGDIR/.__new_$JARNAME" </dev/null
             $SSH "cd '$PLUGDIR' && rm -f '$P'-*.jar '$P'.jar && mv '.__new_$JARNAME' '$JARNAME'" </dev/null

@@ -187,10 +187,10 @@ public final class MagixFactions extends JavaPlugin {
         // partirebbe solo al loro prossimo ingresso.
         Bukkit.getOnlinePlayers().forEach(p -> playerStatsManager.onJoin(p));
         ChatService chat = new ChatService(this, factionManager, messages);
-        this.chatService = chat; // usato da broadcastWebChat (API per MagixWeb)
+        this.chatService = chat; // usato da broadcastWebChat (API per MagixBridge)
         getServer().getPluginManager().registerEvents(new ChatListener(chat, messages), this);
         // Canale di chat nei metadata anche per chi e' gia' online (dopo un /reload nessun
-        // PlayerJoinEvent arriva). Vedi ChatService.META_CHANNEL: lo legge MagixWeb.
+        // PlayerJoinEvent arriva). Vedi ChatService.META_CHANNEL: lo legge MagixBridge.
         Bukkit.getOnlinePlayers().forEach(chat::publishChannelMeta);
 
         // Item Mappa Fazioni: servizio + listener che riaggancia il renderer dopo un riavvio
@@ -318,7 +318,7 @@ public final class MagixFactions extends JavaPlugin {
     }
 
     /**
-     * API per altri plugin — la usa <b>MagixWeb</b> (chat live del sito) chiamandola via
+     * API per altri plugin — la usa <b>MagixBridge</b> (chat live del sito) chiamandola via
      * reflection, cosi' i due plugin restano indipendenti e nessuno dei due smette di
      * funzionare se l'altro non c'e'.
      *

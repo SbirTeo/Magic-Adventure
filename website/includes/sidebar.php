@@ -121,7 +121,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
 
     <?php if (site_setting('chat_enabled', '1') === '1'): ?>
       <?php /* Ponte con la chat del server: i messaggi scritti qui li ripubblica in gioco
-               il plugin MagixWeb, e la chat pubblica del gioco arriva qui. Il contenuto lo
+               il plugin MagixBridge, e la chat pubblica del gioco arriva qui. Il contenuto lo
                riempie /assets/js/chat.js interrogando /api/chat. */ ?>
       <section class="chat-module" id="liveChat"
                data-logged="<?= $me ? '1' : '0' ?>"

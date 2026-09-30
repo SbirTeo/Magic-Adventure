@@ -231,10 +231,10 @@ jobs:
           fi
 
           # La coda di traduzione del sito (site_translations) sta nel database del sito, non in
-          # un file: per MagixLanguage e MagixWeb se ne stampano i CONTEGGI per lingua e stato,
+          # un file: per MagixLanguage e MagixBridge se ne stampano i CONTEGGI per lingua e stato,
           # con la stessa connessione del sito (includes/db.php). Mai testi ne' credenziali: un
           # errore stampa solo il tipo e il codice, non il messaggio (puo' contenere l'utente DB).
-          if [ "$PLUGIN" = "MagixLanguage" ] || [ "$PLUGIN" = "MagixWeb" ]; then
+          if [ "$PLUGIN" = "MagixLanguage" ] || [ "$PLUGIN" = "MagixBridge" ]; then
             echo
             echo "=== CODA TRADUZIONI DEL SITO (site_translations, solo conteggi) ==="
             echo "lingua  stato  righe  max-tentativi  ultimo-aggiornamento"

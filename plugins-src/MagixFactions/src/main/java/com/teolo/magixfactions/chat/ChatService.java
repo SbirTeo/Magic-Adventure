@@ -143,7 +143,7 @@ public final class ChatService {
                 .replace("{name}", senderName);
         // Grado di chi scrive: per un giocatore OFFLINE PlaceholderAPI non risolve
         // %luckperms_prefix% (l'utente non e' caricato), quindi chi chiama ci passa il
-        // prefisso che ha gia' (MagixWeb lo legge da mc_ranks) e lo sostituiamo prima.
+        // prefisso che ha gia' (MagixBridge lo legge da mc_ranks) e lo sostituiamo prima.
         if (prefix != null && !prefix.isEmpty()) {
             fmt = fmt.replace("%luckperms_prefix%", prefix);
         }
@@ -153,7 +153,7 @@ public final class ChatService {
     }
 
     /**
-     * API usata da MagixWeb (via reflection sulla classe principale, cosi' i due plugin
+     * API usata da MagixBridge (via reflection sulla classe principale, cosi' i due plugin
      * restano indipendenti): manda a tutti un messaggio scritto dal sito, gia' formattato
      * per ciascun destinatario con il SUO colore di relazione verso il mittente.
      */
@@ -243,7 +243,7 @@ public final class ChatService {
     /**
      * Chiave di metadata con cui pubblichiamo il canale corrente del giocatore.
      *
-     * <p>Serve a MagixWeb, che specchia la chat sul sito: senza questo, un messaggio scritto sul
+     * <p>Serve a MagixBridge, che specchia la chat sul sito: senza questo, un messaggio scritto sul
      * canale fazione/alleati finirebbe sulla home pubblica. Passa dai metadata invece che da una
      * dipendenza tra i due plugin (che si caricano in ordine non garantito): la chiave e' una
      * semplice stringa, chi legge non ha bisogno di nessuna nostra classe.

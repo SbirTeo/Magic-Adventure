@@ -9,7 +9,7 @@
 # =====================================================================
 
 # Collegamento al database del SITO, dove vivono sanzioni, ricorsi e coda.
-# E' lo stesso database che usa MagixWeb: qui le sanzioni le SCRIVE il plugin,
+# E' lo stesso database che usa MagixBridge: qui le sanzioni le SCRIVE il plugin,
 # il sito le legge (e ci aggiunge solo ricorsi e decisioni dello staff).
 site:
   host: "127.0.0.1"

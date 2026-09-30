@@ -1,6 +1,6 @@
 <?php
 // Lingua del sito: come per i gradi, MagixLanguage decide in gioco (GeoIP o /language set) e
-// MagixWeb la scrive in mc_ranks.language (vedi includes/auth.php, current_user()). Un
+// MagixBridge la scrive in mc_ranks.language (vedi includes/auth.php, current_user()). Un
 // visitatore che non ha mai giocato, o che il sito vede prima di riconoscerlo, sceglie da solo
 // con il selettore in pagina (?lingua=xx), oppure riceve il tentativo migliore dal browser.
 require_once __DIR__ . '/auth.php';

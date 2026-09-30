@@ -316,7 +316,7 @@ function mc_server_status(string $host = 'mc.magicadventure.it', int $port = 255
 /**
  * Grado in gioco (LuckPerms) -> tag sul sito.
  *
- * I dati arrivano dalla tabella `mc_ranks`, scritta dal plugin MagixWeb a ogni join
+ * I dati arrivano dalla tabella `mc_ranks`, scritta dal plugin MagixBridge a ogni join
  * (e ogni 5 minuti per chi e' online): gruppo primario + testo/colore del prefisso.
  * Il colore mostrato qui e' quindi ESATTAMENTE quello del prefisso in chat
  * (es. prefisso "&cAdmin" -> testo "Admin", colore #FF5555).
@@ -990,7 +990,7 @@ function corona_top(bool $conCuori = true): string {
 /**
  * Colore dell'aureola VIP di ogni giocatore che ne ha una: uuid in minuscolo -> "#RRGGBB".
  *
- * Lo scrive il server (MagixWeb, colonna mc_ranks.halo_color) con la stessa regola dell'aureola
+ * Lo scrive il server (MagixBridge, colonna mc_ranks.halo_color) con la stessa regola dell'aureola
  * in gioco e sulle statue: permesso, colore scelto, /halo off, anche da offline. Si legge una
  * volta per richiesta, come store_top_uuid(). Colonna non ancora creata (il server non e'
  * ripartito con la versione che la aggiunge): nessuna aureola, nessun errore.

@@ -308,7 +308,7 @@
       span.className = 'console-riga';
       if (/\/(ERROR|FATAL)\]|Exception|Caused by:/i.test(riga)) span.classList.add('e-errore');
       else if (/\/WARN\]/.test(riga)) span.classList.add('e-avviso');
-      else if (/\/(INFO)\]:? \[?(MagixWeb|MagixFactions|MagixTime|MagixEntities|MagixGuard)/.test(riga)) span.classList.add('e-nostro');
+      else if (/\/(INFO)\]:? \[?(MagixBridge|MagixFactions|MagixTime|MagixEntities|MagixGuard)/.test(riga)) span.classList.add('e-nostro');
       span.textContent = riga;
       frammento.appendChild(span);
       frammento.appendChild(document.createTextNode('\n'));

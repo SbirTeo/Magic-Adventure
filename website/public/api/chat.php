@@ -3,7 +3,7 @@
  * API della chat live mostrata in home (modulo sopra la scheda giocatore).
  *
  * E' un PONTE col gioco: i messaggi scritti qui finiscono in `web_chat` con source='web'
- * e il plugin MagixWeb li ripubblica nella chat del server; la chat pubblica del server
+ * e il plugin MagixBridge li ripubblica nella chat del server; la chat pubblica del server
  * viene specchiata dallo stesso plugin con source='game' e la leggiamo qui.
  *
  * Risponde SEMPRE in JSON (anche sugli errori): il modulo in home e' interamente JS.

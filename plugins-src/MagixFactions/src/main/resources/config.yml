@@ -144,7 +144,7 @@ chat:
   relational-format: true
   public-format: "&8[{rank}{relcolor}{faction}&8] &7%magixweb_namecolor%{name}&7: &f{message}"
   public-format-no-faction: "%luckperms_prefix%&7%magixweb_namecolor%{name}&7: &f{message}"
-  # Icona messa davanti ai messaggi che arrivano dalla chat del sito (plugin MagixWeb).
+  # Icona messa davanti ai messaggi che arrivano dalla chat del sito (plugin MagixBridge).
   # VUOTA di serie: da dove arriva il messaggio lo dice il suggerimento qui sotto (basta
   # passarci sopra il mouse), e un'icona fissa su ogni riga rubava spazio al messaggio.
   # Rimettila (es. "&b☁ ") se preferisci vederla sempre.

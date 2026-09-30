@@ -25,15 +25,15 @@ documentarlo, compare lo stesso nella guida.
 ## 2. Come ci arriva
 
 Ogni plugin Magix, all'avvio e a ogni `reload`, compone il proprio **capitolo** e lo consegna.
-Non scrive sul database del sito: **le credenziali del sito le ha solo MagixWeb**, ed e' giusto
+Non scrive sul database del sito: **le credenziali del sito le ha solo MagixBridge**, ed e' giusto
 che resti cosi'.
 
 ```
 MagixFactions ─┐
 MagixAuth      │   ognuno scrive
-MagixEntities  ├─→ plugins/<Nome>/guida-staff.html ─→ MagixWeb ─→ magicadventure_web.guide_staff
-MagixTime      │                                     (GuideSync)              │
-MagixWeb       │                                                              v
+MagixEntities  ├─→ plugins/<Nome>/guida-staff.html ─→ MagixBridge ─→ magicadventure_web.guide_staff
+MagixTime      │                                     (GuideSync)                    │
+MagixBridge    │                                                                    v
 MagixGuard    ─┘                                   /manage.php?section=guida  (gestionale)
 ```
 
@@ -42,13 +42,13 @@ MagixGuard    ─┘                                   /manage.php?section=guida
   [STILE-MAGIX.md](STILE-MAGIX.md)): la si modifica in uno, si riporta in tutti.
 - Ogni plugin, in fondo a `onEnable()`, compone il capitolo e lo scrive nella **propria cartella**
   come `guida-staff.html`, con un'intestazione fra commenti (`titolo`, `versione`, `ordine`).
-- `GuideSync` di MagixWeb passa in rassegna le cartelle dei plugin, legge i capitoli e li riversa
+- `GuideSync` di MagixBridge passa in rassegna le cartelle dei plugin, legge i capitoli e li riversa
   nella tabella: una sola penna sul database del sito, come per le sanzioni.
 
 **Perche' un file e non un servizio Bukkit.** Un servizio avrebbe richiesto che i plugin si
 conoscessero a vicenda e avrebbe reso l'esito dipendente dall'**ordine di avvio**: chi parte prima
-di MagixWeb non troverebbe nessuno a cui consegnare. Col file non conta l'ordine, non conta se
-MagixWeb e' spento, e se un capitolo non arriva sul sito resta li' sul disco da guardare — che e'
+di MagixBridge non troverebbe nessuno a cui consegnare. Col file non conta l'ordine, non conta se
+MagixBridge e' spento, e se un capitolo non arriva sul sito resta li' sul disco da guardare — che e'
 esattamente cio' che serve quando qualcosa non torna.
 
 **README e guida sono la stessa cosa.** `StaffGuide.write()` emette **due formati dello stesso
@@ -138,7 +138,7 @@ Una riga per plugin, sovrascritta a ogni avvio: non serve storico, la verita' e'
 | MagixGuard | 10 | **in linea** |
 | MagixAuth | 20 | **in linea** |
 | MagixFactions | 30 | **in linea** |
-| MagixWeb | 40 | **in linea** |
+| MagixBridge | 40 | **in linea** |
 | MagixTime | 60 | **in linea** |
 | MagixEntities | 70 | **in linea** |
 | MagixMenus | 75 | **in linea** |

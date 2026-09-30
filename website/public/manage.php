@@ -4162,7 +4162,7 @@ if ($section === 'dashboard') {
         <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
           Nessun capitolo ancora. I plugin lo pubblicano da soli al primo avvio dopo
           l'aggiornamento che introduce la guida; se il server è acceso e qui resta vuoto,
-          controlla che MagixWeb sia attivo (è lui a raccogliere i capitoli).
+          controlla che MagixBridge sia attivo (è lui a raccogliere i capitoli).
         </p>
       </div>
     <?php else: ?>
@@ -4228,7 +4228,7 @@ if ($section === 'dashboard') {
       <div class="alert alert-error">
         Manca <code>OTP_CHIAVE</code> in <code>includes/config.php</code>: senza quella chiave i
         segreti non si possono cifrare e <strong>nessuno riesce ad attivare la verifica</strong>.
-        Va generata sul server e copiata anche nella configurazione del plugin MagixWeb.
+        Va generata sul server e copiata anche nella configurazione del plugin MagixBridge.
       </div>
     <?php endif; ?>
 

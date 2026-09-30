@@ -122,7 +122,7 @@ a CMI.
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
   `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, ProtocolLib, CMI,
-  MagixAuth, MagixLanguage, MagixGuard, MagixEssentials, MagixMenus, MagixPack, con i config
+  MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack, con i config
   copiati dal faction) installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin
   Magix con `deploy.target` = `faction hub` arrivano dal deploy automatico. Il deploy riavvia l'hub
   con `stopserverfast` (c'e' CMI). MagixPack dell'hub serve il suo pacchetto sulla porta **8444**
@@ -169,10 +169,21 @@ a CMI.
   `network.site-jobs: true` SOLO sul faction (decisioni del gestionale, regolamento, pulizia), e le
   sanzioni sincronizzate fra server ogni pochi secondi (un ban dato sull'hub butta fuori anche dal
   faction). Passaggio: `magixguard-shared-db.yml` (faction) poi `hub-network-plugins.yml` (hub).
+- **MagixBridge** (fino alla 0.12 si chiamava **MagixWeb**; dalla 0.13.0, `deploy.target` =
+  `faction hub`) e' il ponte fra i server e il sito, su ogni modalita'. Stessa coppia di chiavi di
+  MagixGuard: `network.server-name` e `network.site-jobs` (true SOLO sul faction: consegna degli
+  acquisti, traduzione del sito, gruppi, guida staff, pulizia della chat — su due server un
+  acquisto arriverebbe due volte). La chat del sito arriva su tutti i server. Il **ponte dei
+  placeholder** porta i valori di una modalita' sulle altre via database (`network_presence`,
+  `network_placeholders`): ogni server pubblica quelli di `bridge.player-placeholders` /
+  `bridge.global-placeholders` che sa calcolare, gli altri li leggono come
+  `%network_<server>_<placeholder>%` (es. sull'hub `%network_faction_magixfactions_faction%`).
+  `%magixweb_namecolor%` ha tenuto il vecchio nome apposta (e' nei formati di chat e nametag).
+  La rinomina sul VPS l'ha fatta `deploy-plugin.yml` col file `replaces` (vedi li').
 - **Velocity non e' ancora acceso.** Prima di accenderlo vanno adattati i plugin: MagixAuth
   (UUID e skin decisi dal proxy: fatto con MagixProxy + MagixAuth 0.7.27), MagixGuard (fatto,
-  vedi sopra), i lavori periodici sul DB del sito di MagixWeb/MagixLanguage (devono girare su un
-  solo server) e MagixPack (una sola porta del pacchetto risorse per macchina).
+  vedi sopra), MagixBridge (fatto, vedi sopra) e MagixPack (una sola porta del pacchetto risorse
+  per macchina: fatto, l'hub usa la 8444).
 
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
@@ -422,7 +433,7 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    - **Mai** copiare `docs/tutorial.html` sul VPS: è un modello pieno di segnaposto che solo il
      plugin sa risolvere. L'unico modo giusto di allineare il sito è far ripartire il server.
 2. **Guida per lo staff** (gestionale, `/manage.php?section=guida`). La scrive **il plugin stesso**
-   a ogni avvio/`reload` (classe comune `StaffGuide`, un capitolo per plugin) → MagixWeb
+   a ogni avvio/`reload` (classe comune `StaffGuide`, un capitolo per plugin) → MagixBridge
    (`GuideSync`) → tabella `guide_staff`. Non si scrive a mano: si aggiorna il codice che la
    compone. Vedi `plugins-src/GUIDA-STAFF.md`.
 3. **Niente numeri e testi scritti a mano** quando dipendono dal config: si usano i segnaposto

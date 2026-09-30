@@ -115,7 +115,7 @@ import java_spans as _js  # noqa: E402
 # any Italian left in its code. All seven were converted on 2026-09-01, so the deep scan is now the
 # enforced gate everywhere: any Italian method/field/local reintroduced later makes the check fail.
 FULLY_ENGLISH = {"MagixAuth", "MagixEntities", "MagixFactions", "MagixGuard",
-                 "MagixMenus", "MagixTime", "MagixWeb"}
+                 "MagixMenus", "MagixTime", "MagixBridge"}
 
 # Classes byte-identical in every plugin (check_config enforces it): their Italian internals are
 # translated in one coordinated pass, so the per-plugin deep scan skips them.

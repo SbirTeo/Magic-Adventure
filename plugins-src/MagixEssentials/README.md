@@ -165,7 +165,7 @@ styles:
 `requires` e' una **E**, non una O: lo stile vale solo dove ci sono **tutti** i plugin elencati —
 `[MagixFactions, BedWars]` significa «solo dove ci sono tutti e due insieme», e «fazioni *oppure*
 bedwars» sono **due voci**, una per modalita'. E fra i requisiti vanno solo i plugin **senza cui lo
-stile non ha senso**, non tutti quelli che compaiono nei suoi segnaposto: `MagixWeb`
+stile non ha senso**, non tutti quelli che compaiono nei suoi segnaposto: `MagixBridge`
 (`%magixweb_namecolor%`) non ci va — se manca, il nome si vede comunque, solo senza colore, mentre
 metterlo li' butterebbe via tutto lo stile, fazione compresa, per una questione di colore.
 

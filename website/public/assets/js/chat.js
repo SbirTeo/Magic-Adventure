@@ -1,5 +1,5 @@
 // Chat live della home (modulo sopra la scheda giocatore).
-// Legge e scrive su /api/chat; il ponte col gioco lo fa il plugin MagixWeb.
+// Legge e scrive su /api/chat; il ponte col gioco lo fa il plugin MagixBridge.
 // Su tutte le altre pagine il modulo non esiste e questo file esce subito.
 (function () {
   var box = document.getElementById('liveChat');

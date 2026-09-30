@@ -209,7 +209,7 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "elencati: [MagixFactions, BedWars] vuol dire «solo dove ci sono tutti e due "
                                 + "insieme», e non serve a dire «fazioni oppure bedwars» — quelle sono due "
                                 + "modalita', cioe' due voci. E fra i requisiti vanno solo i plugin senza cui lo "
-                                + "stile non ha senso, non tutti quelli che compaiono nei suoi segnaposto: MagixWeb "
+                                + "stile non ha senso, non tutti quelli che compaiono nei suoi segnaposto: MagixBridge "
                                 + "(%magixweb_namecolor%) non ci va, perche' se manca il nome si vede comunque, "
                                 + "solo senza colore, mentre metterlo li' butterebbe via tutto lo stile — fazione "
                                 + "compresa — per una questione di colore. I plugin si cercano fra quelli CARICATI "

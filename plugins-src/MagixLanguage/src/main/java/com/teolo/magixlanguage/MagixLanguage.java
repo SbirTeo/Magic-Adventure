@@ -306,7 +306,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 || !getConfig().getBoolean("translations.auto-translate.enabled", true)) {
             return out;
         }
-        // Stessa pausa dopo un blocco del sync dei plugin (vedi TranslationPacing): MagixWeb
+        // Stessa pausa dopo un blocco del sync dei plugin (vedi TranslationPacing): MagixBridge
         // richiama questo metodo ogni 30 secondi H24, e senza pausa un Translator nuovo a ogni giro
         // riprovava MyMemory da capo anche mentre era bloccato — il blocco (HTTP 429) non si
         // liberava mai. Qui niente intervallo fra un giro e l'altro: il sito manda solo frasi mai
@@ -453,11 +453,11 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "non vengono scandite in automatico per non dover ricostruire qui la logica di "
                                 + "lettura di MagixMenus: si aggiunge la frase a mano nel file overrides se serve.")
 
-                .section("Il sito parla anche lui: MagixWeb ne condivide la quota",
+                .section("Il sito parla anche lui: MagixBridge ne condivide la quota",
                         "magicadventure.it traduce le proprie pagine (testo, guide comprese) con lo stesso "
-                                + "servizio: MagixWeb accoda in un database le frasi che incontra e non ha ancora, "
+                                + "servizio: MagixBridge accoda in un database le frasi che incontra e non ha ancora, "
                                 + "e chiede a MagixLanguageAPI.translateRawBatch(...) di tradurle un lotto alla "
-                                + "volta (vedi MagixWeb/language/SiteTranslationWorker). E' la STESSA "
+                                + "volta (vedi MagixBridge/language/SiteTranslationWorker). E' la STESSA "
                                 + "translations.auto-translate.contact-email e la stessa quota giornaliera di "
                                 + "MyMemory usata qui sopra per i plugin: se il sito traduce molto in un giorno, "
                                 + "resta meno margine per le chiavi dei plugin, e viceversa.",
@@ -561,7 +561,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "se manca); le traduzioni gia' in cache si correggono da sole al primo giro, senza "
                                 + "consumare quota di MyMemory.")
                 .issue("Il sito (magicadventure.it) non traduce mai niente",
-                        "MagixWeb chiama MagixLanguageAPI.translateRawBatch ogni 30 secondi, H24, per smaltire le "
+                        "MagixBridge chiama MagixLanguageAPI.translateRawBatch ogni 30 secondi, H24, per smaltire le "
                                 + "frasi che le pagine accodano (vedi includes/translate.php e "
                                 + "language/SiteTranslationWorker.java): quando quella chiamata non si fermava "
                                 + "durante un blocco, ripeteva la richiesta a MyMemory in continuazione e il blocco "
@@ -573,7 +573,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         "site_language() in includes/language.php da' la precedenza, in ordine, a: ?lingua= in "
                                 + "pagina (sticky in sessione e nel cookie ma_lingua per 365 giorni), poi il cookie, "
                                 + "SOLO SE NESSUNO dei due c'e' gia' alla lingua di gioco (mc_ranks.language, "
-                                + "sincronizzata da MagixWeb/language/LanguageSync.java a ogni join o cambio vero). "
+                                + "sincronizzata da MagixBridge/language/LanguageSync.java a ogni join o cambio vero). "
                                 + "E' voluto: chi ha scelto la lingua del sito a mano (il selettore in pagina) ha "
                                 + "gia' espresso una preferenza per il SITO, che vince anche se poi cambia lingua in "
                                 + "gioco. Chi non ha mai usato quel selettore, invece, segue la lingua di gioco senza "
@@ -582,9 +582,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "c'e' davvero una scelta manuale da togliere) cancella sessione e cookie, senza "
                                 + "dover intervenire a mano sul browser.")
                 .issue("Non vedo lo stato delle traduzioni del sito in /language status",
-                        "Compare solo se MagixWeb e' installato e ha gia' fatto almeno un giro (il primo parte 10 "
+                        "Compare solo se MagixBridge e' installato e ha gia' fatto almeno un giro (il primo parte 10 "
                                 + "secondi dopo l'avvio, poi ogni site-translation.check-interval-seconds — config.yml "
-                                + "di MagixWeb, default 30): SiteTranslationWorker conta le righe di "
+                                + "di MagixBridge, default 30): SiteTranslationWorker conta le righe di "
                                 + "site_translations per lingua e stato (pronte/in attesa/fallite) e le riporta a "
                                 + "MagixLanguage con MagixLanguageAPI.reportSiteTranslationStatus, letto da "
                                 + "/language status sotto lo stato dei plugin. Se il sito non e' installato, quella "

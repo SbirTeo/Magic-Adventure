@@ -119,7 +119,7 @@ try {
     $acquisti = [];
 }
 
-// Primo accesso al SERVER: lo scrive il plugin MagixWeb in mc_ranks. La colonna puo'
+// Primo accesso al SERVER: lo scrive il plugin MagixBridge in mc_ranks. La colonna puo'
 // mancare (installazioni vecchie) e il giocatore puo' non essere ancora passato di li':
 // in entrambi i casi si mostra un trattino, senza rompere la pagina.
 $primoAccessoServer = null;

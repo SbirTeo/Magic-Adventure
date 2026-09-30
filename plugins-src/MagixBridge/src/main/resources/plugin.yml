@@ -1,0 +1,10 @@
+name: MagixBridge
+version: ${project.version}
+main: com.teolo.magixbridge.MagixBridge
+api-version: '1.21'
+author: teolo
+description: Il ponte fra i server della rete e il sito magicadventure.it
+softdepend: [LuckPerms, PlaceholderAPI, MagixLanguage, MagixCosmetics]
+
+# Nessun comando: /link e /otp sono passati a MagixAuth, che e' il solo padrone
+# dell'ingresso in partita.

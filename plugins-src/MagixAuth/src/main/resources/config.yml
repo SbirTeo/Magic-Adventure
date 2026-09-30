@@ -8,10 +8,10 @@
 # ===========================================================================
 
 database:
-  # Le stesse credenziali di MagixWeb: e' volutamente lo stesso database.
+  # Le stesse credenziali di MagixBridge: e' volutamente lo stesso database.
   host: localhost              # dov'e' il server MySQL/MariaDB del sito
   port: 3306                  # la sua porta
-  name: magicadventure_web     # nome del database del sito (lo stesso di MagixWeb)
+  name: magicadventure_web     # nome del database del sito (lo stesso di MagixBridge)
   user: magicadventure       # utente con permessi su quel database
   password: "CAMBIAMI"         # la sua password: cambiala, questa e' solo un segnaposto
   # Chiave AES-256 (base64, 32 byte) con cui il sito cifra i segreti OTP: e' la

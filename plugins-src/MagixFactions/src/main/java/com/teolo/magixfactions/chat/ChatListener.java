@@ -55,7 +55,7 @@ public final class ChatListener implements Listener {
 
     /**
      * Il canale scelto sopravvive al riconnessione (la mappa e' per UUID, non per sessione), ma i
-     * metadata no: vanno riscritti a ogni ingresso, altrimenti MagixWeb — che legge di li' per
+     * metadata no: vanno riscritti a ogni ingresso, altrimenti MagixBridge — che legge di li' per
      * capire se un messaggio e' pubblico — vedrebbe "nessun dato" (cioe' pubblico) per un giocatore
      * che invece e' rimasto sul canale della sua fazione, e lo pubblicherebbe sul sito.
      */

@@ -102,7 +102,7 @@ translations:
     - "MagixMusic"
     - "MagixPack"
     - "MagixTime"
-    - "MagixWeb"
+    - "MagixBridge"
 
   # Nomi dei file, relativi alla cartella dati di ciascun plugin, che contengono testo
   # visibile ai giocatori. Lo stesso elenco vale per tutti i plugin sopra.
