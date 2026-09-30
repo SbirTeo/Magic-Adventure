@@ -141,13 +141,14 @@ public final class ConnectionListener implements Listener {
     /**
      * Se ne va.
      *
-     * Chi non aveva ancora fatto il login non deve nemmeno salutare: nessuno sapeva che
-     * fosse arrivato. HIGHEST per lo stesso motivo dell'ingresso: il "e' uscito." di CMI.
+     * Con gate.delay_join_message acceso chi non aveva ancora fatto il login non saluta:
+     * nessuno sapeva che fosse arrivato. Spento, l'ingresso e' gia' stato annunciato e anche
+     * l'uscita resta. HIGHEST per lo stesso motivo dell'ingresso: il "e' uscito." di CMI.
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void allUscita(PlayerQuitEvent e) {
         Player p = e.getPlayer();
-        if (gate.isFrozen(p)) {
+        if (gate.isFrozen(p) && config.delayJoinMessage) {
             e.quitMessage(null);
         }
         gate.abandon(p);

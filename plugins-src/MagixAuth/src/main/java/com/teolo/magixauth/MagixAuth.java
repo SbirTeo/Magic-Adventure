@@ -175,9 +175,16 @@ public final class MagixAuth extends JavaPlugin {
                                 + "account sul sito.")
 
                 .section("Il congelamento",
-                        "Prima del login il giocatore non si muove, non parla, non lo si vede e non vede gli "
-                                + "altri: è il motivo per cui un server offline può stare in piedi. Ha un tempo "
-                                + "limite per farcela, poi viene espulso.",
+                        "Prima del login il giocatore non si muove, non parla e non lo si vede"
+                                + "{{se:gate.hide_others=true}}, e non vede gli altri (né nel mondo né nella lista "
+                                + "giocatori){{/se}}{{se:gate.hide_others!=true}}; lui invece vede già chi è online "
+                                + "(gate.hide_others è spento){{/se}}: è il motivo per cui un server offline può stare "
+                                + "in piedi. Ha un tempo limite per farcela, poi viene espulso.",
+                        "{{se:gate.delay_join_message=true}}L'annuncio d'ingresso esce solo a login fatto, e chi "
+                                + "se ne va dal cancello senza login non viene annunciato: i tentativi col nick di un "
+                                + "altro restano muti.{{/se}}{{se:gate.delay_join_message!=true}}Gli annunci d'ingresso "
+                                + "e d'uscita (quelli custom di CMI, se attivi) escono subito, anche per chi è ancora al "
+                                + "cancello: gate.delay_join_message è spento.{{/se}}",
                         "Se il plugin viene caricato a caldo con gente già collegata, quella gente NON è passata "
                                 + "dal cancello e non ci passerà: è una finestra senza autenticazione. Il plugin lo "
                                 + "scrive nel log a caratteri chiari.")
@@ -261,8 +268,8 @@ public final class MagixAuth extends JavaPlugin {
                                 + "giocatore non ha fatto il login, ma il plugin lo tratteneva prima che CMI "
                                 + "mettesse il suo «è entrato.»: così quello di CMI usciva subito, col giocatore "
                                 + "ancora al cancello, e dopo il login arrivava anche quello di Minecraft. Adesso si "
-                                + "trattiene per ultimo ed esce uno solo, quello di CMI, a login fatto. Lo stesso vale "
-                                + "per l'uscita di chi se ne va senza aver fatto il login: nessun annuncio.")
+                                + "trattiene per ultimo ed esce uno solo, quello di CMI, a login fatto (con "
+                                + "gate.delay_join_message acceso; spento, esce subito all'ingresso).")
                 .issue("«Ho dimenticato la password»",
                         "/mauth reset <nome>: la password viene azzerata e il giocatore ne imposta una nuova al "
                                 + "prossimo ingresso. Vale anche per il sito, perché l'account è lo stesso.")

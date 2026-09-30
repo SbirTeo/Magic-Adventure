@@ -68,9 +68,9 @@ public final class AuthConfig {
 
         this.spawnInsteadOfPosition = c.getBoolean("gate.spawn_instead_of_position", true);
         this.hideFromOthers = c.getBoolean("gate.hide_from_others", true);
-        this.hideOthers = c.getBoolean("gate.hide_others", true);
+        this.hideOthers = c.getBoolean("gate.hide_others", false);
         this.hideChat = c.getBoolean("gate.hide_chat", true);
-        this.delayJoinMessage = c.getBoolean("gate.delay_join_message", true);
+        this.delayJoinMessage = c.getBoolean("gate.delay_join_message", false);
 
         this.skinFromMojang = c.getBoolean("premium.skin_from_mojang", true);
         this.skinCacheMinutes = c.getInt("premium.skin_cache_minutes", 30);
