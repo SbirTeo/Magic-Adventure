@@ -240,6 +240,10 @@ info:
   status-weak-self: "&cLa tua fazione e' debole, puo' essere conquistata."
   status-strong-self: "&aLa tua fazione e' forte. Non puo' essere conquistata."
   status-none-self: "&fLa tua fazione non ha ancora un territorio."
+  # Testi del placeholder %magixfactions_status% (scoreboard, tablist...): solo queste due frasi.
+  # Senza territori non c'e' nulla da conquistare, quindi conta come sicura (come status_raw).
+  status-placeholder-safe: "&aLa fazione è sicura"
+  status-placeholder-unsafe: "&cLa fazione non è sicura"
   # Riga "Alleati:" con elenco fazioni; le richieste in sospeso hanno "(in attesa)" + tooltip (hover).
   allies-label: "&6Alleati: "
   allies-none: "&7nessuno"
