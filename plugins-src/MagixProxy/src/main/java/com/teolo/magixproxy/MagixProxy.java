@@ -5,6 +5,7 @@ import com.teolo.magixproxy.db.AccountDao;
 import com.teolo.magixproxy.db.Database;
 import com.teolo.magixproxy.motd.MotdListener;
 import com.teolo.magixproxy.network.ServerGuard;
+import com.teolo.magixproxy.network.SwitchCookies;
 import com.teolo.magixproxy.profile.MojangLookup;
 import com.teolo.magixproxy.profile.ProfileListener;
 import com.velocitypowered.api.event.Subscribe;
@@ -29,7 +30,7 @@ import java.nio.file.Path;
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.4.0",
+        version = "0.5.0",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
         authors = {"teolo"}
@@ -77,6 +78,8 @@ public final class MagixProxy {
         proxy.getEventManager().register(this,
                 new ProfileListener(config, new AccountDao(database), mojang, log));
         proxy.getEventManager().register(this, new ServerGuard(proxy, config, database, log));
+        // Cookie requests of a server being switched to stay on the proxy (see SwitchCookies).
+        proxy.getEventManager().register(this, new SwitchCookies());
         if (config.motdEnabled && !config.motdFile.isEmpty()) {
             proxy.getEventManager().register(this, new MotdListener(proxy, log,
                     Path.of(config.motdFile).toAbsolutePath().normalize(),

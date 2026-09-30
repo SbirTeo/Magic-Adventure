@@ -48,6 +48,20 @@ invece di essere scollegato. Oggi hub -> faction; il giorno che il principale sa
 (`network.main_server: hub`), un riavvio del faction porta tutti sull'hub. Dal principale si esce
 dalla rete. Un ban dato sul server che lascia resta valido: il principale lo ferma all'ingresso.
 
+## Cambio server e cookie (0.5.0)
+
+Mentre si entra in un altro server (`/server hub`), MagixAuth di quel server chiede al client il suo
+gettone di sessione (un cookie di Minecraft). Il client pero' e' ancora sul server di prima, e la
+risposta arrivava li': il server di prima, che non l'aveva chiesta, buttava fuori il giocatore con
+"Ricevuti dal client dei dati personalizzati non previsti" (`unexpected_query_response`), e il
+nuovo aspettava invano ("Took too long to log in"). Successo il 30/09 al primo `/server hub`.
+
+`network/SwitchCookies`: durante un cambio server (dal `ServerPreConnectEvent` di chi e' gia' su un
+server fino a quando il nuovo e' collegato, o fallisce) le richieste di cookie non escono dal proxy.
+MagixAuth smette di aspettare dopo `login.cookie_wait_millis` (1,5 secondi) e riconosce il
+dispositivo dall'indirizzo, che subito dopo il login sul server principale va sempre. Il primo
+ingresso nella rete non cambia: li' il gettone funziona come prima.
+
 ## La MOTD della lista server (0.3.0)
 
 Con Velocity davanti al ping risponde il proxy: il server dietro non lo vede nemmeno. MagixProxy
