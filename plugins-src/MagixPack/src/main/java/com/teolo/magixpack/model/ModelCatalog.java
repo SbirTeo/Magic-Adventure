@@ -79,12 +79,20 @@ public final class ModelCatalog {
 
     /** Textures, piece models and item definitions of every model, for the pack. */
     public Map<String, byte[]> packFiles() {
+        return packFiles(models);
+    }
+
+    /** The pack files of the given models (static, so a build tool can produce the same files).
+     *  Textures go under {@code textures/item/}: the client only uses in a model the textures
+     *  of its atlases, and {@code item/} is in the item atlas of every version (a folder of its
+     *  own, like {@code model/}, is not, and came out black and purple). */
+    public static Map<String, byte[]> packFiles(Map<String, BbModel> models) {
         Map<String, byte[]> out = new LinkedHashMap<>();
         for (Map.Entry<String, BbModel> en : models.entrySet()) {
             String id = en.getKey();
             BbModel m = en.getValue();
             for (int t = 0; t < m.textures.size(); t++) {
-                out.put("assets/" + NAMESPACE + "/textures/model/" + id + "/" + t + ".png", m.textures.get(t).png());
+                out.put("assets/" + NAMESPACE + "/textures/item/model/" + id + "/" + t + ".png", m.textures.get(t).png());
             }
             for (int i = 0; i < m.pieces.size(); i++) {
                 BbModel.Piece p = m.pieces.get(i);
@@ -94,8 +102,8 @@ public final class ModelCatalog {
                     int tex = f.getValue().get("texture").getAsInt();
                     if (tex < 0 || tex >= m.textures.size()) continue;
                     BbModel.Texture texture = m.textures.get(tex);
-                    textures.addProperty(String.valueOf(tex), NAMESPACE + ":model/" + id + "/" + tex);
-                    if (!textures.has("particle")) textures.addProperty("particle", NAMESPACE + ":model/" + id + "/" + tex);
+                    textures.addProperty(String.valueOf(tex), NAMESPACE + ":item/model/" + id + "/" + tex);
+                    if (!textures.has("particle")) textures.addProperty("particle", NAMESPACE + ":item/model/" + id + "/" + tex);
                     JsonArray src = f.getValue().getAsJsonArray("uv");
                     JsonArray uv = new JsonArray();
                     // item model UVs go 0-16 over the whole texture, Blockbench ones are in texture pixels
