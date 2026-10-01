@@ -2,6 +2,7 @@ package com.teolo.magixessentials;
 
 import com.teolo.magixessentials.chat.ChatModule;
 import com.teolo.magixessentials.currency.CurrencyManager;
+import com.teolo.magixessentials.currency.CurrencyPlaceholders;
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.nametag.NametagManager;
@@ -257,7 +258,15 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "dichiarata con lo stesso ID su ogni server dove deve esistere.",
                         "Un ID scritto male (serve una parola di lettere minuscole, cifre e trattini bassi, che "
                                 + "comincia per lettera) o gia' usato da un altro comando del server viene saltato, "
-                                + "e il motivo finisce nel log all'avvio.")
+                                + "e il motivo finisce nel log all'avvio.",
+                        "**I placeholder** (PlaceholderAPI) nascono da soli, uno per valuta: vedi "
+                                + "%magixessentials_balance_<id>% e %magixessentials_name_<id>% piu' sotto. Per una "
+                                + "valuta condivisa il saldo viene da una cache aggiornata in background (non blocca "
+                                + "mai il server per una query al database), quindi puo' restare indietro di qualche "
+                                + "secondo rispetto a un'operazione appena fatta su un altro server. Per farli "
+                                + "funzionare anche sui server SENZA MagixEssentials, l'id della valuta va aggiunto "
+                                + "a **bridge.player-placeholders** nel config di MagixBridge: li' si legge come "
+                                + "%network_<server>_magixessentials_balance_<id>%.")
 
                 .section("La targhetta sopra la testa (nametag)",
                         "E' quella che si legge **sopra la testa** dei giocatori, in gioco: non il tablist "
@@ -468,6 +477,7 @@ public final class MagixEssentials extends JavaPlugin {
 
                 .commands()
                 .permissions()
+                .placeholders(CurrencyPlaceholders.DOCS)
                 // Gli interruttori stanno in un file loro (modules.yml) e le impostazioni di ogni
                 // funzione nel suo (tablist.yml): qui si vedono col valore che hanno adesso sul
                 // server. Il config.yml non compare finche' non ha chiavi: sarebbe una tabella vuota.

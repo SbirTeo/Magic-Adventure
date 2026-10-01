@@ -8,15 +8,23 @@ import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -42,11 +50,24 @@ import java.util.regex.Pattern;
  * currencies.yml) se il saldo vive sul file di QUESTO server ({@link LocalCurrencyStore}) o nel
  * database condiviso ({@link SharedCurrencyStore}, da {@code database} in config.yml). Il
  * database si apre una volta sola, solo se almeno una valuta di questo server lo chiede.
+ *
+ * <h2>I placeholder e perche' servono una cache</h2>
+ * {@code %magixessentials_balance_<id>%} ({@link CurrencyPlaceholders}) deve rispondere subito:
+ * PlaceholderAPI non aspetta un {@code CompletableFuture}. Per una valuta locale va bene (un file
+ * in memoria, vedi {@link LocalCurrencyStore#peek}), ma una condivisa vive nel database — quindi
+ * qui si tiene una copia in memoria ({@code sharedCache}), aggiornata subito dopo ogni comando
+ * (vedi {@link #updateCache}), all'ingresso di ogni giocatore e con un giro periodico (per i
+ * cambi fatti su UN ALTRO server della rete, che altrimenti non si vedrebbero finche' nessuno
+ * tocca di nuovo quella valuta qui). Lo stesso compromesso del ponte dei placeholder di
+ * MagixBridge: un valore puo' restare indietro di qualche secondo, mai bloccare il server.
  */
-public final class CurrencyManager {
+public final class CurrencyManager implements Listener {
 
     /** Id valido per un comando: comincia con una lettera, poi lettere/cifre/trattino basso. */
     private static final Pattern VALID_ID = Pattern.compile("[a-z][a-z0-9_]{1,15}");
+
+    /** Ogni quanto si ricontrollano i saldi condivisi di chi e' online (tick): 30 secondi. */
+    private static final long REFRESH_PERIOD_TICKS = 600L;
 
     private final JavaPlugin plugin;
     private final Messages messages;
@@ -54,9 +75,15 @@ public final class CurrencyManager {
     private final LocalCurrencyStore localStore;
     private final Map<String, Currency> currencies = new LinkedHashMap<>();
     private final Map<String, CurrencyCommand> registered = new LinkedHashMap<>();
+    /** <valuta, <giocatore, saldo>>: solo per le valute condivise, vedi la classe. */
+    private final Map<String, Map<UUID, Long>> sharedCache = new ConcurrentHashMap<>();
+    /** "<valuta>:<uuid>" gia' in aggiornamento: non ne accoda un altro sopra. */
+    private final Set<String> pendingRefresh = ConcurrentHashMap.newKeySet();
 
     private Database sharedDb;
     private SharedCurrencyStore sharedStore;
+    private CurrencyPlaceholders placeholders;
+    private BukkitTask refreshTask;
 
     public CurrencyManager(JavaPlugin plugin, YamlConfiguration conf) {
         this.plugin = plugin;
@@ -69,24 +96,43 @@ public final class CurrencyManager {
         }
     }
 
-    /** Registra il comando e i permessi di ogni valuta letta dal config. */
+    /** Registra il comando e i permessi di ogni valuta letta dal config, il placeholder e il giro di cache. */
     public void start() {
-        if (commandMap == null) {
-            return;
+        if (commandMap != null) {
+            for (Currency currency : currencies.values()) {
+                registraPermessi(currency.id());
+                CurrencyCommand command = new CurrencyCommand(plugin, this, currency.id(), messages);
+                commandMap.register(plugin.getName().toLowerCase(Locale.ROOT), command);
+                registered.put(currency.id(), command);
+            }
+            Bukkit.getOnlinePlayers().forEach(Player::updateCommands);
         }
-        for (Currency currency : currencies.values()) {
-            registraPermessi(currency.id());
-            CurrencyCommand command = new CurrencyCommand(plugin, this, currency.id(), messages);
-            commandMap.register(plugin.getName().toLowerCase(Locale.ROOT), command);
-            registered.put(currency.id(), command);
-        }
-        Bukkit.getOnlinePlayers().forEach(Player::updateCommands);
         plugin.getLogger().info("[Valute] " + registered.size() + " valuta/e attiva/e: "
                 + (registered.isEmpty() ? "nessuna" : String.join(", ", registered.keySet())) + ".");
+
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            placeholders = new CurrencyPlaceholders(plugin, this);
+            placeholders.register();
+        }
+        Bukkit.getPluginManager().registerEvents(this, plugin);
+        refreshTask = Bukkit.getScheduler().runTaskTimer(plugin, this::refreshOnlinePlayers,
+                REFRESH_PERIOD_TICKS, REFRESH_PERIOD_TICKS);
     }
 
-    /** Toglie ogni comando registrato e chiude il database: a modulo spento non deve restare niente in giro. */
+    /** Toglie ogni comando registrato, il placeholder e il giro di cache: a modulo spento non deve restare niente in giro. */
     public void stop() {
+        if (refreshTask != null) {
+            refreshTask.cancel();
+            refreshTask = null;
+        }
+        org.bukkit.event.HandlerList.unregisterAll(this);
+        if (placeholders != null) {
+            placeholders.unregister();
+            placeholders = null;
+        }
+        sharedCache.clear();
+        pendingRefresh.clear();
+
         if (commandMap instanceof SimpleCommandMap simple) {
             String prefix = plugin.getName().toLowerCase(Locale.ROOT) + ":";
             for (Map.Entry<String, CurrencyCommand> e : registered.entrySet()) {
@@ -125,6 +171,83 @@ public final class CurrencyManager {
     public List<Currency> elenco() {
         return List.copyOf(currencies.values());
     }
+
+    // ------------------------------------------------------------------ placeholder
+
+    /** Il saldo di una valuta LOCALE: un file in memoria, risponde subito. */
+    long localBalance(Currency currency, UUID player) {
+        return localStore.peek(currency, player);
+    }
+
+    /**
+     * Il saldo in cache di una valuta CONDIVISA (o il saldo di partenza, se non ancora noto):
+     * mai un'attesa. Se non lo conosce ancora avvia da solo un aggiornamento, per la prossima
+     * richiesta.
+     */
+    long cachedSharedBalance(Currency currency, UUID player) {
+        Map<UUID, Long> byPlayer = sharedCache.get(currency.id());
+        Long cached = byPlayer == null ? null : byPlayer.get(player);
+        if (cached != null) {
+            return cached;
+        }
+        refreshCacheAsync(currency, player);
+        return currency.startingBalance();
+    }
+
+    /** Aggiorna subito la cache di una valuta condivisa: la chiama CurrencyCommand dopo ogni comando riuscito. */
+    void updateCache(String currencyId, UUID player, long balance) {
+        sharedCache.computeIfAbsent(currencyId, k -> new ConcurrentHashMap<>()).put(player, balance);
+    }
+
+    private void refreshCacheAsync(Currency currency, UUID player) {
+        CurrencyStore store = storeFor(currency);
+        if (store == null) {
+            return;
+        }
+        String key = currency.id() + ":" + player;
+        if (!pendingRefresh.add(key)) {
+            return; // gia' in corso
+        }
+        store.balance(currency, player).whenComplete((balance, err) -> {
+            pendingRefresh.remove(key);
+            if (err == null) {
+                updateCache(currency.id(), player, balance);
+            }
+        });
+    }
+
+    /** Ricontrolla, sul thread principale (solo per leggere chi e' online), i saldi condivisi di chi c'e' adesso. */
+    private void refreshOnlinePlayers() {
+        for (Currency currency : currencies.values()) {
+            if (!currency.shared()) {
+                continue;
+            }
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                refreshCacheAsync(currency, player.getUniqueId());
+            }
+        }
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        for (Currency currency : currencies.values()) {
+            if (currency.shared()) {
+                refreshCacheAsync(currency, uuid);
+            }
+        }
+    }
+
+    /** Niente obbligo di tenerla: una cache vuota si riempie da sola alla prossima richiesta. */
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        for (Map<UUID, Long> byPlayer : sharedCache.values()) {
+            byPlayer.remove(uuid);
+        }
+    }
+
+    // ------------------------------------------------------------------ config
 
     private void leggiValute(YamlConfiguration conf) {
         ConfigurationSection root = conf.getConfigurationSection("currencies");

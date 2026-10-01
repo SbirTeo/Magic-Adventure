@@ -342,6 +342,24 @@ Una valuta `shared: true` va dichiarata con lo **stesso id** su ogni server dove
 lo stesso nome, non uno condiviso. Il plugin crea da solo la tabella che gli serve, al primo avvio
 con una valuta condivisa: non c'e' niente da preparare a mano.
 
+### Placeholder
+
+Ogni valuta genera da sola, senza altro da scrivere, due placeholder PlaceholderAPI:
+
+| Placeholder | Cosa mostra |
+|---|---|
+| `%magixessentials_balance_<id>%` | Il saldo del giocatore per la valuta `<id>` (es. `magix`). `0` (o il saldo di partenza) se non l'ha mai vista |
+| `%magixessentials_name_<id>%` | Il nome mostrato della valuta `<id>` (es. "Magix"), quello di `currencies.yml` |
+
+Per una valuta `shared: true` il saldo risponde da una cache tenuta aggiornata in background (ogni
+scrittura, piu' un giro periodico per chi e' online): non blocca mai il server per una query al
+database, ma puo' restare indietro di qualche secondo rispetto a un'operazione appena fatta su un
+altro server.
+
+Per farli funzionare anche sui server **senza MagixEssentials**, l'id della valuta condivisa va
+aggiunto a `bridge.player-placeholders` nel config di MagixBridge: li' si legge come
+`%network_<server>_magixessentials_balance_<id>%` (vedi il README di MagixBridge).
+
 ---
 
 ## Comandi

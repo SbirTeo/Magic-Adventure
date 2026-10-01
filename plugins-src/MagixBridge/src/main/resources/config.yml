@@ -45,6 +45,9 @@ bridge:
     - magixfactions_position
     - magixfactions_power_player
     - magixfactions_maxpower_player
+    # Una voce per ogni valuta CONDIVISA di MagixEssentials (currencies.yml, shared: true): cosi'
+    # il saldo si legge anche sui server senza quel plugin, come %network_<server>_...%.
+    - magixessentials_balance_magix
   # Placeholder senza giocatore (classifiche, totali).
   global-placeholders:
     - magixfactions_factionstot

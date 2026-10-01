@@ -58,6 +58,7 @@ final class CurrencyCommand extends Command {
                 withStore(sender, currency, store -> store.balance(currency, player.getUniqueId())
                         .whenComplete((balance, err) -> runSync(() -> {
                             if (failed(sender, err)) return;
+                            if (currency.shared()) manager.updateCache(currency.id(), player.getUniqueId(), balance);
                             messages.send(sender, "currency.balance-self", "currency", currency.name(),
                                     "balance", String.valueOf(balance));
                         })));
@@ -91,6 +92,7 @@ final class CurrencyCommand extends Command {
         withStore(sender, currency, store -> store.add(currency, who, add ? amount : -amount)
                 .whenComplete((updated, err) -> runSync(() -> {
                     if (failed(sender, err)) return;
+                    if (currency.shared()) manager.updateCache(currency.id(), who, updated);
                     String path = add ? "currency.added" : "currency.taken";
                     messages.send(sender, path, "player", displayName(target), "currency", currency.name(),
                             "amount", String.valueOf(amount), "balance", String.valueOf(updated));
@@ -114,6 +116,7 @@ final class CurrencyCommand extends Command {
         withStore(sender, currency, store -> store.set(currency, target.getUniqueId(), amount)
                 .whenComplete((updated, err) -> runSync(() -> {
                     if (failed(sender, err)) return;
+                    if (currency.shared()) manager.updateCache(currency.id(), target.getUniqueId(), updated);
                     messages.send(sender, "currency.set", "player", displayName(target), "currency", currency.name(),
                             "amount", String.valueOf(amount));
                     Player online = target.getPlayer();
@@ -133,6 +136,7 @@ final class CurrencyCommand extends Command {
         withStore(sender, currency, store -> store.set(currency, target.getUniqueId(), currency.startingBalance())
                 .whenComplete((updated, err) -> runSync(() -> {
                     if (failed(sender, err)) return;
+                    if (currency.shared()) manager.updateCache(currency.id(), target.getUniqueId(), updated);
                     messages.send(sender, "currency.reset", "player", displayName(target), "currency", currency.name(),
                             "balance", String.valueOf(updated));
                     Player online = target.getPlayer();
@@ -159,9 +163,14 @@ final class CurrencyCommand extends Command {
                 .whenComplete((outcome, err) -> runSync(() -> {
                     if (failed(sender, err)) return;
                     if (!outcome.success()) {
+                        if (currency.shared()) manager.updateCache(currency.id(), from.getUniqueId(), outcome.senderBalance());
                         messages.send(sender, "currency.insufficient-balance", "currency", currency.name(),
                                 "amount", String.valueOf(amount), "balance", String.valueOf(outcome.senderBalance()));
                         return;
+                    }
+                    if (currency.shared()) {
+                        manager.updateCache(currency.id(), from.getUniqueId(), outcome.senderBalance());
+                        manager.updateCache(currency.id(), target.getUniqueId(), outcome.targetBalance());
                     }
                     messages.send(sender, "currency.give-sent", "player", displayName(target), "currency", currency.name(),
                             "amount", String.valueOf(amount), "balance", String.valueOf(outcome.senderBalance()));

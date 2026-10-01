@@ -19,8 +19,13 @@ final class LocalCurrencyStore implements CurrencyStore {
 
     @Override
     public CompletableFuture<Long> balance(Currency currency, UUID player) {
-        return CompletableFuture.completedFuture(
-                balances.get(currency.id(), player, currency.startingBalance()));
+        return CompletableFuture.completedFuture(peek(currency, player));
+    }
+
+    /** Come {@link #balance}, ma subito: e' solo un file in memoria, non serve l'asincrono.
+     *  Usato dal placeholder, che deve rispondere nello stesso istante in cui viene chiesto. */
+    long peek(Currency currency, UUID player) {
+        return balances.get(currency.id(), player, currency.startingBalance());
     }
 
     @Override
