@@ -162,6 +162,11 @@ protected-spawn:
   no-create: "&cNon puoi fondare una fazione nell'area protetta dello spawn (entro &e{radius}&c blocchi dal centro). Allontanati oltre questo confine per fondarla e conquistare territori."
   no-claim: "&cQui non puoi conquistare territori: e' l'area protetta dello spawn. Supera il confine (oltre &e{radius}&c blocchi dal centro) per rivendicare terreno."
 
+# Condizione PlaceholderAPI non raggiunta (create-cost.placeholders, sethome-cost, rename.cost, claims.cost):
+# {label} nome leggibile (dopo il primo | della condizione), {current} valore del giocatore, {required} valore richiesto.
+requirements:
+  condition-unmet: "&cRequisito non raggiunto: &f{label}&7. Tu hai &f{current}&7, serve &f{required}&7."
+
 unclaim:
   refund: "&7Rimborso: &e{refund}&7 accreditati alla banca della fazione (saldo: &6{bank}&7)."
   no-perm: "&cNon hai il permesso di rilasciare territori (solo il leader di default)."

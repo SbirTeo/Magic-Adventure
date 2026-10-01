@@ -185,7 +185,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         String name = a[1];
         if (!nameOk(p, name, null, false)) return true;
 
-        Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("create-cost"));
+        Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("create-cost"), M);
         String unmet = req.checkUnmet(p);
         if (unmet != null) { msg(p, org.bukkit.ChatColor.translateAlternateColorCodes('&', unmet)); return true; }
         req.consume(p);
@@ -286,7 +286,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         }
 
         // Costo: stesso motore di /f create (a carico del leader), sezione rename.cost del config.
-        Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("rename.cost"));
+        Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("rename.cost"), M);
         String unmet = req.checkUnmet(p);
         if (unmet != null) { msg(p, org.bukkit.ChatColor.translateAlternateColorCodes('&', unmet)); return true; }
         req.consume(p);
@@ -557,7 +557,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         Long owner = claims.owner(ch.getWorld().getName(), ch.getX(), ch.getZ());
         if (owner == null || owner != f.getId()) { msgKey(p, "home.not-own-land"); return true; }
         // Costo (stesso motore di /f create e /f claim; default gratis)
-        Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("sethome-cost"));
+        Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("sethome-cost"), M);
         String unmet = req.checkUnmet(p);
         if (unmet != null) { msg(p, org.bukkit.ChatColor.translateAlternateColorCodes('&', unmet)); return true; }
         req.consume(p);
@@ -678,7 +678,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
                 plugin.getConfig().getConfigurationSection("claims.cost");
         org.bukkit.configuration.MemoryConfiguration noMoney = new org.bukkit.configuration.MemoryConfiguration();
         if (costSec != null) for (String k : costSec.getKeys(false)) if (!k.equals("money")) noMoney.set(k, costSec.get(k));
-        Requirements req = new Requirements(noMoney);
+        Requirements req = new Requirements(noMoney, M);
         String unmet = req.checkUnmet(p);
         if (unmet != null) { msg(p, org.bukkit.ChatColor.translateAlternateColorCodes('&', unmet)); return true; }
 

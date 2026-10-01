@@ -200,7 +200,10 @@ score:
 create-cost:
   money: 0                # richiede Vault + plugin economia
   items: []              # es: ["DIAMOND:10", "GOLD_INGOT:5"]
-  placeholders: []       # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI)
+  # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI). In coda si possono aggiungere, separati
+  # da |, il nome mostrato al giocatore e "seconds" se i valori sono secondi (scritti come durata):
+  # ["%magixessentials_playtime% >= 2223600 | tempo di gioco | seconds"]
+  placeholders: []
   permission: ""         # es: "magixfactions.create"
 
 # ----------------- COSTO/CONDIZIONI /f sethome -------------------

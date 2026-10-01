@@ -2,6 +2,8 @@ package com.teolo.magixfactions.req;
 
 import com.teolo.magixfactions.hook.Econ;
 import com.teolo.magixfactions.hook.Papi;
+import com.teolo.magixfactions.lang.Messages;
+import com.teolo.magixfactions.util.DurationText;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -14,13 +16,21 @@ import java.util.List;
  * Verifica e consuma i requisiti (es. per creare una fazione):
  * soldi (Vault), oggetti nell'inventario, condizioni PlaceholderAPI, permesso.
  * Configurabile dalla sezione passata (es. 'create-cost').
+ *
+ * <p>Una condizione PlaceholderAPI e' {@code "%segnaposto% OP valore"}, con in coda due pezzi
+ * facoltativi separati da {@code |}: {@code "%segnaposto% >= 2223600 | tempo di gioco | seconds"}.
+ * Il primo e' il nome che il giocatore legge al posto della formula; il secondo ({@code seconds}) dice
+ * che i valori sono secondi e vanno scritti come durata ("4 giorni e 5 ore"). Senza questi pezzi
+ * il messaggio mostra i numeri cosi' come sono.</p>
  */
 public final class Requirements {
 
     private final ConfigurationSection cfg;
+    private final Messages messages;
 
-    public Requirements(ConfigurationSection section) {
+    public Requirements(ConfigurationSection section, Messages messages) {
         this.cfg = section;
+        this.messages = messages;
     }
 
     /** @return null se tutti i requisiti sono soddisfatti, altrimenti il messaggio del primo non soddisfatto. */
@@ -44,8 +54,15 @@ public final class Requirements {
         }
 
         for (String cond : cfg.getStringList("placeholders")) {
-            if (!evalCondition(p, cond)) {
-                return "&cCondizione non soddisfatta: &7" + cond;
+            String[] parts = cond.split("\\|");
+            String formula = parts[0].trim();
+            if (!evalCondition(p, formula)) {
+                String label = parts.length > 1 && !parts[1].isBlank() ? parts[1].trim() : formula;
+                boolean seconds = parts.length > 2 && parts[2].trim().equalsIgnoreCase("seconds");
+                String current = describe(p, leftOf(formula), seconds);
+                String required = describe(p, rightOf(formula), seconds);
+                return messages.get(p, "requirements.condition-unmet",
+                        "label", label, "current", current, "required", required);
             }
         }
 
@@ -70,6 +87,32 @@ public final class Requirements {
     }
 
     // ---- helper ----
+    private static final String[] OPERATORS = {">=", "<=", "==", "!=", ">", "<"};
+
+    private static String leftOf(String formula) {
+        for (String op : OPERATORS) {
+            int idx = formula.indexOf(op);
+            if (idx > 0) return formula.substring(0, idx).trim();
+        }
+        return formula;
+    }
+
+    private static String rightOf(String formula) {
+        for (String op : OPERATORS) {
+            int idx = formula.indexOf(op);
+            if (idx > 0) return formula.substring(idx + op.length()).trim();
+        }
+        return "";
+    }
+
+    /** Un lato della condizione come lo legge il giocatore: risolto, e come durata se sono secondi. */
+    private static String describe(Player p, String side, boolean seconds) {
+        String value = Papi.resolve(p, side);
+        Double n = tryNum(value);
+        if (n == null) return value;
+        return seconds ? DurationText.fromMillis((long) (n * 1000)) : DurationText.number(n);
+    }
+
     private boolean evalCondition(Player p, String cond) {
         // formato: "%placeholder% OP valore"  (OP: >= <= > < == !=)
         for (String op : new String[]{">=", "<=", "==", "!=", ">", "<"}) {

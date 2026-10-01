@@ -103,6 +103,11 @@ create-cost:
 ```
 Operatori condizioni: `>= <= > < == !=`.
 
+Se la condizione non è raggiunta il giocatore legge `requirements.condition-unmet` di `messages.yml`
+(*«Requisito non raggiunto: tempo di gioco. Tu hai 4 giorni e 5 ore, serve 25 giorni e 17 ore.»*). In coda alla
+condizione, separati da `|`, si mettono il nome da mostrare e `seconds` se i valori sono secondi (scritti come
+durata): `"%magixessentials_playtime% >= 2223600 | tempo di gioco | seconds"`. Senza, escono i numeri così come sono.
+
 Lo **stesso motore di costo** vale per **`/f sethome`** (sezione `sethome-cost`), di default **gratis**.
 
 **`/f claim` ha un costo speciale**: la parte `money` di `claims.cost` è un **costo incrementale pagato
