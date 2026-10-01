@@ -446,6 +446,37 @@ Quando si trova una stringa hardcoded in un plugin già "migrato", non è un'ecc
 stare: è lo stesso buco di MagixAuth, e si tratta allo stesso modo — chiave nuova in
 `messages.yml`, lettura tramite MagixLanguageAPI, mai testo diretto nel `.java`.
 
+## OGNI PLUGIN MAGIX RISOLVE I PLACEHOLDER DI PLACEHOLDERAPI NEI MESSAGGI (obbligatorio)
+
+Il testo finale che un plugin manda a un giocatore (quello che esce da `Messages`/`messages.yml`,
+dopo la sostituzione `{chiave}` e l'eventuale traduzione di MagixLanguage) passa **sempre** anche
+da PlaceholderAPI, se è installato: così un messaggio può contenere `%magixpack_glyph_<id>%` (un
+glifo/icona), `%magixessentials_balance_<id>%` (il saldo di una valuta), o qualunque altro
+placeholder — proprio, di un altro plugin Magix, o di terzi — senza che il plugin che scrive il
+messaggio debba sapere niente di chi lo risolve.
+
+**La classe condivisa `hook/Papi.java`** (identica in ogni plugin, stesso principio di
+`util/ConfigAlign.java`/`util/Help.java`: `check_config.py` [5] la allinea) espone:
+
+```java
+Papi.setup();                        // in onEnable, una volta sola
+Papi.enabled();                      // true se PlaceholderAPI e' installato
+Papi.resolve(player, testo);         // testo invariato se PAPI manca o il resolve fallisce
+Papi.resolve(offlinePlayer, testo);  // per chi non e' per forza online (es. la chat del sito)
+```
+
+Mai un'eccezione, mai un testo diverso da quello scritto se PlaceholderAPI non c'è: `resolve` non
+lancia mai, e senza placeholder dentro il testo torna com'era. Un plugin nuovo (o uno che manda
+testo ai giocatori per la prima volta) aggiunge `hook/Papi.java`, lo richiama in `onEnable`, e
+dichiara `PlaceholderAPI` nei `softdepend` del `plugin.yml` (mai `depend`: deve funzionare anche
+senza).
+
+**Dove si chiama `resolve`**: nel punto in cui `Messages` costruisce il testo finale da mandare —
+dopo la sostituzione `{chiave}`/la traduzione, prima (o come parte) della colorazione — non prima,
+altrimenti un placeholder dentro `{argomento}` non verrebbe mai risolto. Un `text.indexOf('%') < 0`
+prima della chiamata evita il giro a vuoto sui messaggi senza placeholder (la stessa guardia già
+usata in `chat/ChatModule.java` e `nametag/NametagManager.java` di MagixEssentials).
+
 ## GUIDA E TUTORIAL SEMPRE AGGIORNATI (obbligatorio a ogni modifica)
 
 Ogni modifica che cambia **comportamento, comandi, permessi, regole o chiavi di config** va

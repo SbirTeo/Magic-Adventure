@@ -1,5 +1,6 @@
 package com.teolo.magixfactions.lang;
 
+import com.teolo.magixfactions.hook.Papi;
 import com.teolo.magixfactions.util.Colors;
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import org.bukkit.Bukkit;
@@ -68,7 +69,11 @@ public final class Messages {
      */
     public String get(CommandSender to, String path, String... kv) {
         String translated = to instanceof Player player ? translated(player, path, kv) : null;
-        return translated != null ? Colors.translate(translated) : get(path, kv);
+        String text = translated != null ? Colors.translate(translated) : get(path, kv);
+        if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
+            text = Papi.resolve(player, text);
+        }
+        return text;
     }
 
     /** Sezione grezza di messages.yml (la usa l'aiuto, che e' strutturato a sezioni). */

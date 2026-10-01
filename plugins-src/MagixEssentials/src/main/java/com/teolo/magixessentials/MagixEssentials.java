@@ -3,6 +3,7 @@ package com.teolo.magixessentials;
 import com.teolo.magixessentials.chat.ChatModule;
 import com.teolo.magixessentials.currency.CurrencyManager;
 import com.teolo.magixessentials.currency.CurrencyPlaceholders;
+import com.teolo.magixessentials.hook.Papi;
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.nametag.NametagManager;
@@ -44,6 +45,7 @@ public final class MagixEssentials extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // Gli interruttori delle funzioni e i file di impostazioni delle funzioni stesse PRIMA
         // dell'allineamento: ConfigAlign tocca solo i file che nella cartella dati esistono gia',

@@ -4,6 +4,7 @@ import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import com.teolo.magixlanguage.command.MagixLanguageCommand;
 import com.teolo.magixlanguage.geo.GeoLookup;
 import com.teolo.magixlanguage.hook.MagixLanguagePlaceholders;
+import com.teolo.magixlanguage.hook.Papi;
 import com.teolo.magixlanguage.lang.Messages;
 import com.teolo.magixlanguage.listener.LoginListener;
 import com.teolo.magixlanguage.translate.MenuPhraseSync;
@@ -71,6 +72,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

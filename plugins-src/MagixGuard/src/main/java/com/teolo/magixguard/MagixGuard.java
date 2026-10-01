@@ -8,6 +8,7 @@ import com.teolo.magixguard.analyze.LinkScorer;
 import com.teolo.magixguard.collect.CookieService;
 import com.teolo.magixguard.collect.SignalCollector;
 import com.teolo.magixguard.command.GuardCommand;
+import com.teolo.magixguard.hook.Papi;
 import com.teolo.magixguard.db.Database;
 import com.teolo.magixguard.db.DbExecutor;
 import com.teolo.magixguard.db.GuardDao;
@@ -67,6 +68,7 @@ public final class MagixGuard extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

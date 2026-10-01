@@ -1,5 +1,6 @@
 package com.teolo.magixmusic.lang;
 
+import com.teolo.magixmusic.hook.Papi;
 import com.teolo.magixmusic.util.Colors;
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import net.kyori.adventure.text.Component;
@@ -107,15 +108,26 @@ public final class Messages {
      *  installato e non italofono, altrimenti quello italiano locale. */
     private String textFor(CommandSender to, String path, String... kv) {
         String translated = to instanceof Player player ? translated(player, path, kv) : null;
-        return translated != null ? Colors.translate(translated) : get(path, kv);
+        String text = translated != null ? Colors.translate(translated) : get(path, kv);
+        if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
+            text = Papi.resolve(player, text);
+        }
+        return text;
     }
 
     /** Come {@link #textFor}, ma per una chiave il cui valore e' una lista di righe. */
     private List<String> linesFor(CommandSender to, String path, String... kv) {
         List<String> translated = to instanceof Player player ? translatedList(player, path, kv) : null;
-        if (translated == null) return getList(path, kv);
-        List<String> out = new ArrayList<>(translated.size());
-        for (String s : translated) out.add(Colors.translate(s));
+        List<String> colored = new ArrayList<>();
+        if (translated == null) {
+            colored.addAll(getList(path, kv));
+        } else {
+            for (String s : translated) colored.add(Colors.translate(s));
+        }
+        Player player = to instanceof Player p ? p : null;
+        if (player == null || !Papi.enabled()) return colored;
+        List<String> out = new ArrayList<>(colored.size());
+        for (String line : colored) out.add(line.indexOf('%') >= 0 ? Papi.resolve(player, line) : line);
         return out;
     }
 

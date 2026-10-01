@@ -3,6 +3,7 @@ package com.teolo.magixentities;
 import com.teolo.magixentities.util.ConfigAlign;
 import com.teolo.magixentities.command.MeCommand;
 import com.teolo.magixentities.hook.MagixCosmeticsHook;
+import com.teolo.magixentities.hook.Papi;
 import com.teolo.magixentities.lang.Messages;
 import com.teolo.magixentities.listener.NpcListener;
 import com.teolo.magixentities.manage.ActionRunner;
@@ -35,6 +36,7 @@ public final class MagixEntities extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

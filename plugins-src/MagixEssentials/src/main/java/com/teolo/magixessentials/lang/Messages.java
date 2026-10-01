@@ -1,5 +1,6 @@
 package com.teolo.magixessentials.lang;
 
+import com.teolo.magixessentials.hook.Papi;
 import com.teolo.magixessentials.util.TextFormat;
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import net.kyori.adventure.text.Component;
@@ -65,7 +66,11 @@ public final class Messages {
 
     private Component componentFor(CommandSender to, String path, String... kv) {
         String translated = to instanceof Player player ? translated(player, path, kv) : null;
-        return TextFormat.component(translated != null ? translated : raw(path, kv));
+        String text = translated != null ? translated : raw(path, kv);
+        if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
+            text = Papi.resolve(player, text);
+        }
+        return TextFormat.component(text);
     }
 
     private String raw(String path, String... kv) {

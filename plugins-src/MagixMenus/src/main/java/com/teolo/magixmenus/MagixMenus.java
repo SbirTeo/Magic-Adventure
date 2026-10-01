@@ -4,6 +4,7 @@ import com.teolo.magixmenus.util.ConfigAlign;
 import com.teolo.magixmenus.command.MagixMenusCommand;
 import com.teolo.magixmenus.dialog.DialogManager;
 import com.teolo.magixmenus.hook.EconomyHook;
+import com.teolo.magixmenus.hook.Papi;
 import com.teolo.magixmenus.hook.Placeholders;
 import com.teolo.magixmenus.lang.Messages;
 import com.teolo.magixmenus.listener.MenuListener;
@@ -43,6 +44,7 @@ public final class MagixMenus extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

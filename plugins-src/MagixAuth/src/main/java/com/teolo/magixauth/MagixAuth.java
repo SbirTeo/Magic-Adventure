@@ -14,6 +14,7 @@ import com.teolo.magixauth.gate.ConnectionListener;
 import com.teolo.magixauth.gate.FreezeListener;
 import com.teolo.magixauth.gate.OtpPolicy;
 import com.teolo.magixauth.gate.Visibility;
+import com.teolo.magixauth.hook.Papi;
 import com.teolo.magixauth.lang.Messages;
 import com.teolo.magixauth.premium.MojangLookup;
 import com.teolo.magixauth.util.StaffGuide;
@@ -43,6 +44,7 @@ public final class MagixAuth extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

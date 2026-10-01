@@ -5,6 +5,7 @@ import com.teolo.magixpack.avatar.AvatarService;
 import com.teolo.magixpack.command.MagixPackCommand;
 import com.teolo.magixpack.furniture.FurnitureListener;
 import com.teolo.magixpack.glyph.GlyphCatalog;
+import com.teolo.magixpack.hook.Papi;
 import com.teolo.magixpack.item.ItemCatalog;
 import com.teolo.magixpack.lang.Messages;
 import com.teolo.magixpack.pack.PackListener;
@@ -68,6 +69,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

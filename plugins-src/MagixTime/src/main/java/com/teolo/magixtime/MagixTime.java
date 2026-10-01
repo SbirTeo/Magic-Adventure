@@ -3,6 +3,7 @@ package com.teolo.magixtime;
 import com.teolo.magixtime.util.ConfigAlign;
 import com.teolo.magixtime.command.MagixTimeCommand;
 import com.teolo.magixtime.hook.MagixTimePlaceholders;
+import com.teolo.magixtime.hook.Papi;
 import com.teolo.magixtime.lang.Messages;
 import com.teolo.magixtime.listener.CommandBlockListener;
 import com.teolo.magixtime.listener.SleepListener;
@@ -55,6 +56,7 @@ public final class MagixTime extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

@@ -1,5 +1,6 @@
 package com.teolo.magixauth.lang;
 
+import com.teolo.magixauth.hook.Papi;
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -72,7 +73,11 @@ public final class Messages {
      */
     public String get(UUID recipient, String path, String... kv) {
         String translated = translated(recipient, path, kv);
-        return translated != null ? translated : get(path, kv);
+        String text = translated != null ? translated : get(path, kv);
+        if (Papi.enabled() && text.indexOf('%') >= 0) {
+            text = Papi.resolve(Bukkit.getOfflinePlayer(recipient), text);
+        }
+        return text;
     }
 
     /** Come {@link #get(String, String...)}, tradotto per questo destinatario (usato dai comandi,
@@ -94,7 +99,12 @@ public final class Messages {
     public List<String> getList(CommandSender to, String path, String... kv) {
         List<String> translated = to instanceof Player player
                 ? translatedList(player.getUniqueId(), path, kv) : null;
-        return translated != null ? translated : getList(path, kv);
+        List<String> lines = translated != null ? translated : getList(path, kv);
+        Player player = to instanceof Player p ? p : null;
+        if (player == null || !Papi.enabled()) return lines;
+        List<String> out = new ArrayList<>(lines.size());
+        for (String line : lines) out.add(line.indexOf('%') >= 0 ? Papi.resolve(player, line) : line);
+        return out;
     }
 
     /** Sezione grezza di messages.yml (la usa l'aiuto, che e' strutturato a sezioni). */

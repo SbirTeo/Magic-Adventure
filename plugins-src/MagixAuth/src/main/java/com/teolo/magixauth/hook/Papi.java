@@ -1,4 +1,4 @@
-package com.teolo.magixfactions.hook;
+package com.teolo.magixauth.hook;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

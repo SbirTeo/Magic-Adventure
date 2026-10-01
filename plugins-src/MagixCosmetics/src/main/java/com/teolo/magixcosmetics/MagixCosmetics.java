@@ -5,6 +5,7 @@ import com.teolo.magixcosmetics.command.HaloCommand;
 import com.teolo.magixcosmetics.command.MagixCosmeticsCommand;
 import com.teolo.magixcosmetics.cosmetic.HaloCombatListener;
 import com.teolo.magixcosmetics.cosmetic.HaloManager;
+import com.teolo.magixcosmetics.hook.Papi;
 import com.teolo.magixcosmetics.lang.Messages;
 import com.teolo.magixcosmetics.util.ConfigValues;
 import com.teolo.magixcosmetics.util.StaffGuide;
@@ -26,6 +27,7 @@ public final class MagixCosmetics extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori

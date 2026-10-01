@@ -1,5 +1,6 @@
 package com.teolo.magixpack.lang;
 
+import com.teolo.magixpack.hook.Papi;
 import com.teolo.magixpack.util.Colors;
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import org.bukkit.Bukkit;
@@ -57,7 +58,11 @@ public final class Messages {
      *  con MagixLanguage installato e non italofono. */
     public String get(CommandSender to, String path) {
         String translated = to instanceof Player player ? translated(player, path) : null;
-        return translated != null ? Colors.translate(translated) : get(path);
+        String text = translated != null ? Colors.translate(translated) : get(path);
+        if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
+            text = Papi.resolve(player, text);
+        }
+        return text;
     }
 
     // ------------------------------------------------------------- MagixLanguage (opzionale)

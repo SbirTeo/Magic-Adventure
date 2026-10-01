@@ -1,5 +1,6 @@
 package com.teolo.magixguard.lang;
 
+import com.teolo.magixguard.hook.Papi;
 import com.teolo.magixguard.sanctions.Type;
 import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import org.bukkit.Bukkit;
@@ -64,7 +65,11 @@ public final class Messages {
      *  (la console resta in italiano, non ha una lingua). */
     public String get(CommandSender to, String path, String... kv) {
         String translated = to instanceof Player player ? translated(player, path, kv) : null;
-        return translated != null ? translated : get(path, kv);
+        String text = translated != null ? translated : get(path, kv);
+        if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
+            text = Papi.resolve(player, text);
+        }
+        return text;
     }
 
     /** Come si dice un provvedimento a questo destinatario ("Bandito", "Silenziato"...). */
@@ -80,7 +85,12 @@ public final class Messages {
     /** Come {@link #getList(String)}, tradotta per questo destinatario se non e' italofono. */
     public List<String> getList(CommandSender to, String path) {
         List<String> translated = to instanceof Player player ? translatedList(player, path) : null;
-        return translated != null ? translated : getList(path);
+        List<String> lines = translated != null ? translated : getList(path);
+        Player player = to instanceof Player p ? p : null;
+        if (player == null || !Papi.enabled()) return lines;
+        List<String> out = new java.util.ArrayList<>(lines.size());
+        for (String line : lines) out.add(line.indexOf('%') >= 0 ? Papi.resolve(player, line) : line);
+        return out;
     }
 
     /** Sezione grezza di messages.yml (la usa l'aiuto, che e' strutturato a sezioni). */

@@ -449,13 +449,17 @@ def help_arguments_unknown(name):
 
 
 # Classes the plugins SHARE: they are copies, not a library, so they must stay identical (apart from
-# the package line). If they diverge, a fix made in one plugin never reaches the others.
-COMMON_CLASSES = ["ConfigAlign.java", "ConfigValues.java", "DurationText.java",
-                  "StaffGuide.java", "Help.java"]
+# the package line). If they diverge, a fix made in one plugin never reaches the others. Maps the
+# file name to the package (relative to com.teolo.<plugin>) it lives in.
+COMMON_CLASSES = {
+    "ConfigAlign.java": "util", "ConfigValues.java": "util", "DurationText.java": "util",
+    "StaffGuide.java": "util", "Help.java": "util",
+    "Papi.java": "hook",
+}
 
 
-def util_path(name):
-    return os.path.join(HERE, name, "src", "main", "java", "com", "teolo", name.lower(), "util")
+def class_path(name, pkg):
+    return os.path.join(HERE, name, "src", "main", "java", "com", "teolo", name.lower(), pkg)
 
 
 def body_without_package(path):
@@ -467,10 +471,10 @@ def body_without_package(path):
 def check_common_classes(names):
     """Reports the common classes that differ from one plugin to another (or that are missing)."""
     problems = []
-    for cls in COMMON_CLASSES:
+    for cls, pkg in COMMON_CLASSES.items():
         versions = {}
         for name in names:
-            p = os.path.join(util_path(name), cls)
+            p = os.path.join(class_path(name, pkg), cls)
             if os.path.isfile(p):
                 versions.setdefault(body_without_package(p), []).append(name)
         if len(versions) <= 1:

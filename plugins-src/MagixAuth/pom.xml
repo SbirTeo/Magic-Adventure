@@ -28,6 +28,10 @@
             <id>luckperms</id>
             <url>https://repo.lucko.me/</url>
         </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -36,6 +40,12 @@
             <artifactId>paper-api</artifactId>
             <!-- combacia col build ESATTO del server ("Paper version 26.1.2-72-ver/26.1.2") -->
             <version>26.1.2.build.72-stable</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
         <!-- Serve a leggere la track "staff" per sapere chi e' obbligato all'OTP.

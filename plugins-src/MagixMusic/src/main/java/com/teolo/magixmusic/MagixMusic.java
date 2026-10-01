@@ -1,6 +1,7 @@
 package com.teolo.magixmusic;
 
 import com.teolo.magixmusic.command.MagixMusicCommand;
+import com.teolo.magixmusic.hook.Papi;
 import com.teolo.magixmusic.lang.Messages;
 import com.teolo.magixmusic.radio.RadioListener;
 import com.teolo.magixmusic.radio.RadioService;
@@ -30,6 +31,7 @@ public final class MagixMusic extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Papi.setup();
         saveDefaultConfig();
         // I file di configurazione SUL SERVER allineati a quelli del jar: le chiavi nuove compaiono da
         // sole, al loro posto e col loro commento, senza toccare i valori già scelti. Il deploy porta
