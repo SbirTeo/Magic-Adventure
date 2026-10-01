@@ -299,7 +299,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
 
     // -------------------------------------------------------------------------------------- model
 
-    /** /mpack model list | spawn <id> [scale] [animation|none] | remove [radius] | rotate <degrees>. */
+    /** /mpack model list | spawn <id> [scale] [animation|none] | remove [radius] | rotate <degrees> | scale <size>. */
     private void model(CommandSender sender, String[] args) {
         if (!sender.hasPermission("magixpack.model")) {
             sender.sendMessage(messages.get(sender, "no-permission"));
@@ -333,6 +333,17 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage(id == null
                         ? messages.get(player, "model-none-near").replace("{radius}", "16")
                         : messages.get(player, "model-rotated").replace("{model}", id).replace("{degrees}", fmt(degrees)));
+            }
+            case "scale" -> {
+                if (args.length < 3) {
+                    player.sendMessage(messages.get(player, "model-usage"));
+                    return;
+                }
+                double scale = Math.max(0.05, Math.min(16, parse(args[2], 1)));
+                String id = plugin.modelDisplays().scaleNearest(player.getLocation(), 16, scale);
+                player.sendMessage(id == null
+                        ? messages.get(player, "model-none-near").replace("{radius}", "16")
+                        : messages.get(player, "model-scaled").replace("{model}", id).replace("{scale}", fmt(scale)));
             }
             default -> player.sendMessage(messages.get(player, "model-usage"));
         }
@@ -425,7 +436,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("model")) {
-            for (String s : List.of("list", "spawn", "remove", "rotate")) {
+            for (String s : List.of("list", "spawn", "remove", "rotate", "scale")) {
                 if (s.startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(s);
             }
             return out;

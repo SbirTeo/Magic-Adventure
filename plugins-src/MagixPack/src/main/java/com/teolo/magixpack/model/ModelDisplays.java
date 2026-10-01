@@ -48,7 +48,7 @@ public final class ModelDisplays implements Listener {
     private static final class Placement {
         final UUID id;
         final String model;
-        final double scale;
+        double scale;
         final String animation;
         final Map<Integer, ItemDisplay> pieces = new HashMap<>();
         /** The rest pose (or the current model file) still has to be sent. */
@@ -131,6 +131,18 @@ public final class ModelDisplays implements Listener {
         if (p == null) return null;
         for (ItemDisplay d : p.pieces.values()) if (d.isValid()) d.remove();
         placements.remove(p.id);
+        return p.model;
+    }
+
+    /** Resizes the placed model closest to {@code near} (1 = Blockbench size). @return its id or null. */
+    public String scaleNearest(Location near, double radius, double scale) {
+        Placement p = nearest(near, radius);
+        if (p == null) return null;
+        p.scale = scale;
+        for (ItemDisplay d : p.pieces.values()) {
+            if (d.isValid()) d.getPersistentDataContainer().set(keyScale, PersistentDataType.DOUBLE, scale);
+        }
+        p.dirty = true;
         return p.model;
     }
 

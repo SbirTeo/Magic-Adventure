@@ -431,6 +431,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "girato verso di se'. Scala 1 = grandezza di Blockbench (16 pixel = un blocco); senza "
                                 + "animazione parte idle (o la prima in loop), none = fermo.",
                         "/mpack model rotate <gradi>", "Gira il modello piu' vicino (entro 16 blocchi).",
+                        "/mpack model scale <scala>", "Cambia la grandezza del modello piu' vicino (entro 16 blocchi): "
+                                + "1 = grandezza di Blockbench, 0.5 = meta'.",
                         "/mpack model remove [raggio]", "Toglie il modello piu' vicino (default entro 10 blocchi).")
 
                 .section("Modelli Blockbench nel mondo (models/)",
