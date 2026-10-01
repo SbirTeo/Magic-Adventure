@@ -129,15 +129,15 @@ decompressed-bytes-per-second = 5242880
 # represents the IP address of the server to connect to.
 # MAGICADVENTURE: i due backend, solo su 127.0.0.1: da fuori non si raggiungono.
 hub = "127.0.0.1:25600"
-faction = "127.0.0.1:25701"
+factions = "127.0.0.1:25701"
 
 # In what order we should try servers when a player logs in or is kicked from a server.
-# MAGICADVENTURE: per ora il server principale e' il FACTION: chi entra nella rete finisce li'
+# MAGICADVENTURE: per ora il server principale e' il FACTIONS: chi entra nella rete finisce li'
 # e li' fa il login. Niente ripiego sull'hub: se il faction e' giu' non si entra (MagixProxy,
-# network.main_server, impone comunque il faction come primo server qualunque cosa ci sia qui).
+# network.main_server, impone comunque il factions come primo server qualunque cosa ci sia qui).
 # Gli altri server (hub, modalita' future) si aprono solo dopo il login (MagixProxy, ServerGuard).
 try = [
-    "faction"
+    "factions"
 ]
 
 # MAGICADVENTURE: nessun dominio forzato: tutti gli indirizzi portano al server principale.

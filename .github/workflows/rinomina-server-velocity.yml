@@ -1,0 +1,99 @@
+name: Rinomina server Velocity (faction -> factions)
+
+# UNA TANTUM (idempotente). Rinomina il nome con cui Velocity e MagixProxy conoscono il server
+# fazioni: quello di "/server <nome>", registrato in [servers] di velocity.toml e in
+# network.main_server del config.yml di MagixProxy. E' un nome DIVERSO dallo screen della console
+# VPS (gia' rinominato da rinomina-screen-factions.yml) e dalla cartella sul disco, che restano
+# "faction": qui si tocca solo l'identificativo con cui Velocity/i giocatori raggiungono il
+# server (/server factions).
+#
+# Nessuna chiave hardcoded nel codice Java (ServerGuard, SwitchCookies, MotdListener) legge
+# "faction" come stringa fissa: leggono main_server dal config, quindi basta il config — non
+# serve ricompilare MagixProxy.
+#
+# Velocity NON supporta un cambio di [servers] senza riavvio pulito (il reload a caldo non e' la
+# strada usata in questo repo, vedi velocity-restart.yml): questo workflow riavvia il proxy alla
+# fine, come velocity-restart.yml. Chi e' in gioco viene scollegato e rientra da solo (una decina
+# di secondi).
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-plugin       # mai insieme a un deploy dei plugin o un altro riavvio di Velocity
+  cancel-in-progress: false
+
+jobs:
+  rinomina:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rinomina il server su Velocity e riavvia
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -uo pipefail
+          VEL=/home/ubuntu/magicadventure/velocity
+          BAK=/home/ubuntu/.bak/sistema
+          ORA=$(date +%Y%m%d-%H%M%S)
+          mkdir -p "$BAK"
+          salva() { [ -e "$1" ] && cp -a "$1" "$BAK/$(basename "$1").bak-$ORA" && echo "  backup: $BAK/$(basename "$1").bak-$ORA"; return 0; }
+
+          echo "=== 1) velocity.toml: [servers] e try ==="
+          TOML="$VEL/velocity.toml"
+          if grep -qE '^faction = ' "$TOML"; then
+            salva "$TOML"
+            sed -i -E 's/^faction = /factions = /; s/^(\s*)"faction"(\s*)$/\1"factions"\2/' "$TOML"
+            echo "velocity.toml aggiornato"
+          elif grep -qE '^factions = ' "$TOML"; then
+            echo "velocity.toml gia' aggiornato"
+          else
+            echo "::warning::riga '[servers] faction = ...' non trovata in $TOML: controllare a mano"
+          fi
+          grep -nE '^(faction|factions|hub) =|^\s*"(faction|factions)"\s*$' "$TOML" || true
+
+          echo; echo "=== 2) MagixProxy: network.main_server ==="
+          MPCFG="$VEL/plugins/MagixProxy/config.yml"
+          if [ -f "$MPCFG" ] && grep -qE '^\s*main_server:\s*faction\s*$' "$MPCFG"; then
+            salva "$MPCFG"
+            sed -i -E 's/^(\s*main_server:\s*)faction(\s*)$/\1factions\2/' "$MPCFG"
+            echo "config.yml di MagixProxy aggiornato"
+          elif [ -f "$MPCFG" ] && grep -qE '^\s*main_server:\s*factions\s*$' "$MPCFG"; then
+            echo "config.yml di MagixProxy gia' aggiornato"
+          else
+            echo "::warning::main_server non trovato in $MPCFG con lo schema atteso: controllare a mano"
+          fi
+          grep -n 'main_server' "$MPCFG" 2>/dev/null || true
+
+          echo; echo "=== 3) RIAVVIO Velocity ==="
+          LOG="$VEL/logs/latest.log"
+          ascolta() { ss -tlnH 2>/dev/null | awk '{print $4}' | grep -qE '[:.]25565$'; }
+          I=$(stat -c %i "$LOG" 2>/dev/null || echo 0)
+          sudo systemctl restart magix-velocity.service
+          for i in $(seq 1 60); do
+            sleep 1
+            [ -f "$LOG" ] && [ "$(stat -c %i "$LOG")" != "$I" ] && grep -q 'Done (' "$LOG" && ascolta && { echo "Velocity di nuovo su dopo ~${i}s"; break; }
+          done
+          ascolta || { echo "::error::Velocity non ascolta sulla 25565"; tail -n 40 "$LOG"; exit 1; }
+          echo "--- registrati (dal log) ---"
+          sed -E 's/\x1b\[[0-9;]*m//g' "$LOG" | grep -iE 'Loaded plugin|magixproxy|Registered server|ERROR|Exception|Done \(' | grep -v Hikari | tail -n 25
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
