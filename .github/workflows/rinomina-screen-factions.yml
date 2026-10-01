@@ -106,11 +106,12 @@ jobs:
 
           echo; echo "=== 4) istanze.conf (console del sito) ==="
           CONF=/etc/magicadventure/istanze.conf
-          if [ -f "$CONF" ] && grep -q '^istanza mc .*screen=faction ' "$CONF"; then
+          if [ -f "$CONF" ] && grep -qE '^istanza mc .*(nome=Faction \||screen=faction )' "$CONF"; then
             salva "$CONF"
-            sudo sed -i 's/^istanza mc | nome=\([^|]*\)| screen=faction |/istanza mc | nome=\1| screen=factions |/' "$CONF"
-            echo "istanze.conf aggiornato"
-          elif [ -f "$CONF" ] && grep -q 'screen=factions ' "$CONF"; then
+            sudo sed -i -E 's/^istanza mc \| nome=Faction \|/istanza mc | nome=Factions |/; \
+                             s/^(istanza mc \|.*screen=)faction( \|)/\1factions\2/' "$CONF"
+            echo "istanze.conf aggiornato (nome e screen)"
+          elif [ -f "$CONF" ] && grep -q 'nome=Factions .*screen=factions ' "$CONF"; then
             echo "istanze.conf gia' aggiornato"
           else
             echo "::warning::riga 'istanza mc' non trovata in $CONF con lo schema atteso: controllare a mano"
