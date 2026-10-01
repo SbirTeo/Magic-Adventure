@@ -54,7 +54,12 @@
       write(t, posDi(t));
     });
     var img = new Image();
-    img.onload = function () { misureImmagine = { w: img.naturalWidth, h: img.naturalHeight }; };
+    img.onload = function () {
+      misureImmagine = { w: img.naturalWidth, h: img.naturalHeight };
+      // Stessa soglia di copertina_in_piedi() in index.php: sotto 1,2 e' una locandina in
+      // piedi (colonna al 50%), sopra riempie tutta la tessera.
+      pannello.classList.toggle('e-orizzontale', misureImmagine.h > 0 && misureImmagine.w / misureImmagine.h >= 1.2);
+    };
     img.src = src;
   }
 

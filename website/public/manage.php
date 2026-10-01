@@ -1823,7 +1823,7 @@ if ($section === 'dashboard') {
             <?php /* Anteprima delle due inquadrature (telefono e computer): si trascina
                      l'immagine col mouse per scegliere quale parte resta in vista. Il
                      punto scelto finisce nel campo nascosto qui sotto. */ ?>
-            <div class="inquadratura" data-inquadratura
+            <div class="inquadratura inquadratura-articolo" data-inquadratura
                  data-src="<?= h($post['cover_image'] ?? '') ?>"
                  <?= empty($post['cover_image']) ? 'hidden' : '' ?>>
               <label>Inquadratura della copertina</label>

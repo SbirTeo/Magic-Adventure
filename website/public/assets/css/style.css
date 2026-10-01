@@ -5574,7 +5574,15 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    290x272 il computer (colonna). Qui in scala ridotta, ma con lo stesso rapporto. */
 .e-telefono .inquadratura-tela { width: 260px; height: 132px; }
 .e-computer .inquadratura-tela { width: 140px; height: 132px; }
+/* Articoli: la tessera in home e' larga quanto la sezione, quindi sul computer il ritaglio
+   non e' piu' una colonna alta. Copertina in piedi = colonna di poster al 50% della tessera
+   (circa 535x240, rapporto 2,2); copertina orizzontale = tutta la tessera (circa 1070x240,
+   rapporto 4,5). Il JS mette .e-orizzontale in base alle misure vere del file. */
+.inquadratura-articolo .e-computer .inquadratura-tela { width: 300px; height: 134px; }
+.inquadratura-articolo.e-orizzontale .e-computer .inquadratura-tela { width: 300px; height: 67px; }
 @media (max-width: 560px) {
+  .inquadratura-articolo .e-computer .inquadratura-tela,
+  .inquadratura-articolo.e-orizzontale .e-computer .inquadratura-tela { width: 100%; max-width: 300px; }
   .e-telefono .inquadratura-tela { width: 100%; max-width: 260px; height: 120px; }
 }
 
