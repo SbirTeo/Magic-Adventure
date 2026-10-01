@@ -1946,9 +1946,9 @@ a.chat-nome:hover,
 .chat-stato.is-error { color: #e0733f; }
 
 /* Post grid (altri articoli) */
-/* Due articoli per riga: la prima riga se la prende tutta l'ultimo articolo (.card-doppia),
-   gli altri scendono a coppie. minmax(0,1fr) evita che un titolo lungo allarghi la colonna. */
-.post-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+/* Un articolo per riga, a tutta larghezza della sezione e tutti della stessa altezza
+   (grid-auto-rows: 1fr). Su telefono diventa un carosello a tessere intere. minmax(0,1fr) evita che un titolo lungo allarghi la colonna. */
+.post-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 20px; }
 /* Stesso stile dell'articolo in evidenza: copertina a tutto sfondo, testo in sovrimpressione
    sul gradiente scuro (senza il quale i titoli sparirebbero sulle immagini chiare). */
 .post-tile {
@@ -5498,10 +5498,10 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 
 /* Le tessere piccole sono strette: la colonna dell'immagine si prende un po' meno spazio. */
-.post-tile.copertina-intera { --poster-larghezza: 38%; }
+.post-tile.copertina-intera { --poster-larghezza: 30%; }
 /* L'ultimo articolo e' stretto quanto gli altri: la copertina in piedi si prende la stessa
    fetta di larghezza delle tessere piccole. */
-.post-grid .bento-feature.copertina-intera { --poster-larghezza: 38%; }
+.post-grid .bento-feature.copertina-intera { --poster-larghezza: 30%; }
 
 /* Sul telefono la tessera e' larga come un pollice: due colonne diventerebbero due
    strisce illeggibili. L'immagine passa quindi in ALTO, a tutta larghezza, e il testo le
