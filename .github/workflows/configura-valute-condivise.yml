@@ -1,0 +1,207 @@
+name: MagixEssentials - valute condivise (credenziali DB + flag live)
+
+# UNA TANTUM per ogni valuta "shared: true" nuova (idempotente, rilanciabile). Il deploy porta
+# solo il jar: le chiavi gia' presenti sul server (database.* in config.yml, name/shared di una
+# valuta in currencies.yml) restano quelle scelte al primo avvio, il default nuovo del jar non le
+# tocca (vedi CLAUDE.md, "I CONFIG SUL VPS SONO SEMPRE ALLINEATI AL SORGENTE"). Questo workflow fa
+# i due passi che servono perche' "magix" diventi davvero condivisa in rete, su faction e hub:
+#
+#   1) Copia le credenziali REALI del database del sito in config.yml di MagixEssentials — le
+#      legge dal config.yml GIA' CONFIGURATO di MagixAuth (stesso database, stesse credenziali,
+#      vedi il commento li' sopra), con un piccolo script Python (non sed: una password puo'
+#      contenere virgolette o barre, e un sed con la password incollata dentro il pattern la
+#      romperebbe). La password non viene mai stampata, ne' qui ne' nel log del run.
+#   2) Allinea currencies.yml alla voce "magix" (name: "Magix", shared: true) e ricarica il
+#      plugin (/magixessentials reload, niente riavvio: basta il reload).
+#
+# Se in futuro servira' un'altra valuta condivisa con lo stesso schema, con l'id gia' dichiarato
+# in currencies.yml su ogni server dove deve esistere, questo workflow va esteso con la chiave
+# nuova (oggi e' scritto apposta solo per "magix").
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-plugin       # mai insieme a un deploy dei plugin o un riavvio
+  cancel-in-progress: false
+
+jobs:
+  configura:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Configura su faction e hub
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -uo pipefail
+
+          # dì manda un comando in console al server indicato ($1 = screen).
+          dì() { screen -S "$1" -p 0 -X stuff "$(printf '%s\r' "$2")" 2>/dev/null || true; }
+          acceso() { screen -list 2>/dev/null | grep -qE "[0-9]+\.$1[[:space:]]"; }
+
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          HUB=/home/ubuntu/magicadventure/hub
+          SCR_FAZ="factions"; acceso "$SCR_FAZ" || SCR_FAZ="faction"; acceso "$SCR_FAZ" || SCR_FAZ="mc"
+
+          configura_server() {
+            local NOME="$1" DIR="$2" SCR="$3"
+            echo; echo "=== $NOME ($DIR) ==="
+            local AUTHCFG="$FAZ/plugins/MagixAuth/config.yml"
+            local CFG="$DIR/plugins/MagixEssentials/config.yml"
+            local CUR="$DIR/plugins/MagixEssentials/currencies.yml"
+            if [ ! -f "$CFG" ] || [ ! -f "$CUR" ]; then
+              echo "  MagixEssentials non ancora installato qui (nessun config.yml/currencies.yml): salto."
+              return 0
+            fi
+            if [ ! -f "$AUTHCFG" ]; then
+              echo "::error::$AUTHCFG non trovato: non so da dove copiare le credenziali del database"; return 1
+            fi
+
+            python3 - "$AUTHCFG" "$CFG" "$CUR" "$NOME" <<'PY'
+          import re, shutil, sys
+
+          authcfg, cfg, cur, nome = sys.argv[1:5]
+
+          def read_kv(path, keys):
+              out = {}
+              pat = re.compile(r'^\s*([a-zA-Z0-9_-]+):\s*(.*)$')
+              for line in open(path, encoding="utf-8"):
+                  m = pat.match(line)
+                  if not m:
+                      continue
+                  k, v = m.group(1), m.group(2).split("#", 1)[0].strip()
+                  if k in keys and k not in out:
+                      if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
+                          v = v[1:-1].replace('\\"', '"').replace("\\\\", "\\")
+                      elif len(v) >= 2 and v[0] == "'" and v[-1] == "'":
+                          v = v[1:-1].replace("''", "'")
+                      out[k] = v
+              return out
+
+          creds = read_kv(authcfg, {"host", "port", "name", "user", "password"})
+          missing = [k for k in ("host", "port", "name", "user", "password") if not creds.get(k)]
+          if missing:
+              sys.exit("credenziali mancanti in " + authcfg + ": " + ", ".join(missing))
+
+          def yq(v):  # stringa YAML tra apici singoli (come negli altri workflow di questo repo)
+              return "'" + str(v).replace("'", "''") + "'"
+
+          import os, time
+          BAK = "/home/ubuntu/.bak/sistema"
+          ORA = time.strftime("%Y%m%d-%H%M%S")
+
+          _backed_up = set()
+
+          def backup(path):
+              if path in _backed_up:  # una sola copia per file, non una a chiave cambiata
+                  return
+              os.makedirs(BAK, exist_ok=True)
+              shutil.copy2(path, os.path.join(BAK, nome + "-" + os.path.basename(path) + ".bak-" + ORA))
+              _backed_up.add(path)
+
+          def set_line(path, key, literal):
+              lines = open(path, encoding="utf-8").read().split("\n")
+              pat = re.compile(r"^(\s*" + re.escape(key) + r":\s*).*$")
+              changed = False
+              touched = False
+              for i, line in enumerate(lines):
+                  m = pat.match(line)
+                  if not m:
+                      continue
+                  touched = True
+                  new_line = m.group(1) + literal
+                  if new_line != line:
+                      lines[i] = new_line
+                      changed = True
+              if not touched:
+                  sys.exit(f"chiave '{key}' non trovata in {path}")
+              if changed:
+                  backup(path)
+                  open(path, "w", encoding="utf-8").write("\n".join(lines))
+              return changed
+
+          any_cfg_change = False
+          for key, literal in (
+              ("host", yq(creds["host"])), ("port", creds["port"]), ("name", yq(creds["name"])),
+              ("user", yq(creds["user"])), ("password", yq(creds["password"])),
+          ):
+              any_cfg_change = set_line(cfg, key, literal) or any_cfg_change
+          print("config.yml: credenziali del database " + ("aggiornate." if any_cfg_change else "gia' allineate."))
+
+          lines = open(cur, encoding="utf-8").read().split("\n")
+          in_block = False
+          seen_name = seen_shared = False
+          changed_cur = False
+          for i, line in enumerate(lines):
+              if re.match(r"^  magix:\s*$", line):
+                  in_block = True
+                  continue
+              if in_block and re.match(r"^  [a-z]", line):
+                  in_block = False
+              if not in_block:
+                  continue
+              if re.match(r"^\s*name:\s*", line):
+                  seen_name = True
+                  new_line = re.sub(r"^(\s*name:\s*).*", r'\1"Magix"', line)
+                  if new_line != line:
+                      lines[i] = new_line; changed_cur = True
+              elif re.match(r"^\s*shared:\s*", line):
+                  seen_shared = True
+                  new_line = re.sub(r"^(\s*shared:\s*).*", r"\1true", line)
+                  if new_line != line:
+                      lines[i] = new_line; changed_cur = True
+          if not (seen_name and seen_shared):
+              sys.exit("currencies.yml: 'name'/'shared' non trovati dentro il blocco 'magix:' in " + cur)
+          if changed_cur:
+              backup(cur)
+              open(cur, "w", encoding="utf-8").write("\n".join(lines))
+          print("currencies.yml: " + ("magix -> name=Magix, shared=true." if changed_cur else "magix gia' allineato."))
+          PY
+            RC=$?
+            if [ "$RC" -ne 0 ]; then
+              echo "::error::configurazione di $NOME fallita (vedi sopra)"; return 1
+            fi
+
+            if acceso "$SCR"; then
+              dì "$SCR" "magixessentials reload"
+              echo "  reload inviato alla console ($SCR)."
+            else
+              echo "  server spento: i valori varranno dal prossimo avvio."
+            fi
+          }
+
+          OK=1
+          configura_server "faction" "$FAZ" "$SCR_FAZ" || OK=0
+          configura_server "hub" "$HUB" "hub" || OK=0
+
+          sleep 3
+          echo; echo "=== Esito (dal log, righe [Valute]) ==="
+          for P in "faction:$FAZ" "hub:$HUB"; do
+            N="${P%%:*}"; D="${P#*:}"
+            LOG="$D/logs/latest.log"
+            [ -f "$LOG" ] || continue
+            echo "--- $N ---"
+            sed -E 's/\x1b\[[0-9;]*m//g' "$LOG" | grep -i '\[Valute\]' | tail -n 10 || echo "  (nessuna riga [Valute] nel log ancora)"
+          done
+          [ "$OK" -eq 1 ] || exit 1
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
