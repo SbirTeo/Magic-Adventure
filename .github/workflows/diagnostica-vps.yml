@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       plugin:
-        description: "Cartella del plugin (es. MagixEntities), 'tutti' per l'elenco delle chiavi di tutti i Magix, 'sistema' per risorse/porte/firewall/servizi della macchina"
+        description: "Cartella del plugin (es. MagixEntities), 'tutti' per l'elenco delle chiavi di tutti i Magix, 'sistema' per risorse/porte/firewall/servizi della macchina, 'LuckPerms' per cercare un permesso (vedi input 'permesso')"
         required: true
         default: "MagixEntities"
       file:
@@ -41,6 +41,10 @@ on:
         description: "Quale server leggere: faction (di serie), hub o velocity (cartella, log e config dei plugin di quel server)"
         required: false
         default: "faction"
+      permesso:
+        description: "Solo con plugin=LuckPerms: pezzo di nodo permesso da cercare (es. magixscoreboard), sui gruppi e sui singoli giocatori"
+        required: false
+        default: ""
 
 concurrency:
   group: diagnostica-vps
@@ -77,19 +81,22 @@ jobs:
           IN_STORICO: ${{ inputs.storico }}
           IN_QUANTI_VECCHI: ${{ inputs.quanti_vecchi }}
           IN_SERVER: ${{ inputs.server }}
+          IN_PERMESSO: ${{ inputs.permesso }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
           PLUGIN_B64="$(printf '%s' "$IN_PLUGIN" | base64 -w0)"
           FILE_B64="$(printf '%s' "${IN_FILE:-}" | base64 -w0)"
           GREP_B64="$(printf '%s' "${IN_GREP:-}" | base64 -w0)"
+          PERMESSO_B64="$(printf '%s' "${IN_PERMESSO:-}" | base64 -w0)"
           ssh -i "$KEY" -o StrictHostKeyChecking=yes "$DEST" \
-            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' QUANTI_VECCHI='${IN_QUANTI_VECCHI:-8}' SERVER='${IN_SERVER:-faction}' bash -s" <<'REMOTE'
+            "PLUGIN_B64='$PLUGIN_B64' FILE_B64='$FILE_B64' GREP_B64='$GREP_B64' RIGHE='${IN_RIGHE:-120}' STORICO='${IN_STORICO:-si}' QUANTI_VECCHI='${IN_QUANTI_VECCHI:-8}' SERVER='${IN_SERVER:-faction}' PERMESSO_B64='$PERMESSO_B64' bash -s" <<'REMOTE'
           set -uo pipefail
           PLUGIN="$(printf '%s' "$PLUGIN_B64" | base64 -d)"
           FILE="$(printf '%s' "$FILE_B64" | base64 -d)"
           CERCA="$(printf '%s' "$GREP_B64" | base64 -d)"
           [ -n "$CERCA" ] || CERCA="$PLUGIN"
+          PERMESSO="$(printf '%s' "$PERMESSO_B64" | base64 -d)"
           BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
           [ "${SERVER:-faction}" = "hub" ] && BASE=/home/ubuntu/magicadventure/hub
           [ "${SERVER:-faction}" = "velocity" ] && BASE=/home/ubuntu/magicadventure/velocity
@@ -283,6 +290,32 @@ jobs:
                 foreach (db()->query("SELECT b.currency_id, COALESCE(u.mc_username, b.player_uuid) AS chi, b.balance FROM me_currency_balances b LEFT JOIN users u ON u.mc_uuid = b.player_uuid COLLATE utf8mb4_unicode_ci ORDER BY b.currency_id, b.balance DESC LIMIT 50") as $r) { echo implode("  ", $r), "\n"; }
               } catch (Throwable $e) { echo "lettura fallita (magari la tabella non esiste ancora, nessuna valuta condivisa mai usata): ", get_class($e), " ", $e->getCode(), "\n"; }' 2>&1 \
               || echo "(php da riga di comando non disponibile sul VPS)"
+          fi
+
+          # Permessi LuckPerms (gruppi e singoli giocatori) che contengono il pezzo indicato in
+          # 'permesso': serve a capire se il default: true di un plugin.yml e' davvero quello che
+          # vale in gioco, o se LuckPerms (che vince sempre sul default del jar quando ha una riga
+          # esplicita per quel permesso) lo nega/concede diversamente per qualche gruppo.
+          if [ "$PLUGIN" = "LuckPerms" ]; then
+            echo
+            echo "=== PERMESSI LuckPerms che contengono '$PERMESSO' (gruppi e giocatori) ==="
+            if [ -z "$PERMESSO" ]; then
+              echo "(nessun pezzo di permesso indicato: passa l'input 'permesso')"
+            else
+              PERMESSO="$PERMESSO" php -r 'try { require "/var/www/magicadventure/includes/db.php";
+                  $p = "%" . getenv("PERMESSO") . "%";
+                  $pdo = db();
+                  echo "-- gruppi: gruppo  permesso  valore  server  mondo\n";
+                  $st = $pdo->prepare("SELECT name, permission, value, server, world FROM luckperms_group_permissions WHERE permission LIKE ? ORDER BY name");
+                  $st->execute([$p]);
+                  foreach ($st->fetchAll() as $r) { echo implode("  ", $r), "\n"; }
+                  echo "-- giocatori (righe esplicite, non i permessi ereditati dal gruppo): giocatore  permesso  valore  server\n";
+                  $st2 = $pdo->prepare("SELECT COALESCE(pl.username, up.uuid) AS chi, up.permission, up.value, up.server FROM luckperms_user_permissions up LEFT JOIN luckperms_players pl ON pl.uuid = up.uuid WHERE up.permission LIKE ? LIMIT 50");
+                  $st2->execute([$p]);
+                  foreach ($st2->fetchAll() as $r) { echo implode("  ", $r), "\n"; }
+                } catch (Throwable $e) { echo "lettura fallita: ", get_class($e), " ", $e->getCode(), "\n"; }' 2>&1 \
+                || echo "(php da riga di comando non disponibile sul VPS)"
+            fi
           fi
 
           if [ -n "$FILE" ]; then
