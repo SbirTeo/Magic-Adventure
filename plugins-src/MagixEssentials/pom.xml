@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixEssentials</artifactId>
-    <version>0.8.16</version>
+    <version>0.9.0</version>
     <packaging>jar</packaging>
 
     <name>MagixEssentials</name>
@@ -56,6 +56,29 @@
             <version>5.4.0</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Database delle valute CONDIVISE su tutta la rete (currencies.yml, "shared: true"):
+             il server sta dietro Velocity con piu' backend, quindi un file locale non basta.
+             Inclusi nel jar (shaded), come in MagixFactions/MagixGuard. -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.4.1</version>
+        </dependency>
+        <!-- Solo per compilare contro MagixLanguageAPI (softdepend, mai imbustato nel jar): il
+             workflow di deploy installa MagixLanguage nel repo Maven locale prima di questo
+             plugin (vedi .github/workflows/deploy-plugin.yml). A runtime, se MagixLanguage non
+             e' installato sul server, il codice non tocca mai questa classe (vedi lang/Messages). -->
+        <dependency>
+            <groupId>com.teolo</groupId>
+            <artifactId>MagixLanguage</artifactId>
+            <version>0.4.13</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -68,6 +91,44 @@
                 <configuration>
                     <release>${java.version}</release>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <!-- 3.6.2: le versioni precedenti bundlavano un ASM che non legge il bytecode Java 25 -->
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>com.teolo.magixessentials.lib.hikari</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.mariadb</pattern>
+                                    <shadedPattern>com.teolo.magixessentials.lib.mariadb</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <resources>

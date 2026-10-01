@@ -2,12 +2,27 @@
 #  MagixEssentials - Configurazione di base
 # ============================================================
 # Qui stanno le impostazioni che valgono per il PLUGIN INTERO, non per una funzione sola.
-# Per ora non ce n'e' nessuna: il plugin fa una cosa sola, e quella cosa ha il suo file.
 #
 # Come sono divisi i file, sul modello di CMI:
-#   modules.yml   - l'elenco delle funzioni, una riga ciascuna: acceso o spento.
-#   <funzione>.yml - le impostazioni di quella funzione (oggi: tablist.yml).
-#   config.yml    - questo file: la configurazione di base del plugin.
+#   modules.yml      - l'elenco delle funzioni, una riga ciascuna: acceso o spento.
+#   <funzione>.yml   - le impostazioni di quella funzione (motd.yml, nametag.yml, currencies.yml).
+#   config.yml       - questo file: la configurazione di base del plugin.
 #
 # Cosi' per sapere che cosa sta facendo il plugin si apre modules.yml, e per cambiare come lo fa
 # si apre il file di quella funzione: non c'e' un file unico che cresce all'infinito.
+
+# Database per le valute CONDIVISE SU TUTTA LA RETE (currencies.yml, "shared: true"): il server
+# sta dietro Velocity con piu' backend (hub, factions...), e un saldo condiviso vive qui, non in
+# un file locale a un server solo. Ignorato del tutto se nessuna valuta e' "shared: true" su
+# QUESTO server: in quel caso non si tenta nemmeno la connessione.
+database:
+  host: "127.0.0.1"
+  port: 3306
+  # Nome del database. Il plugin crea da solo la tabella che gli serve, se manca: non serve
+  # prepararla a mano, basta che il database esista e l'utente possa scriverci.
+  name: "magicadventure_essentials"
+  user: "magixessentials"
+  password: "CHANGE_ME_DB_PASSWORD"
+  # Quante connessioni tenere aperte insieme. Le operazioni sono brevi (un comando alla volta):
+  # non serve un numero alto.
+  pool-size: 3

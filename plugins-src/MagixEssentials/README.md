@@ -1,11 +1,14 @@
 # MagixEssentials
 
 Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base** del server: quelle
-cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa tre — la
-**MOTD**, il **nametag** e il **filtro dell'autocompletamento** — e a lungo andare dovrebbe
-assorbire cio' che oggi fa CMI.
+cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa quattro —
+la **MOTD**, il **nametag**, il **filtro dell'autocompletamento** e le **valute** — e a lungo
+andare dovrebbe assorbire cio' che oggi fa CMI.
 
-Versione: **0.8.16**
+Il server sta dietro **Velocity**, con piu' backend (hub, factions...): questo jar gira su ognuno,
+con la propria cartella dati e il proprio `modules.yml`.
+
+Versione: **0.9.0**
 
 ---
 
@@ -19,7 +22,8 @@ file diversi:
 | `modules.yml` | L'elenco delle funzioni, una riga ciascuna: **acceso o spento**. Si apre questo per sapere che cosa sta facendo il plugin. |
 | `motd.yml` | Come e' fatta la MOTD: le varianti e come ruotano, la tendina, il conto dei giocatori, le icone. |
 | `nametag.yml` | Com'e' fatta la targhetta sopra la testa: le righe, chi la disegna, altezze, quando sparisce. |
-| `config.yml` | Solo cio' che vale per il **plugin intero**. Per ora niente, e lo dice. |
+| `currencies.yml` | Le valute create dallo staff: un catalogo, non uno schema fisso — una voce per valuta. |
+| `config.yml` | Solo cio' che vale per il **plugin intero**: oggi il database delle valute condivise. |
 
 Il filtro dell'autocompletamento non ha un file suo: l'interruttore `tabcomplete` in `modules.yml`
 e' tutto quello che c'e' da regolare — vedi sotto.
@@ -254,11 +258,62 @@ Il client tiene in memoria l'elenco ricevuto al login: un permesso tolto o dato 
 
 ---
 
+## Valute
+
+Una moneta di gioco creata dallo staff — gemme, punti, gettoni... — senza scrivere codice. Ogni
+voce di `currencies.yml` e' una valuta, e la CHIAVE che le si da' e' insieme l'**id**, il nome del
+**comando** che nasce da sola (`/<id>`) e il pezzo centrale dei suoi **permessi**: niente da
+dichiarare nel `plugin.yml`, il comando lo registra il plugin quando legge il config (vedi
+`currency/CurrencyManager`, che si aggancia al `CommandMap` del server — l'unico modo di registrare
+un comando il cui nome non si conosce finche' non si legge il config).
+
+```yaml
+currencies:
+  magix:
+    name: "Gemme"           # nome mostrato nei messaggi
+    starting-balance: 0     # saldo di chi non l'ha mai vista
+    shared: false           # false = locale a questo server, true = in rete (vedi sotto)
+```
+
+Un id scritto male (solo lettere minuscole, cifre e trattino basso, deve iniziare per lettera) o
+gia' usato da un altro comando del server viene saltato, col motivo nel log all'avvio. **Aggiungere
+o togliere una valuta vale subito con `/magixessentials reload`**, senza riavviare: il comando
+compare o sparisce davvero, anche dal TAB di chi e' gia' online.
+
+Ogni valuta porta cinque sottocomandi:
+
+| Comando | Cosa fa | Permesso | Di serie |
+|---|---|---|---|
+| `/<id>` | Mostra il proprio saldo | — | tutti |
+| `/<id> add <giocatore> <importo>` | Aggiunge al saldo | `magixessentials.currency.<id>.admin` | operatori |
+| `/<id> take <giocatore> <importo>` | Toglie dal saldo (mai sotto zero) | `magixessentials.currency.<id>.admin` | operatori |
+| `/<id> set <giocatore> <importo>` | Fissa il saldo | `magixessentials.currency.<id>.admin` | operatori |
+| `/<id> reset <giocatore>` | Riporta il saldo a `starting-balance` | `magixessentials.currency.<id>.admin` | operatori |
+| `/<id> give <giocatore> <importo>` | Sposta valuta dal proprio saldo a un altro giocatore | `magixessentials.currency.<id>.give` | tutti |
+
+### Locale o in rete
+
+Il server sta dietro **Velocity**, con piu' backend (hub, factions...): `shared` decide dove vive
+il saldo di ciascuna valuta.
+
+| `shared` | Dove vive il saldo | Serve il database? |
+|---|---|---|
+| `false` (di fabbrica) | `balances.yml`, su QUESTO server — un'economia per server | no |
+| `true` | Il database di `database` (config.yml), condiviso da tutti i server che lo puntano | si |
+
+Una valuta `shared: true` va dichiarata con lo **stesso id** su ogni server dove deve esistere, con
+`database` che punta allo stesso database ovunque — altrimenti sarebbero due saldi scollegati con
+lo stesso nome, non uno condiviso. Il plugin crea da solo la tabella che gli serve, al primo avvio
+con una valuta condivisa: non c'e' niente da preparare a mano.
+
+---
+
 ## Comandi
 
 | Comando | Cosa fa | Permesso |
 |---|---|---|
 | `/magixessentials reload` (alias `/mess`, `/magixess`) | Riallinea i file, li rilegge e fa ripartire i moduli accesi | `magixessentials.admin` |
+| `/<id valuta>` | I comandi delle valute (`/magix`, `/gems`...), vedi sopra | dinamico, per valuta |
 
 Il reload risponde in chat con l'elenco dei moduli e il loro stato, e lo stesso elenco finisce nel
 log a ogni avvio.

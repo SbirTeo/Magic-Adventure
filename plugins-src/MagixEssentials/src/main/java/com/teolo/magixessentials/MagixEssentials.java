@@ -1,5 +1,6 @@
 package com.teolo.magixessentials;
 
+import com.teolo.magixessentials.currency.CurrencyManager;
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.nametag.NametagManager;
@@ -15,17 +16,19 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * MagixEssentials: raccoglie le utilita' "di base" del server — la <b>MOTD</b> (le righe che si
- * leggono nella lista server), il <b>nametag</b> (la targhetta sopra la testa dei giocatori) e il
- * <b>filtro dell'autocompletamento</b> (toglie dal TAB i comandi senza permesso); l'idea a lungo
- * termine e' che assorba cio' che oggi fa CMI.
+ * leggono nella lista server), il <b>nametag</b> (la targhetta sopra la testa dei giocatori), il
+ * <b>filtro dell'autocompletamento</b> (toglie dal TAB i comandi senza permesso) e le
+ * <b>valute</b> (lo staff crea monete di gioco come le gemme, ciascuna col suo comando); l'idea a
+ * lungo termine e' che assorba cio' che oggi fa CMI.
  *
  * <p>Ogni funzione si accende e si spegne dal {@code modules.yml}, come nel Modules.yml di CMI, e
- * si regola nel file che porta il suo nome ({@code motd.yml}, {@code nametag.yml}) quando ne ha
- * uno; il {@code config.yml} tiene solo cio' che vale per il plugin intero. Vedi {@link Modules}.
+ * si regola nel file che porta il suo nome ({@code motd.yml}, {@code nametag.yml},
+ * {@code currencies.yml}) quando ne ha uno; il {@code config.yml} tiene solo cio' che vale per il
+ * plugin intero. Vedi {@link Modules}.
  *
  * <p>Ogni funzione sta per conto suo ({@link MotdListener}, {@link NametagManager},
- * {@link TabCompleteFilter}): questa classe si limita ad accenderle e spegnerle e a offrire
- * {@code /magixessentials reload}.
+ * {@link TabCompleteFilter}, {@link CurrencyManager}): questa classe si limita ad accenderle e
+ * spegnerle e a offrire {@code /magixessentials reload}.
  */
 public final class MagixEssentials extends JavaPlugin {
 
@@ -33,6 +36,7 @@ public final class MagixEssentials extends JavaPlugin {
     private MotdListener motd;
     private NametagManager nametag;
     private TabCompleteFilter tabComplete;
+    private CurrencyManager currencies;
 
     @Override
     public void onEnable() {
@@ -104,6 +108,10 @@ public final class MagixEssentials extends JavaPlugin {
             tabComplete = new TabCompleteFilter(this);
             tabComplete.start();
         }
+        if (modules.attivo(Modules.CURRENCIES)) {
+            currencies = new CurrencyManager(this, modules.configurazioneDi(Modules.CURRENCIES));
+            currencies.start();
+        }
     }
 
     /** Spegne tutto: al reload si riparte da zero, allo spegnimento non si lascia niente appeso. */
@@ -111,6 +119,7 @@ public final class MagixEssentials extends JavaPlugin {
         if (motd != null) { motd.stop(); motd = null; }
         if (nametag != null) { nametag.stop(); nametag = null; }
         if (tabComplete != null) { tabComplete.stop(); tabComplete = null; }
+        if (currencies != null) { currencies.stop(); currencies = null; }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -131,12 +140,15 @@ public final class MagixEssentials extends JavaPlugin {
                         // modo di non raccontarne uno sbagliato.
                         .extra("NAMETAG_STILE", nametag == null
                                 ? "il modulo e' spento, quindi nessuno"
-                                : nametag.describe()))
-                .intro("Raccoglie le utilita' di base del server. Oggi ne fa tre: la **MOTD**, le "
+                                : nametag.describe())
+                        .also(currencies == null ? null : modules.configurazioneDi(Modules.CURRENCIES)))
+                .intro("Raccoglie le utilita' di base del server. Oggi ne fa quattro: la **MOTD**, le "
                         + "righe che si leggono nella lista server prima di entrare, il **nametag**, "
-                        + "la targhetta sopra la testa dei giocatori, e il **filtro "
+                        + "la targhetta sopra la testa dei giocatori, il **filtro "
                         + "dell'autocompletamento**, che pulisce l'elenco dei comandi che il client "
-                        + "suggerisce col TAB. A lungo andare dovrebbe assorbire cio' che oggi fa CMI.")
+                        + "suggerisce col TAB, e le **valute**, con cui lo staff crea da solo nuove "
+                        + "monete di gioco (gemme, punti...) ciascuna col suo comando. A lungo andare "
+                        + "dovrebbe assorbire cio' che oggi fa CMI.")
 
                 .section("I moduli: cosa e' acceso e cosa no",
                         "Come in CMI, ogni funzione ha il suo interruttore in un file a parte: "
@@ -170,6 +182,30 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "vera e propria non cambia in nulla, qui si pulisce solo il suggerimento. Non ha "
                                 + "un file di impostazioni suo: l'interruttore in modules.yml e' tutto quello che "
                                 + "c'e' da regolare.")
+
+                .section("Le valute (currencies)",
+                        "Una moneta di gioco creata dallo staff — gemme, punti, gettoni... — senza scrivere "
+                                + "codice. Ogni voce di **currencies.yml** e' una valuta, e la CHIAVE che le si da' "
+                                + "e' insieme l'ID, il nome del COMANDO che nasce da sola (**/<id>**) e il pezzo "
+                                + "centrale dei suoi permessi: niente da dichiarare nel plugin.yml, il comando lo "
+                                + "registra il plugin quando legge il config.",
+                        "Ogni valuta porta con se' cinque sottocomandi: **add**, **take**, **set**, **reset** "
+                                + "(per lo staff, permesso **magixessentials.currency.<id>.admin**, di serie solo "
+                                + "operatori) e **give** (fra giocatori, permesso "
+                                + "**magixessentials.currency.<id>.give**, di serie tutti). Scritto da solo (senza "
+                                + "argomenti) il comando mostra il proprio saldo a chi lo scrive.",
+                        "**Aggiungere o togliere una valuta vale subito con /magixessentials reload**, senza "
+                                + "riavviare: il comando compare o sparisce davvero, anche dal TAB di chi e' gia' "
+                                + "online — non resta agganciato a vuoto.",
+                        "**Locale o in rete.** Il server sta dietro Velocity con piu' backend (hub, factions...): "
+                                + "ogni valuta sceglie da se', con **shared** in currencies.yml, se il saldo e' "
+                                + "LOCALE a questo server (file **balances.yml**, un'economia per server — di "
+                                + "fabbrica) o CONDIVISO su tutta la rete (stesso giocatore, stesso saldo ovunque, "
+                                + "nel database descritto in **database** su config.yml). Una valuta condivisa va "
+                                + "dichiarata con lo stesso ID su ogni server dove deve esistere.",
+                        "Un ID scritto male (serve una parola di lettere minuscole, cifre e trattini bassi, che "
+                                + "comincia per lettera) o gia' usato da un altro comando del server viene saltato, "
+                                + "e il motivo finisce nel log all'avvio.")
 
                 .section("La targhetta sopra la testa (nametag)",
                         "E' quella che si legge **sopra la testa** dei giocatori, in gioco: non il tablist "
@@ -386,7 +422,8 @@ public final class MagixEssentials extends JavaPlugin {
                 .settingsFrom(modules.configurazione(), "Moduli (modules.yml)",
                         "motd", "Le righe della lista server. Spento, vale la riga 'motd' di server.properties.",
                         "nametag", "La targhetta sopra la testa. Spento, resta quella di CMI (o il nome nudo del gioco).",
-                        "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.")
+                        "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.",
+                        "currencies", "I comandi delle valute (/magix, /gems...). Spento, quei comandi vengono tolti, anche dal TAB.")
 
                 .settingsFrom(modules.configurazioneDi(Modules.MOTD), "Impostazioni della MOTD (motd.yml)",
                         "selection", "Quale MOTD si vede: random (a caso), ordered (una dopo l'altra), fixed (sempre la prima).",
@@ -423,6 +460,10 @@ public final class MagixEssentials extends JavaPlugin {
                         "display.hide-when-invisible", "La toglie a chi e' invisibile o in vanish: una riga sospesa direbbe dov'e'.",
                         "display.hide-in-spectator", "La toglie a chi e' in spettatore.",
                         "cmi.disable-module", "Se all'avvio spegniamo noi il modulo nametag di CMI nel suo file (serve un riavvio).")
+
+                .settingsFrom(modules.configurazioneDi(Modules.CURRENCIES), "Valute (currencies.yml)",
+                        "currencies", "Una voce per valuta: la chiave e' l'id (/<id>), name il nome mostrato, "
+                                + "starting-balance il saldo di partenza, shared se il saldo e' di rete.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
@@ -506,6 +547,21 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "il modulo tabcomplete sia acceso in modules.yml e che il comando abbia davvero "
                                 + "un permesso dichiarato: un comando senza permission (o con default: true) e' "
                                 + "visibile a chiunque, com'e' giusto che sia.")
+                .issue("/magix (o un'altra valuta) non esiste, dice comando sconosciuto",
+                        "O il modulo currencies e' spento in modules.yml, o l'id non e' valido (solo lettere "
+                                + "minuscole, cifre e trattino basso, deve iniziare per lettera), o e' gia' usato da "
+                                + "un altro comando del server: in questi ultimi due casi il log all'avvio dice il "
+                                + "motivo. Se il config e' giusto, /magixessentials reload basta: non serve "
+                                + "riavviare.")
+                .issue("Le gemme guadagnate su un server non si vedono sull'altro",
+                        "La valuta e' \"shared: false\" (quella di fabbrica): ogni server tiene il proprio "
+                                + "balances.yml, un'economia separata. Per un saldo uguale ovunque serve "
+                                + "\"shared: true\" nella stessa voce su OGNI server dove la valuta esiste, con la "
+                                + "sezione database di config.yml puntata allo stesso database su tutti.")
+                .issue("Un comando di valuta risponde che il database non e' raggiungibile",
+                        "Vale solo per le valute \"shared: true\": controlla host/porta/utente/password in "
+                                + "database (config.yml) e che quel database sia raggiungibile da questo server. Il "
+                                + "log all'avvio dice l'errore esatto della connessione.")
 
                 .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
                         + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "
@@ -520,6 +576,9 @@ public final class MagixEssentials extends JavaPlugin {
                         + "(scoreboard) e' una per giocatore, e la targhetta per spettatore se la prende tutta.")
                 .never("Non cercare di far vedere il verde dell'alleato con mode: display. Un'entita' di testo e' un "
                         + "oggetto del mondo: chi guarda non c'entra, e il colore che esce e' sempre lo stesso.")
+                .never("Non dichiarare la stessa valuta \"shared: true\" su due server puntando a database DIVERSI: "
+                        + "sarebbero due saldi scollegati con lo stesso nome, non uno condiviso. Stesso id, stesso "
+                        + "database, su ogni server dove quella valuta vive.")
                 .write();
     }
 }

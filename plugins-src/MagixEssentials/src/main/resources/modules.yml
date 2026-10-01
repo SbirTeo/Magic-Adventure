@@ -26,3 +26,8 @@ nametag: true
 # Spento, il client torna a suggerire tutti i comandi registrati sul server, permesso o no. Non ha
 # un file di impostazioni suo: non c'e' niente da regolare.
 tabcomplete: true
+
+# Valute: ogni voce di currencies.yml diventa un comando vero (/<id> add|take|set|reset|give),
+# coi permessi che gli servono. Spento, quei comandi vengono tolti (anche dal TAB, senza
+# riavviare). Si regola in currencies.yml.
+currencies: true

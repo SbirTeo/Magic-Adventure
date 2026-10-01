@@ -3,11 +3,13 @@ version: '${project.version}'
 main: com.teolo.magixessentials.MagixEssentials
 api-version: '26.1'
 author: teolo
-description: "Utilita' del server (MOTD, nametag e, in futuro, cio' che oggi fa CMI)."
+description: "Utilita' del server (MOTD, nametag, valute e, in futuro, cio' che oggi fa CMI)."
 # PlaceholderAPI: opzionale. Se presente, i placeholder %...% nei nametag vengono risolti
 # (compresi i relazionali %rel_...%). Senza di lui restano scritti come sono.
 # ProtocolLib: opzionale. Serve al nametag in modalita' display (entita' di testo).
-softdepend: [PlaceholderAPI, ProtocolLib]
+# MagixLanguage: opzionale. Se presente, i messaggi delle valute vengono tradotti nella lingua
+# di chi legge. Senza di lui restano in italiano.
+softdepend: [PlaceholderAPI, ProtocolLib, MagixLanguage]
 commands:
   magixessentials:
     description: "Comandi di MagixEssentials (per ora, reload)."

@@ -1,0 +1,33 @@
+# ============================================================
+#  MagixEssentials - Messaggi
+# ============================================================
+# Ogni testo che un giocatore legge sta qui: il codice non scrive mai una frase a mano. Con
+# MagixLanguage installato, queste chiavi vengono anche tradotte nella lingua di chi legge.
+#
+# Segnaposto fra graffe: {player} chi riceve/subisce l'operazione, {sender} chi manda (solo nel
+# dare fra giocatori), {amount} l'importo, {currency} il nome della valuta, {balance} il saldo
+# dopo l'operazione, {command} il comando scritto (per l'uso), {id} l'id della valuta.
+
+# I comandi delle valute (/magix, /gems...), uno per ogni voce di currencies.yml. Non sono
+# comandi dichiarati nel plugin.yml: CurrencyManager li registra a runtime, uno per valuta.
+currency:
+  usage: "&7Uso: &f/{command} add|take|set|reset|give <giocatore> [importo]"
+  unavailable: "&cQuesta valuta non esiste piu' (o il modulo e' spento): {id}."
+  store-error: "&cQualcosa non ha funzionato con questa valuta (database di rete non raggiungibile?): riprova."
+  balance-self: "&7Hai &f{balance} {currency}&7."
+  no-permission: "&cNon hai il permesso per questo comando."
+  player-only: "&cQuesto comando lo puo' usare solo chi gioca."
+  player-not-found: "&cNessun giocatore trovato con questo nome: {player}."
+  invalid-amount: "&cL'importo deve essere un numero intero maggiore di zero."
+  invalid-amount-set: "&cL'importo deve essere un numero intero, zero compreso."
+  insufficient-balance: "&cNon hai abbastanza {currency}: te ne servono {amount}, ne hai {balance}."
+  added: "&7Hai dato &f{amount} {currency}&7 a &f{player}&7 (ora ne ha &f{balance}&7)."
+  added-target: "&7Hai ricevuto &f{amount} {currency}&7 (ora ne hai &f{balance}&7)."
+  taken: "&7Hai tolto &f{amount} {currency}&7 a &f{player}&7 (ora ne ha &f{balance}&7)."
+  taken-target: "&7Ti sono stati tolti &f{amount} {currency}&7 (ora ne hai &f{balance}&7)."
+  set: "&7Hai messo il saldo di {currency} di &f{player}&7 a &f{amount}&7."
+  set-target: "&7Il tuo saldo di {currency} e' stato messo a &f{amount}&7."
+  reset: "&7Hai azzerato il saldo di {currency} di &f{player}&7 (ora e' &f{balance}&7)."
+  reset-target: "&7Il tuo saldo di {currency} e' stato azzerato (ora e' &f{balance}&7)."
+  give-sent: "&7Hai dato &f{amount} {currency}&7 a &f{player}&7 (te ne restano &f{balance}&7)."
+  give-received: "&7{sender} ti ha dato &f{amount} {currency}&7 (ora ne hai &f{balance}&7)."

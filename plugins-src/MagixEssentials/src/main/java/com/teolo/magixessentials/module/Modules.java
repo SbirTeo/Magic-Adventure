@@ -59,6 +59,9 @@ public final class Modules {
     /** Il filtro dell'autocompletamento: toglie dal TAB i comandi senza permesso. */
     public static final String TABCOMPLETE = "tabcomplete";
 
+    /** Le valute: da ogni voce di currencies.yml nasce un comando vero (/<id> add|take|...). */
+    public static final String CURRENCIES = "currencies";
+
     private final JavaPlugin plugin;
     /** {@code modules.yml}: l'elenco delle funzioni, accese o spente. */
     private volatile YamlConfiguration file;
