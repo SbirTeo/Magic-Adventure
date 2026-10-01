@@ -1,0 +1,5 @@
+{
+  "sources": [
+    {"type": "directory", "source": "model", "prefix": "model/"}
+  ]
+}
