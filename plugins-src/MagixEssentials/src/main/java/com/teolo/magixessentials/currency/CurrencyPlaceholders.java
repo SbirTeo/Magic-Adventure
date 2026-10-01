@@ -2,6 +2,7 @@ package com.teolo.magixessentials.currency;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Statistic;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Locale;
@@ -28,6 +29,8 @@ public final class CurrencyPlaceholders extends PlaceholderExpansion {
                     + "0 (o il saldo di partenza) se non l'ha mai vista.",
             "%magixessentials_name_<id>%", "Il nome mostrato della valuta <id> (es. \"Magix\"), "
                     + "quello di currencies.yml.",
+            "%magixessentials_playtime%", "Il tempo di gioco del giocatore su QUESTO server, in secondi "
+                    + "(numero crudo, storico vanilla incluso). 0 se non disponibile.",
     };
 
     private final JavaPlugin plugin;
@@ -66,6 +69,16 @@ public final class CurrencyPlaceholders extends PlaceholderExpansion {
     @Override
     public String onRequest(OfflinePlayer player, String params) {
         String lp = params.toLowerCase(Locale.ROOT);
+        if (lp.equals("playtime")) {
+            if (player == null) {
+                return "";
+            }
+            try {
+                return String.valueOf(player.getStatistic(Statistic.PLAY_ONE_MINUTE) / 20L); // in tick (20/s)
+            } catch (Exception e) {
+                return "0";
+            }
+        }
         if (lp.startsWith("balance_")) {
             if (player == null) {
                 return "";

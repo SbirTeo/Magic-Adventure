@@ -114,7 +114,7 @@ public final class CurrencyManager implements Listener {
             placeholders = new CurrencyPlaceholders(plugin, this);
             placeholders.register();
             plugin.getLogger().info("[Valute] Placeholder %magixessentials_balance_<id>% e "
-                    + "%magixessentials_name_<id>% registrati su PlaceholderAPI.");
+                    + "%magixessentials_name_<id>% e %magixessentials_playtime% registrati su PlaceholderAPI.");
         }
         Bukkit.getPluginManager().registerEvents(this, plugin);
         refreshTask = Bukkit.getScheduler().runTaskTimer(plugin, this::refreshOnlinePlayers,

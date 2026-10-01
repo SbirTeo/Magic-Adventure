@@ -350,6 +350,7 @@ Ogni valuta genera da sola, senza altro da scrivere, due placeholder Placeholder
 |---|---|
 | `%magixessentials_balance_<id>%` | Il saldo del giocatore per la valuta `<id>` (es. `magix`). `0` (o il saldo di partenza) se non l'ha mai vista |
 | `%magixessentials_name_<id>%` | Il nome mostrato della valuta `<id>` (es. "Magix"), quello di `currencies.yml` |
+| `%magixessentials_playtime%` | Il tempo di gioco del giocatore su questo server, in **secondi** (numero crudo, storico vanilla incluso). `0` se non disponibile |
 
 Per una valuta `shared: true` il saldo risponde da una cache tenuta aggiornata in background (ogni
 scrittura, piu' un giro periodico per chi e' online): non blocca mai il server per una query al
