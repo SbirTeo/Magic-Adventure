@@ -1,0 +1,139 @@
+name: Ripristina un file di config da un backup sul VPS
+
+# Recupera un file di config di un plugin da una copia di scorta (.bak) SENZA riavviare il server.
+# Le copie nascono in /home/ubuntu/magicadventure/<server>/.bak/<Plugin>/<file>.bak-<data> (le
+# scrive ConfigAlign e gli altri workflow di config prima di ogni modifica).
+#
+# Tre azioni:
+#   elenca     (sola lettura) mostra le copie di scorta del file, con data e dimensione, piu' lo
+#              stato del file vivo.
+#   confronta  (sola lettura) differenze fra la copia indicata e il file vivo.
+#   ripristina rimette la copia al posto del file vivo (prima copia il vivo in .bak/ con
+#              ".prima-ripristino" nel nome, quindi l'operazione si annulla) e, se il server e'
+#              su, manda in console il comando di reload del plugin. Mai un riavvio.
+#
+# I valori di chiavi sensibili (password, token, ...) non escono mai nel log del run.
+# Stessi secret VPS del deploy (VPS_HOST / VPS_USER / VPS_SSH_KEY).
+
+on:
+  workflow_dispatch:
+    inputs:
+      azione:
+        description: "elenca | confronta | ripristina"
+        required: true
+        default: "elenca"
+      plugin:
+        description: "Cartella del plugin (es. MagixFactions)"
+        required: true
+        default: "MagixFactions"
+      file:
+        description: "File di config (es. config.yml)"
+        required: true
+        default: "config.yml"
+      backup:
+        description: "Nome della copia di scorta (solo confronta/ripristina), come lo stampa 'elenca' (es. config.yml.bak-20260915-041200)"
+        required: false
+        default: ""
+      reload_cmd:
+        description: "Comando di reload mandato in console dopo il ripristino (vuoto = nessuno)"
+        required: false
+        default: "mf reload"
+      server:
+        description: "faction (di serie) o hub"
+        required: false
+        default: "faction"
+
+concurrency:
+  group: ripristina-config
+  cancel-in-progress: false
+
+jobs:
+  ripristina:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Esegui sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          IN_AZIONE: ${{ inputs.azione }}
+          IN_PLUGIN: ${{ inputs.plugin }}
+          IN_FILE: ${{ inputs.file }}
+          IN_BACKUP: ${{ inputs.backup }}
+          IN_RELOAD: ${{ inputs.reload_cmd }}
+          IN_SERVER: ${{ inputs.server }}
+        run: |
+          set -euo pipefail
+          b64() { printf '%s' "$1" | base64 -w0; }
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" \
+            "AZIONE='$(b64 "$IN_AZIONE")' PLUGIN='$(b64 "$IN_PLUGIN")' FILE='$(b64 "$IN_FILE")' BACKUP='$(b64 "$IN_BACKUP")' RELOAD='$(b64 "$IN_RELOAD")' SERVER='$IN_SERVER' bash -s" <<'REMOTE'
+          set -uo pipefail
+          d() { printf '%s' "$1" | base64 -d; }
+          AZIONE="$(d "$AZIONE")"; PLUGIN="$(d "$PLUGIN")"; FILE="$(d "$FILE")"; BACKUP="$(d "$BACKUP")"; RELOAD="$(d "$RELOAD")"
+          case "$PLUGIN$FILE$BACKUP" in *..*|*/*) echo "::error::Nomi non validi (niente '..' ne' '/')"; exit 1;; esac
+
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure
+          SCR_RE='[0-9]+\.(factions|faction|mc)[[:space:]]'
+          if [ "$SERVER" = "hub" ]; then BASE=/home/ubuntu/magicadventure/hub; SCR_RE='[0-9]+\.hub[[:space:]]'; fi
+          LIVE="$BASE/plugins/$PLUGIN/$FILE"
+          BAKD="$BASE/.bak/$PLUGIN"
+
+          oscura() {
+            sed -E 's/^([[:space:]]*[A-Za-z0-9_-]*(password|secret|token|webhook|api[_-]?key)[A-Za-z0-9_-]*:)[[:space:]]*.+$/\1 "[nascosto]"/I'
+          }
+
+          echo "server: $SERVER ($BASE)"
+          echo "file vivo: $LIVE"
+          ls -la --time-style=full-iso "$LIVE" 2>/dev/null || echo "(file vivo assente)"
+          echo
+
+          case "$AZIONE" in
+            elenca)
+              echo "=== COPIE DI SCORTA in $BAKD (piu' recenti in cima) ==="
+              ls -lat --time-style=full-iso "$BAKD" 2>/dev/null | grep -F "$FILE" || echo "(nessuna copia di '$FILE' in $BAKD)"
+              echo
+              echo "=== altre cartelle .bak ==="
+              ls -d "$BASE/.bak"/*/ 2>/dev/null
+              ;;
+            confronta)
+              [ -f "$BAKD/$BACKUP" ] || { echo "::error::Copia non trovata: $BAKD/$BACKUP"; exit 1; }
+              echo "=== diff  (< copia di scorta)  (> file vivo) ==="
+              diff <(oscura < "$BAKD/$BACKUP") <(oscura < "$LIVE") || true
+              ;;
+            ripristina)
+              [ -f "$BAKD/$BACKUP" ] || { echo "::error::Copia non trovata: $BAKD/$BACKUP"; exit 1; }
+              [ -s "$BAKD/$BACKUP" ] || { echo "::error::La copia e' vuota, non la ripristino"; exit 1; }
+              mkdir -p "$BAKD"
+              PRIMA="$BAKD/$FILE.prima-ripristino-$(date +%Y%m%d-%H%M%S)"
+              if [ -f "$LIVE" ]; then cp -a "$LIVE" "$PRIMA" && echo "copia del vivo salvata in: $PRIMA"; fi
+              cp "$BAKD/$BACKUP" "$LIVE" && echo "ripristinato: $BACKUP -> $LIVE"
+              ls -la --time-style=full-iso "$LIVE"
+              if [ -n "$RELOAD" ]; then
+                SCR="$(screen -list 2>/dev/null | grep -oE "$SCR_RE" | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+                if [ -n "$SCR" ]; then
+                  screen -S "$SCR" -p 0 -X stuff "$RELOAD$(printf '\r')"
+                  echo "reload mandato in console ($SCR): $RELOAD"
+                else
+                  echo "server non attivo: nessun reload mandato (il file verra' letto al prossimo avvio)"
+                fi
+              fi
+              ;;
+            *) echo "::error::Azione sconosciuta: $AZIONE"; exit 1;;
+          esac
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
