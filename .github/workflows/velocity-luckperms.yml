@@ -93,7 +93,7 @@ jobs:
           ORA=$(date +%Y%m%d-%H%M%S)
           mkdir -p "$BAK" "$VEL/plugins/luckperms"
           acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.velocity[[:space:]]'; }
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
           faction() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
           proxy() { screen -S velocity -p 0 -X stuff "$(printf '%s\r' "$1")"; }
 

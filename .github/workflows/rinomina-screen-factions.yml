@@ -1,0 +1,127 @@
+name: Rinomina screen fazioni (faction -> factions)
+
+# UNA TANTUM (ma idempotente: rilanciarlo non rompe niente). Rinomina SOLO il nome della sessione
+# screen del server fazioni, da "faction" a "factions" — non tocca cartelle, percorsi ne' la
+# parola "faction" usata altrove (deploy.target, workflow_dispatch, log). Non serve fermare il
+# server: una screen si rinomina "a caldo" (screen -X sessionname), il processo dentro non si
+# accorge di niente.
+#
+# Tocca:
+#   1) lo screen VIVO sul VPS, se si chiama ancora "faction" (o il vecchissimo "mc").
+#   2) /etc/systemd/system/magicadventure.service: ExecStart/ExecStop e il commento, cosi' il
+#      PROSSIMO avvio (via systemd, server spento) apre gia' la screen col nome nuovo.
+#   3) server/stop-service.sh: lo installa cosi' com'e' nel repo (gia' aggiornato a "factions",
+#      coi vecchi nomi come ripiego).
+#   4) website/vps/console/istanze.conf: la riga "istanza mc" (screen=) della console del sito.
+#
+# Ogni file di sistema toccato viene prima copiato in /home/ubuntu/.bak/sistema/ con la data nel
+# nome, come predisponi-hub.yml (che ha fatto la stessa cosa per mc -> faction).
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-plugin       # mai insieme a un deploy dei plugin (stesso screen, stessi riavvii)
+  cancel-in-progress: false
+
+jobs:
+  rinomina:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia i file aggiornati sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          ssh -i ~/.ssh/deploy_key "$DEST" 'rm -rf /tmp/rinomina-factions && mkdir -p /tmp/rinomina-factions'
+          scp -i ~/.ssh/deploy_key server/stop-service.sh website/vps/console/istanze.conf \
+              "$DEST:/tmp/rinomina-factions/"
+
+      - name: Rinomina sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
+          set -uo pipefail
+          SRC=/tmp/rinomina-factions
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          BAK=/home/ubuntu/.bak/sistema
+          ORA=$(date +%Y%m%d-%H%M%S)
+          mkdir -p "$BAK"
+          if ! sudo -n true 2>/dev/null; then
+            echo "::error::l'utente del deploy non ha sudo senza password: impossibile proseguire"; exit 1
+          fi
+          salva() { [ -e "$1" ] && sudo cp -a "$1" "$BAK/$(basename "$1").bak-$ORA" && echo "  backup: $BAK/$(basename "$1").bak-$ORA"; return 0; }
+
+          echo "=== 1) SCREEN: faction/mc -> factions ==="
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.factions[[:space:]]'; then
+            echo "gia' 'factions'"
+          elif screen -list 2>/dev/null | grep -qE '[0-9]+\.faction[[:space:]]'; then
+            screen -S faction -X sessionname factions && echo "screen rinominato a caldo: faction -> factions"
+          elif screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+            screen -S mc -X sessionname factions && echo "screen rinominato a caldo: mc -> factions"
+          else
+            echo "nessuna screen attiva: niente da rinominare a caldo (vale dal prossimo avvio)"
+          fi
+          screen -list || true
+
+          echo; echo "=== 2) UNIT systemd ==="
+          UNIT=/etc/systemd/system/magicadventure.service
+          if grep -qE 'screen -(dmS|S) (faction|mc) ' "$UNIT"; then
+            salva "$UNIT"
+            sudo sed -i -E "s/screen -dmS (faction|mc) /screen -dmS factions /; \
+                             s/una screen '(faction|mc)'/una screen 'factions'/; \
+                             s/screen -S (faction|mc) -X/screen -S factions -X/" "$UNIT"
+            sudo systemctl daemon-reload
+            echo "unit aggiornata"
+          else
+            echo "unit gia' aggiornata (o non trovata)"
+          fi
+          grep -n 'ExecStart\|ExecStop' "$UNIT" || true
+
+          echo; echo "=== 3) stop-service.sh ==="
+          if ! cmp -s "$SRC/stop-service.sh" "$FAZ/stop-service.sh"; then
+            salva "$FAZ/stop-service.sh"
+            install -m 755 "$SRC/stop-service.sh" "$FAZ/stop-service.sh"
+            echo "stop-service.sh sostituito con la versione del repo (riconosce factions/faction/mc)"
+          else
+            echo "stop-service.sh gia' allineato"
+          fi
+
+          echo; echo "=== 4) istanze.conf (console del sito) ==="
+          CONF=/etc/magicadventure/istanze.conf
+          if [ -f "$CONF" ] && grep -q '^istanza mc .*screen=faction ' "$CONF"; then
+            salva "$CONF"
+            sudo sed -i 's/^istanza mc | nome=\([^|]*\)| screen=faction |/istanza mc | nome=\1| screen=factions |/' "$CONF"
+            echo "istanze.conf aggiornato"
+          elif [ -f "$CONF" ] && grep -q 'screen=factions ' "$CONF"; then
+            echo "istanze.conf gia' aggiornato"
+          else
+            echo "::warning::riga 'istanza mc' non trovata in $CONF con lo schema atteso: controllare a mano"
+          fi
+          grep -n '^istanza mc' "$CONF" 2>/dev/null || true
+
+          echo; echo "=== STATO FINALE ==="
+          screen -list || true
+          systemctl is-active magicadventure.service 2>/dev/null || true
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

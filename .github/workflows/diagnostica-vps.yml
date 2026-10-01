@@ -100,8 +100,8 @@ jobs:
           ( cd "$BASE" && ls -la *.jar 2>/dev/null )
           grep -m1 -E "This server is running|Starting minecraft server version" "$LOG" 2>/dev/null
           java -version 2>&1 | head -n1
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
-          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then echo "screen $SCR: attivo"; else echo "screen fazioni: NON attivo"; fi
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-factions}"  # screen del server fazioni (vecchi nomi: faction, mc)
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(factions|faction|mc)[[:space:]]'; then echo "screen $SCR: attivo"; else echo "screen fazioni: NON attivo"; fi
           if [ "${SERVER:-faction}" = "hub" ]; then
             SCR=hub
             if screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'; then echo "screen hub: attivo"; else echo "screen hub: NON attivo"; fi

@@ -64,7 +64,7 @@ jobs:
           AUTH="$FAZ/plugins/MagixAuth/config.yml"
           ORA=$(date +%Y%m%d-%H%M%S)
           NOME_EXPORT="migrazione-network"
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
           dì() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
           nuove_righe() { tail -n +"$(( $1 + 1 ))" "$LOG" 2>/dev/null; }
 
@@ -197,7 +197,7 @@ jobs:
           done
           [ -n "$PRONTO" ] || { echo "::error::il faction non e' ripartito in 10 minuti"; tail -n 30 "$LOG"; exit 1; }
           grep -iE 'LuckPerms.*(storage|Loading)|\[LuckPerms\].*(ERROR|WARN)' "$LOG" | head -n 10
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
           R=$(wc -l < "$LOG")
           dì "lp import $NOME_EXPORT"
           OK=""

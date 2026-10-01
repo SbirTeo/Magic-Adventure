@@ -85,7 +85,7 @@ jobs:
           ORA=$(date +%Y%m%d-%H%M%S)
           sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
 
-          scr_faction() { screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//'; }
+          scr_faction() { screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//'; }
           acceso() { screen -list 2>/dev/null | grep -qE "[0-9]+\.$1[[:space:]]"; }
           console() { screen -S "$1" -p 0 -X stuff "$(printf '%s\r' "$2")"; }
           ascolta() { ss -tlnH 2>/dev/null | awk '{print $4}' | grep -qE "[:.]$1\$"; }
@@ -153,7 +153,7 @@ jobs:
             echo "  forwarding.secret: $([ -s "$VEL/forwarding.secret" ] && echo "presente ($(wc -c < "$VEL/forwarding.secret") byte)" || echo MANCANTE)"
             echo "  plugin: $(ls "$VEL/plugins" | grep -E '\.jar$' | tr '\n' ' ')"
             echo "## porte"; chi_ascolta '25565|25577|25600|25701'
-            echo "## screen"; screen -list 2>/dev/null | grep -E '\.(faction|mc|hub|velocity)\s' || true
+            echo "## screen"; screen -list 2>/dev/null | grep -E '\.(factions|faction|mc|hub|velocity)\s' || true
           }
 
           echo "=== STATO ATTUALE ==="; stato

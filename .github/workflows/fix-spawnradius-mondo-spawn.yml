@@ -75,8 +75,8 @@ jobs:
           set -e
           BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
           LOG="$BASE/logs/latest.log"
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
-          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-factions}"  # screen del server fazioni (vecchi nomi: faction, mc)
+          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.(factions|faction|mc)[[:space:]]'; then
             echo "::error::Server non in esecuzione (screen mc non attivo)."
             exit 1
           fi

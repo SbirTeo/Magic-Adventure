@@ -160,7 +160,7 @@ jobs:
             $SSH "RELOAD_B64='$RELOAD_B64' SERVER='${IN_SERVER:-faction}' bash -s" </dev/null <<'REMOTE'
           set -e
           CMD="$(printf '%s' "$RELOAD_B64" | base64 -d)"
-          if [ "$SERVER" = "hub" ]; then NOMI='hub'; else NOMI='faction|mc'; fi  # screen del server (faction: vecchio nome mc)
+          if [ "$SERVER" = "hub" ]; then NOMI='hub'; else NOMI='factions|faction|mc'; fi  # screen del server (vecchi nomi: faction, mc)
           SCR="$(screen -list 2>/dev/null | grep -oE "[0-9]+\.($NOMI)[[:space:]]" | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
           if [ -n "$SCR" ]; then
             screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$CMD")"

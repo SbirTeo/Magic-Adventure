@@ -7,10 +7,12 @@
 #  sulla stessa macchina girano piu' paper.jar, e cercarli per nome
 #  (pgrep -f paper.jar) farebbe aspettare anche quello degli altri.
 # ============================================================
-SCREEN=faction
-# (fino al 30/09 la screen delle fazioni si chiamava mc)
-[ "$SCREEN" = faction ] && ! screen -list | grep -qE "[0-9]+\.faction[[:space:]]" \
-    && screen -list | grep -qE "[0-9]+\.mc[[:space:]]" && SCREEN=mc
+SCREEN=factions
+# (fino al 30/09 si chiamava mc, poi faction fino al cambio a factions)
+if ! screen -list | grep -qE "[0-9]+\.factions[[:space:]]"; then
+    screen -list | grep -qE "[0-9]+\.faction[[:space:]]" && SCREEN=faction
+    screen -list | grep -qE "[0-9]+\.mc[[:space:]]" && SCREEN=mc
+fi
 
 PID=$(screen -list | grep -oE "[0-9]+\.$SCREEN[[:space:]]" | grep -oE '^[0-9]+' | head -n1)
 [ -n "$PID" ] || exit 0

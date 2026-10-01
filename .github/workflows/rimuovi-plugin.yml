@@ -123,10 +123,10 @@ jobs:
             exit 0
           fi
 
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-factions}"  # screen del server fazioni (vecchi nomi: faction, mc)
           dì() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
           annuncia() { dì "say $1"; }
-          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(factions|faction|mc)[[:space:]]'; then
             annuncia "[Manutenzione] Il server si riavvia tra 60 secondi..."
             sleep 40
             annuncia "[Manutenzione] Riavvio tra 20 secondi..."
