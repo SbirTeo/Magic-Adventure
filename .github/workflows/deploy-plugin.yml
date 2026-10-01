@@ -42,6 +42,10 @@ on:
     paths:
       - 'plugins-src/**'
       - '.github/workflows/deploy-plugin.yml'
+      # overrides-vps/ e overrides-hub/ non finiscono nel jar: arrivano sul VPS col workflow
+      # deploy-plugin-override.yml (con un reload, senza riavvio). Cambiarli non riavvia il server.
+      - '!plugins-src/*/overrides-vps/**'
+      - '!plugins-src/*/overrides-hub/**'
   workflow_dispatch:
     inputs:
       plugin:
@@ -112,6 +116,7 @@ jobs:
             if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
                 && git cat-file -e "$BEFORE" 2>/dev/null; then
               LIST="$(git diff --name-only "$BEFORE" HEAD -- plugins-src/ \
+                        ':(exclude)plugins-src/*/overrides-vps/**' ':(exclude)plugins-src/*/overrides-hub/**' \
                       | sed -n 's#^plugins-src/\([^/]*\)/.*#\1#p' | sort -u)"
             else
               echo "::warning::github.event.before non utilizzabile: compilo tutti i plugin per sicurezza."
