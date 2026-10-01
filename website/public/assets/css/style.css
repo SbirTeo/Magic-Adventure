@@ -5498,10 +5498,10 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 }
 
 /* Le tessere piccole sono strette: la colonna dell'immagine si prende un po' meno spazio. */
-.post-tile.copertina-intera { --poster-larghezza: 30%; }
+.post-tile.copertina-intera { --poster-larghezza: 50%; }
 /* L'ultimo articolo e' stretto quanto gli altri: la copertina in piedi si prende la stessa
    fetta di larghezza delle tessere piccole. */
-.post-grid .bento-feature.copertina-intera { --poster-larghezza: 30%; }
+.post-grid .bento-feature.copertina-intera { --poster-larghezza: 50%; }
 
 /* Sul telefono la tessera e' larga come un pollice: due colonne diventerebbero due
    strisce illeggibili. L'immagine passa quindi in ALTO, a tutta larghezza, e il testo le
