@@ -272,6 +272,19 @@ jobs:
               || echo "(php da riga di comando non disponibile sul VPS)"
           fi
 
+          # Saldi delle valute CONDIVISE di MagixEssentials, per confrontare quello che un
+          # giocatore vede in gioco (comando o placeholder) col valore vero nel database. Stesso
+          # database del sito (vedi database.name in config.yml), quindi la stessa connessione.
+          if [ "$PLUGIN" = "MagixEssentials" ]; then
+            echo
+            echo "=== SALDI DELLE VALUTE CONDIVISE (me_currency_balances) ==="
+            php -r 'try { require "/var/www/magicadventure/includes/db.php";
+                echo "valuta  giocatore  saldo\n";
+                foreach (db()->query("SELECT b.currency_id, COALESCE(u.mc_username, b.player_uuid) AS chi, b.balance FROM me_currency_balances b LEFT JOIN users u ON u.mc_uuid = b.player_uuid COLLATE utf8mb4_unicode_ci ORDER BY b.currency_id, b.balance DESC LIMIT 50") as $r) { echo implode("  ", $r), "\n"; }
+              } catch (Throwable $e) { echo "lettura fallita (magari la tabella non esiste ancora, nessuna valuta condivisa mai usata): ", get_class($e), " ", $e->getCode(), "\n"; }' 2>&1 \
+              || echo "(php da riga di comando non disponibile sul VPS)"
+          fi
+
           if [ -n "$FILE" ]; then
             echo
             echo "=== $FILE ($PLUGIN) ==="
