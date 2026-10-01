@@ -50,6 +50,16 @@ name: Aggiorna una chiave di config plugin sul VPS
 #                    file. Serve a correggere un blocco sbagliato (es. un append-block con un
 #                    errore) senza doppioni. ERRORE se "key:" non esiste (in quel caso serve
 #                    append-block, non replace-block). `marker` non si usa.
+#   - append-list-item: aggiunge `value` come nuova voce "- value" in fondo a una lista YAML
+#                    gia' esistente (`key`, foglia o percorso annidato come per set). Serve per
+#                    es. ad aggiungere un placeholder a bridge.player-placeholders di MagixBridge
+#                    senza riscrivere tutta la lista. Idempotente: se `value` e' gia' una voce
+#                    della lista, non fa nulla. ERRORE se la chiave non e' una lista (ha un
+#                    valore inline dopo i due punti). `marker` non si usa.
+#
+# SERVER: `server` sceglie la cartella/schermo da toccare (faction di serie, o hub) — stesso
+# significato del parametro "server" di diagnostica-vps.yml. Un plugin su piu' server (es.
+# MagixBridge, deploy.target = "faction hub") va lanciato una volta per server.
 #
 # Solo manuale (workflow_dispatch): non parte da solo su push.
 
@@ -72,7 +82,7 @@ on:
         required: false
         default: ""
       mode:
-        description: "set | insert-after | rename | dedup | append-block | replace-block (vedi commenti in testa al file)"
+        description: "set | insert-after | rename | dedup | append-block | replace-block | append-list-item (vedi commenti in testa al file)"
         required: false
         default: "set"
       marker:
@@ -83,6 +93,10 @@ on:
         description: "Comando di reload da mandare in console (vuoto = nessun reload, la config parte al prossimo riavvio)"
         required: false
         default: "mf reload"
+      server:
+        description: "Quale server toccare: faction (di serie) o hub"
+        required: false
+        default: "faction"
 
 concurrency:
   group: deploy-plugin-config
@@ -122,12 +136,18 @@ jobs:
           IN_MODE: ${{ inputs.mode }}
           IN_MARKER: ${{ inputs.marker }}
           IN_RELOAD: ${{ inputs.reload_cmd }}
+          IN_SERVER: ${{ inputs.server }}
         run: |
           set -euo pipefail
           KEY=~/.ssh/deploy_key
           SSH="ssh -i $KEY -o StrictHostKeyChecking=yes $DEST"
+          SERVER="${IN_SERVER:-faction}"
 
-          FAZ="$($SSH 'd=/home/ubuntu/magicadventure/faction; [ -d "$d/plugins" ] || d=/home/ubuntu/magicadventure; echo "$d"' </dev/null)"  # cartella del server fazioni (prima: magicadventure/)
+          if [ "$SERVER" = "hub" ]; then
+            FAZ=/home/ubuntu/magicadventure/hub
+          else
+            FAZ="$($SSH 'd=/home/ubuntu/magicadventure/faction; [ -d "$d/plugins" ] || d=/home/ubuntu/magicadventure; echo "$d"' </dev/null)"  # cartella del server fazioni (prima: magicadventure/)
+          fi
           REMOTE_PATH="$FAZ/plugins/$IN_PLUGIN/$IN_FILE"
           # base64 per passare chiave/valore/marker senza problemi di quoting (spazi, &, », ...).
           KEY_B64="$(printf '%s' "$IN_KEY" | base64 -w0)"
@@ -286,6 +306,44 @@ jobs:
                           print('NO-OP: la chiave si chiama gia\'', val); sys.exit(0)
               print('ERRORE: chiave non trovata:', keyraw); sys.exit(4)
 
+          if mode == 'append-list-item':
+              # La chiave deve essere una lista YAML: niente valore inline dopo i due punti,
+              # le voci sono righe "- xxx" piu' indentate subito sotto.
+              if cur.strip():
+                  print('ERRORE: "%s" non e\' una lista (ha un valore inline): %s' % (keyraw, cur.strip())); sys.exit(7)
+              key_indent = indent_of(lines[target])
+              item_pat = re.compile(r'^([ \t]*)-\s*(.*?)\s*$')
+              fine = target + 1
+              item_indent = None
+              ultima_voce = target
+              while fine < len(lines):
+                  r = lines[fine].rstrip('\n').rstrip('\r')
+                  if not r.strip():
+                      fine += 1; continue
+                  m = item_pat.match(r)
+                  if not m or indent_of(r) <= key_indent:
+                      break
+                  ind = indent_of(r)
+                  if item_indent is None:
+                      item_indent = ind
+                  elif ind != item_indent:
+                      break
+                  if m.group(2) == val:
+                      print('NO-OP: "%s" e\' gia\' una voce di %s' % (val, keyraw)); sys.exit(0)
+                  ultima_voce = fine
+                  fine += 1
+              if item_indent is None:
+                  item_indent = key_indent + 2  # lista vuota: nessuna voce da cui copiare l'indentazione
+              nuova_riga = ' ' * item_indent + '- ' + val + '\n'
+              bak = backup_path()
+              shutil.copy2(path, bak)
+              lines.insert(ultima_voce + 1, nuova_riga)
+              with open(path, 'w', encoding='utf-8') as f:
+                  f.writelines(lines)
+              print('OK -> aggiunta la voce "%s" a %s' % (val, keyraw))
+              print('Backup:', bak)
+              sys.exit(0)
+
           if mode == 'insert-after':
               if val in cur:
                   print('NO-OP: "%s" gia\' presente in %s -> %s' % (val, keyraw, cur.strip())); sys.exit(0)
@@ -311,17 +369,22 @@ jobs:
           scp -i "$KEY" -o StrictHostKeyChecking=yes /tmp/patch_key.py "$DEST:/tmp/patch_key.py"
           $SSH "REMOTE_PATH='$REMOTE_PATH' KEY_B64='$KEY_B64' VAL_B64='$VAL_B64' MARKER_B64='$MARKER_B64' MODE='$MODE' python3 /tmp/patch_key.py; rm -f /tmp/patch_key.py"
 
-          # Reload opzionale, senza riavviare, se il server e' su (screen `mc`).
+          # Reload opzionale, senza riavviare, se il server e' su (screen `factions`/`hub`).
           # Il comando di reload viaggia in base64 fino al VPS per evitare problemi di quoting.
           if [ -n "${IN_RELOAD:-}" ]; then
             RELOAD_B64="$(printf '%s' "$IN_RELOAD" | base64 -w0)"
-            $SSH "RELOAD_B64='$RELOAD_B64' bash -s" <<'REMOTE'
+            $SSH "RELOAD_B64='$RELOAD_B64' SERVER='$SERVER' bash -s" <<'REMOTE'
           set -e
           CMD="$(printf '%s' "$RELOAD_B64" | base64 -d)"
-          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-factions}"  # screen del server fazioni (vecchi nomi: faction, mc)
-          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(factions|faction|mc)[[:space:]]'; then
+          if [ "${SERVER:-faction}" = "hub" ]; then
+            PAT='[0-9]+\.hub[[:space:]]'; SCR=hub
+          else
+            PAT='[0-9]+\.(factions|faction|mc)[[:space:]]'  # vecchi nomi: faction, mc
+            SCR="$(screen -list 2>/dev/null | grep -oE "$PAT" | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-factions}"
+          fi
+          if screen -list 2>/dev/null | grep -qE "$PAT"; then
             screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$CMD")"
-            echo "Reload inviato: $CMD"
+            echo "Reload inviato a $SCR: $CMD"
           else
             echo "Server non in esecuzione: la config verra caricata al prossimo avvio."
           fi
