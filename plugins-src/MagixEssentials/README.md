@@ -1,14 +1,14 @@
 # MagixEssentials
 
 Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base** del server: quelle
-cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa quattro —
-la **MOTD**, il **nametag**, il **filtro dell'autocompletamento** e le **valute** — e a lungo
-andare dovrebbe assorbire cio' che oggi fa CMI.
+cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa cinque —
+la **MOTD**, il **nametag**, la **chat**, il **filtro dell'autocompletamento** e le **valute** — e
+a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
 Il server sta dietro **Velocity**, con piu' backend (hub, factions...): questo jar gira su ognuno,
 con la propria cartella dati e il proprio `modules.yml`.
 
-Versione: **0.9.0**
+Versione: **0.9.2**
 
 ---
 
@@ -22,6 +22,7 @@ file diversi:
 | `modules.yml` | L'elenco delle funzioni, una riga ciascuna: **acceso o spento**. Si apre questo per sapere che cosa sta facendo il plugin. |
 | `motd.yml` | Come e' fatta la MOTD: le varianti e come ruotano, la tendina, il conto dei giocatori, le icone. |
 | `nametag.yml` | Com'e' fatta la targhetta sopra la testa: le righe, chi la disegna, altezze, quando sparisce. |
+| `chat.yml` | Il formato della chat pubblica (grado, nome, fazione) e dei messaggi che arrivano dal sito. |
 | `currencies.yml` | Le valute create dallo staff: un catalogo, non uno schema fisso — una voce per valuta. |
 | `config.yml` | Solo cio' che vale per il **plugin intero**: oggi il database delle valute condivise. |
 
