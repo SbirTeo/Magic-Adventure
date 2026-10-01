@@ -16,12 +16,14 @@
 # un file locale a un server solo. Ignorato del tutto se nessuna valuta e' "shared: true" su
 # QUESTO server: in quel caso non si tenta nemmeno la connessione.
 database:
+  # Le stesse credenziali di MagixAuth/MagixBridge: e' volutamente lo stesso database del sito.
   host: "127.0.0.1"
   port: 3306
-  # Nome del database. Il plugin crea da solo la tabella che gli serve, se manca: non serve
-  # prepararla a mano, basta che il database esista e l'utente possa scriverci.
-  name: "magicadventure_essentials"
-  user: "magixessentials"
+  # Nome del database. Il plugin crea da solo la tabella che gli serve (me_currency_balances),
+  # se manca: non serve prepararla a mano, basta che il database esista e l'utente possa
+  # scriverci.
+  name: "magicadventure_web"
+  user: "magicadventure"
   password: "CHANGE_ME_DB_PASSWORD"
   # Quante connessioni tenere aperte insieme. Le operazioni sono brevi (un comando alla volta):
   # non serve un numero alto.

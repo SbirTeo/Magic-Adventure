@@ -25,13 +25,14 @@
 #                   giocatore, stesso saldo ovunque. Va dichiarata con lo STESSO id su ogni server
 #                   dove deve esistere (altrimenti il comando non nasce li').
 #
-# L'ESEMPIO qui sotto e' la valuta delle gemme, con ID "magix" (come /magix add, /magix take...).
-# Per una seconda valuta si aggiunge un'altra voce allo stesso modo, es. "gems:" con "name: Gems".
+# La valuta di rete di MAGICADVENTURE e' "magix" (/magix add, /magix take...). Per una seconda
+# valuta si aggiunge un'altra voce allo stesso modo, es. "gems:" con "name: Gems".
 currencies:
   magix:
-    # Il nome mostrato nei messaggi ai giocatori (es. "Hai ricevuto 10 Gemme").
-    name: "Gemme"
+    # Il nome mostrato nei messaggi ai giocatori (es. "Hai ricevuto 10 Magix").
+    name: "Magix"
     # Il saldo di un giocatore che questa valuta non l'ha mai vista. Un numero intero.
     starting-balance: 0
     # true = saldo condiviso su tutta la rete (vedi sopra); false = locale a questo server.
-    shared: false
+    # "magix" e' globale: stesso saldo su faction e hub.
+    shared: true
