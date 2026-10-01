@@ -260,6 +260,11 @@ da un plugin) — il modo per personalizzare il resource pack a mano, senza scri
 aspettare un deploy dei jar. Funziona per qualunque plugin che legga file dalla propria cartella
 dati allo stesso modo.
 
+Cambiare un file in `overrides-vps/` o `overrides-hub/` **non riavvia il server**: `deploy-plugin.yml`
+ignora quelle cartelle (non finiscono nel jar). Si committa su `main` e poi si lancia questo workflow,
+che fa solo un reload. Con `src_subdir` si copia una sola sottocartella di `overrides-vps/` (es.
+`src_subdir: models` + `dest_subdir: models` per i modelli `.bbmodel` di MagixPack).
+
 Lancialo con `workflow_dispatch` passando `plugin` (default `MagixPack`) e `reload_cmd` (default
 `mpack reload`, vuoto = nessun reload). Con `server: hub` fa lo stesso per l'**hub**, prendendo i file
 da `plugins-src/<Plugin>/overrides-hub/` (l'hub ha pacchetto e menu suoi: texture e menu dell'hub
