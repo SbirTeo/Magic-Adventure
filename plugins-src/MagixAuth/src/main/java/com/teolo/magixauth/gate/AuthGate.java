@@ -148,7 +148,7 @@ public final class AuthGate {
     /**
      * @return null se il giocatore puo' proseguire, altrimenti il motivo del rifiuto
      */
-    public String decide(UUID proposedUuid, String name, String ip,
+    public String decide(UUID proposedUuid, String name, String ip, boolean skinArrived,
                          PlayerLoginConnection conn, ProfileSetter prof) {
         try {
             java.time.LocalDateTime blocked = dao.blockedUntil(ip);
@@ -170,8 +170,12 @@ public final class AuthGate {
             // non ufficiale, con quella di uno sconosciuto che ha registrato questo nickname
             // sul servizio di skin del launcher. Le si passa anche l'UUID dell'account:
             // quando e' un UUID Mojang, la skin si chiede direttamente con quello.
+            //
+            // Dietro al proxy Velocity la skin arriva gia' messa (la decide MagixProxy con le
+            // stesse regole, e il modern forwarding la porta fin qui firmata): richiederla a
+            // Mojang sarebbe un secondo viaggio per la stessa risposta, a ogni cambio di server.
             String[] skin = null;
-            if (config.skinFromMojang) {
+            if (config.skinFromMojang && !skinArrived) {
                 MojangLookup.Found found = mojang.skinOf(uuid, name);
                 skin = found.skin();
                 if (found.failed()) {
@@ -294,7 +298,7 @@ public final class AuthGate {
             Location l = state.realPosition;
             plugin.async(() -> {
                 try {
-                    dao.savePosition(uuid, l.getWorld().getName(), l.getX(), l.getY(), l.getZ(),
+                    dao.savePosition(uuid, worldKey(l.getWorld()), l.getX(), l.getY(), l.getZ(),
                             l.getYaw(), l.getPitch());
                 } catch (SQLException e) {
                     plugin.getLogger().warning("MagixAuth: posizione di " + state.name
@@ -644,13 +648,14 @@ public final class AuthGate {
                 + ", la cerco nel database.");
         // In memoria non c'e': puo' essere rientrato dopo essersi disconnesso al cancello,
         // e allora la posizione buona e' quella che avevamo messo nel database.
+        java.util.List<String> here = localWorldKeys();
         plugin.async(() -> {
             try {
-                Object[] row = dao.readPosition(state.uuid);
+                Object[] row = dao.readPosition(state.uuid, here);
                 if (row == null) {
                     return;
                 }
-                World targetWorld = Bukkit.getWorld((String) row[0]);
+                World targetWorld = worldOf((String) row[0]);
                 if (targetWorld == null) {
                     return;
                 }
@@ -663,7 +668,8 @@ public final class AuthGate {
                         p.teleportAsync(where);
                     }
                 }, 5L));
-                dao.deletePosition(state.uuid);
+                // Si toglie proprio la riga usata (puo' essere una vecchia, salvata col nome).
+                dao.deletePosition(state.uuid, java.util.List.of((String) row[0]));
             } catch (SQLException e) {
                 plugin.getLogger().warning("MagixAuth: posizione di " + state.name
                         + " non ripristinata (" + e.getMessage() + ").");
@@ -671,10 +677,44 @@ public final class AuthGate {
         });
     }
 
+    /**
+     * Come si scrive un mondo nel database: il suo UID, unico per server. Il nome non basta:
+     * "world" esiste sia sull'hub sia sul faction, e l'hub riporterebbe qualcuno alle coordinate
+     * del faction (in pieno vuoto) o cancellerebbe una posizione che non e' sua.
+     */
+    private static String worldKey(World w) {
+        return w.getUID().toString();
+    }
+
+    /** Il mondo di una riga salvata: per UID, o per nome se la riga e' di prima dell'UID. */
+    private static World worldOf(String key) {
+        try {
+            return Bukkit.getWorld(UUID.fromString(key));
+        } catch (IllegalArgumentException notUid) {
+            return Bukkit.getWorld(key);
+        }
+    }
+
+    /** Le chiavi dei mondi di questo server: UID, piu' il nome per le righe vecchie. */
+    private static java.util.List<String> localWorldKeys() {
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        for (World w : Bukkit.getWorlds()) {
+            keys.add(worldKey(w));
+            keys.add(w.getName());
+        }
+        return keys;
+    }
+
     private void clearPosition(UUID uuid) {
+        // Solo gli UID: le righe vecchie salvate col nome ("world") potrebbero essere di un altro
+        // server con un mondo omonimo, e qui non si possono distinguere.
+        java.util.List<String> here = new java.util.ArrayList<>();
+        for (World w : Bukkit.getWorlds()) {
+            here.add(worldKey(w));
+        }
         plugin.async(() -> {
             try {
-                dao.deletePosition(uuid);
+                dao.deletePosition(uuid, here);
             } catch (SQLException ignored) {
                 // Resta una riga vecchia: la prossima entrata la sovrascrive.
             }

@@ -1,0 +1,232 @@
+name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, ProtocolLib, CMI, MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack)
+
+# Mette sull'hub i plugin che servono in OGNI server di gioco della rete, presi dal faction
+# (stessa versione gia' collaudata) insieme alla loro configurazione, che contiene le credenziali
+# del database, la chiave OTP e le chiavi di traduzione: per questo si copia sul VPS da cartella
+# a cartella e non passa mai dal repo. Rilanciabile: riallinea i jar e i config.
+#
+#  - LuckPerms: stesso database condiviso (tabelle luckperms_*), "server: hub" (permessi per server).
+#  - MagixAuth: stesso config del faction (database, OTP, sessioni). Il punto del cancello NON si
+#    copia: e' del faction. Sull'hub si fissa con /mauth setspawn.
+#  - MagixLanguage: stesso config (lingue, chiavi del traduttore).
+#  - PlaceholderAPI: i plugin Magix leggono la lista dei loro placeholder (DOCS) dalla classe
+#    dell'espansione, che senza PlaceholderAPI non si carica (visto sull'hub: MagixLanguage).
+#  - MagixGuard: stesso config del faction (database condiviso, stesso privacy.pepper: senza, gli
+#    IP dei due server non si riconoscerebbero) e stesso sanctions.yml, ma network.server-name: hub
+#    e network.site-jobs: false (le decisioni del gestionale le raccoglie solo il faction).
+#    Va lanciato DOPO che il faction ha importato lo storico nel database condiviso
+#    (magixguard-shared-db.yml + riavvio del faction): su un database vuoto l'hub rifiuta di partire.
+#  - MagixBridge (fino alla 0.12 MagixWeb): stesso config del faction (credenziali del sito, elenco
+#    dei placeholder da pubblicare), ma network.server-name: hub e network.site-jobs: false (la
+#    consegna degli acquisti e gli altri lavori del sito li fa solo il faction: due volte, un
+#    acquisto arriverebbe due volte).
+#  - MagixEssentials (+ ProtocolLib, che serve ai name tag diversi per chi guarda): i suoi config
+#    (modules.yml, nametag.yml, motd.yml, config.yml) si copiano dal faction SOLO al primo giro,
+#    poi sull'hub si modificano li'. I segnaposto delle fazioni nei name tag, sull'hub, restano vuoti.
+#  - MagixMenus: config.yml del faction solo al primo giro; i menu NO (l'hub ha i suoi, in
+#    plugins/MagixMenus/menus/ dell'hub: si portano con deploy-plugin-override.yml, server=hub).
+#  - MagixPack: config.yml del faction solo al primo giro, ma con port 8444 (la 8443 e' del
+#    faction: due server HTTP sulla stessa porta non stanno) e la regola ufw per la 8444, perche'
+#    i client scaricano il pacchetto da fuori. Le texture dell'hub: overrides-hub/ nel repo +
+#    deploy-plugin-override.yml con server=hub.
+#  - CMI (+ CMILib): config NUOVO, generato da CMI al primo avvio (warp, kit, economia del faction
+#    non c'entrano con l'hub). Dal faction si copiano SOLO gli alias dei comandi
+#    (Settings/Alias.yml e la cartella CustomAlias/) e le programmazioni (Settings/Schedules.yml),
+#    e solo al primo giro: dopo, sull'hub si modificano li'.
+#  - whitelist e op: con MagixAuth chi entra prende l'UUID del suo account del sito, non quello
+#    offline del nome; le voci di "giocatore" si aggiungono anche con quell'UUID (dal database).
+#
+# Dopo il primo giro, gli aggiornamenti di MagixAuth e MagixLanguage arrivano sull'hub dal
+# deploy automatico (plugins-src/<Plugin>/deploy.target = "faction hub").
+
+on:
+  workflow_dispatch:
+    inputs:
+      giocatore:
+        description: "Chi resta in whitelist e op sull'hub (con l'UUID del suo account)"
+        required: false
+        default: "SbirTeo"
+
+concurrency:
+  group: hub-vps
+  cancel-in-progress: false
+
+jobs:
+  installa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla input e secret VPS
+        env:
+          GIOCATORE: ${{ inputs.giocatore }}
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+          [[ "$GIOCATORE" =~ ^[A-Za-z0-9_]{3,16}$ ]] || { echo "::error::nome giocatore non valido"; exit 1; }
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Installa sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          GIOCATORE: ${{ inputs.giocatore }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" "GIOCATORE='$GIOCATORE' bash -s" <<'REMOTE'
+          set -uo pipefail
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          HUB=/home/ubuntu/magicadventure/hub
+          LOG="$HUB/logs/latest.log"
+          ORA=$(date +%Y%m%d-%H%M%S)
+          BAK="/home/ubuntu/.bak/hub-plugin-$ORA"
+          acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'; }
+          sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+
+          echo "=== 0) UUID DELL'ACCOUNT DI $GIOCATORE ==="
+          ACCOUNT="$(GIOCATORE="$GIOCATORE" php -r 'try { require "/var/www/magicadventure/includes/db.php";
+              $s = db()->prepare("SELECT mc_uuid FROM users WHERE mc_username = ? LIMIT 1"); $s->execute([getenv("GIOCATORE")]);
+              echo (string) $s->fetchColumn(); } catch (Throwable $e) { }' 2>/dev/null || true)"
+          if [ -n "$ACCOUNT" ]; then echo "$ACCOUNT"; else echo "(nessun account: resta solo l'UUID offline)"; fi
+
+          echo; echo "=== 1) FERMO L'HUB ==="
+          if acceso; then
+            sudo systemctl stop magix-hub.service
+            for i in $(seq 1 30); do acceso || break; sleep 2; done
+          fi
+          acceso && { echo "::error::l'hub non si e' fermato"; exit 1; }
+          echo "hub fermo"
+
+          echo; echo "=== 2) JAR DAL FACTION ==="
+          mkdir -p "$HUB/plugins" "$BAK"
+          # Schema del nome del jar: "CMI-*" e non "CMI*", che prenderebbe anche CMILib.
+          for P in 'LuckPerms-*' 'PlaceholderAPI*' 'CMI-*' 'CMILib*' 'MagixAuth-*' 'MagixLanguage-*' 'MagixGuard-*' 'MagixBridge-*' 'ProtocolLib*' 'MagixEssentials-*' 'MagixMenus-*' 'MagixPack-*'; do
+            J="$(ls "$FAZ"/plugins/$P.jar 2>/dev/null | head -n1)"
+            [ -n "$J" ] || { echo "::error::$P.jar non trovato nel faction"; exit 1; }
+            for old in "$HUB"/plugins/$P.jar; do [ -e "$old" ] && mv "$old" "$BAK/"; done
+            install -m 644 "$J" "$HUB/plugins/"
+            echo "  $(basename "$J")"
+          done
+
+          echo; echo "=== 3) CONFIG DAL FACTION ==="
+          copia_cfg() {  # <plugin> <file>
+            local src="$FAZ/plugins/$1/$2" dst="$HUB/plugins/$1/$2"
+            [ -f "$src" ] || { echo "::error::$src non trovato"; exit 1; }
+            mkdir -p "$(dirname "$dst")"
+            [ -f "$dst" ] && cp -a "$dst" "$BAK/$1-$(basename "$2")"
+            install -m 600 "$src" "$dst"
+            echo "  $1/$2"
+          }
+          copia_cfg LuckPerms config.yml
+          sed -i 's/^server: .*/server: hub/' "$HUB/plugins/LuckPerms/config.yml"
+          copia_cfg MagixAuth config.yml
+          [ -f "$FAZ/plugins/MagixAuth/messages.yml" ] && copia_cfg MagixAuth messages.yml
+          [ -f "$FAZ/plugins/MagixAuth/skins.tsv" ] && copia_cfg MagixAuth skins.tsv
+          copia_cfg MagixLanguage config.yml
+          copia_cfg MagixGuard config.yml
+          copia_cfg MagixGuard sanctions.yml
+          [ -f "$FAZ/plugins/MagixGuard/messages.yml" ] && copia_cfg MagixGuard messages.yml
+          # network.server-name: hub e network.site-jobs: false nel config copiato dal faction.
+          rete_hub() {  # <file> <si|no: deve essere gia' su mariadb>
+            python3 - "$1" "$2" <<'PY'
+          import re, sys
+          p, need_mariadb = sys.argv[1], sys.argv[2] == "si"
+          s = open(p, encoding="utf-8").read()
+          if need_mariadb and "storage:\n  type: mariadb" not in s and not re.search(r"^  type: mariadb", s, re.M):
+              sys.exit("sul faction MagixGuard non e' ancora su mariadb: lancia prima magixguard-shared-db.yml")
+          want = {"server-name": "hub", "site-jobs": "false"}
+          if re.search(r"^network:", s, re.M):
+              lines = s.split("\n"); block = None
+              for i, line in enumerate(lines):
+                  if re.match(r"^[A-Za-z]", line):
+                      block = line.split(":", 1)[0]; continue
+                  m = re.match(r"^  ([a-z-]+):", line)
+                  if block == "network" and m and m.group(1) in want:
+                      lines[i] = f"  {m.group(1)}: {want.pop(m.group(1))}"
+              s = "\n".join(lines)
+          if want:
+              s = s.rstrip("\n") + "\n\nnetwork:\n" + "".join(f"  {k}: {v}\n" for k, v in want.items())
+          open(p, "w", encoding="utf-8").write(s)
+          PY
+            [ $? -eq 0 ] || { echo "::error::$1 dell'hub non configurato (vedi sopra)"; exit 1; }
+            sed -n '/^network:/,/^[a-z]/p' "$1" | grep -E '^  (server-name|site-jobs):'
+          }
+          rete_hub "$HUB/plugins/MagixGuard/config.yml" si
+          copia_cfg MagixBridge config.yml
+          rete_hub "$HUB/plugins/MagixBridge/config.yml" no
+          # MagixEssentials: i config del faction solo la prima volta, poi l'hub va per conto suo.
+          if [ ! -f "$HUB/plugins/MagixEssentials/modules.yml" ]; then
+            for f in modules.yml nametag.yml motd.yml config.yml; do
+              [ -f "$FAZ/plugins/MagixEssentials/$f" ] && copia_cfg MagixEssentials "$f"
+            done
+          else
+            echo "  MagixEssentials: config gia' presenti sull'hub, non li tocco"
+          fi
+          # MagixMenus: solo il config, e solo la prima volta (i menu dell'hub sono suoi).
+          if [ ! -f "$HUB/plugins/MagixMenus/config.yml" ]; then
+            copia_cfg MagixMenus config.yml
+          fi
+          # MagixPack: config del faction la prima volta, con la porta dell'hub (8444).
+          if [ ! -f "$HUB/plugins/MagixPack/config.yml" ]; then
+            copia_cfg MagixPack config.yml
+          fi
+          sed -i 's/^port: .*/port: 8444/' "$HUB/plugins/MagixPack/config.yml"
+          grep -nE '^(port|public-host):' "$HUB/plugins/MagixPack/config.yml"
+          if ! sudo ufw status | grep -qE '^8444/tcp +ALLOW'; then
+            sudo ufw allow 8444/tcp comment 'MagixPack hub resource pack' | tail -n1
+          fi
+          # CMI: solo alias e programmazioni, e solo se sull'hub non ci sono ancora.
+          if [ ! -f "$HUB/plugins/CMI/Settings/Alias.yml" ]; then
+            copia_cfg CMI Settings/Alias.yml
+            copia_cfg CMI Settings/Schedules.yml
+            if [ -d "$FAZ/plugins/CMI/CustomAlias" ]; then
+              mkdir -p "$HUB/plugins/CMI/CustomAlias"
+              cp -a "$FAZ/plugins/CMI/CustomAlias/." "$HUB/plugins/CMI/CustomAlias/"
+              echo "  CMI/CustomAlias/ ($(ls "$HUB/plugins/CMI/CustomAlias" | wc -l) file)"
+            fi
+          else
+            echo "  CMI: alias e programmazioni gia' presenti sull'hub, non li tocco"
+          fi
+          grep -nE '^(server|storage-method|messaging-service):' "$HUB/plugins/LuckPerms/config.yml"
+
+          echo; echo "=== 4) WHITELIST E OP CON L'UUID DELL'ACCOUNT ==="
+          if [ -n "$ACCOUNT" ]; then
+            python3 - "$HUB" "$GIOCATORE" "$ACCOUNT" <<'PY'
+          import json, os, sys
+          hub, name, uid = sys.argv[1], sys.argv[2], sys.argv[3]
+          def add(fname, entry):
+              path = os.path.join(hub, fname)
+              try:
+                  data = json.load(open(path))
+              except Exception:
+                  data = []
+              if not any(e.get("uuid") == uid for e in data):
+                  data.append(entry)
+              json.dump(data, open(path, "w"), indent=2)
+              print(f"  {fname}: " + ", ".join(f"{e.get('name')} ({e.get('uuid')})" for e in data))
+          add("whitelist.json", {"uuid": uid, "name": name})
+          add("ops.json", {"uuid": uid, "name": name, "level": 4, "bypassesPlayerLimit": False})
+          PY
+          fi
+
+          echo; echo "=== 5) AVVIO ==="
+          R=$( [ -f "$LOG" ] && wc -l < "$LOG" || echo 0 )
+          sudo systemctl start magix-hub.service
+          for i in $(seq 1 60); do
+            sleep 3
+            L=$( [ -f "$LOG" ] && wc -l < "$LOG" || echo 0 ); [ "$L" -lt "$R" ] && R=0
+            tail -n +"$((R + 1))" "$LOG" 2>/dev/null | grep -q 'Done (' && { echo "hub pronto dopo ~$((i*3))s"; break; }
+          done
+          echo "--- plugin e messaggi all'avvio ---"
+          tail -n +"$((R + 1))" "$LOG" | grep -E 'Enabling|LuckPerms\].*(storage|messaging)|MagixAuth\]|MagixLanguage\]|\[CMI\].*([Aa]lias|[Ss]chedul|licen|[Ee]rror)|\[MagixGuard\]|\[MagixBridge\]|\[MagixEssentials\]|\[MagixMenus\]|\[MagixPack\]|ERROR|Exception|Done \(' | grep -v 'UpdateNotification' | head -n 50
+          ls -la "$HUB/plugins"
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

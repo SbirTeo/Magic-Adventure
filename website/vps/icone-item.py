@@ -58,7 +58,7 @@ def versione_scelta(chiesta):
 
 
 # Da dove leggere l'elenco degli item che servono davvero (lo pubblica il plugin).
-CATALOGO = '/home/ubuntu/magicadventure/plugins/MagixMenus/menus.json'
+CATALOGO = '/home/ubuntu/magicadventure/faction/plugins/MagixMenus/menus.json'
 
 # I pezzi di blocco non hanno una texture propria: nel gioco riusano quella del blocco da cui
 # sono fatti. Una scala di acacia e' fatta di assi di acacia, e mostrare quelle e' molto meglio

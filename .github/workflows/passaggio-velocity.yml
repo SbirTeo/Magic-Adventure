@@ -1,0 +1,394 @@
+name: Passaggio a Velocity (collega il proxy davanti a faction e hub)
+
+# Il passaggio della rete dietro Velocity, e il ritorno indietro. I giocatori entrano sempre da
+# mc.magicadventure.it:25565 (TCPShield): prima arrivavano dritti al faction, dopo arrivano a
+# Velocity, che li manda sul faction (server principale, network.main_server di MagixProxy).
+# L'hub si raggiunge solo col comando /server hub (permesso velocity.* = solo gruppo admin).
+#
+# azione=controlla (di serie): non tocca niente, stampa lo stato attuale e cosa cambierebbe.
+#
+# azione=attiva:
+#   1) backup di tutto quello che tocca in /home/ubuntu/.bak/passaggio-velocity/<data>/
+#   2) velocity.toml del repo (bind 0.0.0.0:25565) e istanze.conf della console
+#   3) faction: server-ip=127.0.0.1, server-port=25701 (query compresa); hub: server-ip=127.0.0.1,
+#      whitelist spenta (e' "aperto": ci arriva solo chi puo' usare /server). Su entrambi
+#      network-compression-threshold=-1 (comprime gia' il proxy), paper-global.yml
+#      proxies.velocity (enabled, online-mode false, secret = forwarding.secret, mai stampato),
+#      spigot.yml bungeecord false
+#   4) TCPShield tolto dai backend (spostato nel backup): resta solo su Velocity
+#   5) hub riavviato con stopserverfast; faction fermato con stopserverfast (avvisi e conto alla
+#      rovescia di CMI); appena la 25565 e' libera Velocity parte (e resta abilitato all'avvio
+#      della macchina); il faction lo rilancia start.sh, sulla 25701
+#   6) controlli: porte, log, ping locali; dal runner (fuori dal VPS) ping e ingresso di prova
+#      passando davvero da TCPShield
+#
+# azione=annulla: rimette i file del backup dell'ultimo "attiva", ferma e disabilita Velocity,
+#   rimette TCPShield sul faction e riavvia faction e hub: si torna a entrare dritti sul faction.
+
+on:
+  workflow_dispatch:
+    inputs:
+      azione:
+        description: "controlla = solo lettura, attiva = passa a Velocity, annulla = torna indietro"
+        required: false
+        default: "controlla"
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  passaggio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla input e secret
+        env:
+          AZIONE: ${{ inputs.azione }}
+        run: |
+          case "${AZIONE:-controlla}" in controlla|attiva|annulla) ;; *) echo "::error::azione sconosciuta: $AZIONE"; exit 1 ;; esac
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia i file sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          ssh -i ~/.ssh/deploy_key "$DEST" 'rm -rf /tmp/magix-passaggio-src && mkdir -p /tmp/magix-passaggio-src'
+          scp -i ~/.ssh/deploy_key server-velocity/velocity.toml website/vps/console/istanze.conf "$DEST:/tmp/magix-passaggio-src/"
+
+      - name: Esegui sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          AZIONE: ${{ inputs.azione }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEST" \
+            "AZIONE='${AZIONE:-controlla}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          SRC=/tmp/magix-passaggio-src
+          VEL=/home/ubuntu/magicadventure/velocity
+          HUB=/home/ubuntu/magicadventure/hub
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          BAKROOT=/home/ubuntu/.bak/passaggio-velocity
+          CONF=/etc/magicadventure/istanze.conf
+          ORA=$(date +%Y%m%d-%H%M%S)
+          sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+
+          scr_faction() { screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//'; }
+          acceso() { screen -list 2>/dev/null | grep -qE "[0-9]+\.$1[[:space:]]"; }
+          console() { screen -S "$1" -p 0 -X stuff "$(printf '%s\r' "$2")"; }
+          ascolta() { ss -tlnH 2>/dev/null | awk '{print $4}' | grep -qE "[:.]$1\$"; }
+          chi_ascolta() { ss -tlnp 2>/dev/null | grep -E ":($1)\b" || echo "  (nessuno su $1)"; }
+          # Aspetta "Done (" in un log NUOVO (latest.log viene archiviato a ogni avvio: cambia inode).
+          aspetta_done() {  # <log> <inode di prima> <secondi> <nome>
+            local i
+            for i in $(seq 1 "$3"); do
+              sleep 1
+              [ -f "$1" ] && [ "$(stat -c %i "$1")" != "$2" ] && grep -q 'Done (' "$1" && { echo "  $4 pronto dopo ~${i}s"; return 0; }
+            done
+            echo "::error::$4 non e' ripartito in $3 secondi"; tail -n 30 "$1"; return 1
+          }
+          inode() { stat -c %i "$1" 2>/dev/null || echo 0; }
+
+          # Una chiave di server.properties (la aggiunge se manca).
+          prop() {  # <file> <chiave> <valore>
+            if grep -q "^$2=" "$1"; then sed -i "s|^$2=.*|$2=$3|" "$1"; else echo "$2=$3" >> "$1"; fi
+          }
+          # proxies.velocity di paper-global.yml; il segreto si legge dal file, non passa dalla riga di comando.
+          paper_velocity() {  # <paper-global.yml> <true|false>
+            python3 - "$1" "$2" "$VEL/forwarding.secret" <<'PY'
+          import re, sys
+          path, enabled, secret_file = sys.argv[1:4]
+          secret = open(secret_file, encoding="utf-8").read().strip() if enabled == "true" else ""
+          lines = open(path, encoding="utf-8").read().split("\n")
+          want = {"enabled": enabled, "online-mode": "false", "secret": "'" + secret.replace("'", "''") + "'"}
+          top = sub = None
+          for i, line in enumerate(lines):
+              if re.match(r"^\S", line):
+                  top, sub = line.split(":", 1)[0], None
+              elif top == "proxies" and re.match(r"^  \S", line):
+                  sub = line.strip().split(":", 1)[0]
+              elif top == "proxies" and sub == "velocity":
+                  m = re.match(r"^    ([a-z-]+):", line)
+                  if m and m.group(1) in want:
+                      lines[i] = f"    {m.group(1)}: {want.pop(m.group(1))}"
+          if want:
+              sys.exit(f"{path}: in proxies.velocity mancano {', '.join(want)}")
+          open(path, "w", encoding="utf-8").write("\n".join(lines))
+          PY
+          }
+          spigot_bungee_off() {  # <spigot.yml>
+            [ -f "$1" ] || return 0
+            python3 - "$1" <<'PY'
+          import re, sys
+          p = sys.argv[1]; lines = open(p, encoding="utf-8").read().split("\n"); top = None
+          for i, l in enumerate(lines):
+              if re.match(r"^\S", l): top = l.split(":", 1)[0]
+              elif top == "settings" and re.match(r"^  bungeecord:", l): lines[i] = "  bungeecord: false"
+          open(p, "w", encoding="utf-8").write("\n".join(lines))
+          PY
+          }
+          stato() {
+            for d in "$FAZ" "$HUB"; do
+              echo "## $d"
+              grep -E '^(server-ip|server-port|query.port|enable-query|online-mode|network-compression-threshold|white-list|enforce-whitelist)=' "$d/server.properties"
+              sed -n '/^proxies:/,/^[a-z]/p' "$d/config/paper-global.yml" 2>/dev/null | sed -E "s/(secret: ).+/\1[nascosto]/" | grep -vE '^[a-z]' | grep -E 'velocity|enabled|online-mode|secret' | head -n 6
+              grep -E '^  bungeecord:' "$d/spigot.yml" 2>/dev/null
+              echo "  TCPShield: $(ls "$d/plugins" 2>/dev/null | grep -i tcpshield | tr '\n' ' ')"
+            done
+            echo "## velocity"
+            grep -E '^bind' "$VEL/velocity.toml"
+            echo "  avvio con la macchina: $(systemctl is-enabled magix-velocity.service 2>/dev/null)"
+            echo "  forwarding.secret: $([ -s "$VEL/forwarding.secret" ] && echo "presente ($(wc -c < "$VEL/forwarding.secret") byte)" || echo MANCANTE)"
+            echo "  plugin: $(ls "$VEL/plugins" | grep -E '\.jar$' | tr '\n' ' ')"
+            echo "## porte"; chi_ascolta '25565|25577|25600|25701'
+            echo "## screen"; screen -list 2>/dev/null | grep -E '\.(faction|mc|hub|velocity)\s' || true
+          }
+
+          echo "=== STATO ATTUALE ==="; stato
+
+          if [ "$AZIONE" = "controlla" ]; then
+            echo; echo "=== differenze fra velocity.toml VIVO e quello del repo ==="
+            diff "$VEL/velocity.toml" "$SRC/velocity.toml" || true
+            echo; echo "CONTROLLA: non ho toccato niente."
+            rm -rf "$SRC"; exit 0
+          fi
+
+          if [ "$AZIONE" = "attiva" ]; then
+            echo; echo "=== 0) CONTROLLI PRIMA DI TOCCARE ==="
+            [ -s "$VEL/forwarding.secret" ] || { echo "::error::manca velocity/forwarding.secret (lancia predisponi-velocity.yml)"; exit 1; }
+            ls "$VEL/plugins" | grep -qi tcpshield || { echo "::error::TCPShield non e' su Velocity: senza, la 25565 sarebbe aperta a chiunque passi da TCPShield... e a nessun altro controllo"; exit 1; }
+            ls "$VEL/plugins" | grep -q '^MagixProxy-' || { echo "::error::MagixProxy non e' su Velocity"; exit 1; }
+            grep -q '^bind = "0.0.0.0:25565"' "$SRC/velocity.toml" || { echo "::error::il velocity.toml del repo non ascolta su 0.0.0.0:25565"; exit 1; }
+            for d in "$FAZ" "$HUB"; do
+              [ -f "$d/config/paper-global.yml" ] || { echo "::error::manca $d/config/paper-global.yml"; exit 1; }
+            done
+            SCR="$(scr_faction)"
+            [ -n "$SCR" ] || echo "::warning::il faction e' spento: lo accendo io alla fine"
+
+            echo; echo "=== 1) BACKUP ==="
+            B="$BAKROOT/$ORA"; mkdir -p "$B/faction/config" "$B/hub/config" "$B/tcpshield"
+            for x in server.properties config/paper-global.yml spigot.yml; do
+              [ -f "$FAZ/$x" ] && cp -a "$FAZ/$x" "$B/faction/$x"
+              [ -f "$HUB/$x" ] && cp -a "$HUB/$x" "$B/hub/$x"
+            done
+            cp -a "$VEL/velocity.toml" "$B/velocity.toml"
+            [ -f "$CONF" ] && cp -a "$CONF" "$B/istanze.conf"
+            echo "$B" > "$BAKROOT/ultimo"
+            echo "  backup in $B"
+
+            echo; echo "=== 2) VELOCITY.TOML E CONSOLE ==="
+            install -m 644 "$SRC/velocity.toml" "$VEL/velocity.toml"
+            grep -E '^bind|^faction|^hub' "$VEL/velocity.toml"
+            if [ -f "$CONF" ]; then
+              for id in mc velocity; do
+                RIGA="$(grep "^istanza $id " "$SRC/istanze.conf")"
+                printf '%s\n' "$RIGA" > /tmp/riga-istanza
+                sudo sed -i "/^istanza $id /{r /tmp/riga-istanza
+          d}" "$CONF"
+              done
+              rm -f /tmp/riga-istanza
+              grep '^istanza' "$CONF" | grep -oE '^istanza [a-z]+|porta=[0-9]+' | paste - -
+            fi
+
+            echo; echo "=== 3) FACTION E HUB DIETRO AL PROXY ==="
+            P="$FAZ/server.properties"
+            prop "$P" server-ip 127.0.0.1; prop "$P" server-port 25701; prop "$P" query.port 25701
+            prop "$P" network-compression-threshold -1
+            P="$HUB/server.properties"
+            prop "$P" server-ip 127.0.0.1; prop "$P" server-port 25600
+            prop "$P" network-compression-threshold -1; prop "$P" white-list false; prop "$P" enforce-whitelist false
+            for d in "$FAZ" "$HUB"; do
+              paper_velocity "$d/config/paper-global.yml" true || { echo "::error::paper-global.yml di $d non modificato: lancia annulla"; exit 1; }
+              spigot_bungee_off "$d/spigot.yml"
+            done
+
+            echo; echo "=== 4) TCPSHIELD SOLO SU VELOCITY ==="
+            for d in "$FAZ" "$HUB"; do
+              for j in "$d"/plugins/*.jar; do
+                [ -e "$j" ] && basename "$j" | grep -qi tcpshield && mv "$j" "$B/tcpshield/$(basename "$(dirname "$(dirname "$j")")")-$(basename "$j")" && echo "  tolto $j"
+              done
+            done
+            stato
+
+            echo; echo "=== 5) RIAVVII ==="
+            if acceso hub; then
+              I=$(inode "$HUB/logs/latest.log"); console hub "stopserverfast"
+              aspetta_done "$HUB/logs/latest.log" "$I" 240 "hub" || true
+            else
+              I=$(inode "$HUB/logs/latest.log"); sudo systemctl start magix-hub.service
+              aspetta_done "$HUB/logs/latest.log" "$I" 240 "hub" || true
+            fi
+
+            I=$(inode "$FAZ/logs/latest.log")
+            if [ -n "$SCR" ]; then
+              echo "  faction: stopserverfast (avvisi e conto alla rovescia di CMI)"
+              console "$SCR" "stopserverfast"
+              for i in $(seq 1 360); do ascolta 25565 || break; sleep 1; done
+              ascolta 25565 && { echo "::error::il faction non ha lasciato la 25565 in 6 minuti: niente e' cambiato per i giocatori (i file si'): lancia annulla"; exit 1; }
+              echo "  25565 libera dopo ~${i}s"
+            fi
+            sudo systemctl enable magix-velocity.service >/dev/null 2>&1
+            acceso velocity && sudo systemctl stop magix-velocity.service
+            sudo systemctl start magix-velocity.service
+            for i in $(seq 1 60); do ascolta 25565 && break; sleep 1; done
+            if ascolta 25565; then echo "  Velocity in ascolto sulla 25565 dopo ~${i}s"; else
+              echo "::error::Velocity non ascolta sulla 25565: lancia annulla"; tail -n 40 "$VEL/logs/latest.log"; fi
+            [ -n "$SCR" ] || sudo systemctl start magicadventure.service
+            aspetta_done "$FAZ/logs/latest.log" "$I" 300 "faction" || true
+          fi
+
+          if [ "$AZIONE" = "annulla" ]; then
+            B="$(cat "$BAKROOT/ultimo" 2>/dev/null || true)"
+            [ -n "$B" ] && [ -d "$B" ] || { echo "::error::nessun backup di un passaggio da rimettere"; exit 1; }
+            echo; echo "=== ANNULLA (backup $B) ==="
+            echo "  Velocity: fermo e disabilitato (chi e' in gioco viene scollegato)"
+            sudo systemctl stop magix-velocity.service; sudo systemctl disable magix-velocity.service >/dev/null 2>&1
+            for i in $(seq 1 30); do acceso velocity || break; sleep 1; done
+            for x in server.properties config/paper-global.yml spigot.yml; do
+              [ -f "$B/faction/$x" ] && cp -a "$B/faction/$x" "$FAZ/$x"
+              [ -f "$B/hub/$x" ] && cp -a "$B/hub/$x" "$HUB/$x"
+            done
+            cp -a "$B/velocity.toml" "$VEL/velocity.toml"
+            [ -f "$B/istanze.conf" ] && sudo cp -a "$B/istanze.conf" "$CONF"
+            for j in "$B"/tcpshield/*.jar; do
+              [ -e "$j" ] || continue
+              n="$(basename "$j")"; case "$n" in faction-*) cp -a "$j" "$FAZ/plugins/${n#faction-}" ;; hub-*) cp -a "$j" "$HUB/plugins/${n#hub-}" ;; esac
+              echo "  rimesso $n"
+            done
+            stato
+            SCR="$(scr_faction)"
+            I=$(inode "$FAZ/logs/latest.log")
+            if [ -n "$SCR" ]; then console "$SCR" "stopserverfast"; else sudo systemctl start magicadventure.service; fi
+            aspetta_done "$FAZ/logs/latest.log" "$I" 360 "faction" || true
+            if acceso hub; then I=$(inode "$HUB/logs/latest.log"); console hub "stopserverfast"; aspetta_done "$HUB/logs/latest.log" "$I" 240 "hub" || true; fi
+          fi
+
+          echo; echo "=== CONTROLLI ==="
+          stato
+          ping_mc() {
+            python3 - "$1" <<'PY'
+          import json, socket, struct, sys
+          def vi(n):
+              n &= 0xffffffff; o = b""
+              while True:
+                  b = n & 0x7f; n >>= 7
+                  if n: o += bytes([b | 0x80])
+                  else: return o + bytes([b])
+          def rvi(s):
+              n = 0
+              for i in range(5):
+                  c = s.recv(1)
+                  if not c: raise EOFError("connessione chiusa dal server")
+                  n |= (c[0] & 0x7f) << (7 * i)
+                  if not c[0] & 0x80: return n
+          port = int(sys.argv[1])
+          try:
+              s = socket.create_connection(("127.0.0.1", port), timeout=5)
+              hs = b"\x00" + vi(-1) + vi(9) + b"127.0.0.1" + struct.pack(">H", port) + vi(1)
+              s.sendall(vi(len(hs)) + hs + vi(1) + b"\x00")
+              rvi(s); rvi(s); n = rvi(s); data = b""
+              while len(data) < n:
+                  c = s.recv(n - len(data))
+                  if not c: break
+                  data += c
+              d = json.loads(data)
+              print(f"  127.0.0.1:{port} RISPONDE: {d.get('version',{}).get('name')!r}, giocatori {d.get('players',{}).get('online')}/{d.get('players',{}).get('max')}")
+          except Exception as e:
+              print(f"  127.0.0.1:{port} nessuna risposta ({type(e).__name__})")
+          PY
+          }
+          echo "--- ping locali (Velocity sulla 25565 deve RIFIUTARE: il ping non passa da TCPShield) ---"
+          for p in 25565 25701 25600; do ping_mc "$p"; done
+          echo "--- log di Velocity ---"
+          sed -E 's/\x1b\[[0-9;]*m//g' "$VEL/logs/latest.log" 2>/dev/null | grep -iE 'Loaded [0-9]+ plugin|tcpshield|magixproxy|luckperms.*storage|listening|bind|error|exception|Done \(' | grep -v bStats | tail -n 25
+          echo "--- log del faction (proxy, porte, errori) ---"
+          grep -iE 'velocity|proxy|Starting Minecraft server on|FAILED TO BIND|Done \(' "$FAZ/logs/latest.log" 2>/dev/null | tail -n 12
+          echo "--- log dell'hub ---"
+          grep -iE 'velocity|proxy|Starting Minecraft server on|FAILED TO BIND|Done \(' "$HUB/logs/latest.log" 2>/dev/null | tail -n 8
+          rm -rf "$SRC"
+          exit 0
+          REMOTE
+
+      - name: Prova da fuori, passando da TCPShield
+        if: inputs.azione != 'controlla'
+        run: |
+          sleep 5
+          python3 - <<'PY'
+          import json, socket, struct, uuid, zlib, time
+          HOST = "mc.magicadventure.it"
+          def vi(n):
+              n &= 0xffffffff; o = b""
+              while True:
+                  b = n & 0x7f; n >>= 7
+                  if n: o += bytes([b | 0x80])
+                  else: return o + bytes([b])
+          def vib(buf, i):
+              n = 0
+              for k in range(5):
+                  c = buf[i]; i += 1; n |= (c & 0x7f) << (7 * k)
+                  if not c & 0x80: return n, i
+          def rvi(s):
+              n = 0
+              for k in range(5):
+                  c = s.recv(1)
+                  if not c: raise EOFError("connessione chiusa")
+                  n |= (c[0] & 0x7f) << (7 * k)
+                  if not c[0] & 0x80: return n
+          def rd(s, n):
+              d = b""
+              while len(d) < n:
+                  c = s.recv(n - len(d))
+                  if not c: raise EOFError("connessione chiusa")
+                  d += c
+              return d
+          def testo(x):
+              if isinstance(x, str): return x
+              if isinstance(x, list): return "".join(testo(y) for y in x)
+              if isinstance(x, dict): return x.get("text", "") + "".join(testo(y) for y in x.get("extra", []))
+              return ""
+          try:
+              s = socket.create_connection((HOST, 25565), timeout=10)
+              hs = b"\x00" + vi(-1) + vi(len(HOST)) + HOST.encode() + struct.pack(">H", 25565) + vi(1)
+              s.sendall(vi(len(hs)) + hs + vi(1) + b"\x00")
+              rvi(s); rvi(s); n = rvi(s); d = json.loads(rd(s, n))
+              print(f"PING {HOST}: {d.get('version',{}).get('name')!r}, giocatori {d.get('players',{}).get('online')}/{d.get('players',{}).get('max')}")
+              print(f"  MOTD: {testo(d.get('description'))!r}")
+          except Exception as e:
+              print(f"PING {HOST}: nessuna risposta ({type(e).__name__}: {e})")
+          name = "Prova" + time.strftime("%H%M%S")
+          try:
+              s = socket.create_connection((HOST, 25565), timeout=15)
+              hs = b"\x00" + vi(769) + vi(len(HOST)) + HOST.encode() + struct.pack(">H", 25565) + vi(2)
+              ls = b"\x00" + vi(len(name)) + name.encode() + uuid.uuid4().bytes
+              s.sendall(vi(len(hs)) + hs + vi(len(ls)) + ls)
+              comp = -1
+              while True:
+                  data = rd(s, rvi(s))
+                  if comp >= 0:
+                      dl, i = vib(data, 0); data = data[i:]
+                      if dl: data = zlib.decompress(data)
+                  pid, i = vib(data, 0)
+                  if pid == 0x03: comp, _ = vib(data, i); continue
+                  if pid == 0x00:
+                      l, j = vib(data, i); print(f"INGRESSO {name}: RIFIUTATO -> {data[j:j+l].decode()[:200]}"); break
+                  if pid == 0x02:
+                      print(f"INGRESSO {name}: accettato dal proxy, UUID {uuid.UUID(bytes=data[i:i+16])}"); break
+          except Exception as e:
+              print(f"INGRESSO {name}: errore {type(e).__name__}: {e}")
+          PY
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

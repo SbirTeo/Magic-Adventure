@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS link_codes (
     used TINYINT(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Grado di permessi in gioco (LuckPerms) di ogni giocatore: la scrive il plugin MagixWeb
+-- Grado di permessi in gioco (LuckPerms) di ogni giocatore: la scrive il plugin MagixBridge
 -- (a ogni join e a intervalli), il sito la legge per mostrare il tag col colore del prefisso.
 -- Il COLLATE esplicito serve a poterla joinare con users.mc_uuid.
 CREATE TABLE IF NOT EXISTS mc_ranks (
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS mc_ranks (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Elenco dei gruppi del gioco, specchiato dal plugin MagixWeb (non si creano dal sito).
+-- Elenco dei gruppi del gioco, specchiato dal plugin MagixBridge (non si creano dal sito).
 CREATE TABLE IF NOT EXISTS web_groups (
     name VARCHAR(64) NOT NULL PRIMARY KEY,
     display VARCHAR(64) NOT NULL,
@@ -278,19 +278,25 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
     ('store_sidebar_include_manual', '0');
 
 -- Chat live della home, in ponte con la chat pubblica del server.
--- I messaggi con source='game' li scrive il plugin MagixWeb (mirror della chat di gioco);
+-- I messaggi con source='game' li scrive il plugin MagixBridge (mirror della chat di gioco);
 -- quelli con source='web' li scrive il sito e il plugin li ripubblica in gioco quando
 -- delivered = 0, poi li marca come consegnati.
 -- COLLATE esplicito: mc_uuid va joinata con mc_ranks/users (vedi mc_ranks).
 CREATE TABLE IF NOT EXISTS web_chat (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     source ENUM('web','game') NOT NULL DEFAULT 'web',
+    -- Il server della rete (network.server-name di MagixBridge): per i messaggi 'game' quello
+    -- su cui sono stati scritti, per i 'web' quello della scheda aperta sul sito, che li
+    -- ripubblica in gioco (e solo lui).
+    server VARCHAR(32) NOT NULL DEFAULT 'faction',
     mc_uuid CHAR(36) NULL,
     mc_username VARCHAR(32) NOT NULL,
     message VARCHAR(256) NOT NULL,
     delivered TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_consegna (delivered, source, id),
+    KEY idx_server_consegna (server, delivered, source, id),
+    KEY idx_server_id (server, id),
     KEY idx_data (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -314,3 +320,106 @@ INSERT IGNORE INTO nav_items (label, url, sort_order, enabled) VALUES
     ('Classifiche', '/classifiche.php', 3, 1),
     ('Guida', '/tutorial', 5, 1),
     ('Store', '/store.php', 6, 1);
+
+-- ---------------------------------------------------------------------------
+-- Scheda "Progetto" del gestionale (vedi migrazioni/2026-09-29-progetto-condiviso.sql)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS project_goals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(120) NOT NULL,
+    description TEXT NULL,
+    -- Colore della barra dell'obiettivo e delle schede collegate (#RRGGBB).
+    color CHAR(7) NOT NULL DEFAULT '#a3e635',
+    due_date DATE NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_by INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS project_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(160) NOT NULL,
+    notes TEXT NULL,
+    -- Le colonne della bacheca: idea -> da fare -> in corso -> fatto.
+    status ENUM('idea','todo','doing','done') NOT NULL DEFAULT 'todo',
+    priority ENUM('low','normal','high') NOT NULL DEFAULT 'normal',
+    assignee_id INT NULL,
+    goal_id INT NULL,
+    -- Modalita' (project_boards): Factions, Hub, ... NULL = Generale.
+    board_id INT NULL,
+    due_date DATE NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_by INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Quando e' finita in "fatto": alimenta il grafico delle attivita' chiuse per settimana.
+    completed_at DATETIME NULL,
+    KEY idx_status (status, sort_order),
+    KEY idx_goal (goal_id),
+    KEY idx_board (board_id),
+    KEY idx_completed (completed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS project_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(160) NOT NULL,
+    notes TEXT NULL,
+    starts_at DATETIME NOT NULL,
+    ends_at DATETIME NULL,
+    all_day TINYINT(1) NOT NULL DEFAULT 0,
+    color CHAR(7) NOT NULL DEFAULT '#c04ff0',
+    created_by INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_starts (starts_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS project_messages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    body TEXT NOT NULL,
+    image_url VARCHAR(255) NULL,
+    reply_to BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Una modifica o una cancellazione cambia updated_at: la pagina gia' aperta dell'altro la
+    -- ripesca senza ricaricare (vedi "changed since" nell'API).
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    edited_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    KEY idx_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS project_message_reactions (
+    message_id BIGINT UNSIGNED NOT NULL,
+    user_id INT NOT NULL,
+    emoji VARCHAR(16) NOT NULL,
+    PRIMARY KEY (message_id, user_id, emoji)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Per ogni amministratore: fin dove ha letto la chat (le "spunte" e il numero sulla scheda),
+-- fin dove ha visto il registro, e fino a quando sta scrivendo ("sta scrivendo...").
+CREATE TABLE IF NOT EXISTS project_reads (
+    user_id INT PRIMARY KEY,
+    last_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    last_activity_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    typing_until DATETIME NULL,
+    seen_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS project_activity (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    text VARCHAR(255) NOT NULL,
+    task_id INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Modalita' della pagina /progetto (vedi migrazioni/2026-09-30-progetto-modalita.sql)
+CREATE TABLE IF NOT EXISTS project_boards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(60) NOT NULL,
+    color CHAR(7) NOT NULL DEFAULT '#a3e635',
+    sort_order INT NOT NULL DEFAULT 0,
+    created_by INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

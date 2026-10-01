@@ -22,6 +22,27 @@ storage:
     user: "magixguard"     # utente con permessi su quel database
     password: "CAMBIAMI"   # la sua password: cambiala, questa e' solo un segnaposto
     pool-size: 5           # connessioni tenute aperte insieme. Alzalo solo se il DB fa da collo di bottiglia
+    # Al primo avvio con type: mariadb, se le tabelle sono ancora vuote e c'e' il file sqlite qui
+    # sopra, ci si copiano dentro tutti i dati (giocatori, sessioni, indizi, registro firmato) prima
+    # di accettare giocatori; il file poi viene rinominato *.importato. Con piu' server (hub,
+    # faction...) il database dev'essere lo STESSO per tutti: e' cosi' che gli account si incrociano.
+    import-from-sqlite: true
+
+# ------------------------------ NETWORK ------------------------------
+# Con piu' server dietro a Velocity (faction, hub...) MagixGuard gira su ognuno, con lo stesso
+# database e lo stesso privacy.pepper (senza, gli IP dei due server non si riconoscerebbero).
+network:
+  # Il nome di questo server: si scrive su ogni sessione, e all'avvio si chiudono solo le sessioni
+  # rimaste aperte di QUESTO server (non quelle di chi sta giocando sull'altro).
+  server-name: faction
+  # true su UN solo server della rete: revoche e conferme dal gestionale, regolamento sul sito,
+  # anonimizzazione degli IP vecchi. Su tutti gli altri false: fatti due volte, un ban confermato
+  # verrebbe registrato due volte.
+  site-jobs: true
+  # Ogni quanti secondi si guardano le sanzioni nuove (date su un altro server, dal sito o dal
+  # gestionale) dei giocatori di questo server: ban e kick -> fuori, mute -> silenziato (o non
+  # piu' silenziato, se revocato altrove), avviso -> il messaggio.
+  sanctions-sync-seconds: 5
 
 # ------------------------------ PRIVACY ------------------------------
 privacy:

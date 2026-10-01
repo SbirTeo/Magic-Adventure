@@ -1,0 +1,223 @@
+name: LuckPerms sul database condiviso (faction, poi hub)
+
+# UNA TANTUM (ma rilanciabile): porta i permessi di LuckPerms del faction dal file locale H2
+# al database MariaDB del sito (tabelle luckperms_*), cosi' hub e faction vedono gli stessi
+# gruppi e gli stessi utenti. Credenziali: quelle di MagixAuth (stesso database del sito).
+#
+#  prova=si (di serie) -> non tocca niente: legge il config vivo, controlla che l'utente del
+#                         database possa creare tabelle e che non ci siano gia' tabelle luckperms_
+#                         piene, e dice cosa farebbe.
+#  prova=no            -> 1) "lp export" (copia completa di gruppi, utenti, tracce) in
+#                            plugins/LuckPerms/migrazione-network.json.gz
+#                         2) backup della cartella LuckPerms (config + file H2) in ~/.bak/
+#                         3) config.yml: storage-method mariadb, data.* dal config di MagixAuth,
+#                            server: faction, messaging-service: sql (le modifiche fatte su un
+#                            server arrivano da sole sugli altri)
+#                         4) riavvio con stopserverfast (CMI), poi SUBITO "lp import" e "lp sync"
+#                         5) controllo: gruppi e utente SbirTeo letti dal database nuovo
+#
+# Tornare indietro: nel config.yml rimettere storage-method: h2 (il file H2 non viene toccato)
+# e riavviare. La password del database non viene mai stampata.
+
+on:
+  workflow_dispatch:
+    inputs:
+      prova:
+        description: "si = controlla soltanto, no = migra davvero (riavvia il faction)"
+        required: false
+        default: "si"
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  migra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Migra sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          PROVA: ${{ inputs.prova }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEST" "PROVA='${PROVA:-si}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          LP="$FAZ/plugins/LuckPerms"
+          CFG="$LP/config.yml"
+          LOG="$FAZ/logs/latest.log"
+          AUTH="$FAZ/plugins/MagixAuth/config.yml"
+          ORA=$(date +%Y%m%d-%H%M%S)
+          NOME_EXPORT="migrazione-network"
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          dì() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          nuove_righe() { tail -n +"$(( $1 + 1 ))" "$LOG" 2>/dev/null; }
+
+          [ -f "$CFG" ] || { echo "::error::$CFG non trovato"; exit 1; }
+          [ -n "$SCR" ] || { echo "::error::il faction non e' acceso: serve acceso per export e import"; exit 1; }
+
+          echo "=== STATO ATTUALE ==="
+          grep -nE '^(server|storage-method|messaging-service):' "$CFG"
+          METODO="$(grep -E '^storage-method:' "$CFG" | awk '{print $2}' | tr -d "'\"")"
+
+          # Credenziali di MagixAuth (sezione database:), passate a PHP e Python per ambiente, mai stampate.
+          eval "$(python3 - "$AUTH" <<'PY'
+          import re, shlex, sys
+          txt = open(sys.argv[1], encoding="utf-8").read()
+          vals = {}
+          try:
+              import yaml  # PyYAML, se c'e': legge il file come lo legge il plugin
+              db = (yaml.safe_load(txt) or {}).get("database") or {}
+              vals = {k: "" if db.get(k) is None else str(db.get(k)) for k in ("host", "port", "name", "user", "password")}
+          except ImportError:
+              def scalar(v):
+                  v = v.strip()
+                  if v.startswith("'"):  # apici singoli: '' vale un apice
+                      out, i = "", 1
+                      while i < len(v):
+                          if v[i] == "'":
+                              if v[i+1:i+2] == "'": out += "'"; i += 2; continue
+                              return out
+                          out += v[i]; i += 1
+                      return out
+                  if v.startswith('"'):  # doppi apici: escape con la barra
+                      out, i = "", 1
+                      esc = {"n": "\n", "t": "\t", '"': '"', "\\": "\\", "/": "/"}
+                      while i < len(v):
+                          c = v[i]
+                          if c == "\\" and i + 1 < len(v): out += esc.get(v[i+1], v[i+1]); i += 2; continue
+                          if c == '"': return out
+                          out += c; i += 1
+                      return out
+                  return re.sub(r"\s+#.*$", "", v).strip()
+              m = re.search(r"^database:\n((?:[ \t]+.*\n|[ \t]*\n)+)", txt, re.M)
+              for line in (m.group(1) if m else "").splitlines():
+                  mm = re.match(r"^  (host|port|name|user|password):(.*)$", line)
+                  if mm: vals[mm.group(1)] = scalar(mm.group(2))
+          for k in ("host", "port", "name", "user", "password"):
+              print(f"DB_{k.upper()}={shlex.quote(vals.get(k, ''))}")
+          PY
+          )"
+          echo "database: ${DB_NAME} su ${DB_HOST}:${DB_PORT}, utente ${DB_USER} (password presa da MagixAuth, non stampata)"
+          [ -n "$DB_PASSWORD" ] && [ "$DB_PASSWORD" != "CAMBIAMI" ] || { echo "::error::password del database non trovata nel config di MagixAuth"; exit 1; }
+          export DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD
+
+          echo; echo "=== CONTROLLO DEL DATABASE ==="
+          php -r '
+            try {
+              $pdo = new PDO("mysql:host=".getenv("DB_HOST").";port=".getenv("DB_PORT").";dbname=".getenv("DB_NAME"), getenv("DB_USER"), getenv("DB_PASSWORD"), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+              $pdo->exec("CREATE TABLE IF NOT EXISTS luckperms__prova_permessi (id INT)");
+              $pdo->exec("DROP TABLE luckperms__prova_permessi");
+              echo "creare/cancellare tabelle: OK\n";
+              $t = $pdo->query("SHOW TABLES LIKE \"luckperms\\_%\"")->fetchAll(PDO::FETCH_COLUMN);
+              echo "tabelle luckperms_ gia presenti: ", count($t), "\n";
+              foreach (["luckperms_players", "luckperms_groups"] as $x) {
+                if (in_array($x, $t)) { echo "  $x: ", $pdo->query("SELECT COUNT(*) FROM $x")->fetchColumn(), " righe\n"; }
+              }
+            } catch (Throwable $e) { echo "ERRORE: ", get_class($e), " ", $e->getCode(), "\n"; exit(1); }
+          ' || { echo "::error::il database non va bene per LuckPerms (vedi sopra): non tocco niente"; exit 1; }
+
+          if [ "$METODO" != "h2" ]; then
+            echo; echo "storage-method e' gia' '$METODO': la migrazione da H2 non serve. Fine."; exit 0
+          fi
+          if [ "${PROVA:-si}" = "si" ]; then
+            echo; echo "PROVA: non ho toccato niente. Con prova=no: export, backup, config su mariadb, riavvio, import."
+            exit 0
+          fi
+
+          echo; echo "=== 1) EXPORT ==="
+          rm -f "$LP/$NOME_EXPORT.json.gz"
+          R=$(wc -l < "$LOG")
+          dì "lp export $NOME_EXPORT"
+          OK=""
+          for i in $(seq 1 60); do
+            sleep 2
+            if [ -s "$LP/$NOME_EXPORT.json.gz" ] && nuove_righe "$R" | grep -qiE 'export.*(complete|finished|took|done)|(complete|finished).*export'; then OK=1; break; fi
+          done
+          nuove_righe "$R" | grep -iE 'LP|LuckPerms|export' | tail -n 8
+          [ -n "$OK" ] || { echo "::error::export non completato in 2 minuti: non tocco niente"; exit 1; }
+          ls -la "$LP/$NOME_EXPORT.json.gz"
+          python3 -c "import gzip,json,sys; d=json.load(gzip.open(sys.argv[1])); print('nel file:', len(d.get('groups',{})), 'gruppi,', len(d.get('users',{})), 'utenti,', len(d.get('tracks',{})), 'tracce')" "$LP/$NOME_EXPORT.json.gz" || true
+
+          echo; echo "=== 2) BACKUP ==="
+          BAK="/home/ubuntu/.bak/luckperms-$ORA"; mkdir -p "$BAK"
+          cp -a "$LP/." "$BAK/" && echo "copia della cartella LuckPerms in $BAK" || { echo "::error::backup non riuscito: non tocco niente"; exit 1; }
+
+          echo; echo "=== 3) CONFIG ==="
+          python3 - "$CFG" <<'PY'
+          import os, re, sys
+          p = sys.argv[1]
+          lines = open(p, encoding="utf-8").read().split("\n")
+          def yq(v):  # stringa YAML tra apici singoli
+              return "'" + v.replace("'", "''") + "'"
+          top = {"server": "faction", "storage-method": "mariadb", "messaging-service": "sql"}
+          data = {"address": f"{os.environ['DB_HOST']}:{os.environ['DB_PORT']}", "database": os.environ["DB_NAME"],
+                  "username": os.environ["DB_USER"], "password": os.environ["DB_PASSWORD"], "table-prefix": "luckperms_"}
+          seen = set(); in_data = False
+          for i, line in enumerate(lines):
+              if re.match(r'^[A-Za-z]', line):
+                  in_data = line.startswith("data:")
+                  k = line.split(":", 1)[0]
+                  if k in top:
+                      lines[i] = f"{k}: {top[k]}"; seen.add(k)
+              elif in_data:
+                  m = re.match(r'^  ([a-z-]+):', line)
+                  if m and m.group(1) in data:
+                      lines[i] = f"  {m.group(1)}: {yq(data[m.group(1)])}"; seen.add("data." + m.group(1))
+          missing = [k for k in list(top) + ["data." + k for k in data] if k not in seen]
+          if missing:
+              sys.exit("chiavi non trovate nel config di LuckPerms: " + ", ".join(missing))
+          open(p, "w", encoding="utf-8").write("\n".join(lines))
+          PY
+          [ $? -eq 0 ] || { echo "::error::config non modificato (vedi sopra)"; exit 1; }
+          sed -E "s/^(  password: ).*/\1'[nascosta]'/" "$CFG" | grep -nE '^(server|storage-method|messaging-service):|^  (address|database|username|password|table-prefix):'
+
+          echo; echo "=== 4) RIAVVIO (stopserverfast) E IMPORT ==="
+          INODE=$(stat -c %i "$LOG")
+          dì "stopserverfast"
+          PRONTO=""
+          for i in $(seq 1 200); do
+            sleep 3
+            [ -f "$LOG" ] && [ "$(stat -c %i "$LOG")" != "$INODE" ] && grep -q 'Done (' "$LOG" && { PRONTO=1; echo "faction di nuovo su dopo ~$((i*3))s"; break; }
+          done
+          [ -n "$PRONTO" ] || { echo "::error::il faction non e' ripartito in 10 minuti"; tail -n 30 "$LOG"; exit 1; }
+          grep -iE 'LuckPerms.*(storage|Loading)|\[LuckPerms\].*(ERROR|WARN)' "$LOG" | head -n 10
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+          R=$(wc -l < "$LOG")
+          dì "lp import $NOME_EXPORT"
+          OK=""
+          for i in $(seq 1 90); do
+            sleep 2
+            if nuove_righe "$R" | grep -qiE 'import.*(complete|finished|took|done)|(complete|finished).*import'; then OK=1; break; fi
+          done
+          nuove_righe "$R" | grep -iE 'LP|LuckPerms|import' | tail -n 12
+          [ -n "$OK" ] || echo "::warning::non ho visto la fine dell'import: controlla il log (il file H2 e il backup sono intatti)"
+          dì "lp sync"; sleep 3
+
+          echo; echo "=== 5) CONTROLLO ==="
+          R=$(wc -l < "$LOG")
+          dì "lp listgroups"; sleep 2
+          dì "lp user SbirTeo info"; sleep 3
+          nuove_righe "$R" | grep -vE 'issued server command' | head -n 40
+          echo; echo "Per tornare indietro: storage-method: h2 in $CFG e riavvio (backup in $BAK)."
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

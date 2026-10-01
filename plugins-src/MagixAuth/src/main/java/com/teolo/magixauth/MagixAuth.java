@@ -175,9 +175,16 @@ public final class MagixAuth extends JavaPlugin {
                                 + "account sul sito.")
 
                 .section("Il congelamento",
-                        "Prima del login il giocatore non si muove, non parla, non lo si vede e non vede gli "
-                                + "altri: è il motivo per cui un server offline può stare in piedi. Ha un tempo "
-                                + "limite per farcela, poi viene espulso.",
+                        "Prima del login il giocatore non si muove, non parla e non lo si vede"
+                                + "{{se:gate.hide_others=true}}, e non vede gli altri (né nel mondo né nella lista "
+                                + "giocatori){{/se}}{{se:gate.hide_others!=true}}; lui invece vede già chi è online "
+                                + "(gate.hide_others è spento){{/se}}: è il motivo per cui un server offline può stare "
+                                + "in piedi. Ha un tempo limite per farcela, poi viene espulso.",
+                        "{{se:gate.delay_join_message=true}}L'annuncio d'ingresso esce solo a login fatto, e chi "
+                                + "se ne va dal cancello senza login non viene annunciato: i tentativi col nick di un "
+                                + "altro restano muti.{{/se}}{{se:gate.delay_join_message!=true}}Gli annunci d'ingresso "
+                                + "e d'uscita (quelli custom di CMI, se attivi) escono subito, anche per chi è ancora al "
+                                + "cancello: gate.delay_join_message è spento.{{/se}}",
                         "Se il plugin viene caricato a caldo con gente già collegata, quella gente NON è passata "
                                 + "dal cancello e non ci passerà: è una finestra senza autenticazione. Il plugin lo "
                                 + "scrive nel log a caratteri chiari.")
@@ -205,6 +212,24 @@ public final class MagixAuth extends JavaPlugin {
                                 + "lento, e cosi' non lo paga il primo giocatore che entra. Il file si riscrive da "
                                 + "solo: **non va modificato a mano**, e cancellarlo non rompe niente — si "
                                 + "ricostruisce, ma torna il rischio del primo ingresso a freddo.")
+
+                .section("Con il proxy Velocity davanti (hub + faction)",
+                        "Quando i giocatori entrano da Velocity, **UUID e skin li decide il proxy** (plugin "
+                                + "MagixProxy), con le stesse regole di qui: l'UUID dell'account del sito se il nome "
+                                + "è registrato, altrimenti quello offline del nome, e la skin firmata di Mojang. "
+                                + "Il server riceve il profilo già giusto e non lo cambia; la skin non la richiede "
+                                + "di nuovo a Mojang, perché è già arrivata.",
+                        "La password si chiede **una volta sola**: fatto il login in un server, cambiando "
+                                + "server la sessione (stesso computer, stesso indirizzo) fa entrare senza "
+                                + "ridigitarla, finché dura (login.session_hours). "
+                                + "Il pulsante del sito «chiudi la sessione di gioco» lo raccoglie il server dove il "
+                                + "giocatore si trova in quel momento; se non è su nessun server, la richiesta si "
+                                + "butta dopo un paio di minuti (la sessione il sito l'ha già chiusa comunque).",
+                        "MagixAuth sta su **ogni** server di gioco (hub, faction...), non sul proxy: se qualcuno "
+                                + "arrivasse a un server senza passare dall'hub, il login lo troverebbe comunque li'. "
+                                + "La posizione di chi esce mentre è fermo al cancello si salva **per mondo**, col "
+                                + "codice univoco del mondo: l'hub non riporta nessuno alle coordinate del faction e non "
+                                + "cancella la posizione salvata dal faction, anche se i due mondi si chiamano uguale.")
 
                 .subcommands("I comandi di amministrazione (/mauth)",
                         "/mauth info <nome>", "Stato di quell'account: se è registrato, quando è entrato l'ultima volta, se ha la verifica attiva.",
@@ -261,8 +286,8 @@ public final class MagixAuth extends JavaPlugin {
                                 + "giocatore non ha fatto il login, ma il plugin lo tratteneva prima che CMI "
                                 + "mettesse il suo «è entrato.»: così quello di CMI usciva subito, col giocatore "
                                 + "ancora al cancello, e dopo il login arrivava anche quello di Minecraft. Adesso si "
-                                + "trattiene per ultimo ed esce uno solo, quello di CMI, a login fatto. Lo stesso vale "
-                                + "per l'uscita di chi se ne va senza aver fatto il login: nessun annuncio.")
+                                + "trattiene per ultimo ed esce uno solo, quello di CMI, a login fatto (con "
+                                + "gate.delay_join_message acceso; spento, esce subito all'ingresso).")
                 .issue("«Ho dimenticato la password»",
                         "/mauth reset <nome>: la password viene azzerata e il giocatore ne imposta una nuova al "
                                 + "prossimo ingresso. Vale anche per il sito, perché l'account è lo stesso.")
@@ -321,10 +346,18 @@ public final class MagixAuth extends JavaPlugin {
         }
     }
 
+    /**
+     * Dopo quanto un "chiudi la sessione di gioco" che nessun server ha raccolto si butta: con
+     * Velocity ogni server raccoglie solo i biglietti di chi ha dentro (vedi AuthDao), e un
+     * giocatore non in partita da nessuna parte non deve lasciarne uno per sempre.
+     */
+    private static final int REVOCATION_ORPHAN_MINUTES = 2;
+
     /** Applica i "chiudi la sessione di gioco" chiesti dal sito. */
     private void collectRevocations() {
         try {
-            for (java.util.UUID uuid : dao.collectRevocations()) {
+            for (java.util.UUID uuid : dao.collectRevocations(
+                    u -> Bukkit.getPlayer(u) != null, REVOCATION_ORPHAN_MINUTES)) {
                 org.bukkit.entity.Player p = Bukkit.getPlayer(uuid);
                 if (p == null || !p.isOnline()) {
                     // Non e' in partita: la sessione l'abbiamo gia' cancellata, al prossimo

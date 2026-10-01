@@ -1,0 +1,131 @@
+name: Installa un plugin esterno (non Magix) su faction o hub
+
+# Per i plugin di altri (VoxelSniper, WorldGuard...): quelli nostri arrivano da deploy-plugin.yml.
+#
+#  1) scarica il jar SOLO da cdn.modrinth.com o github.com e ne verifica lo sha512 (lo si copia dalla
+#     pagina Modrinth della versione, o dall'API: files[0].hashes.sha512). Hash sbagliato = niente.
+#  2) lo mette in plugins/ del server scelto; le versioni vecchie dello stesso plugin (stesso nome
+#     prima del numero di versione) vanno in /home/ubuntu/.bak/plugins/<server>-<data>/
+#  3) riavvio=si: stopserverfast (CMI) e aspetta che il server sia di nuovo su, poi stampa le righe
+#     del log che parlano del plugin ed eventuali errori.
+#
+# Quello che si installa qui va scritto anche in CLAUDE.md (l'elenco dei plugin del server).
+
+on:
+  workflow_dispatch:
+    inputs:
+      server:
+        description: "hub o faction"
+        required: true
+        default: "hub"
+      url:
+        description: "Indirizzo del jar (https://cdn.modrinth.com/... o https://github.com/...)"
+        required: true
+      sha512:
+        description: "sha512 del jar (dalla pagina della versione)"
+        required: true
+      riavvio:
+        description: "si = riavvia con stopserverfast, no = vale dal prossimo riavvio"
+        required: false
+        default: "si"
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla input e secret
+        env:
+          SERVER: ${{ inputs.server }}
+          URL: ${{ inputs.url }}
+          SHA: ${{ inputs.sha512 }}
+        run: |
+          case "$SERVER" in hub|faction) ;; *) echo "::error::server: hub o faction"; exit 1 ;; esac
+          [[ "$URL" =~ ^https://(cdn\.modrinth\.com|github\.com)/[A-Za-z0-9._/%+-]+\.jar$ ]] || { echo "::error::solo jar da cdn.modrinth.com o github.com"; exit 1; }
+          [[ "$SHA" =~ ^[0-9a-f]{128}$ ]] || { echo "::error::sha512 non valido (128 caratteri esadecimali)"; exit 1; }
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+
+      - name: Scarica e verifica
+        env:
+          URL: ${{ inputs.url }}
+          SHA: ${{ inputs.sha512 }}
+        run: |
+          set -euo pipefail
+          mkdir -p dl
+          NAME="$(basename "$URL" | sed 's/%20/ /g')"
+          curl -fsSL -A "MagicAdventure-deploy/1.0 (magicadventure.it)" -o "dl/$NAME" "$URL"
+          echo "$SHA  dl/$NAME" | sha512sum -c -
+          unzip -l "dl/$NAME" | grep -E 'plugin.yml|paper-plugin.yml' || { echo "::error::il jar non ha plugin.yml: non e' un plugin"; exit 1; }
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Installa sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          SERVER: ${{ inputs.server }}
+          RIAVVIO: ${{ inputs.riavvio }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key "$DEST" 'rm -rf /tmp/magix-ext && mkdir -p /tmp/magix-ext'
+          scp -i ~/.ssh/deploy_key "dl/$NAME" "$DEST:/tmp/magix-ext/"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEST" \
+            "SERVER='$SERVER' RIAVVIO='${RIAVVIO:-si}' NAME='$NAME' bash -s" <<'REMOTE'
+          set -uo pipefail
+          if [ "$SERVER" = "hub" ]; then
+            DIR=/home/ubuntu/magicadventure/hub; SCR=hub
+          else
+            DIR=/home/ubuntu/magicadventure/faction; [ -d "$DIR/plugins" ] || DIR=/home/ubuntu/magicadventure
+            SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"
+          fi
+          LOG="$DIR/logs/latest.log"
+          BAK="/home/ubuntu/.bak/plugins/$SERVER-$(date +%Y%m%d-%H%M%S)"
+          # Il nome del plugin e' quello che sta prima del numero di versione: fastasyncvoxelsniper-3.2.5.jar -> fastasyncvoxelsniper
+          BASE="$(printf '%s' "$NAME" | sed -E 's/[-_ ]?v?[0-9].*$//; s/\.jar$//')"
+          [ -n "$BASE" ] || { echo "::error::non riesco a ricavare il nome del plugin da $NAME"; exit 1; }
+          echo "plugin: $BASE ($NAME) -> $DIR/plugins"
+          shopt -s nocaseglob nullglob
+          for old in "$DIR"/plugins/"$BASE"*.jar; do
+            [ "$(basename "$old")" = "$NAME" ] && cmp -s "$old" "/tmp/magix-ext/$NAME" && continue
+            mkdir -p "$BAK"; mv "$old" "$BAK/" && echo "  versione vecchia spostata in $BAK: $(basename "$old")"
+          done
+          shopt -u nocaseglob nullglob
+          install -m 644 "/tmp/magix-ext/$NAME" "$DIR/plugins/$NAME"
+          ls -la "$DIR/plugins" | grep -i "$BASE"
+
+          if [ "${RIAVVIO:-si}" = "si" ]; then
+            I=$(stat -c %i "$LOG" 2>/dev/null || echo 0)
+            if screen -list 2>/dev/null | grep -qE "[0-9]+\.$SCR[[:space:]]"; then
+              screen -S "$SCR" -p 0 -X stuff "$(printf 'stopserverfast\r')"
+              echo "mandato stopserverfast a $SCR (start.sh lo rilancia)"
+            else
+              [ "$SERVER" = "hub" ] && sudo systemctl start magix-hub.service || sudo systemctl start magicadventure.service
+            fi
+            for i in $(seq 1 360); do
+              sleep 1
+              [ -f "$LOG" ] && [ "$(stat -c %i "$LOG")" != "$I" ] && grep -q 'Done (' "$LOG" && { echo "$SERVER di nuovo su dopo ~${i}s"; break; }
+            done
+            echo "--- il plugin nel log ---"
+            grep -iE "$BASE|voxel" "$LOG" | tail -n 15
+            echo "--- errori ---"
+            grep -E 'ERROR|Exception' "$LOG" | tail -n 10 || true
+          else
+            echo "installato: vale dal prossimo riavvio di $SERVER"
+          fi
+          rm -rf /tmp/magix-ext
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

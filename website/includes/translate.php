@@ -2,7 +2,7 @@
 // Traduzione automatica del sito: mai una chiamata di rete durante una richiesta (il sito
 // incassa pagamenti veri, non puo' aspettare MyMemory). Una pagina che incontra una frase senza
 // ancora una traduzione la mostra in italiano e la accoda in site_translations; un giro del
-// plugin (MagixWeb, vedi language/SiteTranslationWorker.java) la traduce fuori banda, e la
+// plugin (MagixBridge, vedi language/SiteTranslationWorker.java) la traduce fuori banda, e la
 // visita successiva la trova gia' pronta. Stessa quota giornaliera del plugin di gioco: vedi
 // MagixLanguage/config.yml, translations.auto-translate.
 require_once __DIR__ . '/db.php';

@@ -1,0 +1,19 @@
+[Unit]
+Description=MAGICADVENTURE Minecraft Server (Paper 26.1.2)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/magicadventure/faction
+# Avvia il loop start.sh dentro una screen 'faction' (console accessibile per i deploy: screen -S faction -X stuff ...)
+ExecStart=/usr/bin/screen -dmS faction /home/ubuntu/magicadventure/faction/start.sh
+# Stop pulito: salva i mondi e interrompe il loop di start.sh (vedi stop-service.sh)
+ExecStop=/home/ubuntu/magicadventure/faction/stop-service.sh
+TimeoutStopSec=70
+
+[Install]
+WantedBy=multi-user.target

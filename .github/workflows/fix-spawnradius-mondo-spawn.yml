@@ -73,9 +73,10 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
           set -e
-          BASE=/home/ubuntu/magicadventure
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
           LOG="$BASE/logs/latest.log"
-          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
+          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
             echo "::error::Server non in esecuzione (screen mc non attivo)."
             exit 1
           fi
@@ -87,9 +88,9 @@ jobs:
           # comando "/mv gamerule" senza argomenti stampa il suo usage se esiste, o "Unknown
           # command" se non esiste proprio in questa versione - in nessuno dei due casi
           # cambia nulla sul server.
-          screen -S mc -p 0 -X stuff "$(printf '/mv gamerule\r')"
+          screen -S "$SCR" -p 0 -X stuff "$(printf '/mv gamerule\r')"
           sleep 2
-          screen -S mc -p 0 -X stuff "$(printf '/mv help gamerule\r')"
+          screen -S "$SCR" -p 0 -X stuff "$(printf '/mv help gamerule\r')"
           sleep 2
           echo "=== Coda del log (conferma del valore applicato) ==="
           tail -n 15 "$LOG"

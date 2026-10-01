@@ -40,16 +40,17 @@ final class Readme {
                    premium di quando il server era in online mode. E' cio' che ha permesso
                    di passare a offline mode senza migrare permessi, fazioni e op.
                 2. **Compare al punto di spawn**, non dove si trovava, e guarda nella
-                   direzione dello spawn del mondo. Invisibile agli altri,
-                   con gli altri invisibili a lui, chat esclusa. Serve a due cose: chi entra
+                   direzione dello spawn del mondo. Invisibile agli altri e chat esclusa;
+                   gli altri li vede solo se gate.hide_others e' spento. Serve a due cose: chi entra
                    col nome di un altro non ne legge le coordinate, e i chunk di casa sua non
                    vengono caricati finche' non ha superato il login.
                 3. **Scrive la password su un cartello.** Non in chat: li' finirebbe nei
                    registri del server e nel ponte con la chat del sito.
                 4. **Se serve, digita il codice** sul tastierino: nove tasti da 1 a 9 piu' la
                    riga con lo zero, cancella e conferma.
-                5. **Torna dov'era**, ricompare agli altri, e solo adesso il server annuncia
-                   che e' arrivato. Chi entra per la **prima volta** in assoluto non ha un
+                5. **Torna dov'era** e ricompare agli altri. Con gate.delay_join_message acceso
+                   solo adesso il server annuncia che e' arrivato; spento, l'annuncio (e quello
+                   d'uscita) esce subito all'ingresso. Chi entra per la **prima volta** in assoluto non ha un
                    posto suo a cui tornare: resta esattamente dove e' comparso, al cancello.
 
                 ## Chi deve la verifica in due passaggi

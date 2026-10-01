@@ -7,7 +7,7 @@ name: Pulizia file .bak sul VPS
 # lascia ancora accanto a un file invece che in .bak/. Non tocca NESSUN file vivo: solo quelli
 # con ".bak-" nel nome.
 #
-# Cerca in TUTTA la cartella principale del server (/home/ubuntu/magicadventure), non solo dentro
+# Cerca in TUTTA la cartella principale del server (/home/ubuntu/magicadventure/faction), non solo dentro
 # plugins/: un .bak-... lasciato li' per sbaglio (o da un altro script) rientra comunque.
 #
 # Finiscono in magicadventure/.bak/..., con lo stesso percorso relativo, tranne per il prefisso
@@ -66,7 +66,7 @@ jobs:
           SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes $DEST"
           $SSH "DRYRUN='${IN_DRYRUN:-si}' bash -s" <<'REMOTE'
           set -euo pipefail
-          BASE=/home/ubuntu/magicadventure
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
           BAKDIR="$BASE/.bak"
           OLDBAKDIR="$BASE/plugins/.bak"
           RIMOSSIDIR="$BASE/plugins/.rimossi"

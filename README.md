@@ -24,7 +24,7 @@ muore subito con *"release version 25 not supported"*, e non e' un problema di M
 
 ## Deploy sul VPS
 Il jar va in `server/plugins/` (rimuovendo la versione vecchia) e poi caricato sul VPS in
-`/home/ubuntu/magicadventure/plugins/` via SSH/SCP (chiave `~/.ssh/ovh_vps`).
+`/home/ubuntu/magicadventure/faction/plugins/` via SSH/SCP (chiave `~/.ssh/ovh_vps`).
 
 ## Come lavorare con Claude
 Avvia Claude **da questa cartella** (`cd C:\Users\teolo\progettiCLAUDE\magicadventure` poi `claude`)

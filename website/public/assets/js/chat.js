@@ -1,5 +1,5 @@
 // Chat live della home (modulo sopra la scheda giocatore).
-// Legge e scrive su /api/chat; il ponte col gioco lo fa il plugin MagixWeb.
+// Legge e scrive su /api/chat; il ponte col gioco lo fa il plugin MagixBridge.
 // Su tutte le altre pagine il modulo non esiste e questo file esce subito.
 (function () {
   var box = document.getElementById('liveChat');
@@ -23,6 +23,44 @@
   // Quando questo numero sale, vuol dire che qualcuno ha premuto il cestino: anche le
   // pagine rimaste aperte devono togliere dallo schermo i messaggi che non esistono piu'.
   var svuotataA = 0;
+
+  // --- Schede dei server (Hub, Factions...) -------------------------------------------
+  // Ogni scheda e' la chat di un server della rete: si legge e si scrive li'. La scelta si
+  // ricorda (localStorage), e cambiando scheda l'elenco riparte da capo.
+  var schede = document.getElementById('chatTabs');
+  var bottoniScheda = schede ? schede.querySelectorAll('.chat-tab') : [];
+  var slitta = schede ? schede.querySelector('.chat-tab-slitta') : null;
+  var server = schede ? schede.getAttribute('data-main') : '';
+
+  function findTab(id) {
+    for (var i = 0; i < bottoniScheda.length; i++) {
+      if (bottoniScheda[i].getAttribute('data-server') === id) return bottoniScheda[i];
+    }
+    return null;
+  }
+  try {
+    var ricordato = window.localStorage.getItem('chatServer');
+    if (ricordato && findTab(ricordato)) server = ricordato;
+  } catch (e) { /* niente localStorage (navigazione privata): si usa il server principale */ }
+
+  /** Mette il fondo chiaro sotto la scheda aperta. */
+  function placeSlider() {
+    var attiva = findTab(server);
+    if (!slitta || !attiva) return;
+    slitta.style.width = attiva.offsetWidth + 'px';
+    slitta.style.transform = 'translateX(' + (attiva.offsetLeft - 3) + 'px)';
+    schede.classList.add('is-pronta');
+  }
+
+  function markTab() {
+    for (var i = 0; i < bottoniScheda.length; i++) {
+      var b = bottoniScheda[i];
+      b.setAttribute('aria-selected', b.getAttribute('data-server') === server ? 'true' : 'false');
+    }
+    var attiva = findTab(server);
+    if (input && attiva) input.placeholder = 'Scrivi nella chat ' + attiva.textContent.trim() + '…';
+    placeSlider();
+  }
 
   // Icone di provenienza, disegnate qui come SVG inline: niente file/immagini esterne da
   // caricare e si adattano da sole alla dimensione del testo.
@@ -188,10 +226,13 @@
   }
 
   function load() {
-    fetch('/api/chat?after=' + ultimoId, { credentials: 'same-origin' })
+    // La risposta di una scheda che nel frattempo e' stata lasciata non va disegnata.
+    var chiesto = server;
+    fetch('/api/chat?server=' + encodeURIComponent(server) + '&after=' + ultimoId, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.ok) throw new Error(d.error || 'errore');
+        if (chiesto !== server) return;
         if (d.enabled === false) {
           box.style.display = 'none';
           return;
@@ -237,6 +278,7 @@
       dati.set('action', 'send');
       dati.set('csrf', csrf);
       dati.set('message', text);
+      dati.set('server', server);
 
       fetch('/api/chat', { method: 'POST', body: dati, credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
@@ -344,6 +386,7 @@
     bottoneGrande.setAttribute('aria-label', apri ? 'Riduci la chat' : 'Ingrandisci la chat');
 
     animaSpostamento(prima);
+    if (schede) placeSlider();
     // In tutti e due i versi cambia l'altezza dell'elenco: si torna in fondo, dove sono
     // i messaggi nuovi.
     lista.scrollTop = lista.scrollHeight;
@@ -357,6 +400,34 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && box.classList.contains('is-ingrandita')) ingrandisci(false);
     });
+  }
+
+  if (schede) {
+    for (var i = 0; i < bottoniScheda.length; i++) {
+      bottoniScheda[i].addEventListener('click', function () {
+        var id = this.getAttribute('data-server');
+        if (id === server) return;
+        server = id;
+        try { window.localStorage.setItem('chatServer', server); } catch (e) { /* vedi sopra */ }
+        markTab();
+        // Da capo: altro server, altri messaggi.
+        ultimoId = 0;
+        ripulisciElenco();
+        lista.innerHTML = '<p class="chat-vuoto">Caricamento…</p>';
+        statusMessage('');
+        load();
+      });
+    }
+    // Frecce sinistra/destra fra le schede, come un gruppo di schede vero.
+    schede.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      var elenco = Array.prototype.slice.call(bottoniScheda);
+      var qui = elenco.indexOf(findTab(server));
+      var dopo = elenco[(qui + (e.key === 'ArrowRight' ? 1 : elenco.length - 1)) % elenco.length];
+      if (dopo) { dopo.focus(); dopo.click(); }
+    });
+    window.addEventListener('resize', placeSlider);
+    markTab();
   }
 
   load();

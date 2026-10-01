@@ -57,7 +57,8 @@ $stmt->execute();
 $posts = $stmt->fetchAll();
 
 $featured = ($page === 1 && $posts) ? array_shift($posts) : null;
-$status = mc_server_status();
+// Il totale della rete (Velocity), non un server solo: vedi mc_network_status().
+$status = mc_network_status();
 
 // Testi della hero, configurabili da Aspetto. Ogni riga va a capo; nel titolo l'ULTIMA
 // riga prende il colore primario (classe .accent-word), com'era nella versione fissa.
@@ -162,6 +163,17 @@ require __DIR__ . '/../includes/header.php';
           <span class="ip-copy-label">IP</span>
           <span class="ip-copy-value">mc.magicadventure.it</span>
         </button>
+        <?php
+          // Pagina del server sulla lista di minecraft-italia.net, dove si vota. L'indirizzo si
+          // puo' cambiare da site_settings (vote_url) senza toccare il codice; vuoto = niente tasto.
+          $voteUrl = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magicadventure1789147678859');
+        ?>
+        <?php if ($voteUrl !== ''): ?>
+          <a class="vote-btn" href="<?= h($voteUrl) ?>" target="_blank" rel="noopener">
+            <span class="vote-btn-star" aria-hidden="true">★<span class="vote-btn-sparks"><i></i><i></i><i></i></span></span>
+            <span class="vote-btn-text">Vota il server</span>
+          </a>
+        <?php endif; ?>
       </div>
     </div>
   </div>

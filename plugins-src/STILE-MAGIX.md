@@ -1,7 +1,7 @@
 # Stile dei plugin Magix
 
 I plugin scritti per MAGICADVENTURE (MagixAuth, MagixFactions, MagixEntities, MagixTime,
-MagixGuard, MagixWeb) parlano in chat con la **stessa voce**: stessi colori, stesso
+MagixGuard, MagixBridge) parlano in chat con la **stessa voce**: stessi colori, stesso
 elenco dei comandi. Chi gioca non deve accorgersi che dietro ci sono plugin diversi.
 
 Questo documento e' la fonte: se si cambia qualcosa qui, va cambiato in tutti i plugin.

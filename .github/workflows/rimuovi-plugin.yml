@@ -82,7 +82,8 @@ jobs:
           SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes $DEST"
           $SSH "PLUGIN='$IN_PLUGIN' JAR='${IN_JAR:-si}' DATI='${IN_DATI:-no}' RIAVVIA='${IN_RIAVVIA:-si}' bash -s" <<'REMOTE'
           set -e
-          PLUGDIR=/home/ubuntu/magicadventure/plugins
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
+          PLUGDIR="$BASE/plugins"
           STAMP="$(date +%Y%m%d-%H%M%S)"
           cd "$PLUGDIR"
 
@@ -122,9 +123,10 @@ jobs:
             exit 0
           fi
 
-          dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
+          dì() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
           annuncia() { dì "say $1"; }
-          if screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+          if screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
             annuncia "[Manutenzione] Il server si riavvia tra 60 secondi..."
             sleep 40
             annuncia "[Manutenzione] Riavvio tra 20 secondi..."

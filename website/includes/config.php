@@ -23,7 +23,7 @@ define('LINK_CODE_TTL_MINUTES', 10);
 // ATTENZIONE: se questa chiave cambia o si perde, i segreti gia' salvati diventano
 // illeggibili e TUTTI gli admin devono riconfigurare la verifica (il sito glielo chiede
 // da solo al primo accesso, quindi nessuno resta fuori). Va copiata identica nella
-// configurazione del plugin MagixWeb, che verifica gli stessi codici in gioco.
+// configurazione del plugin MagixBridge, che verifica gli stessi codici in gioco.
 define('OTP_CHIAVE', 'I4pMryhCrdnuKpNfmEN031ltc6pvSJK+VYT1arrNO2s=');
 
 // Account il cui ruolo web-admin NON e' revocabile dal sito, da nessuno e in nessun modo:

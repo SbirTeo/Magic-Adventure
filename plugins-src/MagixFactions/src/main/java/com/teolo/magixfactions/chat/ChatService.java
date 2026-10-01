@@ -40,142 +40,39 @@ public final class ChatService {
         return tag != null ? tag : "";
     }
 
-    // ---- Chat PUBBLICA relazionale ---------------------------------------------------------------
-    // CMI non puo' risolvere i placeholder relazionali (%rel_...%): il suo jar non contiene
-    // setRelationalPlaceholders (verificato). Quindi il formato pubblico "colorato per relazione"
-    // lo rendiamo NOI, messaggio per messaggio e DESTINATARIO per destinatario (vedi ChatListener).
-
-    /** Config {@code chat.relational-format}: se attivo, la chat PUBBLICA e' formattata da noi. */
-    public boolean relationalFormatEnabled() {
-        return plugin.getConfig().getBoolean("chat.relational-format", true);
-    }
+    // ---- Chat PUBBLICA ---------------------------------------------------------------------------
+    // Dalla 0.59 la chat pubblica la scrive MagixEssentials (modulo chat, su ogni server della rete):
+    // qui resta solo il pezzo che sa di fazioni, che lui chiede con chatTokens (vedi MagixFactions).
 
     /** Chi ha questo permesso (default op, vedi plugin.yml) appare in chat SENZA tag fazione — pensato
      *  per staff/admin che vogliono un prefisso proprio (es. LuckPerms "Admin") invece del tag fazione. */
     public static final String PERM_HIDE_FACTION = "magixfactions.chat.hidefactions";
 
     /**
-     * Riga di chat pubblica come la vede {@code viewer}: tag fazione + nome del mittente colorati con
-     * la relazione del LETTORE verso il mittente (verde = tua fazione, magenta = alleato, rosso =
-     * nemico), formato da config {@code chat.public-format} (o {@code -no-faction}). Il formato puo'
-     * contenere QUALSIASI placeholder di PlaceholderAPI (es. %vault_prefix%, %luckperms_prefix%,
-     * %player_ping%...), risolto nel contesto del MITTENTE (e' lui che il formato descrive) — cosi'
-     * si puo' usare CMI/LuckPerms per prefissi/gradi e lasciare a noi solo la parte relazionale.
-     * Il testo digitato resta SEMPRE letterale: {message} viene sostituito per ULTIMO, DOPO sia la
-     * risoluzione PAPI sia la traduzione colori, quindi il giocatore non puo' iniettare placeholder
-     * ne' codici colore nel proprio messaggio.
-     *
-     * <p>Se il mittente ha {@link #PERM_HIDE_FACTION}, il tag fazione viene ignorato (usa
-     * {@code public-format-no-faction} anche se e' in una fazione) — pensato per lo staff, che puo'
-     * mostrare invece un proprio prefisso (es. %luckperms_prefix%) via config.
+     * I pezzi di fazione di una riga di chat pubblica come li vede {@code viewer} (null = nessuno in
+     * particolare, es. la console): {@code faction} (il nome), {@code relcolor} (il colore della
+     * relazione del LETTORE verso chi scrive: verde la sua fazione, magenta un'alleata, rosso le
+     * altre) e {@code rank} (il tag del grado di chi scrive, nel colore della relazione, non nel suo).
+     * Vuota se chi scrive non ha fazione, o la nasconde ({@link #PERM_HIDE_FACTION}, controllabile
+     * solo se e' in partita: chi scrive dal sito la mostra).
      */
-    public String formatPublicFor(Player viewer, Player sender, String message) {
-        Faction fs = fm.getFaction(sender.getUniqueId());
-        boolean showFaction = fs != null && !sender.hasPermission(PERM_HIDE_FACTION);
-        String relColor = fm.relationColor(fm.getFaction(viewer.getUniqueId()), fs);
-        String fmt = showFaction
-                ? plugin.getConfig().getString("chat.public-format", "&8[{rank}{relcolor}{faction}&8] {relcolor}{name}&7: &f{message}")
-                : plugin.getConfig().getString("chat.public-format-no-faction", "&7{name}&7: &f{message}");
-        // Il tag del grado prende SEMPRE il colore della RELAZIONE (come [fazione] e nome): togliamo
-        // il colore proprio del tag e gli mettiamo davanti relColor. Cosi' ** e' verde/rosso/magenta,
-        // non il giallo del config.
-        String rankRaw = showFaction ? rankTag(fs, sender.getUniqueId()) : "";
-        String rankPart = rankRaw.isEmpty() ? "" : relColor + com.teolo.magixfactions.util.Colors.stripCodes(rankRaw);
-        fmt = fmt.replace("{rank}", rankPart)
-                .replace("{relcolor}", relColor)
-                .replace("{faction}", showFaction ? fs.getName() : "")
-                .replace("{name}", sender.getDisplayName());
-        fmt = Papi.resolve(sender, fmt); // qualsiasi %placeholder% di PAPI, nel contesto del mittente
-        String head = com.teolo.magixfactions.util.Colors.translate(fmt);
-        return head.replace("{message}", message);
+    public Map<String, String> chatTokens(UUID viewer, UUID sender) {
+        if (sender == null) return Map.of();
+        Faction fs = fm.getFaction(sender);
+        if (fs == null) return Map.of();
+        Player senderOnline = Bukkit.getPlayer(sender);
+        if (senderOnline != null && senderOnline.hasPermission(PERM_HIDE_FACTION)) return Map.of();
+        String relColor = fm.relationColor(viewer == null ? null : fm.getFaction(viewer), fs);
+        String rankRaw = rankTag(fs, sender);
+        String rank = rankRaw.isEmpty() ? "" : relColor + com.teolo.magixfactions.util.Colors.stripCodes(rankRaw);
+        Map<String, String> out = new HashMap<>();
+        out.put("faction", fs.getName());
+        out.put("relcolor", relColor);
+        out.put("rank", rank);
+        return out;
     }
 
-    /**
-     * Manda la chat pubblica a OGNI giocatore online, incluso il mittente, uno per uno, gia' formattata
-     * col SUO colore di relazione verso il mittente — come messaggio di SISTEMA
-     * ({@link Player#sendMessage(String)}, non firmato). Necessario perche' {@code AsyncChatEvent.renderer()}
-     * produce il testo giusto (verificato nel log console) ma non arriva formattato al CLIENT reale.
-     * Inviare come messaggio di sistema bypassa del tutto firma/render locale — lo stesso trucco che
-     * {@link #route} usa gia' per fazione/alleati (dove infatti il formato arriva sempre correttamente).
-     *
-     * <p><b>Il mittente NON va escluso</b> (era stato escluso il 2026-07-19 per un fix sbagliato: si
-     * pensava esistesse un "eco locale" lato client non sopprimibile che duplicava il messaggio — FALSO,
-     * verificato empiricamente: la riga vanilla in piu' era CMI ({@code ClickHoverMessages}, vedi
-     * {@link ChatListener} sulla priorita' LOW), non un eco del client. Con l'evento cancellato PRIMA
-     * che CMI lo veda, non c'e' piu' nessuna fonte doppia — il mittente va incluso come chiunque altro.
-     */
-    /**
-     * Riga di chat per un messaggio scritto dal SITO: stesso identico formato della chat
-     * pubblica ({@link #formatPublicFor}) — prefisso del grado, {@code [fazione]} e nome
-     * colorati con la relazione del LETTORE — preceduto dall'icona web (config
-     * {@code chat.web-prefix}).
-     *
-     * <p>Il mittente qui NON e' per forza online (scrive dal browser): si parte dall'UUID,
-     * la fazione arriva comunque dalla cache di {@link FactionManager} e i placeholder si
-     * risolvono con l'overload OfflinePlayer di {@link Papi}. Il testo digitato resta
-     * LETTERALE come nella chat normale: {@code {message}} si sostituisce per ULTIMO.
-     */
-    public String formatWebFor(Player viewer, UUID senderUuid, String senderName, String message, String prefix) {
-        org.bukkit.OfflinePlayer sender = Bukkit.getOfflinePlayer(senderUuid);
-        Faction fs = fm.getFaction(senderUuid);
-        Player senderOnline = Bukkit.getPlayer(senderUuid);
-        // Il permesso "nascondi fazione" si puo' leggere solo se il mittente e' in partita;
-        // da offline si mostra la fazione (caso normale per chi scrive dal sito).
-        boolean showFaction = fs != null && (senderOnline == null || !senderOnline.hasPermission(PERM_HIDE_FACTION));
-        // viewer null = riga per la console (nessuna fazione che legge): stessa resa che vede
-        // un giocatore senza fazione, cioe' relationColor(null, ...) -> "enemy".
-        String relColor = fm.relationColor(viewer == null ? null : fm.getFaction(viewer.getUniqueId()), fs);
-        String fmt = showFaction
-                ? plugin.getConfig().getString("chat.public-format", "&8[{rank}{relcolor}{faction}&8] {relcolor}{name}&7: &f{message}")
-                : plugin.getConfig().getString("chat.public-format-no-faction", "&7{name}&7: &f{message}");
-        fmt = plugin.getConfig().getString("chat.web-prefix", "&b☁ ") + fmt;
-        // Il nome ha SEMPRE un colore esplicito nel formato (&7 grigio: solo il TAG fazione e' colorato
-        // per relazione, il nome del giocatore no), quindi non serve piu' iniettare {relcolor} sul nome
-        // per evitare che erediti il celeste dell'icona web — vecchio workaround, ora obsoleto.
-        // Il tag del grado fazione ({rank}) si legge dalla cache di FactionManager, che c'e' anche per un
-        // mittente OFFLINE (chi scrive dal sito): %magixfactions_rank% via PAPI invece qui non risolverebbe.
-        // Come nella chat pubblica, il tag prende il colore della RELAZIONE (togliamo il suo colore proprio).
-        String rankRaw = showFaction ? rankTag(fs, senderUuid) : "";
-        String rankPart = rankRaw.isEmpty() ? "" : relColor + com.teolo.magixfactions.util.Colors.stripCodes(rankRaw);
-        fmt = fmt.replace("{rank}", rankPart)
-                .replace("{relcolor}", relColor)
-                .replace("{faction}", showFaction ? fs.getName() : "")
-                .replace("{name}", senderName);
-        // Grado di chi scrive: per un giocatore OFFLINE PlaceholderAPI non risolve
-        // %luckperms_prefix% (l'utente non e' caricato), quindi chi chiama ci passa il
-        // prefisso che ha gia' (MagixWeb lo legge da mc_ranks) e lo sostituiamo prima.
-        if (prefix != null && !prefix.isEmpty()) {
-            fmt = fmt.replace("%luckperms_prefix%", prefix);
-        }
-        fmt = Papi.resolve(sender, fmt);
-        String head = com.teolo.magixfactions.util.Colors.translate(fmt);
-        return head.replace("{message}", message);
-    }
-
-    /**
-     * API usata da MagixWeb (via reflection sulla classe principale, cosi' i due plugin
-     * restano indipendenti): manda a tutti un messaggio scritto dal sito, gia' formattato
-     * per ciascun destinatario con il SUO colore di relazione verso il mittente.
-     */
-    public void broadcastWeb(UUID senderUuid, String senderName, String message, String prefix) {
-        Player senderOnline = Bukkit.getPlayer(senderUuid);
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            viewer.sendMessage(withSuggestion(formatWebFor(viewer, senderUuid, senderName, message, prefix), true, senderOnline));
-        }
-        // Console: se chi ha scritto e' anche in partita si usa il suo punto di vista, altrimenti
-        // nessuno (viewer null) — la riga resta comunque quella vera, fazione e grado compresi.
-        Bukkit.getConsoleSender().sendMessage(
-                formatWebFor(Bukkit.getPlayer(senderUuid), senderUuid, senderName, message, prefix));
-    }
-
-    public void broadcastPublic(Player sender, String message) {
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            viewer.sendMessage(withSuggestion(formatPublicFor(viewer, sender, message), false, sender));
-        }
-        Bukkit.getConsoleSender().sendMessage(formatPublicFor(sender, sender, message));
-    }
-
-    /** Chi ha questo permesso manda link cliccabili (apribili al click) in chat; senza, un link resta testo semplice — CMI non li rende piu' cliccabili lui (vedi {@link ChatListener}), quindi qui e' l'unico posto che puo' farlo. */
+    /** Chi ha questo permesso manda link cliccabili (apribili al click) nei canali fazione e alleati; senza, un link resta testo semplice. Nella chat pubblica lo fa MagixEssentials (che accetta anche questo permesso). */
     public static final String PERM_CLICKABLE_LINKS = "magixfactions.chat.links";
 
     private static final java.util.regex.Pattern URL_PATTERN = java.util.regex.Pattern.compile(
@@ -243,7 +140,7 @@ public final class ChatService {
     /**
      * Chiave di metadata con cui pubblichiamo il canale corrente del giocatore.
      *
-     * <p>Serve a MagixWeb, che specchia la chat sul sito: senza questo, un messaggio scritto sul
+     * <p>Serve a MagixBridge, che specchia la chat sul sito: senza questo, un messaggio scritto sul
      * canale fazione/alleati finirebbe sulla home pubblica. Passa dai metadata invece che da una
      * dipendenza tra i due plugin (che si caricano in ordine non garantito): la chiave e' una
      * semplice stringa, chi legge non ha bisogno di nessuna nostra classe.

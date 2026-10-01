@@ -187,10 +187,10 @@ public final class MagixFactions extends JavaPlugin {
         // partirebbe solo al loro prossimo ingresso.
         Bukkit.getOnlinePlayers().forEach(p -> playerStatsManager.onJoin(p));
         ChatService chat = new ChatService(this, factionManager, messages);
-        this.chatService = chat; // usato da broadcastWebChat (API per MagixWeb)
+        this.chatService = chat; // usato da chatTokens (API per MagixEssentials)
         getServer().getPluginManager().registerEvents(new ChatListener(chat, messages), this);
         // Canale di chat nei metadata anche per chi e' gia' online (dopo un /reload nessun
-        // PlayerJoinEvent arriva). Vedi ChatService.META_CHANNEL: lo legge MagixWeb.
+        // PlayerJoinEvent arriva). Vedi ChatService.META_CHANNEL: lo legge MagixBridge.
         Bukkit.getOnlinePlayers().forEach(chat::publishChannelMeta);
 
         // Item Mappa Fazioni: servizio + listener che riaggancia il renderer dopo un riavvio
@@ -318,30 +318,13 @@ public final class MagixFactions extends JavaPlugin {
     }
 
     /**
-     * API per altri plugin — la usa <b>MagixWeb</b> (chat live del sito) chiamandola via
-     * reflection, cosi' i due plugin restano indipendenti e nessuno dei due smette di
-     * funzionare se l'altro non c'e'.
-     *
-     * <p>Pubblica in chat un messaggio scritto dal SITO con lo STESSO formato della chat
-     * pubblica (prefisso del grado, {@code [fazione]} e nome colorati con la relazione di chi
-     * legge), preceduto dall'icona web di {@code chat.web-prefix}. Va chiamata dal main thread.
-     *
-     * @param prefix prefisso del grado gia' risolto da chi chiama (sostituisce
-     *               {@code %luckperms_prefix%}): per un mittente offline PlaceholderAPI non
-     *               riuscirebbe a risolverlo. Puo' essere vuoto/null.
-     * @return false se la chat non e' ancora pronta (il chiamante puo' ripiegare sul suo formato)
+     * API per altri plugin — la usa <b>MagixEssentials</b> (modulo chat) per riflessione, cosi' i due
+     * plugin restano indipendenti: i pezzi di fazione di una riga di chat pubblica ({@code faction},
+     * {@code relcolor}, {@code rank}) come li vede {@code viewer}. Vuota se chi scrive non ha una
+     * fazione da mostrare. Vedi {@link ChatService#chatTokens}.
      */
-    public boolean broadcastWebChat(java.util.UUID senderUuid, String senderName, String message, String prefix) {
-        if (chatService == null || senderUuid == null || senderName == null || message == null) {
-            return false;
-        }
-        chatService.broadcastWeb(senderUuid, senderName, message, prefix);
-        return true;
-    }
-
-    /** Variante senza prefisso, per chiamanti piu' vecchi. */
-    public boolean broadcastWebChat(java.util.UUID senderUuid, String senderName, String message) {
-        return broadcastWebChat(senderUuid, senderName, message, null);
+    public java.util.Map<String, String> chatTokens(java.util.UUID viewer, java.util.UUID sender) {
+        return chatService == null ? java.util.Map.of() : chatService.chatTokens(viewer, sender);
     }
 
     @Override
@@ -556,7 +539,11 @@ public final class MagixFactions extends JavaPlugin {
                                 + "verso il sito: nella chat live della home passa solo la chat pubblica.",
                         "Il nome del giocatore prende il colore del suo **GRADO**; il tag della fazione prende il colore "
                                 + "della **RELAZIONE** con chi legge. Sono due colori diversi perché dicono due cose "
-                                + "diverse, e non vanno uniformati.")
+                                + "diverse, e non vanno uniformati.",
+                        "La riga della chat **PUBBLICA** dalla 0.59 la scrive MagixEssentials (modulo chat, su ogni "
+                                + "server della rete, formato nel suo chat.yml): MagixFactions gli dà solo il pezzo di "
+                                + "fazione, [grado+fazione] nel colore della relazione di chi legge. Qui restano i "
+                                + "canali fazione e alleati.")
 
                 .section("Punteggio e classifica",
                         "/f top ordina le fazioni per un **PUNTEGGIO** unico, non per un solo numero: una classifica "
@@ -761,7 +748,9 @@ public final class MagixFactions extends JavaPlugin {
                         "È il decadimento, non un ladro: la fazione tiene più terreno di quanto la sua Potenza "
                                 + "regga. Si ferma facendo entrare qualcuno o liberando terreno a mano.")
                 .issue("I messaggi in chat compaiono due volte",
-                        "Non è MagixFactions: sono i ClickHoverMessages di CMI, si spengono nel config di CMI.")
+                        "La chat pubblica la scrive MagixEssentials: se la scrive anche CMI (ModifyChatFormat o "
+                                + "ClickHoverMessages accesi nel suo Settings/Chat.yml) le righe raddoppiano. "
+                                + "MagixEssentials li spegne da solo all'avvio (chat.yml, cmi.disable-module): serve un riavvio.")
                 .issue("La mappa è grigia o non si aggiorna",
                         "Manca il pacchetto risorse, oppure il giocatore è in un mondo che il plugin non gestisce.")
                 .issue("Un giocatore è stato espulso appena entrato",

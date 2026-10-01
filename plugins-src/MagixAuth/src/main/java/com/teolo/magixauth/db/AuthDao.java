@@ -293,11 +293,30 @@ public final class AuthDao {
     }
 
     /** @return {world, x, y, z, yaw, pitch} oppure null se non c'e' niente da ripristinare */
-    public Object[] readPosition(UUID uuid) throws SQLException {
+    /**
+     * La posizione salvata di questo giocatore in uno dei mondi di QUESTO server.
+     *
+     * Con piu' server (hub, faction...) ognuno ha le sue righe: la chiave e' (giocatore, mondo)
+     * e il mondo si scrive col suo UID, che e' diverso su ogni server anche quando il nome e'
+     * lo stesso ("world" c'e' sia sull'hub sia sul faction). Cosi' l'hub non riporta nessuno alle
+     * coordinate del faction, e non cancella una posizione che non e' sua.
+     *
+     * @param worlds le chiavi dei mondi di questo server (UID, e il nome per le righe salvate
+     *               prima che si usasse l'UID)
+     */
+    public Object[] readPosition(UUID uuid, java.util.Collection<String> worlds) throws SQLException {
+        if (worlds.isEmpty()) {
+            return null;
+        }
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
-                     "SELECT world, x, y, z, yaw, pitch FROM auth_positions WHERE mc_uuid = ?")) {
+                     "SELECT world, x, y, z, yaw, pitch FROM auth_positions WHERE mc_uuid = ? AND world IN ("
+                     + placeholders(worlds.size()) + ") ORDER BY saved_at DESC LIMIT 1")) {
             ps.setString(1, uuid.toString());
+            int i = 2;
+            for (String w : worlds) {
+                ps.setString(i++, w);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return null;
@@ -308,12 +327,25 @@ public final class AuthDao {
         }
     }
 
-    public void deletePosition(UUID uuid) throws SQLException {
+    /** Toglie le posizioni salvate di questo giocatore nei mondi di QUESTO server (vedi readPosition). */
+    public void deletePosition(UUID uuid, java.util.Collection<String> worlds) throws SQLException {
+        if (worlds.isEmpty()) {
+            return;
+        }
         try (Connection c = database.getConnection();
-             PreparedStatement ps = c.prepareStatement("DELETE FROM auth_positions WHERE mc_uuid = ?")) {
+             PreparedStatement ps = c.prepareStatement("DELETE FROM auth_positions WHERE mc_uuid = ? AND world IN ("
+                     + placeholders(worlds.size()) + ")")) {
             ps.setString(1, uuid.toString());
+            int i = 2;
+            for (String w : worlds) {
+                ps.setString(i++, w);
+            }
             ps.executeUpdate();
         }
+    }
+
+    private static String placeholders(int n) {
+        return String.join(", ", java.util.Collections.nCopies(n, "?"));
     }
 
     // -----------------------------------------------------------------------------
@@ -485,27 +517,56 @@ public final class AuthDao {
      * noi lo leggiamo e lo strappiamo. Per questo la lettura e la cancellazione stanno nella
      * stessa transazione — se il server si spegnesse nel mezzo, il biglietto deve restare
      * li' per la prossima volta, non sparire senza aver fatto effetto.
+     *
+     * Con piu' server dietro a Velocity (hub, faction...) ognuno strappa SOLO i biglietti dei
+     * giocatori che ha dentro in quel momento: prima il primo server che guardava la casella li
+     * strappava tutti, e chi stava sull'altro non veniva mai fermato. Un biglietto di nessuno
+     * (giocatore uscito, o su nessun server) si butta dopo {@code orphanMinutes}: la sessione il
+     * sito l'ha gia' chiusa, al prossimo ingresso il codice lo chiedera' comunque.
+     *
+     * @param here           i giocatori online su QUESTO server
+     * @param orphanMinutes  dopo quanti minuti un biglietto che nessuno ha raccolto si butta
      */
-    public java.util.List<UUID> collectRevocations() throws SQLException {
+    public java.util.List<UUID> collectRevocations(java.util.function.Predicate<UUID> here,
+                                                   int orphanMinutes) throws SQLException {
         java.util.List<UUID> outside = new java.util.ArrayList<>();
         try (Connection c = database.getConnection()) {
             boolean autoPrima = c.getAutoCommit();
             c.setAutoCommit(false);
             try {
+                java.util.List<String> toDelete = new java.util.ArrayList<>();
                 try (PreparedStatement ps = c.prepareStatement(
-                        "SELECT mc_uuid FROM otp_game_revoke FOR UPDATE");
-                     ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        try {
-                            outside.add(UUID.fromString(rs.getString(1)));
-                        } catch (IllegalArgumentException ignored) {
-                            // Biglietto con un UUID storto: si butta insieme agli altri.
+                        "SELECT mc_uuid, requested_at < NOW() - INTERVAL ? MINUTE AS orphan "
+                        + "FROM otp_game_revoke FOR UPDATE")) {
+                    ps.setInt(1, orphanMinutes);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            String raw = rs.getString(1);
+                            UUID uuid;
+                            try {
+                                uuid = UUID.fromString(raw);
+                            } catch (IllegalArgumentException | NullPointerException bad) {
+                                // Biglietto con un UUID storto: si butta.
+                                toDelete.add(raw);
+                                continue;
+                            }
+                            if (here.test(uuid)) {
+                                outside.add(uuid);
+                                toDelete.add(raw);
+                            } else if (rs.getBoolean(2)) {
+                                toDelete.add(raw);
+                            }
                         }
                     }
                 }
-                if (!outside.isEmpty()) {
-                    try (PreparedStatement ps = c.prepareStatement("DELETE FROM otp_game_revoke")) {
-                        ps.executeUpdate();
+                if (!toDelete.isEmpty()) {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "DELETE FROM otp_game_revoke WHERE mc_uuid = ?")) {
+                        for (String raw : toDelete) {
+                            ps.setString(1, raw);
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
                     }
                 }
                 c.commit();

@@ -6,6 +6,7 @@ import com.teolo.magixscoreboard.model.BoardDefinition;
 import com.teolo.magixscoreboard.model.BoardLine;
 import com.teolo.magixscoreboard.util.Colors;
 import com.teolo.magixscoreboard.util.Marquee;
+import com.teolo.magixscoreboard.util.SidebarMark;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -38,6 +39,8 @@ public final class BoardManager {
     private List<String> priorityOrder = List.of("region", "permission", "world", "placeholder");
     private int updateIntervalTicks = 10;
     private boolean enabled = true;
+    /** sidebar-position.offset-y != 0: le scritte vanno marcate (SidebarMark) perche' lo shader le sposti. */
+    private boolean markText = false;
     private boolean warnedRegionsWithoutWorldGuard = false;
 
     private BukkitTask task;
@@ -63,6 +66,7 @@ public final class BoardManager {
     private void load() {
         org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfig();
         enabled = cfg.getBoolean("enabled", true);
+        markText = cfg.getDouble("sidebar-position.offset-y", 0) != 0;
         updateIntervalTicks = Math.max(1, cfg.getInt("update-interval-ticks", 10));
         List<String> order = cfg.getStringList("priority-order");
         priorityOrder = order.isEmpty() ? List.of("region", "permission", "world", "placeholder") : List.copyOf(order);
@@ -264,7 +268,8 @@ public final class BoardManager {
             resolved = Marquee.window(Colors.translate(resolved), scroll.width(), scroll.gap(),
                     tick / scroll.speedTicks());
         }
-        return Colors.component(resolved);
+        Component text = Colors.component(resolved);
+        return markText ? SidebarMark.apply(text) : text;
     }
 
     /** La scoreboard che dovrebbe vedere questo giocatore adesso, o null se nessuna corrisponde. */

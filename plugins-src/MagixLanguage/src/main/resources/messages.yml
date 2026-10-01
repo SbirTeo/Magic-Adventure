@@ -48,7 +48,7 @@ status-footer: "&7Totale: &a{plugins}&7 plugin, &e{translated}&7 tradotte ora, &
 status-paused: "&eMyMemory ha bloccato le richieste: riprovo da solo fra &f{in}&e (o subito con &f/language sync force&e)."
 status-next-attempt: "&7Le chiavi mancanti si riprovano da sole fra &f{in}&7 (o subito con &f/language sync force&7)."
 
-# Sotto lo stato dei plugin, quello del sito (site_translations, riportato da MagixWeb): compare
+# Sotto lo stato dei plugin, quello del sito (site_translations, riportato da MagixBridge): compare
 # solo se il sito e' installato e ha gia' fatto almeno un giro.
 status-web-header: "&#C046E8&lSito &7- frasi in coda per la traduzione"
 # {lang} codice lingua (en/es/de) - {done} gia' tradotte - {pending} in attesa del prossimo giro - {failed} fallite troppe volte

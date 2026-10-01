@@ -43,7 +43,7 @@ esplicitamente all'utente cosa manca — vedi sotto).
 ### Dettagli VPS
 - Host: `ubuntu@141.94.123.249` · chiave SSH `~/.ssh/ovh_vps`
 - Sito web servito da nginx da `/var/www/magicadventure/public/` (dominio magicadventure.it)
-- Plugin: `/home/ubuntu/magicadventure/plugins/` (deploy del jar via SCP, rimuovendo la
+- Plugin: `/home/ubuntu/magicadventure/faction/plugins/` (deploy del jar via SCP, rimuovendo la
   versione vecchia)
 
 ## Sessioni CLOUD vs LOCALI (limite importante)
@@ -88,7 +88,7 @@ upload.
 
 Anche i plugin hanno un auto-deploy: ogni push su `main` che tocca `plugins-src/` compila i
 plugin cambiati (Maven/JDK 25) via GitHub Action (`.github/workflows/deploy-plugin.yml`),
-copia il jar sul VPS in `/home/ubuntu/magicadventure/plugins/` e **riavvia il server** (screen
+copia il jar sul VPS in `/home/ubuntu/magicadventure/faction/plugins/` e **riavvia il server** (screen
 `mc`, servizio `magicadventure.service`) con preavviso in chat ai giocatori. Stessi secret del
 sito + un sudoers per `systemctl restart magicadventure.service`. Setup: `website/vps/AUTO-DEPLOY.md`.
 
@@ -98,11 +98,11 @@ Ogni volta che un riavvio del server Minecraft viene innescato — dall'auto-dep
 da **qualunque** altra automazione, presente o futura — lo **STOP** si fa mandando in console
 il comando CMI **`stopserverfast`** (salva tutto e chiude pulito), **non** con un
 `systemctl restart` "secco" (che manderebbe un SIGTERM al processo). Non serve fare altro per
-riportarlo su: lo screen `mc` esegue `server/start.sh` (`while true; do java ...; done`), che
+riportarlo su: lo screen `faction` (prima si chiamava `mc`) esegue `server/start.sh` (`while true; do java ...; done`), che
 **rilancia da solo** il server qualche secondo dopo qualsiasi stop (è lo stesso meccanismo del
 riavvio notturno, che manda solo `stop`) — e i jar nuovi, già copiati, vengono caricati.
 `systemctl restart magicadventure.service` si usa **solo** quando il server è **spento** (nessuno
-screen `mc`: non c'è nulla da fermare con `stopserverfast`, lo si avvia via systemd). Questo è
+screen `faction`: non c'è nulla da fermare con `stopserverfast`, lo si avvia via systemd). Questo è
 implementato in `deploy-plugin.yml`; qualsiasi nuovo meccanismo di riavvio deve seguire la stessa
 regola.
 
@@ -110,6 +110,109 @@ Gli **avvisi ai giocatori e il conto alla rovescia** sono già configurati **den
 CMI `stopserverfast`: l'automazione **non** deve aggiungere un proprio preavviso (`say`/countdown),
 altrimenti i giocatori vedono due countdown sovrapposti. Manda solo `stopserverfast` e lascia fare
 a CMI.
+
+## Server sul VPS: velocity davanti, faction e hub dietro (collegato dal 30/09)
+
+- **faction** — il server fazioni: `/home/ubuntu/magicadventure/faction` (fino al 30/09 stava direttamente in `magicadventure/`: i workflow accettano ancora entrambe le cartelle, e `magicadventure/plugins` e `logs` sono link verso `faction/`), screen `faction` (fino al 30/09
+  si chiamava `mc`: i workflow accettano ancora entrambi i nomi), servizio
+  `magicadventure.service`, porta **25701 solo su 127.0.0.1** (ci si arriva solo da Velocity; fino
+  al 30/09 era sulla 25565 pubblica), heap 7G. E' il **server principale**: chi entra finisce qui.
+  Mirror nel repo: `server/`.
+- **hub** — `/home/ubuntu/magicadventure/hub`, screen `hub`, servizio `magix-hub.service`, porta 25600 **solo su
+  127.0.0.1**, whitelist spenta: ci si arriva **solo** con `/server hub` dal proxy (cioe' solo il
+  gruppo admin, vedi LuckPerms), heap 1G, mondo
+  vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
+  tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
+  `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, ProtocolLib, CMI,
+  MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack, con i config
+  copiati dal faction) installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin
+  Magix con `deploy.target` = `faction hub` arrivano dal deploy automatico. Il deploy riavvia l'hub
+  con `stopserverfast` (c'e' CMI). MagixPack dell'hub serve il suo pacchetto sulla porta **8444**
+  (8443 e' del faction); texture e menu dell'hub: `overrides-hub/` + `deploy-plugin-override.yml`
+  con `server: hub`.
+  Per costruire l'hub ci sono FastAsyncWorldEdit (copiato dal faction) e **FastAsyncVoxelSniper**
+  (3.2.5, dal 30/09). I plugin di altri (non Magix) si installano con `install-external-plugin.yml`
+  (`server`, `url` da Modrinth o GitHub, `sha512` obbligatorio, riavvio con `stopserverfast`).
+  Prima di Velocity per **costruirlo** c'era `hub-costruzione.yml`: `azione=apri` lo apriva a UNA
+  persona sola (firewall sulla porta dell'hub solo per il suo IP + whitelist + op, FastAsyncWorldEdit copiato
+  dal faction, `mondo=nuovo` rigenera il mondo vuoto tenendo il vecchio in `~/.bak/`);
+  `azione=chiudi` lo riporta solo su 127.0.0.1. Con Velocity collegato `apri` **si rifiuta**: l'hub
+  non si apre piu' da fuori. `azione=mondo-nuovo` rigenera il mondo **totalmente vuoto** senza aprire niente
+  (stopserverfast, il vecchio mondo in `~/.bak/hub-mondo-<data>/`, spawn in 0 64 0).
+- Ogni server nuovo va anche in `website/vps/console/istanze.conf` (e in
+  `/etc/magicadventure/istanze.conf` sul VPS): e' cosi' che compare nella console del sito.
+- **velocity** — il proxy, `/home/ubuntu/magicadventure/velocity`, screen `velocity`, servizio
+  `magix-velocity.service` **abilitato** (parte con la macchina), heap 512M. Ascolta su
+  **`0.0.0.0:25565`**, la porta pubblica, che il firewall apre solo agli IP di TCPShield. Sorgente
+  nel repo: `server-velocity/` (`velocity.toml` si cambia li', mai a mano sul VPS: lo reinstalla
+  con backup `predisponi-velocity.yml`, che col proxy collegato installa solo i file, senza prove
+  ne' spegnimenti). Il deploy dei plugin **non** riavvia il proxy (butterebbe fuori tutta la rete). Dopo un MagixProxy nuovo
+  il proxy si riavvia con `velocity-restart.yml` (scollega tutti per una decina di secondi).
+  Offline mode (autentica MagixAuth), modern forwarding, TCPShield sul proxy, MOTD scritta da
+  MagixProxy (stesso motd.yml di MagixEssentials), `log-command-executions` **sempre false** (loggherebbe le
+  password di /login). `forwarding.secret` lo genera Velocity e resta **solo sul VPS**.
+  Il passaggio l'ha fatto `passaggio-velocity.yml` (`controlla` / `attiva` / `annulla`, backup in
+  `~/.bak/passaggio-velocity/<data>/`): faction su `127.0.0.1:25701`, backend con `proxies.velocity`
+  in `paper-global.yml` e `network-compression-threshold=-1`, TCPShield tolto dai backend (e'
+  nel backup). `annulla` rimette tutto com'era prima. Dettaglio in testa a
+  `server-velocity/velocity.toml`.
+- **MagixProxy** (`plugins-src/MagixProxy`) e' il plugin Velocity della rete: decide UUID e skin
+  all'ingresso con le stesse regole di MagixAuth (vedi il suo README), e tiene il giro della rete:
+  **il server principale per ora e' il faction** (`network.main_server`, e `try = ["faction"]` in
+  velocity.toml): chi entra finisce li' e li' fa il login; hub e modalita' future si aprono solo
+  dopo il login (sessione MagixAuth valida). Nessun ripiego sull'hub se il faction e' giu'.
+  Chi esce da un server che NON e' il principale (chiusura, riavvio, kick) viene riportato sul
+  principale (`network.fallback_to_main`): oggi hub -> faction, domani (principale = hub) un riavvio
+  del faction porta tutti sull'hub.
+  La **MOTD** dal proxy la scrive MagixProxy leggendo il `motd.yml` di MagixEssentials del faction
+  (si modifica li', vale per entrambe le strade); `ping-passthrough` spento. Un plugin con il file
+  `deploy.target` in `plugins-src/<Plugin>/` va dove dice lui (`faction`, `velocity`):
+  `deploy-plugin.yml` riavvia il faction solo se un jar e' andato nel faction.
+- **LuckPerms e' condiviso** (dal 30/09): storage `mariadb` sul database del sito (tabelle
+  `luckperms_*`, credenziali di MagixAuth), `messaging-service: sql` (una modifica fatta su un
+  server arriva da sola sugli altri), `server: faction` sul faction (sull'hub sara' `hub`, per
+  i permessi diversi per server). Migrato con `luckperms-condiviso.yml`; il vecchio file H2 e il
+  backup restano (`~/.bak/luckperms-<data>/`): per tornare indietro `storage-method: h2` e riavvio.
+  Anche il **proxy** ha LuckPerms (jar a parte, **LuckPerms-Velocity**, `server: velocity`), sullo
+  stesso database: lo installa `velocity-luckperms.yml` (versione e sha512 fissati li', config in
+  `server-velocity/luckperms/config.yml`, credenziali copiate dal faction). I comandi del proxy
+  (`/server`, `/send`, `/glist`, `/velocity ...`) li ha **solo il gruppo admin** (`velocity.*`
+  true); tutti gli altri gruppi hanno `velocity.*` **false scritto apposta**, perche' `/server` di
+  Velocity e' aperto a chi non ha il permesso negato. Un gruppo nuovo va negato allo stesso modo
+  (rilanciare il workflow lo fa da solo). I permessi si danno anche dal faction con `/lp`.
+- **MagixGuard e' su tutta la rete** (dalla 0.4.0, `deploy.target` = `faction hub`): archivio
+  condiviso nel database del sito (tabelle `mg_*`, importate dal vecchio `magixguard.db` al primo
+  avvio su mariadb), stesso `privacy.pepper` ovunque, `network.server-name` per server,
+  `network.site-jobs: true` SOLO sul faction (decisioni del gestionale, regolamento, pulizia), e le
+  sanzioni sincronizzate fra server ogni pochi secondi (un ban dato sull'hub butta fuori anche dal
+  faction). Passaggio: `magixguard-shared-db.yml` (faction) poi `hub-network-plugins.yml` (hub).
+- **MagixBridge** (fino alla 0.12 si chiamava **MagixWeb**; dalla 0.13.0, `deploy.target` =
+  `faction hub`) e' il ponte fra i server e il sito, su ogni modalita'. Stessa coppia di chiavi di
+  MagixGuard: `network.server-name` e `network.site-jobs` (true SOLO sul faction: consegna degli
+  acquisti, traduzione del sito, gruppi, guida staff, pulizia della chat — su due server un
+  acquisto arriverebbe due volte). La chat in home del sito ha una **scheda per server** (Hub,
+  Factions: `GAME_SERVERS` in `website/includes/helpers.php`, colonna `web_chat.server`): un
+  messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
+  in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).
+- **La chat pubblica in gioco la scrive MagixEssentials** (modulo `chat`, dalla 0.9.0, su faction e
+  hub): formato in `chat.yml`, scelto da solo come gli stili del nametag (`style: auto`: il primo
+  stile di `styles` i cui plugin `requires` ci sono tutti; `factions` sul faction, `plain` sull'hub;
+  pezzi facoltativi fra `[[ ]]`; `{faction}`/`{relcolor}`/`{rank}` glieli da' MagixFactions con `chatTokens`),
+  suggerimento con ora e provenienza, link cliccabili, messaggi del sito (MagixBridge chiama il suo
+  `broadcastWebChat`). MagixFactions tiene solo i canali fazione/alleati (`/f chat`). Ordine
+  sull'evento: MagixGuard LOWEST (silenziati) e LOW (filtro), MagixFactions canali e MagixBridge
+  (copia sul sito) NORMAL, MagixEssentials HIGH. **La chat di CMI e' spenta** (formato, colori,
+  filtri, menzioni, fumetti): la spegne MagixEssentials nei file di CMI (`cmi.disable-module` in `chat.yml`); i
+  messaggi privati `/msg` restano a CMI. Il **ponte dei
+  placeholder** porta i valori di una modalita' sulle altre via database (`network_presence`,
+  `network_placeholders`): ogni server pubblica quelli di `bridge.player-placeholders` /
+  `bridge.global-placeholders` che sa calcolare, gli altri li leggono come
+  `%network_<server>_<placeholder>%` (es. sull'hub `%network_faction_magixfactions_faction%`).
+  `%magixweb_namecolor%` ha tenuto il vecchio nome apposta (e' nei formati di chat e nametag).
+  La rinomina sul VPS l'ha fatta `deploy-plugin.yml` col file `replaces` (vedi li').
+- **Velocity e' acceso dal 30/09.** I plugin adattati prima del passaggio: MagixAuth (UUID e skin
+  decisi dal proxy: MagixProxy + MagixAuth 0.7.27), MagixGuard, MagixBridge e MagixPack (l'hub
+  usa la porta 8444). Il cambio di pacchetto risorse fra faction e hub va ancora provato in gioco.
 
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
@@ -130,7 +233,7 @@ plugin senza riavviare. Lancialo con `workflow_dispatch` passando `plugin`, `fil
   così si colpisce `leader.tag` senza toccare i vari `tag:` dei ranks che vengono prima.
 - `mode`: `set` (default, sostituisce il valore), `insert-after` — inserisce `value`
   subito dopo `marker` nel valore esistente, senza riscriverlo (idempotente). Es. per aggiungere
-  `{rank}` dentro `public-format` senza perdere il resto del formato: `key=public-format`,
+  `{rank}` dentro `faction-format` (chat.yml di MagixEssentials) senza perdere il resto del formato: `key=faction-format`,
   `value={rank}`, `mode=insert-after`, `marker=[` — oppure `rename`, che cambia il **nome** della
   chiave (`value` = nome nuovo) lasciando il valore dov'e'.
 - **Quando si rinomina una chiave nel codice**, il file gia' sul VPS resta col nome vecchio: il
@@ -158,7 +261,9 @@ aspettare un deploy dei jar. Funziona per qualunque plugin che legga file dalla 
 dati allo stesso modo.
 
 Lancialo con `workflow_dispatch` passando `plugin` (default `MagixPack`) e `reload_cmd` (default
-`mpack reload`, vuoto = nessun reload). Committa prima i file in `overrides-vps/`, poi lancia il
+`mpack reload`, vuoto = nessun reload). Con `server: hub` fa lo stesso per l'**hub**, prendendo i file
+da `plugins-src/<Plugin>/overrides-hub/` (l'hub ha pacchetto e menu suoi: texture e menu dell'hub
+vanno li', non in `overrides-vps/`). Committa prima i file in `overrides-vps/`, poi lancia il
 workflow: e' l'unico modo, da cloud, di far arrivare un'immagine o un JSON nuovo sul VPS senza
 passare dal jar del plugin.
 
@@ -213,10 +318,11 @@ Si lancia con `workflow_dispatch` passando:
 - `grep` (opzionale, default = nome del plugin) — regex estesa case-insensitive da cercare nel
   log; supporta l'alternanza (`overclaim|unclaimall|home`) per più indizi in un colpo solo.
 - `righe` (default 120) — quante righe di log mostrare per sorgente.
+- `server` (default `faction`) — `hub` o `velocity` per leggere cartella, log e config dei plugin di quel server.
 - `storico` (default `si`) — se cercare anche negli archivi `.log.gz` vecchi, non solo
   `latest.log` (i log ruotano a ogni riavvio, quindi quasi sempre serve `si`).
 
-Stampa sempre anche: jar del server e dei plugin installati (con date), se lo screen `mc` è
+Stampa sempre anche: jar del server e dei plugin installati (con date), se lo screen `faction` è
 attivo, la cartella dati e il `config.yml` vivo del plugin scelto, e le righe di log con errori/
 eccezioni dei plugin Magix. Non modifica nulla: è sicuro da lanciare quante volte serve.
 
@@ -357,7 +463,7 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    - **Mai** copiare `docs/tutorial.html` sul VPS: è un modello pieno di segnaposto che solo il
      plugin sa risolvere. L'unico modo giusto di allineare il sito è far ripartire il server.
 2. **Guida per lo staff** (gestionale, `/manage.php?section=guida`). La scrive **il plugin stesso**
-   a ogni avvio/`reload` (classe comune `StaffGuide`, un capitolo per plugin) → MagixWeb
+   a ogni avvio/`reload` (classe comune `StaffGuide`, un capitolo per plugin) → MagixBridge
    (`GuideSync`) → tabella `guide_staff`. Non si scrive a mano: si aggiorna il codice che la
    compone. Vedi `plugins-src/GUIDA-STAFF.md`.
 3. **Niente numeri e testi scritti a mano** quando dipendono dal config: si usano i segnaposto

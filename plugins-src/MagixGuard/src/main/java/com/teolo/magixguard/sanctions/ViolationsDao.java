@@ -29,7 +29,7 @@ public final class ViolationsDao {
     }
 
     /**
-     * Crea la tabella se non c'e'. La creiamo dal plugin, come fa MagixWeb con le sue: cosi'
+     * Crea la tabella se non c'e'. La creiamo dal plugin, come fa MagixBridge con le sue: cosi'
      * il modulo funziona al primo avvio senza aspettare che qualcuno lanci una migrazione.
      */
     public void assicuraTabella() throws SQLException {

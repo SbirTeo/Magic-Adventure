@@ -3,7 +3,7 @@
 #  MAGICADVENTURE - Avvio server Paper 26.1.2 su Linux (VPS)
 # ============================================================
 #  Minecraft 26.x richiede Java 25 (sul VPS: Temurin 25).
-#  VPS: 11 GB RAM / 6 vCPU -> heap FISSO 8G + Aikar's flags (G1GC).
+#  VPS: 11 GB RAM / 6 vCPU -> heap FISSO 7G (8G fino al 30/09: 1 GB lasciato a hub e Velocity) + Aikar's flags (G1GC).
 #
 #  NB: mondi rigenerati da zero in formato 26.1.2 (2026-06-29) per
 #  usare Paper 26.1.2. spigot-26.2.jar resta come fallback.
@@ -18,7 +18,7 @@ cd "$(dirname "$0")" || exit 1
 #   JAVA="/usr/lib/jvm/temurin-25-jdk/bin/java"
 JAVA="java"
 JAR="paper.jar"
-MEM="8G"
+MEM="7G"
 
 # --- Cache classi JVM (CDS): al primo stop pulito la JVM salva l'archivio delle classi caricate;
 #     dagli avvii successivi le carica gia' pronte -> il "riscaldamento" (tick lenti al primo join

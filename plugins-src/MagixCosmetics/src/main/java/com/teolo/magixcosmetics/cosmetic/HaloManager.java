@@ -232,7 +232,7 @@ public final class HaloManager {
 
     /**
      * Come {@link #statueColor(String)}, per UUID: stessa regola (permesso, colore, /halo off, anche
-     * da offline). La usa anche MagixWeb, per riflessione, per mostrare l'aureola sul sito.
+     * da offline). La usa anche MagixBridge, per riflessione, per mostrare l'aureola sul sito.
      */
     public Color statueColor(UUID id) {
         if (!enabled || id == null) return null;

@@ -16,7 +16,7 @@ import java.util.List;
  *   <li>una <b>proposta confermata</b> dalla coda — diventa un provvedimento vero.</li>
  * </ul>
  *
- * <p>Stesso meccanismo della coda degli acquisti di MagixWeb, e per la stessa ragione: il sito
+ * <p>Stesso meccanismo della coda degli acquisti di MagixBridge, e per la stessa ragione: il sito
  * non puo' parlare al server, ma tutti e due sanno leggere e scrivere nello stesso posto.</p>
  */
 public final class SiteSync {

@@ -17,7 +17,7 @@ import java.util.Map;
  * <p>Nessuna dipendenza Maven verso MagixPack: ogni plugin di questo repository si compila per
  * conto suo (vedi {@code .github/workflows/deploy-plugin.yml}), quindi si parla per RIFLESSIONE,
  * chiamando i metodi pubblici del plugin MagixPack per nome — stesso principio gia' usato per la
- * chat live del sito verso MagixFactions ({@code MagixFactions.broadcastWebChat}).
+ * chat live del sito verso MagixEssentials ({@code MagixEssentials.broadcastWebChat}).
  *
  * <p>Se MagixPack non e' installato o non e' abilitato, MagixAuth degrada morbidamente: le
  * schermate di accesso restano fatte di caratteri PUA che il client non conosce (quadratini), ma

@@ -121,7 +121,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
 
     <?php if (site_setting('chat_enabled', '1') === '1'): ?>
       <?php /* Ponte con la chat del server: i messaggi scritti qui li ripubblica in gioco
-               il plugin MagixWeb, e la chat pubblica del gioco arriva qui. Il contenuto lo
+               il plugin MagixBridge, e la chat pubblica del gioco arriva qui. Il contenuto lo
                riempie /assets/js/chat.js interrogando /api/chat. */ ?>
       <section class="chat-module" id="liveChat"
                data-logged="<?= $me ? '1' : '0' ?>"
@@ -154,6 +154,16 @@ function sidebar_colonna(bool $conContenitore = true): void {
             <a href="/manage?section=theme#chat-live" class="card-edit-btn card-edit-btn-small chat-edit" title="Modifica" aria-label="Modifica">✎</a>
           <?php endif; ?>
         </div>
+        <?php /* Una scheda per server della rete (GAME_SERVERS in helpers.php): si legge e si
+                 scrive nella chat di quel server. Quale e' aperta lo ricorda chat.js. */ ?>
+        <nav class="chat-tabs" id="chatTabs" role="tablist" aria-label="Server"
+             data-main="<?= h(GAME_SERVER_MAIN) ?>">
+          <?php foreach (GAME_SERVERS as $idServer => $infoServer): ?>
+            <button type="button" class="chat-tab" role="tab" data-server="<?= h($idServer) ?>"
+                    aria-selected="<?= $idServer === GAME_SERVER_MAIN ? 'true' : 'false' ?>"><?= h($infoServer['label']) ?></button>
+          <?php endforeach; ?>
+          <span class="chat-tab-slitta" aria-hidden="true"></span>
+        </nav>
         <div class="chat-messages" id="chatMessages" aria-live="polite">
           <p class="chat-vuoto">Caricamento…</p>
         </div>

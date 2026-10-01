@@ -98,6 +98,14 @@ giocatori). Si entra lo stesso, ma spaventa.
 
 ### Quando davanti ci sara' Velocity
 
+**Fatto (30/09):** la MOTD dal proxy la scrive `MagixProxy` (0.3.0), che legge **questo stesso
+`motd.yml`** del faction e lo compone con le copie di `MotdText` e `MotdRotation` (vedi il suo
+README). Si continua a modificare qui: vale sia per chi entra diretto sia per chi passa dal proxy.
+MagixEssentials e' anche sull'hub (name tag, completamento dei comandi), con config suoi.
+Sotto, il ragionamento di allora.
+
+#### Il ragionamento
+
 La MOTD la scrive **chi risponde al ping**. Oggi risponde il server, perche' il client ci parla
 diretto. Con un proxy **Velocity** davanti, al ping risponde il proxy: il server dietro non lo vede
 nemmeno, e un plugin del server non puo' farci niente. Non e' un limite di questo modulo, e' come
@@ -161,7 +169,7 @@ styles:
 `requires` e' una **E**, non una O: lo stile vale solo dove ci sono **tutti** i plugin elencati —
 `[MagixFactions, BedWars]` significa «solo dove ci sono tutti e due insieme», e «fazioni *oppure*
 bedwars» sono **due voci**, una per modalita'. E fra i requisiti vanno solo i plugin **senza cui lo
-stile non ha senso**, non tutti quelli che compaiono nei suoi segnaposto: `MagixWeb`
+stile non ha senso**, non tutti quelli che compaiono nei suoi segnaposto: `MagixBridge`
 (`%magixweb_namecolor%`) non ci va — se manca, il nome si vede comunque, solo senza colore, mentre
 metterlo li' butterebbe via tutto lo stile, fazione compresa, per una questione di colore.
 
@@ -239,6 +247,33 @@ aggiunto alla lista in `nametag/NametagManager`.
 | `util/CmiModules` | L'unico punto che sa dove CMI tiene i suoi interruttori e come si spengono |
 
 ---
+
+## Chat
+
+La riga della **chat pubblica** in gioco, su ogni server della rete (modulo `chat`, dalla 0.9.0; si
+regola in `chat.yml`). Prima la scriveva MagixFactions sul faction e CMI sull'hub.
+
+- **Riconosce da solo la modalita'** (0.9.1), come gli stili del nametag: con `style: auto` vince il
+  primo stile di `styles` i cui plugin (`requires`) sono tutti caricati. Sul faction esce `factions`
+  (c'e' MagixFactions), sull'hub `plain`. Lo stile scelto e' nel log all'avvio e nella guida staff.
+  Una modalita' nuova: una voce in `styles`, sopra `plain`. `custom-format`, se scritta, vince su tutto.
+- `{faction}`, `{relcolor}` e `{rank}` li chiede a MagixFactions (`chatTokens(lettore, mittente)`, per
+  riflessione). Ogni lettore riceve la sua riga: il colore della relazione e' quello di chi legge.
+- Pezzi facoltativi fra `[[ ]]`: spariscono se tutto quello che contengono risulta vuoto (chi non ha
+  una fazione non si ritrova `[]` davanti al nome).
+- `{name}`, `{message}` e tutti i placeholder di PlaceholderAPI (per chi scrive), compresi i
+  relazionali `%rel_...%`. Il messaggio entra per ultimo, come testo semplice.
+- Suggerimento con ora e provenienza (`tooltip.*`), link cliccabili con `magixessentials.chat.links`
+  (vale anche il vecchio `magixfactions.chat.links`).
+- I messaggi della chat del sito: MagixBridge chiama `broadcastWebChat(uuid, nome, testo, grado)`
+  per riflessione; stesso formato, con `web-prefix` davanti.
+- Ordine sull'evento: MagixGuard LOWEST/LOW (silenziati, filtro), MagixFactions (canali fazione e
+  alleati, restano suoi) e MagixBridge (copia sul sito) NORMAL, questo modulo HIGH: annulla
+  l'evento e manda la riga a ciascuno come messaggio di sistema.
+- `cmi.disable-module: true` spegne la chat di CMI nei suoi file (`Settings/Chat.yml`: formato,
+  ClickHoverMessages, colori, [item], menzioni, fumetti; `Settings/ChatFilter.yml`: filtro, doppioni,
+  maiuscole, sostituzioni; `Settings/Modules.yml`: playerChatTag, chatBubble), con copia di scorta in
+  `.bak/CMI/Settings/`. CMI li rilegge al riavvio. I messaggi privati (`/msg`) restano a CMI.
 
 ## Filtro dell'autocompletamento
 

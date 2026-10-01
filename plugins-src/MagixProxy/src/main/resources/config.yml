@@ -1,0 +1,58 @@
+# ===========================================================================
+#  MagixProxy — la rete MagicAdventure vista dal proxy Velocity
+#
+#  Cosa fa oggi: decide UNA volta, all'ingresso nel proxy, con che UUID e con che
+#  skin entra un giocatore. Sono le stesse regole di MagixAuth sui server (vedi il
+#  suo gate): l'UUID e' quello dell'account del sito se il nome e' registrato,
+#  altrimenti quello offline del nome; la skin e' quella firmata da Mojang.
+#  Deciderlo qui e non sul server serve perche' il proxy e tutti i server dietro
+#  devono vedere lo STESSO UUID: se lo cambiasse il server, il proxy non lo
+#  saprebbe (tablist, cambio di server, /glist sbagliati).
+#
+#  Il login con la password resta a MagixAuth sui server: qui non si chiede niente.
+# ===========================================================================
+
+database:
+  # Le credenziali si leggono dal config di MagixAuth del faction (stessa macchina): una
+  # sola password da tenere aggiornata, e nessuna copia in giro. Il percorso e' relativo
+  # alla cartella di Velocity. Se il file non c'e' (o shared_with e' vuoto) valgono le
+  # righe qui sotto.
+  shared_with: "../faction/plugins/MagixAuth/config.yml"
+  host: localhost              # dov'e' il server MySQL/MariaDB del sito
+  port: 3306                  # la sua porta
+  name: magicadventure_web     # nome del database del sito
+  user: magicadventure       # utente con permessi su quel database
+  password: "CAMBIAMI"         # la sua password (segnaposto: quella vera sta solo sul VPS)
+
+premium:
+  # Se la skin degli account premium veri viene presa da Mojang (come fa MagixAuth).
+  skin_from_mojang: true
+  # Quanto si aspetta Mojang, in millisecondi, prima di rinunciare alla skin.
+  timeout_ms: 3000
+  # Ogni quanti minuti una skin gia' presa viene richiesta di nuovo a Mojang.
+  skin_cache_minutes: 360
+
+network:
+  # Il server principale: chi entra nella rete finisce SEMPRE qui (qualunque cosa chieda il
+  # client), ed e' qui che si fa il login. Dev'essere uno dei [servers] di velocity.toml.
+  main_server: faction
+  # true = gli altri server (hub, modalita' future) si aprono solo a chi ha gia' fatto il login
+  # con MagixAuth (sessione valida nel database, stesso indirizzo). Prima, "/server" e i menu
+  # lo lasciano dov'e'. MagixAuth c'e' comunque su ogni server: questo lo tiene sul principale.
+  others_require_login: true
+  # true = chi esce da un server che NON e' il principale (si chiude, si riavvia, lo butta fuori)
+  # viene portato sul principale invece di essere scollegato dalla rete. Oggi: hub -> faction; il
+  # giorno che il principale sara' l'hub, un riavvio del faction porta tutti sull'hub. Dal
+  # principale, invece, si esce dalla rete (non c'e' un altro posto da cui ripartire).
+  fallback_to_main: true
+
+motd:
+  # La MOTD della lista server la scrive il proxy (al ping risponde lui, il server dietro non lo
+  # vede). E' la STESSA di MagixEssentials: stesso file, stesse regole, stesse classi. Si modifica
+  # li' (plugins/MagixEssentials/motd.yml del faction) e vale da sola al ping successivo.
+  enabled: true
+  # Il motd.yml da leggere, relativo alla cartella di Velocity. Le icone di icons.files si cercano
+  # nella stessa cartella del file.
+  shared_with: "../faction/plugins/MagixEssentials/motd.yml"
+  # L'icona quando motd.yml non ne ha (icons.enabled: false): quella di sempre del faction.
+  default_icon: "../faction/server-icon.png"

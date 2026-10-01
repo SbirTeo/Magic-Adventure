@@ -302,14 +302,10 @@ body.pagina-store {
   /* Stesso padding di Gestione/Esci (arrivano da .btn, qui non si tocca). */
   list-style: none;
   cursor: pointer;
-  /* Riferimento dell'etichetta del rullo (vedi sotto), che vive qui dentro. */
   position: relative;
   display: inline-flex;
   align-items: center;
   align-self: stretch;
-  /* Il trascinamento verso il basso fa scorrere le bandiere (vedi site.js): senza questo, su
-     telefono, lo stesso gesto farebbe scorrere la pagina invece di scegliere la lingua. */
-  touch-action: none;
 }
 .cambia-lingua > summary::-webkit-details-marker { display: none; }
 .cambia-lingua > summary::marker { display: none; }
@@ -346,107 +342,8 @@ body.pagina-store {
   color: var(--text);
   text-decoration: none;
 }
-.cambia-lingua-menu a:hover,
-.cambia-lingua-menu a.sotto-dito { background: var(--bg-hover, rgba(255,255,255,.06)); }
+.cambia-lingua-menu a:hover { background: var(--bg-hover, rgba(255,255,255,.06)); }
 .cambia-lingua-menu a.active { color: var(--purple); font-weight: 700; }
-
-/* Rullo delle bandiere (site.js): trascinando giu' la bandiera, quella della lingua dopo
-   scende dall'alto dentro lo stesso riquadro, e sotto il pulsante compare il suo nome. */
-.bandiera-rullo {
-  position: relative;
-  display: block;
-  width: 20px;
-  height: 14px;
-  overflow: hidden;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-.bandiera-striscia {
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px; /* PASSO in site.js = 14px di bandiera + questo */
-  will-change: transform;
-}
-.bandiera-striscia.torna { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
-/* L'invito delle prime visite: scende piano e torna su oltrepassando un filo, come una molla. */
-.bandiera-striscia.invito { transition: transform .45s cubic-bezier(.3, 1.6, .5, 1); }
-.bandiera-rullo.scelta { animation: bandiera-scelta .3s ease-out; }
-@keyframes bandiera-scelta {
-  0% { transform: scale(1); }
-  45% { transform: scale(1.35); }
-  100% { transform: scale(1); }
-}
-.cambia-lingua-etichetta {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
-  padding: 4px 10px;
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  white-space: nowrap;
-  color: var(--purple);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.3);
-  opacity: 0;
-  transform: translateY(-4px) scale(.95);
-  transition: opacity .15s ease, transform .15s ease;
-  pointer-events: none;
-}
-.cambia-lingua-etichetta.visibile { opacity: 1; transform: none; }
-/* Freccina ricurva sopra l'angolo in basso a destra della bandiera (header.php). Bianca con un
-   alone scuro, cosi' si legge su tutti i colori delle bandiere e su entrambi i temi. */
-.cambia-lingua-freccia {
-  display: none;
-  position: absolute;
-  right: calc(50% - 17px);
-  bottom: calc(50% - 15px);
-  width: 11px;
-  height: 11px;
-  fill: none;
-  stroke: #fff;
-  stroke-width: 2.3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 1px rgba(0,0,0,.95)) drop-shadow(0 0 1px rgba(0,0,0,.6));
-  pointer-events: none;
-  transition: opacity .15s ease;
-}
-/* Durante l'invito delle prime visite la freccia accompagna il rullo con una spintarella. */
-.cambia-lingua.invito .cambia-lingua-freccia { animation: freccia-invito .9s ease-in-out; }
-@keyframes freccia-invito {
-  0%, 100% { transform: none; }
-  35% { transform: translateY(3px); }
-  60% { transform: translateY(-1px); }
-}
-/* Suggerimento in fondo alla tendina: solo sugli schermi a tocco (col mouse il gesto c'e' ma
-   non e' naturale) e solo finche' il visitatore non ha trascinato almeno una volta. */
-.cambia-lingua-suggerimento {
-  display: none;
-  max-width: 170px;
-  margin: 0;
-  padding: 7px 14px 9px;
-  border-top: 1px solid var(--border);
-  font-size: var(--fs-xs);
-  line-height: 1.35;
-  color: var(--text-dim);
-}
-@media (pointer: coarse) {
-  .cambia-lingua-suggerimento, .cambia-lingua-freccia { display: block; }
-  /* La freccina resta sempre; il suggerimento, piu' ingombrante, solo finche' serve. */
-  .cambia-lingua.rullo-usato .cambia-lingua-suggerimento { display: none; }
-}
-/* Ancora sulla lingua di adesso: rilasciando qui non cambia niente. */
-.cambia-lingua-etichetta.uguale { color: var(--text-dim); font-weight: 600; }
-@media (prefers-reduced-motion: reduce) {
-  .bandiera-striscia.torna, .bandiera-striscia.invito, .cambia-lingua-etichetta { transition: none; }
-  .bandiera-rullo.scelta, .cambia-lingua.invito .cambia-lingua-freccia { animation: none; }
-}
 
 /* "Gestione" dentro il menu ad hamburger: esiste solo da telefono (vedi la media query sotto),
    su schermo largo resta il pulsante in .auth-box. */
@@ -490,7 +387,22 @@ a.who-link {
   image-rendering: pixelated;
 }
 
-@media (max-width: 768px) {
+/* Fra 961 e 1279px (tablet, telefono in orizzontale, portatili piccoli) la barra a una riga non
+   ci stava piu': le voci andavano a capo su una seconda riga e i pulsanti di destra si
+   disallineavano. Qui si compatta: tema, "Vota" e profilo restano solo con l'icona (il nome lo
+   dice la nuvoletta), e le spaziature si stringono. Sotto i 960px c'e' il menu ad hamburger. */
+@media (min-width: 961px) and (max-width: 1279px) {
+  .main-nav { gap: 16px; }
+  .auth-box { gap: 6px; }
+  .btn.cambia-tema { padding: 0; width: 34px; height: 34px; justify-content: center; }
+  .cambia-tema-testo { display: none; }
+  .auth-box .who-link { padding: 3px; }
+  .auth-box .who-link .who { display: none; }
+  .auth-box .btn { padding: 7px 12px; }
+  .auth-box .cambia-tema, .auth-box .cambia-lingua > summary { padding: 0; }
+}
+
+@media (max-width: 960px) {
   /* Il bottone resta sopra al menu a schermo intero (z-index piu' alto, vedi .nav-collapse
      sotto): e' lui che, girando in una X, fa anche da tasto per richiuderlo. */
   .nav-toggle { display: flex; position: relative; z-index: 60; }
@@ -819,6 +731,118 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   padding: 3px 9px;
 }
 
+/* Tasto "Vota il server" (minecraft-italia.net): pieno, dorato, accanto all'IP. Per farsi notare
+   senza urlare: fluttua piano, un riflesso gli passa sopra ogni tanto, un alone pulsa attorno
+   e la stella brilla lanciando qualche scintilla. Chi ha spento le animazioni lo vede fermo. */
+.vote-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px 10px 16px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--gold-light), var(--gold) 55%, var(--gold-dark));
+  border: 1px solid var(--gold-dark);
+  color: #1a1206;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: var(--fs-base);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  text-decoration: none;
+  overflow: hidden;
+  isolation: isolate;
+  animation: vote-float 3.2s ease-in-out infinite, vote-glow 2.4s ease-out infinite;
+  transition: transform .15s, filter .15s;
+}
+.vote-btn:hover, .vote-btn:focus-visible {
+  filter: brightness(1.08) saturate(1.1);
+  /* Senza la fluttuazione, che altrimenti terrebbe lei il transform. */
+  animation: vote-glow 2.4s ease-out infinite;
+  transform: translateY(-3px) scale(1.03);
+  color: #1a1206;
+}
+.vote-btn:active { transform: translateY(0) scale(.98); }
+/* Il riflesso: una banda chiara in diagonale che attraversa il tasto ogni 3,5 secondi. */
+.vote-btn::before {
+  content: "";
+  position: absolute;
+  inset: -40% auto -40% -60%;
+  width: 45%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
+  animation: vote-shine 3.5s ease-in-out infinite;
+  z-index: -1;
+}
+.vote-btn-star {
+  position: relative;
+  display: inline-block;
+  font-size: 1.25em;
+  line-height: 1;
+  color: #fff8dc;
+  text-shadow: 0 0 6px #fff, 0 0 12px var(--gold-glow);
+  animation: vote-star 2.4s ease-in-out infinite;
+}
+.vote-btn-text { position: relative; }
+/* Tre scintille che salgono dalla stella e si spengono, sfalsate. */
+.vote-btn-sparks { position: absolute; left: 50%; top: 40%; width: 0; height: 0; pointer-events: none; }
+.vote-btn-sparks i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
+  opacity: 0;
+  animation: vote-spark 2.4s ease-out infinite;
+}
+.vote-btn-sparks i:nth-child(2) { animation-delay: .8s; --dx: 10px; }
+.vote-btn-sparks i:nth-child(3) { animation-delay: 1.6s; --dx: -8px; }
+@keyframes vote-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes vote-glow {
+  0% { box-shadow: 0 0 0 0 var(--gold-glow), 0 6px 18px -8px var(--gold-glow); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
+}
+@keyframes vote-shine {
+  0%, 55% { left: -60%; }
+  100% { left: 130%; }
+}
+@keyframes vote-star {
+  0%, 100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-14deg) scale(1.2); }
+  50% { transform: rotate(0) scale(1); }
+  75% { transform: rotate(14deg) scale(1.15); }
+}
+@keyframes vote-spark {
+  0% { opacity: 0; transform: translate(0, 0) scale(.6); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx, 2px), -26px) scale(.2); }
+}
+/* Versione compatta nella barra in alto: alta come gli altri pulsanti della barra, senza la
+   fluttuazione (in una barra fissa sembrerebbe un tremolio); riflesso, alone e stella restano.
+   Da schermo stretto solo la stella, quadrata come i tasti del tema e della lingua. */
+.vote-btn.vote-btn-nav {
+  gap: 7px;
+  padding: 7px 14px 7px 11px;
+  font-size: var(--fs-sm);
+  letter-spacing: .03em;
+  animation: vote-glow 2.4s ease-out infinite;
+  white-space: nowrap;
+}
+.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { transform: translateY(-1px) scale(1.04); }
+@media (max-width: 1279px) {
+  .vote-btn.vote-btn-nav { padding: 0; width: 34px; height: 34px; justify-content: center; flex-shrink: 0; }
+  .vote-btn.vote-btn-nav .vote-btn-text { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vote-btn, .vote-btn::before, .vote-btn-star, .vote-btn-sparks i { animation: none; }
+  .vote-btn::before, .vote-btn-sparks { display: none; }
+}
+
 @media (max-width: 720px) {
   .hero-grid { grid-template-columns: 1fr; text-align: center; justify-items: center; }
   .hero-actions { justify-content: center; }
@@ -862,39 +886,18 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   .hero-copy-col .status-pill { grid-area: stato; justify-self: center; margin: 20px 0 0; }
   .hero-actions { grid-area: ip; margin-top: 12px; }
 
-  /* Lo slogan sotto logo e titolo, a tutta larghezza, su una riga sola che scorre da destra
-     a sinistra all'infinito (index.php avvolge il testo in .hero-slogan-testo). Il padding
-     sinistro al 100% fa partire il testo appena fuori dal bordo destro; i bordi sfumano. */
+  /* Lo slogan sotto logo e titolo, fermo, centrato, sulle due righe scritte nel gestionale,
+     sopra i giocatori connessi. (Prima scorreva su una riga sola come un'insegna: tolto.) */
   .hero-slogan {
     grid-area: slogan;
-    justify-self: stretch;
+    justify-self: center;
     margin: 18px 0 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-align: left;
-    font-size: var(--fs-xs);
+    text-align: center;
+    font-size: var(--fs-sm);
     font-weight: 700;
     letter-spacing: var(--tracking-caps);
-    line-height: 1.6;
+    line-height: 1.5;
     text-shadow: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-  }
-  /* L'a capo scritto nel gestionale, pensato per la riga larga: qui la riga e' una sola. */
-  .hero-slogan br { display: none; }
-  .hero-slogan-testo {
-    display: inline-block;
-    padding-left: 100%;
-    animation: slogan-scorre 13s linear infinite;
-  }
-  @keyframes slogan-scorre {
-    from { transform: translateX(0); }
-    to { transform: translateX(-100%); }
-  }
-  /* Chi ha spento le animazioni lo legge fermo, su piu' righe. */
-  @media (prefers-reduced-motion: reduce) {
-    .hero-slogan { white-space: normal; -webkit-mask-image: none; mask-image: none; }
-    .hero-slogan-testo { padding-left: 0; animation: none; }
   }
   /* Animato come su schermo largo: il logo pulsa piano e ha le sue particelle intorno. La
      colonna del logo e' "sciolta" (display: contents), quindi la pulsazione va sull'immagine
@@ -915,6 +918,12 @@ body.menu-aperto .site-header { backdrop-filter: none; }
     justify-content: center;
     padding: 13px 16px;
     font-size: var(--fs-base);
+  }
+  .vote-btn {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    padding: 13px 16px;
   }
 }
 
@@ -1646,6 +1655,53 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .chat-head:has(.chat-svuota) .chat-head-sub { margin-right: 58px; }
 .chat-head:has(.chat-edit) .chat-head-sub { margin-right: 58px; }
 .chat-head:has(.chat-svuota):has(.chat-edit) .chat-head-sub { margin-right: 90px; }
+
+/* ---- Schede dei server nella chat (Hub, Factions...) ----------------------------------
+   Una barra sola con i nomi dei server, con lo stesso raggio del campo e del pulsante d'invio
+   (--radius-sm; dentro, il raggio meno i 3px di margine); sotto a quello aperto scorre un fondo chiaro
+   (.chat-tab-slitta), che chat.js mette sotto la scheda giusta. */
+.chat-tabs {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.chat-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 3px);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .2s;
+}
+.chat-tab:hover { color: var(--text); }
+.chat-tab[aria-selected="true"] { color: var(--contrasto-testo); }
+.chat-tab:focus-visible { outline: 2px solid var(--bordo-fuoco); outline-offset: 1px; }
+.chat-tab-slitta {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: 0;
+  border-radius: calc(var(--radius-sm) - 3px);
+  background: var(--contrasto);
+  transition: transform .25s cubic-bezier(.2,.7,.3,1), width .25s cubic-bezier(.2,.7,.3,1);
+}
+/* Prima che chat.js la misuri, la scheda aperta si colora da se' (niente salto al caricamento). */
+.chat-tabs:not(.is-pronta) .chat-tab[aria-selected="true"] { background: var(--contrasto); }
+@media (prefers-reduced-motion: reduce) {
+  .chat-tab-slitta { transition: none; }
+}
 
 /* ---- Chat ingrandita ------------------------------------------------------------------
    Non e' una finestra sopra la pagina: la chat ESCE dalla colonna di destra e si mette in
@@ -6478,4 +6534,63 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   padding: 12px 14px; margin-bottom: 14px; border-radius: var(--radius);
   border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.08);
   display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-base);
+}
+
+/* ==========================================================================================
+   Barra in alto: TUTTI i pulsanti di .auth-box alti uguali e centrati sulla stessa riga.
+   Prima ognuno faceva a modo suo: stella e tema avevano 34px fissi, bandiera, profilo e
+   "Gestione" si allungavano ("stretch") fino all'elemento piu' alto della riga, e la bandiera
+   da sola non aveva ne' larghezza ne' margine: fra 961 e 1279px (telefono in orizzontale)
+   restava un pulsante alto 37px e largo 22, col bordo attaccato al disegno (misurato sul sito
+   vero). Ora un'unica altezza, --barra-h, e i pulsanti di sola icona sono quadrati.
+   In fondo al foglio apposta: vince su tutte le regole sparse sopra, senza !important.
+   ========================================================================================== */
+.auth-box { --barra-h: 36px; }
+.auth-box > .btn,
+.auth-box > .vote-btn.vote-btn-nav,
+.auth-box > .cambia-lingua > summary.btn {
+  box-sizing: border-box;
+  height: var(--barra-h);
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+}
+.auth-box > .cambia-lingua { align-self: center; }
+/* La bandiera: sempre un quadrato, col disegno al centro e aria tutto intorno. */
+.auth-box > .cambia-lingua > summary.btn { width: var(--barra-h); padding: 0; }
+.auth-box > a.who-link { padding: 0 14px 0 5px; }
+@media (max-width: 1279px) {
+  /* Da qui in giu' stella e tema sono solo icona: quadrati come la bandiera. */
+  .auth-box > .btn.cambia-tema,
+  .auth-box > .vote-btn.vote-btn-nav { width: var(--barra-h); padding: 0; }
+}
+@media (min-width: 961px) and (max-width: 1279px) {
+  /* Profilo senza nome (vedi sopra): quadrato anche lui, avatar al centro. */
+  .auth-box > a.who-link { width: var(--barra-h); padding: 0; }
+}
+@media (max-width: 960px) {
+  .auth-box { --barra-h: 34px; }
+  .auth-box > a.who-link { padding: 0 12px 0 4px; }
+}
+/* Da telefono "Gestione" sta SOLO nel menu ad hamburger (.nav-gestione): il display della regola
+   qui sopra aveva vinto sul suo display:none, lo rimetteva in barra e i quadrati, senza piu'
+   spazio, si schiacciavano uno sopra l'altro. E i pulsanti di sola icona non si restringono mai:
+   se manca posto si accorcia il nome del profilo (coi puntini), non una bandiera. */
+.auth-box > .vote-btn.vote-btn-nav,
+.auth-box > .btn.cambia-tema,
+.auth-box > .cambia-lingua { flex-shrink: 0; }
+@media (max-width: 960px) {
+  .auth-box > .btn.gestione-barra { display: none; }
+}
+
+/* Numerino accanto a una voce della barra del gestionale (es. "Progetto": messaggi non letti). */
+.tab-badge[hidden] { display: none; }
+.tab-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px;
+  padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--purple); color: #fff;
+  font-size: 11px; font-weight: 700; vertical-align: middle;
 }

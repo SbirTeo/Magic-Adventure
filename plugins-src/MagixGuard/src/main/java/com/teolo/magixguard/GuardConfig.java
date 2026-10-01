@@ -47,6 +47,11 @@ public final class GuardConfig {
     public final boolean alertConsole;
     public final String discordWebhook;
 
+    // rete
+    public final String serverName;
+    public final boolean siteJobs;
+    public final int sanctionsSyncSeconds;
+
     // dossier
     public final String dossierFolder;
     public final boolean dossierSign;
@@ -89,6 +94,10 @@ public final class GuardConfig {
         alertCooldownHours = c.getInt("alerts.cooldown-hours", 24);
         alertConsole = c.getBoolean("alerts.console", true);
         discordWebhook = c.getString("alerts.discord-webhook", "");
+
+        serverName = c.getString("network.server-name", "faction");
+        siteJobs = c.getBoolean("network.site-jobs", true);
+        sanctionsSyncSeconds = c.getInt("network.sanctions-sync-seconds", 5);
 
         dossierFolder = c.getString("dossier.folder", "dossier");
         dossierSign = c.getBoolean("dossier.sign", true);

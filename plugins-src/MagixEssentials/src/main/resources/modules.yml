@@ -27,6 +27,11 @@ nametag: true
 # un file di impostazioni suo: non c'e' niente da regolare.
 tabcomplete: true
 
+# Chat: il formato della chat pubblica in gioco (grado, nome, fazione sul faction) e dei messaggi
+# che arrivano dalla chat del sito. Spento, nessuno formatta la chat pubblica: resta quella nuda del
+# gioco (i controlli della chat di CMI, una volta spenti, restano spenti). Si regola in chat.yml.
+chat: true
+
 # Valute: ogni voce di currencies.yml diventa un comando vero (/<id> add|take|set|reset|give),
 # coi permessi che gli servono. Spento, quei comandi vengono tolti (anche dal TAB, senza
 # riavviare). Si regola in currencies.yml.

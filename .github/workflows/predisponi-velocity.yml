@@ -1,0 +1,368 @@
+name: Predisponi Velocity (proxy preparato, NON collegato)
+
+# Passo 2 della rete con Velocity, SENZA effetti per i giocatori. Dopo il passaggio
+# (passaggio-velocity.yml, Velocity abilitato all'avvio) installa solo i file e non tocca il proxy
+# acceso: niente prova, niente spegnimento. Idempotente: rilanciarlo
+# riallinea i file al repo (con backup in /home/ubuntu/.bak/sistema/) e rifa' la prova.
+#
+#  1) scarica Velocity (versione scelta, ultima build) dall'API di PaperMC e ne verifica lo sha256
+#  2) installa in /home/ubuntu/magicadventure/velocity: velocity.jar, velocity.toml, start.sh,
+#     stop-service.sh da server-velocity/ del repo; unit magix-velocity.service INSTALLATA MA
+#     DISABILITATA (non parte all'avvio della macchina); voce "velocity" nella console del sito
+#  3) TCPShield: prende il jar gia' usato dal faction se ha la parte Velocity
+#     (velocity-plugin.json), altrimenti l'ultima release da GitHub
+#  4) prova=si: DUE avvii brevi, sempre solo su 127.0.0.1:25577 (nessun giocatore ci arriva)
+#       a) senza TCPShield: ping al proxy -> deve rispondere con la MOTD dell'hub (passthrough)
+#       b) con TCPShield: il plugin deve caricarsi e RIFIUTARE il ping locale, che non passa da
+#          TCPShield (e' la protezione che si vuole il giorno del passaggio)
+#     e alla fine lo SPEGNE. Il faction e i suoi giocatori non vengono toccati.
+#
+# Il segreto del modern forwarding (forwarding.secret) lo genera Velocity al primo avvio e
+# resta SOLO sul VPS: qui non viene mai stampato.
+
+on:
+  workflow_dispatch:
+    inputs:
+      versione:
+        description: "Versione di Velocity (l'ultima build di quella versione)"
+        required: false
+        default: "4.2.0"
+      prova:
+        description: "si = avvio di prova (solo locale) e poi spegne, no = installa soltanto"
+        required: false
+        default: "si"
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  predisponi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Scarica Velocity e verifica lo sha256
+        env:
+          VERSIONE: ${{ inputs.versione }}
+        run: |
+          set -euo pipefail
+          UA="MagicAdventure-deploy/1.0 (magicadventure.it)"
+          INFO="$(curl -fsS -A "$UA" "https://fill.papermc.io/v3/projects/velocity/versions/${VERSIONE:-4.2.0}/builds/latest")"
+          NOME=$(jq -r '.downloads["server:default"].name' <<<"$INFO")
+          URL=$(jq -r '.downloads["server:default"].url' <<<"$INFO")
+          SHA=$(jq -r '.downloads["server:default"].checksums.sha256' <<<"$INFO")
+          echo "build: $NOME ($(jq -r '.channel' <<<"$INFO"), $(jq -r '.time' <<<"$INFO"))"
+          mkdir -p dl
+          curl -fsSL -A "$UA" -o dl/velocity.jar "$URL"
+          echo "$SHA  dl/velocity.jar" | sha256sum -c -
+          echo "$NOME" > dl/velocity.nome
+
+      - name: Scarica TCPShield da GitHub (riserva, se quello del faction non va su Velocity)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/TCPShield/RealIP/releases/latest \
+                 | jq -r '[.assets[] | select(.name | endswith(".jar"))][0].browser_download_url // empty' || true)"
+          if [ -n "$URL" ] && curl -fsSL -o dl/tcpshield-github.jar "$URL"; then
+            echo "scaricato: $URL"
+            unzip -l dl/tcpshield-github.jar | grep -E 'velocity-plugin.json|plugin.yml' || true
+          else
+            echo "release GitHub non disponibile: si usera' solo il jar del faction"
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia i file sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          ssh -i ~/.ssh/deploy_key "$DEST" 'rm -rf /tmp/magix-velocity-src && mkdir -p /tmp/magix-velocity-src'
+          scp -i ~/.ssh/deploy_key dl/* server-velocity/velocity.toml server-velocity/start.sh \
+              server-velocity/stop-service.sh server-velocity/magix-velocity.service \
+              website/vps/console/istanze.conf "$DEST:/tmp/magix-velocity-src/"
+
+      - name: Installa (e prova) sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          PROVA: ${{ inputs.prova }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" "PROVA='${PROVA:-si}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          SRC=/tmp/magix-velocity-src
+          VEL=/home/ubuntu/magicadventure/velocity
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          HUB=/home/ubuntu/magicadventure/hub
+          UNIT=/etc/systemd/system/magix-velocity.service
+          CONF=/etc/magicadventure/istanze.conf
+          BAK=/home/ubuntu/.bak/sistema
+          ORA=$(date +%Y%m%d-%H%M%S)
+          mkdir -p "$BAK" "$VEL/plugins"
+          sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+          # Dopo il passaggio (passaggio-velocity.yml) il proxy e' quello dei giocatori: qui si
+          # installano solo i file, senza spegnerlo, senza prove e senza toglierlo dall'avvio.
+          COLLEGATO=""; [ "$(systemctl is-enabled magix-velocity.service 2>/dev/null)" = "enabled" ] && COLLEGATO=1
+          [ -n "$COLLEGATO" ] && echo "Velocity e' COLLEGATO: installo i file e basta (niente prova, niente spegnimento)"
+          salva() { [ -e "$1" ] && sudo cp -a "$1" "$BAK/$(basename "$1").bak-$ORA" && echo "  backup: $BAK/$(basename "$1").bak-$ORA"; return 0; }
+          ha_velocity() { python3 -c "import zipfile,sys; sys.exit(0 if 'velocity-plugin.json' in zipfile.ZipFile(sys.argv[1]).namelist() else 1)" "$1" 2>/dev/null; }
+          acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.velocity[[:space:]]'; }
+
+          # Ping "server list" (quello che fa il client nella lista server): stampa MOTD e giocatori.
+          ping_mc() {
+            python3 - "$1" <<'PY'
+          import json, socket, struct, sys
+          def vi(n):
+              n &= 0xffffffff; o = b""
+              while True:
+                  b = n & 0x7f; n >>= 7
+                  if n: o += bytes([b | 0x80])
+                  else: return o + bytes([b])
+          def rvi(s):
+              n = 0
+              for i in range(5):
+                  c = s.recv(1)
+                  if not c: raise EOFError("connessione chiusa dal server")
+                  n |= (c[0] & 0x7f) << (7 * i)
+                  if not c[0] & 0x80: return n
+          port = int(sys.argv[1])
+          try:
+              s = socket.create_connection(("127.0.0.1", port), timeout=5)
+              host = b"127.0.0.1"
+              hs = b"\x00" + vi(-1) + vi(len(host)) + host + struct.pack(">H", port) + vi(1)
+              s.sendall(vi(len(hs)) + hs + vi(1) + b"\x00")
+              rvi(s); rvi(s); n = rvi(s); data = b""
+              while len(data) < n:
+                  c = s.recv(n - len(data))
+                  if not c: break
+                  data += c
+              d = json.loads(data)
+              def testo(x):
+                  if isinstance(x, str): return x
+                  if isinstance(x, list): return "".join(testo(y) for y in x)
+                  if isinstance(x, dict): return x.get("text", "") + "".join(testo(y) for y in x.get("extra", []))
+                  return ""
+              print(f"  porta {port}: RISPONDE - versione {d.get('version',{}).get('name')!r}, "
+                    f"giocatori {d.get('players',{}).get('online')}/{d.get('players',{}).get('max')}, "
+                    f"icona {'si' if d.get('favicon') else 'no'}")
+              print(f"  MOTD: {testo(d.get('description'))!r}")
+          except Exception as e:
+              print(f"  porta {port}: NESSUNA RISPOSTA ({type(e).__name__}: {e})")
+          PY
+          }
+
+          # Ingresso simulato (handshake + login di un client 1.21.4, offline): stampa l'UUID che il
+          # proxy assegna, o il messaggio con cui rifiuta. Il giocatore non arriva mai su un server:
+          # dopo il login il proxy prova l'hub, che non accetta ancora il modern forwarding.
+          login_mc() {  # <nome>
+            python3 - "$1" <<'PY'
+          import socket, struct, sys, zlib, uuid
+          def vi(n):
+              n &= 0xffffffff; o = b""
+              while True:
+                  b = n & 0x7f; n >>= 7
+                  if n: o += bytes([b | 0x80])
+                  else: return o + bytes([b])
+          def vib(buf, i):
+              n = 0
+              for k in range(5):
+                  c = buf[i]; i += 1; n |= (c & 0x7f) << (7 * k)
+                  if not c & 0x80: return n, i
+          def rvi(s):
+              n = 0
+              for k in range(5):
+                  c = s.recv(1)
+                  if not c: raise EOFError("connessione chiusa")
+                  n |= (c[0] & 0x7f) << (7 * k)
+                  if not c[0] & 0x80: return n
+          def rd(s, n):
+              d = b""
+              while len(d) < n:
+                  c = s.recv(n - len(d))
+                  if not c: raise EOFError("connessione chiusa")
+                  d += c
+              return d
+          name = sys.argv[1]
+          try:
+              s = socket.create_connection(("127.0.0.1", 25577), timeout=15)
+              h = b"127.0.0.1"
+              hs = b"\x00" + vi(769) + vi(len(h)) + h + struct.pack(">H", 25577) + vi(2)
+              ls = b"\x00" + vi(len(name)) + name.encode() + uuid.uuid4().bytes
+              s.sendall(vi(len(hs)) + hs + vi(len(ls)) + ls)
+              comp = -1
+              while True:
+                  data = rd(s, rvi(s))
+                  if comp >= 0:
+                      dl, i = vib(data, 0); data = data[i:]
+                      if dl: data = zlib.decompress(data)
+                  pid, i = vib(data, 0)
+                  if pid == 0x03:
+                      comp, _ = vib(data, i); continue
+                  if pid == 0x00:
+                      l, j = vib(data, i); print(f"  {name}: RIFIUTATO -> {data[j:j+l].decode()[:200]}"); break
+                  if pid == 0x02:
+                      print(f"  {name}: entrato con UUID {uuid.UUID(bytes=data[i:i+16])}, skin firmata: {'si' if b'textures' in data else 'no'}"); break
+          except Exception as e:
+              print(f"  {name}: errore {type(e).__name__}: {e}")
+          PY
+          }
+
+          righe_log() { [ -f "$VEL/logs/latest.log" ] && wc -l < "$VEL/logs/latest.log" || echo 0; }
+          avvio_prova() {  # <titolo>
+            echo; echo "--- avvio di prova: $1 ---"
+            local R L i; R=$(righe_log)
+            sudo systemctl start magix-velocity.service
+            for i in $(seq 1 30); do
+              sleep 2
+              # Se all'avvio latest.log e' stato archiviato, il file nuovo e' piu' corto: da capo.
+              L=$(righe_log); [ "$L" -lt "$R" ] && R=0
+              tail -n +"$((R + 1))" "$VEL/logs/latest.log" 2>/dev/null | grep -q 'Done (' && { echo "  pronto dopo ~$((i*2))s"; break; }
+            done
+            tail -n +"$((R + 1))" "$VEL/logs/latest.log" 2>/dev/null | grep -vE 'bStats|their plugin|if you.re not comfortable|the .*/plugins/bStats' | tail -n 15
+            ss -tln | grep -E ':25577\b' || echo "  (25577 NON in ascolto)"
+          }
+          spegni() {
+            sudo systemctl stop magix-velocity.service
+            for i in $(seq 1 15); do acceso || break; sleep 1; done
+            acceso && echo "::error::la screen velocity e' ancora aperta" || echo "  spento (screen chiusa)"
+          }
+
+          echo "=== 1) JAR ==="
+          echo "build scaricata: $(cat "$SRC/velocity.nome")"
+          if cmp -s "$SRC/velocity.jar" "$VEL/velocity.jar"; then
+            echo "velocity.jar gia' identico"
+          else
+            [ -f "$VEL/velocity.jar" ] && cp -a "$VEL/velocity.jar" "$BAK/velocity.jar.bak-$ORA"
+            # file nuovo + rename: un proxy acceso tiene aperto il jar vecchio, non uno riscritto sotto i piedi
+            install -m 644 "$SRC/velocity.jar" "$VEL/.velocity.jar.new" && mv -f "$VEL/.velocity.jar.new" "$VEL/velocity.jar"; echo "velocity.jar installato"
+          fi
+
+          echo; echo "=== 2) CONFIG E SCRIPT ==="
+          if [ -f "$VEL/velocity.toml" ] && ! cmp -s "$SRC/velocity.toml" "$VEL/velocity.toml"; then
+            echo "--- differenze fra velocity.toml VIVO e quello del repo ---"
+            diff "$VEL/velocity.toml" "$SRC/velocity.toml" || true
+            cp -a "$VEL/velocity.toml" "$BAK/velocity.toml.bak-$ORA"
+          fi
+          install -m 644 "$SRC/velocity.toml" "$VEL/velocity.toml"
+          install -m 755 "$SRC/start.sh" "$VEL/start.sh"
+          install -m 755 "$SRC/stop-service.sh" "$VEL/stop-service.sh"
+          grep -nE '^(bind|online-mode|player-info-forwarding-mode|try|hub|faction) ' "$VEL/velocity.toml"
+          if ! cmp -s "$SRC/magix-velocity.service" "$UNIT" 2>/dev/null; then
+            salva "$UNIT"
+            sudo install -o root -g root -m 644 "$SRC/magix-velocity.service" "$UNIT"
+            sudo systemctl daemon-reload
+            echo "unit installata"
+          fi
+          [ -n "$COLLEGATO" ] || sudo systemctl disable magix-velocity.service >/dev/null 2>&1 || true
+          echo "avvio automatico con la macchina: $(systemctl is-enabled magix-velocity.service 2>/dev/null || true)"
+          RIGA="$(grep '^istanza velocity ' "$SRC/istanze.conf")"
+          if [ -f "$CONF" ] && ! grep -qxF "$RIGA" "$CONF"; then
+            salva "$CONF"
+            sudo sed -i '/^istanza velocity /d' "$CONF"
+            # subito dopo l'hub, cosi' nella console l'ordine e' faction, hub, velocity
+            if grep -q '^istanza hub ' "$CONF"; then
+              printf '%s\n' "$RIGA" > /tmp/riga-velocity
+              sudo sed -i '/^istanza hub /r /tmp/riga-velocity' "$CONF"; rm -f /tmp/riga-velocity
+            else
+              printf '%s\n' "$RIGA" | sudo tee -a "$CONF" >/dev/null
+            fi
+            echo "console del sito aggiornata"
+          fi
+          echo "--- istanze della console ---"; grep '^istanza ' "$CONF" || true
+
+          if [ -n "$COLLEGATO" ]; then
+            echo; echo "File installati. Valgono dal prossimo riavvio del proxy (velocity.toml anche subito, con"
+            echo "\"velocity reload\" nella sua console). Il proxy acceso non l'ho toccato."
+            rm -rf "$SRC"; exit 0
+          fi
+
+          echo; echo "=== 3) TCPSHIELD ==="
+          JAR_FAZ="$(ls "$FAZ"/plugins/*.jar 2>/dev/null | grep -i tcpshield | head -n1 || true)"
+          echo "jar del faction: ${JAR_FAZ:-(nessuno)}"
+          SCELTO=""
+          if [ -n "$JAR_FAZ" ] && ha_velocity "$JAR_FAZ"; then
+            SCELTO="$JAR_FAZ"; echo "  ha la parte Velocity: uso questo (stesso plugin, stessa versione)"
+          elif [ -f "$SRC/tcpshield-github.jar" ] && ha_velocity "$SRC/tcpshield-github.jar"; then
+            SCELTO="$SRC/tcpshield-github.jar"; echo "  NON ha la parte Velocity: uso l'ultima release da GitHub"
+          else
+            echo "::warning::nessun jar TCPShield con supporto Velocity trovato: il proxy resta senza (da sistemare prima del passaggio)"
+          fi
+          echo "--- config TCPShield del faction (riferimento) ---"
+          ls -la "$FAZ/plugins/TCPShield" 2>/dev/null; cat "$FAZ/plugins/TCPShield/config.yml" 2>/dev/null | grep -vE '^\s*#|^\s*$' || true
+
+          if acceso; then
+            echo; echo "Velocity era acceso (qualcuno l'ha avviato dalla console): lo spengo prima della prova"
+            spegni
+          fi
+          # La prova a) va fatta SENZA TCPShield: con il plugin il ping locale viene rifiutato.
+          mkdir -p "$VEL/.tcpshield-in-attesa"
+          for j in "$VEL"/plugins/*.jar; do
+            [ -e "$j" ] && echo "$(basename "$j")" | grep -qi tcpshield && mv "$j" "$VEL/.tcpshield-in-attesa/"
+          done
+
+          if [ "${PROVA:-si}" = "si" ]; then
+            echo; echo "=== 4) PROVA (solo 127.0.0.1:25577) ==="
+            free -h | head -n2
+            avvio_prova "a) senza TCPShield"
+            [ -f "$VEL/forwarding.secret" ] && chmod 600 "$VEL/forwarding.secret" && echo "  forwarding.secret presente ($(wc -c < "$VEL/forwarding.secret") byte, non stampato)"
+            # La MOTD la scrive MagixProxy leggendo il motd.yml di MagixEssentials del faction.
+            echo "  ping al proxy (deve riportare la MOTD di MagixEssentials, con l'icona):"; ping_mc 25577
+            echo "  ping diretto all'hub (confronto):"; ping_mc 25600
+            echo "  MagixProxy (UUID e skin decisi dal proxy):"
+            grep -E 'magixproxy|MagixProxy' "$VEL/logs/latest.log" | grep -vE 'Hikari' | tail -n 6
+            ATTESO="$(php -r 'try { require "/var/www/magicadventure/includes/db.php";
+                $s = db()->prepare("SELECT mc_uuid FROM users WHERE mc_username = ? LIMIT 1"); $s->execute(["SbirTeo"]);
+                echo (string) $s->fetchColumn(); } catch (Throwable $e) { echo "?"; }' 2>/dev/null || true)"
+            echo "  UUID di SbirTeo nel database del sito: ${ATTESO:-(nessuno)}"
+            login_mc SbirTeo
+            login_mc "Prova$(date +%H%M%S)"
+            spegni
+          fi
+
+          rm -rf "$VEL/.tcpshield-in-attesa"
+          if [ -n "$SCELTO" ]; then
+            rm -f "$VEL"/plugins/*[Tt][Cc][Pp][Ss]hield*.jar "$VEL"/plugins/*TCPShield*.jar 2>/dev/null
+            install -m 644 "$SCELTO" "$VEL/plugins/$(basename "$SCELTO" | sed 's/^tcpshield-github/TCPShield/')"
+            echo; echo "TCPShield installato: $(ls "$VEL/plugins" | grep -i tcpshield)"
+          fi
+
+          if [ "${PROVA:-si}" = "si" ] && [ -n "$SCELTO" ]; then
+            avvio_prova "b) con TCPShield"
+            echo "  plugin caricati e messaggi di TCPShield:"
+            grep -iE 'Loaded [0-9]+ plugin|tcpshield|error|exception' "$VEL/logs/latest.log" | tail -n 20
+            echo "  ping locale al proxy (con only-allow-proxy-connections deve essere RIFIUTATO):"; ping_mc 25577
+            spegni
+            echo "--- cartella plugin di Velocity e config TCPShield generato ---"
+            ls -la "$VEL/plugins"
+            for d in "$VEL"/plugins/*/; do
+              case "$(basename "$d")" in bStats) continue ;; esac
+              echo "## $d"; ls -la "$d"; cat "$d"config.yml "$d"config.toml 2>/dev/null | grep -vE '^\s*#|^\s*$' || true
+            done
+          fi
+
+          echo; echo "=== STATO FINALE ==="
+          echo "--- coda del log di Velocity ---"; tail -n 25 "$VEL/logs/latest.log" 2>/dev/null
+          screen -list || true
+          ps -eo rss,args | grep -a '[j]ava' | cut -c1-120
+          free -h
+          ss -tln | grep -E ':(25565|25577|25600|25701)\b' || true
+          ls -la "$VEL"
+          rm -rf "$SRC"
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

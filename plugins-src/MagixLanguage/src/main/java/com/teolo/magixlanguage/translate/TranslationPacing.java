@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 /**
  * Quando si puo' chiamare davvero MyMemory, condiviso da tutto quello che lo chiama con l'IP del
  * VPS: {@link TranslationSync} (i messaggi dei plugin) e {@code MagixLanguage.translateRawBatch}
- * (il sito, via MagixWeb ogni 30 secondi H24). Due regole, entrambe su disco perche' un riavvio
+ * (il sito, via MagixBridge ogni 30 secondi H24). Due regole, entrambe su disco perche' un riavvio
  * non le azzeri:
  *
  * <ul>

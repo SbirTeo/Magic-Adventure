@@ -59,6 +59,9 @@ public final class Modules {
     /** Il filtro dell'autocompletamento: toglie dal TAB i comandi senza permesso. */
     public static final String TABCOMPLETE = "tabcomplete";
 
+    /** La chat: il formato della chat pubblica e dei messaggi che arrivano dal sito. */
+    public static final String CHAT = "chat";
+
     /** Le valute: da ogni voce di currencies.yml nasce un comando vero (/<id> add|take|...). */
     public static final String CURRENCIES = "currencies";
 

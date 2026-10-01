@@ -132,7 +132,7 @@ public final class GuardDao {
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "INSERT INTO mg_sessions (player_id, join_at, ip, ip_hash, subnet, subnet_hash, " +
-                             "rdns, rdns_hash, hostname) VALUES (?,?,?,?,?,?,?,?,?)",
+                             "rdns, rdns_hash, hostname, server) VALUES (?,?,?,?,?,?,?,?,?,?)",
                      Statement.RETURN_GENERATED_KEYS)) {
             ps.setLong(1, s.playerId);
             ps.setLong(2, s.joinAt);
@@ -143,6 +143,7 @@ public final class GuardDao {
             ps.setString(7, s.rdns);
             ps.setString(8, s.rdnsHash);
             ps.setString(9, s.hostname);
+            ps.setString(10, db.serverName());
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) return keys.getLong(1);
@@ -206,10 +207,18 @@ public final class GuardDao {
     }
 
     /** Chiude le sessioni rimaste aperte da un arresto brusco del server (crash, kill). */
+    /**
+     * Chiude le sessioni rimaste aperte da un arresto brusco di QUESTO server. Con il database
+     * condiviso non si toccano quelle degli altri server: sono di gente che sta giocando adesso.
+     * Le righe di prima della rete (server vuoto) le chiude il server dei lavori col sito.
+     */
     public int closeDanglingSessions(long now) throws SQLException {
         try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement("UPDATE mg_sessions SET quit_at=? WHERE quit_at IS NULL")) {
+             PreparedStatement ps = c.prepareStatement(
+                     "UPDATE mg_sessions SET quit_at=? WHERE quit_at IS NULL AND (server=? OR (server IS NULL AND ?=1))")) {
             ps.setLong(1, now);
+            ps.setString(2, db.serverName());
+            ps.setInt(3, db.primary() ? 1 : 0);
             return ps.executeUpdate();
         }
     }
@@ -668,25 +677,51 @@ public final class GuardDao {
      */
     public String appendAudit(String actor, String action, String subject, String detail, long ts) throws SQLException {
         try (Connection c = db.getConnection()) {
-            String prev = null;
-            try (PreparedStatement ps = c.prepareStatement("SELECT hash FROM mg_audit ORDER BY id DESC LIMIT 1");
-                 ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) prev = rs.getString(1);
+            // Con piu' server sullo stesso database, due righe scritte nello stesso istante
+            // prenderebbero la stessa "precedente" e la catena si spezzerebbe in due: la lettura
+            // dell'ultima riga e la scrittura della nuova si fanno una alla volta, per tutta la rete.
+            boolean locked = false;
+            if (db.getType() == Database.Type.MARIADB) {
+                try (PreparedStatement lk = c.prepareStatement("SELECT GET_LOCK('magixguard_audit', 10)");
+                     ResultSet rs = lk.executeQuery()) {
+                    locked = rs.next() && rs.getInt(1) == 1;
+                }
+                if (!locked) {
+                    throw new SQLException("registro firmato occupato da un altro server da oltre 10 secondi");
+                }
             }
-            String hash = auditHash(prev, ts, actor, action, subject, detail);
-            try (PreparedStatement ins = c.prepareStatement(
-                    "INSERT INTO mg_audit (ts, actor, action, subject, detail, prev_hash, hash) VALUES (?,?,?,?,?,?,?)")) {
-                ins.setLong(1, ts);
-                ins.setString(2, actor);
-                ins.setString(3, action);
-                ins.setString(4, subject);
-                ins.setString(5, detail);
-                ins.setString(6, prev);
-                ins.setString(7, hash);
-                ins.executeUpdate();
+            try {
+                return appendAuditLocked(c, actor, action, subject, detail, ts);
+            } finally {
+                if (locked) {
+                    try (PreparedStatement un = c.prepareStatement("SELECT RELEASE_LOCK('magixguard_audit')")) {
+                        un.execute();
+                    }
+                }
             }
-            return hash;
         }
+    }
+
+    private String appendAuditLocked(Connection c, String actor, String action, String subject, String detail,
+                                     long ts) throws SQLException {
+        String prev = null;
+        try (PreparedStatement ps = c.prepareStatement("SELECT hash FROM mg_audit ORDER BY id DESC LIMIT 1");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) prev = rs.getString(1);
+        }
+        String hash = auditHash(prev, ts, actor, action, subject, detail);
+        try (PreparedStatement ins = c.prepareStatement(
+                "INSERT INTO mg_audit (ts, actor, action, subject, detail, prev_hash, hash) VALUES (?,?,?,?,?,?,?)")) {
+            ins.setLong(1, ts);
+            ins.setString(2, actor);
+            ins.setString(3, action);
+            ins.setString(4, subject);
+            ins.setString(5, detail);
+            ins.setString(6, prev);
+            ins.setString(7, hash);
+            ins.executeUpdate();
+        }
+        return hash;
     }
 
     public static String auditHash(String prev, long ts, String actor, String action, String subject, String detail) {

@@ -21,8 +21,8 @@ import java.util.Base64;
  * quindi un codice speso sul sito risulta speso anche in gioco e viceversa (chi scrive
  * totp_last_step e' AuthDao).
  *
- * ATTENZIONE: questo file e' la copia esatta di OtpCodici in MagixWeb, e deve restarlo.
- * Sono tre programmi — il PHP del sito, MagixWeb e questo — che fanno gli stessi conti
+ * ATTENZIONE: questo file e' la copia esatta di OtpCodici in MagixBridge, e deve restarlo.
+ * Sono tre programmi — il PHP del sito, MagixBridge e questo — che fanno gli stessi conti
  * sulla stessa riga del database: se uno dei tre cambia passo, tolleranza o alfabeto, i
  * codici smettono di combaciare e nessuno degli amministratori entra piu'. Se serve una
  * modifica, va fatta in tutti e tre insieme.

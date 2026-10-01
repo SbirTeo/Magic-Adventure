@@ -314,9 +314,47 @@ function mc_server_status(string $host = 'mc.magicadventure.it', int $port = 255
 }
 
 /**
+ * I server di gioco della rete, dietro a Velocity, nell'ordine in cui si mostrano (le schede
+ * della chat in home). La chiave e' il network.server-name di MagixBridge su quel server, la
+ * porta quella locale (127.0.0.1) del server. Una modalita' nuova: una riga qui.
+ */
+const GAME_SERVERS = [
+    'hub'     => ['label' => 'Hub',      'port' => 25600],
+    'faction' => ['label' => 'Factions', 'port' => 25701],
+];
+
+/** Il server principale: dove entrano i giocatori, e la scheda della chat aperta di serie. */
+const GAME_SERVER_MAIN = 'faction';
+
+/**
+ * Giocatori connessi a TUTTA la rete. Si chiede a Velocity, come fa un client dalla lista
+ * server (mc.magicadventure.it, via TCPShield): il suo conto e' quello dell'intera rete. Se
+ * quella strada non risponde, si sommano i server uno per uno, in locale.
+ */
+function mc_network_status(): ?array {
+    $proxy = mc_server_status();
+    if ($proxy !== null) {
+        return $proxy;
+    }
+    $online = 0;
+    $max = 0;
+    $any = false;
+    foreach (GAME_SERVERS as $server) {
+        $s = mc_server_status('127.0.0.1', $server['port'], 0.8);
+        if ($s === null) {
+            continue;
+        }
+        $any = true;
+        $online += (int) ($s['players_online'] ?? 0);
+        $max = max($max, (int) ($s['players_max'] ?? 0));
+    }
+    return $any ? ['online' => true, 'players_online' => $online, 'players_max' => $max] : null;
+}
+
+/**
  * Grado in gioco (LuckPerms) -> tag sul sito.
  *
- * I dati arrivano dalla tabella `mc_ranks`, scritta dal plugin MagixWeb a ogni join
+ * I dati arrivano dalla tabella `mc_ranks`, scritta dal plugin MagixBridge a ogni join
  * (e ogni 5 minuti per chi e' online): gruppo primario + testo/colore del prefisso.
  * Il colore mostrato qui e' quindi ESATTAMENTE quello del prefisso in chat
  * (es. prefisso "&cAdmin" -> testo "Admin", colore #FF5555).
@@ -599,8 +637,8 @@ function faction_allies(?int $factionId): array {
 
 /**
  * Il mittente di un messaggio di chat COME SI VEDE IN GIOCO: `[Fazione]` (colore della RELAZIONE di
- * chi legge), poi i tag dei GRADI, poi il nome (colore del GRADO piu' alto) — cioe' `chat.public-format`
- * di MagixFactions (`&8[{relcolor}{faction}&8] %luckperms_prefix%&7%magixweb_namecolor%{name}`). Chi non
+ * chi legge), poi i tag dei GRADI, poi il nome (colore del GRADO piu' alto) — cioe' `faction-format`
+ * del chat.yml di MagixEssentials (`&8[{rank}{relcolor}{faction}&8] %luckperms_prefix%&7%magixweb_namecolor%{name}`). Chi non
  * ha una fazione usa il formato senza fazione: solo i tag del grado + nome, sempre col colore del grado.
  *
  * <p>Regola chiave (allineata al server): SOLO il tag `[Fazione]` e' colorato per relazione (rosso ai
@@ -628,7 +666,7 @@ function chat_sender_html(array $riga, string $relazione): string {
         . h((string) $riga['mc_username']) . '</a>';
 
     if ($fazione === '') {
-        // Senza fazione: solo i tag del grado + nome (come public-format-no-faction in gioco).
+        // Senza fazione: solo i tag del grado + nome (come `format` del chat.yml di MagixEssentials in gioco).
         return player_tag($riga) . $nome;
     }
     // Tag del GRADO di fazione (es. ** per il Leader): come in gioco va DENTRO le parentesi,
@@ -990,7 +1028,7 @@ function corona_top(bool $conCuori = true): string {
 /**
  * Colore dell'aureola VIP di ogni giocatore che ne ha una: uuid in minuscolo -> "#RRGGBB".
  *
- * Lo scrive il server (MagixWeb, colonna mc_ranks.halo_color) con la stessa regola dell'aureola
+ * Lo scrive il server (MagixBridge, colonna mc_ranks.halo_color) con la stessa regola dell'aureola
  * in gioco e sulle statue: permesso, colore scelto, /halo off, anche da offline. Si legge una
  * volta per richiesta, come store_top_uuid(). Colonna non ancora creata (il server non e'
  * ripartito con la versione che la aggiunge): nessuna aureola, nessun errore.

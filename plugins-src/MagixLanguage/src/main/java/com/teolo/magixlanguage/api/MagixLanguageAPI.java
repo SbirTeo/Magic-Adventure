@@ -117,7 +117,7 @@ public interface MagixLanguageAPI {
     }
 
     /**
-     * Il sito (MagixWeb) riporta qui, dopo ogni giro di {@code SiteTranslationWorker}, quante
+     * Il sito (MagixBridge) riporta qui, dopo ogni giro di {@code SiteTranslationWorker}, quante
      * frasi di {@code site_translations} sono pronte/in attesa/fallite per ciascuna lingua —
      * cosi' {@code /language status} puo' mostrarle insieme allo stato dei plugin, senza che
      * MagixLanguage debba avere accesso diretto al database del sito (che non gli appartiene).

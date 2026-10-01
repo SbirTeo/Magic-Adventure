@@ -296,7 +296,7 @@ con queste tabelle di `magicadventure_web` (migrazione `2026-08-29-sanzioni-e-gu
 | `sanzioni` | a ogni provvedimento applicato: e' l'unica penna che crea righe qui |
 | `sanzioni_coda` | quando una violazione non puo' essere decisa da sola (modo `misto`) o supera il tetto del grado |
 | `regolamento_sanzioni` (id=1) | all'avvio e a ogni `/mg reload`: il blocco HTML generato da `sanzioni.yml` |
-| `guide_staff` | all'avvio: il capitolo della guida per amministratori (via il servizio di MagixWeb) |
+| `guide_staff` | all'avvio: il capitolo della guida per amministratori (via il servizio di MagixBridge) |
 
 **Cosa LEGGE il plugin, perche' lo decide lo staff dal sito**
 
@@ -306,7 +306,7 @@ con queste tabelle di `magicadventure_web` (migrazione `2026-08-29-sanzioni-e-gu
 | proposta confermata | `sanzioni_coda.stato = 'confermata' AND sanzione_id IS NULL` | applicare la sanzione, scrivere la riga in `sanzioni` e riportarne l'id in `sanzione_id` |
 | proposta respinta | `sanzioni_coda.stato = 'respinta'` | niente: la proposta muore li' |
 
-Il giro di lettura puo' essere lo stesso della coda dello store in MagixWeb (qualche secondo).
+Il giro di lettura puo' essere lo stesso della coda dello store in MagixBridge (qualche secondo).
 
 **Campi che il sito si aspetta popolati**: `mc_uuid`, `mc_username`, `tipo`
 (`warn|mute|ban|kick`), `categoria` (i codici di `sanzioni.yml`), `motivo`, `ambito`

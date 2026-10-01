@@ -533,6 +533,19 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
     </div>
     <div class="auth-box">
       <?php
+        // "Vota il server" su minecraft-italia.net, in barra su ogni pagina (in home c'e' anche
+        // quello grande nella hero). Stesso indirizzo (vote_url in site_settings, vuoto = niente
+        // tasto). Da schermo stretto resta la sola stella.
+        $__voteUrl = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magicadventure1789147678859');
+      ?>
+      <?php if ($__voteUrl !== ''): ?>
+        <a class="vote-btn vote-btn-nav" href="<?= h($__voteUrl) ?>" target="_blank" rel="noopener"
+           title="Vota il server su minecraft-italia.net" aria-label="Vota il server">
+          <span class="vote-btn-star" aria-hidden="true">★<span class="vote-btn-sparks"><i></i><i></i><i></i></span></span>
+          <span class="vote-btn-text">Vota</span>
+        </a>
+      <?php endif; ?>
+      <?php
         // Interruttore del tema: gira fra scuro, chiaro e automatico. L'etichetta di partenza
         // la scrive il server (niente sfarfallio); da li' in poi la cambia assets/js/site.js,
         // che salva la scelta in un cookie valido un anno.
@@ -572,9 +585,6 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
       <details class="cambia-lingua">
         <summary class="btn btn-ghost" title="Cambia lingua" aria-label="Cambia lingua">
           <?= language_flag_svg($GLOBALS['__siteLang']) ?>
-          <?php // Freccina ricurva in basso a destra sulla bandiera: dice che la si puo' tirare
-                // giu' (vedi site.js). Solo da tocco, sempre (style.css). ?>
-          <svg class="cambia-lingua-freccia" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2.2 Q8.5 2.2 8.5 9.2 M6 6.9 L8.5 9.6 L11 6.9"/></svg>
         </summary>
         <div class="cambia-lingua-menu">
           <?php // data-no-tr: sono nomi propri (l'endonimo di ogni lingua), non frasi italiane da
@@ -589,9 +599,6 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <?php endforeach; ?>
           <?php // Niente voce "Automatica" nel menu (tolta su richiesta): ?lingua=auto funziona
                 // ancora (language.php) per chi ha un vecchio link, ma non si offre piu'. ?>
-          <?php // Solo da telefono e finche' non l'ha usato (vedi style.css e site.js): il tocco
-                // apre questa tendina, e qui si scopre che si puo' anche trascinare. ?>
-          <p class="cambia-lingua-suggerimento">Puoi anche trascinare giù la bandiera.</p>
         </div>
       </details>
       <?php if ($__u): ?>

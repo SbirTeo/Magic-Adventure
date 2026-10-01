@@ -8,10 +8,10 @@
 # ===========================================================================
 
 database:
-  # Le stesse credenziali di MagixWeb: e' volutamente lo stesso database.
+  # Le stesse credenziali di MagixBridge: e' volutamente lo stesso database.
   host: localhost              # dov'e' il server MySQL/MariaDB del sito
   port: 3306                  # la sua porta
-  name: magicadventure_web     # nome del database del sito (lo stesso di MagixWeb)
+  name: magicadventure_web     # nome del database del sito (lo stesso di MagixBridge)
   user: magicadventure       # utente con permessi su quel database
   password: "CAMBIAMI"         # la sua password: cambiala, questa e' solo un segnaposto
   # Chiave AES-256 (base64, 32 byte) con cui il sito cifra i segreti OTP: e' la
@@ -82,13 +82,16 @@ gate:
   # Chi non ha ancora fatto il login non lo vede nessuno: niente nome che compare allo spawn
   # prima che si sappia se e' davvero lui.
   hide_from_others: true
-  # E lui non vede gli altri: al cancello non deve poter guardare chi c'e' e dove sta.
+  # true = lui non vede gli altri (ne' nel mondo ne' nella lista giocatori): al cancello non
+  # puo' guardare chi c'e' e dove sta. false = vede gia' chi e' online mentre fa il login.
   hide_others: true
   # E non legge la chat finche' non e' dentro: chi entra col nick di un altro non deve
   # potersi mettere in ascolto senza autenticarsi.
   hide_chat: true
-  # Il messaggio "e' entrato nel server" appare solo a login riuscito: senza questo,
-  # ogni tentativo di entrare col nick di un altro annuncerebbe il suo arrivo.
+  # true = l'annuncio d'ingresso appare solo a login riuscito, e chi esce dal cancello senza
+  # login non viene annunciato (ogni tentativo col nick di un altro resta muto).
+  # false = gli annunci d'ingresso e d'uscita (quelli custom di CMI, se attivi) escono subito,
+  # come senza MagixAuth.
   delay_join_message: true
 
 # Le vecchie sezioni "cartello", "tastierino" e "pacchetto" non ci sono piu': si entra

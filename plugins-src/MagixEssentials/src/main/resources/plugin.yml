@@ -3,7 +3,7 @@ version: '${project.version}'
 main: com.teolo.magixessentials.MagixEssentials
 api-version: '26.1'
 author: teolo
-description: "Utilita' del server (MOTD, nametag, valute e, in futuro, cio' che oggi fa CMI)."
+description: "Utilita' del server (MOTD, nametag, chat, valute e, in futuro, cio' che oggi fa CMI)."
 # PlaceholderAPI: opzionale. Se presente, i placeholder %...% nei nametag vengono risolti
 # (compresi i relazionali %rel_...%). Senza di lui restano scritti come sono.
 # ProtocolLib: opzionale. Serve al nametag in modalita' display (entita' di testo).
@@ -18,4 +18,7 @@ commands:
 permissions:
   magixessentials.admin:
     description: "Gestione di MagixEssentials (reload)."
+    default: op
+  magixessentials.chat.links:
+    description: "I link scritti nella chat pubblica diventano cliccabili. Vale anche il vecchio magixfactions.chat.links."
     default: op

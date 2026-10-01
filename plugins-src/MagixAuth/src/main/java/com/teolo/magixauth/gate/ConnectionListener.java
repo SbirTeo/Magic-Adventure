@@ -51,11 +51,26 @@ public final class ConnectionListener implements Listener {
      * "permissions data was not loaded during the pre-login stage". E' esattamente quello che
      * e' successo al primo avvio in produzione: nessuno riusciva piu' a entrare.
      */
+    /** Messa da MagixProxy (SwitchCookies) a chi e' gia' entrato nella rete: stesso nome la'. */
+    private static final String NETWORK_PROPERTY = "magixproxy_network";
+
     @EventHandler(priority = EventPriority.LOWEST)
     public void alPreLogin(AsyncPlayerPreLoginEvent e) {
         String ip = e.getAddress() == null ? "" : e.getAddress().getHostAddress();
 
-        String refusal = gate.decide(e.getUniqueId(), e.getName(), ip, e.getConnection(), (uuid, skin) -> {
+        // Offline mode: il client non porta mai texture sue, quindi se ci sono le ha messe il
+        // proxy (MagixProxy), che ha gia' fatto la stessa ricerca su Mojang.
+        boolean skinArrived = e.getPlayerProfile().getProperties().stream()
+                .anyMatch(pp -> "textures".equals(pp.getName()));
+        // Dietro a Velocity: il giocatore e' gia' nella rete e sta solo cambiando server (la
+        // proprieta' la mette MagixProxy dopo il primo server, e viaggia firmata col segreto del
+        // proxy). Qui il gettone non si chiede: mentre si cambia server la risposta del client
+        // finiva al server di prima (che buttava fuori il giocatore), e se trattenuta Paper non
+        // chiude il login finche' non arriva ("took too long to log in"). Basta l'indirizzo.
+        boolean switching = e.getPlayerProfile().getProperties().stream()
+                .anyMatch(pp -> NETWORK_PROPERTY.equals(pp.getName()));
+        String refusal = gate.decide(e.getUniqueId(), e.getName(), ip, skinArrived,
+                switching ? null : e.getConnection(), (uuid, skin) -> {
             if (uuid == null && skin == null) {
                 return;
             }
@@ -141,13 +156,14 @@ public final class ConnectionListener implements Listener {
     /**
      * Se ne va.
      *
-     * Chi non aveva ancora fatto il login non deve nemmeno salutare: nessuno sapeva che
-     * fosse arrivato. HIGHEST per lo stesso motivo dell'ingresso: il "e' uscito." di CMI.
+     * Con gate.delay_join_message acceso chi non aveva ancora fatto il login non saluta:
+     * nessuno sapeva che fosse arrivato. Spento, l'ingresso e' gia' stato annunciato e anche
+     * l'uscita resta. HIGHEST per lo stesso motivo dell'ingresso: il "e' uscito." di CMI.
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void allUscita(PlayerQuitEvent e) {
         Player p = e.getPlayer();
-        if (gate.isFrozen(p)) {
+        if (gate.isFrozen(p) && config.delayJoinMessage) {
             e.quitMessage(null);
         }
         gate.abandon(p);

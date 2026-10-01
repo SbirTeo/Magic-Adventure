@@ -2,7 +2,7 @@
 /**
  * Permessi del sito, assegnati ai GRUPPI IN GIOCO (LuckPerms).
  *
- * I gruppi non si creano qui: li specchia il plugin MagixWeb nella tabella `web_groups`
+ * I gruppi non si creano qui: li specchia il plugin MagixBridge nella tabella `web_groups`
  * (nome, display, peso, colore del prefisso), cosi' l'elenco e' sempre lo stesso del gioco.
  * Qui si decide solo COSA puo' fare ciascun gruppo sul sito, riga per riga in
  * `web_group_permissions`. I permessi di un giocatore sono l'unione di quelli di TUTTI i

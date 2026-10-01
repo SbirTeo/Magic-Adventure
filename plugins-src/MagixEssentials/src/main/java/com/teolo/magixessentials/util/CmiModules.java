@@ -135,6 +135,70 @@ public final class CmiModules {
         return true;
     }
 
+    /**
+     * Spegne degli interruttori di un file qualsiasi di CMI indicandoli col PERCORSO intero
+     * ({@code Chat.ModifyChatFormat.Enabled}), non col solo nome: in {@code Settings/Chat.yml} di
+     * {@code Enabled} ce ne sono una dozzina, in blocchi diversi. Stessa regola di
+     * {@link #disable}: si cambia solo la riga {@code true -> false}, commenti e resto del file
+     * restano com'erano, prima una copia di scorta in {@code .bak/}, e senza copia niente modifica.
+     *
+     * @param relative il file, a partire dalla cartella di CMI ({@code Settings/Chat.yml})
+     * @return i percorsi davvero spenti adesso (vuoto: gia' spenti, assenti o file non scrivibile)
+     */
+    public static List<String> disablePaths(JavaPlugin plugin, String relative, String... paths) {
+        File file = new File(new File(plugin.getDataFolder().getParentFile(), "CMI"), relative);
+        List<String> changed = new java.util.ArrayList<>();
+        if (!file.isFile()) {
+            return changed;
+        }
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            plugin.getLogger().warning("[CMI] non sono riuscito a leggere CMI/" + relative + ": " + e.getMessage());
+            return changed;
+        }
+        java.util.Set<String> wanted = new java.util.HashSet<>();
+        for (String p : paths) wanted.add(p.toLowerCase(Locale.ROOT));
+        // Il percorso di ogni riga si ricostruisce dall'indentazione: una pila di (rientro, chiave).
+        Pattern key = Pattern.compile("^(\\s*)('[^']*'|\"[^\"]*\"|[A-Za-z0-9_\\-]+)(\\s*:)(.*)$");
+        Pattern trueValue = Pattern.compile("^(\\s*)([Tt][Rr][Uu][Ee])(\\s*(?:#.*)?)$");
+        java.util.Deque<Object[]> stack = new java.util.ArrayDeque<>();
+        for (int i = 0; i < lines.size(); i++) {
+            Matcher m = key.matcher(lines.get(i));
+            if (!m.matches()) continue;   // commenti, righe vuote, voci di elenco
+            int indent = m.group(1).length();
+            while (!stack.isEmpty() && (int) stack.peek()[0] >= indent) stack.pop();
+            StringBuilder path = new StringBuilder();
+            java.util.Iterator<Object[]> it = stack.descendingIterator();
+            while (it.hasNext()) path.append((String) it.next()[1]).append('.');
+            String name = m.group(2).replaceAll("^['\"]|['\"]$", "");
+            path.append(name);
+            stack.push(new Object[] {indent, name});
+            String full = path.toString();
+            Matcher v = trueValue.matcher(m.group(4));
+            if (wanted.contains(full.toLowerCase(Locale.ROOT)) && v.matches()) {
+                lines.set(i, m.group(1) + m.group(2) + m.group(3) + v.group(1) + "false" + v.group(3));
+                changed.add(full);
+            }
+        }
+        if (changed.isEmpty()) {
+            return changed;
+        }
+        try {
+            File bakDir = bakDir(plugin, file);
+            Files.createDirectories(bakDir.toPath());
+            Files.copy(file.toPath(),
+                    new File(bakDir, file.getName() + ".bak-" + LocalDateTime.now().format(STAMP)).toPath(),
+                    StandardCopyOption.REPLACE_EXISTING);
+            Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            plugin.getLogger().warning("[CMI] CMI/" + relative + " non modificato: " + e.getMessage());
+            changed.clear();
+        }
+        return changed;
+    }
+
     /** Il file degli interruttori di CMI, accanto alla nostra cartella dati. */
     public static File file(JavaPlugin plugin) {
         return new File(plugin.getDataFolder().getParentFile(), PATH);

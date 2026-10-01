@@ -44,6 +44,12 @@ $sectionPermissions = [
  */
 $adminOnlySections = ['pages', 'page_edit', 'guida_edit', 'nav', 'theme', 'perms', 'store', 'store_pkg_edit', 'payments', 'console', 'sicurezza', 'menu'];
 
+// Lo spazio di lavoro degli amministratori e' una pagina a se', /progetto: il vecchio indirizzo
+// della scheda ci porta.
+if ($section === 'project') {
+    redirect('/progetto');
+}
+
 // Il banner VIP era una scheda a se': ora vive dentro "Aspetto", i vecchi link restano validi.
 if ($section === 'vip_banner') {
     $section = 'theme';
@@ -1430,6 +1436,20 @@ require __DIR__ . '/../includes/header.php';
     <a href="/manage?section=console" class="<?= $section === 'console' ? 'active' : '' ?>">Server</a>
     <?php /* I menu che i giocatori aprono in gioco: si disegnano qui e si applicano al server. */ ?>
     <a href="/manage?section=menu" class="<?= $section === 'menu' ? 'active' : '' ?>">Menu di gioco</a>
+    <?php
+      // Lo spazio di lavoro condiviso fra amministratori: e' una pagina a se' (/progetto), qui
+      // solo il collegamento. Il numero sono i messaggi della chat non ancora letti (scritti
+      // dagli altri); se le tabelle non ci sono ancora, il collegamento resta senza numero.
+      $__progettoNonLetti = 0;
+      try {
+          $__st = db()->prepare('SELECT COUNT(*) FROM project_messages m
+                                 WHERE m.user_id <> ? AND m.deleted_at IS NULL
+                                   AND m.id > COALESCE((SELECT last_message_id FROM project_reads WHERE user_id = ?), 0)');
+          $__st->execute([(int) $me['id'], (int) $me['id']]);
+          $__progettoNonLetti = (int) $__st->fetchColumn();
+      } catch (Throwable $e) { /* tabelle assenti: nessun numero */ }
+    ?>
+    <a href="/progetto">Progetto<?php if ($__progettoNonLetti > 0): ?> <span class="tab-badge" id="progettoBadge"><?= $__progettoNonLetti ?></span><?php endif; ?></a>
   <?php endif; ?>
 </div>
 
@@ -4142,7 +4162,7 @@ if ($section === 'dashboard') {
         <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
           Nessun capitolo ancora. I plugin lo pubblicano da soli al primo avvio dopo
           l'aggiornamento che introduce la guida; se il server è acceso e qui resta vuoto,
-          controlla che MagixWeb sia attivo (è lui a raccogliere i capitoli).
+          controlla che MagixBridge sia attivo (è lui a raccogliere i capitoli).
         </p>
       </div>
     <?php else: ?>
@@ -4208,7 +4228,7 @@ if ($section === 'dashboard') {
       <div class="alert alert-error">
         Manca <code>OTP_CHIAVE</code> in <code>includes/config.php</code>: senza quella chiave i
         segreti non si possono cifrare e <strong>nessuno riesce ad attivare la verifica</strong>.
-        Va generata sul server e copiata anche nella configurazione del plugin MagixWeb.
+        Va generata sul server e copiata anche nella configurazione del plugin MagixBridge.
       </div>
     <?php endif; ?>
 

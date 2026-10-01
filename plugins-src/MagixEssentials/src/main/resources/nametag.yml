@@ -66,7 +66,7 @@ style: auto
 # dire "fazioni oppure bedwars": quelle sono DUE modalita', cioe' due voci, una per ciascuna.
 #
 # E metti fra i requisiti solo i plugin senza cui quello stile non ha senso, non tutti quelli che
-# compaiono nei suoi segnaposto. Esempio: MagixWeb (%magixweb_namecolor%) non ci va — se manca, il
+# compaiono nei suoi segnaposto. Esempio: MagixBridge (%magixweb_namecolor%) non ci va — se manca, il
 # nome si vede comunque, solo senza colore, mentre metterlo li' butterebbe via tutto lo stile per una
 # questione di colore. MagixFactions in uno stile che scrive la fazione, invece, si': senza di lui
 # quella riga non ha niente da dire.

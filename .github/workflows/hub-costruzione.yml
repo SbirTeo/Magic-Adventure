@@ -1,0 +1,268 @@
+name: Hub - apri/chiudi per costruire (mondo vuoto + WorldEdit)
+
+# Finche' Velocity non e' collegato, l'hub ascolta solo su 127.0.0.1 e nessuno ci entra. Per
+# COSTRUIRLO serve entrarci: questo workflow lo apre a UNA persona sola, direttamente
+# (IP_DEL_VPS:25600), senza toccare il faction ne' TCPShield.
+#
+# azione=apri
+#   1) IP ammesso: quello passato, o l'ultimo da cui "giocatore" ha fatto /login sul faction
+#      (tabella auth_sessions di MagixAuth). Il firewall (ufw) apre la porta dell'hub SOLO a quell'IP.
+#   2) ferma l'hub (e' vuoto: nessun giocatore), copia FastAsyncWorldEdit dal faction (stesso jar,
+#      gia' collaudato su questa versione di Paper), mette server-ip= (tutte le interfacce)
+#   3) mondo=nuovo: sposta il mondo attuale in /home/ubuntu/.bak/hub-mondo-<data>/ (niente viene
+#      cancellato) e ne genera uno nuovo, VUOTO (flat "the_void", un solo strato d'aria)
+#   4) riaccende l'hub e in console: controlla che il mondo sia davvero vuoto, spawn in 0 64 0
+#      con UN blocco di vetro sotto i piedi (senza, si cade nel vuoto appena entrati), raggio di
+#      spawn 0, whitelist accesa con il solo "giocatore", op a "giocatore"
+#   Sicurezza: il server e' offline-mode senza MagixAuth, quindi il nome da solo non basta a
+#   proteggerlo. Lo proteggono insieme il firewall (solo il tuo IP) e la whitelist.
+#
+# azione=chiudi
+#   toglie la regola del firewall, rimette server-ip=127.0.0.1 e riavvia l'hub. Il mondo, i
+#   plugin, la whitelist e gli op restano come sono. Va fatto PRIMA del passaggio a Velocity.
+#
+# azione=mondo-nuovo
+#   rigenera il mondo TOTALMENTE vuoto (nessun blocco, nemmeno sotto lo spawn) senza aprire niente:
+#   stopserverfast, il vecchio mondo in /home/ubuntu/.bak/hub-mondo-<data>/, riavvio, spawn in 0 64 0.
+#   Firewall, whitelist e porta non si toccano: con Velocity si entra con /server hub.
+#
+# Con Velocity collegato (dal 30/09) "apri" si rifiuta: l'hub si raggiunge solo dal proxy,
+# con /server hub. Resta utilizzabile "chiudi".
+#
+# Se l'IP di casa cambia (router riavviato), basta rilanciare "apri" con mondo=tieni: la regola
+# vecchia viene tolta e ne viene messa una col nuovo IP.
+
+on:
+  workflow_dispatch:
+    inputs:
+      azione:
+        description: "apri = accesso diretto per costruire, chiudi = di nuovo solo locale, mondo-nuovo = rigenera il mondo vuoto (resta chiuso)"
+        required: false
+        default: "apri"
+      giocatore:
+        description: "Chi puo' entrare (whitelist + op)"
+        required: false
+        default: "SbirTeo"
+      ip:
+        description: "IP da ammettere (vuoto = l'ultimo da cui il giocatore ha fatto /login sul faction)"
+        required: false
+        default: ""
+      mondo:
+        description: "nuovo = rigenera il mondo vuoto (il vecchio va in .bak), tieni = non toccarlo"
+        required: false
+        default: "tieni"
+
+concurrency:
+  group: hub-vps
+  cancel-in-progress: false
+
+jobs:
+  hub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla gli input e i secret VPS
+        env:
+          GIOCATORE: ${{ inputs.giocatore }}
+          IP: ${{ inputs.ip }}
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+          [[ "$GIOCATORE" =~ ^[A-Za-z0-9_]{3,16}$ ]] || { echo "::error::nome giocatore non valido"; exit 1; }
+          [ -z "$IP" ] || [[ "$IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || { echo "::error::IP non valido (serve un IPv4)"; exit 1; }
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Esegui sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          AZIONE: ${{ inputs.azione }}
+          GIOCATORE: ${{ inputs.giocatore }}
+          IP: ${{ inputs.ip }}
+          MONDO: ${{ inputs.mondo }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" \
+            "AZIONE='${AZIONE:-apri}' GIOCATORE='$GIOCATORE' IP='${IP:-}' MONDO='${MONDO:-tieni}' VPS_IP='${{ secrets.VPS_HOST }}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          HUB=/home/ubuntu/magicadventure/hub
+          FAZ=/home/ubuntu/magicadventure/faction; [ -d "$FAZ/plugins" ] || FAZ=/home/ubuntu/magicadventure
+          PROPS="$HUB/server.properties"
+          LOG="$HUB/logs/latest.log"
+          ORA=$(date +%Y%m%d-%H%M%S)
+          COMMENTO="hub-costruzione"
+          # Porta dell'hub (Velocity 25565, hub 25600, faction 25701): la si impone anche al file vivo.
+          PORTA=25600
+          sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+          # Con Velocity collegato l'hub si raggiunge solo dal proxy (/server hub): aprirlo da fuori
+          # sarebbe una porta che scavalca TCPShield, il login sul server principale e i permessi.
+          if [ "$AZIONE" = "apri" ] && [ "$(systemctl is-enabled magix-velocity.service 2>/dev/null)" = "enabled" ]; then
+            echo "::error::Velocity e' collegato: l'hub non si apre piu' da fuori. Si entra dal gioco con /server hub."
+            exit 1
+          fi
+
+          acceso() { screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'; }
+          console() { screen -S hub -p 0 -X stuff "$(printf '%s\r' "$1")"; sleep 1; }
+          ferma() {
+            sudo systemctl stop magix-hub.service
+            for i in $(seq 1 30); do acceso || break; sleep 2; done
+            acceso && { echo "::error::l'hub non si e' fermato"; exit 1; }
+            echo "hub fermato"
+          }
+          avvia() {
+            local R; R=$( [ -f "$LOG" ] && wc -l < "$LOG" || echo 0 )
+            sudo systemctl start magix-hub.service
+            for i in $(seq 1 60); do
+              sleep 3
+              L=$( [ -f "$LOG" ] && wc -l < "$LOG" || echo 0 ); [ "$L" -lt "$R" ] && R=0
+              tail -n +"$((R + 1))" "$LOG" 2>/dev/null | grep -q 'Done (' && { echo "hub pronto dopo ~$((i*3))s"; return 0; }
+            done
+            echo "::error::l'hub non ha scritto 'Done' in 3 minuti"; tail -n 40 "$LOG"; exit 1
+          }
+          togli_regole() {  # toglie TUTTE le regole ufw messe da questo workflow (dal numero piu' alto)
+            sudo ufw status numbered | grep "$COMMENTO" | grep -oE '^\[ *[0-9]+\]' | tr -dc '0-9\n' | sort -rn \
+              | while read -r n; do [ -n "$n" ] && sudo ufw --force delete "$n" >/dev/null && echo "tolta regola ufw $n"; done
+            return 0
+          }
+          metti_porta() {
+            grep -q "^server-port=$PORTA$" "$PROPS" || { sed -i "s/^server-port=.*/server-port=$PORTA/" "$PROPS"; echo "porta dell'hub: $PORTA"; }
+          }
+          metti_ip() {  # <valore di server-ip>
+            mkdir -p /home/ubuntu/.bak/sistema; cp -a "$PROPS" "/home/ubuntu/.bak/sistema/hub-server.properties.bak-$ORA"
+            sed -i "s/^server-ip=.*/server-ip=$1/" "$PROPS"
+            grep -n '^server-ip=' "$PROPS"
+          }
+
+          if [ "$AZIONE" = "mondo-nuovo" ]; then
+            echo "=== MONDO NUOVO, TOTALMENTE VUOTO (l'hub resta chiuso da fuori) ==="
+            # Il generatore del vuoto: flat con un solo strato d'aria, bioma the_void.
+            VOID_TYPE='level-type=minecraft\:flat'
+            VOID_GEN='generator-settings={"biome"\:"minecraft\:the_void","layers"\:[{"block"\:"minecraft\:air","height"\:1}]}'
+            mkdir -p /home/ubuntu/.bak/sistema; cp -a "$PROPS" "/home/ubuntu/.bak/sistema/hub-server.properties.bak-$ORA"
+            grep -qxF "$VOID_TYPE" "$PROPS" || { sed -i '/^level-type=/d' "$PROPS"; echo "$VOID_TYPE" >> "$PROPS"; echo "level-type rimesso a flat"; }
+            grep -qxF "$VOID_GEN" "$PROPS" || { sed -i '/^generator-settings=/d' "$PROPS"; echo "$VOID_GEN" >> "$PROPS"; echo "generator-settings rimesso al vuoto"; }
+            grep -nE '^(level-name|level-type|generator-settings|server-ip|server-port)=' "$PROPS"
+            # Stop con stopserverfast (regola del progetto), poi via lo screen prima che start.sh lo
+            # rilanci: il mondo si sposta a server spento.
+            if acceso; then
+              PID=$(screen -list | grep -oE '[0-9]+\.hub[[:space:]]' | grep -oE '^[0-9]+' | head -n1)
+              discendenti() { for c in $(pgrep -P "$1"); do echo "$c"; discendenti "$c"; done; }
+              java_vivo() { for p in $(discendenti "$PID"); do [ "$(cat /proc/$p/comm 2>/dev/null)" = java ] && return 0; done; return 1; }
+              console "stopserverfast"
+              for i in $(seq 1 300); do java_vivo || break; sleep 1; done
+              java_vivo && { echo "::error::l'hub non si e' fermato in 5 minuti: il mondo non l'ho toccato"; exit 1; }
+              screen -S hub -X quit 2>/dev/null || true
+              echo "hub fermato (stopserverfast)"
+            fi
+            NOME="$(grep -E '^level-name=' "$PROPS" | cut -d= -f2)"; NOME="${NOME:-world}"
+            DOVE="/home/ubuntu/.bak/hub-mondo-$ORA"; mkdir -p "$DOVE"
+            for d in "$NOME" "${NOME}_nether" "${NOME}_the_end"; do
+              [ -d "$HUB/$d" ] && mv "$HUB/$d" "$DOVE/" && echo "spostato $d in $DOVE (il vecchio mondo resta li')"
+            done
+            du -sh "$DOVE" 2>/dev/null
+            # Il servizio e' oneshot: stop (non trova niente da fermare) e start, cosi' riparte davvero.
+            sudo systemctl stop magix-hub.service 2>/dev/null || true
+            avvia
+            R=$(wc -l < "$LOG")
+            console "forceload add 0 0"
+            console "execute if block 0 -64 0 minecraft:air run say MONDO-VUOTO-SI"
+            console "execute unless block 0 -64 0 minecraft:air run say MONDO-VUOTO-NO"
+            console "execute if block 0 63 0 minecraft:air run say SPAWN-VUOTO-SI"
+            console "setworldspawn 0 64 0"
+            console "minecraft:gamerule respawn_radius 0"
+            console "forceload remove 0 0"
+            sleep 2
+            echo "--- risposte della console ---"
+            tail -n +"$((R + 1))" "$LOG" | grep -vE 'UUID of player|logged in|joined the game' || true
+            tail -n +"$((R + 1))" "$LOG" | grep -q 'MONDO-VUOTO-NO' && echo "::warning::il mondo NON e' vuoto"
+            ls -la "$HUB"
+            ss -tln | grep -E ":$PORTA\b"
+            exit 0
+          fi
+
+          if [ "$AZIONE" = "chiudi" ]; then
+            echo "=== CHIUDI ==="
+            togli_regole
+            ferma; metti_porta; metti_ip 127.0.0.1; avvia
+            ss -tln | grep -E ":$PORTA\b"
+            echo "--- firewall ---"; sudo ufw status | grep -E "$PORTA|25565" || true
+            exit 0
+          fi
+
+          echo "=== 1) IP AMMESSO ==="
+          if [ -z "$IP" ]; then
+            IP="$(GIOCATORE="$GIOCATORE" php -r 'try { require "/var/www/magicadventure/includes/db.php";
+                $s = db()->prepare("SELECT s.ip FROM auth_sessions s JOIN users u ON u.mc_uuid = s.mc_uuid WHERE u.mc_username = ? ORDER BY s.password_ok_at DESC LIMIT 1");
+                $s->execute([getenv("GIOCATORE")]); echo (string) $s->fetchColumn();
+              } catch (Throwable $e) { fwrite(STDERR, "lettura fallita: " . get_class($e) . " " . $e->getCode() . "\n"); }' || true)"
+            echo "ultimo IP di $GIOCATORE da MagixAuth: ${IP:-(nessuno)}"
+          fi
+          if ! [[ "$IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+            echo "::error::nessun IP valido per $GIOCATORE: entra una volta sul faction e fai /login, oppure passa l'IP a mano"; exit 1
+          fi
+
+          echo; echo "=== 2) HUB: FERMO, WORLDEDIT, ASCOLTO SU TUTTE LE INTERFACCE ==="
+          ferma
+          mkdir -p "$HUB/plugins"
+          FAWE="$(ls "$FAZ"/plugins/*.jar | grep -iE 'fastasyncworldedit|worldedit' | head -n1 || true)"
+          if [ -n "$FAWE" ]; then
+            cmp -s "$FAWE" "$HUB/plugins/$(basename "$FAWE")" || { install -m 644 "$FAWE" "$HUB/plugins/"; echo "copiato $(basename "$FAWE") dal faction"; }
+          else
+            echo "::warning::il faction non ha WorldEdit/FAWE: l'hub resta senza"
+          fi
+          if grep -q '^enforce-whitelist=' "$PROPS"; then sed -i 's/^enforce-whitelist=.*/enforce-whitelist=true/' "$PROPS"; else echo 'enforce-whitelist=true' >> "$PROPS"; fi
+          metti_porta
+          metti_ip ""
+
+          if [ "$MONDO" = "nuovo" ]; then
+            echo; echo "=== 3) MONDO NUOVO, VUOTO ==="
+            grep -nE '^(level-name|level-type|generator-settings)=' "$PROPS"
+            NOME="$(grep -E '^level-name=' "$PROPS" | cut -d= -f2)"; NOME="${NOME:-world}"
+            DOVE="/home/ubuntu/.bak/hub-mondo-$ORA"; mkdir -p "$DOVE"
+            for d in "$NOME" "${NOME}_nether" "${NOME}_the_end"; do
+              [ -d "$HUB/$d" ] && mv "$HUB/$d" "$DOVE/" && echo "spostato $d in $DOVE"
+            done
+          fi
+
+          echo; echo "=== 4) AVVIO E PREPARAZIONE DAL CONSOLE ==="
+          avvia
+          R=$(wc -l < "$LOG")
+          console "forceload add 0 0"
+          console "execute if block 0 -64 0 minecraft:air run say MONDO-VUOTO-SI"
+          console "execute unless block 0 -64 0 minecraft:air run say MONDO-VUOTO-NO"
+          console "setworldspawn 0 64 0"
+          console "setblock 0 63 0 minecraft:glass"
+          console "minecraft:gamerule respawn_radius 0"
+          console "whitelist add $GIOCATORE"
+          console "whitelist on"
+          console "op $GIOCATORE"
+          console "forceload remove 0 0"
+          sleep 2
+          echo "--- risposte della console ---"
+          tail -n +"$((R + 1))" "$LOG" | grep -vE 'UUID of player|logged in|joined the game' || true
+          if tail -n +"$((R + 1))" "$LOG" | grep -q 'MONDO-VUOTO-NO'; then
+            echo "::warning::il mondo NON e' vuoto (in 0 -64 0 c'e' un blocco): rilancia con mondo=nuovo"
+          fi
+          echo "--- plugin dell'hub ---"; ls -la "$HUB/plugins"
+          grep -iE 'Enabling|FastAsyncWorldEdit' "$LOG" | tail -n 5 || true
+
+          echo; echo "=== 5) FIREWALL: $PORTA SOLO PER $IP ==="
+          togli_regole
+          sudo ufw allow from "$IP" to any port "$PORTA" proto tcp comment "$COMMENTO" | tail -n1
+          sudo ufw status | grep -E "$PORTA|25565" || true
+          ss -tln | grep -E ":$PORTA\b"
+
+          echo; echo "=== FATTO ==="
+          echo "Entra con l'indirizzo $VPS_IP:$PORTA (connessione diretta, non il dominio del server)."
+          echo "Sei op: /gamemode creative per volare e costruire. Sotto lo spawn c'e' un solo blocco di vetro."
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

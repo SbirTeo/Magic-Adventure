@@ -53,7 +53,7 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'bash -s' <<'REMOTE'
           set -e
-          BASE=/home/ubuntu/magicadventure
+          BASE=/home/ubuntu/magicadventure/faction; [ -d "$BASE/plugins" ] || BASE=/home/ubuntu/magicadventure  # fino allo spostamento le fazioni stavano direttamente in magicadventure/
           PLUGDIR="$BASE/plugins"
           LOG="$BASE/logs/latest.log"
           URL="https://cdn.modrinth.com/data/3wmN97b8/versions/bzFXz39N/multiverse-core-5.8.0.jar"
@@ -68,11 +68,12 @@ jobs:
           mv "$PLUGDIR/.__new_mv.jar" "$PLUGDIR/Multiverse-Core-5.8.0.jar"
           echo "OK: $(ls -la "$PLUGDIR/Multiverse-Core-5.8.0.jar")"
 
-          dì() { screen -S mc -p 0 -X stuff "$(printf '%s\r' "$1")"; }
+          SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"; SCR="${SCR:-faction}"  # screen del server fazioni (vecchio nome: mc)
+          dì() { screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; }
           annuncia() { dì "say $1"; }
 
           echo "=== 2) Riavvio con preavviso ==="
-          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.mc[[:space:]]'; then
+          if ! screen -list 2>/dev/null | grep -qE '[0-9]+\.(faction|mc)[[:space:]]'; then
             echo "::error::Server non in esecuzione (screen mc non attivo): impossibile procedere."
             exit 1
           fi

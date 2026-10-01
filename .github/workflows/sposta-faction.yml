@@ -1,0 +1,185 @@
+name: Sposta il server fazioni in magicadventure/faction
+
+# UNA TANTUM (ma idempotente): porta il server fazioni da /home/ubuntu/magicadventure a
+# /home/ubuntu/magicadventure/faction, accanto a magicadventure/hub (e poi a velocity).
+#
+#  prova=si  -> elenca soltanto dove, sul VPS, compare ancora il vecchio percorso. Non tocca niente.
+#  prova=no  -> 1) backup completo (tar.zst in /home/ubuntu/backups)
+#               2) stop con "stopserverfast" di CMI (salva e avvisa i giocatori, vedi CLAUDE.md);
+#                  appena la JVM e' uscita si chiude la screen, cosi' start.sh non la rilancia
+#               3) sposta tutto in faction/ (tranne hub/)
+#               4) aggiorna i riferimenti: unit systemd, sincronizzazione della guida del sito,
+#                  istanze.conf della console, config dei plugin che contengono il percorso
+#               5) link simbolici magicadventure/plugins e magicadventure/logs verso faction/
+#                  (rete di sicurezza per qualcosa che scrive ancora nel posto vecchio)
+#               6) riavvia con systemd e aspetta "Done" nel log
+#
+# Il riavvio fa anche partire l'heap a 7G (start.sh e' gia' stato cambiato).
+
+on:
+  workflow_dispatch:
+    inputs:
+      prova:
+        description: "si = elenca soltanto i riferimenti al vecchio percorso, no = sposta davvero (riavvia il server)"
+        required: false
+        default: "si"
+
+concurrency:
+  group: deploy-plugin
+  cancel-in-progress: false
+
+jobs:
+  sposta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla che i secret VPS ci siano
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia la unit aggiornata
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          scp -i ~/.ssh/deploy_key server/magicadventure.service "$DEST:/tmp/magicadventure.service.nuova"
+
+      - name: Sposta
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          PROVA: ${{ inputs.prova }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEST" "PROVA='${PROVA:-si}' bash -s" <<'REMOTE'
+          set -uo pipefail
+          OLD=/home/ubuntu/magicadventure
+          NEW=$OLD/faction
+          BAK=/home/ubuntu/.bak/sistema
+          ORA=$(date +%Y%m%d-%H%M%S)
+          mkdir -p "$BAK"
+          sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+          salva() { [ -e "$1" ] && sudo cp -a "$1" "$BAK/$(basename "$1").bak-$ORA"; return 0; }
+
+          # Riferimenti al vecchio percorso che NON sono gia' faction/ o hub/.
+          VECCHIO='/home/ubuntu/magicadventure(/(?!(faction|hub)(/|\b))|(?=["'"'"'\s,;:]|$))'
+          cerca() {
+            sudo grep -rIlP "$VECCHIO" /etc/systemd/system /usr/local/bin /etc/magicadventure /etc/nginx /etc/cron.d /etc/sudoers.d 2>/dev/null
+            sudo grep -rIlP --include='*.php' --include='*.conf' --include='*.json' "$VECCHIO" /var/www/magicadventure 2>/dev/null
+            local R="$OLD"; [ -d "$NEW/plugins" ] && R="$NEW"
+            grep -rIlP --include='*.yml' --include='*.yaml' --include='*.json' --include='*.properties' --include='*.conf' --include='*.txt' --include='*.sh' \
+              --exclude-dir=libraries --exclude-dir=cache --exclude-dir=logs --exclude-dir=hub --exclude-dir=.bak --exclude-dir=.rimossi \
+              "$VECCHIO" "$R" 2>/dev/null
+          }
+          echo "=== riferimenti al vecchio percorso ==="
+          cerca | sort -u | while read -r f; do echo "## $f"; sudo grep -nP "$VECCHIO" "$f" | head -n 5 | cut -c1-200; done
+          echo "=== crontab ==="
+          crontab -l 2>/dev/null | grep -n magicadventure || echo "(niente in crontab di ubuntu)"
+          sudo crontab -l 2>/dev/null | grep -n magicadventure || echo "(niente in crontab di root)"
+
+          if [ "${PROVA:-si}" = "si" ]; then echo; echo "PROVA: non ho toccato niente."; exit 0; fi
+
+          if [ -d "$NEW/plugins" ]; then
+            echo "gia' spostato: salto backup, stop e spostamento, sistemo solo i riferimenti"
+          else
+            echo; echo "=== 1) BACKUP ==="
+            mkdir -p /home/ubuntu/backups
+            SCR="$(screen -list | grep -oE '[0-9]+\.(faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+            dì() { [ -n "$SCR" ] && screen -S "$SCR" -p 0 -X stuff "$(printf '%s\r' "$1")"; return 0; }
+            [ -n "$SCR" ] && { dì "save-all flush"; sleep 5; }
+            tar -C /home/ubuntu --exclude=magicadventure/cache --exclude=magicadventure/logs --exclude=magicadventure/hub \
+                -I 'zstd -T0 -3' -cf "/home/ubuntu/backups/faction-prima-dello-spostamento-$ORA.tar.zst" magicadventure
+            ls -la /home/ubuntu/backups
+
+            echo; echo "=== 2) STOP con stopserverfast ==="
+            if [ -n "$SCR" ]; then
+              PID=$(screen -list | grep -oE "[0-9]+\.$SCR[[:space:]]" | grep -oE '^[0-9]+' | head -n1)
+              discendenti() { for c in $(pgrep -P "$1"); do echo "$c"; discendenti "$c"; done; }
+              java_vivo() { for p in $(discendenti "$PID"); do [ "$(cat /proc/$p/comm 2>/dev/null)" = java ] && return 0; done; return 1; }
+              dì "stopserverfast"
+              for i in $(seq 1 300); do java_vivo || break; sleep 1; done
+              if java_vivo; then echo "::error::il server non si e' fermato in 5 minuti: mi fermo, niente e' stato spostato"; exit 1; fi
+              # Subito, prima che start.sh lo rilanci (aspetta 5 secondi): via la screen e il suo loop.
+              screen -S "$SCR" -X quit 2>/dev/null || true
+              echo "server fermato (JVM uscita, screen chiusa)"
+            fi
+            sudo systemctl stop magicadventure.service 2>/dev/null || true
+            sleep 2
+            screen -list || true
+
+            echo; echo "=== 3) SPOSTAMENTO ==="
+            mkdir -p "$NEW"
+            cd "$OLD"
+            shopt -s dotglob nullglob
+            for x in *; do
+              case "$x" in faction|hub) continue ;; esac
+              mv -- "$x" "$NEW/"
+            done
+            shopt -u dotglob
+            ls -la "$OLD"
+          fi
+
+          echo; echo "=== 4) RIFERIMENTI ==="
+          UNIT=/etc/systemd/system/magicadventure.service
+          if ! cmp -s /tmp/magicadventure.service.nuova "$UNIT"; then
+            salva "$UNIT"; sudo install -o root -g root -m 644 /tmp/magicadventure.service.nuova "$UNIT"; echo "unit aggiornata"
+          fi
+          for f in /usr/local/bin/sync-guida-magixfactions.sh /etc/systemd/system/sync-guida.path; do
+            if [ -f "$f" ] && sudo grep -q "$OLD/plugins/" "$f"; then
+              salva "$f"; sudo sed -i "s#$OLD/plugins/#$NEW/plugins/#g" "$f"; echo "aggiornato $f"
+            fi
+          done
+          CONF=/etc/magicadventure/istanze.conf
+          if [ -f "$CONF" ] && grep -q "^istanza mc .*cartella=$OLD |" "$CONF"; then
+            salva "$CONF"; sudo sed -i "/^istanza mc /s#cartella=$OLD |#cartella=$NEW |#" "$CONF"; echo "console aggiornata"
+          fi
+          # Config dei plugin (e del server) che contengono il percorso vecchio: si corregge in posto.
+          grep -rIlP --include='*.yml' --include='*.yaml' --include='*.json' --include='*.properties' --include='*.conf' --include='*.txt' --include='*.sh' \
+              --exclude-dir=libraries --exclude-dir=cache --exclude-dir=logs --exclude-dir=.bak --exclude-dir=.rimossi \
+              "$VECCHIO" "$NEW" 2>/dev/null | while read -r f; do
+            cp -a "$f" "$BAK/$(echo "${f#$NEW/}" | tr '/' '_').bak-$ORA"
+            perl -pi -e 's#/home/ubuntu/magicadventure(?=/(?!(faction|hub)(/|\b))|["'"'"'\s,;:]|$)#/home/ubuntu/magicadventure/faction#g' "$f"
+            echo "corretto: $f"
+          done
+          sudo systemctl daemon-reload
+          sudo systemctl restart sync-guida.path 2>/dev/null || true
+
+          echo; echo "=== 5) LINK DI SICUREZZA ==="
+          for d in plugins logs; do
+            [ -e "$OLD/$d" ] || ln -s "faction/$d" "$OLD/$d"
+          done
+          ls -la "$OLD"
+
+          echo; echo "=== 6) AVVIO ==="
+          if ! screen -list | grep -qE '[0-9]+\.faction[[:space:]]'; then
+            RIGHE=0
+            sudo systemctl start magicadventure.service
+            for i in $(seq 1 90); do
+              sleep 5
+              grep -q 'Done (' "$NEW/logs/latest.log" 2>/dev/null && { echo "server fazioni pronto dopo ~$((i*5))s"; break; }
+            done
+          fi
+          tail -n 15 "$NEW/logs/latest.log" 2>/dev/null
+          echo; echo "=== STATO ==="
+          screen -list || true
+          ps -eo rss,args | grep -a '[j]ava' | cut -c1-120
+          free -h
+          ss -tln | grep -E ':(25565|25600|25701)\b' || true
+          echo "--- riferimenti rimasti ---"
+          cerca | sort -u || true
+          exit 0
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

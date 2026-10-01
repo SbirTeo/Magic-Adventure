@@ -30,7 +30,7 @@ $versione = ([xml](Get-Content (Join-Path $plugin 'pom.xml'))).project.version
 $jar      = "MagixFactions-$versione.jar"
 $chiave   = Join-Path $env:USERPROFILE '.ssh\ovh_vps'
 $vps      = 'ubuntu@141.94.123.249'
-$suVps    = '/home/ubuntu/magicadventure/plugins/MagixFactions/tutorial.html'
+$suVps    = '/home/ubuntu/magicadventure/faction/plugins/MagixFactions/tutorial.html'
 
 Write-Host '1/5  Rigenero la guida...' -ForegroundColor Cyan
 python $script
@@ -42,11 +42,11 @@ try { mvn -q -DskipTests package } finally { Pop-Location }
 
 Write-Host '3/5  Copio il jar nel mirror locale e sul VPS...' -ForegroundColor Cyan
 Copy-Item (Join-Path $plugin "target\$jar") (Join-Path $radice "server\plugins\$jar") -Force
-scp -i $chiave (Join-Path $radice "server\plugins\$jar") "${vps}:/home/ubuntu/magicadventure/plugins/$jar"
+scp -i $chiave (Join-Path $radice "server\plugins\$jar") "${vps}:/home/ubuntu/magicadventure/faction/plugins/$jar"
 
 Write-Host '4/5  Riavvio il server (la guida risolta la scrive lui)...' -ForegroundColor Cyan
 # Il loop di start.sh fa ripartire tutto da solo: basta lo stop. Mai 'screen -X quit' con java vivo.
-ssh -i $chiave $vps "screen -S mc -X stuff 'stop^M'"
+ssh -i $chiave $vps "screen -S faction -X stuff 'stop^M'"
 Write-Host '     ...aspetto che risalga (~60s)' -ForegroundColor DarkGray
 Start-Sleep -Seconds 60
 

@@ -81,7 +81,7 @@ try {
     $last_sample_ms = 0;
 }
 
-// Fazione del VISITATORE loggato (via MagixWeb /link), per colorare i nomi fazione secondo la RELAZIONE
+// Fazione del VISITATORE loggato (via MagixBridge /link), per colorare i nomi fazione secondo la RELAZIONE
 // in-game. Match dell'UUID tollerante al trattino (users.mc_uuid vs faction_members.uuid). Ospite = 0.
 $viewer_faction_id = 0;
 $allies = [];

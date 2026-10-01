@@ -73,5 +73,33 @@ compresi, e la scoreboard si ridisegna da sola a quel passo:
     speed-ticks: 2
 ```
 
+### Sfondo e bordo della sidebar
+
+Il riquadro semitrasparente dietro la sidebar lo disegna il client: MagixScoreboard lo cambia con uno
+shader (`gui.vsh`/`gui.fsh`, registrati nel pacchetto unico di **MagixPack**; senza MagixPack resta
+vanilla). In `config.yml`, sezione `sidebar-background`:
+
+- `enabled` — `false` toglie lo sfondo (restano le scritte, e il bordo se acceso);
+- `color` / `opacity` — colore `#RRGGBB` e opacita' 0-100, **uguali per titolo e righe**;
+- `border.enabled`, `border.width` (pixel GUI), `border.color-start` / `border.color-end` (sfumato
+  da sinistra a destra, come i bordi del sito), `border.opacity` — bordo su sopra, sinistra e sotto.
+
+Si applica con `/mscoreboard reload`; chi e' gia' connesso lo vede al prossimo ingresso. Lo shader
+riconosce la sidebar dal colore vanilla (nero al 30% le righe, al 40% il titolo, verificato nel client
+26.2): chi ha disattivato "Sfondo testo solo per la chat" nelle opzioni la vede di serie.
+
+### Posizione verticale della sidebar
+
+Il client la mette sempre un po' sopra la meta' dello schermo: `sidebar-position.offset-y` la sposta
+di N pixel dell'interfaccia (positivo = in basso, 0 = vanilla). Lo sfondo lo sposta lo shader `gui`
+di MagixScoreboard; scritte e icone lo shader del testo di **MagixFactions**, che legge lo stesso
+valore da questo config (MagixPack tiene un solo `text.vsh`, ed e' di MagixFactions). Lo shader
+riconosce le scritte della sidebar da un marchio nel colore: con `offset-y` diverso da 0
+MagixScoreboard porta ogni colore della sidebar a rosso, verde e blu = 3 modulo 8 (al massimo 4
+sfumature su 255, `util/SidebarMark`), cosa che nessun colore vanilla fa. Cosi' tooltip degli
+oggetti, menu e chat non si spostano piu' (prima scivolavano giu' fuori dal loro riquadro). In piu'
+devono cadere nella fascia destra larga `zone-width` all'altezza della sidebar. `/mscoreboard reload` ricostruisce sia il pezzo di MagixScoreboard sia quello di
+MagixFactions.
+
 La guida generata dal plugin (`plugins/MagixScoreboard/guida-staff.html`, anche nel gestionale
 del sito) elenca TUTTE le chiavi in uso col valore reale: e' la fonte piu' aggiornata.

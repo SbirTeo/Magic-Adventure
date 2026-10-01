@@ -16,7 +16,7 @@ import java.sql.SQLException;
 public final class SiteDb {
 
     static {
-        // Come in MagixWeb e MagixFactions: il driver va caricato nel classloader di QUESTO
+        // Come in MagixBridge e MagixFactions: il driver va caricato nel classloader di QUESTO
         // plugin, altrimenti DriverManager puo' aver gia' costruito il suo elenco con quello
         // di un altro plugin e rispondere "No suitable driver".
         try { Class.forName("org.mariadb.jdbc.Driver"); } catch (Throwable ignored) { }
