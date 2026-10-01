@@ -51,6 +51,10 @@ on:
         description: "Sottocartella dentro plugins/<plugin>/ dove copiare (default overrides, per il merge di MagixPack). Es. 'menus' per portare un file nuovo dentro plugins/MagixMenus/menus/."
         required: false
         default: "overrides"
+      src_subdir:
+        description: "Copia solo questa sottocartella di overrides-vps/ (es. 'models' per i .bbmodel di MagixPack, con dest_subdir: models). Vuoto = tutta la cartella."
+        required: false
+        default: ""
       remove_path:
         description: "Percorso di UN file da togliere da overrides/ PRIMA della copia (relativo a overrides/, es. assets/minecraft/textures/gui/container/inventory.png). Vuoto = non tocca niente. Serve a ripulire un file lasciato da un test precedente."
         required: false
@@ -90,6 +94,11 @@ jobs:
             *) echo "::error::server deve essere faction o hub"; exit 1 ;;
           esac
           DIR="plugins-src/${{ inputs.plugin }}/$SUB"
+          SRC_SUB="${{ inputs.src_subdir }}"
+          case "$SRC_SUB" in
+            *..*) echo "::error::src_subdir non puo' contenere '..'"; exit 1 ;;
+          esac
+          if [ -n "$SRC_SUB" ]; then DIR="$DIR/$SRC_SUB"; fi
           if [ ! -d "$DIR" ]; then
             echo "::error::Non esiste $DIR nel repo. Crea plugins-src/${{ inputs.plugin }}/$SUB/ con dentro i file da copiare."
             exit 1

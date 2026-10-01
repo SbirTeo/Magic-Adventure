@@ -383,6 +383,41 @@ un pezzo unico. Il font lascia 1 pixel vuoto dopo ogni carattere; un `-1` dopo o
 - "&a█%magixpack_shift_-1%█%magixpack_shift_-1%&c█%magixpack_shift_-1%█"
 ```
 
+## Modelli Blockbench nel mondo (`models/*.bbmodel`)
+
+Un modello fatto in Blockbench si mette nel mondo **cosi' com'e'**: niente Animated Java, niente
+export, niente datapack. Il file `.bbmodel` (il progetto salvato da Blockbench) va in
+`plugins/MagixPack/models/`; il nome del file, in minuscolo, e' l'id del modello
+(`iron_scorpion.bbmodel` -> `iron_scorpion`). Poi `/mpack reload`.
+
+Come viene disegnato:
+- ogni pezzo del modello diventa **un item display** con un modello di un solo blocco, spostato,
+  girato e ridimensionato dalla sua trasformazione (qualunque rotazione, non solo i 22,5 gradi dei
+  modelli degli oggetti);
+- i **cubi** restano cubi; le **mesh** (che Minecraft non sa disegnare) diventano il blocco che le
+  contiene meglio, orientato come il pezzo, e ogni lato prende la texture della faccia della mesh
+  che guarda da quella parte. Le forme tonde (sfere, cupole) escono come blocchi un po' piu'
+  piccoli del loro ingombro, con lo stesso volume: si riconoscono, ma restano "a cubetti";
+- le **ossa** (i gruppi dell'outliner) e le **animazioni** restano quelle di Blockbench: rotazione e
+  spostamento delle ossa, interpolazione lineare (o a scatti, `step`). Le espressioni Molang nei
+  keyframe valgono 0.
+
+Nel mondo:
+- `/mpack model spawn <id> [scala] [animazione|none]` lo mette ai tuoi piedi, girato verso di te.
+  Scala 1 = la grandezza di Blockbench (16 pixel = un blocco). Senza animazione indicata parte
+  `idle`, se c'e', altrimenti la prima animazione in loop.
+- `/mpack model rotate <gradi>` gira il modello piu' vicino (entro 16 blocchi).
+- `/mpack model remove [raggio]` toglie il modello piu' vicino (default 10 blocchi).
+- `/mpack model list` elenca i modelli caricati, coi pezzi, le animazioni e quanti ne sono nel mondo.
+
+I modelli messi sono entita' normali salvate col mondo: restano dopo un riavvio, e il plugin li
+ritrova dai loro dati quando il chunk si carica. L'animazione gira solo con un giocatore entro 96
+blocchi. Se il file cambia, `/mpack reload` aggiorna anche quelli gia' messi (se ha MENO pezzi di
+prima quelli in piu' spariscono; se ne ha di PIU', il modello va tolto e rimesso).
+
+Dal repo: il file sta in `plugins-src/MagixPack/overrides-vps/models/` e arriva sul VPS col workflow
+`deploy-plugin-override.yml` con `src_subdir: models` e `dest_subdir: models`.
+
 ## Config
 
 - `public-host` / `port` — da dove i client scaricano lo zip (la porta va aperta sul firewall).
@@ -404,6 +439,8 @@ un pezzo unico. Il font lascia 1 pixel vuoto dopo ogni carattere; un `-1` dopo o
   "Oggetti custom" sopra.
 - `/mpack glyph list` / `/mpack glyph show <id> [giocatore]` (permesso `magixpack.glyph.list`) — vedi
   "Icone custom via font" e "L'avatar come glifo" sopra.
+- `/mpack model list|spawn|remove|rotate` (permesso `magixpack.model`) — vedi "Modelli Blockbench nel
+  mondo" sopra.
 
 ## Permessi
 
@@ -412,6 +449,7 @@ un pezzo unico. Il font lascia 1 pixel vuoto dopo ogni carattere; un `-1` dopo o
   carica (lo riceve comunque). Salvaguardia per non restare chiusi fuori dal proprio server.
 - `magixpack.item.give` (default op) — `/mpack item give` e `/mpack item list`.
 - `magixpack.glyph.list` (default op) — `/mpack glyph list` e `/mpack glyph show`.
+- `magixpack.model` (default op) — `/mpack model list|spawn|remove|rotate`.
 
 ## Su piu' server (faction, hub)
 

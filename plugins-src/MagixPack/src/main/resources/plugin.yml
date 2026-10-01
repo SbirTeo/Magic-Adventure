@@ -10,7 +10,7 @@ commands:
   magixpack:
     aliases: [mpack]
     description: Amministrazione del pacchetto risorse, oggetti e icone custom.
-    usage: /mpack reload|item give <id> [giocatore]|item list|glyph list|glyph show <id> [giocatore]
+    usage: /mpack reload|item give <id> [giocatore]|item list|glyph list|glyph show <id> [giocatore]|model list|spawn|remove|rotate
     # Nessun permesso qui: ogni sotto-comando ha il suo (vedi permissions sotto), controllato
     # a mano nel comando - cosi' /mpack item give si puo' dare a qualcuno senza dargli anche
     # magixpack.admin.
@@ -27,4 +27,7 @@ permissions:
     default: op
   magixpack.glyph.list:
     description: Vedere il catalogo delle icone custom di glyphs.yml col loro carattere e placeholder, e provarle in chat (/mpack glyph list|show).
+    default: op
+  magixpack.model:
+    description: Mettere nel mondo i modelli Blockbench di models/ (/mpack model list|spawn|remove|rotate).
     default: op

@@ -66,6 +66,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
     private GlyphCatalog glyphCatalog;
     private AvatarService avatarService;
     private AvatarGlyphRegistry avatarChars;
+    private com.teolo.magixpack.model.ModelCatalog modelCatalog;
+    private com.teolo.magixpack.model.ModelDisplays modelDisplays;
 
     @Override
     public void onEnable() {
@@ -84,10 +86,14 @@ public final class MagixPack extends JavaPlugin implements Listener {
         avatarChars = new AvatarGlyphRegistry();
         glyphCatalog = new GlyphCatalog(this, avatarService, avatarChars);
         itemCatalog = new ItemCatalog(this, avatarService, glyphCatalog);
+        modelCatalog = new com.teolo.magixpack.model.ModelCatalog(this);
         loadCatalogsAndRegister();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new PackListener(this, packService), this);
         getServer().getPluginManager().registerEvents(new FurnitureListener(this, itemCatalog), this);
+        modelDisplays = new com.teolo.magixpack.model.ModelDisplays(this, modelCatalog);
+        getServer().getPluginManager().registerEvents(modelDisplays, this);
+        modelDisplays.start();
 
         MagixPackCommand cmd = new MagixPackCommand(this, messages);
         getCommand("magixpack").setExecutor(cmd);
@@ -129,6 +135,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         if (packService != null) packService.stop();
+        if (modelDisplays != null) modelDisplays.stop();
     }
 
     /** Rilegge config.yml e ricostruisce subito il pacchetto (porta/host cambiati richiedono
@@ -146,6 +153,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
         messages.reload();
         avatarService.reload();
         loadCatalogsAndRegister();
+        modelDisplays.refresh();
         packService.reloadConfig();
         if (packService.isAvailable()) {
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) packService.sendTo(p);
@@ -158,6 +166,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
     private void loadCatalogsAndRegister() {
         itemCatalog.reload();
         glyphCatalog.reload();
+        modelCatalog.reload();
         registerPackFiles();
     }
 
@@ -169,6 +178,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
     private void registerPackFiles() {
         Map<String, byte[]> files = new LinkedHashMap<>(itemCatalog.packFiles());
         files.putAll(glyphCatalog.packFiles());
+        files.putAll(modelCatalog.packFiles());
         packService.register(this, files);
     }
 
@@ -223,6 +233,16 @@ public final class MagixPack extends JavaPlugin implements Listener {
     }
 
     /** Il catalogo delle icone custom via font (glyphs.yml): usato dal comando {@code /mpack glyph}. */
+    /** The Blockbench models of models/*.bbmodel: used by {@code /mpack model}. */
+    public com.teolo.magixpack.model.ModelCatalog modelCatalog() {
+        return modelCatalog;
+    }
+
+    /** The models placed in the world (spawn, remove, animation). */
+    public com.teolo.magixpack.model.ModelDisplays modelDisplays() {
+        return modelDisplays;
+    }
+
     public GlyphCatalog glyphCatalog() {
         return glyphCatalog;
     }
@@ -404,7 +424,26 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "scaricato la skin, con un pulsante [copia] che da' un CARATTERE VERO (non un "
                                 + "placeholder): quello si puo' davvero incollare in un messaggio di chat normale "
                                 + "e si vede da chiunque abbia il pacchetto — assegnato al volo la prima volta che "
-                                + "serve, come una texture custom di Oraxen, senza bisogno di riavviare il server.")
+                                + "serve, come una texture custom di Oraxen, senza bisogno di riavviare il server.",
+                        "/mpack model list", "Elenca i modelli Blockbench caricati da models/, con pezzi, animazioni "
+                                + "e quanti ne sono messi nel mondo.",
+                        "/mpack model spawn <id> [scala] [animazione|none]", "Mette il modello ai propri piedi, "
+                                + "girato verso di se'. Scala 1 = grandezza di Blockbench (16 pixel = un blocco); senza "
+                                + "animazione parte idle (o la prima in loop), none = fermo.",
+                        "/mpack model rotate <gradi>", "Gira il modello piu' vicino (entro 16 blocchi).",
+                        "/mpack model remove [raggio]", "Toglie il modello piu' vicino (default entro 10 blocchi).")
+
+                .section("Modelli Blockbench nel mondo (models/)",
+                        "Un modello di Blockbench si mette nel mondo cosi' com'e', senza Animated Java ne' export: "
+                                + "il file .bbmodel va in plugins/MagixPack/models/ (il nome del file in minuscolo e' "
+                                + "l'id), poi /mpack reload. Ogni pezzo diventa un item display; i cubi restano cubi, "
+                                + "le mesh (che Minecraft non sa disegnare) diventano il blocco che le contiene meglio, "
+                                + "orientato come il pezzo e con la sua texture. Ossa e animazioni restano quelle di "
+                                + "Blockbench.",
+                        "/mpack model spawn <id> lo mette ai propri piedi, girato verso chi lo lancia, con "
+                                + "l'animazione idle in loop (se c'e'); resta li' anche dopo i riavvii. /mpack model "
+                                + "rotate <gradi> lo gira, /mpack model remove lo toglie. L'animazione gira solo con un "
+                                + "giocatore entro 96 blocchi.")
 
                 .section("Oggetti custom (items.yml)",
                         "Catalogo staff-editable per oggetti con texture E MODELLO propri, non un semplice "

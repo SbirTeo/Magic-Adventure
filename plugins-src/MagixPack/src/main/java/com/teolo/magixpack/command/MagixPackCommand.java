@@ -43,6 +43,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             case "reload" -> reload(sender);
             case "item" -> item(sender, args);
             case "glyph" -> glyph(sender, args);
+            case "model" -> model(sender, args);
             default -> sender.sendMessage(messages.get(sender, "usage"));
         }
         return true;
@@ -296,13 +297,123 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
         }));
     }
 
+    // -------------------------------------------------------------------------------------- model
+
+    /** /mpack model list | spawn <id> [scale] [animation|none] | remove [radius] | rotate <degrees>. */
+    private void model(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("magixpack.model")) {
+            sender.sendMessage(messages.get(sender, "no-permission"));
+            return;
+        }
+        String sub = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        if (sub.equals("list")) {
+            modelList(sender);
+            return;
+        }
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(messages.get(sender, "model-player-only"));
+            return;
+        }
+        switch (sub) {
+            case "spawn" -> modelSpawn(player, args);
+            case "remove" -> {
+                double radius = args.length >= 3 ? parse(args[2], 10) : 10;
+                String id = plugin.modelDisplays().removeNearest(player.getLocation(), radius);
+                player.sendMessage(id == null
+                        ? messages.get(player, "model-none-near").replace("{radius}", fmt(radius))
+                        : messages.get(player, "model-removed").replace("{model}", id));
+            }
+            case "rotate" -> {
+                if (args.length < 3) {
+                    player.sendMessage(messages.get(player, "model-usage"));
+                    return;
+                }
+                float degrees = (float) parse(args[2], 0);
+                String id = plugin.modelDisplays().rotateNearest(player.getLocation(), 16, degrees);
+                player.sendMessage(id == null
+                        ? messages.get(player, "model-none-near").replace("{radius}", "16")
+                        : messages.get(player, "model-rotated").replace("{model}", id).replace("{degrees}", fmt(degrees)));
+            }
+            default -> player.sendMessage(messages.get(player, "model-usage"));
+        }
+    }
+
+    private void modelSpawn(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage(messages.get(player, "model-usage"));
+            return;
+        }
+        String id = args[2].toLowerCase(Locale.ROOT);
+        com.teolo.magixpack.model.BbModel m = plugin.modelCatalog().get(id);
+        if (m == null) {
+            player.sendMessage(messages.get(player, "model-unknown").replace("{model}", id));
+            return;
+        }
+        double scale = args.length >= 4 ? Math.max(0.05, Math.min(16, parse(args[3], 1))) : 1;
+        String animation;
+        if (args.length >= 5) {
+            animation = args[4].equalsIgnoreCase("none") ? null : args[4];
+            if (animation != null && !m.animations.containsKey(animation)) {
+                player.sendMessage(messages.get(player, "model-animation-unknown").replace("{animation}", animation)
+                        .replace("{animations}", m.animations.isEmpty() ? "-" : String.join(", ", m.animations.keySet())));
+                return;
+            }
+        } else {
+            // the looping "idle" if there is one, else the first looping animation, else none
+            animation = m.animations.containsKey("idle") ? "idle" : null;
+            if (animation == null) {
+                for (com.teolo.magixpack.model.BbModel.Animation a : m.animations.values()) {
+                    if (a.loop()) {
+                        animation = a.name();
+                        break;
+                    }
+                }
+            }
+        }
+        // in front of the player's feet, facing the player
+        org.bukkit.Location at = player.getLocation();
+        at.setYaw(at.getYaw() + 180);
+        int pieces = plugin.modelDisplays().spawn(id, at, scale, animation);
+        player.sendMessage(messages.get(player, "model-spawned").replace("{model}", id)
+                .replace("{pieces}", String.valueOf(pieces)).replace("{animation}", animation == null ? "-" : animation));
+    }
+
+    private void modelList(CommandSender sender) {
+        List<String> ids = plugin.modelCatalog().ids();
+        if (ids.isEmpty()) {
+            sender.sendMessage(messages.get(sender, "model-list-empty"));
+            return;
+        }
+        java.util.Map<String, Integer> placed = plugin.modelDisplays().placedCounts();
+        sender.sendMessage(messages.get(sender, "model-list-header").replace("{count}", String.valueOf(ids.size())));
+        for (String id : ids) {
+            com.teolo.magixpack.model.BbModel m = plugin.modelCatalog().get(id);
+            sender.sendMessage(messages.get(sender, "model-list-row").replace("{model}", id)
+                    .replace("{pieces}", String.valueOf(m.pieces.size()))
+                    .replace("{animations}", m.animations.isEmpty() ? "-" : String.join(", ", m.animations.keySet()))
+                    .replace("{placed}", String.valueOf(placed.getOrDefault(id, 0))));
+        }
+    }
+
+    private static double parse(String s, double def) {
+        try {
+            return Double.parseDouble(s.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    private static String fmt(double d) {
+        return d == Math.rint(d) ? String.valueOf((long) d) : String.valueOf(d);
+    }
+
     // ------------------------------------------------------------------------------ completamento
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String s : List.of("reload", "item", "glyph")) {
+            for (String s : List.of("reload", "item", "glyph", "model")) {
                 if (s.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(s);
             }
             return out;
@@ -311,6 +422,26 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             for (String s : List.of("give", "list")) {
                 if (s.startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(s);
             }
+            return out;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("model")) {
+            for (String s : List.of("list", "spawn", "remove", "rotate")) {
+                if (s.startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(s);
+            }
+            return out;
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("model") && args[1].equalsIgnoreCase("spawn")) {
+            for (String id : plugin.modelCatalog().ids()) {
+                if (id.startsWith(args[2].toLowerCase(Locale.ROOT))) out.add(id);
+            }
+            return out;
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("model") && args[1].equalsIgnoreCase("spawn")) {
+            com.teolo.magixpack.model.BbModel m = plugin.modelCatalog().get(args[2].toLowerCase(Locale.ROOT));
+            if (m != null) {
+                for (String a : m.animations.keySet()) if (a.startsWith(args[4])) out.add(a);
+            }
+            if ("none".startsWith(args[4].toLowerCase(Locale.ROOT))) out.add("none");
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("glyph")) {

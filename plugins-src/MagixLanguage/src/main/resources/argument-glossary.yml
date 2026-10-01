@@ -28,6 +28,7 @@ words:
   - {it: "nuova", en: "new", es: "nueva", de: "neu"}
   - {it: "tipo", en: "type", es: "tipo", de: "Typ"}
   - {it: "testo", en: "text", es: "texto", de: "Text"}
+  - {it: "gradi", en: "degrees", es: "grados", de: "Grad"}
   - {it: "posa", en: "pose", es: "pose", de: "Pose"}
   - {it: "soldi", en: "money", es: "dinero", de: "Geld"}
   - {it: "menu", en: "menu", es: "menú", de: "Menü"}
