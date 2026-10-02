@@ -38,13 +38,18 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
             return true;
         }
         String sub = args.length == 0 ? "info" : args[0].toLowerCase(Locale.ROOT);
+        // the page number on its own browses the command list: it is what the arrows send
+        if (sub.chars().allMatch(Character::isDigit)) {
+            help(sender, page(sub));
+            return true;
+        }
         switch (sub) {
             case "info" -> info(sender);
             case "set" -> set(sender, args);
             case "sync" -> sync(sender, args);
             case "status" -> status(sender);
             case "reload" -> reload(sender);
-            case "help", "?" -> help(sender);
+            case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
             default -> msg.send(sender, "unknown-subcommand");
         }
         return true;
@@ -178,21 +183,27 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         msg.send(sender, "reloaded");
     }
 
-    private void help(CommandSender sender) {
-        boolean admin = sender.hasPermission(ADMIN);
-        org.bukkit.configuration.ConfigurationSection sections = msg.section("help.sections");
-        if (sections == null) {
-            return;
-        }
-        for (String key : sections.getKeys(false)) {
-            org.bukkit.configuration.ConfigurationSection s = sections.getConfigurationSection(key);
-            if (s == null || (s.getBoolean("staff", false) && !admin)) {
-                continue;
-            }
-            sender.sendMessage("&#C046E8&l" + s.getString("title", key));
-            for (String line : s.getStringList("entries")) {
-                sender.sendMessage("&7" + line);
-            }
+    /**
+     * /language help [page]: the command list, laid out by {@link com.teolo.magixlanguage.util.Help}, the
+     * same class of every Magix plugin (sections, clickable lines, arrows; see STILE-MAGIX.md). This
+     * plugin is the translator itself, so its own texts stay as written in messages.yml.
+     */
+    private void help(CommandSender sender, int page) {
+        org.bukkit.configuration.ConfigurationSection h = msg.section("help");
+        String title = h != null ? h.getString("title", "MagixLanguage") : "MagixLanguage";
+        com.teolo.magixlanguage.util.Help.Text text = (to, path, kv) -> msg.get(path, kv);
+        com.teolo.magixlanguage.util.Help.Lines lines = (to, path) -> msg.getList(path);
+        com.teolo.magixlanguage.util.Help.show(sender, text, title, "/language help",
+                com.teolo.magixlanguage.util.Help.fromConfig(msg.section("help.sections"), sender, text, lines),
+                page, sender.hasPermission(ADMIN));
+    }
+
+    /** The page number written by the user; anything odd counts as 1. */
+    private static int page(String s) {
+        try {
+            return Math.max(1, Integer.parseInt(s.trim()));
+        } catch (NumberFormatException e) {
+            return 1;
         }
     }
 

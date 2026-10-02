@@ -488,6 +488,18 @@ altrimenti un placeholder dentro `{argomento}` non verrebbe mai risolto. Un `tex
 prima della chiamata evita il giro a vuoto sui messaggi senza placeholder (la stessa guardia già
 usata in `chat/ChatModule.java` e `nametag/NametagManager.java` di MagixEssentials).
 
+## OGNI COMANDO MAGIX HA L'ELENCO COMANDI NELLO STILE COMUNE (obbligatorio)
+
+Ogni plugin Magix che dichiara comandi nel `plugin.yml` mostra il suo elenco comandi con la classe
+condivisa **`util/Help.java`** (`Help.show` + `Help.fromConfig`, identica in ogni plugin): stessa
+intestazione, colori del logo, comandi cliccabili, pagine con le frecce. `/<comando> help [pagina]`,
+`?` come sinonimo e il numero da solo (`/mpack 2`); il comando senza argomenti apre l'elenco. Le voci
+stanno in `help.sections` del `messages.yml`, la cornice in `help.chrome` (tradotte da MagixLanguage
+come ogni altro messaggio). **Niente** righe `Uso: ...` o `§d<Plugin> » ...` scritte a mano: un
+sottocomando sconosciuto risponde con la chiave `unknown-subcommand`, che rimanda a `help`. Dettagli e
+tabella dei plugin: `plugins-src/STILE-MAGIX.md` §3. Lo fa rispettare `check_config.py`, regola
+**[13]** (blocca il commit).
+
 ## GUIDA E TUTORIAL SEMPRE AGGIORNATI (obbligatorio a ogni modifica)
 
 Ogni modifica che cambia **comportamento, comandi, permessi, regole o chiavi di config** va
@@ -526,7 +538,7 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    scritto a mano nelle frasi della guida staff che coincide con un valore del config (si usa
    `{{cfg:...}}`; le coincidenze vere vanno in `STAFF_NUMBER_OK`), **[12]** segnala un accento scritto
    con l'apostrofo ("piu'", "e'") nei testi dei plugin — valori e commenti YAML, stringhe Java: si
-   scrive la lettera accentata (più, è, perché; "po'" resta così). Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
+   scrive la lettera accentata (più, è, perché; "po'" resta così). **[13]** segnala un plugin con comandi che non usa la pagina comune `Help` (vedi sopra). Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
    `git config core.hooksPath .githooks`) e va lanciato prima di un rilascio.
 5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
    plugin e i `docs/` relativi, nello stesso commit della modifica.

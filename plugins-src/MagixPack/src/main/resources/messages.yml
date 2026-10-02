@@ -1,7 +1,7 @@
 # Testo che il giocatore (in questo caso lo staff, l'unico che usa /mpack) legge in chat.
 # Tradotto in automatico da MagixLanguage se installato (vedi lang/Messages.java).
 reloaded: "&aMagixPack ricaricato."
-usage: "&eUso: &a/mpack reload &7| &a/mpack item give <id> [giocatore] &7| &a/mpack item list &7| &a/mpack glyph list|show"
+unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/mpack help&c."
 no-permission: "&cNon hai il permesso per farlo."
 player-required: "&cSpecifica un giocatore (comando eseguibile solo da un giocatore, altrimenti)."
 player-not-found: "&cGiocatore '{player}' non trovato (deve essere online)."
@@ -66,3 +66,48 @@ model-none-near: "&cNessun modello entro {radius} blocchi da te."
 model-list-empty: "&7Nessun modello in plugins/MagixPack/models/ (servono file .bbmodel di Blockbench)."
 model-list-header: "&e{count} modello/i in models/:"
 model-list-row: "&7 - &f{model}&7: {pieces} pezzi, animazioni: &f{animations}&7, messi nel mondo: &f{placed}"
+
+# ---------------------------------------------------------------- /mpack help
+# L'elenco dei comandi lo impagina la classe Help (la stessa in tutti i plugin Magix, vedi
+# plugins-src/STILE-MAGIX.md): sezioni, frecce per sfogliare, ogni riga cliccabile per
+# scriversi il comando in chat. Formato di una riga:  "<comando> [argomenti] :: spiegazione"
+#   - staff: true su una sezione = la vede solo chi ha un permesso di MagixPack.
+help:
+  title: "MagixPack"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
+  sections:
+    pack:
+      title: "Pacchetto risorse"
+      staff: true
+      entries:
+        - "/mpack reload :: ricarica config, oggetti, icone e modelli e rimanda il pacchetto a chi è online"
+    items:
+      title: "Oggetti custom"
+      staff: true
+      entries:
+        - "/mpack item give <id> [giocatore] :: dà un oggetto custom di items.yml"
+        - "/mpack item list :: elenca gli oggetti custom caricati"
+    glyphs:
+      title: "Icone"
+      staff: true
+      entries:
+        - "/mpack glyph list :: elenca le icone col loro carattere e placeholder"
+        - "/mpack glyph show <id> [giocatore] :: mostra un'icona in chat (più id con la virgola: impilate)"
+    models:
+      title: "Modelli 3D"
+      staff: true
+      entries:
+        - "/mpack model list :: elenca i modelli di models/ e quanti ne sono nel mondo"
+        - "/mpack model spawn <id> [valore] [animazione] :: mette il modello ai tuoi piedi, girato verso di te"
+        - "/mpack model rotate <gradi> :: gira il modello più vicino"
+        - "/mpack model scale <valore> :: cambia la grandezza del modello più vicino"
+        - "/mpack model glow <on|off> :: luce piena sul modello più vicino"
+        - "/mpack model remove [raggio] :: toglie il modello più vicino"

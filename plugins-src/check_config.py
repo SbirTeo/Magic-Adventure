@@ -43,6 +43,11 @@ What it reports, for each .yml config file:
   [12] ACCENT WRITTEN WITH AN APOSTROPHE ("piu'", "e'", "perche'") in what people read: YAML values
       and comments, Java string literals. Write the accented letter (più, è, perché). "po'" is right
       as it is, and a word between single quotes ('dai_soldi') is not an accent.
+  [13] COMMANDS WITHOUT THE MAGIX COMMAND LIST: a plugin that declares commands in plugin.yml shows
+      them like every other Magix plugin (plugins-src/STILE-MAGIX.md section 3): the shared util/Help
+      (Help.show(...) called by the command, so "/<cmd>", "/<cmd> help [page]", "?" and the page
+      number alone open the list) and the entries in messages.yml under help.sections, with the
+      frame texts under help.chrome (a "usage" message for ONE wrong argument is fine).
 
 Exits with code 1 if it found anything: can be wired to a hook or to the build.
 """
@@ -458,8 +463,30 @@ def check(name):
                 problems += keys_not_told(folder, keys, code)
                 problems += staff_guide_numbers(name, keys)
     problems += accents_with_apostrophe(name)
+    problems += help_page_missing(name, code)
     problems += help_arguments_unknown(name)
     problems += placeholders_undocumented(name)
+    return problems
+
+
+def help_page_missing(name, code):
+    """[13] see the header: a plugin with commands shows them with the shared Help page."""
+    resources = os.path.join(HERE, name, "src", "main", "resources")
+    plugin_yml = os.path.join(resources, "plugin.yml")
+    if not os.path.isfile(plugin_yml):
+        return []
+    text = open(plugin_yml, encoding="utf-8").read()
+    block = re.search(r"^commands:\s*\n((?:[ \t]+.*\n?|\s*\n)+)", text, re.M)
+    if not block or not re.search(r"^  [A-Za-z0-9_-]+:", block.group(1), re.M):
+        return []
+    problems = []
+    if "Help.show(" not in code:
+        problems.append(("plugin.yml", 0, "[13] commands without the Magix command list", "Help.show(...) never called"))
+    messages = os.path.join(resources, "messages.yml")
+    msg = open(messages, encoding="utf-8").read() if os.path.isfile(messages) else ""
+    if not re.search(r"^help:\s*$", msg, re.M) or not re.search(r"^  sections:\s*$", msg, re.M) \
+            or not re.search(r"^  chrome:\s*$", msg, re.M):
+        problems.append(("messages.yml", 0, "[13] commands without the Magix command list", "help.chrome / help.sections"))
     return problems
 
 

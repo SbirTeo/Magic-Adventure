@@ -4,12 +4,14 @@ import com.teolo.magixessentials.chat.ChatModule;
 import com.teolo.magixessentials.currency.CurrencyManager;
 import com.teolo.magixessentials.currency.CurrencyPlaceholders;
 import com.teolo.magixessentials.hook.Papi;
+import com.teolo.magixessentials.lang.Messages;
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.nametag.NametagManager;
 import com.teolo.magixessentials.tabcomplete.TabCompleteFilter;
 import com.teolo.magixessentials.util.ConfigAlign;
 import com.teolo.magixessentials.util.ConfigValues;
+import com.teolo.magixessentials.util.Help;
 import com.teolo.magixessentials.util.StaffGuide;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -42,6 +44,7 @@ public final class MagixEssentials extends JavaPlugin {
     private TabCompleteFilter tabComplete;
     private ChatModule chat;
     private CurrencyManager currencies;
+    private Messages messages;
 
     @Override
     public void onEnable() {
@@ -57,6 +60,7 @@ public final class MagixEssentials extends JavaPlugin {
         // resterebbe indietro in silenzio (vedi util/ConfigAlign).
         ConfigAlign.alignAll(this);
         reloadConfig();
+        messages = new Messages(this);
         modules.ricarica();   // dopo l'allineamento: cosi' legge anche le chiavi appena aggiunte
         avviaModuli();
         // Il capitolo della guida per lo staff sul sito + il README nella cartella del plugin:
@@ -75,26 +79,60 @@ public final class MagixEssentials extends JavaPlugin {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
-        if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
-            // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
-            // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
-            ConfigAlign.alignAll(this);
-            reloadConfig();
-            modules.ricarica();
-            // Sempre tutto spento e poi riacceso solo quello che il modules.yml dice adesso:
-            // cosi' una funzione spenta un attimo fa sparisce davvero, invece di restare appesa
-            // com'era prima del reload.
-            spegniModuli();
-            avviaModuli();
-            // La guida riporta i valori VIVI del config: se non la riscrivessimo qui, dopo un
-            // reload resterebbe indietro fino al prossimo riavvio.
-            Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
-            sender.sendMessage("§dMagixEssentials §8» §7Configurazione ricaricata §8(§7moduli: §f"
-                    + modules.riepilogo() + "§8)§7.");
+        String sub = args.length == 0 ? "help" : args[0].toLowerCase(java.util.Locale.ROOT);
+        if (sub.matches("\\d+")) {
+            help(sender, page(sub));
             return true;
         }
-        sender.sendMessage("§dMagixEssentials §8» §7Uso: §f/" + label + " reload");
+        switch (sub) {
+            case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
+            case "reload" -> reload(sender);
+            default -> messages.send(sender, "unknown-subcommand");
+        }
         return true;
+    }
+
+    @Override
+    public java.util.List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
+                                                @NotNull String alias, @NotNull String[] args) {
+        if (args.length != 1) {
+            return java.util.List.of();
+        }
+        String prefix = args[0].toLowerCase(java.util.Locale.ROOT);
+        return java.util.List.of("help", "reload").stream().filter(s -> s.startsWith(prefix)).toList();
+    }
+
+    private void reload(CommandSender sender) {
+        // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
+        // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+        ConfigAlign.alignAll(this);
+        reloadConfig();
+        messages.reload();
+        modules.ricarica();
+        // Sempre tutto spento e poi riacceso solo quello che il modules.yml dice adesso:
+        // cosi' una funzione spenta un attimo fa sparisce davvero, invece di restare appesa
+        // com'era prima del reload.
+        spegniModuli();
+        avviaModuli();
+        // La guida riporta i valori VIVI del config: se non la riscrivessimo qui, dopo un
+        // reload resterebbe indietro fino al prossimo riavvio.
+        Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
+        messages.send(sender, "reloaded", "modules", modules.riepilogo());
+    }
+
+    /** /mess help [pagina]: l'elenco comandi con la pagina comune dei plugin Magix (util/Help). */
+    private void help(CommandSender sender, int page) {
+        Help.show(sender, messages::text, messages.text(sender, "help.title"), "/mess help",
+                Help.fromConfig(messages.section("help.sections"), sender, messages::text, messages::list),
+                page, sender.hasPermission("magixessentials.admin"));
+    }
+
+    private static int page(String s) {
+        try {
+            return Math.max(1, Integer.parseInt(s));
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     /**

@@ -71,3 +71,12 @@ avatar:
   # imposta), la si chiede a Mojang per NOME, cioè la skin dell'account premium con quel nome.
   # false = solo la skin del profilo.
   mojang-lookup: true
+
+# ---- MODELLI 3D (plugins/MagixPack/models/*.bbmodel, /mpack model) [solo staff] ----
+models:
+  # Fino a quanti blocchi di distanza i giocatori vedono i modelli messi nel mondo. Il client
+  # disegna un'entità display entro (questo valore) blocchi, ridotti dalla sua opzione "Distanza
+  # entità"; il server però la manda solo entro la propria view-distance (server.properties, in
+  # chunk da 16 blocchi) e il tracciamento dei display di spigot.yml: per vedere un modello a 128
+  # blocchi servono view-distance almeno 8 e display almeno 128.
+  view-distance: 128

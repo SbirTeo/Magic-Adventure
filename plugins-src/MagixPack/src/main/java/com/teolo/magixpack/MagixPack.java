@@ -518,7 +518,8 @@ public final class MagixPack extends JavaPlugin implements Listener {
                         "port", "Porta del server HTTP che serve lo zip: va aperta sul firewall del VPS.",
                         "required", "Se il pacchetto è obbligatorio (true, default) o facoltativo (false, nessuna espulsione).",
                         "watchdog-seconds", "Ogni quanti secondi si verifica che il pacchetto sia ancora scaricabile.",
-                        "avatar.mojang-lookup", "Se chiedere la skin a Mojang per nome quando il profilo del giocatore non la ha.")
+                        "avatar.mojang-lookup", "Se chiedere la skin a Mojang per nome quando il profilo del giocatore non la ha.",
+                        "models.view-distance", "Fino a quanti blocchi si vedono i modelli messi nel mondo. Servono anche view-distance del server almeno 8 e tracciamento dei display almeno 128.")
 
                 .issue("Un giocatore è stato espulso appena entrato",
                         "Ha rifiutato il pacchetto, o il download è fallito, o il client non ha risposto in "

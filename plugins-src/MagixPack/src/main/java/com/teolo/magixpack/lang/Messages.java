@@ -16,6 +16,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Carica e fornisce i messaggi da messages.yml (modificabile dall'utente). */
@@ -65,14 +68,65 @@ public final class Messages {
         return text;
     }
 
+    /** A section of messages.yml (e.g. help.sections), or null. */
+    public org.bukkit.configuration.ConfigurationSection section(String path) {
+        return cfg.getConfigurationSection(path);
+    }
+
+    /** The text of {@code path} for this receiver, with {key} replaced by the kv pairs: for panels
+     *  such as the command list (util/Help). Translated like {@link #get(CommandSender, String)}. */
+    public String forPlayer(CommandSender to, String path, String... kv) {
+        String translated = to instanceof Player player ? translated(player, path, kv) : null;
+        String text = translated != null ? Colors.translate(translated) : apply(get(path), kv);
+        if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
+            text = Papi.resolve(player, text);
+        }
+        return text;
+    }
+
+    /** Like {@link #forPlayer}, for a key whose value is a list of lines. */
+    public List<String> listForPlayer(CommandSender to, String path) {
+        List<String> translated = null;
+        if (to instanceof Player player) {
+            MagixLanguageAPI api = magixLanguage();
+            if (api != null && !"it".equals(api.language(player))) {
+                try {
+                    translated = api.translateList(PLUGIN_NAME, player, path, Map.of());
+                } catch (Throwable t) {
+                    translated = null;
+                }
+            }
+        }
+        List<String> out = new ArrayList<>();
+        for (String line : translated != null ? translated : cfg.getStringList(path)) {
+            String text = Colors.translate(line);
+            if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
+                text = Papi.resolve(player, text);
+            }
+            out.add(text);
+        }
+        return out;
+    }
+
+    private static String apply(String s, String... kv) {
+        for (int i = 0; i + 1 < kv.length; i += 2) s = s.replace("{" + kv[i] + "}", kv[i + 1]);
+        return s;
+    }
+
+    private static Map<String, String> toMap(String... kv) {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (int i = 0; i + 1 < kv.length; i += 2) out.put(kv[i], kv[i + 1]);
+        return out;
+    }
+
     // ------------------------------------------------------------- MagixLanguage (opzionale)
 
     /** Null se MagixLanguage non c'e', il giocatore parla gia' italiano, o la chiave non e' (ancora) tradotta. */
-    private String translated(Player player, String path) {
+    private String translated(Player player, String path, String... kv) {
         MagixLanguageAPI api = magixLanguage();
         if (api == null || "it".equals(api.language(player))) return null;
         try {
-            return api.translate(PLUGIN_NAME, player, path, Map.of());
+            return api.translate(PLUGIN_NAME, player, path, toMap(kv));
         } catch (Throwable t) {
             return null;
         }

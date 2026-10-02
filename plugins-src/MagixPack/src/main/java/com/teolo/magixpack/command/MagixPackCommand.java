@@ -36,17 +36,48 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(messages.get(sender, "usage"));
+            help(sender, 1);
             return true;
         }
-        switch (args[0].toLowerCase(Locale.ROOT)) {
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        // the page number on its own browses the command list: it is what the arrows send
+        if (sub.chars().allMatch(Character::isDigit)) {
+            help(sender, page(sub));
+            return true;
+        }
+        switch (sub) {
+            case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
             case "reload" -> reload(sender);
             case "item" -> item(sender, args);
             case "glyph" -> glyph(sender, args);
             case "model" -> model(sender, args);
-            default -> sender.sendMessage(messages.get(sender, "usage"));
+            default -> sender.sendMessage(messages.get(sender, "unknown-subcommand"));
         }
         return true;
+    }
+
+    /**
+     * /mpack help [page]: the command list, laid out by {@link com.teolo.magixpack.util.Help} (the same
+     * class of every Magix plugin: sections, clickable lines, arrows). The entries live in
+     * messages.yml (help.sections); every section is for the staff.
+     */
+    private void help(CommandSender sender, int page) {
+        org.bukkit.configuration.ConfigurationSection h = messages.section("help");
+        String title = h != null ? h.getString("title", "MagixPack") : "MagixPack";
+        com.teolo.magixpack.util.Help.show(sender, messages::forPlayer, title, "/mpack help",
+                com.teolo.magixpack.util.Help.fromConfig(messages.section("help.sections"), sender,
+                        messages::forPlayer, messages::listForPlayer),
+                page, sender.hasPermission("magixpack.admin") || sender.hasPermission("magixpack.model")
+                        || sender.hasPermission("magixpack.item.give") || sender.hasPermission("magixpack.glyph.list"));
+    }
+
+    /** The page number written by the user; anything odd counts as 1. */
+    private static int page(String s) {
+        try {
+            return Math.max(1, Integer.parseInt(s.trim()));
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     private void reload(CommandSender sender) {
@@ -435,7 +466,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String s : List.of("reload", "item", "glyph", "model")) {
+            for (String s : List.of("help", "reload", "item", "glyph", "model")) {
                 if (s.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(s);
             }
             return out;

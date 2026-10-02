@@ -6,6 +6,7 @@ import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -16,7 +17,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -64,13 +67,45 @@ public final class Messages {
         to.sendMessage(componentFor(to, path, kv));
     }
 
-    private Component componentFor(CommandSender to, String path, String... kv) {
+    /** Il testo semplice (tradotto, placeholder risolti) per chi lo usa a modo suo, come util.Help. */
+    public String text(CommandSender to, String path, String... kv) {
         String translated = to instanceof Player player ? translated(player, path, kv) : null;
         String text = translated != null ? translated : raw(path, kv);
         if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
             text = Papi.resolve(player, text);
         }
-        return TextFormat.component(text);
+        return text;
+    }
+
+    /** Una lista di righe (es. le voci dell'elenco comandi), tradotta come {@link #text}. */
+    public List<String> list(CommandSender to, String path) {
+        List<String> translated = null;
+        if (to instanceof Player player) {
+            MagixLanguageAPI api = magixLanguage();
+            if (api != null && !"it".equals(api.language(player))) {
+                try {
+                    translated = api.translateList(PLUGIN_NAME, player, path, Map.of());
+                } catch (Throwable t) {
+                    translated = null;
+                }
+            }
+        }
+        List<String> out = new ArrayList<>();
+        for (String line : translated != null ? translated : cfg.getStringList(path)) {
+            if (to instanceof Player player && Papi.enabled() && line.indexOf('%') >= 0) {
+                line = Papi.resolve(player, line);
+            }
+            out.add(line);
+        }
+        return out;
+    }
+
+    public ConfigurationSection section(String path) {
+        return cfg.getConfigurationSection(path);
+    }
+
+    private Component componentFor(CommandSender to, String path, String... kv) {
+        return TextFormat.component(text(to, path, kv));
     }
 
     private String raw(String path, String... kv) {

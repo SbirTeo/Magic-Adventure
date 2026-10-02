@@ -31,3 +31,28 @@ currency:
   reset-target: "&7Il tuo saldo di {currency} è stato azzerato (ora è &f{balance}&7)."
   give-sent: "&7Hai dato &f{amount} {currency}&7 a &f{player}&7 (te ne restano &f{balance}&7)."
   give-received: "&7{sender} ti ha dato &f{amount} {currency}&7 (ora ne hai &f{balance}&7)."
+
+# Il comando /magixessentials (alias /mess): risposta al reload e sottocomando sconosciuto.
+# {modules} = i moduli accesi dopo il reload.
+reloaded: "&dMagixEssentials &8» &7Configurazione ricaricata &8(&7moduli: &f{modules}&8)&7."
+unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/mess help&c."
+
+# L'elenco comandi di /mess help, con la pagina comune dei plugin Magix (util/Help).
+help:
+  title: "MagixEssentials"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
+  sections:
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/mess help :: questo elenco"
+        - "/mess reload :: rilegge i file di config e riaccende i moduli scelti in modules.yml"

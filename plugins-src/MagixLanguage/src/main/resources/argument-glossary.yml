@@ -29,6 +29,8 @@ words:
   - {it: "tipo", en: "type", es: "tipo", de: "Typ"}
   - {it: "testo", en: "text", es: "texto", de: "Text"}
   - {it: "gradi", en: "degrees", es: "grados", de: "Grad"}
+  - {it: "animazione", en: "animation", es: "animación", de: "Animation"}
+  - {it: "raggio", en: "radius", es: "radio", de: "Radius"}
   - {it: "posa", en: "pose", es: "pose", de: "Pose"}
   - {it: "soldi", en: "money", es: "dinero", de: "Geld"}
   - {it: "menu", en: "menu", es: "menú", de: "Menü"}

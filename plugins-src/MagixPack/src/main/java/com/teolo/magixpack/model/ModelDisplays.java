@@ -120,6 +120,7 @@ public final class ModelDisplays implements Listener {
                 display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
                 display.setTransformationMatrix(m.pieceMatrix(index, null, 0, scale));
                 display.setPersistent(true);
+                display.setViewRange(viewRange());
                 PersistentDataContainer pdc = display.getPersistentDataContainer();
                 pdc.set(keyModel, PersistentDataType.STRING, id);
                 pdc.set(keyPiece, PersistentDataType.INTEGER, index);
@@ -289,9 +290,11 @@ public final class ModelDisplays implements Listener {
     }
 
     private void apply(Placement p, BbModel m, BbModel.Animation anim, double t, int interpolation) {
+        float range = viewRange();
         for (Map.Entry<Integer, ItemDisplay> en : p.pieces.entrySet()) {
             int i = en.getKey();
             ItemDisplay d = en.getValue();
+            if (d.getViewRange() != range) d.setViewRange(range);
             if (i >= m.pieces.size()) { // the model file now has fewer pieces: hide the extra ones
                 d.setTransformationMatrix(new org.joml.Matrix4f().scale(0));
                 continue;
@@ -300,6 +303,13 @@ public final class ModelDisplays implements Listener {
             d.setInterpolationDuration(interpolation);
             d.setTransformationMatrix(m.pieceMatrix(i, anim, t, p.scale));
         }
+    }
+
+    /** config models.view-distance (blocks) as a display view range: the client draws a display
+     *  within view range x 64 blocks. */
+    private float viewRange() {
+        double blocks = plugin.getConfig().getDouble("models.view-distance", 128);
+        return (float) (Math.max(16, Math.min(1024, blocks)) / 64.0);
     }
 
     private boolean playerNear(Placement p) {

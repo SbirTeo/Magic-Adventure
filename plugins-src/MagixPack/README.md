@@ -425,6 +425,15 @@ Ogni modello messo ricorda l'impronta del file da cui e' nato: se il `.bbmodel` 
 `/mpack reload` (o riavvio) il plugin lo **rifa' da solo** nello stesso punto, girato uguale, con la
 stessa scala, animazione e luce (`glow`). Niente remove/spawn a mano.
 
+**Da quanto lontano si vede**: `models.view-distance` in `config.yml` (default 128 blocchi) e'
+la distanza a cui il client disegna i modelli messi. Pero' il server manda le entita' solo entro la
+sua `view-distance` (in chunk, `server.properties`) e la distanza di tracciamento dei display
+(`entity-tracking-range.display` in `spigot.yml`): per vedere un modello a 128 blocchi servono
+`view-distance` almeno 8 e display almeno 128. `diagnostica-vps.yml` con `plugin=MagixPack` stampa
+le tre distanze; `server-property.yml` cambia una riga di `server.properties` (vale dal riavvio).
+
+L'elenco comandi e' `/mpack help [pagina]` (o `/mpack` da solo), nello stile comune dei plugin Magix.
+
 I modelli messi sono entita' normali salvate col mondo: restano dopo un riavvio, e il plugin li
 ritrova dai loro dati quando il chunk si carica. L'animazione gira solo con un giocatore entro 96
 blocchi. Se il file cambia, `/mpack reload` aggiorna anche quelli gia' messi (se ha MENO pezzi di
