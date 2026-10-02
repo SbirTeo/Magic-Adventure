@@ -313,7 +313,9 @@ def check(name):
     problems = []
 
     for f in sorted(os.listdir(resources)):
-        if not f.endswith(".yml") or f in ("plugin.yml", "messages.yml"):
+        # value-fixes.yml non e' configurazione: e' l'elenco interno dei testi di serie da
+        # aggiornare sul server (vedi MagixGuard.applyValueFixes), nessuno lo regola.
+        if not f.endswith(".yml") or f in ("plugin.yml", "messages.yml", "value-fixes.yml"):
             continue
         path = os.path.join(resources, f)
         keys = file_keys(path)
