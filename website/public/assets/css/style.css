@@ -269,7 +269,10 @@ body.pagina-store {
     top: -10px; bottom: -3px;
     left: -100vw; right: -100vw;
     background: color-mix(in srgb, var(--bg-testata) 55%, #000);
-    border-bottom: 1px solid var(--border);
+    /* bordo un filo piu' marcato di quelli normali, piu' un'ombra appena accennata: sulla fascia
+       scura la riga di --border quasi spariva e le due righe sembravano incollate */
+    border-bottom: 1px solid var(--border-strong);
+    box-shadow: 0 1px 6px -2px rgba(0, 0, 0, .55);
   }
   .nav-collapse { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
   .main-nav {
