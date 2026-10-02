@@ -181,7 +181,7 @@ HTML = r"""<!DOCTYPE html>
   <h2><span class="n">2</span>Creare la tua fazione</h2>
   <p>Per fondare una fazione usa:</p>
   <p><span class="cmd">/f create &lt;nome&gt;</span> — diventi automaticamente il <b>leader</b>.</p>
-  {{se:create-cost.money!=0}}{{se:create-cost.money!=0.0}}<div class="warn">Fondare una fazione <b>costa {{cfg:create-cost.money}}</b>: il denaro viene prelevato dal tuo portafoglio nel momento in cui crei la fazione, quindi controlla di averne abbastanza prima di scrivere il comando.</div>{{/se}}{{/se}}
+  {{se:create-cost.money!=0}}{{se:create-cost.money!=0.0}}<div class="warn">Fondare una fazione <b>costa {{SOLDI_CREATE}}</b>: il denaro viene prelevato dal tuo portafoglio nel momento in cui crei la fazione, quindi controlla di averne abbastanza prima di scrivere il comando.</div>{{/se}}{{/se}}
   {{OGGETTI_CREATE}}
   {{se:create-cost.min-playtime-seconds!=0}}<div class="warn">Per fondare una fazione devi aver giocato sul server almeno <b>{{secondi:create-cost.min-playtime-seconds}}</b> in tutto: prima di allora il comando viene rifiutato e ti dice quanto hai giocato finora.</div>{{/se}}
   <h3>Regole del nome</h3>
@@ -197,7 +197,7 @@ HTML = r"""<!DOCTYPE html>
   <div class="tip">Il <b>Leader</b> può cambiare il nome della fazione con
   <span class="cmd">/f rename &lt;nuovonome&gt;</span> (stesse regole del nome), al massimo una volta ogni
   <b>{{cfg:rename.cooldown-days}} giorni</b>. Il nuovo nome compare da solo anche sul sito.{{se:rename.cost.money!=0}}{{se:rename.cost.money!=0.0}}
-  Il cambio nome costa <b>{{cfg:rename.cost.money}}</b>, pagati dal leader.{{/se}}{{/se}}</div>
+  Il cambio nome costa <b>{{SOLDI_RENAME}}</b>, pagati dal leader.{{/se}}{{/se}}</div>
   {{OGGETTI_RENAME}}
 </section>
 
@@ -440,7 +440,7 @@ HTML = r"""<!DOCTYPE html>
   <h2><span class="n">10</span>La casa della fazione — <span class="cmd" style="font-size:15px">/f home</span></h2>
   <ol class="steps">
     <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.{{se:sethome-cost.money!=0}}{{se:sethome-cost.money!=0.0}}
-      Impostarla costa <b>{{cfg:sethome-cost.money}}</b>.{{/se}}{{/se}}</li>
+      Impostarla costa <b>{{SOLDI_SETHOME}}</b>.{{/se}}{{/se}}</li>
     <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione dopo
       <b>{{secondi:home-warmup.seconds}}</b> di attesa immobile: se ti muovi (anche di un blocco) o <b>subisci un
       danno</b> (un mob, una caduta, il fuoco, un altro giocatore...) il teletrasporto si annulla e va ripetuto

@@ -431,6 +431,11 @@ admin:
     none: "&eNessun dato di test presente: non c'è niente da rimuovere."
     info: "&eDati di test attuali: &6{factions}&e fazioni finte, &6{players}&e giocatori finti. Rimuovili con &6/mf admin fake clear&e."
 
+# Come il tutorial scrive una cifra in soldi (prezzi dei territori, costo di creazione...) quando
+# l'economia del server non e' ancora pronta mentre la guida viene scritta. Di norma la cifra la
+# formatta l'economia stessa (CMI tramite Vault), uguale a quella che si vede in gioco.
+guide-money: "{amount}€"
+
 # Nomi dei materiali come li legge il giocatore nel tutorial (blocchi che danno Valore, oggetti richiesti
 # dai costi). Chiave = nome del MATERIALE Minecraft, come in value-blocks e negli "items" del config.
 # Un materiale senza nome qui esce col nome tecnico ("diamond block") e il log all'avvio lo segnala:

@@ -839,7 +839,14 @@ public final class MagixFactions extends JavaPlugin {
             v.extra("MONDI_CLAIM_FRASE", "solo in questi mondi: " + String.join(", ", claimWorlds));
         }
 
-        materialNames = materialNames();
+        guideMessages = guideMessages();
+        materialNames = guideMessages == null ? null : guideMessages.getConfigurationSection("materials");
+
+        // Prezzi in soldi, scritti come li scrive l'economia del server ("500€"): un numero da solo
+        // non dice se si paga in soldi, oggetti o altro.
+        v.extra("SOLDI_CREATE", money(c.getDouble("create-cost.money", 0)));
+        v.extra("SOLDI_SETHOME", money(c.getDouble("sethome-cost.money", 0)));
+        v.extra("SOLDI_RENAME", money(c.getDouble("rename.cost.money", 0)));
 
         // Oggetti richiesti dai costi (liste "MATERIALE:quantita'"): un riquadro per ognuno, o niente.
         v.extra("OGGETTI_CREATE", itemsWarning("Per fondare la fazione", c.getStringList("create-cost.items")));
@@ -858,11 +865,11 @@ public final class MagixFactions extends JavaPlugin {
                 int n = owned + 1;   // "l'8°", "l'11°": l'articolo si apostrofa davanti a otto e undici
                 prices.append(n == 8 || n == 11 ? ", l'" : ", il ").append(n).append("° ");
             }
-            prices.append("<b>").append(DurationText.number(cost)).append("</b>");
+            prices.append("<b>").append(money(cost)).append("</b>");
         }
         v.extra("PREZZI_CLAIM", free
                 ? "Conquistare territori è <b>gratis</b>."
-                : "Ogni <span class=\"cmd\">/f claim</span> costa denaro, e lo paga la <b>banca della fazione</b> "
+                : "Ogni <span class=\"cmd\">/f claim</span> costa <b>soldi</b>, e li paga la <b>banca della fazione</b> "
                 + "(<span class=\"cmd\">/f deposit</span>), non il tuo portafoglio. Il prezzo <b>cresce</b> a ogni "
                 + "territorio che possedete: il 1° costa " + prices + "… e così via. Tenete la banca piena!");
 
@@ -891,7 +898,7 @@ public final class MagixFactions extends JavaPlugin {
         if (valueBlocks != null) {
             valueBlocks.getKeys(false).stream()
                     .sorted((a, b) -> Double.compare(valueBlocks.getDouble(b), valueBlocks.getDouble(a)))
-                    .forEach(k -> blocks.add("<li>" + materialName(k) + " — <b>"
+                    .forEach(k -> blocks.add("<li>" + materialName(k) + " — vale <b>"
                             + DurationText.number(valueBlocks.getDouble(k)) + "</b></li>"));
         }
         v.extra("BLOCCHI_VALORE", blocks.isEmpty() ? "" : "<ul>" + String.join("", blocks) + "</ul>");
@@ -911,14 +918,26 @@ public final class MagixFactions extends JavaPlugin {
                 + String.join(", ", parts) + ".</div>";
     }
 
-    /** Nomi italiani dei materiali (messages.yml, sezione materials), riletti a ogni giro delle guide. */
+    /** messages.yml riletto a ogni giro delle guide, e i nomi italiani dei materiali (sezione materials). */
+    private org.bukkit.configuration.ConfigurationSection guideMessages;
     private org.bukkit.configuration.ConfigurationSection materialNames;
 
     /**
-     * La sezione materials di messages.yml: il file del server se c'e' (allineato da ConfigAlign
-     * all'avvio, quindi ha anche i nomi nuovi del jar), altrimenti quello dentro il jar.
+     * Una cifra in soldi come la scrive l'economia del server (Vault: "500€"); senza economia
+     * pronta, col formato di riserva guide-money di messages.yml.
      */
-    private org.bukkit.configuration.ConfigurationSection materialNames() {
+    private String money(double amount) {
+        if (Econ.enabled()) return Econ.format(amount);
+        String format = guideMessages == null ? null : guideMessages.getString("guide-money");
+        if (format == null || format.isBlank()) format = "{amount}";
+        return format.replace("{amount}", DurationText.number(amount));
+    }
+
+    /**
+     * messages.yml: il file del server se c'e' (allineato da ConfigAlign all'avvio, quindi ha anche
+     * le chiavi nuove del jar), altrimenti quello dentro il jar.
+     */
+    private org.bukkit.configuration.ConfigurationSection guideMessages() {
         try {
             java.io.File f = new java.io.File(getDataFolder(), "messages.yml");
             org.bukkit.configuration.file.YamlConfiguration y;
@@ -930,7 +949,7 @@ public final class MagixFactions extends JavaPlugin {
                     y = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(r);
                 }
             }
-            return y.getConfigurationSection("materials");
+            return y;
         } catch (Exception e) {
             return null;
         }
