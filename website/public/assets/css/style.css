@@ -5981,7 +5981,23 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 }
 .guida-corpo tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .guida-corpo tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
-.guida-corpo tbody td:first-child { white-space: nowrap; }
+/* Le tabelle delle impostazioni hanno valori lunghi e senza spazi (un messaggio di ban coi
+   codici colore, l'elenco delle soglie, chiavi come application/auto-max-duration): senza poterli
+   spezzare la tabella usciva dalla pagina, la colonna "Cosa cambia" finiva fuori schermo e le
+   righe diventavano altissime. Si va a capo dove serve, anche dentro una parola o una chiave. */
+.guida-corpo td { overflow-wrap: anywhere; word-break: normal; }
+.guida-corpo td code { white-space: normal; overflow-wrap: anywhere; }
+.guida-corpo tbody td:first-child { width: 28%; }
+.guida-corpo table:has(thead th:nth-child(3)) tbody td:nth-child(2) { width: 24%; }
+/* Telefono: tre colonne affiancate in 350px sono illeggibili. Ogni riga diventa una scheda:
+   chiave, valore e spiegazione uno sotto l'altro. */
+@media (max-width: 700px) {
+  .guida-corpo table, .guida-corpo tbody, .guida-corpo tr, .guida-corpo td { display: block; width: auto !important; }
+  .guida-corpo thead { display: none; }
+  .guida-corpo tbody tr { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .guida-corpo tbody td { border-bottom: 0; padding: 2px 4px; }
+  .guida-corpo tbody td:first-child { font-weight: 600; }
+}
 
 /* I guasti: ognuno e' un riquadro, cosi' si trova quello che serve senza leggere il resto */
 .guida-casi { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
