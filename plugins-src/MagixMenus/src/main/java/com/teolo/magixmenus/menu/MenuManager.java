@@ -164,7 +164,7 @@ public final class MenuManager {
                 // Il nome era gia' di qualcun altro: il comando esiste ma con il prefisso
                 // (/magixmenus:nome). Meglio dirlo che lasciar credere che funzioni.
                 plugin.getLogger().warning("Il comando /" + principale + " del menu \"" + def.name()
-                        + "\" era gia' di un altro plugin: si apre con /magixmenus:" + principale + ".");
+                        + "\" era già di un altro plugin: si apre con /magixmenus:" + principale + ".");
                 commands.put(principale, c);
             }
         }
@@ -172,8 +172,8 @@ public final class MenuManager {
         for (Map.Entry<String, MenuCommand> e : commands.entrySet()) {
             if (!serviti.contains(e.getKey()) && e.getValue().menu() != null) {
                 e.getValue().punta(null, null);
-                plugin.getLogger().info("Il comando /" + e.getKey() + " non apre piu' nessun menu "
-                        + "(sparira' del tutto al prossimo riavvio).");
+                plugin.getLogger().info("Il comando /" + e.getKey() + " non apre più nessun menu "
+                        + "(sparirà del tutto al prossimo riavvio).");
             }
         }
         refreshClient();

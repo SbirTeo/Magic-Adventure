@@ -89,7 +89,7 @@ public final class ChatMemory {
         }
         List<Row> ultime = new ArrayList<>(globale);
         int da = Math.max(0, ultime.size() - contextRows);
-        StringBuilder b = new StringBuilder("Contesto della chat (dal piu' vecchio):\n");
+        StringBuilder b = new StringBuilder("Contesto della chat (dal più vecchio):\n");
         for (int i = da; i < ultime.size(); i++) {
             Row r = ultime.get(i);
             b.append("  [").append(com.teolo.magixguard.util.Fmt.shortDateTime(r.quando()))

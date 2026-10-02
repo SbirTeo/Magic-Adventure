@@ -262,7 +262,7 @@ public final class Equation {
 
         Object primario() {
             if (finito()) {
-                throw new Errore("la condizione finisce a meta'");
+                throw new Errore("la condizione finisce a metà");
             }
             Pezzo p = pieces.get(i);
             if (p.genere() == Genere.OPERATOR && p.text().equals("(")) {

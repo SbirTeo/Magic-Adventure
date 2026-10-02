@@ -36,17 +36,48 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(messages.get(sender, "usage"));
+            help(sender, 1);
             return true;
         }
-        switch (args[0].toLowerCase(Locale.ROOT)) {
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        // the page number on its own browses the command list: it is what the arrows send
+        if (sub.chars().allMatch(Character::isDigit)) {
+            help(sender, page(sub));
+            return true;
+        }
+        switch (sub) {
+            case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
             case "reload" -> reload(sender);
             case "item" -> item(sender, args);
             case "glyph" -> glyph(sender, args);
             case "model" -> model(sender, args);
-            default -> sender.sendMessage(messages.get(sender, "usage"));
+            default -> sender.sendMessage(messages.get(sender, "unknown-subcommand"));
         }
         return true;
+    }
+
+    /**
+     * /mpack help [page]: the command list, laid out by {@link com.teolo.magixpack.util.Help} (the same
+     * class of every Magix plugin: sections, clickable lines, arrows). The entries live in
+     * messages.yml (help.sections); every section is for the staff.
+     */
+    private void help(CommandSender sender, int page) {
+        org.bukkit.configuration.ConfigurationSection h = messages.section("help");
+        String title = h != null ? h.getString("title", "MagixPack") : "MagixPack";
+        com.teolo.magixpack.util.Help.show(sender, messages::forPlayer, title, "/mpack help",
+                com.teolo.magixpack.util.Help.fromConfig(messages.section("help.sections"), sender,
+                        messages::forPlayer, messages::listForPlayer),
+                page, sender.hasPermission("magixpack.admin") || sender.hasPermission("magixpack.model")
+                        || sender.hasPermission("magixpack.item.give") || sender.hasPermission("magixpack.glyph.list"));
+    }
+
+    /** The page number written by the user; anything odd counts as 1. */
+    private static int page(String s) {
+        try {
+            return Math.max(1, Integer.parseInt(s.trim()));
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     private void reload(CommandSender sender) {
@@ -299,7 +330,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
 
     // -------------------------------------------------------------------------------------- model
 
-    /** /mpack model list | spawn <id> [scale] [animation|none] | remove [radius] | rotate <degrees>. */
+    /** /mpack model list | spawn <id> [scale] [animation|none] | remove [radius] | rotate <degrees> | scale <size> | glow on|off. */
     private void model(CommandSender sender, String[] args) {
         if (!sender.hasPermission("magixpack.model")) {
             sender.sendMessage(messages.get(sender, "no-permission"));
@@ -333,6 +364,28 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage(id == null
                         ? messages.get(player, "model-none-near").replace("{radius}", "16")
                         : messages.get(player, "model-rotated").replace("{model}", id).replace("{degrees}", fmt(degrees)));
+            }
+            case "glow" -> {
+                if (args.length < 3 || !(args[2].equalsIgnoreCase("on") || args[2].equalsIgnoreCase("off"))) {
+                    player.sendMessage(messages.get(player, "model-usage"));
+                    return;
+                }
+                boolean glow = args[2].equalsIgnoreCase("on");
+                String id = plugin.modelDisplays().glowNearest(player.getLocation(), 24, glow);
+                player.sendMessage(id == null
+                        ? messages.get(player, "model-none-near").replace("{radius}", "24")
+                        : messages.get(player, glow ? "model-glow-on" : "model-glow-off").replace("{model}", id));
+            }
+            case "scale" -> {
+                if (args.length < 3) {
+                    player.sendMessage(messages.get(player, "model-usage"));
+                    return;
+                }
+                double scale = Math.max(0.05, Math.min(16, parse(args[2], 1)));
+                String id = plugin.modelDisplays().scaleNearest(player.getLocation(), 16, scale);
+                player.sendMessage(id == null
+                        ? messages.get(player, "model-none-near").replace("{radius}", "16")
+                        : messages.get(player, "model-scaled").replace("{model}", id).replace("{scale}", fmt(scale)));
             }
             default -> player.sendMessage(messages.get(player, "model-usage"));
         }
@@ -370,9 +423,9 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 }
             }
         }
-        // in front of the player's feet, facing the player
+        // at the player's feet, its front (Blockbench north, -Z) towards the player: the display
+        // looks where the player looks, so the model's -Z points back at the player
         org.bukkit.Location at = player.getLocation();
-        at.setYaw(at.getYaw() + 180);
         int pieces = plugin.modelDisplays().spawn(id, at, scale, animation);
         player.sendMessage(messages.get(player, "model-spawned").replace("{model}", id)
                 .replace("{pieces}", String.valueOf(pieces)).replace("{animation}", animation == null ? "-" : animation));
@@ -413,7 +466,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String s : List.of("reload", "item", "glyph", "model")) {
+            for (String s : List.of("help", "reload", "item", "glyph", "model")) {
                 if (s.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(s);
             }
             return out;
@@ -425,7 +478,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("model")) {
-            for (String s : List.of("list", "spawn", "remove", "rotate")) {
+            for (String s : List.of("list", "spawn", "remove", "rotate", "scale", "glow")) {
                 if (s.startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(s);
             }
             return out;
@@ -442,6 +495,12 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 for (String a : m.animations.keySet()) if (a.startsWith(args[4])) out.add(a);
             }
             if ("none".startsWith(args[4].toLowerCase(Locale.ROOT))) out.add("none");
+            return out;
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("model") && args[1].equalsIgnoreCase("glow")) {
+            for (String s : List.of("on", "off")) {
+                if (s.startsWith(args[2].toLowerCase(Locale.ROOT))) out.add(s);
+            }
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("glyph")) {

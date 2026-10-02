@@ -56,7 +56,7 @@ on:
         required: false
         default: ""
       remove_path:
-        description: "Percorso di UN file da togliere da overrides/ PRIMA della copia (relativo a overrides/, es. assets/minecraft/textures/gui/container/inventory.png). Vuoto = non tocca niente. Serve a ripulire un file lasciato da un test precedente."
+        description: "Percorso di UN file o di UNA cartella (con tutto il contenuto) da togliere PRIMA della copia, relativo alla destinazione (dest_subdir), es. assets/minecraft/textures/gui/container/inventory.png. Vuoto = non tocca niente. Serve a ripulire quello che un test o una versione precedente ha lasciato."
         required: false
         default: ""
 
@@ -147,14 +147,15 @@ jobs:
 
           $SSH "mkdir -p '$REMOTE_DIR'" </dev/null
 
-          # Rimozione mirata OPZIONALE di un file lasciato da un test precedente, prima
-          # della copia — mai una cartella intera, un percorso alla volta e solo dentro
-          # overrides/ (niente ".." nel percorso, per sicurezza).
+          # Rimozione mirata OPZIONALE di un file o di una cartella lasciati da un test o da una
+          # versione precedente, prima della copia: un percorso alla volta e solo DENTRO la
+          # destinazione (niente "..", niente percorso assoluto, mai la destinazione intera).
           if [ -n "${IN_REMOVE:-}" ]; then
             case "$IN_REMOVE" in
               *..*) echo "::error::remove_path non puo' contenere '..'"; exit 1 ;;
+              /*|.|./|*'*'*) echo "::error::remove_path deve essere un percorso dentro la destinazione"; exit 1 ;;
             esac
-            $SSH "rm -fv -- '$REMOTE_DIR/$IN_REMOVE'" </dev/null || true
+            $SSH "rm -rfv -- '$REMOTE_DIR/$IN_REMOVE' | tail -n 5" </dev/null || true
           fi
 
           # scp -r copia l'INTERO albero di SRC_DIR dentro REMOTE_DIR, ricreando la

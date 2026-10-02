@@ -12,11 +12,11 @@
 # comandi dichiarati nel plugin.yml: CurrencyManager li registra a runtime, uno per valuta.
 currency:
   usage: "&7Uso: &f/{command} add|take|set|reset|give <giocatore> [importo]"
-  unavailable: "&cQuesta valuta non esiste piu' (o il modulo e' spento): {id}."
+  unavailable: "&cQuesta valuta non esiste più (o il modulo è spento): {id}."
   store-error: "&cQualcosa non ha funzionato con questa valuta (database di rete non raggiungibile?): riprova."
   balance-self: "&7Hai &f{balance} {currency}&7."
   no-permission: "&cNon hai il permesso per questo comando."
-  player-only: "&cQuesto comando lo puo' usare solo chi gioca."
+  player-only: "&cQuesto comando lo può usare solo chi gioca."
   player-not-found: "&cNessun giocatore trovato con questo nome: {player}."
   invalid-amount: "&cL'importo deve essere un numero intero maggiore di zero."
   invalid-amount-set: "&cL'importo deve essere un numero intero, zero compreso."
@@ -26,8 +26,33 @@ currency:
   taken: "&7Hai tolto &f{amount} {currency}&7 a &f{player}&7 (ora ne ha &f{balance}&7)."
   taken-target: "&7Ti sono stati tolti &f{amount} {currency}&7 (ora ne hai &f{balance}&7)."
   set: "&7Hai messo il saldo di {currency} di &f{player}&7 a &f{amount}&7."
-  set-target: "&7Il tuo saldo di {currency} e' stato messo a &f{amount}&7."
-  reset: "&7Hai azzerato il saldo di {currency} di &f{player}&7 (ora e' &f{balance}&7)."
-  reset-target: "&7Il tuo saldo di {currency} e' stato azzerato (ora e' &f{balance}&7)."
+  set-target: "&7Il tuo saldo di {currency} è stato messo a &f{amount}&7."
+  reset: "&7Hai azzerato il saldo di {currency} di &f{player}&7 (ora è &f{balance}&7)."
+  reset-target: "&7Il tuo saldo di {currency} è stato azzerato (ora è &f{balance}&7)."
   give-sent: "&7Hai dato &f{amount} {currency}&7 a &f{player}&7 (te ne restano &f{balance}&7)."
   give-received: "&7{sender} ti ha dato &f{amount} {currency}&7 (ora ne hai &f{balance}&7)."
+
+# Il comando /magixessentials (alias /mess): risposta al reload e sottocomando sconosciuto.
+# {modules} = i moduli accesi dopo il reload.
+reloaded: "&#A8DC2CConfigurazione ricaricata &8· &#9A8CA8moduli: &f{modules}"
+unknown-subcommand: "&#FF6B6BNon conosco questo comando. Prova &#A8DC2C/mess help&#FF6B6B."
+
+# L'elenco comandi di /mess help, con la pagina comune dei plugin Magix (util/Help).
+help:
+  title: "MagixEssentials"
+  # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix).
+  chrome:
+    no-commands: "Nessun comando disponibile."
+    click-to-write: "Clicca per scriverlo"
+    staff-only: "Riservato allo staff"
+    click-hint: "clicca un comando per scriverlo"
+    back: " « indietro "
+    forward: " avanti » "
+    page: "Pagina {numero}"
+  sections:
+    staff:
+      title: "Staff"
+      staff: true
+      entries:
+        - "/mess help :: questo elenco"
+        - "/mess reload :: rilegge i file di config e riaccende i moduli scelti in modules.yml"

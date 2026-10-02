@@ -124,8 +124,8 @@ a CMI.
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
   `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, ProtocolLib, CMI,
-  MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack, con i config
-  copiati dal faction) installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin
+  MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack, MagixTime, con i
+  config copiati dal faction) installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin
   Magix con `deploy.target` = `faction hub` arrivano dal deploy automatico. Il deploy riavvia l'hub
   con `stopserverfast` (c'e' CMI). MagixPack dell'hub serve il suo pacchetto sulla porta **8444**
   (8443 e' del faction); texture e menu dell'hub: `overrides-hub/` + `deploy-plugin-override.yml`
@@ -317,7 +317,8 @@ render grafico, un suono, un timing visivo) dillo chiaramente invece di inventar
 la diagnostica prova quello che è nei log e nei file, non quello che un giocatore vede a schermo.
 
 Si lancia con `workflow_dispatch` passando:
-- `plugin` — cartella del plugin (es. `MagixFactions`), oppure `tutti` per l'elenco delle
+- `plugin` — `database` per lo stato di MariaDB (connessioni, chi le tiene, riavvii nel suo diario).
+  Altrimenti cartella del plugin (es. `MagixFactions`), oppure `tutti` per l'elenco delle
   chiavi di config di TUTTI i Magix (utile per confrontare col repo dopo una rinomina).
 - `file` (opzionale) — un file della cartella dati del plugin da stampare per intero.
 - `grep` (opzionale, default = nome del plugin) — regex estesa case-insensitive da cercare nel
@@ -382,6 +383,11 @@ Regole che ne discendono:
   ne riconosce **nessuna** (successe coi fine riga di Windows), il file non si tocca; e se il
   risultato conterrebbe una chiave **doppia**, l'allineamento si annulla. In YAML vince l'ultima
   chiave: un doppione accodato copre i valori veri, comprese le credenziali del database.
+- **Un testo di serie cambiato** (es. un accento corretto) non arriva da solo sul server: i valori
+  gia' presenti non si toccano. Si dichiara in **`value-fixes.yml`** nelle risorse del plugin
+  (`<file>: [{old: "testo vecchio", new: "testo nuovo"}]`): `ConfigAlign` all'avvio e a ogni reload
+  sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano dallo staff resta), con
+  la copia in `.bak/`. MagixProxy (Velocity, senza ConfigAlign) fa lo stesso in `ProxyConfig`.
 - `deploy-plugin-config.yml` resta per gli interventi a mano: `mode=set` per cambiare un valore
   gia' presente sul server, `mode=rename` per una rinomina una tantum, `mode=dedup` per rimediare
   a un file con blocchi duplicati.
@@ -482,6 +488,18 @@ altrimenti un placeholder dentro `{argomento}` non verrebbe mai risolto. Un `tex
 prima della chiamata evita il giro a vuoto sui messaggi senza placeholder (la stessa guardia già
 usata in `chat/ChatModule.java` e `nametag/NametagManager.java` di MagixEssentials).
 
+## OGNI COMANDO MAGIX HA L'ELENCO COMANDI NELLO STILE COMUNE (obbligatorio)
+
+Ogni plugin Magix che dichiara comandi nel `plugin.yml` mostra il suo elenco comandi con la classe
+condivisa **`util/Help.java`** (`Help.show` + `Help.fromConfig`, identica in ogni plugin): stessa
+intestazione, colori del logo, comandi cliccabili, pagine con le frecce. `/<comando> help [pagina]`,
+`?` come sinonimo e il numero da solo (`/mpack 2`); il comando senza argomenti apre l'elenco. Le voci
+stanno in `help.sections` del `messages.yml`, la cornice in `help.chrome` (tradotte da MagixLanguage
+come ogni altro messaggio). **Niente** righe `Uso: ...` o `§d<Plugin> » ...` scritte a mano: un
+sottocomando sconosciuto risponde con la chiave `unknown-subcommand`, che rimanda a `help`. Dettagli e
+tabella dei plugin: `plugins-src/STILE-MAGIX.md` §3. Lo fa rispettare `check_config.py`, regola
+**[13]** (blocca il commit).
+
 ## GUIDA E TUTORIAL SEMPRE AGGIORNATI (obbligatorio a ogni modifica)
 
 Ogni modifica che cambia **comportamento, comandi, permessi, regole o chiavi di config** va
@@ -514,7 +532,13 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    *modalità* (chiave che vale una parola fra più possibili) che il tutorial non racconta con un
    blocco `{{se:...}}`, **[9]** segnala un placeholder PlaceholderAPI che il plugin risolve ma che
    la guida staff non elenca (costante `DOCS` della classe dei placeholder, passata a
-   `StaffGuide.placeholders(...)`). Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
+   `StaffGuide.placeholders(...)`), **[10]** segnala una chiave di `config.yml` che il tutorial non racconta e
+   che non e' marcata `[solo staff]` nel commento (della chiave o di una sezione sopra): il tutorial cita
+   **solo** quello che tocca i giocatori, e ogni chiave nuova obbliga a scegliere. **[11]** segnala un numero
+   scritto a mano nelle frasi della guida staff che coincide con un valore del config (si usa
+   `{{cfg:...}}`; le coincidenze vere vanno in `STAFF_NUMBER_OK`), **[12]** segnala un accento scritto
+   con l'apostrofo ("piu'", "e'") nei testi dei plugin — valori e commenti YAML, stringhe Java: si
+   scrive la lettera accentata (più, è, perché; "po'" resta così). **[13]** segnala un plugin con comandi che non usa la pagina comune `Help` (vedi sopra). Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
    `git config core.hooksPath .githooks`) e va lanciato prima di un rilascio.
 5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
    plugin e i `docs/` relativi, nello stesso commit della modifica.

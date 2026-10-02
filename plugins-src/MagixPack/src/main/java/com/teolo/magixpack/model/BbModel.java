@@ -32,10 +32,24 @@ import java.util.Map;
  */
 public final class BbModel {
 
-    /** One box to draw: unit cube [-0.5, 0.5] scaled by {@link #size}, turned by {@link #rotation},
-     *  moved to {@link #center}; {@code faces} holds the face JSON of its item model. */
+    /** One thing to draw, with ONE item display: unit cube [-0.5, 0.5] scaled by {@link #size},
+     *  turned by {@link #rotation}, moved to {@link #center}; {@code faces} holds the face JSON of
+     *  its item model. When {@code parts} is not null this is several boxes of the same bone merged
+     *  into one item model (see {@link #MERGE_SPAN}): the unit cube then stands for the model space. */
     public record Piece(String name, String bone, Vector3d center, Matrix3d rotation, Vector3d size,
-                        Map<String, JsonObject> faces) {}
+                        Map<String, JsonObject> faces, List<Piece> parts, double modelScale) {
+        Piece(String name, String bone, Vector3d center, Matrix3d rotation, Vector3d size,
+              Map<String, JsonObject> faces) {
+            this(name, bone, center, rotation, size, faces, null, 1);
+        }
+    }
+
+    /** Item model elements must stay in -16..32: a merged piece is shrunk to fit this span (around
+     *  8, the centre of the model) and the display scales it back up. */
+    static final double MERGE_SPAN = 46;
+
+    /** Content hash of the file: placed models made from another version are rebuilt. */
+    public String hash = "";
 
     public record Bone(String uuid, String name, String parent, Vector3d pivot, Vector3d rotation) {}
 
@@ -116,7 +130,45 @@ public final class BbModel {
             m.animations.put(name, new Animation(name, "loop".equals(str(o, "loop", "once")),
                     o.has("length") ? o.get("length").getAsDouble() : 0, rot, pos));
         }
+        m.mergeStraightPieces();
         return m;
+    }
+
+    /**
+     * Every box that is NOT turned goes, together with the others of its bone, into ONE item model
+     * with many elements: one item display instead of one per box (a logo of hundreds of cubes is
+     * one entity). Turned boxes keep a display each (an item model element cannot turn freely).
+     */
+    private void mergeStraightPieces() {
+        Map<String, List<Piece>> byBone = new LinkedHashMap<>();
+        List<Piece> keep = new ArrayList<>();
+        for (Piece p : pieces) {
+            if (p.rotation().equals(new Matrix3d(), 1e-6)) byBone.computeIfAbsent(String.valueOf(p.bone()), k -> new ArrayList<>()).add(p);
+            else keep.add(p);
+        }
+        List<Piece> out = new ArrayList<>();
+        for (List<Piece> group : byBone.values()) {
+            if (group.size() == 1) {
+                out.add(group.get(0));
+                continue;
+            }
+            Vector3d lo = new Vector3d(Double.MAX_VALUE), hi = new Vector3d(-Double.MAX_VALUE);
+            for (Piece p : group) {
+                Vector3d half = new Vector3d(p.size()).mul(0.5);
+                lo.min(new Vector3d(p.center()).sub(half));
+                hi.max(new Vector3d(p.center()).add(half));
+            }
+            Vector3d center = new Vector3d(lo).add(hi).mul(0.5);
+            Vector3d ext = new Vector3d(hi).sub(lo);
+            double span = Math.max(ext.x, Math.max(ext.y, ext.z));
+            double f = Math.min(1.0, MERGE_SPAN / Math.max(span, 1e-6));
+            double s = 16.0 / f;
+            out.add(new Piece("merged", group.get(0).bone(), center, new Matrix3d(), new Vector3d(s, s, s),
+                    Map.of(), group, f));
+        }
+        out.addAll(keep);
+        pieces.clear();
+        pieces.addAll(out);
     }
 
     private static void walk(JsonArray nodes, String parent, Map<String, JsonObject> groups, BbModel m,
@@ -277,6 +329,10 @@ public final class BbModel {
         m.translate((float) p.center().x, (float) p.center().y, (float) p.center().z);
         m.mul(rot4(p.rotation()));
         m.scale((float) p.size().x, (float) p.size().y, (float) p.size().z);
+        // the client draws the item of an item display turned by 180 degrees around Y: turn it back,
+        // or a merged piece (many boxes in one item model) comes out facing backwards and every
+        // single box shows its front texture on its back
+        m.rotateY((float) Math.PI);
         return m;
     }
 

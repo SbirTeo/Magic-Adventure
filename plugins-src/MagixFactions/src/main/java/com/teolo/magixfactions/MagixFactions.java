@@ -23,6 +23,10 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 /**
  * MagixFactions - plugin tipo Factions.
  * Modulo 1: fazioni, gradi configurabili, leader/successione, promote, chat, limite membri,
@@ -47,6 +51,7 @@ public final class MagixFactions extends JavaPlugin {
         // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
         // resterebbe indietro in silenzio (vedi util/ConfigAlign).
         ConfigAlign.alignAll(this);
+        com.teolo.magixfactions.config.PlaytimeMigration.run(this);
         reloadConfig();
         getDataFolder().mkdirs();
         // Puro I/O su file, nessuna API Bukkit coinvolta: non deve bloccare il tick di avvio.
@@ -400,7 +405,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "**ONLINE** (+{{cfg:power.gain-amount}} ogni {{secondi:power.gain-interval-seconds}}), "
                                 + "scende alla morte (-{{cfg:power.death-loss}}) e {{PERDITA_OFFLINE_FRASE}}, senza mai "
                                 + "andare sotto il negativo del tetto.",
-                        "La perdita da assenza e' la domanda che arriverà più spesso: «sono tornato e avevo meno "
+                        "La perdita da assenza è la domanda che arriverà più spesso: «sono tornato e avevo meno "
                                 + "Potenza di quando sono uscito». È voluta, e cala davvero mentre il giocatore è via, "
                                 + "non tutta in blocco al rientro — serve a impedire che una fazione di gente che non "
                                 + "gioca più tenga terreno per sempre. Chi ha il permesso VIP la subisce più "
@@ -697,7 +702,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "MagixEssentials (tablist.yml -> fixed-slots) mandano una latenza NEGATIVA per non "
                                 + "avere un giocatore vero dietro, e il client la disegna con l'icona \"connessione "
                                 + "sconosciuta\" (ping_unknown.png). Il pacchetto sostituisce SOLO quel file con uno "
-                                + "trasparente: e' l'unica delle sei icone di ping che un giocatore vero non puo' mai "
+                                + "trasparente: è l'unica delle sei icone di ping che un giocatore vero non può mai "
                                 + "avere per davvero, quindi l'unica spegnibile senza spegnere anche la barra di "
                                 + "qualcun altro (le cinque \"ping_1..5\" vere non si toccano). Vale la stessa regola "
                                 + "di sopra: cambia solo con un riavvio, non con un reload.")
@@ -739,7 +744,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«Non riesco a fare claim»",
                         "Quasi sempre è Potenza insufficiente o tetto raggiunto, non un guasto. /f info sulla sua "
                                 + "fazione mostra territori, Potenza e stato: se la riga è rossa la fazione è "
@@ -833,7 +838,131 @@ public final class MagixFactions extends JavaPlugin {
         } else {
             v.extra("MONDI_CLAIM_FRASE", "solo in questi mondi: " + String.join(", ", claimWorlds));
         }
+
+        guideMessages = guideMessages();
+        materialNames = guideMessages == null ? null : guideMessages.getConfigurationSection("materials");
+
+        // Prezzi in soldi, scritti come li scrive l'economia del server ("500€"): un numero da solo
+        // non dice se si paga in soldi, oggetti o altro.
+        v.extra("SOLDI_CREATE", money(c.getDouble("create-cost.money", 0)));
+        v.extra("SOLDI_SETHOME", money(c.getDouble("sethome-cost.money", 0)));
+        v.extra("SOLDI_RENAME", money(c.getDouble("rename.cost.money", 0)));
+
+        // Oggetti richiesti dai costi (liste "MATERIALE:quantita'"): un riquadro per ognuno, o niente.
+        v.extra("OGGETTI_CREATE", itemsWarning("Per fondare la fazione", c.getStringList("create-cost.items")));
+        v.extra("OGGETTI_SETHOME", itemsWarning("Per impostare la casa", c.getStringList("sethome-cost.items")));
+        v.extra("OGGETTI_RENAME", itemsWarning("Per cambiare nome alla fazione", c.getStringList("rename.cost.items")));
+        v.extra("OGGETTI_CLAIM", itemsWarning("Per ogni territorio conquistato", c.getStringList("claims.cost.items")));
+
+        // Prezzi dei territori: la sequenza vera, calcolata con la stessa formula di /f claim.
+        String spec = c.getString("claims.cost.money", "0");
+        StringBuilder prices = new StringBuilder();
+        boolean free = true;
+        for (int owned = 0; owned < 10; owned++) {
+            double cost = com.teolo.magixfactions.command.FCommand.nextClaimCost(spec, owned);
+            if (cost > 0) free = false;
+            if (owned > 0) {
+                int n = owned + 1;   // "l'8°", "l'11°": l'articolo si apostrofa davanti a otto e undici
+                prices.append(n == 8 || n == 11 ? ", l'" : ", il ").append(n).append("° ");
+            }
+            prices.append("<b>").append(money(cost)).append("</b>");
+        }
+        v.extra("PREZZI_CLAIM", free
+                ? "Conquistare territori è <b>gratis</b>."
+                : "Ogni <span class=\"cmd\">/f claim</span> costa <b>soldi</b>, e li paga la <b>banca della fazione</b> "
+                + "(<span class=\"cmd\">/f deposit</span>), non il tuo portafoglio. Il prezzo <b>cresce</b> a ogni "
+                + "territorio che possedete: il 1° costa " + prices + "… e così via. Tenete la banca piena!");
+
+        // Gradi, dal piu' basso al piu' alto, e chi puo' prelevare dalla banca (permessi ereditati).
+        List<String> rankNames = new ArrayList<>();
+        int firstWithdraw = -1;
+        for (Map<?, ?> rank : c.getMapList("ranks")) {
+            Object name = rank.get("name");
+            rankNames.add(name == null ? String.valueOf(rank.get("id")) : String.valueOf(name));
+            Object perms = rank.get("permissions");
+            if (firstWithdraw < 0 && perms instanceof List<?> list
+                    && (list.contains("withdraw") || list.contains("*"))) {
+                firstWithdraw = rankNames.size() - 1;
+            }
+        }
+        String leaderName = c.getString("leader.name", "Leader");
+        v.extra("GRADI_ELENCO", rankNames.isEmpty() ? "<b>" + leaderName + "</b>"
+                : "<b>" + String.join("</b>, <b>", rankNames) + "</b> e il <b>" + leaderName + "</b>");
+        List<String> withdraw = new ArrayList<>(firstWithdraw < 0 ? List.of() : rankNames.subList(firstWithdraw, rankNames.size()));
+        withdraw.add(leaderName);
+        v.extra("GRADI_PRELIEVO", "<b>" + String.join("</b>, <b>", withdraw) + "</b>");
+
+        // Blocchi che danno Valore alla fazione, dal piu' prezioso.
+        List<String> blocks = new ArrayList<>();
+        var valueBlocks = c.getConfigurationSection("value-blocks");
+        if (valueBlocks != null) {
+            valueBlocks.getKeys(false).stream()
+                    .sorted((a, b) -> Double.compare(valueBlocks.getDouble(b), valueBlocks.getDouble(a)))
+                    .forEach(k -> blocks.add("<li>" + materialName(k) + " — vale <b>"
+                            + DurationText.number(valueBlocks.getDouble(k)) + "</b></li>"));
+        }
+        v.extra("BLOCCHI_VALORE", blocks.isEmpty() ? "" : "<ul>" + String.join("", blocks) + "</ul>");
         return v;
+    }
+
+    /** Riquadro "servono questi oggetti" del tutorial; vuoto se la lista e' vuota. */
+    private String itemsWarning(String what, List<String> items) {
+        List<String> parts = new ArrayList<>();
+        for (String entry : items) {
+            String[] p = entry.split(":");
+            String amount = p.length > 1 ? p[1].trim() : "1";
+            parts.add("<b>" + amount + " × " + materialName(p[0]) + "</b>");
+        }
+        if (parts.isEmpty()) return "";
+        return "<div class=\"warn\">" + what + " servono anche questi oggetti nell'inventario, che vengono consumati: "
+                + String.join(", ", parts) + ".</div>";
+    }
+
+    /** messages.yml riletto a ogni giro delle guide, e i nomi italiani dei materiali (sezione materials). */
+    private org.bukkit.configuration.ConfigurationSection guideMessages;
+    private org.bukkit.configuration.ConfigurationSection materialNames;
+
+    /**
+     * Una cifra in soldi come la scrive l'economia del server (Vault: "500€"); senza economia
+     * pronta, col formato di riserva guide-money di messages.yml.
+     */
+    private String money(double amount) {
+        if (Econ.enabled()) return Econ.format(amount);
+        String format = guideMessages == null ? null : guideMessages.getString("guide-money");
+        if (format == null || format.isBlank()) format = "{amount}";
+        return format.replace("{amount}", DurationText.number(amount));
+    }
+
+    /**
+     * messages.yml: il file del server se c'e' (allineato da ConfigAlign all'avvio, quindi ha anche
+     * le chiavi nuove del jar), altrimenti quello dentro il jar.
+     */
+    private org.bukkit.configuration.ConfigurationSection guideMessages() {
+        try {
+            java.io.File f = new java.io.File(getDataFolder(), "messages.yml");
+            org.bukkit.configuration.file.YamlConfiguration y;
+            if (f.isFile()) {
+                y = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(f);
+            } else {
+                try (java.io.Reader r = new java.io.InputStreamReader(
+                        java.util.Objects.requireNonNull(getResource("messages.yml")), java.nio.charset.StandardCharsets.UTF_8)) {
+                    y = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(r);
+                }
+            }
+            return y;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** "DIAMOND_BLOCK" -> "Blocco di diamante" (messages.yml); senza nome, quello tecnico e un avviso nel log. */
+    private String materialName(String material) {
+        String id = material.trim().toUpperCase(java.util.Locale.ROOT);
+        String name = materialNames == null ? null : materialNames.getString(id);
+        if (name != null && !name.isBlank()) return name;
+        getLogger().warning("[Guide] nome italiano mancante per il materiale " + id
+                + ": aggiungilo in messages.yml, sezione materials.");
+        return id.toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
     }
 
     /**

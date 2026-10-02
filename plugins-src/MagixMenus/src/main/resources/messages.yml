@@ -6,22 +6,22 @@
 #  spostare o togliere.
 #  \n in un testo va a capo (funziona anche senza virgolette attorno alla riga).
 #
-#  La palette e' quella di tutti i plugin Magix (vedi plugins-src/STILE-MAGIX.md):
+#  La palette è quella di tutti i plugin Magix (vedi plugins-src/STILE-MAGIX.md):
 #    viola  &#C046E8  chi parla, i titoli
-#    verde  &#A8DC2C  quello che si puo' fare
+#    verde  &#A8DC2C  quello che si può fare
 #    grigio &#9A8CA8  le spiegazioni
 #    rosso  &#FF6B6B  non ha funzionato
 #    giallo &#FFD166  attenzione
 # ==========================================================================================
 
-players-only: "&#FF6B6BQuesto comando lo puo' usare solo chi sta giocando."
+players-only: "&#FF6B6BQuesto comando lo può usare solo chi sta giocando."
 no-permission: "&#FF6B6BNon hai il permesso per farlo."
 player-required: "&#FF6B6BDalla console serve dire a chi: /menus open <menu> <giocatore>"
 menu-not-found: "&#FF6B6BNon esiste nessun menu che si chiama &f{menu}&#FF6B6B."
-type-not-openable: "&#FF6B6BQuesto menu e' di tipo &f{type}&#FF6B6B e il server non lo lascia aprire."
+type-not-openable: "&#FF6B6BQuesto menu è di tipo &f{type}&#FF6B6B e il server non lo lascia aprire."
 # Un comando che apriva un menu poi tolto o rinominato. Resta in piedi fino al riavvio del
 # server: i comandi, una volta registrati, non si possono togliere mentre il server gira.
-menu-removed: "&#FFD166Il comando &f/{command}&#FFD166 non apre piu' nessun menu: sparira' al prossimo riavvio del server."
+menu-removed: "&#FFD166Il comando &f/{command}&#FFD166 non apre più nessun menu: sparirà al prossimo riavvio del server."
 requirements-not-met: "&#FFD166Non puoi ancora fare questo."
 cooldown-wait: "&#FFD166Aspetta ancora &f{seconds}&#FFD166 secondi."
 unknown-subcommand: "&#FF6B6BNon conosco &f{command}&#FF6B6B. Prova &#A8DC2C/menus help&#FF6B6B."
@@ -68,8 +68,8 @@ shop:
   not-enough-money: "&#FF6B6BTi mancano &f{missing}&#FF6B6B monete (costa {price}, tu ne hai {balance})."
   inventory-full: "&#FF6B6BNon hai posto in inventario: non ti ho tolto niente."
   nothing-to-sell: "&#FF6B6BNon hai &f{what}&#FF6B6B da vendere."
-  payment-failed: "&#FF6B6BIl pagamento non e' andato a buon fine: non ti ho tolto niente."
-  no-economy: "&#FF6B6BSul server non c'e' un'economia: avvisa lo staff."
+  payment-failed: "&#FF6B6BIl pagamento non è andato a buon fine: non ti ho tolto niente."
+  no-economy: "&#FF6B6BSul server non c'è un'economia: avvisa lo staff."
   # I suoni della cassa. Vuoto = nessun suono.
   sound-ok: "ENTITY_EXPERIENCE_ORB_PICKUP"
   sound-fail: "ENTITY_VILLAGER_NO"
@@ -83,7 +83,7 @@ shop:
 help:
   title: "MagixMenus"
   # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
-  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # non cambia da un plugin all'altro, ma vive comunque qui perché Help lo legge da
   # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
   chrome:
     no-commands: "Nessun comando disponibile."
@@ -106,4 +106,4 @@ help:
         - "/menus list :: tutti i menu, con i loro comandi e i loro problemi"
         - "/menus info <menu> :: com'e' fatto un menu e cosa non va"
         - "/menus open <menu> [giocatore] :: apre un menu a te o a qualcun altro"
-        - "/menus reload :: rilegge i file dei menu e rifa' i comandi"
+        - "/menus reload :: rilegge i file dei menu e rifà i comandi"

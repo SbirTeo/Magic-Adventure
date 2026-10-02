@@ -1,0 +1,23 @@
+# Testi DI SERIE che sono cambiati nel jar e vanno aggiornati anche sul server (vedi
+# util/ConfigAlign.applyValueFixes). L'allineamento aggiunge le chiavi nuove ma non tocca i valori
+# gia' scelti: qui si elencano le coppie testo vecchio -> testo nuovo, e all'avvio e a ogni reload
+# si sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano resta com'e'), dopo
+# averne fatto la copia in .bak/. Nato per gli accenti scritti con l'apostrofo ("piu'", "e'").
+messages.yml:
+  - old: "&cQuesta valuta non esiste piu' (o il modulo e' spento): {id}."
+    new: "&cQuesta valuta non esiste più (o il modulo è spento): {id}."
+  - old: "&cQuesto comando lo puo' usare solo chi gioca."
+    new: "&cQuesto comando lo può usare solo chi gioca."
+  - old: "&7Il tuo saldo di {currency} e' stato messo a &f{amount}&7."
+    new: "&7Il tuo saldo di {currency} è stato messo a &f{amount}&7."
+  - old: "&7Hai azzerato il saldo di {currency} di &f{player}&7 (ora e' &f{balance}&7)."
+    new: "&7Hai azzerato il saldo di {currency} di &f{player}&7 (ora è &f{balance}&7)."
+  - old: "&7Il tuo saldo di {currency} e' stato azzerato (ora e' &f{balance}&7)."
+    new: "&7Il tuo saldo di {currency} è stato azzerato (ora è &f{balance}&7)."
+  - old: "&cSottocomando sconosciuto. Usa &e/mess help&c."
+    new: "&#FF6B6BNon conosco questo comando. Prova &#A8DC2C/mess help&#FF6B6B."
+  - old: "&dMagixEssentials &8» &7Configurazione ricaricata &8(&7moduli: &f{modules}&8)&7."
+    new: "&#A8DC2CConfigurazione ricaricata &8· &#9A8CA8moduli: &f{modules}"
+motd.yml:
+  - old: "<gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>C'e' posto per te\n<color:#A8DC2C>{online}<color:#9A8CA8> dentro adesso <dark_gray>• <color:#9A8CA8>il mondo e' aperto, la mappa e' grande\n"
+    new: "<gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>C'è posto per te\n<color:#A8DC2C>{online}<color:#9A8CA8> dentro adesso <dark_gray>• <color:#9A8CA8>il mondo è aperto, la mappa è grande\n"

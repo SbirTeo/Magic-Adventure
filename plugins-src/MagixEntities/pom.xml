@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixEntities</artifactId>
-    <version>0.9.22</version>
+    <version>0.9.23</version>
     <packaging>jar</packaging>
 
     <name>MagixEntities</name>
@@ -51,7 +51,7 @@
         <dependency>
             <groupId>com.teolo</groupId>
             <artifactId>MagixLanguage</artifactId>
-            <version>0.4.13</version>
+            <version>0.4.14</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

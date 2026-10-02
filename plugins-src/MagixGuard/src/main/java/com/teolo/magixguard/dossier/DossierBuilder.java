@@ -80,7 +80,7 @@ public final class DossierBuilder {
         sb.append("Versione plugin: MagixGuard ").append(pluginVersion).append("  \n");
         sb.append("Tipo documento: ").append(publicVersion
                 ? "**pubblico** (indirizzi IP mascherati, adatto da allegare a un ricorso)"
-                : "**interno staff** (contiene dati di rete completi: non pubblicarlo cosi')").append("\n\n");
+                : "**interno staff** (contiene dati di rete completi: non pubblicarlo così)").append("\n\n");
 
         // ---------------- esito ----------------
         sb.append("## Esito\n\n");
@@ -88,7 +88,7 @@ public final class DossierBuilder {
         sb.append(" (soglia di collegamento ").append(Math.round(config.linkThreshold));
         sb.append(", soglia di segnalazione ").append(Math.round(config.alertThreshold)).append(")\n\n");
         sb.append("> ").append(verdict(result)).append("\n\n");
-        whitelist.ifPresent(w -> sb.append("Nota: questa coppia e' stata dichiarata legittima da **")
+        whitelist.ifPresent(w -> sb.append("Nota: questa coppia è stata dichiarata legittima da **")
                 .append(w.staff()).append("** il ").append(Fmt.dateTime(w.createdAt()))
                 .append(w.reason() == null ? "" : " (motivo: " + w.reason() + ")").append(".\n\n"));
 
@@ -291,20 +291,20 @@ public final class DossierBuilder {
 
     private void appendMethodology(StringBuilder sb) {
         sb.append("## Come vanno letti questi dati\n\n");
-        sb.append("Il punteggio non e' una prova automatica: e' la somma di indizi, ognuno con il suo peso, ");
+        sb.append("Il punteggio non è una prova automatica: è la somma di indizi, ognuno con il suo peso, ");
         sb.append("corretta da tre fattori dichiarati nella configurazione del plugin.\n\n");
         sb.append("- **Affollamento dell'indirizzo IP.** Un IP usato da molti account vale poco: sulle reti ");
         sb.append("mobili italiane (e su alcune fibre) centinaia di persone estranee fra loro escono con lo ");
         sb.append("stesso indirizzo pubblico. Il peso dell'indizio viene ridotto in proporzione.\n");
-        sb.append("- **Eta' dell'indizio.** Gli indirizzi domestici cambiano: una coincidenza di sei mesi fa ");
-        sb.append("pesa la meta' di una di oggi.\n");
+        sb.append("- **Età dell'indizio.** Gli indirizzi domestici cambiano: una coincidenza di sei mesi fa ");
+        sb.append("pesa la metà di una di oggi.\n");
         sb.append("- **Elementi a discolpa.** Due account visti online nello stesso momento sono, con ogni ");
-        sb.append("probabilita', due persone diverse (tipicamente fratelli o coinquilini). Il punteggio scende.\n\n");
+        sb.append("probabilità, due persone diverse (tipicamente fratelli o coinquilini). Il punteggio scende.\n\n");
         sb.append("Limiti noti, dichiarati per correttezza:\n\n");
         sb.append("- il token di installazione (cookie) vive nella memoria del client: **la sua assenza non ");
-        sb.append("dimostra nulla**, mentre la sua presenza identica su due account e' un indizio molto forte;\n");
+        sb.append("dimostra nulla**, mentre la sua presenza identica su due account è un indizio molto forte;\n");
         sb.append("- due fratelli che giocano dallo stesso computer condividono IP, rete e impronta del client: ");
-        sb.append("in quel caso l'unico elemento che li distingue e' l'essere stati online insieme;\n");
+        sb.append("in quel caso l'unico elemento che li distingue è l'essere stati online insieme;\n");
         sb.append("- una VPN azzera gli indizi di rete, ma non tocca impronta del client, orari e cookie;\n");
         sb.append("- l'impronta del client cambia se il giocatore modifica le impostazioni o installa una mod.\n\n");
         sb.append("Gli indirizzi IP sono conservati in chiaro per ").append(config.retentionDays);
@@ -317,10 +317,10 @@ public final class DossierBuilder {
         double score = result.score();
         if (result.hasCertainty()) {
             return "I due account sono stati usati dalla stessa installazione di Minecraft. "
-                    + "E' l'indizio piu' solido a disposizione di un server non premium.";
+                    + "È l'indizio più solido a disposizione di un server non premium.";
         }
         if (score >= config.alertThreshold) {
-            return "Collegamento molto probabile: piu' indizi indipendenti puntano nella stessa direzione.";
+            return "Collegamento molto probabile: più indizi indipendenti puntano nella stessa direzione.";
         }
         if (score >= config.linkThreshold) {
             return "Collegamento probabile, ma non certo: valutare gli elementi a discolpa prima di decidere.";

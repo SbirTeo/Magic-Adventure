@@ -1,0 +1,91 @@
+name: Cambia una riga di server.properties sul VPS
+
+# Cambia UNA chiave di server.properties (es. view-distance) del faction o dell'hub, senza toccare
+# il resto del file. Nessun workflow lo faceva su un server gia' installato: predisponi-hub.yml
+# copia server-hub/server.properties solo se manca. Prima della modifica il file va in
+# ~/.bak/server-properties/<server>-<data>.
+#
+# NON riavvia: server.properties si legge solo all'avvio, quindi il valore nuovo vale dal
+# prossimo riavvio (deploy dei plugin, riavvio notturno o stopserverfast a mano). Va tenuto
+# allineato anche il mirror nel repo (server/ per il faction, server-hub/ per l'hub).
+#
+# Solo manuale (workflow_dispatch): non parte da solo su push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      server:
+        description: "faction o hub"
+        required: true
+        default: "hub"
+      key:
+        description: "Chiave di server.properties (es. view-distance)"
+        required: true
+      value:
+        description: "Valore nuovo (es. 8)"
+        required: true
+
+concurrency:
+  group: deploy-plugin       # mai insieme a un deploy dei plugin (stessi server, stessi riavvii)
+  cancel-in-progress: false
+
+jobs:
+  set-property:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla gli input e i secret VPS
+        env:
+          IN_SERVER: ${{ inputs.server }}
+          IN_KEY: ${{ inputs.key }}
+          IN_VALUE: ${{ inputs.value }}
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+          case "$IN_SERVER" in faction|hub) ;; *) echo "::error::server deve essere faction o hub"; exit 1 ;; esac
+          # solo caratteri sicuri: niente da interpretare per la shell o per sed sul VPS
+          echo "$IN_KEY" | grep -Eq '^[a-z0-9.-]+$' || { echo "::error::chiave non valida: $IN_KEY"; exit 1; }
+          echo "$IN_VALUE" | grep -Eq '^[A-Za-z0-9._:-]*$' || { echo "::error::valore non valido: $IN_VALUE"; exit 1; }
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Cambia la riga
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          IN_SERVER: ${{ inputs.server }}
+          IN_KEY: ${{ inputs.key }}
+          IN_VALUE: ${{ inputs.value }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i $HOME/.ssh/deploy_key -o StrictHostKeyChecking=yes $DEST"
+          $SSH "SERVER='$IN_SERVER' KEY='$IN_KEY' VALUE='$IN_VALUE' bash -s" <<'REMOTE'
+          set -euo pipefail
+          if [ "$SERVER" = "hub" ]; then
+            DIR=/home/ubuntu/magicadventure/hub
+          else
+            DIR=/home/ubuntu/magicadventure/faction
+            [ -f "$DIR/server.properties" ] || DIR=/home/ubuntu/magicadventure
+          fi
+          FILE="$DIR/server.properties"
+          [ -f "$FILE" ] || { echo "ERRORE: $FILE non esiste"; exit 2; }
+          KEY_RE="$(printf '%s' "$KEY" | sed 's/[.]/\\./g')"
+          echo "Prima: $(grep -E "^${KEY_RE}=" "$FILE" || echo "(chiave assente)")"
+          mkdir -p ~/.bak/server-properties
+          cp -p "$FILE" ~/.bak/server-properties/"$SERVER"-"$(date +%Y%m%d-%H%M%S)"
+          if grep -qE "^${KEY_RE}=" "$FILE"; then
+            sed -i -E "s|^${KEY_RE}=.*|${KEY}=${VALUE}|" "$FILE"
+          else
+            printf '%s=%s\n' "$KEY" "$VALUE" >> "$FILE"
+          fi
+          echo "Dopo:  $(grep -E "^${KEY_RE}=" "$FILE")"
+          echo "Vale dal prossimo riavvio del server ($SERVER)."
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

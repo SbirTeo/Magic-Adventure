@@ -36,7 +36,7 @@ public final class LuckPermsHook {
     public boolean setup() {
         if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
             plugin.getLogger().info("[Potenza] LuckPerms non trovato: i permessi dei giocatori OFFLINE "
-                    + "non sono leggibili, tetto e perdita di Potenza restano quelli normali finche' non rientrano.");
+                    + "non sono leggibili, tetto e perdita di Potenza restano quelli normali finché non rientrano.");
             return false;
         }
         try {

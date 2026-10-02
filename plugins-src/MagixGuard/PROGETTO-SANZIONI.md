@@ -89,10 +89,22 @@ sbagliato una volta a marzo non se lo porta dietro per sempre; il recidivo si'.
 | 80 | ban 30 giorni |
 | 120 | ban permanente - **sempre e solo umano** |
 
+I ban (50, 80, 120) sono **segnalazioni**: il plugin non li applica mai da solo, vedi sotto.
+
 `enforcement.auto-max-duration` (predefinito 30 giorni) e' il tetto oltre il quale nessun
 automatismo puo' spingersi: la sanzione diventa una proposta in coda di revisione.
 
 `enforcement.mode`: `misto` (predefinito) | `automatico` | `proposta`.
+
+> **Regola (decisa il 2026-10-02): il plugin non banna mai.** Le soglie di ban (50, 80 e 120
+> punti) **non applicano niente**: quando una violazione le supera, MagixGuard **segnala** il caso
+> allo staff (avviso in chat a chi ha `magixguard.alerts` + proposta nella coda del gestionale,
+> con le prove allegate) e decide una persona. Lo stesso vale per il **mute permanente**. Il
+> plugin applica da solo solo **mute a tempo** (entro `auto-max-duration`) e avvisi. Non e'
+> configurabile, come il ban permanente di prima: sta in `Policy.checkAutomation`, il solo punto
+> da cui passa ogni automatismo. Il ban resta cosa dello staff: `/ban` e `/tempban` entro il
+> tetto del grado, oltre il tetto proposta; le proposte confermate dal gestionale sono decisioni
+> di una persona e si eseguono.
 
 ### Dati personali e adescamento
 

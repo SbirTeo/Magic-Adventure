@@ -1,8 +1,11 @@
 package com.teolo.magixcosmetics;
 
 import com.teolo.magixcosmetics.util.ConfigAlign;
+import com.teolo.magixcosmetics.command.FireworkCommand;
 import com.teolo.magixcosmetics.command.HaloCommand;
 import com.teolo.magixcosmetics.command.MagixCosmeticsCommand;
+import com.teolo.magixcosmetics.cosmetic.FireworkJoinListener;
+import com.teolo.magixcosmetics.cosmetic.FireworkManager;
 import com.teolo.magixcosmetics.cosmetic.HaloCombatListener;
 import com.teolo.magixcosmetics.cosmetic.HaloManager;
 import com.teolo.magixcosmetics.hook.Papi;
@@ -16,14 +19,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 /**
  * MagixCosmetics — cosmetici a particelle per i giocatori.
  *
- * <p>Per ora c'e' una cosa sola: l'aureola colorata che gira sopra la testa dei VIP
- * (vedi {@link HaloManager}). E' nato come plugin a se' apposta per poterci aggiungere
+ * <p>Per ora: l'aureola colorata che gira sopra la testa dei VIP (vedi {@link HaloManager}) e il
+ * firework di benvenuto quando si entra in un server (vedi {@link FireworkManager}). E' nato come plugin a se' apposta per poterci aggiungere
  * gli altri cosmetici — scie, ali, cappelli — senza appesantire i plugin gia' esistenti.</p>
  */
 public final class MagixCosmetics extends JavaPlugin {
 
     private Messages messages;
     private HaloManager halo;
+    private FireworkManager firework;
 
     @Override
     public void onEnable() {
@@ -47,6 +51,10 @@ public final class MagixCosmetics extends JavaPlugin {
         halo.start();
         Bukkit.getPluginManager().registerEvents(new HaloCombatListener(halo), this);
 
+        firework = new FireworkManager(this);
+        firework.load();
+        Bukkit.getPluginManager().registerEvents(new FireworkJoinListener(firework), this);
+
         PluginCommand cmd = getCommand("magixcosmetics");
         if (cmd != null) {
             MagixCosmeticsCommand executor = new MagixCosmeticsCommand(this, messages);
@@ -61,7 +69,15 @@ public final class MagixCosmetics extends JavaPlugin {
             haloCmd.setTabCompleter(executor);
         }
 
-        getLogger().info("Avviato: aureola " + (halo.enabled() ? "attiva" : "disattivata") + ".");
+        PluginCommand fireworkCmd = getCommand("firework");
+        if (fireworkCmd != null) {
+            FireworkCommand executor = new FireworkCommand(this, messages);
+            fireworkCmd.setExecutor(executor);
+            fireworkCmd.setTabCompleter(executor);
+        }
+
+        getLogger().info("Avviato: aureola " + (halo.enabled() ? "attiva" : "disattivata")
+                + ", firework d'ingresso " + (firework.enabled() ? "attivo" : "disattivato") + ".");
     }
 
     @Override
@@ -78,11 +94,13 @@ public final class MagixCosmetics extends JavaPlugin {
         messages.reload();
         halo.load();
         halo.start();
+        firework.load();
         getLogger().info("Configurazione ricaricata: aureola " + (halo.enabled() ? "attiva" : "disattivata") + ".");
     }
 
     public Messages messages() { return messages; }
     public HaloManager halo() { return halo; }
+    public FireworkManager firework() { return firework; }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
 
@@ -95,8 +113,8 @@ public final class MagixCosmetics extends JavaPlugin {
                 // I numeri (raggio, altezza, colore...) vengono dal config vero: cambiando una
                 // chiave, questo capitolo cambia da solo (vedi util/ConfigValues).
                 .values(new ConfigValues(this))
-                .intro("Aggiunge cosmetici a particelle sopra i giocatori. Per ora ce n'e' uno solo: "
-                        + "un'aureola colorata che gira sopra la testa dei VIP.")
+                .intro("Aggiunge cosmetici ai giocatori. Per ora due: un'aureola colorata che gira sopra la "
+                        + "testa dei VIP e un firework di benvenuto quando si entra nel server.")
 
                 .section("L'aureola",
                         "È un **solo puntino** che orbita in cerchio a {{cfg:halo.height}} blocchi da terra, poco "
@@ -142,6 +160,26 @@ public final class MagixCosmetics extends JavaPlugin {
                                 + "aureola, e solo lui la vede: le copie stanno tutte nello stesso punto. Su una statua "
                                 + "ingrandita l'aureola cresce con lei.")
 
+                .section("Il firework d'ingresso",
+                        "{{se:join-firework.enabled=true}}Su questo server il firework è **acceso**: quando un giocatore "
+                                + "entra, {{cfg:join-firework.delay-ticks}} tick dopo esplode un firework sopra di lui, visibile a "
+                                + "tutti. Di serie è una sfera magenta e verde.{{/se}}"
+                                + "{{se:join-firework.enabled!=true}}Su questo server il firework è **spento** "
+                                + "(**join-firework.enabled: false**, come sul faction): si accende solo dove lo si vuole, "
+                                + "cioè sull'hub.{{/se}}",
+                        "Ognuno lo personalizza con **/firework**, ma **ogni scelta richiede un permesso** e di serie "
+                                + "nessuno ne ha: senza permessi nessuno cambia niente e vale il look di serie "
+                                + "(**join-firework.default**). Il permesso base è **magixcosmetics.firework**; poi uno per "
+                                + "scelta: **.color.<nome>** per ogni colore della tavolozza (**join-firework.palette**), "
+                                + "**.color.custom** per colori esadecimali liberi, **.fade** per la sfumatura finale, "
+                                + "**.shape.<ball|large|star|burst|creeper>** per ogni forma, **.flicker** e **.trail** per "
+                                + "sfarfallio e scia, **.preview** per rivederlo subito, **.toggle** per spegnerselo con "
+                                + "**/firework off**. I permessi si ricontrollano a ogni esplosione: se ne perde uno, "
+                                + "quella scelta decade da sola sul look di serie.",
+                        "Si possono scegliere al massimo {{cfg:join-firework.max-colors}} colori. Le scelte restano "
+                                + "salvate in `players.yml`. Sull'hub il firework è acceso nel config del plugin; sul faction "
+                                + "resta spento.")
+
                 .section("Perché è un plugin a parte",
                         "I cosmetici non c'entrano con le fazioni, con l'ora o con le sanzioni: tenerli qui evita di "
                                 + "gonfiare gli altri plugin, e domani ci si aggiungono scie, ali o cappelli senza "
@@ -160,16 +198,24 @@ public final class MagixCosmetics extends JavaPlugin {
                         "halo.combat.hide-while-fighting", "Nascondi l'aureola durante un combattimento PvP.",
                         "halo.combat.cooldown-after-combat-seconds", "Quanti secondi dopo l'ultimo colpo l'aureola torna a vedersi.",
                         "halo.spin-speed", "Quanto avanza lungo il cerchio a ogni passo: più alto = orbita più veloce.",
-                        "halo.update-interval-ticks", "Ogni quanti tick il puntino avanza: 1 = più fluido; più alto = più leggero.")
+                        "halo.update-interval-ticks", "Ogni quanti tick il puntino avanza: 1 = più fluido; più alto = più leggero.",
+                        "join-firework.enabled", "Interruttore del firework d'ingresso: spento sul faction, acceso sull'hub.",
+                        "join-firework.delay-ticks", "Quanti tick dopo l'ingresso esplode il firework.",
+                        "join-firework.max-colors", "Quanti colori al massimo per i colori e per la sfumatura (1-8).",
+                        "join-firework.preview-cooldown-seconds", "Ogni quanti secondi si può rivedere l'anteprima con /firework preview.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Un VIP non vede la sua aureola",
                         "Controlla, in ordine: che abbia davvero il permesso magixcosmetics.halo (LuckPerms); che "
                                 + "abbia ANCHE almeno un permesso colore (magixcosmetics.halo.color.<nome>) — senza "
                                 + "nessuno l'aureola non ha un colore e non si disegna; che non se la sia spenta con "
                                 + "/halo off; che non sia in combattimento PvP (sparisce da sola per qualche secondo); "
                                 + "che non sia in spettatore, in vanish o invisibile.")
+                .issue("Un giocatore dice che /firework non funziona",
+                        "Controlla: che join-firework.enabled sia true su QUEL server; che abbia magixcosmetics.firework; "
+                                + "che per ogni scelta abbia il suo permesso (colore, forma, sfumatura...), altrimenti il comando "
+                                + "risponde che non può. Un colore scritto come #RRGGBB richiede magixcosmetics.firework.color.custom.")
                 .issue("L'aureola si vede su uno staff in vanish",
                         "Non dovrebbe: hide-when-vanished la nasconde a chi ha il metadata di vanish (CMI). "
                                 + "Se succede, verifica che il vanish in uso imposti quel metadata.")

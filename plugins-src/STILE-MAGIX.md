@@ -121,8 +121,17 @@ solo** (`/f 3`): e' quello che mandano le frecce.
 | MagixCosmetics | `/cosmetics help [pagina]` | `/cosmetics help` |
 | MagixMusic | `/radio help [pagina]` | `/radio help` |
 | MagixGuard | `/mg help [pagina]` | `/mg help` |
+| MagixPack | `/mpack help [pagina]` | `/mpack help` |
+| MagixLanguage | `/language help [pagina]` | `/language help` |
+| MagixEssentials | `/mess help [pagina]` | `/mess help` |
 
-`Help.java` e' presente anche in MagixPack, ma inutilizzato (nessun comando lo chiama).
+**E' una regola, non una preferenza**: ogni plugin Magix che dichiara comandi nel `plugin.yml`
+mostra il suo elenco comandi con `Help.show`, con le voci in `help.sections` e la cornice in
+`help.chrome` del `messages.yml`. Niente righe `Uso: ...` scritte a mano: un sottocomando
+sconosciuto risponde con una chiave (`unknown-subcommand`) che rimanda a `help`. La fa
+rispettare `check_config.py`, regola **[13]**: un plugin con comandi ma senza `Help.show(` nel
+codice, o senza `help:` / `sections:` / `chrome:` nel `messages.yml`, fa fallire il controllo
+(e quindi il commit).
 
 ---
 

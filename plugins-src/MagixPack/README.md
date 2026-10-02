@@ -407,8 +407,32 @@ Nel mondo:
   Scala 1 = la grandezza di Blockbench (16 pixel = un blocco). Senza animazione indicata parte
   `idle`, se c'e', altrimenti la prima animazione in loop.
 - `/mpack model rotate <gradi>` gira il modello piu' vicino (entro 16 blocchi).
+- `/mpack model glow on|off` accende (o spegne) la luce piena sul modello piu' vicino (entro 24
+  blocchi): con `on` si vede illuminato come di giorno anche al buio, come un'insegna. Resta dopo i
+  riavvii (e' salvato sulle entita').
+- `/mpack model scale <scala>` cambia la grandezza del modello piu' vicino (entro 16 blocchi):
+  1 = grandezza di Blockbench, 0.5 = meta', 2 = doppio. Resta anche dopo i riavvii.
 - `/mpack model remove [raggio]` toglie il modello piu' vicino (default 10 blocchi).
 - `/mpack model list` elenca i modelli caricati, coi pezzi, le animazioni e quanti ne sono nel mondo.
+
+I cubi **non ruotati** di uno stesso osso vengono fusi in **un solo modello** (un solo item display):
+un modello di centinaia o migliaia di cubetti fermi, come il logo dell'hub, e' UNA entita'. Solo i
+cubi ruotati restano un display ciascuno (un elemento di un modello di oggetto non puo' ruotare
+liberamente). I cubetti fusi vengono rimpiccioliti dentro i limiti di Minecraft (-16..32) e il display
+li riporta alla grandezza giusta.
+
+Ogni modello messo ricorda l'impronta del file da cui e' nato: se il `.bbmodel` cambia, al primo
+`/mpack reload` (o riavvio) il plugin lo **rifa' da solo** nello stesso punto, girato uguale, con la
+stessa scala, animazione e luce (`glow`). Niente remove/spawn a mano.
+
+**Da quanto lontano si vede**: `models.view-distance` in `config.yml` (default 128 blocchi) e'
+la distanza a cui il client disegna i modelli messi. Pero' il server manda le entita' solo entro la
+sua `view-distance` (in chunk, `server.properties`) e la distanza di tracciamento dei display
+(`entity-tracking-range.display` in `spigot.yml`): per vedere un modello a 128 blocchi servono
+`view-distance` almeno 8 e display almeno 128. `diagnostica-vps.yml` con `plugin=MagixPack` stampa
+le tre distanze; `server-property.yml` cambia una riga di `server.properties` (vale dal riavvio).
+
+L'elenco comandi e' `/mpack help [pagina]` (o `/mpack` da solo), nello stile comune dei plugin Magix.
 
 I modelli messi sono entita' normali salvate col mondo: restano dopo un riavvio, e il plugin li
 ritrova dai loro dati quando il chunk si carica. L'animazione gira solo con un giocatore entro 96
@@ -439,7 +463,7 @@ Dal repo: il file sta in `plugins-src/MagixPack/overrides-vps/models/` e arriva 
   "Oggetti custom" sopra.
 - `/mpack glyph list` / `/mpack glyph show <id> [giocatore]` (permesso `magixpack.glyph.list`) — vedi
   "Icone custom via font" e "L'avatar come glifo" sopra.
-- `/mpack model list|spawn|remove|rotate` (permesso `magixpack.model`) — vedi "Modelli Blockbench nel
+- `/mpack model list|spawn|remove|rotate|scale|glow` (permesso `magixpack.model`) — vedi "Modelli Blockbench nel
   mondo" sopra.
 
 ## Permessi
@@ -449,7 +473,7 @@ Dal repo: il file sta in `plugins-src/MagixPack/overrides-vps/models/` e arriva 
   carica (lo riceve comunque). Salvaguardia per non restare chiusi fuori dal proprio server.
 - `magixpack.item.give` (default op) — `/mpack item give` e `/mpack item list`.
 - `magixpack.glyph.list` (default op) — `/mpack glyph list` e `/mpack glyph show`.
-- `magixpack.model` (default op) — `/mpack model list|spawn|remove|rotate`.
+- `magixpack.model` (default op) — `/mpack model list|spawn|remove|rotate|scale|glow`.
 
 ## Su piu' server (faction, hub)
 

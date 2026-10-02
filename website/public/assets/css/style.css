@@ -250,6 +250,40 @@ body.pagina-store {
   animation: drop-spin 2.4s linear infinite;
 }
 .auth-box { display: flex; align-items: center; gap: 10px; font-size: var(--fs-base); }
+/* Schermo largo: i tasti di destra (vota, tema, lingua, profilo, gestione, esci) stanno su una
+   riga loro, in alto, e sotto la barra delle voci ha tutta la larghezza. La barra non va mai a
+   capo: se le voci non ci stanno (in inglese sono piu' lunghe) scorre di lato. Sotto i 960px
+   resta il menu ad hamburger di sempre. */
+@media (min-width: 961px) {
+  .header-inner { flex-wrap: wrap; row-gap: 6px; padding-top: 10px; padding-bottom: 4px; }
+  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative; }
+  /* La riga dei tasti ha una fascia piu' scura, a tutta larghezza dello schermo (non solo del
+     contenuto centrato): la fa uno sfondo dietro, largo quanto la finestra, tagliato dalla testata
+     con overflow-x: clip (clip e non hidden: non crea un'area di scorrimento, la barra resta
+     appiccicata in alto). Il colore viene da quello della testata, quindi segue i temi. */
+  .site-header { overflow-x: clip; }
+  .header-inner > .auth-box::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: -10px; bottom: -3px;
+    left: -100vw; right: -100vw;
+    background: color-mix(in srgb, var(--bg-testata) 55%, #000);
+    /* bordo un filo piu' marcato di quelli normali, piu' un'ombra appena accennata: sulla fascia
+       scura la riga di --border quasi spariva e le due righe sembravano incollate */
+    border-bottom: 1px solid var(--border-strong);
+    box-shadow: 0 1px 6px -2px rgba(0, 0, 0, .55);
+  }
+  .nav-collapse { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
+  .main-nav {
+    flex-wrap: nowrap; min-width: 0;
+    overflow-x: auto; overflow-y: hidden;
+    /* un po' d'aria sopra e sotto: il bagliore dello Store non deve restare tagliato */
+    padding: 6px 4px 2px; margin: -6px -4px 0;
+    scrollbar-width: thin;
+  }
+  .main-nav > * { flex-shrink: 0; white-space: nowrap; }
+}
 /* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata.
    ".btn.cambia-tema" e non solo ".cambia-tema": .btn e' definito piu' sotto nel file e a pari
    peso vinceva lui (display: inline-block, il suo padding), quindi niente centratura e l'icona
@@ -5804,27 +5838,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .revoca-form input[type="text"] { min-width: 190px; }
 
 /* --- guida per amministratori --- */
-.guida-staff { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 20px; align-items: start; }
-.guida-indice {
-  position: sticky;
-  /* Stesso stacco della colonna laterale del sito: sotto la barra di navigazione. */
-  top: calc(var(--h-testata, 98px) + 16px);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 14px 16px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.guida-indice a { color: var(--text-dim); font-size: var(--fs-sm); padding: 5px 0; }
-.guida-indice a:hover { color: var(--text); }
-.guida-capitoli { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-/* Il salto dall'indice e' l'ancora nativa del browser: senza questo stacco il capitolo
-   raggiunto finisce a filo viewport, cioe' mezzo coperto dalla barra di navigazione fissa.
-   Stessa altezza reale (misurata) e stesso margine usati dall'indice qui sopra. */
-.guida-capitoli > .panel { scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
-.guida-testa { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.guida-staff { min-width: 0; }
 .guida-versione { color: var(--text-dimmer); font-size: var(--fs-xs); }
 .guida-avviso {
   margin: 0 0 12px;
@@ -5847,6 +5861,69 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 }
 .guida-corpo h5 em { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-dimmer); }
 
+.regolamento-intro { font-size: var(--fs-md); line-height: 1.6; }
+.regolamento ul { margin: 6px 0; padding-left: 22px; }
+.regolamento li { margin: 5px 0; }
+/* Riquadri come nella guida: un consiglio (verde) o un'attenzione (rosso). */
+.regolamento .nota, .regolamento .attenzione { border-radius: 10px; padding: 11px 14px; margin: 12px 0; }
+.regolamento .nota { background: rgba(75, 189, 90, .09); border-left: 4px solid var(--doc-green); }
+.regolamento .attenzione { background: rgba(224, 90, 90, .10); border-left: 4px solid #e05a5a; }
+
+/* --- impostazione comune di guida, guida per lo staff e regolamento (doc-*) ---------------
+   Le tre pagine si leggono allo stesso modo: indice in cima a schede, parti con il loro titolo,
+   capitoli numerati a schede col numero nel quadratino verde, "In questo capitolo" e "↑ Indice".
+   La guida dei giocatori (file del server, in un riquadro) ha gli stessi colori e misure nel suo
+   foglio di stile: plugins-src/MagixFactions/docs/build_tutorial.py. Se cambia uno, cambia l'altro. */
+:root { --doc-green: #4bbd5a; --doc-gold: #f4c531; --doc-orange: #fd7702; --doc-yellow: #fdd101; }
+.doc-toc {
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 20px; margin: 0 0 20px; scroll-margin-top: calc(var(--h-testata, 98px) + 16px);
+}
+.doc-toc-h { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 12px; font-weight: 700; }
+.doc-toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.doc-toc-part { background: var(--bg-panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.doc-toc-pt {
+  display: block; color: var(--doc-yellow); font-weight: 800; font-size: 13px; letter-spacing: .06em;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.doc-toc-part ol, .doc-toc-list { list-style: none; margin: 0; padding: 0; }
+.doc-toc-part li { margin: 0 0 10px; }
+.doc-toc-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; }
+.doc-toc-ch { display: flex; gap: 8px; align-items: center; color: var(--text); font-weight: 700; font-size: 15px; }
+.doc-toc-ch:hover { color: var(--doc-gold); }
+.doc-toc-d { display: block; color: var(--text-dim); font-size: 13px; margin: 2px 0 0 30px; line-height: 1.4; }
+.doc-n {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px; background: var(--doc-green); color: #0c1a0e;
+  font-size: 15px; font-weight: 800;
+}
+.doc-n-sm { width: 22px; height: 22px; border-radius: 6px; font-size: 12px; }
+.doc-part { margin: 34px 0 10px; padding: 0 4px; scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
+.doc-part-n { display: block; color: var(--doc-orange); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.doc-part-t { display: block; font-size: 24px; font-weight: 800; color: var(--doc-yellow); }
+.doc-part-d { display: block; color: var(--text-dim); font-size: 14px; }
+.doc-chapter { margin: 0 0 20px; scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
+.doc-chapter-t { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; font-size: 22px; }
+.doc-chapter-sub { font-weight: 400; color: var(--text-dim); font-size: var(--fs-base); }
+.doc-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 0 0 16px; }
+.doc-chips span { color: var(--text-dimmer); font-size: var(--fs-xs); }
+.doc-chips a {
+  font-size: var(--fs-xs); padding: 3px 9px; border-radius: 999px;
+  background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.doc-chips a:hover { color: var(--text); border-color: var(--doc-gold); }
+.doc-back { text-align: right; margin: 14px 0 0; }
+.doc-back a { color: var(--text-dim); font-size: 12.5px; }
+.doc-back a:hover { color: var(--text); }
+/* I sottocapitoli: oro come i sottotitoli della guida dei giocatori. */
+.doc-chapter .guida-corpo h4 { color: var(--doc-gold); scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
+.doc-chapter .guida-versione { margin: -4px 0 12px; }
+@media (max-width: 700px) {
+  .doc-toc-grid, .doc-toc-list { grid-template-columns: 1fr; }
+  .doc-part-t { font-size: 20px; }
+  .doc-chapter-t { font-size: 19px; }
+}
+
 /* --- la tabella delle sanzioni innestata nel regolamento --- */
 .regolamento-sanzioni { margin: 22px 0; }
 .regolamento-sanzioni table { width: 100%; border-collapse: collapse; font-size: var(--fs-base); }
@@ -5857,8 +5934,6 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 @media (max-width: 860px) {
   .sanzione-riga { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .sanzione-stato { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; }
-  .guida-staff { grid-template-columns: minmax(0, 1fr); }
-  .guida-indice { position: static; flex-direction: row; flex-wrap: wrap; gap: 12px; }
 }
 
 /* --- guida per amministratori: gerarchia e colore -------------------
@@ -5919,7 +5994,23 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 }
 .guida-corpo tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .guida-corpo tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
-.guida-corpo tbody td:first-child { white-space: nowrap; }
+/* Le tabelle delle impostazioni hanno valori lunghi e senza spazi (un messaggio di ban coi
+   codici colore, l'elenco delle soglie, chiavi come application/auto-max-duration): senza poterli
+   spezzare la tabella usciva dalla pagina, la colonna "Cosa cambia" finiva fuori schermo e le
+   righe diventavano altissime. Si va a capo dove serve, anche dentro una parola o una chiave. */
+.guida-corpo td { overflow-wrap: anywhere; word-break: normal; }
+.guida-corpo td code { white-space: normal; overflow-wrap: anywhere; }
+.guida-corpo tbody td:first-child { width: 28%; }
+.guida-corpo table:has(thead th:nth-child(3)) tbody td:nth-child(2) { width: 24%; }
+/* Telefono: tre colonne affiancate in 350px sono illeggibili. Ogni riga diventa una scheda:
+   chiave, valore e spiegazione uno sotto l'altro. */
+@media (max-width: 700px) {
+  .guida-corpo table, .guida-corpo tbody, .guida-corpo tr, .guida-corpo td { display: block; width: auto !important; }
+  .guida-corpo thead { display: none; }
+  .guida-corpo tbody tr { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .guida-corpo tbody td { border-bottom: 0; padding: 2px 4px; }
+  .guida-corpo tbody td:first-child { font-weight: 600; }
+}
 
 /* I guasti: ognuno e' un riquadro, cosi' si trova quello che serve senza leggere il resto */
 .guida-casi { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }

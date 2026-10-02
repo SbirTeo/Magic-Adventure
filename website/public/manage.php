@@ -4166,39 +4166,83 @@ if ($section === 'dashboard') {
         </p>
       </div>
     <?php else: ?>
+      <?php
+        // Capitoli pronti (nome breve, sottocapitoli con id) e raggruppati per area. Stessa
+        // impostazione della guida dei giocatori e del regolamento (classi doc-* in style.css):
+        // indice in cima, parti, capitoli numerati a schede, "In questo capitolo", "↑ Indice".
+        $prep = array_map('guide_staff_prepare', $capitoli);
+        $perArea = [];
+        foreach ($prep as $c) {
+            $perArea[$c['area']][] = $c;
+        }
+        $aree = array_filter(guide_staff_areas(), fn($k) => !empty($perArea[$k]), ARRAY_FILTER_USE_KEY);
+        $numero = 0;
+        foreach ($aree as $chiave => $_) {
+            foreach ($perArea[$chiave] as $i => $c) {
+                $perArea[$chiave][$i]['n'] = ++$numero;
+            }
+        }
+        $parte = 0;
+      ?>
       <div class="guida-staff">
-        <nav class="guida-indice" aria-label="Indice della guida">
-          <?php foreach ($capitoli as $c): ?>
-            <a href="#guida-<?= h($c['plugin']) ?>"><?= h($c['title']) ?></a>
-          <?php endforeach; ?>
+        <nav class="doc-toc" id="guida-inizio" aria-label="Indice della guida">
+          <div class="doc-toc-h">Indice</div>
+          <div class="doc-toc-grid">
+            <?php $p = 0; foreach ($aree as $chiave => [$nomeArea]): $p++; ?>
+              <div class="doc-toc-part">
+                <a class="doc-toc-pt" href="#area-<?= h($chiave) ?>">Parte <?= $p ?> · <?= h($nomeArea) ?></a>
+                <ol>
+                  <?php foreach ($perArea[$chiave] as $c): ?>
+                    <li>
+                      <a class="doc-toc-ch" href="#guida-<?= h($c['plugin']) ?>"><span class="doc-n doc-n-sm"><?= (int) $c['n'] ?></span><?= h($c['nome']) ?></a>
+                      <?php if ($c['sottotitolo'] !== ''): ?><span class="doc-toc-d"><?= h($c['sottotitolo']) ?></span><?php endif; ?>
+                    </li>
+                  <?php endforeach; ?>
+                </ol>
+              </div>
+            <?php endforeach; ?>
+          </div>
         </nav>
 
-        <div class="guida-capitoli">
-          <?php foreach ($capitoli as $c): ?>
+        <?php foreach ($aree as $chiave => [$nomeArea, $descArea]): $parte++; ?>
+          <div class="doc-part" id="area-<?= h($chiave) ?>">
+            <span class="doc-part-n">Parte <?= $parte ?></span>
+            <span class="doc-part-t"><?= h($nomeArea) ?></span>
+            <span class="doc-part-d"><?= h($descArea) ?></span>
+          </div>
+          <?php foreach ($perArea[$chiave] as $c): ?>
             <?php
               $quando = strtotime((string) $c['updated_at']);
               // Un capitolo fermo da una settimana e' sospetto: o il server e' rimasto spento,
               // o quel plugin non parte piu'. Meglio dirlo che far finta di niente.
               $vecchia = $quando < strtotime('-7 days');
             ?>
-            <section class="panel" id="guida-<?= h($c['plugin']) ?>">
-              <div class="guida-testa">
-                <h3 style="margin:0;"><?= h($c['title']) ?></h3>
-                <span class="guida-versione">
-                  <?= h($c['plugin']) ?><?= $c['version'] ? ' ' . h($c['version']) : '' ?>
-                  · aggiornata <?= h(time_ago((string) $c['updated_at'])) ?>
-                </span>
-              </div>
+            <section class="panel doc-chapter" id="guida-<?= h($c['plugin']) ?>">
+              <h2 class="doc-chapter-t"><span class="doc-n"><?= (int) $c['n'] ?></span><?= h($c['nome']) ?>
+                <?php if ($c['sottotitolo'] !== ''): ?><span class="doc-chapter-sub">— <?= h($c['sottotitolo']) ?></span><?php endif; ?></h2>
+              <p class="guida-versione">
+                <?= h($c['plugin']) ?><?= $c['version'] ? ' ' . h($c['version']) : '' ?>
+                · aggiornata <?= h(time_ago((string) $c['updated_at'])) ?>
+              </p>
               <?php if ($vecchia): ?>
                 <p class="guida-avviso">
                   Non si aggiorna da <?= h(time_ago((string) $c['updated_at'])) ?>:
                   potrebbe descrivere una versione diversa da quella in funzione.
                 </p>
               <?php endif; ?>
-              <div class="guida-corpo"><?= $c['body_html'] ?></div>
+              <?php if (count($c['sezioni']) > 1): ?>
+                <nav class="doc-chips" aria-label="In questo capitolo">
+                  <span>In questo capitolo:</span>
+                  <?php foreach ($c['sezioni'] as $sez): ?>
+                    <a href="#<?= h($sez['id']) ?>"><?= h($sez['titolo']) ?></a>
+                  <?php endforeach; ?>
+                </nav>
+              <?php endif; ?>
+              <div class="guida-corpo"><?= $c['corpo'] ?></div>
+              <p class="doc-back"><a href="#guida-inizio">↑ Indice</a></p>
             </section>
           <?php endforeach; ?>
-        </div>
+        <?php endforeach; ?>
       </div>
     <?php endif; ?>
     <?php
@@ -4484,13 +4528,14 @@ if ($section === 'dashboard') {
 // uno scorrimento morbido fino al capitolo, con lo stesso stacco (altezza reale della barra,
 // misurata in --h-testata) usato dal resto del sito. Stesso motore di guida-ia.js.
 (function () {
-  var indice = document.querySelector('.guida-indice');
-  if (!indice) return;
+  var guida = document.querySelector('.guida-staff');
+  if (!guida) return;
   function stacco() {
     var h = document.querySelector('.site-header');
     return (h ? h.getBoundingClientRect().height : 98) + 16;
   }
-  indice.addEventListener('click', function (ev) {
+  // Indice, "In questo capitolo" e "↑ Indice": tutti i link interni della guida passano di qui.
+  guida.addEventListener('click', function (ev) {
     var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
     if (!a) return;
     var meta = document.getElementById(a.getAttribute('href').slice(1));
@@ -4506,7 +4551,9 @@ if ($section === 'dashboard') {
         window.scrollTo(0, y);
       }
     }, 350);
+    if (history.replaceState) history.replaceState(null, '', '#' + meta.id);
   });
+
 })();
 </script>
 <?php endif; ?>

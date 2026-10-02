@@ -97,11 +97,18 @@ Tutto opzionale: lascia `0`/vuoto ciò che non vuoi.
 ```yaml
 create-cost:
   money: 1000                       # richiede Vault
+  min-playtime-seconds: 3600        # tempo di gioco minimo (statistiche di Minecraft), 0 = nessuno
   items: ["DIAMOND:10", "EMERALD:3"]
   placeholders: ["%player_level% >= 10"]   # richiede PlaceholderAPI
   permission: "magixfactions.create"
 ```
 Operatori condizioni: `>= <= > < == !=`.
+
+Per il tempo di gioco minimo si usa `min-playtime-seconds`, non una condizione `placeholders`: cosi'
+il tutorial lo racconta da solo (`{{secondi:create-cost.min-playtime-seconds}}`), mentre una condizione
+libera non si puo' tradurre in una frase per i giocatori. Se la condizione
+`%magixessentials_playtime% >= N` e' scritta in `placeholders` e `min-playtime-seconds` vale 0, il
+plugin la sposta da solo nella chiave a ogni avvio e `/f reload` (`config/PlaytimeMigration`, con copia in `.bak/`).
 
 Lo **stesso motore di costo** vale per **`/f sethome`** (sezione `sethome-cost`), di default **gratis**.
 
@@ -411,6 +418,11 @@ tutorial si aggiornano **da soli** al riavvio successivo: non possono più racco
 - I testi *derivati* (frasi che cambiano forma — non un semplice «c'è / non c'è») si passano da
   `guideValues()` con `ConfigValues.extra(...)`, es. la perdita da offline con `amount: 0`.
 - Un segnaposto senza valore resta visibile come `{{...}}` **e viene segnalato nel log** all'avvio.
+- **Ogni chiave di `config.yml` o la racconta il tutorial, o ha `[solo staff]` nel commento** (della chiave
+  o di una sezione sopra): il tutorial cita solo quello che tocca i giocatori, e il resto e' dichiarato.
+  `check_config.py` [10] blocca il commit di una chiave che non e' ne' l'una ne' l'altra cosa. Le liste
+  (gradi, blocchi di valore, oggetti richiesti dai costi) e la sequenza dei prezzi dei claim le scrive
+  `guideValues()` in Java (`{{GRADI_ELENCO}}`, `{{BLOCCHI_VALORE}}`, `{{OGGETTI_CREATE}}`, `{{PREZZI_CLAIM}}`...).
 - **La tabella «Impostazioni» della guida per lo staff elenca TUTTE le chiavi del config**, non piu' un
   gruppetto scelto a mano: chiave, valore in uso adesso e spiegazione presa dal **commento della chiave
   nel config**. Una chiave nuova e' documentata dal momento in cui esiste, senza toccare il codice.

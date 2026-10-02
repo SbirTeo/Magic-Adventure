@@ -119,11 +119,19 @@ non e' stato ritoccato dopo. `/mg verify` controlla l'intera catena.
 Il pubblico di un server Minecraft e' in larga parte minorenne: conviene indicare nella privacy
 policy del sito che il server registra indirizzi IP e dati tecnici del client a fini di sicurezza.
 
-## Cosa NON fa (per ora)
+## Cosa NON fa
 
-Nessuna sanzione automatica. Fase 2, da decidere quando ci saranno abbastanza dati veri per
-tarare le soglie: limitazioni silenziose per gli account marchiati (niente reward, niente kit,
-niente fazione in comune col principale), oppure blocco al login.
+**Il plugin non banna mai.** Quando i punti di un giocatore superano una soglia di ban, MagixGuard
+si limita a **segnalare** il caso allo staff (avviso in chat e proposta nella coda del
+gestionale, con le prove) e decide una persona: il ban lo dà solo lo staff, con `/ban` e
+`/tempban`. Non è nemmeno automatico il mute permanente. Il plugin applica da solo solo i **mute a
+tempo** (30 minuti e 6 ore alle soglie predefinite, mai oltre `auto-max-duration`) e gli avvisi.
+Non è un'impostazione: è la regola in `Policy.checkAutomation`.
+
+Per il multi-account (la profilazione della Fase 1) non c'è nessuna sanzione automatica: il
+rilevamento avvisa lo staff e basta. Da decidere quando ci saranno abbastanza dati veri per tarare
+le soglie: limitazioni silenziose per gli account marchiati (niente reward, niente kit, niente
+fazione in comune col principale), oppure blocco al login.
 
 ## Su piu' server (faction, hub...) — dalla 0.4.0
 

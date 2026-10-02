@@ -211,7 +211,7 @@ public final class MinimapManager {
         try {
             writeTeleport(pm.createPacket(PacketType.Play.Server.ENTITY_TELEPORT), 0, 0.0, 0.0, 0.0);
             teleportOk = true;
-            plugin.getLogger().info("[Minimap] ENTITY_TELEPORT: posizione scrivibile, modalita' detach-frames disponibile"
+            plugin.getLogger().info("[Minimap] ENTITY_TELEPORT: posizione scrivibile, modalità detach-frames disponibile"
                     + (attempt > 1 ? " (tentativo " + attempt + ")" : "") + ".");
         } catch (Throwable t) {
             if (attempt >= 5) {

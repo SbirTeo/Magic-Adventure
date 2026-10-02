@@ -8,15 +8,15 @@
 #   <funzione>.yml   - le impostazioni di quella funzione (motd.yml, nametag.yml, currencies.yml).
 #   config.yml       - questo file: la configurazione di base del plugin.
 #
-# Cosi' per sapere che cosa sta facendo il plugin si apre modules.yml, e per cambiare come lo fa
-# si apre il file di quella funzione: non c'e' un file unico che cresce all'infinito.
+# Così per sapere che cosa sta facendo il plugin si apre modules.yml, e per cambiare come lo fa
+# si apre il file di quella funzione: non c'è un file unico che cresce all'infinito.
 
 # Database per le valute CONDIVISE SU TUTTA LA RETE (currencies.yml, "shared: true"): il server
-# sta dietro Velocity con piu' backend (hub, factions...), e un saldo condiviso vive qui, non in
-# un file locale a un server solo. Ignorato del tutto se nessuna valuta e' "shared: true" su
+# sta dietro Velocity con più backend (hub, factions...), e un saldo condiviso vive qui, non in
+# un file locale a un server solo. Ignorato del tutto se nessuna valuta è "shared: true" su
 # QUESTO server: in quel caso non si tenta nemmeno la connessione.
 database:
-  # Le stesse credenziali di MagixAuth/MagixBridge: e' volutamente lo stesso database del sito.
+  # Le stesse credenziali di MagixAuth/MagixBridge: è volutamente lo stesso database del sito.
   host: "127.0.0.1"
   port: 3306
   # Nome del database. Il plugin crea da solo la tabella che gli serve (me_currency_balances),

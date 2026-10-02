@@ -257,7 +257,7 @@ public final class AfkGuard implements Listener {
                 + "Posizione: " + p.getWorld().getName() + ' ' + p.getLocation().getBlockX() + ", "
                 + p.getLocation().getBlockY() + ", " + p.getLocation().getBlockZ() + "\n\n"
                 + "Cosa dimostra: una mano umana non tiene un intervallo costante al millisecondo "
-                + "per minuti interi. Uno scarto cosi' basso su una serie cosi' lunga si ottiene "
+                + "per minuti interi. Uno scarto così basso su una serie così lunga si ottiene "
                 + "solo con una macro, un autoclicker o un peso appoggiato sul mouse.";
 
         detector.rileva(p.getUniqueId(), p.getName(), "afk.elusione", "afk", prove);

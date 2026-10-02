@@ -53,7 +53,9 @@ final class HaloStore {
 
     /** Scrive lo stato attuale delle mappe su file. */
     void save(Map<UUID, String> chosenColor, Set<UUID> disabled, Map<UUID, String> entitledColor) {
-        YamlConfiguration cfg = new YamlConfiguration();
+        // Si riparte dal file esistente: ci vive anche la sezione "firework", da non perdere.
+        YamlConfiguration cfg = file.exists() ? YamlConfiguration.loadConfiguration(file) : new YamlConfiguration();
+        cfg.set("halo", null);
         Set<UUID> all = new HashSet<>(chosenColor.keySet());
         all.addAll(disabled);
         all.addAll(entitledColor.keySet());

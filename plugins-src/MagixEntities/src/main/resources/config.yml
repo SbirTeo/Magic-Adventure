@@ -1,11 +1,11 @@
 # MagixEntities - configurazione
-# Le entita' create sono salvate in entities.yml (non modificarlo a server acceso).
+# Le entità create sono salvate in entities.yml (non modificarlo a server acceso).
 
-# Ogni quanti secondi il plugin controlla che le entita' esistano ancora
+# Ogni quanti secondi il plugin controlla che le entità esistano ancora
 # (chunk caricati) e le ricrea se qualcuno le ha uccise/rimosse. 0 = disattiva.
 check-interval-seconds: 20
 
-# Valori di default applicati alle entita' appena create.
+# Valori di default applicati alle entità appena create.
 defaults:
   # Nessun danno (fuoco, mob, giocatori, cadute...).
   invulnerable: true
@@ -13,7 +13,7 @@ defaults:
   nametag: true
   # Disattiva l'IA: l'entita' non cammina, non attacca, non insegue.
   ai: false
-  # Gravita' attiva (l'entita' resta appoggiata al terreno).
+  # Gravità attiva (l'entita' resta appoggiata al terreno).
   gravity: true
   # Silenzia i versi del mob.
   silent: true
@@ -23,17 +23,17 @@ defaults:
   collidable: false
   # Solo per il tipo "player" (Mannequin): blocca completamente l'entita'.
   immovable: true
-  # Se true il clic destro NON viene annullato, cosi' altri plugin (CMI e simili) possono
+  # Se true il clic destro NON viene annullato, così altri plugin (CMI e simili) possono
   # agganciarsi all'interazione. Da tenere off se usi i comandi al clic di MagixEntities.
   interact: false
-  # Se true ognuno vicino vede l'entita' girata verso di se' (vedi sezione follow).
+  # Se true ognuno vicino vede l'entita' girata verso di sé (vedi sezione follow).
   follow: false
 
 follow:
   # Opzione "follow" (/mentities set <nome> follow on): entro questo raggio ognuno vede l'entita'
-  # girata verso di se'. Funziona con una copia per giocatore (visibile solo a lui) che nasce gia' a
-  # mirror.radius, cosi' il cambio fra entita' vera e copia non si vede da vicino; questo raggio
-  # decide solo quando la copia ti guarda. E' il valore di default: ogni entita' puo' averne uno suo
+  # girata verso di sé. Funziona con una copia per giocatore (visibile solo a lui) che nasce già a
+  # mirror.radius, così il cambio fra entità vera e copia non si vede da vicino; questo raggio
+  # decide solo quando la copia ti guarda. È il valore di default: ogni entità può averne uno suo
   # con /mentities followradius <nome> <blocchi>.
   radius: 12
   # Ogni quanti tick viene aggiornato l'orientamento (5 = 4 volte al secondo).
@@ -44,7 +44,7 @@ commands:
   cooldown-ms: 500
 
 protezioni:
-  # Impedisce ai mob ostili di prendere di mira le entita' del plugin.
+  # Impedisce ai mob ostili di prendere di mira le entità del plugin.
   no-target: true
   # Impedisce che prendano fuoco al sole (zombie/scheletri).
   no-combust: true
@@ -78,33 +78,33 @@ mirror:
 
   halo:
     # Se true, le statue (tipo player) mostrano l'aureola VIP di MagixCosmetics: con una skin fissa
-    # quella del giocatore della skin, nel suo colore, per tutti e anche se e' offline (conta
+    # quella del giocatore della skin, nel suo colore, per tutti e anche se è offline (conta
     # /halo off, non il combattimento); con skin "mirror" quella di chi guarda, solo per lui e solo
     # se in quel momento ce l'ha davvero attiva. Senza MagixCosmetics installato non fa nulla.
     # (Sta sotto mirror per ragioni storiche: vale per tutte le statue.)
     enabled: true
     # Ogni quanti tick il puntino avanza lungo il cerchio: stesso identico funzionamento di
-    # halo.update-interval-ticks in MagixCosmetics. Basso = piu' fluido, alto = piu' leggero.
+    # halo.update-interval-ticks in MagixCosmetics. Basso = più fluido, alto = più leggero.
     interval-ticks: 1
 
 scale:
   # Limiti accettati da /mentities scale <nome> <valore> (1 = grandezza normale). Servono a evitare
   # valori assurdi digitati per errore: il gioco stesso non li limita oltre questo.
   min: 0.0625
-  # Vedi min sopra: stesso comando, stesso motivo, e' il tetto invece del pavimento.
+  # Vedi min sopra: stesso comando, stesso motivo, è il tetto invece del pavimento.
   max: 10.0
 
 skin:
   # Scarica le texture della skin da Mojang (in async) quando crei un'entita' "player".
   # Se false viene usato solo il nome: il server risolve la skin da solo, ma
-  # potrebbe non mostrarla se il giocatore non e' mai entrato nel server.
+  # potrebbe non mostrarla se il giocatore non è mai entrato nel server.
   fetch-textures: true
   # Le skin trovate restano in memoria: non vengono richieste di nuovo a ogni controllo.
   # Se un nick non ha texture (non esiste su Mojang, o Mojang non risponde) il plugin lo
   # segnala UNA volta e riprova dopo questi minuti.
   retry-minutes: 30
 
-# Se true, quando un chunk viene caricato il plugin rimuove le entita' con il tag
-# MagixEntities che non esistono piu' in entities.yml (residui di /me remove
+# Se true, quando un chunk viene caricato il plugin rimuove le entità con il tag
+# MagixEntities che non esistono più in entities.yml (residui di /me remove
 # eseguito mentre il chunk era scaricato).
 clean-orphans: true

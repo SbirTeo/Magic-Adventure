@@ -3,7 +3,7 @@ version: '${project.version}'
 main: com.teolo.magixcosmetics.MagixCosmetics
 api-version: '26.1'
 author: teolo
-description: "Cosmetici a particelle per i giocatori (per ora: l'aureola colorata dei VIP)."
+description: "Cosmetici per i giocatori: l'aureola colorata dei VIP e il firework di benvenuto."
 softdepend: [MagixLanguage, LuckPerms, PlaceholderAPI]
 
 commands:
@@ -14,6 +14,10 @@ commands:
   halo:
     description: Accendi, spegni e scegli il colore della tua aureola.
     usage: /halo <on|off|setcolor <colore>>
+
+  firework:
+    description: Personalizza il firework che esplode quando entri nel server.
+    usage: /firework help
 
 permissions:
   magixcosmetics.use:
@@ -48,6 +52,75 @@ permissions:
     default: false
   magixcosmetics.halo.color.white:
     description: Aureola bianca.
+    default: false
+  magixcosmetics.firework:
+    description: Puo' usare /firework (vedere e personalizzare il proprio firework d'ingresso). Ogni scelta ha poi il suo permesso. Il firework esplode comunque per tutti, di serie, dove e' acceso nel config.
+    default: false
+  magixcosmetics.firework.color.red:
+    description: Puo' usare il colore red nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.orange:
+    description: Puo' usare il colore orange nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.yellow:
+    description: Puo' usare il colore yellow nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.lime:
+    description: Puo' usare il colore lime nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.green:
+    description: Puo' usare il colore green nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.aqua:
+    description: Puo' usare il colore aqua nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.blue:
+    description: Puo' usare il colore blue nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.purple:
+    description: Puo' usare il colore purple nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.magenta:
+    description: Puo' usare il colore magenta nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.pink:
+    description: Puo' usare il colore pink nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.white:
+    description: Puo' usare il colore white nel proprio firework.
+    default: false
+  magixcosmetics.firework.color.custom:
+    description: Puo' usare colori esadecimali (#RRGGBB) nel proprio firework.
+    default: false
+  magixcosmetics.firework.fade:
+    description: Puo' scegliere i colori della sfumatura finale (/firework fade).
+    default: false
+  magixcosmetics.firework.shape.ball:
+    description: Puo' scegliere la forma ball (/firework shape).
+    default: false
+  magixcosmetics.firework.shape.large:
+    description: Puo' scegliere la forma large (/firework shape).
+    default: false
+  magixcosmetics.firework.shape.star:
+    description: Puo' scegliere la forma star (/firework shape).
+    default: false
+  magixcosmetics.firework.shape.burst:
+    description: Puo' scegliere la forma burst (/firework shape).
+    default: false
+  magixcosmetics.firework.shape.creeper:
+    description: Puo' scegliere la forma creeper (/firework shape).
+    default: false
+  magixcosmetics.firework.flicker:
+    description: Puo' attivare lo sfarfallio (/firework flicker).
+    default: false
+  magixcosmetics.firework.trail:
+    description: Puo' attivare la scia (/firework trail).
+    default: false
+  magixcosmetics.firework.preview:
+    description: Puo' vedere un'anteprima del proprio firework (/firework preview).
+    default: false
+  magixcosmetics.firework.toggle:
+    description: Puo' spegnere e riaccendere il proprio firework d'ingresso (/firework on|off).
     default: false
   magixcosmetics.admin:
     description: Comandi amministrativi (reload).

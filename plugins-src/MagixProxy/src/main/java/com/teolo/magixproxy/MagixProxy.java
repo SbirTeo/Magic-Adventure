@@ -30,7 +30,7 @@ import java.nio.file.Path;
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.5.1",
+        version = "0.5.3",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
         authors = {"teolo"}
@@ -62,7 +62,7 @@ public final class MagixProxy {
             return;
         }
 
-        database = new Database(config);
+        database = new Database(config, log);
         if (!database.reachable()) {
             log.warn("MagixProxy: il database del sito non risponde ora; si riprova a ogni ingresso.");
         }
@@ -86,14 +86,14 @@ public final class MagixProxy {
                     config.motdDefaultIcon.isEmpty() ? null : Path.of(config.motdDefaultIcon).toAbsolutePath().normalize()));
         }
         if (proxy.getServer(config.mainServer).isEmpty()) {
-            log.error("MagixProxy: network.main_server \"{}\" non e' fra i [servers] di velocity.toml: "
-                    + "nessuno potra' entrare finche' non si corregge.", config.mainServer);
+            log.error("MagixProxy: network.main_server \"{}\" non è fra i [servers] di velocity.toml: "
+                    + "nessuno potrà entrare finché non si corregge.", config.mainServer);
         }
         log.info("MagixProxy: attivo (UUID e skin decisi dal proxy, skin da Mojang {}; server principale {}, "
                         + "altri server {}, uscendo da un altro server si torna al principale: {}).",
                 config.skinFromMojang ? "accesa" : "spenta", config.mainServer,
                 config.othersRequireLogin ? "solo dopo il login" : "liberi",
-                config.fallbackToMain ? "si'" : "no");
+                config.fallbackToMain ? "sì" : "no");
     }
 
     @Subscribe

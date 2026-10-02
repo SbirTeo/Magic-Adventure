@@ -56,7 +56,7 @@ public final class MagixEntities extends JavaPlugin {
         mirror = new MirrorManager(this, npcs);
         npcs.setMirror(mirror);
         npcs.load();
-        getLogger().info("Entita' caricate da entities.yml: " + npcs.all().size());
+        getLogger().info("Entità caricate da entities.yml: " + npcs.all().size());
 
         // Per riflessione, non e' una dipendenza Maven (vedi hook.MagixCosmeticsHook): se
         // MagixCosmetics manca o non e' abilitato, mirror.start() semplicemente non fa partire
@@ -210,7 +210,7 @@ public final class MagixEntities extends JavaPlugin {
                 .permissions()
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("/me apre l'emote invece del plugin",
                         "È l'emote di Minecraft, e CMI ne registra una sua. Usa /mentities, /ment oppure la forma "
                                 + "esplicita /magixentities:me.")

@@ -279,9 +279,9 @@ public final class NpcManager {
     /** Spiegazione (console) di una nascita annullata: il caso tipico e' WorldGuard. */
     private static String spawnRefusedText(NpcDef d) {
         return "Nascita di '" + d.name + "' annullata da un altro plugin nel mondo '" + d.world
-                + "': l'entita' e' salvata in entities.yml ma non e' nel mondo. Caso tipico:"
+                + "': l'entita' è salvata in entities.yml ma non è nel mondo. Caso tipico:"
                 + " WorldGuard con il flag 'mob-spawning: deny' e 'mobs.block-plugin-spawning: true'"
-                + " nel suo config.yml — mettendo quest'ultimo a false le entita' del plugin passano"
+                + " nel suo config.yml — mettendo quest'ultimo a false le entità del plugin passano"
                 + " e i mob naturali restano bloccati. Sistemato quello, l'entita' compare da sola"
                 + " al controllo successivo (o subito con /mentities respawn " + d.name + ").";
     }
@@ -638,7 +638,7 @@ public final class NpcManager {
         // in piedi senza un perche'.
         if (!seat.addPassenger(rider) && refusedSeats.add(d.id)) {
             plugin.getLogger().warning("'" + d.name + "' non riesce a sedersi: il montaggio sul sedile"
-                    + " invisibile e' stato rifiutato (un altro plugin annulla l'EntityMountEvent?).");
+                    + " invisibile è stato rifiutato (un altro plugin annulla l'EntityMountEvent?).");
         }
     }
 

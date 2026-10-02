@@ -1,0 +1,36 @@
+# Testi DI SERIE che sono cambiati nel jar e vanno aggiornati anche sul server (vedi
+# util/ConfigAlign.applyValueFixes). L'allineamento aggiunge le chiavi nuove ma non tocca i valori
+# gia' scelti: qui si elencano le coppie testo vecchio -> testo nuovo, e all'avvio e a ogni reload
+# si sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano resta com'e'), dopo
+# averne fatto la copia in .bak/. Nato per gli accenti scritti con l'apostrofo ("piu'", "e'").
+messages.yml:
+  - old: "&cIl modulo &e{module}&c e' disattivato nel config."
+    new: "&cIl modulo &e{module}&c è disattivato nel config."
+  - old: "&eL'allineamento dell'ora e' in PAUSA (&7/mtime resume&e per riprendere)."
+    new: "&eL'allineamento dell'ora è in PAUSA (&7/mtime resume&e per riprendere)."
+  - old: "&cAttenzione: doDaylightCycle non si e' spenta. Allineamento a ogni tick attivo."
+    new: "&cAttenzione: doDaylightCycle non si è spenta. Allineamento a ogni tick attivo."
+  - old: "&7Probabilita' di pioggia: &f{rain}%&7, di temporale: &f{thunder}%"
+    new: "&7Probabilità di pioggia: &f{rain}%&7, di temporale: &f{thunder}%"
+  - old: "&7La stagione e' cambiata: {season}&7!"
+    new: "&7La stagione è cambiata: {season}&7!"
+  - old: "&7La stagione e' cambiata"
+    new: "&7La stagione è cambiata"
+  - old: "&cE' gia' in pausa."
+    new: "&cÈ già in pausa."
+  - old: "&cNon e' in pausa."
+    new: "&cNon è in pausa."
+  - old: "&7L'ora segue il mondo reale: la notte non si puo' saltare. &8({mctime})"
+    new: "&7L'ora segue il mondo reale: la notte non si può saltare. &8({mctime})"
+  - old: "&eFatto, ma l'ora e' gestita da &bMagixTime&e e segue l'orologio reale."
+    new: "&eFatto, ma l'ora è gestita da &bMagixTime&e e segue l'orologio reale."
+  - old: "&7Fra &f{seconds}&7 secondi il sole tornera' da solo all'ora vera."
+    new: "&7Fra &f{seconds}&7 secondi il sole tornerà da solo all'ora vera."
+  - old: "&eFatto, ma il meteo e' gestito da &bMagixTime&e e segue la stagione reale."
+    new: "&eFatto, ma il meteo è gestito da &bMagixTime&e e segue la stagione reale."
+  - old: "&7Fra &f{seconds}&7 secondi tornera' la fase della stagione."
+    new: "&7Fra &f{seconds}&7 secondi tornerà la fase della stagione."
+  - old: "&cL'ora e' gestita da &bMagixTime&c e segue l'orologio reale."
+    new: "&cL'ora è gestita da &bMagixTime&c e segue l'orologio reale."
+  - old: "&cIl meteo e' gestito da &bMagixTime&c e segue la stagione reale."
+    new: "&cIl meteo è gestito da &bMagixTime&c e segue la stagione reale."

@@ -1,10 +1,10 @@
 # ============================================================
 #  MagixEssentials - MOTD
 # ============================================================
-# La MOTD e' quello che si legge nella lista server, prima di entrare: due righe di testo,
+# La MOTD è quello che si legge nella lista server, prima di entrare: due righe di testo,
 # l'icona, il numero dei giocatori e la tendina che esce passandoci sopra col mouse.
 #
-# Questo file dice COM'E' FATTA la MOTD, non se c'e': l'interruttore sta nel modules.yml
+# Questo file dice COM'E' FATTA la MOTD, non se c'è: l'interruttore sta nel modules.yml
 # (motd: true/false). A modulo spento vale la riga 'motd' di server.properties.
 #
 # --- COME SI SCRIVE UNA RIGA ---
@@ -13,13 +13,13 @@
 #   1) CODICI CLASSICI    &a &7 &l &r, e &#RRGGBB per un colore esadecimale preciso.
 #   2) TAG (MiniMessage)  <bold>, <italic>, <color:#C046E8>, <rainbow>, e soprattutto
 #                         <gradient:#C046E8:#A8DC2C>TESTO</gradient> per le SFUMATURE.
-#                         Si riconoscono dai <triangoli>: se in una riga c'e' un tag, tutta
+#                         Si riconoscono dai <triangoli>: se in una riga c'è un tag, tutta
 #                         quella riga viene letta come tag e le & restano scritte.
 #
 # --- COME SI VA A CAPO ---
 # Il client disegna DUE righe: la terza non si vedrebbe. Per andare a capo, due modi uguali:
 #   - \n dentro le virgolette doppie:  "prima riga\nseconda riga"
-#   - un blocco con la barra verticale, che e' piu' leggibile quando le righe sono lunghe:
+#   - un blocco con la barra verticale, che è più leggibile quando le righe sono lunghe:
 #       - |
 #         prima riga
 #         seconda riga
@@ -37,13 +37,13 @@
 # Come si sceglie la MOTD fra quelle scritte in 'messages':
 #   random   una a caso a ogni cambio
 #   ordered  una dopo l'altra, dalla prima all'ultima e poi daccapo
-#   fixed    sempre la prima della lista (le altre restano li', pronte)
+#   fixed    sempre la prima della lista (le altre restano lì, pronte)
 selection: random
-# Ogni quanti secondi cambia. 0 = a ogni ping, cioe' ogni volta che qualcuno apre la lista:
-# vivace, ma chi tiene la lista aperta la vede ballare. Con 60, per un minuto e' la stessa
+# Ogni quanti secondi cambia. 0 = a ogni ping, cioè ogni volta che qualcuno apre la lista:
+# vivace, ma chi tiene la lista aperta la vede ballare. Con 60, per un minuto è la stessa
 # per tutti.
 change-every-seconds: 30
-# Con 'random': non ripetere due volte di fila la stessa. Con una lista di due o tre voci e'
+# Con 'random': non ripetere due volte di fila la stessa. Con una lista di due o tre voci è
 # quello che fa la differenza fra "cambia" e "sembra rotto". Ignorato dagli altri modi.
 avoid-repeat: true
 
@@ -61,12 +61,12 @@ messages:
     <gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>Alza la tua fazione
     <color:#9A8CA8>Territori, alleanze e guerre <dark_gray>• <color:#A8DC2C>entra e prenditi la tua terra
   - |
-    <gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>C'e' posto per te
-    <color:#A8DC2C>{online}<color:#9A8CA8> dentro adesso <dark_gray>• <color:#9A8CA8>il mondo e' aperto, la mappa e' grande
+    <gradient:#C046E8:#A8DC2C><bold>MAGICADVENTURE</bold></gradient> <dark_gray>» <color:#9A8CA8>C'è posto per te
+    <color:#A8DC2C>{online}<color:#9A8CA8> dentro adesso <dark_gray>• <color:#9A8CA8>il mondo è aperto, la mappa è grande
 
 # --- LA TENDINA ---
 # Le righe che escono passando col mouse sul numero dei giocatori. Di serie il gioco ci mette
-# l'elenco di chi e' online: queste righe prendono il suo posto. Lista vuota = resta l'elenco vero.
+# l'elenco di chi è online: queste righe prendono il suo posto. Lista vuota = resta l'elenco vero.
 # Valgono gli stessi colori e tag delle MOTD, sfumature comprese — ma qui il gioco colora una
 # lettera alla volta, quindi una riga sfumata diventa lunghissima: tienila per una riga sola.
 hover:
@@ -80,11 +80,11 @@ hover:
 # --- IL NUMERO DEI GIOCATORI ---
 player-count:
   # Il massimo da mostrare accanto agli online. -1 = quello vero del server (server.properties).
-  # Alzarlo non fa entrare nessuno in piu': cambia solo il numero che si legge.
+  # Alzarlo non fa entrare nessuno in più: cambia solo il numero che si legge.
   max: -1
-  # Il vecchio trucco del "c'e' sempre un posto libero": il massimo mostrato diventa
-  # online + questo numero, cosi' il server non sembra mai pieno. 0 = spento. Se acceso, vince
-  # su 'max'. Non fa entrare nessuno in piu' nemmeno lui: il limite vero resta quello del server.
+  # Il vecchio trucco del "c'è sempre un posto libero": il massimo mostrato diventa
+  # online + questo numero, così il server non sembra mai pieno. 0 = spento. Se acceso, vince
+  # su 'max'. Non fa entrare nessuno in più nemmeno lui: il limite vero resta quello del server.
   extra: 0
   # Se true, al posto di "3/80" il client disegna le due frecce rosse dei server irraggiungibili,
   # e la tendina qui sopra non si vede. Da tenere false, salvo che si voglia proprio nascondere
@@ -94,21 +94,21 @@ player-count:
 # --- LA VERSIONE ---
 version:
   # Il testo al posto del nome della versione (es. "MagicAdventure 26.x"). Vuoto = quello vero.
-  # Si vede SOLO quando il client non e' compatibile col server, che e' quando il gioco smette
-  # di disegnare il conto dei giocatori e scrive li' la versione.
+  # Si vede SOLO quando il client non è compatibile col server, che è quando il gioco smette
+  # di disegnare il conto dei giocatori e scrive lì la versione.
   text: ''
   # Se true quel testo si vede SEMPRE, anche dai client compatibili — al prezzo di far apparire
   # il server come "non compatibile" nella lista (il conto dei giocatori sparisce e la barra
-  # diventa rossa). Entrare si entra lo stesso, ma e' un effetto che spaventa: tienilo false a
-  # meno che tu non sappia esattamente perche' lo stai accendendo.
+  # diventa rossa). Entrare si entra lo stesso, ma è un effetto che spaventa: tienilo false a
+  # meno che tu non sappia esattamente perché lo stai accendendo.
   always-show: false
 
 # --- L'ICONA ---
 # L'immagine quadrata a sinistra nella lista. Di serie il gioco usa server-icon.png del server;
-# qui se ne possono mettere piu' d'una, e cambiano con la stessa regola delle MOTD (selection).
+# qui se ne possono mettere più d'una, e cambiano con la stessa regola delle MOTD (selection).
 icons:
   # Spento, resta l'icona di sempre.
   enabled: false
-  # I nomi dei file PNG 64x64 dentro la cartella plugins/MagixEssentials/. Uno che non c'e' o
-  # che non e' 64x64 viene saltato, e il log dice quale: le altre continuano a funzionare.
+  # I nomi dei file PNG 64x64 dentro la cartella plugins/MagixEssentials/. Uno che non c'è o
+  # che non è 64x64 viene saltato, e il log dice quale: le altre continuano a funzionare.
   files: []

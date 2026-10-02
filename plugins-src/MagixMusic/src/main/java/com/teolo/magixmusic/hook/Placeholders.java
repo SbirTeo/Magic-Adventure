@@ -31,8 +31,8 @@ public final class Placeholders extends PlaceholderExpansion {
     public static final String[] DOCS = {
             "%magixmusic_volume%", "Volume personale del giocatore, 0-100 (0 = radio spenta per lui).",
             "%magixmusic_bar%", "Barra a 10 segmenti del volume personale.",
-            "%magixmusic_state%", "Accesa se il volume personale e' sopra 0, altrimenti Spenta.",
-            "%magixmusic_enabled%", "1 se la radio e' accesa in generale (config), altrimenti 0.",
+            "%magixmusic_state%", "Accesa se il volume personale è sopra 0, altrimenti Spenta.",
+            "%magixmusic_enabled%", "1 se la radio è accesa in generale (config), altrimenti 0.",
             "%magixmusic_track%", "Brano in onda (— se nessuno).",
             "%magixmusic_next%", "Brano successivo (— se nessuno).",
             "%magixmusic_elapsed%", "Tempo trascorso del brano, m:ss.",

@@ -295,6 +295,93 @@ function rulebook_sanctions_block(): ?array {
     return $riga ?: null;
 }
 
+/**
+ * Il regolamento diviso in capitoli, per mostrarlo con lo stesso stile della guida: ogni <h2> del
+ * testo scritto nel gestionale apre un capitolo, numerato in ordine; quello che sta prima del primo
+ * <h2> e' l'introduzione. Numeri e indice li calcola la pagina: lo staff scrive solo i titoli.
+ * Un testo senza <h2> (scritto alla vecchia, a righe) torna tutto come introduzione.
+ */
+function rulebook_chapters(string $html): array {
+    $pezzi = preg_split('~(?=<h2\b)~i', $html) ?: [$html];
+    $intro = '';
+    $capitoli = [];
+    foreach ($pezzi as $pezzo) {
+        if (!preg_match('~^<h2[^>]*>(.*?)</h2>~is', $pezzo, $m)) {
+            $intro .= $pezzo;
+            continue;
+        }
+        $titolo = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8'));
+        $slug = @iconv('UTF-8', 'ASCII//TRANSLIT', $titolo) ?: $titolo;
+        $slug = trim((string) preg_replace('~[^a-z0-9]+~', '-', strtolower($slug)), '-');
+        $capitoli[] = [
+            'id'     => 'regola-' . ($slug !== '' ? substr($slug, 0, 40) : count($capitoli) + 1),
+            'numero' => count($capitoli) + 1,
+            'titolo' => $titolo,
+            'corpo'  => substr($pezzo, strlen($m[0])),
+        ];
+    }
+    return ['intro' => $intro, 'capitoli' => $capitoli];
+}
+
+/**
+ * Le aree in cui si divide la guida per amministratori, nell'ordine in cui compaiono. Ogni
+ * plugin va in un'area sola; uno nuovo che non c'e' qui finisce in "Altri plugin" finche'
+ * qualcuno non lo aggiunge: la guida resta completa anche senza toccare questo elenco.
+ */
+function guide_staff_areas(): array {
+    return [
+        'moderazione' => ['Moderazione e accessi', 'Sanzioni, account, password e sicurezza',
+                          ['MagixGuard', 'MagixAuth']],
+        'gioco'       => ['Il gioco', 'Fazioni, utilita\' del server, entita\', ora e cosmetici',
+                          ['MagixFactions', 'MagixEssentials', 'MagixEntities', 'MagixTime', 'MagixMusic', 'MagixCosmetics']],
+        'grafica'     => ['Grafica e interfaccia', 'Pacchetto risorse, menu e scoreboard',
+                          ['MagixPack', 'MagixMenus', 'MagixScoreboard']],
+        'rete'        => ['Rete, sito e lingue', 'Il ponte col sito, il proxy e le traduzioni',
+                          ['MagixBridge', 'MagixProxy', 'MagixLanguage']],
+        'altro'       => ['Altri plugin', 'Capitoli non ancora assegnati a un\'area', []],
+    ];
+}
+
+/** L'area di un plugin (chiave di guide_staff_areas()). */
+function guide_staff_area_of(string $plugin): string {
+    foreach (guide_staff_areas() as $chiave => [, , $plugin_area]) {
+        if (in_array($plugin, $plugin_area, true)) {
+            return $chiave;
+        }
+    }
+    return 'altro';
+}
+
+/** L'id di un sottocapitolo (<h4>) dentro il capitolo di un plugin: lo usano pagina e ricerca. */
+function guide_staff_section_id(string $plugin, string $titolo): string {
+    $t = html_entity_decode(strip_tags($titolo), ENT_QUOTES, 'UTF-8');
+    $t = @iconv('UTF-8', 'ASCII//TRANSLIT', $t) ?: $t;
+    $t = trim((string) preg_replace('~[^a-z0-9]+~', '-', strtolower($t)), '-');
+    return 'guida-' . $plugin . '-' . substr($t, 0, 40);
+}
+
+/**
+ * Un capitolo pronto da mostrare: nome breve e sottotitolo (il titolo e' "MagixGuard — sanzioni
+ * e prove"), i sottocapitoli con il loro id, e il corpo con quegli id sugli <h4>.
+ */
+function guide_staff_prepare(array $c): array {
+    $titolo = (string) $c['title'];
+    $pezzi = preg_split('~\s+[—–-]\s+~u', $titolo, 2) ?: [$titolo];
+    $sezioni = [];
+    $corpo = preg_replace_callback('~<h4>(.*?)</h4>~is', function ($m) use ($c, &$sezioni) {
+        $id = guide_staff_section_id((string) $c['plugin'], $m[1]);
+        $sezioni[] = ['id' => $id, 'titolo' => html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8')];
+        return '<h4 id="' . htmlspecialchars($id, ENT_QUOTES) . '">' . $m[1] . '</h4>';
+    }, (string) $c['body_html']) ?? (string) $c['body_html'];
+    return $c + [
+        'nome'       => $pezzi[0],
+        'sottotitolo'=> $pezzi[1] ?? '',
+        'sezioni'    => $sezioni,
+        'corpo'      => $corpo,
+        'area'       => guide_staff_area_of((string) $c['plugin']),
+    ];
+}
+
 /** I capitoli della guida per amministratori, nell'ordine deciso dai plugin. */
 function guide_staff_capitoli(): array {
     try {

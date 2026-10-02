@@ -166,7 +166,7 @@ require __DIR__ . '/../includes/header.php';
         <?php
           // Pagina del server sulla lista di minecraft-italia.net, dove si vota. L'indirizzo si
           // puo' cambiare da site_settings (vote_url) senza toccare il codice; vuoto = niente tasto.
-          $voteUrl = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magicadventure1789147678859');
+          $voteUrl = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magic-adventure');
         ?>
         <?php if ($voteUrl !== ''): ?>
           <a class="vote-btn" href="<?= h($voteUrl) ?>" target="_blank" rel="noopener">

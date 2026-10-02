@@ -76,7 +76,7 @@ public final class ViolationCommand implements CommandExecutor {
                           + online.getLocation().getBlockY() + ", "
                           + online.getLocation().getBlockZ() + '\n'
                         : "Il giocatore non era collegato al momento della chiamata.\n")
-                    + "\nLimiti: questo e' il verdetto di un programma esterno, riportato tale e quale. "
+                    + "\nLimiti: questo è il verdetto di un programma esterno, riportato tale e quale. "
                     + "Vale quanto vale la taratura di quell'anticheat: prima di un provvedimento grave "
                     + "conviene guardare il replay o le sue statistiche.";
 

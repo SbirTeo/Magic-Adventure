@@ -157,7 +157,7 @@ public final class TranslationSync {
             log.info("MagixLanguage: " + pluginName + " (" + source.size() + " chiavi in italiano"
                     + (menuStats.totalPhrases() > 0 ? " + " + menuStats.totalPhrases() + " frasi di menu" : "")
                     + "): " + (pluginTotals.translated + menuStats.translated()) + " tradotte ora, "
-                    + (pluginTotals.reused + menuStats.reused()) + " gia' in cache, "
+                    + (pluginTotals.reused + menuStats.reused()) + " già in cache, "
                     + (pluginTotals.failed + menuStats.missing()) + " ancora mancanti (su "
                     + targetLanguages.size() + " lingue).");
         }
@@ -168,7 +168,7 @@ public final class TranslationSync {
 
         int failureTotal = writeFailureReports(translationsRoot, failures);
         log.info("MagixLanguage: sincronizzazione completata (" + scanned + " plugin, " + totals.translated
-                + " chiavi tradotte, " + totals.reused + " gia' in cache, " + failureTotal + " fallite)."
+                + " chiavi tradotte, " + totals.reused + " già in cache, " + failureTotal + " fallite)."
                 + (waitUntil != null && failureTotal > 0
                     ? " Nessuna chiamata a MyMemory in questo giro: la prossima fra "
                         + TranslationPacing.formatWait(Duration.between(Instant.now(), waitUntil))
@@ -469,7 +469,7 @@ public final class TranslationSync {
         }
         String header = "# Le TUE correzioni per la lingua \"" + lang + "\": una chiave messa qui vince sempre "
                 + "sulla traduzione automatica in " + lang + ".yml (nella stessa cartella), e questo file non "
-                + "viene MAI toccato dalla sincronizzazione - ne' letto per tradurre, ne' riscritto.\n"
+                + "viene MAI toccato dalla sincronizzazione - né letto per tradurre, né riscritto.\n"
                 + "# Usa lo stesso percorso di chiave di " + lang + ".yml, in forma annidata YAML, solo per le "
                 + "chiavi che vuoi correggere (le altre restano tradotte in automatico). Esempio:\n"
                 + "#\n"
@@ -497,10 +497,10 @@ public final class TranslationSync {
     private void writeCatalog(File file, Map<String, Object> result, String pluginName, String lang) {
         String body = toYaml(result);
         String header = "# Traduzione (" + lang + ") dei messaggi di " + pluginName + ", AUTOMATICA: rigenerata "
-                + "per intero a ogni sincronizzazione, anche nei valori gia' presenti se il testo italiano e' "
+                + "per intero a ogni sincronizzazione, anche nei valori già presenti se il testo italiano è "
                 + "cambiato nel frattempo (un colore, una formattazione...). NON si modifica QUI: le modifiche "
                 + "sparirebbero al prossimo riavvio.\n"
-                + "# Per correggere una traduzione senza che la sincronizzazione la sovrascriva piu': metti la "
+                + "# Per correggere una traduzione senza che la sincronizzazione la sovrascriva più: metti la "
                 + "STESSA chiave in " + lang + "-overrides.yml, nella stessa cartella. Vince sempre lei.\n";
         writeIfChanged(file, header + body);
     }
@@ -597,10 +597,10 @@ public final class TranslationSync {
                     Files.deleteIfExists(report.toPath());
                     continue;
                 }
-                String text = "# Chiavi che la traduzione automatica (" + e.getKey() + ") non e' riuscita a "
+                String text = "# Chiavi che la traduzione automatica (" + e.getKey() + ") non è riuscita a "
                         + "tradurre nell'ultima sincronizzazione (restano in italiano nel frattempo): si riprova "
-                        + "da sola al prossimo /language sync o riavvio. Se un servizio esterno e' irraggiungibile "
-                        + "per un problema di rete del VPS, resta qui finche' non torna disponibile.\n"
+                        + "da sola al prossimo /language sync o riavvio. Se un servizio esterno è irraggiungibile "
+                        + "per un problema di rete del VPS, resta qui finché non torna disponibile.\n"
                         + "# Rigenerato ad ogni sincronizzazione: non si modifica a mano.\n"
                         + String.join("\n", lines) + "\n";
                 Files.writeString(report.toPath(), text, StandardCharsets.UTF_8);

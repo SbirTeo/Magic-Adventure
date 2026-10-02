@@ -204,8 +204,8 @@ public final class MiningAnalysis implements Listener {
          .append(p.getLocation().getBlockY()).append(", ")
          .append(p.getLocation().getBlockZ()).append('\n');
         b.append('\n');
-        b.append("Limiti di questa misura: e' una statistica di sessione, non una prova diretta. ")
-         .append("Un minatore fortunato o molto esperto puo' superare la soglia di allarme; per ")
+        b.append("Limiti di questa misura: è una statistica di sessione, non una prova diretta. ")
+         .append("Un minatore fortunato o molto esperto può superare la soglia di allarme; per ")
          .append("questo il provvedimento automatico scatta solo oltre la soglia estrema. Il conteggio ")
          .append("dei minerali 'chiusi' non distingue una vena scavata da dentro da una trovata a colpo ")
          .append("sicuro: va letto insieme alla resa, non da solo.");

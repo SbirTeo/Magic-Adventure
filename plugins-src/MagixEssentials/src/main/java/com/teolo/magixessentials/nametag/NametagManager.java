@@ -203,8 +203,8 @@ public final class NametagManager implements Listener {
         perViewer = wantPerViewer && !ourLines;
         displayPerViewer = wantPerViewer && ourLines;
         if (relational && viewers.equalsIgnoreCase("never")) {
-            plugin.getLogger().warning("[Nametag] nelle righe c'e' un placeholder relazionale (" + RELATIONAL
-                    + "...), ma per-viewer e' su never: quei placeholder valgono come se il giocatore"
+            plugin.getLogger().warning("[Nametag] nelle righe c'è un placeholder relazionale (" + RELATIONAL
+                    + "...), ma per-viewer è su never: quei placeholder valgono come se il giocatore"
                     + " guardasse se stesso.");
         }
 
@@ -222,7 +222,7 @@ public final class NametagManager implements Listener {
         // Una riga nel log che risponde da sola alla domanda "perche' sopra la testa vedo questo?".
         plugin.getLogger().info("[Nametag] " + describe() + ".");
         if (!papi) {
-            plugin.getLogger().warning("[Nametag] PlaceholderAPI non c'e': i segnaposto nelle righe"
+            plugin.getLogger().warning("[Nametag] PlaceholderAPI non c'è: i segnaposto nelle righe"
                     + " restano vuoti (non scritti a schermo), quindi le targhette si riducono al nome."
                     + " Le righe fisse funzionano lo stesso.");
         }
@@ -237,7 +237,7 @@ public final class NametagManager implements Listener {
                 ? "righe scritte a mano in lines"
                 : "stile " + (style.isEmpty() ? "nessuno" : style);
         return from + ", " + lines.size() + (lines.size() == 1 ? " riga" : " righe")
-                + ", disegnate " + (ourLines ? "da noi (entita' di testo)" : "dal gioco (squadre)");
+                + ", disegnate " + (ourLines ? "da noi (entità di testo)" : "dal gioco (squadre)");
     }
 
     /**
@@ -278,7 +278,7 @@ public final class NametagManager implements Listener {
         plugin.getLogger().warning("[Nametag] " + (auto
                 ? "nessuno stile va bene per questo server (e nemmeno l'ultimo, quello senza requisiti:"
                         + " manca dall'elenco?)"
-                : "lo stile «" + wanted + "» non e' nell'elenco degli stili")
+                : "lo stile «" + wanted + "» non è nell'elenco degli stili")
                 + ": resta il nome e basta. Scrivi le righe che vuoi in nametag.yml -> lines, oppure"
                 + " aggiungi la voce che manca in styles.");
         return List.of(NAME_TOKEN);
@@ -352,10 +352,10 @@ public final class NametagManager implements Listener {
                 && CmiModules.disable(plugin, CMI_NAMETAG_KEYS)) {
             plugin.getLogger().info("[Nametag] il modulo dei nametag di CMI era acceso: l'ho spento nel suo"
                     + " Settings/Modules.yml (copia di scorta accanto). CMI quel file lo legge all'avvio,"
-                    + " quindi serve un RIAVVIO del server perche' smetta di scrivere anche lui.");
+                    + " quindi serve un RIAVVIO del server perché smetta di scrivere anche lui.");
             return;
         }
-        plugin.getLogger().warning("[Nametag] CMI e' installato e il suo modulo dei nametag risulta " + state
+        plugin.getLogger().warning("[Nametag] CMI è installato e il suo modulo dei nametag risulta " + state
                 + ": due plugin sulla stessa targhetta se la strappano di mano, e vince chi scrive per"
                 + " ultimo. Spegnilo in plugins/CMI/Settings/Modules.yml (oggi quella riga si chiama"
                 + " namePlates: mettila a false) e riavvia, oppure lascia fare a noi con"
@@ -416,7 +416,7 @@ public final class NametagManager implements Listener {
         int at = format.indexOf(NAME_TOKEN);
         if (at < 0 && !warnedNameless) {
             warnedNameless = true;
-            plugin.getLogger().warning("[Nametag] nell'ultima riga di nametag.yml -> lines non c'e' {name}:"
+            plugin.getLogger().warning("[Nametag] nell'ultima riga di nametag.yml -> lines non c'è {name}:"
                     + " il gioco il nome vero lo disegna comunque, quindi quella riga gli finisce davanti"
                     + " come prefisso. Mettici {name} dove vuoi che compaia il nome.");
         }
@@ -534,8 +534,8 @@ public final class NametagManager implements Listener {
             }
             if (warnedTokens.add(m.group())) {
                 plugin.getLogger().warning("[Nametag] " + m.group() + " non lo risolve nessuno"
-                        + (papi ? " (manca l'espansione, o il plugin che la fornisce non e' ancora"
-                                + " partito)" : " perche' PlaceholderAPI non c'e'")
+                        + (papi ? " (manca l'espansione, o il plugin che la fornisce non è ancora"
+                                + " partito)" : " perché PlaceholderAPI non c'è")
                         + ": lo lascio vuoto invece di scriverlo sopra la testa dei giocatori.");
             }
             m.appendReplacement(out, "");

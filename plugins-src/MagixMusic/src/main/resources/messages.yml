@@ -10,15 +10,15 @@
 # ============================================================
 
 no-permission: "&cNon hai il permesso."
-players-only: "&cSolo un giocatore puo' regolare la radio (ha un volume personale)."
+players-only: "&cSolo un giocatore può regolare la radio (ha un volume personale)."
 unknown-subcommand: "&cComando sconosciuto. Usa /radio help."
 reloaded: "&aRadio ricaricata dal config."
 usage: "&cUso: /radio [on|off|up|down|<0-100>]"
-disabled-globally: "&cLa radio dello spawn e' spenta al momento."
+disabled-globally: "&cLa radio dello spawn è spenta al momento."
 status-on: "&aRadio &2accesa&a a volume &e{volume}&a. In onda: &b{track}&a. Regolala con &e/radio up&a, &e/radio down&a o &e/radio off&a."
 status-off: "&aRadio &cspenta&a per te. Riaccendila con &e/radio on&a."
 turned-on: "&aRadio &2accesa&a a volume &e{volume}&a. In onda: &b{track}&a."
-turned-off: "&aRadio &cspenta&a per te: non sentirai piu' la musica dello spawn."
+turned-off: "&aRadio &cspenta&a per te: non sentirai più la musica dello spawn."
 volume: "&aVolume radio: &e{volume}&a. In onda: &b{track}&a."
 volume-off: "&aVolume radio a &e0&a: radio &cspenta&a per te."
 skipped: "&aBrano saltato. Ora in onda: &b{track}&a."
@@ -29,7 +29,7 @@ none-playing: "silenzio"
 help:
   title: "MagixMusic"
   # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
-  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # non cambia da un plugin all'altro, ma vive comunque qui perché Help lo legge da
   # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
   chrome:
     no-commands: "Nessun comando disponibile."

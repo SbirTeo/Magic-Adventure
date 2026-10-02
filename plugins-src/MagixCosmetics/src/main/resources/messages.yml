@@ -43,16 +43,16 @@ halo-status-server-off:
   - "  &7Aureola: &#FF6B6Bdisattivata &8(halo.enabled: false)."
 
 # ---------------------------------------------------------------- /halo
-halo-set-on: "&aLa tua aureola e' stata riaccesa."
-halo-set-off: "&7La tua aureola e' stata spenta."
-halo-already-on: "&eLa tua aureola era gia' accesa."
-halo-already-off: "&eLa tua aureola era gia' spenta."
-halo-no-vip: "&cL'aureola e' riservata ai VIP."
-halo-disabled: "&cIn questo momento l'aureola e' disattivata sul server."
+halo-set-on: "&aLa tua aureola è stata riaccesa."
+halo-set-off: "&7La tua aureola è stata spenta."
+halo-already-on: "&eLa tua aureola era già accesa."
+halo-already-off: "&eLa tua aureola era già spenta."
+halo-no-vip: "&cL'aureola è riservata ai VIP."
+halo-disabled: "&cIn questo momento l'aureola è disattivata sul server."
 halo-usage: "&eUso: &#A8DC2C/halo <on|off> &7oppure &#A8DC2C/halo setcolor <colore>"
 # {colors} = elenco dei nomi di colore validi (vedi color-names), separati da virgola.
 halo-setcolor-unknown: "&cColore sconosciuto. Colori disponibili: &e{colors}"
-# {color} = nome del colore che non gli e' permesso.
+# {color} = nome del colore che non gli è permesso.
 halo-setcolor-no-permission: "&cNon hai il permesso per il colore &e{color}&c. Chiedilo allo staff."
 # {color} = nome del colore appena scelto.
 halo-setcolor-set: "&aAureola impostata al colore &e{color}&a."
@@ -72,6 +72,55 @@ color-names:
   pink: "rosa"
   white: "bianco"
 
+# ---------------------------------------------------------------- /firework
+firework-disabled: "&cIl firework d'ingresso è disattivato su questo server."
+firework-no-permission: "&cNon puoi personalizzare il firework: chiedilo allo staff."
+firework-no-permission-fade: "&cNon hai il permesso per la sfumatura. Chiedilo allo staff."
+firework-no-permission-flicker: "&cNon hai il permesso per lo sfarfallio. Chiedilo allo staff."
+firework-no-permission-trail: "&cNon hai il permesso per la scia. Chiedilo allo staff."
+firework-no-permission-preview: "&cNon hai il permesso per l'anteprima."
+firework-no-permission-toggle: "&cNon hai il permesso per spegnere o riaccendere il firework."
+unknown-subcommand-firework: "&cSottocomando sconosciuto. Usa &e/firework help&c."
+firework-usage-color: "&eUso: &#A8DC2C/firework color <colore> [colore]..."
+firework-usage-fade: "&eUso: &#A8DC2C/firework fade <colore> [colore]... &7oppure &#A8DC2C/firework fade clear"
+firework-usage-shape: "&eUso: &#A8DC2C/firework shape <tipo> &7- forme: &e{shapes}"
+firework-usage-flicker: "&eUso: &#A8DC2C/firework flicker <on|off>"
+firework-usage-trail: "&eUso: &#A8DC2C/firework trail <on|off>"
+# {max} = quanti colori al massimo.
+firework-too-many-colors: "&cAl massimo {max} colori."
+# {color} = quello scritto dal giocatore, {colors} = i nomi validi.
+firework-color-unknown: "&cColore sconosciuto: &e{color}&c. Colori: &e{colors}&c, oppure un esadecimale tipo #FF00FF."
+firework-color-no-permission: "&cNon hai il permesso per il colore &e{color}&c. Chiedilo allo staff."
+firework-color-set: "&aColori del firework impostati: &e{colors}&a."
+firework-fade-set: "&aSfumatura del firework impostata: &e{colors}&a."
+firework-fade-cleared: "&7Sfumatura del firework tolta."
+firework-shape-unknown: "&cForma sconosciuta. Forme: &e{shapes}"
+firework-shape-no-permission: "&cNon hai il permesso per la forma &e{shape}&c. Chiedilo allo staff."
+firework-shape-set: "&aForma del firework impostata: &e{shape}&a."
+firework-flicker-on: "&aSfarfallio acceso."
+firework-flicker-off: "&7Sfarfallio spento."
+firework-trail-on: "&aScia accesa."
+firework-trail-off: "&7Scia spenta."
+firework-reset: "&7Firework riportato al look di serie."
+firework-set-on: "&aIl tuo firework d'ingresso è stato riacceso."
+firework-set-off: "&7Il tuo firework d'ingresso è stato spento."
+# {seconds} = quanti secondi aspettare.
+firework-preview-wait: "&eAspetta ancora {seconds} secondi prima di rivedere l'anteprima."
+firework-state-on: "acceso"
+firework-state-off: "spento"
+firework-yes: "sì"
+firework-no: "no"
+firework-none: "nessuna"
+# {state} acceso/spento, {colors}, {fade}, {shape}, {flicker}, {trail} = il look che avresti adesso.
+firework-info:
+  - "&8&m                                        "
+  - "  &#C046E8&lIl tuo firework d'ingresso &8(&7{state}&8)"
+  - "  &7Colori: &e{colors}"
+  - "  &7Sfumatura: &e{fade}"
+  - "  &7Forma: &e{shape} &8· &7Sfarfallio: &e{flicker} &8· &7Scia: &e{trail}"
+  - "  &7Comandi: &#A8DC2C/firework help"
+  - "&8&m                                        "
+
 # ---------------------------------------------------------------- /cosmetics help
 # L'aiuto lo impagina la classe Help (la stessa in tutti i plugin Magix): una sezione per
 # volta, frecce per sfogliare, ogni riga cliccabile per scriversi il comando in chat.
@@ -80,7 +129,7 @@ color-names:
 help:
   title: "MagixCosmetics"
   # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
-  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # non cambia da un plugin all'altro, ma vive comunque qui perché Help lo legge da
   # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
   chrome:
     no-commands: "Nessun comando disponibile."
@@ -97,6 +146,18 @@ help:
         - "/cosmetics info :: mostra i tuoi cosmetici e il loro stato"
         - "/halo <on|off> :: accendi o spegni la tua aureola (VIP)"
         - "/halo setcolor <colore> :: cambia il colore della tua aureola (serve il permesso di quel colore)"
+    firework:
+      title: "Firework d'ingresso"
+      entries:
+        - "/firework :: mostra il tuo firework d'ingresso"
+        - "/firework color <colore> :: scegli i colori (servono i permessi dei singoli colori)"
+        - "/firework fade <colore|clear> :: scegli i colori della sfumatura finale"
+        - "/firework shape <tipo> :: ball, large, star, burst o creeper (serve il permesso della forma)"
+        - "/firework flicker <on|off> :: sfarfallio"
+        - "/firework trail <on|off> :: scia"
+        - "/firework preview :: vedi subito il tuo firework"
+        - "/firework reset :: torna al look di serie"
+        - "/firework <on|off> :: spegni o riaccendi il tuo firework d'ingresso"
     staff:
       title: "Staff"
       staff: true

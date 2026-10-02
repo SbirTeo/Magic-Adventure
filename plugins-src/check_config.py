@@ -31,6 +31,23 @@ What it reports, for each .yml config file:
       plugin passes to StaffGuide.placeholders(...). A literal the expansion answers to (case "x",
       equals("x"), startsWith("x_")...) that no DOCS entry contains, a class without DOCS, or a
       DOCS never passed to the guide -> the staff cannot know the placeholder exists.
+  [10] config.yml key that the player tutorial does not tell: every key of a plugin with a
+      docs/build_tutorial.py must be either USED by the tutorial ({{cfg:key}}, {{if:key=...}}... or read
+      by name inside the Java method that builds the derived guide texts, the one with .extra(...)) or
+      declared NOT for players by writing [solo staff] / [staff only] in its comment or in the comment
+      of a section above it. The tutorial tells only what touches the players; everything else is
+      declared, so a new key forces the choice instead of vanishing in silence.
+  [11] HAND-WRITTEN NUMBER in the staff guide (the texts of StaffGuide.create(...) ... .write()) that
+      matches a config value -> use {{cfg:key}} (the guide is bound to the config with .values(...)).
+      A real coincidence (a texture size, an example) goes in STAFF_NUMBER_OK with a bit of its text.
+  [12] ACCENT WRITTEN WITH AN APOSTROPHE ("piu'", "e'", "perche'") in what people read: YAML values
+      and comments, Java string literals. Write the accented letter (più, è, perché). "po'" is right
+      as it is, and a word between single quotes ('dai_soldi') is not an accent.
+  [13] COMMANDS WITHOUT THE MAGIX COMMAND LIST: a plugin that declares commands in plugin.yml shows
+      them like every other Magix plugin (plugins-src/STILE-MAGIX.md section 3): the shared util/Help
+      (Help.show(...) called by the command, so "/<cmd>", "/<cmd> help [page]", "?" and the page
+      number alone open the list) and the entries in messages.yml under help.sections, with the
+      frame texts under help.chrome (a "usage" message for ONE wrong argument is fine).
 
 Exits with code 1 if it found anything: can be wired to a hook or to the build.
 """
@@ -254,6 +271,131 @@ def modes_not_told(folder, keys, code):
     return problems
 
 
+STAFF_ONLY = ("[staff only]", "[solo staff]")
+
+
+def keys_not_told(folder, keys, code):
+    """
+    [10] The tutorial tells players the rules that config.yml sets. A key it does not use, and that is
+    not declared staff-only, is a rule the players cannot read anywhere: it happened for real with the
+    price of /f create, changed in the config and missing from the tutorial for a day.
+
+    Told = the tutorial uses it in a placeholder or an {{if:}} block, or the method building the derived
+    texts reads it (or one of its parent sections) by name. Staff-only = [solo staff] in the comment of
+    the key or of any section above it.
+    """
+    tut = os.path.join(folder, "docs", "build_tutorial.py")
+    if not os.path.isfile(tut):
+        return []
+    with open(tut, encoding="utf-8") as f:
+        text = f.read()
+    used = set(re.findall(r"\{\{(?:cfg|secondi|ore|percento|simbolo|se|if):([A-Za-z0-9_./\-]+?)(?:!?=[^}]*)?(?:\|[^}]*)?\}\}", text))
+    derived = derived_methods(code)
+    sections = {c["key"]: c["comment"] for c in keys if c["section"]}
+    problems = []
+    for c in keys:
+        if c["section"]:
+            continue
+        k = c["key"]
+        parts = k.split(".")
+        chain = [".".join(parts[:i]) for i in range(1, len(parts) + 1)]
+        own = c["comment"] if not c["section"] else ""
+        if any(t in own for t in STAFF_ONLY) or \
+                any(t in sections.get(a, "") for a in chain[:-1] for t in STAFF_ONLY):
+            continue
+        # the key itself by name, or a parent section read WHOLE (getConfigurationSection("value-blocks"),
+        # getMapList("ranks")): a bare "chat" literal elsewhere in the method is not a reading of chat.*
+        if k in used or ('"' + k + '"') in derived or \
+                any(re.search(r'get(?:ConfigurationSection|MapList|StringList|List)\(\s*"' + re.escape(a) + '"', derived)
+                    for a in chain[:-1]):
+            continue
+        problems.append(("docs/build_tutorial.py", c["line"],
+                         "[10] config key neither told in the tutorial nor marked [solo staff]", k))
+    return problems
+
+
+# [11] Numbers in the staff guide that happen to equal a config value but have nothing to do with
+# it: (plugin, a piece of the sentence). Checked by eye, one by one.
+STAFF_NUMBER_OK = [
+    ("MagixFactions", "powermax.20 = tetto 20"),        # example of the permission syntax
+    ("MagixFactions", "servono almeno 10 righe vuote"),  # tablist layout, from the logo height
+    ("MagixFactions", "le 80 caselle finte"),            # fixed texture of the tablist
+    ("MagixFactions", "di serie 6 fazioni da 2-5"),       # defaults of /mf admin fake create
+    ("MagixGuard", "40:40 mgviolation"),                 # example line of another plugin's file
+]
+STRING_LITERAL = re.compile(r'"(?:[^"\\\n]|\\.)*"')
+NUMBER_IN_TEXT = re.compile(r"(?<![\w.&#])(\d+(?:[.,]\d+)?)(?![\w.])")
+
+
+def staff_guide_numbers(name, keys):
+    """[11] see the header: hand-written numbers in the staff guide that match a config value."""
+    values = {}
+    for c in keys:
+        v = c["value"].split("#")[0].strip().strip('"\'')
+        if re.fullmatch(r"\d+(?:\.\d+)?", v or "") and float(v) >= 3:
+            values.setdefault(v, []).append(c["key"])
+    problems = []
+    for root, _, files in os.walk(os.path.join(HERE, name, "src", "main", "java")):
+        for f in files:
+            if not f.endswith(".java") or f == "StaffGuide.java":
+                continue
+            with open(os.path.join(root, f), encoding="utf-8", errors="ignore") as fh:
+                src = fh.read()
+            start = src.find("StaffGuide.create(")
+            if start < 0:
+                continue
+            end = src.find(".write()", start)
+            for lit in STRING_LITERAL.findall(src[start:end if end > 0 else len(src)]):
+                if any(p == name and piece in lit for p, piece in STAFF_NUMBER_OK):
+                    continue
+                text = re.sub(r"\{\{[^}]{1,80}\}\}|`[^`]*`", " ", lit)
+                for n in NUMBER_IN_TEXT.findall(text):
+                    if n in values:
+                        problems.append((f, 0, "[11] hand-written number (" + n + ") in the staff guide, matches",
+                                         ", ".join(values[n][:3])))
+    return problems
+
+
+ACCENT_APOSTROPHE = re.compile(r"(?<![A-Za-zÀ-ÿ'])([A-Za-z]*[aeiouAEIOU])'(?=[\s.,:;!?)\"&<>{}\[\]§*~/|-]|$)")
+ACCENT_OK = {"po", "de", "mo", "to", "pe", "ca", "fa", "sta", "va", "di", "tu", "be", "ma", "fe", "pie"}
+SINGLE_QUOTED = re.compile(r"(?<![A-Za-zÀ-ÿ])'[^'\n\"]{1,80}'(?![A-Za-zÀ-ÿ])")
+TRANSLATIONS = ("en.yml", "es.yml", "de.yml")
+
+
+def apostrophe_accents(text):
+    text = SINGLE_QUOTED.sub(" ", text)
+    out = [w for w in ACCENT_APOSTROPHE.findall(text) if w.lower() not in ACCENT_OK]
+    out += re.findall(r"[cC]'[eE]'(?=[\s.,:;!?)\"&<]|$)", text)
+    return out
+
+
+def accents_with_apostrophe(name):
+    """[12] see the header: accents written with an apostrophe in what people read."""
+    problems = []
+    base = os.path.join(HERE, name, "src", "main")
+    for root, _, files in os.walk(base):
+        for f in files:
+            path = os.path.join(root, f)
+            if f.endswith(".yml") and f not in ("plugin.yml", "value-fixes.yml", "renames.yml") + TRANSLATIONS:
+                with open(path, encoding="utf-8", errors="ignore") as fh:
+                    for i, line in enumerate(fh, 1):
+                        body = line
+                        m = re.match(r"^(\s*(?:-\s+)?(?:[^\s:#\"'][^:#]*:[ \t]*)?)'((?:[^']|'')*)'(.*)$", line)
+                        if m:   # a single-quoted YAML value: its apostrophes are written twice
+                            body = m.group(2).replace("''", "\x01") + m.group(3)
+                        for w in apostrophe_accents(body):
+                            problems.append((os.path.relpath(path, base), i, "[12] accent written with an apostrophe", w + "'"))
+            elif f.endswith(".java"):
+                with open(path, encoding="utf-8", errors="ignore") as fh:
+                    for i, line in enumerate(fh, 1):
+                        if line.strip().startswith(("//", "*", "/*")):
+                            continue
+                        for lit in STRING_LITERAL.findall(line):
+                            for w in apostrophe_accents(lit):
+                                problems.append((f, i, "[12] accent written with an apostrophe", w + "'"))
+    return problems
+
+
 def check(name):
     folder = os.path.join(HERE, name)
     resources = os.path.join(folder, "src", "main", "resources")
@@ -264,7 +406,9 @@ def check(name):
     problems = []
 
     for f in sorted(os.listdir(resources)):
-        if not f.endswith(".yml") or f in ("plugin.yml", "messages.yml"):
+        # value-fixes.yml non e' configurazione: e' l'elenco interno dei testi di serie da
+        # aggiornare sul server (vedi MagixGuard.applyValueFixes), nessuno lo regola.
+        if not f.endswith(".yml") or f in ("plugin.yml", "messages.yml", "value-fixes.yml"):
             continue
         path = os.path.join(resources, f)
         keys = file_keys(path)
@@ -315,8 +459,34 @@ def check(name):
                     problems.append((f, c["line"], "[4] in the file but never read by the code", k))
             problems += hand_written_numbers(folder, keys)
             problems += modes_not_told(folder, keys, code)
+            if f == "config.yml":
+                problems += keys_not_told(folder, keys, code)
+                problems += staff_guide_numbers(name, keys)
+    problems += accents_with_apostrophe(name)
+    problems += help_page_missing(name, code)
     problems += help_arguments_unknown(name)
     problems += placeholders_undocumented(name)
+    return problems
+
+
+def help_page_missing(name, code):
+    """[13] see the header: a plugin with commands shows them with the shared Help page."""
+    resources = os.path.join(HERE, name, "src", "main", "resources")
+    plugin_yml = os.path.join(resources, "plugin.yml")
+    if not os.path.isfile(plugin_yml):
+        return []
+    text = open(plugin_yml, encoding="utf-8").read()
+    block = re.search(r"^commands:\s*\n((?:[ \t]+.*\n?|\s*\n)+)", text, re.M)
+    if not block or not re.search(r"^  [A-Za-z0-9_-]+:", block.group(1), re.M):
+        return []
+    problems = []
+    if "Help.show(" not in code:
+        problems.append(("plugin.yml", 0, "[13] commands without the Magix command list", "Help.show(...) never called"))
+    messages = os.path.join(resources, "messages.yml")
+    msg = open(messages, encoding="utf-8").read() if os.path.isfile(messages) else ""
+    if not re.search(r"^help:\s*$", msg, re.M) or not re.search(r"^  sections:\s*$", msg, re.M) \
+            or not re.search(r"^  chrome:\s*$", msg, re.M):
+        problems.append(("messages.yml", 0, "[13] commands without the Magix command list", "help.chrome / help.sections"))
     return problems
 
 

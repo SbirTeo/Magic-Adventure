@@ -101,39 +101,39 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
     private void writeStaffGuide() {
         StaffGuide.create(this, "MagixScoreboard — scoreboard laterale", 65)
                 .values(new ConfigValues(this))
-                .intro("Mostra a ogni giocatore una scoreboard laterale diversa a seconda di chi e', "
+                .intro("Mostra a ogni giocatore una scoreboard laterale diversa a seconda di chi è, "
                         + "dov'e' e in che regione si trova, coi placeholder di PlaceholderAPI (compresi "
-                        + "quelli degli altri plugin Magix) gia' risolti.")
+                        + "quelli degli altri plugin Magix) già risolti.")
 
                 .section("Come si sceglie la scoreboard",
                         "Ogni scoreboard ha condizioni facoltative (permesso, mondi, regioni WorldGuard, "
                                 + "confronti su placeholder di PlaceholderAPI) e un peso (weight). Fra tutte "
-                                + "quelle che corrispondono al giocatore vince quella col peso piu' alto.",
-                        "A parita' di peso decide l'ordine di priorita' del config (priority-order): una "
-                                + "scoreboard con una condizione piu' in alto in quell'elenco batte una che ne ha "
-                                + "solo una piu' in basso — di serie una regione batte un permesso, che batte un "
+                                + "quelle che corrispondono al giocatore vince quella col peso più alto.",
+                        "A parità di peso decide l'ordine di priorità del config (priority-order): una "
+                                + "scoreboard con una condizione più in alto in quell'elenco batte una che ne ha "
+                                + "solo una più in basso — di serie una regione batte un permesso, che batte un "
                                 + "mondo, che batte un confronto su placeholder. /mscoreboard debug <giocatore> "
                                 + "mostra il punteggio di ognuna, utile quando il risultato non torna.",
                         "Le condizioni sui placeholder (chiave \"placeholders\") sono nella forma "
                                 + "\"%placeholder% OP valore\" (OP fra >= <= == != > <) — es. "
                                 + "\"%magixfactions_faction% != \" mostra una scoreboard solo a chi ha una "
-                                + "fazione. Con due lati numerici il confronto e' numerico, altrimenti testuale "
-                                + "(senza distinguere maiuscole/minuscole). Con piu' di una condizione, "
+                                + "fazione. Con due lati numerici il confronto è numerico, altrimenti testuale "
+                                + "(senza distinguere maiuscole/minuscole). Con più di una condizione, "
                                 + "\"placeholders-mode\" decide se servono TUTTE (all, il default) o ne basta UNA "
                                 + "(any).")
 
                 .section("Titolo, righe, animazioni",
-                        "Titolo e ogni riga hanno una lista di \"frames\" (uno o piu' testi) e un "
-                                + "interval-ticks: con un solo frame il testo e' fisso (i placeholder si "
-                                + "aggiornano comunque), con piu' di uno si alternano in ordine ogni tot tick — "
+                        "Titolo e ogni riga hanno una lista di \"frames\" (uno o più testi) e un "
+                                + "interval-ticks: con un solo frame il testo è fisso (i placeholder si "
+                                + "aggiornano comunque), con più di uno si alternano in ordine ogni tot tick — "
                                 + "sia per un'animazione del singolo testo sia per righe del tutto diverse che "
                                 + "si alternano nello stesso posto.",
-                        "L'avanzamento e' sincronizzato fra tutti i giocatori (un orologio comune, non uno a "
+                        "L'avanzamento è sincronizzato fra tutti i giocatori (un orologio comune, non uno a "
                                 + "testa): due giocatori che vedono la stessa riga animata la vedono nello stesso "
                                 + "fotogramma.",
                         "Con \"scroll\" (width, gap, speed-ticks) sotto un titolo o una riga, il testo scorre "
                                 + "da destra verso sinistra in una finestra di width caratteri, come un'insegna: "
-                                + "si applica al testo gia' risolto, placeholder e colori compresi (es. "
+                                + "si applica al testo già risolto, placeholder e colori compresi (es. "
                                 + "%magixfactions_status% che scorre). La scoreboard si ridisegna da sola al passo "
                                 + "dello scorrimento, senza toccare update-interval-ticks.")
 
@@ -141,14 +141,14 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                         "Il riquadro semitrasparente dietro la sidebar lo disegna il client, non il plugin: "
                                 + "MagixScoreboard lo cambia con uno shader che registra nel pacchetto risorse di "
                                 + "MagixPack (senza MagixPack resta vanilla). Da sidebar-background si sceglie colore "
-                                + "e opacita' (uguali per titolo e righe) oppure lo si spegne del tutto, e si puo' "
+                                + "e opacità (uguali per titolo e righe) oppure lo si spegne del tutto, e si può "
                                 + "aggiungere un bordo sfumato da sinistra a destra sui lati sopra, sinistra e sotto.",
-                        "Le modifiche entrano con /mscoreboard reload, ma i giocatori gia' connessi le vedono solo "
+                        "Le modifiche entrano con /mscoreboard reload, ma i giocatori già connessi le vedono solo "
                                 + "quando riscaricano il pacchetto (al prossimo ingresso). Lo shader riconosce la "
                                 + "sidebar dal suo colore vanilla: se un giocatore ha tolto \"Sfondo testo solo per la "
-                                + "chat\" nelle opzioni di accessibilita', per lui lo sfondo resta quello di serie.")
+                                + "chat\" nelle opzioni di accessibilità, per lui lo sfondo resta quello di serie.")
                 .section("Posizione verticale della sidebar",
-                        "Il client mette la sidebar sempre un po' sopra la meta' dello schermo, e da server non "
+                        "Il client mette la sidebar sempre un po' sopra la metà dello schermo, e da server non "
                                 + "si cambia. sidebar-position.offset-y la SPOSTA (pixel dell'interfaccia, positivo = "
                                 + "in basso) con gli shader del pacchetto: lo sfondo lo sposta MagixScoreboard, le "
                                 + "scritte e le icone lo shader del testo di MagixFactions, che legge lo stesso valore "
@@ -163,19 +163,19 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                 .permissions()
                 .settings(
                         "update-interval-ticks", "Ogni quanti tick si ricalcola la scoreboard giusta e si aggiornano i placeholder "
-                                + "(le animazioni seguono i propri interval-ticks, anche se piu' bassi).",
-                        "priority-order", "Lo spareggio a parita' di peso: quale condizione conta di piu'.")
+                                + "(le animazioni seguono i propri interval-ticks, anche se più bassi).",
+                        "priority-order", "Lo spareggio a parità di peso: quale condizione conta di più.")
 
                 .issue("Un giocatore non vede nessuna scoreboard",
                         "O l'ha nascosta con /mscoreboard toggle, o nessuna scoreboard configurata corrisponde a "
                                 + "lui in quel momento (nessuna scoreboard di riserva senza condizioni). "
-                                + "/mscoreboard debug <giocatore> mostra quale, se una, dovrebbe vedere e perche'.")
+                                + "/mscoreboard debug <giocatore> mostra quale, se una, dovrebbe vedere e perché.")
                 .issue("Le condizioni \"regions\" non funzionano mai",
-                        "WorldGuard non e' installato sul server: senza, quelle condizioni non possono mai "
+                        "WorldGuard non è installato sul server: senza, quelle condizioni non possono mai "
                                 + "corrispondere (il plugin lo scrive in console all'avvio). /mscoreboard list mostra "
                                 + "se WorldGuard risulta collegato.")
-                .issue("I placeholder %...% compaiono cosi' come sono, non risolti",
-                        "PlaceholderAPI non e' installato. Senza, ne' i placeholder standard ne' quelli degli "
+                .issue("I placeholder %...% compaiono così come sono, non risolti",
+                        "PlaceholderAPI non è installato. Senza, né i placeholder standard né quelli degli "
                                 + "altri plugin Magix vengono risolti: il testo resta letterale.")
 
                 .never("Non affidarti all'ordine nel config per lo spareggio: usa priority-order (o un peso "

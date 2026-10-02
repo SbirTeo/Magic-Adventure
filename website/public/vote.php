@@ -9,7 +9,7 @@
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
 
-$url = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magicadventure1789147678859');
+$url = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magic-adventure');
 header('Cache-Control: no-store');
 header('Location: ' . ($url !== '' ? $url : '/'), true, 302);
 exit;

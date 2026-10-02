@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       plugin:
-        description: "Cartella del plugin (es. MagixEntities), 'tutti' per l'elenco delle chiavi di tutti i Magix, 'sistema' per risorse/porte/firewall/servizi della macchina, 'LuckPerms' per cercare un permesso (vedi input 'permesso')"
+        description: "Cartella del plugin (es. MagixEntities), 'tutti' per l'elenco delle chiavi di tutti i Magix, 'sistema' per risorse/porte/firewall/servizi della macchina, 'database' per lo stato di MariaDB, 'LuckPerms' per cercare un permesso (vedi input 'permesso')"
         required: true
         default: "MagixEntities"
       file:
@@ -159,6 +159,30 @@ jobs:
 
           # 'sistema': la macchina invece di un plugin. Serve a progettare altri server sullo
           # stesso VPS (hub, proxy Velocity): risorse libere, porte in ascolto, firewall, servizi.
+          # 'database': lo stato di MariaDB (connessioni, chi le tiene, riavvii), sola lettura, con le
+          # credenziali del sito (includes/db.php). Mai password ne' testi delle query.
+          if [ "$PLUGIN" = "database" ]; then
+            echo "=== MARIADB ==="
+            systemctl status mariadb --no-pager 2>/dev/null | sed -n '1,6p'
+            echo "--- ultime righe del suo diario (riavvii, errori) ---"
+            sudo -n journalctl -u mariadb --no-pager -n 40 2>/dev/null | cut -c1-220 || echo "(journal non leggibile)"
+            php -r 'try { require "/var/www/magicadventure/includes/db.php"; $d = db();
+                foreach (["max_connections","max_user_connections","wait_timeout","max_connect_errors"] as $v) {
+                  $r = $d->query("SHOW VARIABLES LIKE \"$v\"")->fetch(PDO::FETCH_NUM); echo "$r[0] = $r[1]\n"; }
+                foreach (["Uptime","Threads_connected","Max_used_connections","Max_used_connections_time","Aborted_connects","Connection_errors_max_connections","Connection_errors_internal","Connection_errors_accept"] as $v) {
+                  $r = $d->query("SHOW GLOBAL STATUS LIKE \"$v\"")->fetch(PDO::FETCH_NUM); if ($r) echo "$r[0] = $r[1]\n"; }
+                echo "--- connessioni aperte per utente, programma e database (dal processlist) ---\n";
+                foreach ($d->query("SELECT USER, SUBSTRING_INDEX(HOST, \":\", 1) AS h, DB, COMMAND, COUNT(*) AS n FROM information_schema.PROCESSLIST GROUP BY USER, h, DB, COMMAND ORDER BY n DESC") as $r) {
+                  echo implode("  ", [$r["USER"], $r["h"], $r["DB"] ?? "-", $r["COMMAND"], $r["n"]]), "\n"; }
+              } catch (Throwable $e) { echo "lettura fallita: ", get_class($e), " ", $e->getCode(), "\n"; }' 2>&1
+            echo "--- connessioni TCP verso la 3306, per processo ---"
+            sudo -n ss -tnp 2>/dev/null | awk '$5 ~ /:3306$/' | grep -oE 'users:\(\("[^"]+",pid=[0-9]+' | sort | uniq -c | sort -rn
+            for pid in $(sudo -n ss -tnp 2>/dev/null | awk '$5 ~ /:3306$/' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u); do
+              echo "  pid $pid: $(ps -o args= -p "$pid" 2>/dev/null | cut -c1-90)"
+            done
+            exit 0
+          fi
+
           if [ "$PLUGIN" = "sistema" ]; then
             echo "=== RISORSE ==="
             nproc; free -h; df -h / "$BASE" 2>/dev/null
@@ -244,9 +268,16 @@ jobs:
               echo "(download da 127.0.0.1:${PORT}/pack.zip fallito: il servizio HTTP non risponde)"
             else
               echo "Scaricato $(stat -c%s /tmp/diag-pack.zip 2>/dev/null || echo '?') byte da 127.0.0.1:${PORT}/pack.zip"
-              python3 -c "import zipfile; z = zipfile.ZipFile('/tmp/diag-pack.zip'); names = z.namelist(); mp = sorted(n for n in names if n.startswith('assets/magixpack/')); legacy = sorted(n for n in names if n.startswith('assets/minecraft/models/item/') and b'magixpack' in z.read(n)); print(f'{len(names)} file nello zip, {len(mp)} sotto assets/magixpack/ (oggetti/icone custom di MagixPack), {len(legacy)} override legacy su modelli vanilla (CustomModelData):'); [print('  ' + n, '(' + str(len(z.read(n))) + ' byte)') for n in mp + legacy]; print(); print('--- contenuto dei .json (per controllare che siano scritti davvero cosi) ---'); [print(n + ':', z.read(n).decode('utf-8', 'replace')) for n in mp + legacy if n.endswith('.json')]"
+              python3 -c "import zipfile; z = zipfile.ZipFile('/tmp/diag-pack.zip'); names = z.namelist(); mp = sorted(n for n in names if n.startswith('assets/magixpack/')); legacy = sorted(n for n in names if n.startswith('assets/minecraft/models/item/') and b'magixpack' in z.read(n)); print(f'{len(names)} file nello zip, {len(mp)} sotto assets/magixpack/ (oggetti/icone custom di MagixPack), {len(legacy)} override legacy su modelli vanilla (CustomModelData):'); [print('  ' + n, '(' + str(len(z.read(n))) + ' byte)') for n in mp + legacy]; print(); print('--- contenuto dei .json (per controllare che siano scritti davvero cosi) ---'); [print(n + ':', z.read(n).decode('utf-8', 'replace')) for n in mp + legacy if n.endswith('.json') and len(z.read(n)) < 20000]"
               rm -f /tmp/diag-pack.zip
             fi
+            # quanto lontano si vedono i modelli: il server manda le entita' solo entro la sua
+            # distanza di visuale e di tracciamento (spigot.yml), il client le disegna entro
+            # view_range x 64 blocchi (MagixPack: models.view-distance)
+            echo; echo "=== DISTANZE (visuale del server, tracciamento entita') ==="
+            grep -E '^(view-distance|simulation-distance|entity-broadcast-range-percentage)=' "$BASE/server.properties"
+            sed -n '/entity-tracking-range:/,/^ *[a-z-]*:$/p' "$BASE/spigot.yml" | head -n 12
+            grep -E 'view-distance' "$BASE/plugins/$PLUGIN/config.yml" 2>/dev/null
           fi
 
           # La coda di traduzione del sito (site_translations) sta nel database del sito, non in
