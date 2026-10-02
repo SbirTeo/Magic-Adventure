@@ -839,6 +839,8 @@ public final class MagixFactions extends JavaPlugin {
             v.extra("MONDI_CLAIM_FRASE", "solo in questi mondi: " + String.join(", ", claimWorlds));
         }
 
+        materialNames = materialNames();
+
         // Oggetti richiesti dai costi (liste "MATERIALE:quantita'"): un riquadro per ognuno, o niente.
         v.extra("OGGETTI_CREATE", itemsWarning("Per fondare la fazione", c.getStringList("create-cost.items")));
         v.extra("OGGETTI_SETHOME", itemsWarning("Per impostare la casa", c.getStringList("sethome-cost.items")));
@@ -894,7 +896,7 @@ public final class MagixFactions extends JavaPlugin {
     }
 
     /** Riquadro "servono questi oggetti" del tutorial; vuoto se la lista e' vuota. */
-    private static String itemsWarning(String what, List<String> items) {
+    private String itemsWarning(String what, List<String> items) {
         List<String> parts = new ArrayList<>();
         for (String entry : items) {
             String[] p = entry.split(":");
@@ -906,9 +908,39 @@ public final class MagixFactions extends JavaPlugin {
                 + String.join(", ", parts) + ".</div>";
     }
 
-    /** "DIAMOND_BLOCK" -> "diamond block": il nome del materiale come lo si legge. */
-    private static String materialName(String material) {
-        return material.trim().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+    /** Nomi italiani dei materiali (messages.yml, sezione materials), riletti a ogni giro delle guide. */
+    private org.bukkit.configuration.ConfigurationSection materialNames;
+
+    /**
+     * La sezione materials di messages.yml: il file del server se c'e' (allineato da ConfigAlign
+     * all'avvio, quindi ha anche i nomi nuovi del jar), altrimenti quello dentro il jar.
+     */
+    private org.bukkit.configuration.ConfigurationSection materialNames() {
+        try {
+            java.io.File f = new java.io.File(getDataFolder(), "messages.yml");
+            org.bukkit.configuration.file.YamlConfiguration y;
+            if (f.isFile()) {
+                y = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(f);
+            } else {
+                try (java.io.Reader r = new java.io.InputStreamReader(
+                        java.util.Objects.requireNonNull(getResource("messages.yml")), java.nio.charset.StandardCharsets.UTF_8)) {
+                    y = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(r);
+                }
+            }
+            return y.getConfigurationSection("materials");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** "DIAMOND_BLOCK" -> "Blocco di diamante" (messages.yml); senza nome, quello tecnico e un avviso nel log. */
+    private String materialName(String material) {
+        String id = material.trim().toUpperCase(java.util.Locale.ROOT);
+        String name = materialNames == null ? null : materialNames.getString(id);
+        if (name != null && !name.isBlank()) return name;
+        getLogger().warning("[Guide] nome italiano mancante per il materiale " + id
+                + ": aggiungilo in messages.yml, sezione materials.");
+        return id.toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
     }
 
     /**

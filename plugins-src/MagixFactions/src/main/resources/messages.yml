@@ -431,6 +431,39 @@ admin:
     none: "&eNessun dato di test presente: non c'è niente da rimuovere."
     info: "&eDati di test attuali: &6{factions}&e fazioni finte, &6{players}&e giocatori finti. Rimuovili con &6/mf admin fake clear&e."
 
+# Nomi dei materiali come li legge il giocatore nel tutorial (blocchi che danno Valore, oggetti richiesti
+# dai costi). Chiave = nome del MATERIALE Minecraft, come in value-blocks e negli "items" del config.
+# Un materiale senza nome qui esce col nome tecnico ("diamond block") e il log all'avvio lo segnala:
+# aggiungilo qui quando metti un blocco nuovo in value-blocks o un oggetto nuovo in un costo.
+materials:
+  NETHERITE_BLOCK: "Blocco di netherite"
+  DIAMOND_BLOCK: "Blocco di diamante"
+  EMERALD_BLOCK: "Blocco di smeraldo"
+  GOLD_BLOCK: "Blocco d'oro"
+  IRON_BLOCK: "Blocco di ferro"
+  LAPIS_BLOCK: "Blocco di lapislazzuli"
+  REDSTONE_BLOCK: "Blocco di redstone"
+  COAL_BLOCK: "Blocco di carbone"
+  COPPER_BLOCK: "Blocco di rame"
+  AMETHYST_BLOCK: "Blocco di ametista"
+  QUARTZ_BLOCK: "Blocco di quarzo"
+  RAW_IRON_BLOCK: "Blocco di ferro grezzo"
+  RAW_GOLD_BLOCK: "Blocco d'oro grezzo"
+  RAW_COPPER_BLOCK: "Blocco di rame grezzo"
+  NETHERITE_INGOT: "Lingotto di netherite"
+  DIAMOND: "Diamante"
+  EMERALD: "Smeraldo"
+  GOLD_INGOT: "Lingotto d'oro"
+  IRON_INGOT: "Lingotto di ferro"
+  COPPER_INGOT: "Lingotto di rame"
+  LAPIS_LAZULI: "Lapislazzuli"
+  REDSTONE: "Polvere di redstone"
+  COAL: "Carbone"
+  QUARTZ: "Quarzo del Nether"
+  ANCIENT_DEBRIS: "Detriti antichi"
+  ENDER_PEARL: "Perla di ender"
+  EXPERIENCE_BOTTLE: "Ampolla di esperienza"
+
 reload: "&aConfigurazione e messaggi ricaricati."
 
 # ---------------------------------------------------------------- /f help
