@@ -88,7 +88,7 @@ public final class ServerGuard {
             loggedIn = hasSession(player);
         } catch (SQLException e) {
             log.warn("MagixProxy: sessione di {} non verificabile ({}): resta dov'e'.",
-                    player.getUsername(), e.getMessage());
+                    player.getUsername(), Database.describe(e));
             loggedIn = false;
         }
         if (!loggedIn) {

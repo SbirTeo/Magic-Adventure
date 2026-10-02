@@ -2,6 +2,7 @@ package com.teolo.magixproxy.profile;
 
 import com.teolo.magixproxy.ProxyConfig;
 import com.teolo.magixproxy.db.AccountDao;
+import com.teolo.magixproxy.db.Database;
 import com.velocitypowered.api.event.EventTask;
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.Subscribe;
@@ -60,7 +61,7 @@ public final class ProfileListener {
         } catch (SQLException e) {
             // Nobody can say who this is. Same choice as MagixAuth: keep them out for a few
             // minutes rather than let anyone in with someone else's UUID.
-            log.warn("MagixProxy: database non raggiungibile all'ingresso di {} ({}).", name, e.getMessage());
+            log.warn("MagixProxy: database non raggiungibile all'ingresso di {} ({}).", name, Database.describe(e));
             unknown.add(key(name));
             return;
         }

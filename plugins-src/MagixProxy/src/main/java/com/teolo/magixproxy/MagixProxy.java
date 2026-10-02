@@ -30,7 +30,7 @@ import java.nio.file.Path;
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.5.1",
+        version = "0.5.3",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
         authors = {"teolo"}
@@ -62,7 +62,7 @@ public final class MagixProxy {
             return;
         }
 
-        database = new Database(config);
+        database = new Database(config, log);
         if (!database.reachable()) {
             log.warn("MagixProxy: il database del sito non risponde ora; si riprova a ogni ingresso.");
         }

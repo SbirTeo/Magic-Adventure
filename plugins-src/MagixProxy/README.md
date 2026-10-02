@@ -65,6 +65,22 @@ riconosce il dispositivo dall'indirizzo, che subito dopo il login sul server pri
 Il primo ingresso nella rete non cambia: li' il gettone funziona come prima. La richiesta trattenuta
 resta come rete di sicurezza per un altro plugin che chiedesse un cookie durante un cambio server.
 
+## Collegamento al database che si ripara da solo (0.5.3)
+
+Il 02/10 dalle 11:28 alle 15:10 il pool di connessioni di MagixProxy e' rimasto a **zero
+connessioni** senza piu' riempirsi: ogni ingresso finiva in `login.kick-database` ("Il server non
+riesce a verificare il tuo account"), mentre il database stava benissimo e LuckPerms, nello stesso
+proxy, lavorava. L'ha sbloccato solo il riavvio di Velocity. Dalla 0.5.3:
+
+- il driver ha `connectTimeout=5000` e `socketTimeout=15000`: una connessione che il database
+  accetta ma a cui non risponde non puo' piu' bloccare per sempre il filo che crea le connessioni;
+- le connessioni ferme si provano ogni 2 minuti (`keepaliveTime`);
+- se un ingresso trova il pool **vuoto** (zero connessioni) dopo l'attesa, `db/Database` lo butta e
+  ne crea uno nuovo (al massimo una volta ogni 30 secondi) e riprova subito, scrivendo nel log
+  `il collegamento al database è rimasto senza connessioni (...): lo ricreo.`;
+- nei messaggi `database non raggiungibile` c'e' anche la **causa** vera (il timeout del pool la
+  nascondeva), dopo `<-`.
+
 ## La MOTD della lista server (0.3.0)
 
 Con Velocity davanti al ping risponde il proxy: il server dietro non lo vede nemmeno. MagixProxy
