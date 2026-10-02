@@ -851,17 +851,17 @@ public final class MagixFactions extends JavaPlugin {
         String spec = c.getString("claims.cost.money", "0");
         StringBuilder prices = new StringBuilder();
         boolean free = true;
-        for (int owned = 0; owned < 12; owned++) {
+        for (int owned = 0; owned < 10; owned++) {
             double cost = com.teolo.magixfactions.command.FCommand.nextClaimCost(spec, owned);
             if (cost > 0) free = false;
-            if (owned > 0) prices.append(", ");
-            prices.append(DurationText.number(cost));
+            if (owned > 0) prices.append(", il ").append(owned + 1).append("° ");
+            prices.append("<b>").append(DurationText.number(cost)).append("</b>");
         }
         v.extra("PREZZI_CLAIM", free
-                ? "Conquistare territori è <b>gratis</b>: la banca serve ai progetti comuni della fazione."
-                : "Ogni <span class=\"cmd\">/f claim</span> costa denaro <b>dalla banca della fazione</b>, e il prezzo "
-                + "<b>cresce</b> a ogni territorio. I primi territori costano: <b>" + prices + "</b>… e così via. "
-                + "Tenete la banca piena!");
+                ? "Conquistare territori è <b>gratis</b>."
+                : "Ogni <span class=\"cmd\">/f claim</span> costa denaro, e lo paga la <b>banca della fazione</b> "
+                + "(<span class=\"cmd\">/f deposit</span>), non il tuo portafoglio. Il prezzo <b>cresce</b> a ogni "
+                + "territorio che possedete: il 1° costa " + prices + "… e così via. Tenete la banca piena!");
 
         // Gradi, dal piu' basso al piu' alto, e chi puo' prelevare dalla banca (permessi ereditati).
         List<String> rankNames = new ArrayList<>();

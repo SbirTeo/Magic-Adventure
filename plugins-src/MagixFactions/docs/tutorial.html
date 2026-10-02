@@ -253,6 +253,8 @@
   <h2><span class="n">7</span>Conquistare territori</h2>
   <p>Un <b>territorio</b> è un <b>chunk</b> (16×16 blocchi). Mettiti dove vuoi e usa:</p>
   <p><span class="cmd">/f claim</span> — conquista il chunk in cui ti trovi.</p>
+  <h3>Quanto costa un territorio</h3>
+  <p>{{PREZZI_CLAIM}}</p>
   <div class="tip">Puoi rivendicare terreno <b>{{MONDI_CLAIM_FRASE}}</b>: nel Nether, nell'End e negli altri mondi il claim non è permesso.</div>
   {{se:claims.protected-spawn.enabled=true}}<div class="warn">Attorno allo <b>spawn</b> c'è un'<b>area protetta</b>: nel mondo «{{cfg:claims.protected-spawn.world}}», un quadrato di <b>{{cfg:claims.protected-spawn.radius}} blocchi</b> su ogni lato dal centro (X {{cfg:claims.protected-spawn.center-x}}, Z {{cfg:claims.protected-spawn.center-z}}). Lì <b>non puoi fondare la fazione né conquistare territori</b>: devi uscire da questo quadrato. I blocchi però <b>non</b> sono protetti — puoi costruire e rompere liberamente, semplicemente non si claima.</div>{{/se}}
   {{OGGETTI_CLAIM}}
@@ -319,7 +321,9 @@
   <p><span class="cmd">/f withdraw &lt;soldi&gt;</span> (o <span class="cmd">/f w</span>) — <b>preleva</b> dalla
   banca. Riservato a chi ha il permesso <b>withdraw</b> del grado: con i gradi di questo server {{GRADI_PRELIEVO}}.</p>
   <p class="sub">Il saldo della banca è sempre visibile in <span class="cmd">/f info</span>.</p>
-  <p class="sub"><b>A cosa servono i soldi della banca?</b> {{PREZZI_CLAIM}}</p>
+  <p class="sub"><b>A cosa servono i soldi della banca?</b> Soprattutto a <b>pagare i territori</b>: ogni
+  <span class="cmd">/f claim</span> si paga dalla banca della fazione, non dal tuo portafoglio. I prezzi sono
+  nel capitolo <a href="#s7">Conquistare territori</a>.</p>
 </section>
 
 <section id="s9">
