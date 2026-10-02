@@ -25,11 +25,11 @@ public final class GlyphPlaceholders extends PlaceholderExpansion {
      *  check_config.py [9] blocca il commit se qui manca un placeholder risolto sotto. */
     public static final String[] DOCS = {
             "%magixpack_glyph_<id>%", "Il carattere di un glifo di glyphs.yml (icona bianca). Per una voce "
-                    + "player-avatar e' l'avatar del giocatore che legge. L'elenco degli id con /mpack glyph list.",
+                    + "player-avatar è l'avatar del giocatore che legge. L'elenco degli id con /mpack glyph list.",
             "%magixpack_glyph_<id>:<giocatore>%", "Come sopra, ma l'avatar di un altro giocatore (online).",
-            "%magixpack_stack_<id>,<id>%", "Piu' glifi uno SOPRA l'altro nello stesso punto (es. avatar,cornice): "
-                    + "sopra finisce quello con priority piu' alta in glyphs.yml. Anche con :<giocatore> in fondo. "
-                    + "Va bene anche %magixpack_glyph_<id>,<id>%: con la virgola e' comunque uno stack.",
+            "%magixpack_stack_<id>,<id>%", "Più glifi uno SOPRA l'altro nello stesso punto (es. avatar,cornice): "
+                    + "sopra finisce quello con priority più alta in glyphs.yml. Anche con :<giocatore> in fondo. "
+                    + "Va bene anche %magixpack_glyph_<id>,<id>%: con la virgola è comunque uno stack.",
             "%magixpack_shift_<pixel>%", "Carattere invisibile che sposta il testo che segue di <pixel> "
                     + "pixel (negativo = a sinistra, da -255 a 255). Con -1 dopo ogni blocco una barra di "
                     + "█ diventa un pezzo unico, senza lo stacco di 1 pixel fra un carattere e l'altro.",

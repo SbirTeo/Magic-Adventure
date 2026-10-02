@@ -136,13 +136,36 @@ require __DIR__ . '/../includes/header.php';
 </section>
 
 <section class="rank-tab-panel" id="tab-regolamento" role="tabpanel" aria-label="Regolamento" hidden>
-  <div class="panel panel-modificabile">
+  <?php /* Il regolamento si legge come la guida: capitoli numerati a schede e indice in cima. Il
+           testo resta quello del gestionale; ogni <h2> che lo staff scrive apre un capitolo. */ ?>
+  <?php $reg = rulebook_chapters($corpoReg); ?>
+  <div class="panel panel-modificabile regolamento">
     <?php /* Stessa matita delle tessere in home: porta dritto al testo di questa pagina. */ ?>
     <?php if (is_admin()): ?>
       <a href="/manage?section=page_edit&slug=regolamento" class="card-edit-btn" title="Modifica il regolamento" aria-label="Modifica il regolamento">✎</a>
     <?php endif; ?>
-    <div class="blog-body<?= corpo_e_html($bodyReg) ? ' corpo-html' : '' ?>"><?= $corpoReg ?></div>
+    <?php if (trim(strip_tags($reg['intro'])) !== ''): ?>
+      <div class="blog-body<?= corpo_e_html($bodyReg) ? ' corpo-html' : '' ?> regolamento-intro"><?= $reg['intro'] ?></div>
+    <?php endif; ?>
   </div>
+  <?php if ($reg['capitoli']): ?>
+    <?php /* Stessa impostazione della guida e della guida per lo staff (classi doc-*). */ ?>
+    <nav class="doc-toc" id="regolamento-indice" aria-label="Indice del regolamento">
+      <div class="doc-toc-h">Indice</div>
+      <ol class="doc-toc-list">
+        <?php foreach ($reg['capitoli'] as $cap): ?>
+          <li><a class="doc-toc-ch" href="#<?= h($cap['id']) ?>"><span class="doc-n doc-n-sm"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></a></li>
+        <?php endforeach; ?>
+      </ol>
+    </nav>
+  <?php endif; ?>
+  <?php foreach ($reg['capitoli'] as $cap): ?>
+    <section class="panel doc-chapter regolamento" id="<?= h($cap['id']) ?>">
+      <h2 class="doc-chapter-t"><span class="doc-n"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></h2>
+      <div class="blog-body corpo-html"><?= $cap['corpo'] ?></div>
+      <p class="doc-back"><a href="#regolamento-indice">↑ Indice</a></p>
+    </section>
+  <?php endforeach; ?>
 </section>
 
 <script>
@@ -175,7 +198,14 @@ require __DIR__ . '/../includes/header.php';
     });
   });
   var start = (location.hash || '').replace('#', '');
-  show(panels[start] ? start : 'guida');
+  // Un link a un capitolo del regolamento (#regola-...) apre la scheda del regolamento e ci arriva.
+  if (start.indexOf('regola') === 0 && start !== 'regolamento') {
+    show('regolamento');
+    var cap = document.getElementById(start);
+    if (cap) setTimeout(function () { cap.scrollIntoView(); }, 0);
+  } else {
+    show(panels[start] ? start : 'guida');
+  }
 })();
 </script>
 
@@ -247,7 +277,7 @@ require __DIR__ . '/../includes/header.php';
           // foglio di stile): i capitoli della guida devono seguirlo, se no restano gli
           // unici riquadri con la cornice in mezzo a tutto il resto.
           '@media(max-width:700px){' +
-          'section,.toc{border-radius:0;border-left:0;border-right:0;' +
+          'section,.toc,.start{border-radius:0;border-left:0;border-right:0;' +
           'padding-left:15px;padding-right:15px;margin:12px 0}' +
           '.tip,.warn{border-radius:0}' +
           '}';

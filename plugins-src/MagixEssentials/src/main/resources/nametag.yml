@@ -1,105 +1,105 @@
 # ============================================================
 #  MagixEssentials - Nametag
 # ============================================================
-# Il NAMETAG e' la targhetta che si legge SOPRA LA TESTA dei giocatori, in gioco. Non e' il tablist
-# (la lista del tasto Tab, tablist.yml) e non e' il formato della chat: e' solo quella riga — o due —
+# Il NAMETAG è la targhetta che si legge SOPRA LA TESTA dei giocatori, in gioco. Non è il tablist
+# (la lista del tasto Tab, tablist.yml) e non è il formato della chat: è solo quella riga — o due —
 # che si vede avvicinandosi a qualcuno.
 #
-# Questo file dice COM'E' FATTA la targhetta, non se c'e': l'interruttore sta nel modules.yml
+# Questo file dice COM'E' FATTA la targhetta, non se c'è: l'interruttore sta nel modules.yml
 # (nametag: true/false). A modulo spento questo file resta qui, intatto, e torna in uso appena lo si
 # riaccende.
 #
 # Valgono i codici colore & e &#RRGGBB, i tag <bold>/<gradient:...> (MiniMessage) e TUTTI i
 # placeholder di PlaceholderAPI, compresi quelli dei plugin Magix (%magixfactions_*%, %magixtime_*%,
-# %magixweb_namecolor%) e quelli relazionali %rel_...%. Il segnaposto {name} e' il nome del giocatore.
+# %magixweb_namecolor%) e quelli relazionali %rel_...%. Il segnaposto {name} è il nome del giocatore.
 #
 # NB: il nametag ce l'ha chi scrive per ultimo, come il tablist. Se anche CMI lo gestisce i due si
 # sovrascrivono a vicenda: con cmi.disable-module acceso lo spegniamo noi nel suo file, una volta sola.
 
-# Ogni quanti tick (20 = 1 secondo) si ricontrollano le targhette. Il ricalcolo e' solo un confronto:
-# si riscrive davvero soltanto quello che e' CAMBIATO, quindi un intervallo basso costa poco. Sotto i
+# Ogni quanti tick (20 = 1 secondo) si ricontrollano le targhette. Il ricalcolo è solo un confronto:
+# si riscrive davvero soltanto quello che è CAMBIATO, quindi un intervallo basso costa poco. Sotto i
 # 10 tick non si vede comunque nessuna differenza.
 update-interval-ticks: 40
 
 # Come viene disegnata la targhetta. Tre valori:
 #   vanilla  - quella del gioco (squadre del scoreboard): UNA riga sola, gratis, sfuma con la distanza
-#              e sparisce da sola quando il giocatore si accuccia o e' invisibile. E' l'unica che puo'
+#              e sparisce da sola quando il giocatore si accuccia o è invisibile. È l'unica che può
 #              essere DIVERSA per ogni spettatore (vedi per-viewer e i placeholder %rel_...%).
-#   display  - la disegniamo noi con delle entita' di testo agganciate al giocatore: PIU' RIGHE,
+#   display  - la disegniamo noi con delle entità di testo agganciate al giocatore: PIÙ RIGHE,
 #              colori esadecimali e sfumature anche sul nome, misura e altezza regolabili. Il nome
-#              del gioco viene nascosto, altrimenti si vedrebbe doppio. Puo' essere diversa per chi
-#              guarda (i %rel_...%): disegna un gruppo di entita' per ogni testo e nasconde a ognuno
+#              del gioco viene nascosto, altrimenti si vedrebbe doppio. Può essere diversa per chi
+#              guarda (i %rel_...%): disegna un gruppo di entità per ogni testo e nasconde a ognuno
 #              quelle che non sono le sue (vedi per-viewer).
 #   auto     - (consigliato) vanilla con una riga sola, display da due righe in su.
 mode: auto
 
-# Le righe della targhetta, DALL'ALTO VERSO IL BASSO. L'ULTIMA e' la riga del nome, quella che sta
-# subito sopra la testa: e' li' che va {name}. Le altre sono decorazioni sopra di essa e si vedono
-# solo in modalita' display (in vanilla il gioco ne disegna una sola, e le altre vengono ignorate).
+# Le righe della targhetta, DALL'ALTO VERSO IL BASSO. L'ULTIMA è la riga del nome, quella che sta
+# subito sopra la testa: è lì che va {name}. Le altre sono decorazioni sopra di essa e si vedono
+# solo in modalità display (in vanilla il gioco ne disegna una sola, e le altre vengono ignorate).
 # Una riga vuota ('') lascia uno spazio.
 #
-# LASCIALA VUOTA (lines: []) per far decidere allo STILE (sotto): e' cosi' di fabbrica, perche' lo
-# stesso jar gira su server di modalita' diverse e un default che parla di fazioni sarebbe sbagliato
-# quasi sempre. Quello che scrivi qui, invece, vince su tutto: e' il modo giusto di fare a modo
+# LASCIALA VUOTA (lines: []) per far decidere allo STILE (sotto): è così di fabbrica, perché lo
+# stesso jar gira su server di modalità diverse e un default che parla di fazioni sarebbe sbagliato
+# quasi sempre. Quello che scrivi qui, invece, vince su tutto: è il modo giusto di fare a modo
 # proprio su QUESTO server.
 lines: []
 
-# Quale stile si usa quando 'lines' e' vuota:
-#   auto          - (di fabbrica) il primo dell'elenco qui sotto i cui plugin ci sono TUTTI. E' la
-#                   rilevazione della modalita': su un server di fazioni esce lo stile factions, su
+# Quale stile si usa quando 'lines' è vuota:
+#   auto          - (di fabbrica) il primo dell'elenco qui sotto i cui plugin ci sono TUTTI. È la
+#                   rilevazione della modalità: su un server di fazioni esce lo stile factions, su
 #                   un server che non ne ha nessuna esce quello che non chiede niente.
 #   <nome stile>  - quello e basta, che i suoi plugin ci siano o no (per provarne uno, o per imporlo).
 # Quale ha scelto lo scrive nel log all'avvio, insieme a quante righe sono: se sopra la testa non
-# vedi quello che ti aspetti, la risposta e' li'.
+# vedi quello che ti aspetti, la risposta è lì.
 style: auto
 
-# Gli stili: COSA c'e' scritto sulla targhetta, una voce per modalita' di gioco. Come si DISEGNA non
-# sta qui ma nel resto del file (mode, display...): quello vale per il server, non per la modalita'.
+# Gli stili: COSA c'è scritto sulla targhetta, una voce per modalità di gioco. Come si DISEGNA non
+# sta qui ma nel resto del file (mode, display...): quello vale per il server, non per la modalità.
 #
 # Si leggono dall'alto in basso e vince il primo che va bene, quindi l'ordine conta: gli stili con
-# piu' pretese stanno in cima, e quello che non chiede niente (requires vuoto) in fondo, come ultima
+# più pretese stanno in cima, e quello che non chiede niente (requires vuoto) in fondo, come ultima
 # spiaggia. Di ogni voce: 'name' il nome (quello che si scrive in style), 'requires' i plugin che
 # devono esserci, 'lines' le sue righe.
 #
-# 'requires' e' una E, non una O: lo stile si usa solo se ci sono TUTTI i plugin elencati. Quindi
+# 'requires' è una E, non una O: lo stile si usa solo se ci sono TUTTI i plugin elencati. Quindi
 # [MagixFactions, BedWars] vuol dire "solo dove ci sono tutti e due insieme", e non serve a niente per
-# dire "fazioni oppure bedwars": quelle sono DUE modalita', cioe' due voci, una per ciascuna.
+# dire "fazioni oppure bedwars": quelle sono DUE modalità, cioè due voci, una per ciascuna.
 #
 # E metti fra i requisiti solo i plugin senza cui quello stile non ha senso, non tutti quelli che
 # compaiono nei suoi segnaposto. Esempio: MagixBridge (%magixweb_namecolor%) non ci va — se manca, il
-# nome si vede comunque, solo senza colore, mentre metterlo li' butterebbe via tutto lo stile per una
-# questione di colore. MagixFactions in uno stile che scrive la fazione, invece, si': senza di lui
+# nome si vede comunque, solo senza colore, mentre metterlo lì butterebbe via tutto lo stile per una
+# questione di colore. MagixFactions in uno stile che scrive la fazione, invece, sì: senza di lui
 # quella riga non ha niente da dire.
 #
-# I plugin si cercano fra quelli CARICATI, non fra quelli gia' accesi: l'ordine di accensione non e'
-# garantito, e uno stile scartato perche' il suo plugin si accende un istante dopo di noi sarebbe un
+# I plugin si cercano fra quelli CARICATI, non fra quelli già accesi: l'ordine di accensione non è
+# garantito, e uno stile scartato perché il suo plugin si accende un istante dopo di noi sarebbe un
 # guasto senza errore.
 #
-# Per una modalita' NUOVA si aggiunge una voce qui, in cima a quella senza pretese: e' un elenco, e
-# l'allineamento dei config non tocca le voci in piu' (a differenza delle chiavi: una chiave che il
-# jar non conosce viene tolta). I segnaposto di un plugin che su questo server non c'e' restano
+# Per una modalità NUOVA si aggiunge una voce qui, in cima a quella senza pretese: è un elenco, e
+# l'allineamento dei config non tocca le voci in più (a differenza delle chiavi: una chiave che il
+# jar non conosce viene tolta). I segnaposto di un plugin che su questo server non c'è restano
 # VUOTI, non scritti a schermo — quindi una voce sbagliata non riempie di %...% la testa di nessuno.
 styles:
   # Fazioni: il tag della fazione sopra, il nome sotto, entrambi col colore RELAZIONALE (verde/alleato,
-  # rosso/nemico...) verso chi guarda — non col colore del grado (%magixweb_namecolor%), che e'
+  # rosso/nemico...) verso chi guarda — non col colore del grado (%magixweb_namecolor%), che è
   # lo stesso per tutti e non direbbe niente sulla relazione fra le fazioni.
   #
   # DUE righe: 'auto' passa a mode: display, che le sa disegnare. Il colore relazionale resta diverso
-  # per chi guarda anche li' — display disegna un gruppo di entita' per ogni testo e nasconde a ognuno
-  # quelle che non sono le sue (per-viewer si accende da sola perche' c'e' un %rel_).
+  # per chi guarda anche lì — display disegna un gruppo di entità per ogni testo e nasconde a ognuno
+  # quelle che non sono le sue (per-viewer si accende da sola perché c'è un %rel_).
   - name: factions
     requires: [MagixFactions]
     lines:
       - '&8[%rel_magixfactions_relation_color%%magixfactions_faction%&8]'
       - '%rel_magixfactions_relation_color%{name}'
-  # Nessuna modalita' riconosciuta: il nome e basta, col colore del grado. Non chiede niente, quindi
+  # Nessuna modalità riconosciuta: il nome e basta, col colore del grado. Non chiede niente, quindi
   # va sempre bene: per questo sta in fondo.
   - name: plain
     requires: []
     lines:
       - '%magixweb_namecolor%{name}'
 
-# Una riga i cui segnaposto risolvono TUTTI a vuoto non viene disegnata: cosi' la riga della fazione
+# Una riga i cui segnaposto risolvono TUTTI a vuoto non viene disegnata: così la riga della fazione
 # sparisce da sola sopra la testa di chi una fazione non ce l'ha, invece di lasciare un '[]' appeso.
 # Una riga senza segnaposto (una decorazione fissa) si vede sempre, e la riga del nome non si salta mai.
 skip-empty-lines: true
@@ -107,75 +107,75 @@ skip-empty-lines: true
 # Targhetta DIVERSA per ogni spettatore: serve ai placeholder relazionali %rel_...% (per esempio
 # %rel_magixfactions_relation_color%, il verde/rosso di alleato o nemico, che dipende da CHI guarda).
 # Tre valori:
-#   auto   - accesa solo se nelle righe c'e' almeno un %rel_...%; altrimenti spenta, che costa meno.
+#   auto   - accesa solo se nelle righe c'è almeno un %rel_...%; altrimenti spenta, che costa meno.
 #   always - sempre accesa.
-#   never  - mai: la targhetta e' la stessa per tutti e i %rel_...% valgono come se il giocatore
+#   never  - mai: la targhetta è la stessa per tutti e i %rel_...% valgono come se il giocatore
 #            guardasse se stesso.
-# Funziona in TUTTE E DUE le modalita', ma per strade diverse. In vanilla il plugin da' a ogni
-# giocatore una lavagna (scoreboard) sua: ATTENZIONE, e' la stessa che un altro plugin (CMI) userebbe
+# Funziona in TUTTE E DUE le modalità, ma per strade diverse. In vanilla il plugin dà a ogni
+# giocatore una lavagna (scoreboard) sua: ATTENZIONE, è la stessa che un altro plugin (CMI) userebbe
 # per il pannello laterale, e i due se la strappano di mano — in quel caso lasciala su never, o spegni
-# il pannello dell'altro. In display invece niente lavagne: si disegna un gruppo di entita' di testo
-# per ogni testo diverso e a ognuno si nasconde quello che non e' il suo (piu' entita' quando i colori
+# il pannello dell'altro. In display invece niente lavagne: si disegna un gruppo di entità di testo
+# per ogni testo diverso e a ognuno si nasconde quello che non è il suo (più entità quando i colori
 # in gioco sono tanti, quasi niente quando sono pochi).
 per-viewer: auto
 
 # Mondi in cui il modulo non tocca niente: la targhetta resta quella del gioco. Vuoto = tutti.
 disabled-worlds: []
 
-# --- LA TARGHETTA DEL GIOCO (modalita' vanilla) ---
-# Il gioco disegna prefisso + NOME VERO + suffisso, e il nome vero puo' avere solo i 16 colori
-# storici: un &#RRGGBB su di lui non esiste nel protocollo. Il resto della riga invece e' libero.
+# --- LA TARGHETTA DEL GIOCO (modalità vanilla) ---
+# Il gioco disegna prefisso + NOME VERO + suffisso, e il nome vero può avere solo i 16 colori
+# storici: un &#RRGGBB su di lui non esiste nel protocollo. Il resto della riga invece è libero.
 vanilla:
   # Come si colora il nome vero. Due valori:
-  #   auto - prende l'ultimo colore scritto prima di {name} (anche un esadecimale) e usa il piu'
-  #          vicino fra i 16: cosi' %magixweb_namecolor% si vede anche qui, per quanto si puo'.
+  #   auto - prende l'ultimo colore scritto prima di {name} (anche un esadecimale) e usa il più
+  #          vicino fra i 16: così %magixweb_namecolor% si vede anche qui, per quanto si può.
   #   none - nome bianco, e i colori valgono solo per quello che gli sta intorno.
-  # In modalita' display questa chiave non serve: li' il nome lo disegniamo noi, col colore esatto.
+  # In modalità display questa chiave non serve: lì il nome lo disegniamo noi, col colore esatto.
   name-color: auto
 
-# --- LE RIGHE DISEGNATE DA NOI (modalita' display) ---
-# Sono entita' di testo (text_display) agganciate al giocatore come un passeggero: seguono il
+# --- LE RIGHE DISEGNATE DA NOI (modalità display) ---
+# Sono entità di testo (text_display) agganciate al giocatore come un passeggero: seguono il
 # movimento senza scatti, non hanno collisione, non si possono colpire e non vengono salvate nel
 # mondo. Il plugin le toglie da solo allo spegnimento e ripulisce quelle rimaste da un crash.
 display:
-  # Quanto in alto sta la riga piu' bassa, in blocchi, contati da dove siede un passeggero (circa
-  # l'altezza delle spalle). Si regola a occhio: piu' alto la stacca dalla testa.
+  # Quanto in alto sta la riga più bassa, in blocchi, contati da dove siede un passeggero (circa
+  # l'altezza delle spalle). Si regola a occhio: più alto la stacca dalla testa.
   height: 0.8
-  # Distanza fra una riga e quella sopra, in blocchi. 0.29 e' circa l'altezza di una riga di testo.
+  # Distanza fra una riga e quella sopra, in blocchi. 0.29 è circa l'altezza di una riga di testo.
   line-spacing: 0.29
-  # Ingrandimento del testo: 1.0 e' la misura di una targhetta normale.
+  # Ingrandimento del testo: 1.0 è la misura di una targhetta normale.
   scale: 1.0
   # Se le righe si vedono attraverso i muri. Tre valori:
   #   vanilla - (consigliato) come la targhetta del gioco: ATTRAVERSO i muri da fermo, OCCLUSA dai
   #             blocchi appena il giocatore si accuccia (insieme alla sfumatura di sneak-opacity).
-  #             Da fermo evita anche il difetto delle entita' di testo con l'occlusione accesa, che
-  #             dietro a vetri, acqua o lava "sparirebbero" per via del test di profondita'.
+  #             Da fermo evita anche il difetto delle entità di testo con l'occlusione accesa, che
+  #             dietro a vetri, acqua o lava "sparirebbero" per via del test di profondità.
   #   true    - sempre attraverso i muri.
-  #   false   - sempre occlusa dai blocchi (anche da fermo; puo' sballare dietro acqua/lava/vetro).
+  #   false   - sempre occlusa dai blocchi (anche da fermo; può sballare dietro acqua/lava/vetro).
   see-through: vanilla
   # L'ombra sotto le lettere. Con lo sfondo acceso non serve, e sporca.
   text-shadow: false
   # Lo sfondo dietro il testo. Tre modi: 'default' il rettangolo scuro del gioco, 'none' niente
   # sfondo (solo le lettere), oppure un colore in esadecimale con la trasparenza davanti, #AARRGGBB.
   background: default
-  # Da quanto lontano si vede, come moltiplicatore della distanza normale: 1.0 e' quella del gioco.
+  # Da quanto lontano si vede, come moltiplicatore della distanza normale: 1.0 è quella del gioco.
   view-range: 1.0
   # Nasconde a ciascuno la PROPRIA targhetta: in terza persona uno vedrebbe le righe da dietro.
   hide-self: true
   # Quanto resta visibile la targhetta di chi si accuccia: 1.0 = invariata, 0.0 = invisibile. Il
   # gioco, con la sua targhetta normale, l'accucciata non la nasconde del tutto: la sfuma soltanto.
-  # 0.3 e' una sfumatura vicina a quella.
+  # 0.3 è una sfumatura vicina a quella.
   sneak-opacity: 0.3
-  # La toglie a chi e' invisibile (pozione, /vanish dello staff): una riga che galleggia da sola
+  # La toglie a chi è invisibile (pozione, /vanish dello staff): una riga che galleggia da sola
   # dice a tutti dov'e' chi non si dovrebbe vedere.
   hide-when-invisible: true
-  # La toglie a chi e' in spettatore.
+  # La toglie a chi è in spettatore.
   hide-in-spectator: true
 
 # --- CMI ---
 # Due plugin sulla stessa targhetta si sovrascrivono a vicenda e vince chi scrive per ultimo.
 cmi:
-  # Se CMI e' installato e il suo modulo dei nametag e' acceso, lo spegniamo noi nel suo
-  # Settings/Modules.yml (con una copia di scorta accanto) e lo scriviamo nel log: e' un ritocco a una
+  # Se CMI è installato e il suo modulo dei nametag è acceso, lo spegniamo noi nel suo
+  # Settings/Modules.yml (con una copia di scorta accanto) e lo scriviamo nel log: è un ritocco a una
   # riga sola, e CMI lo legge al riavvio. Spento qui, ci limitiamo ad avvisare.
   disable-module: true

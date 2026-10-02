@@ -61,7 +61,7 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                     + "(info.status-placeholder-* di messages.yml; senza territori conta come sicura).",
             "%magixfactions_leader%", "Nome del leader della fazione del giocatore.",
             "%magixfactions_members%", "Quanti membri ha la fazione del giocatore.",
-            "%magixfactions_status_raw%", "si/no: la fazione del giocatore e' al sicuro (non conquistabile)? "
+            "%magixfactions_status_raw%", "si/no: la fazione del giocatore è al sicuro (non conquistabile)? "
                     + "Valore fisso e non tradotto, adatto alle condizioni (es. == si). Senza territori: si.",
             "%magixfactions_leaderboard_points%", "Punteggio della fazione in classifica (uguale a score).",
             "%magixfactions_leaderboard_position%", "Posizione della fazione in classifica, 1 = prima "
@@ -72,7 +72,7 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
             "%magixfactions_power%", "Potenza attuale della fazione.",
             "%magixfactions_maxpower%", "Potenza massima della fazione.",
             "%magixfactions_claims%", "Territori posseduti dalla fazione.",
-            "%magixfactions_maxclaims_fazione%", "Tetto di territori che la fazione puo' avere adesso.",
+            "%magixfactions_maxclaims_fazione%", "Tetto di territori che la fazione può avere adesso.",
             "%magixfactions_score%", "Punteggio della fazione in classifica.",
             "%magixfactions_position%", "Posizione della fazione in classifica (1 = prima).",
             "%magixfactions_power_player%", "Potenza del singolo giocatore.",

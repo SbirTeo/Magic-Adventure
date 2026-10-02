@@ -536,7 +536,7 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
         // "Vota il server" su minecraft-italia.net, in barra su ogni pagina (in home c'e' anche
         // quello grande nella hero). Stesso indirizzo (vote_url in site_settings, vuoto = niente
         // tasto). Da schermo stretto resta la sola stella.
-        $__voteUrl = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magicadventure1789147678859');
+        $__voteUrl = site_setting('vote_url', 'https://minecraft-italia.net/lista/server/magic-adventure');
       ?>
       <?php if ($__voteUrl !== ''): ?>
         <a class="vote-btn vote-btn-nav" href="<?= h($__voteUrl) ?>" target="_blank" rel="noopener"

@@ -85,9 +85,9 @@ public final class OpenMenu implements InventoryHolder, Context {
         } catch (Exception e) {
             // Non tutti i tipi di finestra si lasciano creare fuori dal loro blocco: meglio dirlo
             // con il nome del menu che lasciare il giocatore davanti a niente.
-            plugin.getLogger().warning("Il menu \"" + def.name() + "\" e' di tipo "
+            plugin.getLogger().warning("Il menu \"" + def.name() + "\" è di tipo "
                     + def.type().name().toLowerCase(java.util.Locale.ROOT)
-                    + ", che questo server non permette di aprire cosi': " + e.getMessage());
+                    + ", che questo server non permette di aprire così: " + e.getMessage());
             plugin.messages().send(player, "type-not-openable",
                     "type", def.type().name().toLowerCase(java.util.Locale.ROOT));
             return;

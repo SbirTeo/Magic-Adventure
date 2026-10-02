@@ -55,9 +55,9 @@ public final class Rulebook {
         }
         b.append("</tbody></table>\n");
 
-        b.append("<p class=\"regolamento-dettaglio\">Ogni provvedimento si puo' contestare: "
-                + "nella pagina del provvedimento c'e' il modulo per il ricorso, e resta "
-                + "raggiungibile anche a chi e' bloccato. Il ban permanente non e' mai "
+        b.append("<p class=\"regolamento-dettaglio\">Ogni provvedimento si può contestare "
+                + "<b>solo con il modulo di ricorso</b>, nella pagina del provvedimento: resta "
+                + "raggiungibile anche a chi è bloccato. Il ban permanente non è mai "
                 + "automatico: lo decide sempre una persona.</p>\n");
 
         return b.toString();

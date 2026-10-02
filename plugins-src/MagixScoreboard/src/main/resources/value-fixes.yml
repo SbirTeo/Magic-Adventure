@@ -1,0 +1,8 @@
+# Testi DI SERIE che sono cambiati nel jar e vanno aggiornati anche sul server (vedi
+# util/ConfigAlign.applyValueFixes). L'allineamento aggiunge le chiavi nuove ma non tocca i valori
+# gia' scelti: qui si elencano le coppie testo vecchio -> testo nuovo, e all'avvio e a ogni reload
+# si sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano resta com'e'), dopo
+# averne fatto la copia in .bak/. Nato per gli accenti scritti con l'apostrofo ("piu'", "e'").
+messages.yml:
+  - old: "/mscoreboard debug <giocatore> :: quale scoreboard vede e perche' (punteggi di ognuna)"
+    new: "/mscoreboard debug <giocatore> :: quale scoreboard vede e perché (punteggi di ognuna)"

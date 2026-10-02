@@ -6,7 +6,7 @@
 #   1. Metti la texture in plugins/MagixPack/items/<id>.png (stesso nome
 #      della chiave qui sotto, es. flaming_sword.png).
 #   2. Aggiungi la voce qui sotto (material = l'item base di Minecraft:
-#      decide le meccaniche - danno, durabilita', se e' impilabile - non
+#      decide le meccaniche - danno, durabilità, se è impilabile - non
 #      l'aspetto, che viene sempre dalla texture).
 #   3. /mpack reload. Il modello (un semplice layer0, come le icone 2D
 #      vanilla) lo genera il plugin da solo: non serve scrivere JSON a mano.
@@ -19,8 +19,8 @@
 # davvero - senza il modello, l'icona resta una texture 2D piatta):
 #
 # spada_esempio:
-#   # Obbligatoria. L'item base di Minecraft: decide le meccaniche (danno, durabilita',
-#   # se e' impilabile...), MAI l'aspetto - quello viene sempre dalla texture.
+#   # Obbligatoria. L'item base di Minecraft: decide le meccaniche (danno, durabilità,
+#   # se è impilabile...), MAI l'aspetto - quello viene sempre dalla texture.
 #   material: DIAMOND_SWORD
 #
 #   # Facoltativo (default: l'id stesso). Nome mostrato in gioco, colori con &.
@@ -32,17 +32,17 @@
 #     - "&7(oggetto di esempio, non esiste davvero)"
 #
 #   # Facoltativo. Se esiste items/<id>-model.json (un vero modello Minecraft con
-#   # "elements"/"faces", export da Blockbench o scritto a mano), viene usato COSI'
+#   # "elements"/"faces", export da Blockbench o scritto a mano), viene usato COSÌ
 #   # COM'E' al posto del semplice layer0 2D generato di default - vedi "Modelli 3D
-#   # veri" nel README. Non e' una chiave qui: e' il file stesso a fare la differenza.
+#   # veri" nel README. Non è una chiave qui: è il file stesso a fare la differenza.
 #
-#   # --- Da qui in giu', tutto SOLO furniture: piazzabile per terra invece di restare
+#   # --- Da qui in giù, tutto SOLO furniture: piazzabile per terra invece di restare
 #   # --- solo in mano/inventario. Nessuna di queste chiavi serve per un oggetto normale.
 #
 #   # Facoltativo (default: false). true = piazzabile per terra (tasto destro su un
-#   # blocco). Chiunque tenga l'oggetto in mano lo puo' piazzare, nessun permesso a
-#   # parte; la protezione (chi puo' piazzare/rompere dove) la fa la regione/claim
-#   # gia' presente sul server, come per un blocco normale messo li'.
+#   # blocco). Chiunque tenga l'oggetto in mano lo può piazzare, nessun permesso a
+#   # parte; la protezione (chi può piazzare/rompere dove) la fa la regione/claim
+#   # già presente sul server, come per un blocco normale messo lì.
 #   furniture: true
 #
 #   # Facoltativo (default: false). true = collisione vera (blocca il passaggio, un
@@ -50,7 +50,7 @@
 #   furniture-solid: true
 #
 #   # Facoltativo (default: true). Se il tasto destro per piazzarlo deve avvenire con
-#   # shift premuto (default si', per non entrare in conflitto con l'uso normale del
+#   # shift premuto (default sì, per non entrare in conflitto con l'uso normale del
 #   # blocco cliccato, es. aprire un baule); false toglie l'obbligo.
 #   furniture-shift-required: true
 #
@@ -60,7 +60,7 @@
 #   furniture-hits: 3
 #
 #   # Facoltativo (default: false). Cosa succede all'oggetto all'ultimo colpo: false
-#   # = va direttamente nell'inventario di chi ha colpito (o cade a terra se non c'e'
+#   # = va direttamente nell'inventario di chi ha colpito (o cade a terra se non c'è
 #   # posto); true = cade per terra come un blocco normale, senza darlo a nessuno in
 #   # particolare.
 #   furniture-drop: false
@@ -74,7 +74,7 @@
 #   furniture-break-sound: BLOCK_STONE_BREAK
 
 # Oggetto di PROVA, per verificare che texture/modello/comando funzionino davvero end-to-end:
-# togli pure appena non serve piu'.
+# togli pure appena non serve più.
 test_gem:
   material: PAPER
   name: "&bGemma di Prova"
@@ -83,7 +83,7 @@ test_gem:
     - "&7(texture generata, non vanilla)"
 
 # Oggetto di PROVA per il modello 3D e per le furniture (items/test_cube-model.json): togli pure
-# appena non serve piu'.
+# appena non serve più.
 test_cube:
   material: PAPER
   name: "&6Cubetto di Prova"
@@ -93,7 +93,7 @@ test_cube:
   furniture: true
   furniture-solid: true
 
-# L'AVATAR del giocatore: type: player-avatar. Niente texture ne' material: l'icona e' la testa
+# L'AVATAR del giocatore: type: player-avatar. Niente texture né material: l'icona è la testa
 # del giocatore e, passandoci sopra, la descrizione mostra il suo AVATAR (la faccia piatta
 # della skin, disegnata dal font del pacchetto). {player} = il nome del giocatore a cui si
 # riferisce: con /mpack item give avatar [giocatore] quello che lo riceve; in un menu di

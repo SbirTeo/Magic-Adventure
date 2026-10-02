@@ -39,7 +39,7 @@ public final class LanguageSync implements Listener {
     /** @return true se MagixLanguage e' presente e la sincronizzazione puo' partire. */
     public boolean hook() {
         if (Bukkit.getPluginManager().getPlugin("MagixLanguage") == null) {
-            plugin.getLogger().warning("MagixLanguage non trovato: la lingua non verra' sincronizzata col sito.");
+            plugin.getLogger().warning("MagixLanguage non trovato: la lingua non verrà sincronizzata col sito.");
             return false;
         }
         return true;

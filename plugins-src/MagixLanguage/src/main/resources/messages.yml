@@ -30,16 +30,16 @@ set-invalid: "&cLingua sconosciuta. Lingue supportate: &e{list}&c."
 set-self: "&aLingua impostata su &e{lang}&a."
 set-other: "&aLingua di &e{player}&a impostata su &e{lang}&a."
 
-# {plugins} plugin scansionati - {translated} chiavi tradotte adesso - {reused} gia' in cache - {failed} fallite (restano in italiano)
-sync-done: "&aSincronizzazione completata: &e{plugins}&a plugin, &e{translated}&a chiavi tradotte, &e{reused}&a gia' in cache, &e{failed}&a fallite."
-sync-running: "&eSincronizzazione in corso: puo' volerci un po' se ci sono molte chiavi nuove da tradurre..."
+# {plugins} plugin scansionati - {translated} chiavi tradotte adesso - {reused} già in cache - {failed} fallite (restano in italiano)
+sync-done: "&aSincronizzazione completata: &e{plugins}&a plugin, &e{translated}&a chiavi tradotte, &e{reused}&a già in cache, &e{failed}&a fallite."
+sync-running: "&eSincronizzazione in corso: può volerci un po' se ci sono molte chiavi nuove da tradurre..."
 sync-running-force: "&eSincronizzazione forzata in corso: ignoro la pausa e l'attesa fra un tentativo e l'altro, riprovo subito su MyMemory..."
-sync-already-running: "&eUna sincronizzazione e' gia' in corso: aspetta che finisca (l'esito arriva da solo, o guarda &f/language status&e)."
+sync-already-running: "&eUna sincronizzazione è già in corso: aspetta che finisca (l'esito arriva da solo, o guarda &f/language status&e)."
 
 # /language status: stato dell'ultima sincronizzazione (avvio o /language sync), plugin per plugin.
 status-none: "&eNessuna sincronizzazione ancora eseguita in questa sessione. Aspetta l'avvio automatico o lancia &e/language sync&e."
 status-header: "&#C046E8&lMagixLanguage &7- stato traduzioni (ultima sincronizzazione)"
-# {plugin} nome del plugin - {total} chiavi in italiano - {translated} tradotte in questo giro - {reused} gia' in cache dai giri precedenti - {missing} ancora in italiano (in almeno una lingua)
+# {plugin} nome del plugin - {total} chiavi in italiano - {translated} tradotte in questo giro - {reused} già in cache dai giri precedenti - {missing} ancora in italiano (in almeno una lingua)
 status-line: "&7{plugin} &8(&f{total}&8 chiavi): &a{reused}&7 in cache, &e{translated}&7 tradotte ora, &c{missing}&7 mancanti"
 # {plugins} plugin scansionati - {translated}/{reused}/{failed} come sopra, sommati su tutti i plugin
 status-footer: "&7Totale: &a{plugins}&7 plugin, &e{translated}&7 tradotte ora, &a{reused}&7 in cache, &c{failed}&7 mancanti."
@@ -49,9 +49,9 @@ status-paused: "&eMyMemory ha bloccato le richieste: riprovo da solo fra &f{in}&
 status-next-attempt: "&7Le chiavi mancanti si riprovano da sole fra &f{in}&7 (o subito con &f/language sync force&7)."
 
 # Sotto lo stato dei plugin, quello del sito (site_translations, riportato da MagixBridge): compare
-# solo se il sito e' installato e ha gia' fatto almeno un giro.
+# solo se il sito è installato e ha già fatto almeno un giro.
 status-web-header: "&#C046E8&lSito &7- frasi in coda per la traduzione"
-# {lang} codice lingua (en/es/de) - {done} gia' tradotte - {pending} in attesa del prossimo giro - {failed} fallite troppe volte
+# {lang} codice lingua (en/es/de) - {done} già tradotte - {pending} in attesa del prossimo giro - {failed} fallite troppe volte
 status-web-line: "&7{lang}: &a{done}&7 pronte, &e{pending}&7 in attesa, &c{failed}&7 fallite"
 
 help:

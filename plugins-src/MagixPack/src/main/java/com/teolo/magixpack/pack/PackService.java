@@ -204,12 +204,12 @@ public final class PackService {
     private void healthCheck() {
         if (server == null) return;
         if (probeLocal()) return;
-        plugin.getLogger().warning("[Pack] Il server HTTP del pacchetto non risponde piu' in locale: "
-                + "riavvio automatico (senza, nessun giocatore riuscirebbe piu' a scaricare il pack).");
+        plugin.getLogger().warning("[Pack] Il server HTTP del pacchetto non risponde più in locale: "
+                + "riavvio automatico (senza, nessun giocatore riuscirebbe più a scaricare il pack).");
         stopHttp();
         if (startHttp()) plugin.getLogger().info("[Pack] Server HTTP del pacchetto riavviato correttamente.");
         else plugin.getLogger().severe("[Pack] Riavvio del server HTTP del pacchetto FALLITO: "
-                + "il pacchetto non e' scaricabile finche' non si riavvia il server.");
+                + "il pacchetto non è scaricabile finché non si riavvia il server.");
     }
 
     /** Scarica il pack da 127.0.0.1 con timeout stretti: vero solo se arriva tutto e della misura giusta. */
@@ -328,7 +328,7 @@ public final class PackService {
             com.google.gson.JsonObject out = new com.google.gson.JsonObject();
             out.add("providers", own);
             plugin.getLogger().info("[Pack] " + path + ": fusi i caratteri di " + secondOwner
-                    + " con quelli gia' presenti.");
+                    + " con quelli già presenti.");
             return out.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
         } catch (RuntimeException ex) {
             plugin.getLogger().warning("[Pack] " + path + " di " + secondOwner + " non fondibile ("
@@ -383,7 +383,7 @@ public final class PackService {
         }
         if (!overrides.isEmpty()) {
             plugin.getLogger().info("[Pack] " + overrides.size() + " file da " + OVERRIDES_DIR + "/ inclusi"
-                    + " nel pacchetto (" + replaced + " sostituiscono contenuto gia' presente).");
+                    + " nel pacchetto (" + replaced + " sostituiscono contenuto già presente).");
         }
 
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();

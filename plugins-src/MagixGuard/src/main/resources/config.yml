@@ -18,18 +18,18 @@ storage:
   mariadb:
     host: "127.0.0.1"      # dov'e' il server MariaDB (127.0.0.1 = sulla stessa macchina)
     port: 3306             # porta di MariaDB
-    database: "magixguard" # nome del database, gia' esistente
+    database: "magixguard" # nome del database, già esistente
     user: "magixguard"     # utente con permessi su quel database
-    password: "CAMBIAMI"   # la sua password: cambiala, questa e' solo un segnaposto
+    password: "CAMBIAMI"   # la sua password: cambiala, questa è solo un segnaposto
     pool-size: 5           # connessioni tenute aperte insieme. Alzalo solo se il DB fa da collo di bottiglia
-    # Al primo avvio con type: mariadb, se le tabelle sono ancora vuote e c'e' il file sqlite qui
+    # Al primo avvio con type: mariadb, se le tabelle sono ancora vuote e c'è il file sqlite qui
     # sopra, ci si copiano dentro tutti i dati (giocatori, sessioni, indizi, registro firmato) prima
-    # di accettare giocatori; il file poi viene rinominato *.importato. Con piu' server (hub,
-    # faction...) il database dev'essere lo STESSO per tutti: e' cosi' che gli account si incrociano.
+    # di accettare giocatori; il file poi viene rinominato *.importato. Con più server (hub,
+    # faction...) il database dev'essere lo STESSO per tutti: è così che gli account si incrociano.
     import-from-sqlite: true
 
 # ------------------------------ NETWORK ------------------------------
-# Con piu' server dietro a Velocity (faction, hub...) MagixGuard gira su ognuno, con lo stesso
+# Con più server dietro a Velocity (faction, hub...) MagixGuard gira su ognuno, con lo stesso
 # database e lo stesso privacy.pepper (senza, gli IP dei due server non si riconoscerebbero).
 network:
   # Il nome di questo server: si scrive su ogni sessione, e all'avvio si chiudono solo le sessioni
@@ -41,7 +41,7 @@ network:
   site-jobs: true
   # Ogni quanti secondi si guardano le sanzioni nuove (date su un altro server, dal sito o dal
   # gestionale) dei giocatori di questo server: ban e kick -> fuori, mute -> silenziato (o non
-  # piu' silenziato, se revocato altrove), avviso -> il messaggio.
+  # più silenziato, se revocato altrove), avviso -> il messaggio.
   sanctions-sync-seconds: 5
 
 # ------------------------------ PRIVACY ------------------------------
@@ -49,15 +49,15 @@ privacy:
   # Segreto usato per l'HMAC degli indirizzi IP e dei dati sensibili.
   # DEVE essere cambiato al primo avvio e NON deve mai finire in un dossier
   # pubblico: senza di esso gli hash nel database non sono riconducibili a un IP.
-  # Se lo cambi dopo, gli hash vecchi non combaciano piu' con i nuovi (i collegamenti
-  # gia' registrati restano, ma non se ne creano di nuovi con le stesse coppie).
+  # Se lo cambi dopo, gli hash vecchi non combaciano più con i nuovi (i collegamenti
+  # già registrati restano, ma non se ne creano di nuovi con le stesse coppie).
   pepper: "UU9yBzkI4COxdXHJyHFcU6799hQQph162OwRrv4DUIqeLTB1x7lmh6vOX9oTyPAU"
   # Giorni di conservazione delle sessioni grezze (IP in chiaro compreso).
-  # Scaduti, la sessione viene anonimizzata: restano gli hash e i collegamenti gia'
+  # Scaduti, la sessione viene anonimizzata: restano gli hash e i collegamenti già
   # calcolati, sparisce l'IP leggibile. 0 = non anonimizzare mai (sconsigliato).
   session-retention-days: 180
   # Nei dossier PUBBLICI (quelli che alleghi a un ricorso sul forum) l'IP viene
-  # mascherato cosi': 87.12.x.x -> mostra solo i primi N ottetti.
+  # mascherato così: 87.12.x.x -> mostra solo i primi N ottetti.
   public-dossier-ip-octets: 2
 
 # --------------------------- PROFILAZIONE ----------------------------
@@ -66,15 +66,15 @@ collect:
   # locale, view distance, skin parts, brand e canali plugin arrivano dopo il login,
   # non sono disponibili nell'istante del PlayerJoinEvent.
   client-snapshot-delay-seconds: 6
-  # Secondo campionamento, piu' tardi: alcuni client (Forge/Fabric con molte mod)
+  # Secondo campionamento, più tardi: alcuni client (Forge/Fabric con molte mod)
   # registrano i canali plugin lentamente.
   client-snapshot-second-pass-seconds: 45
   # Reverse DNS dell'IP: identifica la linea ADSL/FTTH anche quando l'IP cambia.
-  # Fatto su thread separato (e' una chiamata di rete bloccante).
+  # Fatto su thread separato (è una chiamata di rete bloccante).
   reverse-dns: true
   reverse-dns-timeout-ms: 3000
   # Token persistente scritto nel client (API cookie di Minecraft 1.20.5+).
-  # E' il segnale piu' forte che abbiamo: due nickname che presentano lo stesso token
+  # È il segnale più forte che abbiamo: due nickname che presentano lo stesso token
   # sono la stessa installazione di gioco. Nota: in vanilla il cookie vive in memoria,
   # quindi si perde quando il giocatore CHIUDE Minecraft (non quando cambia server).
   cookie:
@@ -91,14 +91,14 @@ analysis:
   link-threshold: 60
   # Punteggio oltre il quale scatta un ALERT per lo staff.
   alert-threshold: 85
-  # Un IP usato da molti account vale poco: e' quasi certamente CGNAT (Iliad, Ho,
+  # Un IP usato da molti account vale poco: è quasi certamente CGNAT (Iliad, Ho,
   # Very, rete mobile in generale) o una connessione condivisa. Il peso viene
   # ridotto in proporzione al numero di account distinti visti su quell'IP.
   ip-crowding:
     enabled: true
     # Fino a questo numero di account l'IP mantiene il peso pieno.
     full-weight-up-to: 2
-    # Oltre questo numero l'IP non vale piu' nulla come prova.
+    # Oltre questo numero l'IP non vale più nulla come prova.
     worthless-above: 12
   # Decadimento: una prova vecchia pesa meno di una fresca (gli IP domestici
   # vengono riassegnati). Peso moltiplicato per 0.5 ogni 'half-life-days'.
@@ -120,14 +120,14 @@ analysis:
     similar-name: 10        # nickname molto simili
     never-together: 15      # non si sono MAI visti online insieme
   # Prove a DISCOLPO (peso negativo): tengono fuori fratelli e coinquilini.
-  # Un dossier che mostra anche queste e' molto piu' difendibile in un ricorso.
+  # Un dossier che mostra anche queste è molto più difendibile in un ricorso.
   exculpatory:
     online-together-each: -8      # per ogni sessione sovrapposta osservata
     online-together-max: -60      # limite del bonus a discolpa
     different-fingerprint: -15    # impronte client nettamente diverse
   # Staffetta: uno esce, l'altro entra dallo stesso IP entro N secondi.
   handoff-window-seconds: 120
-  # Similarita' del nickname: distanza di Levenshtein massima per considerarli simili.
+  # Similarità del nickname: distanza di Levenshtein massima per considerarli simili.
   similar-name-max-distance: 2
 
 # ------------------------------ ALERT --------------------------------
@@ -148,7 +148,7 @@ dossier:
   folder: "dossier"
   # Ogni dossier esportato viene firmato con un'impronta SHA-256 concatenata
   # alla catena di controllo del database: permette di dimostrare che il documento
-  # non e' stato ritoccato dopo il ban. Vedi /mg verify.
+  # non è stato ritoccato dopo il ban. Vedi /mg verify.
   sign: true
   # Numero massimo di sessioni elencate nel dettaglio di un dossier.
   max-sessions-listed: 50

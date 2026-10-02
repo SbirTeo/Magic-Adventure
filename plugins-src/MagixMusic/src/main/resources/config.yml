@@ -2,12 +2,12 @@
 #  MagixMusic - configurazione
 #  Radio musicale sincronizzata del mondo spawn: un "jukebox" invisibile che suona a ciclo i dischi di
 #  Minecraft a tutti i giocatori del mondo, sullo STESSO brano nello STESSO momento (li sincronizza il
-#  server). Il suono e' NON posizionale: si sente uguale in TUTTO il mondo, allo stesso volume, e segue
+#  server). Il suono è NON posizionale: si sente uguale in TUTTO il mondo, allo stesso volume, e segue
 #  il giocatore mentre cammina (niente raggio, niente calo con la distanza). Negli altri mondi non si
-#  sente. Ogni giocatore la regola o la spegne per se' con /radio (preferenza personale salvata).
+#  sente. Ogni giocatore la regola o la spegne per sé con /radio (preferenza personale salvata).
 #
-#  LIMITE di Minecraft: un suono parte sempre dall'inizio, non si puo' "riprendere" a meta'. Quindi
-#  chi entra a brano gia' iniziato lo sente dall'inizio, non dal secondo in corso; al primo cambio
+#  LIMITE di Minecraft: un suono parte sempre dall'inizio, non si può "riprendere" a metà. Quindi
+#  chi entra a brano già iniziato lo sente dall'inizio, non dal secondo in corso; al primo cambio
 #  di brano si riallinea con tutti.
 #
 #  Dopo le modifiche: /radio reload  (oppure riavvia il server)

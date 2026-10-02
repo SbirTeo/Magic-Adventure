@@ -104,7 +104,7 @@ public final class MotdListener implements Listener {
         int online = e.getNumPlayers();
         int extra = cfg.getInt("player-count.extra", 0);
         int max = cfg.getInt("player-count.max", -1);
-        if (extra > 0) e.setMaxPlayers(online + extra);     // "c'e' sempre un posto libero"
+        if (extra > 0) e.setMaxPlayers(online + extra);     // "c'è sempre un posto libero"
         else if (max > 0) e.setMaxPlayers(max);
         int mostrato = e.getMaxPlayers();
 

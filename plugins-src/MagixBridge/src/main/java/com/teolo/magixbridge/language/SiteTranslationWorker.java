@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class SiteTranslationWorker {
 
     /** Oltre questo numero di tentativi falliti una frase smette di essere ritentata da sola. */
-    private static final int MAX_ATTEMPTS = 5;
+    public static final int MAX_ATTEMPTS = 5;
 
     private final MagixBridge plugin;
     private final Database database;
@@ -44,7 +44,7 @@ public final class SiteTranslationWorker {
 
     public boolean hook() {
         if (Bukkit.getPluginManager().getPlugin("MagixLanguage") == null) {
-            plugin.getLogger().warning("MagixLanguage non trovato: il sito restera' in italiano per chi visita in un'altra lingua.");
+            plugin.getLogger().warning("MagixLanguage non trovato: il sito resterà in italiano per chi visita in un'altra lingua.");
             return false;
         }
         return true;

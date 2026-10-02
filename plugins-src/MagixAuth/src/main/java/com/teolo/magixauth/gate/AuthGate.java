@@ -99,7 +99,7 @@ public final class AuthGate {
         World targetWorld = Bukkit.getWorld(worldName);
         if (targetWorld == null) {
             plugin.getLogger().warning("MagixAuth: il cancello era nel mondo \"" + worldName
-                    + "\", che non esiste piu'. Reimpostalo con /magixauth setspawn.");
+                    + "\", che non esiste più. Reimpostalo con /magixauth setspawn.");
             return null;
         }
         return new Location(targetWorld, y.getDouble("x"), y.getDouble("y"), y.getDouble("z"),
@@ -622,7 +622,7 @@ public final class AuthGate {
     private void sendBackToPlace(Player p, EntryState state) {
         if (state.newPlayer) {
             plugin.getLogger().info("MagixAuth: " + state.name
-                    + " e' al primo ingresso, resta dov'e' comparso.");
+                    + " è al primo ingresso, resta dov'e' comparso.");
             // Una riga vecchia puo' esserci solo da prima di un reset del mondo: non vale piu'.
             clearPosition(state.uuid);
             return;

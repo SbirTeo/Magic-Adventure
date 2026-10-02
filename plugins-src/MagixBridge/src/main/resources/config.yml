@@ -17,7 +17,7 @@ network:
   # fatto due volte, un acquisto verrebbe consegnato due volte.
   site-jobs: true
 
-# Ponte dei placeholder fra le modalita': quello che un server sa calcolare (perche' ha il
+# Ponte dei placeholder fra le modalità: quello che un server sa calcolare (perché ha il
 # plugin) gli altri lo leggono come %network_<server>_<placeholder>%, dal database del sito.
 # Es. sull'hub %network_faction_magixfactions_faction% = la fazione del giocatore.
 # Lo stesso elenco va bene su ogni server: un placeholder che qui non si risolve non si pubblica.
@@ -25,9 +25,9 @@ bridge:
   enabled: true
   # Ogni quanto ricalcolare e pubblicare i valori che sono cambiati (secondi, minimo 5).
   publish-interval-seconds: 10
-  # Ogni quanto rileggere i valori degli altri server per chi e' connesso qui (secondi, minimo 2).
+  # Ogni quanto rileggere i valori degli altri server per chi è connesso qui (secondi, minimo 2).
   read-interval-seconds: 5
-  # Placeholder di ogni giocatore (senza %): calcolati per chi e' connesso qui e per chi e'
+  # Placeholder di ogni giocatore (senza %): calcolati per chi è connesso qui e per chi è
   # connesso sugli altri server.
   player-placeholders:
     - magixfactions_faction
@@ -45,7 +45,7 @@ bridge:
     - magixfactions_position
     - magixfactions_power_player
     - magixfactions_maxpower_player
-    # Una voce per ogni valuta CONDIVISA di MagixEssentials (currencies.yml, shared: true): cosi'
+    # Una voce per ogni valuta CONDIVISA di MagixEssentials (currencies.yml, shared: true): così
     # il saldo si legge anche sui server senza quel plugin, come %network_<server>_...%.
     - magixessentials_balance_magix
   # Placeholder senza giocatore (classifiche, totali).
@@ -58,12 +58,12 @@ bridge:
     - magixfactions_top_3_name
     - magixfactions_top_3_score
 
-# /link non esiste piu':l'account nasce in gioco con MagixAuth, e le stesse credenziali
+# /link non esiste più:l'account nasce in gioco con MagixAuth, e le stesse credenziali
 # (nome del giocatore + password) aprono anche magicadventure.it.
 
 # Sincronizzazione del grado LuckPerms (gruppo + prefisso colorato) verso il sito.
 # Il sito si aggiorna SUBITO a ogni cambio di gruppo/prefisso (evento di LuckPerms) e a ogni join:
-# il giro periodico qui sotto e' solo una rete di sicurezza.
+# il giro periodico qui sotto è solo una rete di sicurezza.
 ranks:
   # Ogni quanto risincronizzare comunque i giocatori online. 0 = disattivato.
   sync-interval-minutes: 5
@@ -87,16 +87,16 @@ chat:
   batch-size: 20
   # Come appare in gioco un messaggio scritto dal sito ({name} e {message})
   game-format: "&b☁ &f{name}&7: &f{message}"
-  # I messaggi del sito piu' vecchi di cosi' (minuti) non vengono ripubblicati all'avvio:
-  # evita il muro di righe dopo che il server e' stato spento a lungo.
+  # I messaggi del sito più vecchi di così (minuti) non vengono ripubblicati all'avvio:
+  # evita il muro di righe dopo che il server è stato spento a lungo.
   skip-older-than-minutes: 5
   # Per quante ore tenere lo storico della chat sul sito.
   # 0 = per sempre (predefinito): la chat del sito non si svuota da sola.
   keep-hours: 0
 
-# La verifica in due passaggi in gioco e' passata a MagixAuth: chiave, durate e tastierino
+# La verifica in due passaggi in gioco è passata a MagixAuth: chiave, durate e tastierino
 # si configurano nel suo config.yml. Il sito continua a usare le stesse colonne di `users`,
-# quindi un codice speso di qua risulta speso anche di la'.
+# quindi un codice speso di qua risulta speso anche di là.
 
 # Traduzione automatica del sito: le pagine accodano in site_translations le frasi che
 # incontrano e non hanno ancora, questo giro le smaltisce chiedendole a MagixLanguage.
@@ -123,5 +123,5 @@ halo:
 guide:
   enabled: true
   # Ogni quanto ricontrollare i file dei capitoli (minuti). Il primo giro parte 10 secondi
-  # dopo l'avvio, quando tutti i plugin hanno gia' scritto il loro.
+  # dopo l'avvio, quando tutti i plugin hanno già scritto il loro.
   check-interval-minutes: 15

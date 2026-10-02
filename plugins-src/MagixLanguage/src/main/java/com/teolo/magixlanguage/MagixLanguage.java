@@ -395,9 +395,12 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
     private void writeStaffGuide() {
         StaffGuide.create(this, "MagixLanguage — lingua e traduzioni", 65)
+                // Numeri presi dal config vero ({{cfg:...}} nel testo): una guida con numeri
+                // scritti a mano comincia a mentire alla prima modifica del config.
+                .values(new com.teolo.magixlanguage.util.ConfigValues(this))
                 .intro("Decide in che lingua parlare con chi entra (dal paese rilevato tramite l'IP, oppure "
                         + "impostata a mano) e tiene una copia tradotta dei messaggi degli altri plugin Magix, "
-                        + "cosi' chi lo desidera puo' mandare risposte gia' nella lingua giusta invece che "
+                        + "così chi lo desidera può mandare risposte già nella lingua giusta invece che "
                         + "sempre e solo in italiano.")
 
                 .section("Come si sceglie la lingua",
@@ -406,50 +409,50 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "country-language del config. Un IP privato, un servizio non raggiunto in "
                                 + "tempo, o un paese non elencato: si usa {{cfg:default-language}}.",
                         "La scelta si salva per sempre in players.yml: un ingresso successivo NON la cambia "
-                                + "piu' da solo. Per cambiarla c'e' /language set <lingua>, sia per se stessi sia, "
+                                + "più da solo. Per cambiarla c'è /language set <lingua>, sia per se stessi sia, "
                                 + "con magixlanguage.admin, per un altro giocatore.")
 
                 .section("Come funziona la traduzione dei messaggi",
-                        "Ad ogni avvio (se translations.sync-on-start e' true) e con /language sync, il plugin "
+                        "Ad ogni avvio (se translations.sync-on-start è true) e con /language sync, il plugin "
                                 + "legge i file elencati in translations.files (di serie solo messages.yml) di ogni "
                                 + "plugin elencato in translations.plugins e ne copia il testo in "
                                 + "plugins/MagixLanguage/translations/&lt;Plugin&gt;/it.yml — uno SPECCHIO, non "
                                 + "un originale: si cambia nel messages.yml del plugin, mai qui.",
-                        "Per ogni altra lingua supportata, ogni chiave NUOVA o il cui testo italiano e' "
+                        "Per ogni altra lingua supportata, ogni chiave NUOVA o il cui testo italiano è "
                                 + "CAMBIATO (anche solo un colore) viene tradotta da SOLA, tramite l'API gratuita "
-                                + "di MyMemory (se translations.auto-translate.enabled e' acceso), e scritta in "
+                                + "di MyMemory (se translations.auto-translate.enabled è acceso), e scritta in "
                                 + "en.yml/es.yml/de.yml: non serve alcun intervento dello staff per avere subito "
                                 + "un testo in ogni lingua. Le chiavi rimaste invariate NON vengono ritradotte "
                                 + "(una cache interna se ne ricorda).",
                         "Se una traduzione automatica non convince, si corregge mettendo la STESSA chiave in "
-                                + "translations/&lt;Plugin&gt;/&lt;lingua&gt;-overrides.yml (creato gia' vuoto, con le "
-                                + "istruzioni, al primo avvio): quel file non viene MAI letto ne' toccato dalla "
+                                + "translations/&lt;Plugin&gt;/&lt;lingua&gt;-overrides.yml (creato già vuoto, con le "
+                                + "istruzioni, al primo avvio): quel file non viene MAI letto né toccato dalla "
                                 + "sincronizzazione, e vince sempre — anche se il testo italiano cambia di nuovo "
                                 + "in seguito. Le chiavi che la traduzione automatica non riesce a tradurre (rete, "
                                 + "quota giornaliera esaurita) restano temporaneamente in italiano e finiscono in "
                                 + "translations/TRANSLATION-FAILED-&lt;lingua&gt;.txt, rigenerato ad ogni "
                                 + "sincronizzazione: si riprova da sola al giro successivo.",
                         "Ad ogni sincronizzazione il log stampa una riga PER PLUGIN (quante chiavi in italiano, "
-                                + "quante tradotte in questo giro, quante gia' in cache, quante ancora mancanti), "
+                                + "quante tradotte in questo giro, quante già in cache, quante ancora mancanti), "
                                 + "oltre alla riga di riepilogo finale. Lo stesso dato dell'ultima sincronizzazione "
                                 + "si vede in gioco con /language status, senza dover leggere la console — utile "
-                                + "per sapere a che punto e' rimasto il servizio di traduzione quando ha un limite "
+                                + "per sapere a che punto è rimasto il servizio di traduzione quando ha un limite "
                                 + "giornaliero (vedi issue sotto).",
-                        "Un altro plugin (softdepend, tramite ServicesManager) chiede il testo gia' tradotto "
+                        "Un altro plugin (softdepend, tramite ServicesManager) chiede il testo già tradotto "
                                 + "con MagixLanguageAPI.translate(nomePlugin, giocatore, chiave, segnaposti): senza "
                                 + "quella chiamata, quel plugin continua a parlare solo in italiano come sempre — "
                                 + "MagixLanguage non intercetta i messaggi di nessuno da solo.")
 
                 .section("I menu di MagixMenus: traduzione per FRASE, non per chiave",
                         "plugins/MagixMenus/menus/*.yml non ha chiavi stabili come messages.yml (il nome di "
-                                + "un item e' un identificatore tecnico, non una frase): il titolo del menu, il "
+                                + "un item è un identificatore tecnico, non una frase): il titolo del menu, il "
                                 + "nome/descrizione di ogni item, il corpo e i bottoni delle finestre di dialogo, "
                                 + "e il testo dentro message:/broadcast:/title:/actionbar: vengono scanditi e "
                                 + "tradotti per il TESTO stesso, non per un percorso. MagixLanguageAPI.translatePhrase "
                                 + "riceve la stessa frase italiana e la cerca. Materiali, permessi, equazioni, "
                                 + "suoni e nomi di comando non vengono mai toccati.",
                         "I file sono translations/<Plugin>/menu-phrases-<lingua>.yml (generato) e "
-                                + "menu-phrases-<lingua>-overrides.yml (correzioni: qui la chiave e' la frase "
+                                + "menu-phrases-<lingua>-overrides.yml (correzioni: qui la chiave è la frase "
                                 + "italiana esatta, non un percorso — funziona anche per una frase che la scansione "
                                 + "non trova da sola, es. dentro un blocco if/then/else). Le azioni condizionali "
                                 + "non vengono scandite in automatico per non dover ricostruire qui la logica di "
@@ -459,11 +462,11 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         "magicadventure.it traduce le proprie pagine (testo, guide comprese) con lo stesso "
                                 + "servizio: MagixBridge accoda in un database le frasi che incontra e non ha ancora, "
                                 + "e chiede a MagixLanguageAPI.translateRawBatch(...) di tradurle un lotto alla "
-                                + "volta (vedi MagixBridge/language/SiteTranslationWorker). E' la STESSA "
+                                + "volta (vedi MagixBridge/language/SiteTranslationWorker). È la STESSA "
                                 + "translations.auto-translate.contact-email e la stessa quota giornaliera di "
                                 + "MyMemory usata qui sopra per i plugin: se il sito traduce molto in un giorno, "
                                 + "resta meno margine per le chiavi dei plugin, e viceversa.",
-                        "Chi decide la lingua del visitatore e' il sito (includes/language.php): un giocatore "
+                        "Chi decide la lingua del visitatore è il sito (includes/language.php): un giocatore "
                                 + "collegato con l'account del sito parte dalla lingua scelta in gioco (sincronizzata "
                                 + "in mc_ranks.language ad ogni /language set o rilevazione GeoIP, come il grado), "
                                 + "un visitatore senza account sceglie da solo col selettore in pagina o riceve il "
@@ -476,22 +479,22 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                 .settings(
                         "default-language", "Lingua usata quando non se ne rileva nessuna.",
                         "geoip.enabled", "Spegnendolo, nessun IP esce verso il servizio GeoIP: tutti partono con default-language.",
-                        "geoip.provider-url", "Servizio interrogato per risalire dall'IP al paese; {ip} e' sostituito con l'indirizzo vero.",
-                        "geoip.cache-days", "Per quanto un IP gia' interrogato non viene richiesto di nuovo.",
+                        "geoip.provider-url", "Servizio interrogato per risalire dall'IP al paese; {ip} è sostituito con l'indirizzo vero.",
+                        "geoip.cache-days", "Per quanto un IP già interrogato non viene richiesto di nuovo.",
                         "translations.plugins", "I plugin la cui cartella dati viene scandita in cerca di testo da tradurre.",
                         "translations.files", "I nomi dei file, dentro ciascuna di quelle cartelle, che contengono testo per i giocatori.",
-                        "translations.auto-translate.enabled", "Se spento, le lingue diverse dall'italiano restano col testo italiano finche' non lo corregge lo staff con un file -overrides.yml.",
-                        "translations.auto-translate.contact-email", "Email facoltativa mandata a MyMemory per una quota giornaliera di traduzioni piu' alta.",
+                        "translations.auto-translate.enabled", "Se spento, le lingue diverse dall'italiano restano col testo italiano finché non lo corregge lo staff con un file -overrides.yml.",
+                        "translations.auto-translate.contact-email", "Email facoltativa mandata a MyMemory per una quota giornaliera di traduzioni più alta.",
                         "translations.auto-translate.pause-after-block-minutes", "Quanto aspettare dopo un blocco di MyMemory prima di riprovare da soli, quando MyMemory non lo dice nella risposta.",
                         "translations.auto-translate.retry-interval-minutes", "Senza blocchi, ogni quanto riprovare da soli le chiavi dei plugin rimaste in italiano (vale anche per i riavvii).")
 
                 .issue("Un giocatore ha la lingua sbagliata",
-                        "Se il paese rilevato dal GeoIP non e' quello vero (VPN, IP aziendale condiviso...) si "
+                        "Se il paese rilevato dal GeoIP non è quello vero (VPN, IP aziendale condiviso...) si "
                                 + "corregge con /language set <lingua> <giocatore>: da quel momento resta manuale, "
-                                + "un ingresso successivo non la tocca piu'.")
+                                + "un ingresso successivo non la tocca più.")
                 .issue("Ho aggiunto/cambiato un messaggio in un altro plugin e la traduzione non lo vede",
                         "Serve /language sync (o aspettare il prossimo riavvio, se translations.sync-on-start "
-                                + "e' acceso): la sincronizzazione non e' automatica ad ogni modifica, solo "
+                                + "è acceso): la sincronizzazione non è automatica ad ogni modifica, solo "
                                 + "all'avvio e a comando.")
                 .issue("Una traduzione automatica non mi convince",
                         "Si corregge SENZA toccare &lt;lingua&gt;.yml (verrebbe riscritto al prossimo sync): la "
@@ -509,36 +512,36 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "intervenire: dopo il blocco si aspetta quanto dice MyMemory (o "
                                 + "{{cfg:translations.auto-translate.pause-after-block-minutes}} minuti) e si riprova "
                                 + "da soli, senza aspettare un riavvio. /language status dice fra quanto. Per alzare "
-                                + "il limite si puo' impostare translations.auto-translate.contact-email nel config.")
-                .issue("Quando riprova MyMemory, e perche' non a ogni riavvio",
+                                + "il limite si può impostare translations.auto-translate.contact-email nel config.")
+                .issue("Quando riprova MyMemory, e perché non a ogni riavvio",
                         "Due regole, condivise fra plugin e sito e salvate in translation-pacing.properties "
-                                + "(cartella dati) perche' un riavvio non le azzeri. (1) Dopo un blocco — tre "
+                                + "(cartella dati) perché un riavvio non le azzeri. (1) Dopo un blocco — tre "
                                 + "richieste rifiutate di fila, di solito la quota del giorno finita — nessuno "
-                                + "richiama MyMemory finche' non passa la pausa che MyMemory stessa indica nella "
+                                + "richiama MyMemory finché non passa la pausa che MyMemory stessa indica nella "
                                 + "risposta (se non la indica, {{cfg:translations.auto-translate.pause-after-block-minutes}} "
                                 + "minuti); poi si riprende DA SOLI, controllando ogni 5 minuti. (2) Senza blocchi, "
                                 + "le chiavi dei plugin rimaste in italiano si riprovano al massimo ogni "
                                 + "{{cfg:translations.auto-translate.retry-interval-minutes}} minuti, riavvii "
-                                + "compresi: ogni tentativo consuma quota, e il server si riavvia anche piu' volte al "
+                                + "compresi: ogni tentativo consuma quota, e il server si riavvia anche più volte al "
                                 + "giorno per i deploy. Prima c'era un solo tentativo al giorno: se capitava mentre "
                                 + "MyMemory era ancora bloccato (il riavvio notturno), la giornata intera andava persa "
-                                + "a zero chiavi — successo per piu' giorni di fila. /language sync force ignora "
+                                + "a zero chiavi — successo per più giorni di fila. /language sync force ignora "
                                 + "entrambe le regole e riprova subito (equivale a cancellare "
                                 + "translation-pacing.properties e lanciare /language sync).")
-                .issue("Un colore o un placeholder e' sparito da un messaggio tradotto",
-                        "Il servizio di traduzione puo' alterare un segnaposto interno (successo davvero: ha "
+                .issue("Un colore o un placeholder è sparito da un messaggio tradotto",
+                        "Il servizio di traduzione può alterare un segnaposto interno (successo davvero: ha "
                                 + "tolto una coppia di parentesi da uno, lasciando un residuo tipo &quot;[2]&quot; al "
                                 + "posto di un colore). MagixLanguage se ne accorge da solo — scarta quella "
                                 + "traduzione invece di mostrarla rotta, e alla sincronizzazione successiva scarta "
-                                + "anche una vecchia traduzione gia' in cache che avesse lo stesso problema, "
-                                + "ritraducendola — ma serve un nuovo /language sync o riavvio perche' succeda.")
+                                + "anche una vecchia traduzione già in cache che avesse lo stesso problema, "
+                                + "ritraducendola — ma serve un nuovo /language sync o riavvio perché succeda.")
                 .issue("Uno spazio manca vicino a &lt;argomento&gt; in una riga tradotta (es. &quot;/login&lt;password&gt;&quot; attaccato)",
                         "MyMemory scambiava &lt;password&gt; per un tag HTML e ne mangiava lo spazio intorno: "
-                                + "successo davvero nell'aiuto (/help) di piu' plugin. Da quando Translator protegge "
-                                + "anche questi argomenti (come gia' faceva per {player} e i colori) non ricapita "
+                                + "successo davvero nell'aiuto (/help) di più plugin. Da quando Translator protegge "
+                                + "anche questi argomenti (come già faceva per {player} e i colori) non ricapita "
                                 + "nelle traduzioni nuove, e lo stesso rilevamento del problema sopra scarta da solo "
                                 + "le vecchie traduzioni in cache con lo spazio mangiato — anche qui serve un nuovo "
-                                + "/language sync o riavvio (o /language sync force, per non aspettare) perche' "
+                                + "/language sync o riavvio (o /language sync force, per non aspettare) perché "
                                 + "vengano rifatte.")
                 .issue("Le frecce «indietro»/«avanti» sono sparite o le scritte sono attaccate al separatore",
                         "help.chrome.back e help.chrome.forward in italiano hanno degli spazi voluti a inizio/fine "
@@ -551,51 +554,51 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "una vecchia traduzione senza quel padding viene scartata e rifatta da sola (nuovo "
                                 + "/language sync, riavvio, o /language sync force per non aspettare).")
 
-                .issue("Un argomento di un comando e' in italiano o in un'altra lingua (es. &lt;fazione&gt;, [jugador|clear] in inglese)",
-                        "La parte di una riga di aiuto prima di &quot;::&quot; e' la sintassi del comando: non va "
-                                + "piu' al traduttore automatico (ci metteva parole di un'altra lingua, e avrebbe potuto "
+                .issue("Un argomento di un comando è in italiano o in un'altra lingua (es. &lt;fazione&gt;, [jugador|clear] in inglese)",
+                        "La parte di una riga di aiuto prima di &quot;::&quot; è la sintassi del comando: non va "
+                                + "più al traduttore automatico (ci metteva parole di un'altra lingua, e avrebbe potuto "
                                 + "tradurre un sottocomando). Le parole tra &lt; &gt; e [ ] si traducono con "
                                 + "argument-glossary.yml, dentro il jar di MagixLanguage; lo stesso glossario traduce "
                                 + "ogni &lt;...&gt; negli altri messaggi (&quot;Uso: /f join &lt;fazione&gt;&quot;), che "
                                 + "il traduttore protegge per intero. Solo le voci elencate in "
                                 + "&quot;words&quot;, le altre (on|off, clear, pubblico...) restano identiche. Un "
-                                + "argomento nuovo si aggiunge li' nel sorgente (check_config.py [8] blocca il commit "
-                                + "se manca); le traduzioni gia' in cache si correggono da sole al primo giro, senza "
+                                + "argomento nuovo si aggiunge lì nel sorgente (check_config.py [8] blocca il commit "
+                                + "se manca); le traduzioni già in cache si correggono da sole al primo giro, senza "
                                 + "consumare quota di MyMemory.")
                 .issue("Il sito (magicadventure.it) non traduce mai niente",
-                        "MagixBridge chiama MagixLanguageAPI.translateRawBatch ogni 30 secondi, H24, per smaltire le "
+                        "MagixBridge chiama MagixLanguageAPI.translateRawBatch a intervalli regolari, H24, per smaltire le "
                                 + "frasi che le pagine accodano (vedi includes/translate.php e "
                                 + "language/SiteTranslationWorker.java): quando quella chiamata non si fermava "
                                 + "durante un blocco, ripeteva la richiesta a MyMemory in continuazione e il blocco "
                                 + "(HTTP 429) non si liberava mai. Ora rispetta la stessa pausa dopo un blocco del "
                                 + "sync dei plugin (classe TranslationPacing, file translation-pacing.properties): se "
-                                + "il sito resta in italiano, guarda prima /language status — se dice che MyMemory e' "
-                                + "in pausa, e' solo questione di aspettare.")
+                                + "il sito resta in italiano, guarda prima /language status — se dice che MyMemory è "
+                                + "in pausa, è solo questione di aspettare.")
                 .issue("Il sito non segue il cambio di lingua fatto in gioco",
-                        "site_language() in includes/language.php da' la precedenza, in ordine, a: ?lingua= in "
+                        "site_language() in includes/language.php dà la precedenza, in ordine, a: ?lingua= in "
                                 + "pagina (sticky in sessione e nel cookie ma_lingua per 365 giorni), poi il cookie, "
-                                + "SOLO SE NESSUNO dei due c'e' gia' alla lingua di gioco (mc_ranks.language, "
+                                + "SOLO SE NESSUNO dei due c'è già alla lingua di gioco (mc_ranks.language, "
                                 + "sincronizzata da MagixBridge/language/LanguageSync.java a ogni join o cambio vero). "
-                                + "E' voluto: chi ha scelto la lingua del sito a mano (il selettore in pagina) ha "
-                                + "gia' espresso una preferenza per il SITO, che vince anche se poi cambia lingua in "
+                                + "È voluto: chi ha scelto la lingua del sito a mano (il selettore in pagina) ha "
+                                + "già espresso una preferenza per il SITO, che vince anche se poi cambia lingua in "
                                 + "gioco. Chi non ha mai usato quel selettore, invece, segue la lingua di gioco senza "
-                                + "fare nulla. Un visitatore con un cookie ma_lingua vecchio puo' tornare a seguire il "
+                                + "fare nulla. Un visitatore con un cookie ma_lingua vecchio può tornare a seguire il "
                                 + "gioco dal selettore stesso — la voce &quot;Automatica&quot; (visibile solo quando "
-                                + "c'e' davvero una scelta manuale da togliere) cancella sessione e cookie, senza "
+                                + "c'è davvero una scelta manuale da togliere) cancella sessione e cookie, senza "
                                 + "dover intervenire a mano sul browser.")
                 .issue("Non vedo lo stato delle traduzioni del sito in /language status",
-                        "Compare solo se MagixBridge e' installato e ha gia' fatto almeno un giro (il primo parte 10 "
+                        "Compare solo se MagixBridge è installato e ha già fatto almeno un giro (il primo parte 10 "
                                 + "secondi dopo l'avvio, poi ogni site-translation.check-interval-seconds — config.yml "
-                                + "di MagixBridge, default 30): SiteTranslationWorker conta le righe di "
+                                + "di MagixBridge): SiteTranslationWorker conta le righe di "
                                 + "site_translations per lingua e stato (pronte/in attesa/fallite) e le riporta a "
                                 + "MagixLanguage con MagixLanguageAPI.reportSiteTranslationStatus, letto da "
-                                + "/language status sotto lo stato dei plugin. Se il sito non e' installato, quella "
-                                + "sezione semplicemente non compare — non e' un errore.")
+                                + "/language status sotto lo stato dei plugin. Se il sito non è installato, quella "
+                                + "sezione semplicemente non compare — non è un errore.")
 
                 .never("Non modificare it.yml dentro translations/: viene riscritto ad ogni sincronizzazione. "
                         + "Il testo italiano si cambia nel messages.yml del plugin originale.")
                 .never("Non affidarsi al GeoIP per decisioni diverse dalla lingua (es. restrizioni per paese): "
-                        + "un servizio esterno gratuito puo' sbagliare o non rispondere, ed e' pensato solo per "
+                        + "un servizio esterno gratuito può sbagliare o non rispondere, ed è pensato solo per "
                         + "questo.")
                 .write();
     }

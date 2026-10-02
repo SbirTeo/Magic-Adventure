@@ -88,7 +88,7 @@ public final class ServerGuard {
             loggedIn = hasSession(player);
         } catch (SQLException e) {
             log.warn("MagixProxy: sessione di {} non verificabile ({}): resta dov'e'.",
-                    player.getUsername(), e.getMessage());
+                    player.getUsername(), Database.describe(e));
             loggedIn = false;
         }
         if (!loggedIn) {
@@ -125,7 +125,7 @@ public final class ServerGuard {
         String message = config.message("network.moved-to-main").replace("{server}", from);
         event.setResult(KickedFromServerEvent.RedirectPlayer.create(main.get(),
                 LegacyComponentSerializer.legacyAmpersand().deserialize(message)));
-        log.info("MagixProxy: {} e' uscito da {}: lo porto sul server principale {}.",
+        log.info("MagixProxy: {} è uscito da {}: lo porto sul server principale {}.",
                 event.getPlayer().getUsername(), from, config.mainServer);
     }
 

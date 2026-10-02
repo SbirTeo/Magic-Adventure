@@ -1,0 +1,29 @@
+# Testi DI SERIE che sono cambiati nel jar e vanno aggiornati anche sul server (vedi
+# util/ConfigAlign.applyValueFixes). L'allineamento aggiunge le chiavi nuove ma non tocca i valori
+# gia' scelti: qui si elencano le coppie testo vecchio -> testo nuovo, e all'avvio e a ogni reload
+# si sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano resta com'e'), dopo
+# averne fatto la copia in .bak/. Nato per gli accenti scritti con l'apostrofo ("piu'", "e'").
+sanctions.yml:
+  - old: "Pubblicita' di altri server"
+    new: "Pubblicità di altri server"
+  - old: "Volo, velocita' e movimenti impossibili."
+    new: "Volo, velocità e movimenti impossibili."
+  - old: "Ogni violazione vale dei punti. I punti si sommano e dimezzano ogni {dimezzamento} giorni: chi sbaglia una volta non se lo porta dietro per sempre, chi insiste paga di piu'."
+    new: "Ogni violazione vale dei punti. I punti si sommano e dimezzano ogni {dimezzamento} giorni: chi sbaglia una volta non se lo porta dietro per sempre, chi insiste paga di più."
+messages.yml:
+  - old: "&#FFD166&f/{comando} &#FFD166e' permanente e non vuole una durata. &7Per una sanzione a tempo usa &f/{comando-tempo} <giocatore> <durata> <motivo>&7."
+    new: "&#FFD166&f/{comando} &#FFD166è permanente e non vuole una durata. &7Per una sanzione a tempo usa &f/{comando-tempo} <giocatore> <durata> <motivo>&7."
+  - old: "&#FF6B6BIl motivo non e' facoltativo: &7lo legge il giocatore, e finisce nell'elenco pubblico."
+    new: "&#FF6B6BIl motivo non è facoltativo: &7lo legge il giocatore, e finisce nell'elenco pubblico."
+  - old: "&#FFD166Proposta inviata: &7{motivo}. &7La trovi nel gestionale, con le prove gia' allegate."
+    new: "&#FFD166Proposta inviata: &7{motivo}. &7La trovi nel gestionale, con le prove già allegate."
+  - old: "&7Non c'e' nessun {tipo} attivo per &f{nome}&7."
+    new: "&7Non c'è nessun {tipo} attivo per &f{nome}&7."
+  - old: "&7Scrivi cosa e' successo, non solo l'accusa: chi controllera' non era li'."
+    new: "&7Scrivi cosa è successo, non solo l'accusa: chi controllerà non era lì."
+  - old: "&7Hai gia' &f{numero}&7 segnalazioni in attesa di risposta. Aspetta che lo staff le guardi."
+    new: "&7Hai già &f{numero}&7 segnalazioni in attesa di risposta. Aspetta che lo staff le guardi."
+  - old: "&7Sei fermo da un po': &fda ora il gioco non produce piu' nulla intorno a te&7. Muoviti per riprendere."
+    new: "&7Sei fermo da un po': &fda ora il gioco non produce più nulla intorno a te&7. Muoviti per riprendere."
+  - old: "&#FFD166Non scrivere dati personali in chat pubblica. &7E' per la tua sicurezza."
+    new: "&#FFD166Non scrivere dati personali in chat pubblica. &7È per la tua sicurezza."

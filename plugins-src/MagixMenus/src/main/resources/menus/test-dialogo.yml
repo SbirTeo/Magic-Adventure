@@ -1,16 +1,16 @@
 # ==========================================================================================
 #  test-dialogo.yml — la finestra di dialogo
 #
-#  Non e' un inventario travestito: e' una schermata vera di Minecraft, con un testo che si legge
+#  Non è un inventario travestito: è una schermata vera di Minecraft, con un testo che si legge
 #  come un testo, dei campi da riempire e dei bottoni che sembrano bottoni.
 #
 #  Quando usarla al posto di un baule:
 #    - devi FARTI SCRIVERE qualcosa (un nome, un messaggio, un numero);
-#    - devi far LEGGERE qualcosa di piu' lungo di una descrizione;
+#    - devi far LEGGERE qualcosa di più lungo di una descrizione;
 #    - vuoi una conferma seria ("sei sicuro?") che non si preme per sbaglio.
 #
 #  Quando NON usarla: quando le voci sono tante e si scelgono a colpo d'occhio. Per quello un
-#  baule pieno di item resta piu' chiaro.
+#  baule pieno di item resta più chiaro.
 #
 #  Le chiavi sono in inglese, come in tutti i plugin Magix; i vecchi nomi italiani restano
 #  accettati come sinonimi.
@@ -22,15 +22,15 @@ menu:
 
   commands: [testdialogo]
 
-  # A false il giocatore non puo' chiudere con Esc: deve premere un bottone.
+  # A false il giocatore non può chiudere con Esc: deve premere un bottone.
   closeable: true
 
   # A true il gioco si mette in pausa (solo in singolo; su un server non ha effetto).
   pause: false
 
-  # Il testo. Ogni riga e' un paragrafo: niente descrizioni da otto parole per riga.
+  # Il testo. Ogni riga è un paragrafo: niente descrizioni da otto parole per riga.
   body:
-    - "Questa e' una finestra di dialogo di Minecraft, non un inventario."
+    - "Questa è una finestra di dialogo di Minecraft, non un inventario."
     - "Quello che scrivi qui sotto arriva alle azioni dei bottoni come %field_<nome>%."
 
   # I campi da riempire: text, boolean, number, option.
@@ -80,10 +80,10 @@ menu:
       actions:
         - "back"
 
-    # Un bottone puo' avere show_requirements: se non e' soddisfatto, non compare affatto. In una
-    # finestra non c'e' spazio per spiegare accanto, quindi qui non esiste il "click_requirements".
+    # Un bottone può avere show_requirements: se non è soddisfatto, non compare affatto. In una
+    # finestra non c'è spazio per spiegare accanto, quindi qui non esiste il "click_requirements".
     - label: "&#FF6B6BSolo per lo staff"
-      tooltip: "Lo vedi perche' hai magixmenus.admin"
+      tooltip: "Lo vedi perché hai magixmenus.admin"
       show_requirements:
         requirements:
           staff:

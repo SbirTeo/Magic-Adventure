@@ -1,31 +1,31 @@
 # ============================================================
 #  MagixEssentials - Valute
 # ============================================================
-# Questo file e' un CATALOGO, come i menu di MagixMenus o le sanzioni di MagixGuard: le voci
+# Questo file è un CATALOGO, come i menu di MagixMenus o le sanzioni di MagixGuard: le voci
 # le aggiunge chi amministra, e non sono righe morte da ripulire.
 #
-# Ogni voce sotto "currencies" e' una valuta. La CHIAVE e' il suo ID, e da quella nascono in
+# Ogni voce sotto "currencies" è una valuta. La CHIAVE è il suo ID, e da quella nascono in
 # automatico:
 #   - il comando  /<id>  (con i sottocomandi add, take, set, reset, give)
 #   - i permessi  magixessentials.currency.<id>.admin  (add/take/set/reset, di serie: op)
 #                 magixessentials.currency.<id>.give   (give, di serie: tutti)
 #
 # L'ID deve essere una sola parola: lettere minuscole, cifre e trattini bassi, e deve cominciare
-# con una lettera (es. "magix", "gems", non "10gems" ne' "punti fazione"). Un ID scritto male, o
-# uguale a un comando che esiste gia', viene saltato e il motivo finisce nel log all'avvio.
+# con una lettera (es. "magix", "gems", non "10gems" né "punti fazione"). Un ID scritto male, o
+# uguale a un comando che esiste già, viene saltato e il motivo finisce nel log all'avvio.
 #
 # Una valuta aggiunta (o tolta) qui vale subito con /magixessentials reload, senza riavviare: il
-# comando compare o sparisce davvero, anche dal TAB di chi e' gia' online.
+# comando compare o sparisce davvero, anche dal TAB di chi è già online.
 #
-# IL SERVER STA DIETRO VELOCITY, CON PIU' BACKEND (hub, factions...): questo file vive in OGNUNO,
-# e per ogni valuta si sceglie se il saldo e' locale a QUESTO server o condiviso su tutta la rete:
+# IL SERVER STA DIETRO VELOCITY, CON PIÙ BACKEND (hub, factions...): questo file vive in OGNUNO,
+# e per ogni valuta si sceglie se il saldo è locale a QUESTO server o condiviso su tutta la rete:
 #   shared: false (di fabbrica) - saldo locale, in balances.yml, un'economia per server. Le gemme
 #                   guadagnate su hub non si vedono su factions. Niente database da configurare.
 #   shared: true  - saldo in RETE, nel database condiviso (vedi "database" in config.yml): stesso
 #                   giocatore, stesso saldo ovunque. Va dichiarata con lo STESSO id su ogni server
-#                   dove deve esistere (altrimenti il comando non nasce li').
+#                   dove deve esistere (altrimenti il comando non nasce lì).
 #
-# La valuta di rete di MAGICADVENTURE e' "magix" (/magix add, /magix take...). Per una seconda
+# La valuta di rete di MAGICADVENTURE è "magix" (/magix add, /magix take...). Per una seconda
 # valuta si aggiunge un'altra voce allo stesso modo, es. "gems:" con "name: Gems".
 currencies:
   magix:
@@ -34,5 +34,5 @@ currencies:
     # Il saldo di un giocatore che questa valuta non l'ha mai vista. Un numero intero.
     starting-balance: 0
     # true = saldo condiviso su tutta la rete (vedi sopra); false = locale a questo server.
-    # "magix" e' globale: stesso saldo su faction e hub.
+    # "magix" è globale: stesso saldo su faction e hub.
     shared: true

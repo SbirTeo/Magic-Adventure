@@ -88,7 +88,7 @@ public final class Shop {
     private static Outcome compra(MagixMenus plugin, Player p, ItemDef def, Map<String, String> variabili) {
         double prezzo = quanto(p, variabili, def.prezzo());
         if (!EconomyHook.disponibile()) {
-            plugin.getLogger().warning("L'articolo \"" + def.name() + "\" ha un prezzo ma non c'e' "
+            plugin.getLogger().warning("L'articolo \"" + def.name() + "\" ha un prezzo ma non c'è "
                     + "nessuna economia (serve Vault e un plugin che la fornisca).");
             plugin.messages().send(p, "shop.no-economy");
             return Outcome.NIENTE_DA_FARE;
@@ -139,7 +139,7 @@ public final class Shop {
 
         ItemStack merce = merce(plugin, p, variabili, def);
         if (merce == null) {
-            plugin.getLogger().warning("L'articolo \"" + def.name() + "\" si puo' vendere ma non dice "
+            plugin.getLogger().warning("L'articolo \"" + def.name() + "\" si può vendere ma non dice "
                     + "cosa (manca la chiave give).");
             return Outcome.NIENTE_DA_FARE;
         }

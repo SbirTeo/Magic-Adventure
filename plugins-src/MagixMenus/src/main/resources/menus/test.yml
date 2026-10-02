@@ -1,28 +1,28 @@
 # ==========================================================================================
 #  test.yml — il menu che usa TUTTO
 #
-#  Non e' un menu da mostrare ai giocatori: e' la dimostrazione di ogni cosa che MagixMenus sa
+#  Non è un menu da mostrare ai giocatori: è la dimostrazione di ogni cosa che MagixMenus sa
 #  fare, in un file solo. Aprilo con /test (o /menus open test) e tienilo aperto accanto mentre
-#  scrivi i tuoi menu: quasi sempre quello che cerchi e' gia' qui in una forma o nell'altra.
+#  scrivi i tuoi menu: quasi sempre quello che cerchi è già qui in una forma o nell'altra.
 #
-#  Il nome del menu e' il nome di questo file senza .yml, cioe' "test".
+#  Il nome del menu è il nome di questo file senza .yml, cioè "test".
 #
 #  ─────────────────────────────────────────────────────────────────────────────────────────
 #  LE CHIAVI SONO IN INGLESE
 #
 #  Vale per tutti i plugin Magix. I vecchi nomi italiani (nome, descrizione, mostra_se,
-#  azioni, prezzo...) restano accettati per sempre, quindi i menu gia' scritti continuano a
+#  azioni, prezzo...) restano accettati per sempre, quindi i menu già scritti continuano a
 #  funzionare: ma i file nuovi, e tutto quello che scrive l'editor del sito, usano l'inglese.
-#  Cosi' un menu copiato da una guida di un altro plugin si apre senza tradurlo.
+#  Così un menu copiato da una guida di un altro plugin si apre senza tradurlo.
 #
 #  ─────────────────────────────────────────────────────────────────────────────────────────
-#  LA REGOLA PIU' IMPORTANTE: L'ORDINE
+#  LA REGOLA PIÙ IMPORTANTE: L'ORDINE
 #
 #  Se due item chiedono la stessa casella, la prende il PRIMO scritto qui sotto che abbia i
 #  suoi "show_requirements" soddisfatti. Da qui due conseguenze pratiche:
 #
 #    - il bottone che cambia faccia (verde/grigio) si fa con due item sulla stessa casella,
-#      scrivendo per primo quello con le condizioni piu' esigenti;
+#      scrivendo per primo quello con le condizioni più esigenti;
 #    - lo sfondo (slot: all) va scritto per ULTIMO, altrimenti si prende tutto il menu e
 #      copre ogni altro item.
 #  ─────────────────────────────────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ menu:
   rows: 6
 
   # Il titolo accetta colori e placeholder. Se contiene placeholder viene riscritto anche
-  # mentre il menu e' aperto.
+  # mentre il menu è aperto.
   title: "&#C046E8&lMagixMenus &8» &7prova &8(&f%player_name%&8)"
 
   # Ogni quanti tick si ridisegna. 20 = un secondo. 0 = mai.
@@ -46,7 +46,7 @@ menu:
   # I comandi che aprono questo menu. Nascono da qui: dopo averli cambiati serve /menus reload.
   commands: [test, magixtest]
 
-  # Chi non ha questo permesso non puo' aprirlo. Togli la riga per lasciarlo aperto a tutti.
+  # Chi non ha questo permesso non può aprirlo. Togli la riga per lasciarlo aperto a tutti.
   # permission: magixmenus.menu.test
 
   # I nomi degli argomenti del comando: /test negozio -> %arg_categoria% e %arg_1%
@@ -73,7 +73,7 @@ menu:
 #  CONTENUTO CHE SI GENERA DA SOLO
 #
 #  Le voci non si sanno in anticipo (i giocatori collegati, una classifica, un catalogo): si
-#  dice da dove vengono, in quali caselle vanno e com'e' fatta UNA voce. Le pagine vengono da se'.
+#  dice da dove vengono, in quali caselle vanno e com'e' fatta UNA voce. Le pagine vengono da sé.
 # ==========================================================================================
 content:
   # online_players | list | placeholder
@@ -89,7 +89,7 @@ content:
 
   entry:
     id: PLAYER_HEAD
-    head: "%entry%"                       # %entry% e' il valore di questa riga dell'elenco
+    head: "%entry%"                       # %entry% è il valore di questa riga dell'elenco
     display_name: "&#A8DC2C%entry%"
     lore:
       - "&#9A8CA8Numero &f%entry_index%&#9A8CA8 dell'elenco"
@@ -103,7 +103,7 @@ content:
 items:
 
   # ────────────────────────────────────────────────────────────────────────────────────────
-  #  1. L'ITEM COMPLETO: tutto quello che si puo' scrivere sull'aspetto
+  #  1. L'ITEM COMPLETO: tutto quello che si può scrivere sull'aspetto
   # ────────────────────────────────────────────────────────────────────────────────────────
   vetrina:
     slot: 10
@@ -111,7 +111,7 @@ items:
     amount: 1
     display_name: "&#C046E8&lSpada di prova"
     lore:
-      - "&#9A8CA8Un item con tutto quello che si puo' mettere:"
+      - "&#9A8CA8Un item con tutto quello che si può mettere:"
       - "&#9A8CA8nome, descrizione, incantesimi, riflessi."
       - ""
       - "&#9A8CA8Chi la guarda: &f%player_name%"
@@ -151,13 +151,13 @@ items:
     id: PAPER
     display_name: "&#C046E8Il campo dei componenti"
     lore:
-      - "&#9A8CA8Per quello che qui non e' previsto c'e'"
+      - "&#9A8CA8Per quello che qui non è previsto c'è"
       - "&#9A8CA8il campo grezzo dei componenti."
       - ""
       - "&#9A8CA8Si applica per primo: i campi normali"
       - "&#9A8CA8gli vanno sempre sopra."
     # Componenti di Minecraft, la stessa forma dei comandi /give. Il formato cambia fra le
-    # versioni del gioco: se un giorno smette di funzionare, e' quasi sempre questo.
+    # versioni del gioco: se un giorno smette di funzionare, è quasi sempre questo.
     components: "[minecraft:rarity=epic]"
     # Modello preso dal resource pack (1.21.4+):
     # item_model: "magicadventure:moneta"
@@ -184,7 +184,7 @@ items:
   #   magixpack: avatar
 
   # ────────────────────────────────────────────────────────────────────────────────────────
-  #  4. LA PRIORITA': DUE ITEM SULLA STESSA CASELLA
+  #  4. LA PRIORITÀ: DUE ITEM SULLA STESSA CASELLA
   #
   #  Il primo che ha diritto a starci vince. Qui: se hai il permesso vedi il verde, altrimenti
   #  il grigio. Un menu solo, nessuna riga duplicata.
@@ -194,7 +194,7 @@ items:
     id: LIME_DYE
     display_name: "&#A8DC2C&lSbloccato"
     lore:
-      - "&#9A8CA8Lo vedi perche' hai il permesso"
+      - "&#9A8CA8Lo vedi perché hai il permesso"
       - "&#9A8CA8magixmenus.admin."
     show_requirements:
       requirements:
@@ -210,8 +210,8 @@ items:
     id: GRAY_DYE
     display_name: "&#9A8CA8&lBloccato"
     lore:
-      - "&#9A8CA8Lo vedi perche' NON hai il permesso"
-      - "&#9A8CA8magixmenus.admin: e' lo stesso posto,"
+      - "&#9A8CA8Lo vedi perché NON hai il permesso"
+      - "&#9A8CA8magixmenus.admin: è lo stesso posto,"
       - "&#9A8CA8un altro item."
     actions:
       - "message: &#FFD166Questo bottone non fa niente."
@@ -229,7 +229,7 @@ items:
     display_name: "&#FFD166Costa 100 monete"
     lore:
       - "&#9A8CA8Si vede sempre, ma funziona solo se"
-      - "&#9A8CA8hai i soldi: cosi' chi non li ha capisce"
+      - "&#9A8CA8hai i soldi: così chi non li ha capisce"
       - "&#9A8CA8cosa gli manca invece di trovare un buco."
       - ""
       - "&#9A8CA8Serve Vault e un plugin di economia."
@@ -273,7 +273,7 @@ items:
     price: 500
     give: DIAMOND 1
     sell: 200
-    # Le azioni, se ci sono, partono DOPO che il pagamento e' riuscito.
+    # Le azioni, se ci sono, partono DOPO che il pagamento è riuscito.
     actions:
       - "broadcast: &#9A8CA8%player_name% ha comprato un diamante."
 
@@ -293,11 +293,11 @@ items:
       - "&#9A8CA8HAS_ITEM        ha degli oggetti"
       - "&#9A8CA8HAS_MONEY       ha delle monete"
       - "&#9A8CA8HAS_LEVEL       ha dei livelli"
-      - "&#9A8CA8WORLD           e' in un mondo"
+      - "&#9A8CA8WORLD           è in un mondo"
       - "&#9A8CA8EMPTY_SLOTS     ha spazio in inventario"
       - ""
       - "&#9A8CA8Ognuno accetta &fmatch: false&#9A8CA8 per"
-      - "&#9A8CA8ribaltarsi, e un blocco puo' avere"
+      - "&#9A8CA8ribaltarsi, e un blocco può avere"
       - "&#9A8CA8&fminimum: 2&#9A8CA8 (ne bastano due su tre)."
     click_requirements:
       minimum: 1
@@ -349,7 +349,7 @@ items:
   elenco_azioni:
     slot: 23
     id: WRITABLE_BOOK
-    display_name: "&#C046E8Quello che si puo' scrivere"
+    display_name: "&#C046E8Quello che si può scrivere"
     lore:
       - "&#9A8CA8command: &f<comando>      &8come giocatore"
       - "&#9A8CA8console: &f<comando>      &8come server"
@@ -412,7 +412,7 @@ items:
       - "&#9A8CA8Il menu &ftest-dialogo&#9A8CA8: una schermata"
       - "&#9A8CA8vera di Minecraft, non un baule."
       - ""
-      - "&#9A8CA8Da li', &fback&#9A8CA8 riporta qui."
+      - "&#9A8CA8Da lì, &fback&#9A8CA8 riporta qui."
     actions:
       - "menu: test-dialogo"
 

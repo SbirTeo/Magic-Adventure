@@ -51,7 +51,7 @@ public final class MenuLoader {
         try {
             yaml.load(file);
         } catch (Exception e) {
-            errori.add("il file non e' YAML valido: " + e.getMessage());
+            errori.add("il file non è YAML valido: " + e.getMessage());
             return vuoto(name, errori);
         }
         return da(name, yaml, errori);
@@ -117,7 +117,7 @@ public final class MenuLoader {
             for (String key : itemSection.getKeys(false)) {
                 ConfigurationSection s = itemSection.getConfigurationSection(key);
                 if (s == null) {
-                    errori.add("l'item \"" + key + "\" non e' un blocco di impostazioni.");
+                    errori.add("l'item \"" + key + "\" non è un blocco di impostazioni.");
                     continue;
                 }
                 ItemDef def = item(key, s, larghezza, dimensione, errori, true);
@@ -138,7 +138,7 @@ public final class MenuLoader {
         MenuDialog dialog = type.dialog() ? dialog(m, root, errori) : null;
 
         if (item.isEmpty() && content == null && !type.dialog()) {
-            errori.add("questo menu non ha nessun item: si aprira' vuoto.");
+            errori.add("questo menu non ha nessun item: si aprirà vuoto.");
         }
 
         return new MenuDef(name, type, rows, title, aggiornamento, commands, permesso, arguments,
@@ -170,7 +170,7 @@ public final class MenuLoader {
             for (String key : fieldsSection.getKeys(false)) {
                 ConfigurationSection s = fieldsSection.getConfigurationSection(key);
                 if (s == null) {
-                    errori.add("il campo \"" + key + "\" non e' un blocco di impostazioni.");
+                    errori.add("il campo \"" + key + "\" non è un blocco di impostazioni.");
                     continue;
                 }
                 MenuDialog.FieldType fieldType = MenuDialog.FieldType.read(textWith(s, "text", "type", "tipo"));
@@ -181,7 +181,7 @@ public final class MenuLoader {
                 }
                 List<String> opzioni = textList(s, "opzioni", "options", "valori");
                 if (fieldType == MenuDialog.FieldType.CHOICE && opzioni.isEmpty()) {
-                    errori.add("campo \"" + key + "\": una scelta senza opzioni non si puo' fare.");
+                    errori.add("campo \"" + key + "\": una scelta senza opzioni non si può fare.");
                     continue;
                 }
                 fields.add(new MenuDialog.Field(key, fieldType,
@@ -206,7 +206,7 @@ public final class MenuLoader {
             for (Object o : list) {
                 Map<String, Object> b = mappa(o);
                 if (b == null) {
-                    errori.add("un bottone non e' scritto come un blocco: lo salto.");
+                    errori.add("un bottone non è scritto come un blocco: lo salto.");
                     continue;
                 }
                 YamlConfiguration finto = new YamlConfiguration();
@@ -229,7 +229,7 @@ public final class MenuLoader {
         if (bottoni.isEmpty()) {
             // Senza bottoni resta solo la crocetta per chiudere: e' un avviso, non un errore,
             // e per un messaggio di sola lettura va benissimo.
-            errori.add("dialogo senza bottoni: si potra' solo leggere e chiudere.");
+            errori.add("dialogo senza bottoni: si potrà solo leggere e chiudere.");
         }
         boolean paused = booleanoCon(m, booleanoCon(root, false, "pause", "pausa"), "pause", "pausa");
         return new MenuDialog(body, fields, bottoni, paused);
@@ -270,7 +270,7 @@ public final class MenuLoader {
             def.magixpack(magixpack);
         }
         if (materiale == null && magixpack == null && text(s, "head", "testa", "skull") == null) {
-            errori.add("l'item \"" + key + "\" non dice che item e' (chiave id).");
+            errori.add("l'item \"" + key + "\" non dice che item è (chiave id).");
             return null;
         }
         def.materiale(materiale == null ? "PLAYER_HEAD" : materiale);
@@ -327,7 +327,7 @@ public final class MenuLoader {
             soloInteri(key, "il prezzo di rivendita", vendi, errori);
         }
         if (vendi != null && dai == null) {
-            errori.add("l'item \"" + key + "\" si puo' vendere ma non dice cosa: aggiungi la chiave give.");
+            errori.add("l'item \"" + key + "\" si può vendere ma non dice cosa: aggiungi la chiave give.");
         }
 
         def.showIf(requirements(s, errori, "show_requirements", "mostra_se", "mostra_requisiti"));
@@ -406,7 +406,7 @@ public final class MenuLoader {
 
         ConfigurationSection s = firstSection(padre, keys);
         if (s == null) {
-            errori.add("il blocco " + keys[0] + " non e' scritto come mi aspetto: lo ignoro.");
+            errori.add("il blocco " + keys[0] + " non è scritto come mi aspetto: lo ignoro.");
             return Requirements.NESSUNO;
         }
         minimum = interoCon(s, 0, "minimum", "minimum_requirements", "minimo");
@@ -420,7 +420,7 @@ public final class MenuLoader {
             }
             ConfigurationSection uno = where.getConfigurationSection(k);
             if (uno == null) {
-                errori.add("il requisito \"" + k + "\" non e' un blocco di impostazioni.");
+                errori.add("il requisito \"" + k + "\" non è un blocco di impostazioni.");
                 continue;
             }
             Requirement r = requirement(uno.getValues(false), errori);
@@ -451,7 +451,7 @@ public final class MenuLoader {
         if (quantita != null) {
             Double n = com.teolo.magixmenus.util.Text.number(String.valueOf(quantita));
             if (n == null) {
-                errori.add("requisito " + type + ": la quantita' \"" + quantita + "\" non e' un numero.");
+                errori.add("requisito " + type + ": la quantità \"" + quantita + "\" non è un numero.");
             } else {
                 q = (int) (double) n;
             }

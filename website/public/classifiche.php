@@ -352,6 +352,12 @@ function format_playtime(int $seconds): string {
      su desktop l'overflow resta VISIBILE e il popup non viene tagliato; su mobile torna a scorrere. */
   .rank-wrap { overflow: visible; }
   @media (max-width: 760px) { .rank-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; } }
+  /* La larghezza che conta e' quella del RIQUADRO, non dello schermo: a 800-1000px la colonna
+     laterale lascia alla classifica meno di 600px e la tabella usciva dal riquadro finendo sotto
+     la colonna (segnalato da telefono in modalita' desktop). Le stesse regole del telefono
+     scattano quindi anche quando e' stretto il pannello, con una container query. */
+  .rank-tab-panel { container: rankpanel / inline-size; }
+  @container rankpanel (max-width: 760px) { .rank-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; } }
   .score-cell { position: relative; }
   .score-trigger { cursor: pointer; font-weight: 700; }
   .score-cell .score-pop {
@@ -503,6 +509,22 @@ function format_playtime(int $seconds): string {
      dentro il wrapper che scorre in orizzontale. Diventano quindi position:fixed, centrati e SOVRAPPOSTI
      al resto della pagina, con un velo scuro dietro (l'ombra a 100vmax fa da sfondo senza elementi extra). */
   @media (max-width: 760px) {
+    .fac-cell .fac-pop, .score-cell .score-pop, .rank .pl-card {
+      position: fixed; left: 50%; top: 50%; right: auto; bottom: auto;
+      width: min(92vw, 360px); max-width: 92vw; max-height: 80vh; overflow-y: auto;
+      transform: translate(-50%, -46%); z-index: 200;
+    }
+    .fac-cell:hover .fac-pop, .fac-cell:focus-within .fac-pop, .fac-cell.pop-open .fac-pop,
+    .score-cell:hover .score-pop, .score-cell:focus-within .score-pop, .score-cell.pop-open .score-pop,
+    .rank .player-cell:hover .pl-card, .rank .player-cell:focus-within .pl-card, .rank .player-cell.pop-open .pl-card {
+      /* !important + niente transizione sulla visibility: su questo motore la transizione della
+         visibility teneva il popup invisibile anche a regola "mostra" applicata (vedi il tap-to-open). */
+      transform: translate(-50%, -50%);
+      opacity: 1 !important; visibility: visible !important; transition: none;
+      box-shadow: 0 18px 44px -14px rgba(0,0,0,.65), 0 0 0 100vmax rgba(0,0,0,.55);
+    }
+  }
+  @container rankpanel (max-width: 760px) {
     .fac-cell .fac-pop, .score-cell .score-pop, .rank .pl-card {
       position: fixed; left: 50%; top: 50%; right: auto; bottom: auto;
       width: min(92vw, 360px); max-width: 92vw; max-height: 80vh; overflow-y: auto;

@@ -18,6 +18,23 @@ const TRANSLATION_GLOSSARY = [
     'Ufficiale' => ['en' => 'Officer', 'es' => 'Oficial', 'de' => 'Offizier'],
     'Membro'    => ['en' => 'Member', 'es' => 'Miembro', 'de' => 'Mitglied'],
     'Recluta'   => ['en' => 'Recruit', 'es' => 'Recluta', 'de' => 'Rekrut'],
+    // Guida, guida per lo staff e regolamento: etichette brevi che MyMemory sbagliava
+    // ("Chiedi alla guida" era diventato "Ask the driver", "Chiedi" "Asking").
+    'Chiedi alla guida' => ['en' => 'Ask the guide', 'es' => 'Pregunta a la guía', 'de' => 'Frag die Anleitung'],
+    'Chiedi'            => ['en' => 'Ask', 'es' => 'Preguntar', 'de' => 'Fragen'],
+    'Cerca nella guida' => ['en' => 'Search the guide', 'es' => 'Buscar en la guía', 'de' => 'In der Anleitung suchen'],
+    'Cerca'             => ['en' => 'Search', 'es' => 'Buscar', 'de' => 'Suchen'],
+    'Guida'             => ['en' => 'Guide', 'es' => 'Guía', 'de' => 'Anleitung'],
+    'Guida del server'  => ['en' => 'Server guide', 'es' => 'Guía del servidor', 'de' => 'Server-Anleitung'],
+    'Regolamento'       => ['en' => 'Rules', 'es' => 'Reglamento', 'de' => 'Regeln'],
+    'Indice'            => ['en' => 'Contents', 'es' => 'Índice', 'de' => 'Inhalt'],
+    '↑ Indice'          => ['en' => '↑ Contents', 'es' => '↑ Índice', 'de' => '↑ Inhalt'],
+    'In questo capitolo:' => ['en' => 'In this chapter:', 'es' => 'En este capítulo:', 'de' => 'In diesem Kapitel:'],
+    'Nuovo sul server? Inizia da qui' => [
+        'en' => 'New to the server? Start here',
+        'es' => '¿Nuevo en el servidor? Empieza aquí',
+        'de' => 'Neu auf dem Server? Fang hier an',
+    ],
     // Stato della fazione
     'Non ha ancora un territorio.' => [
         'en' => 'It has no territory yet.',

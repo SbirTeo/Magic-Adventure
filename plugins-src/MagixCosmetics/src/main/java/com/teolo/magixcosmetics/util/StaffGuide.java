@@ -190,7 +190,7 @@ public final class StaffGuide {
         }
         html.append("<h4>Placeholder</h4>\n");
         md.append("## Placeholder\n\n");
-        String note = "Si scrivono cosi' come sono in qualunque testo che passa da PlaceholderAPI "
+        String note = "Si scrivono così come sono in qualunque testo che passa da PlaceholderAPI "
                 + "(scoreboard, tablist, chat, menu, CMI): senza PlaceholderAPI installato restano "
                 + "testo letterale.";
         html.append("<p class=\"guida-nota\">").append(escapeHtml(note)).append("</p>\n");
@@ -265,7 +265,7 @@ public final class StaffGuide {
         md.append("## Impostazioni\n\n");
         String note = "Sono TUTTE le chiavi del config.yml, col valore in uso adesso e la spiegazione "
                 + "presa dal commento del file. L'elenco si genera da solo: una chiave nuova compare "
-                + "qui da sola, e nessuna puo' restare fuori.";
+                + "qui da sola, e nessuna può restare fuori.";
         html.append("<p class=\"guida-nota\">").append(escapeHtml(note)).append("</p>\n");
         md.append(note).append("\n\n");
         settingsTable(plugin.getConfig(), byHand(keyAndExplanation));

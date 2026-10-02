@@ -19,6 +19,7 @@ import com.teolo.magixfactions.model.RelationType;
 import com.teolo.magixfactions.req.Requirements;
 import com.teolo.magixfactions.util.Help;
 import com.teolo.magixfactions.util.Colors;
+import com.teolo.magixfactions.util.DurationText;
 import com.teolo.magixfactions.util.WordFilter;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -122,6 +123,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             // Prima si allineano i file del server a quelli del jar (le chiavi nuove di un
         // deploy compaiono anche senza riavvio), poi si rilegge.
         ConfigAlign.alignAll(plugin);
+        com.teolo.magixfactions.config.PlaytimeMigration.run(plugin);
         plugin.reloadConfig();
             ranks.load(plugin.getConfig());
             fm.syncRanksToDb(); // rispecchia i gradi aggiornati nella tabella per il sito
@@ -184,6 +186,16 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         }
         String name = a[1];
         if (!nameOk(p, name, null, false)) return true;
+
+        long minPlaytime = plugin.getConfig().getLong("create-cost.min-playtime-seconds", 0);
+        if (minPlaytime > 0) {
+            long played = p.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE) / 20L; // in tick (20/s)
+            if (played < minPlaytime) {
+                msgKey(p, "create.playtime", "required", DurationText.fromSeconds(minPlaytime),
+                        "played", DurationText.fromSeconds(played));
+                return true;
+            }
+        }
 
         Requirements req = new Requirements(plugin.getConfig().getConfigurationSection("create-cost"));
         String unmet = req.checkUnmet(p);
@@ -1357,7 +1369,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * Forme brevi: "0"/vuoto = gratis; "100" = costo fisso; "10,10" = incremento senza blocchi.
      * Spec malformata = gratis (non blocca mai il gioco per un refuso nel config).
      */
-    static double nextClaimCost(String spec, int owned) {
+    public static double nextClaimCost(String spec, int owned) {
         if (spec == null || spec.isBlank()) return 0;
         String[] parts = spec.split(",");
         double base, inc = 0, mult = 0;

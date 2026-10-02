@@ -200,8 +200,8 @@ public record Requirement(Type type, String key, String value, int quantita, boo
     public String description() {
         String base = switch (type) {
             case PERMESSO -> "ha il permesso " + key;
-            case EQUATION -> "e' vero che " + key;
-            case TEXT_EQUALS -> key + " e' uguale a " + value;
+            case EQUATION -> "è vero che " + key;
+            case TEXT_EQUALS -> key + " è uguale a " + value;
             case TEXT_CONTAINS -> key + " contiene " + value;
             case REGEX -> key + " corrisponde a " + value;
             case HA_ITEM -> "ha " + quantita + " " + key;

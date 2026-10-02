@@ -6,33 +6,33 @@
 #   1. Metti la texture in plugins/MagixPack/glyphs/<id>.png (stesso nome
 #      della chiave qui sotto, es. star.png) - un'unica icona per immagine.
 #   2. Aggiungi la voce qui sotto: height/ascent sono le stesse misure dei
-#      font bitmap di Minecraft (quanto e' alta l'icona e dove sta la base
+#      font bitmap di Minecraft (quanto è alta l'icona e dove sta la base
 #      del testo rispetto al bordo alto dell'immagine).
 #   3. /mpack reload. Il CARATTERE dell'icona lo assegna il plugin da solo, a
 #      ogni avvio/reload, in ordine alfabetico: /mpack glyph list lo mostra
 #      (pulsanti [copia] e [in chat]), e si incolla in qualunque testo.
 #
 #  Per OGNI voce (icone e avatar), facoltative:
-#   scale: 2      -> si vede 2 volte piu' grande; 0.8 -> un quinto piu' piccola
-#                    (1 = come e' disegnata; anche decimali).
+#   scale: 2      -> si vede 2 volte più grande; 0.8 -> un quinto più piccola
+#                    (1 = come è disegnata; anche decimali).
 #   offset-x: 3   -> spostata di 3 pixel a DESTRA (negativo = a sinistra; anche
 #                    decimali). Il testo che la segue NON si sposta.
-#   offset-y: 2   -> spostata di 2 pixel in SU (negativo = in giu').
-#   priority: 1   -> chi sta SOPRA quando piu' glifi sono impilati nello stesso
-#                    punto: da 0 a 100, piu' alto = sopra (default 0, anche decimali). Si impilano
+#   offset-y: 2   -> spostata di 2 pixel in SU (negativo = in giù).
+#   priority: 1   -> chi sta SOPRA quando più glifi sono impilati nello stesso
+#                    punto: da 0 a 100, più alto = sopra (default 0, anche decimali). Si impilano
 #                    col placeholder %magixpack_stack_<id>,<id>% (es.
 #                    %magixpack_stack_avatar,cornice%) o /mpack glyph show avatar,cornice.
-#                    A parita' di priority vale l'ordine scritto.
+#                    A parità di priority vale l'ordine scritto.
 #  Provale con /mpack glyph show <id> dopo /mpack reload.
 #
-#  Il carattere puo' cambiare se cambia il catalogo: in un config che deve
+#  Il carattere può cambiare se cambia il catalogo: in un config che deve
 #  durare usa il placeholder %magixpack_glyph_<id>% (PlaceholderAPI), che
 #  non cambia mai. Da un altro plugin: l'API di MagixPack (vedi README.md).
 # =====================================================================
 
-# L'AVATAR del giocatore: type: player-avatar. Niente texture: e' la FACCIA della sua skin
+# L'AVATAR del giocatore: type: player-avatar. Niente texture: è la FACCIA della sua skin
 # (piatta, secondo strato compreso), disegnata pixel per pixel con caratteri del pacchetto; a
-# scale 1 e' alta come una lettera. Se ne possono fare piu' voci con grandezze diverse (es.
+# scale 1 è alta come una lettera. Se ne possono fare più voci con grandezze diverse (es.
 # avatar_big con scale: 2): l'oggetto di items.yml sceglie quale con glyph:. Anteprima in chat:
 # /mpack glyph show avatar [giocatore]. Da un altro plugin: customGlyph("avatar", giocatore).
 avatar:

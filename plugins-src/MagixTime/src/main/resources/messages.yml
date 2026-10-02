@@ -15,7 +15,7 @@ players-only: "&cQuesto comando va eseguito da un giocatore."
 unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/mtime help&c."
 reloaded: "&aConfigurazione ricaricata."
 synced: "&aOra reale riallineata in &e{worlds}&a mondi."
-disabled-module: "&cIl modulo &e{module}&c e' disattivato nel config."
+disabled-module: "&cIl modulo &e{module}&c è disattivato nel config."
 
 # ---------------------------------------------------------------- /mtime info
 # {realtime} ora reale HH:mm:ss - {realdate} data reale - {timezone} fuso
@@ -31,7 +31,7 @@ info:
   - "&7Meteo:        &f{weather} &8- cambio fra &7{weathernext} min"
   - "&8&m                                                  "
 
-info-paused: "&eL'allineamento dell'ora e' in PAUSA (&7/mtime resume&e per riprendere)."
+info-paused: "&eL'allineamento dell'ora è in PAUSA (&7/mtime resume&e per riprendere)."
 
 # Mostrato in /mtime info quando qualcuno ha cambiato ora o meteo dall'esterno
 # ({seconds} = secondi al ripristino automatico)
@@ -39,9 +39,9 @@ info-override-time: "&eOra forzata dall'esterno: torna normale fra &f{seconds}&e
 info-override-weather: "&eMeteo forzato dall'esterno: torna normale fra &f{seconds}&e secondi."
 info-catchup: "&eIl sole sta recuperando il ritardo per riagganciare l'ora reale."
 
-# Avviso in /mtime info se la gamerule doDaylightCycle non si e' potuta spegnere:
+# Avviso in /mtime info se la gamerule doDaylightCycle non si è potuta spegnere:
 # senza, il client fa scorrere il tempo da solo e il sole "salta" avanti e indietro.
-info-gamerule-warning: "&cAttenzione: doDaylightCycle non si e' spenta. Allineamento a ogni tick attivo."
+info-gamerule-warning: "&cAttenzione: doDaylightCycle non si è spenta. Allineamento a ogni tick attivo."
 
 # ---------------------------------------------------------------- /mtime help
 # L'aiuto lo impagina la classe Aiuto (la stessa in tutti i plugin Magix): una
@@ -52,7 +52,7 @@ info-gamerule-warning: "&cAttenzione: doDaylightCycle non si e' spenta. Allineam
 help:
   title: "MagixTime"
   # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
-  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # non cambia da un plugin all'altro, ma vive comunque qui perché Help lo legge da
   # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
   chrome:
     no-commands: "Nessun comando disponibile."
@@ -97,7 +97,7 @@ worlds-line:
 season-details:
   - "&8&m                                                  "
   - "&7Stagione in corso: {season} &8({key})"
-  - "&7Probabilita' di pioggia: &f{rain}%&7, di temporale: &f{thunder}%"
+  - "&7Probabilità di pioggia: &f{rain}%&7, di temporale: &f{thunder}%"
   - "&7Accumulo di neve: &f{snow}"
   - "&7Prossima stagione: {next} &7fra &f{days}&7 giorni"
   - "&8&m                                                  "
@@ -107,9 +107,9 @@ season-auto: "&aStagione di nuovo automatica: {season}&a."
 season-unknown: "&cStagione sconosciuta. Disponibili: &e{list}"
 
 # Annuncio al cambio di stagione ({season} = nome, {prev} = precedente)
-season-change: "&7La stagione e' cambiata: {season}&7!"
+season-change: "&7La stagione è cambiata: {season}&7!"
 season-change-title: "{season}"
-season-change-subtitle: "&7La stagione e' cambiata"
+season-change-subtitle: "&7La stagione è cambiata"
 
 # ---------------------------------------------------------------- meteo
 weather-clear: "Sereno"
@@ -127,12 +127,12 @@ announce-storm: "&7Si sta scatenando un temporale."
 # ---------------------------------------------------------------- ora
 paused: "&eAllineamento dell'ora messo in pausa."
 resumed: "&aAllineamento dell'ora ripreso."
-already-paused: "&cE' gia' in pausa."
-already-running: "&cNon e' in pausa."
+already-paused: "&cÈ già in pausa."
+already-running: "&cNon è in pausa."
 
 # Mostrato in action bar a chi va a dormire (time.sleep-notify: true)
 # {mctime} = ora di gioco corrente
-sleep-notice: "&7L'ora segue il mondo reale: la notte non si puo' saltare. &8({mctime})"
+sleep-notice: "&7L'ora segue il mondo reale: la notte non si può saltare. &8({mctime})"
 
 # ---------------------------------------------------------------- comandi di ora/meteo
 # Mostrati a chi usa /time, /day, /weather e simili (anche quelli di CMI).
@@ -140,21 +140,21 @@ sleep-notice: "&7L'ora segue il mondo reale: la notte non si puo' saltare. &8({m
 # poi il plugin ripristina); con mode: block valgono le "blocked-*" (comando rifiutato).
 # {seconds} = secondi dopo i quali il plugin riprende il controllo.
 revert-time:
-  - "&eFatto, ma l'ora e' gestita da &bMagixTime&e e segue l'orologio reale."
-  - "&7Fra &f{seconds}&7 secondi il sole tornera' da solo all'ora vera."
+  - "&eFatto, ma l'ora è gestita da &bMagixTime&e e segue l'orologio reale."
+  - "&7Fra &f{seconds}&7 secondi il sole tornerà da solo all'ora vera."
   - "&7Per tenerla ferma davvero: &e/mtime pause&7."
 
 revert-weather:
-  - "&eFatto, ma il meteo e' gestito da &bMagixTime&e e segue la stagione reale."
-  - "&7Fra &f{seconds}&7 secondi tornera' la fase della stagione."
+  - "&eFatto, ma il meteo è gestito da &bMagixTime&e e segue la stagione reale."
+  - "&7Fra &f{seconds}&7 secondi tornerà la fase della stagione."
   - "&7Per un cambio che duri: &e/mtime weather <clear|rain|storm> [minuti]&7."
 
 blocked-time:
-  - "&cL'ora e' gestita da &bMagixTime&c e segue l'orologio reale."
+  - "&cL'ora è gestita da &bMagixTime&c e segue l'orologio reale."
   - "&7Per cambiarla devi prima disattivare MagixTime: &e/mtime pause&7,"
   - "&7oppure &etime.enabled: false&7 in config.yml e poi &e/mtime reload&7."
 
 blocked-weather:
-  - "&cIl meteo e' gestito da &bMagixTime&c e segue la stagione reale."
+  - "&cIl meteo è gestito da &bMagixTime&c e segue la stagione reale."
   - "&7Per cambiarlo usa &e/mtime weather <clear|rain|storm> [minuti]&7,"
   - "&7oppure disattiva il modulo con &eweather.enabled: false&7 e &e/mtime reload&7."
