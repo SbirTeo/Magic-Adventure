@@ -1,14 +1,14 @@
 # MagixEssentials
 
 Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base** del server: quelle
-cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa cinque —
-la **MOTD**, il **nametag**, la **chat**, il **filtro dell'autocompletamento** e le **valute** — e
+cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa sei —
+la **MOTD**, il **nametag**, la **chat**, il **filtro dell'autocompletamento**, le **valute** e gli **oggetti fissi dell'inventario** — e
 a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
 Il server sta dietro **Velocity**, con piu' backend (hub, factions...): questo jar gira su ognuno,
 con la propria cartella dati e il proprio `modules.yml`.
 
-Versione: **0.9.2**
+Versione: **0.10.0**
 
 ---
 
@@ -24,6 +24,8 @@ file diversi:
 | `nametag.yml` | Com'e' fatta la targhetta sopra la testa: le righe, chi la disegna, altezze, quando sparisce. |
 | `chat.yml` | Il formato della chat pubblica (grado, nome, fazione) e dei messaggi che arrivano dal sito. |
 | `currencies.yml` | Le valute create dallo staff: un catalogo, non uno schema fisso — una voce per valuta. |
+| `customjoinitems.yml` | Quando e come si danno gli oggetti fissi dell'inventario e le regole generali (buttare, raccogliere, rompere...). |
+| `items.yml` | Gli oggetti fissi veri: un catalogo, una voce per oggetto. |
 | `config.yml` | Solo cio' che vale per il **plugin intero**: oggi il database delle valute condivise. |
 
 Il filtro dell'autocompletamento non ha un file suo: l'interruttore `tabcomplete` in `modules.yml`
@@ -363,11 +365,37 @@ aggiunto a `bridge.player-placeholders` nel config di MagixBridge: li' si legge 
 
 ---
 
+## Oggetti fissi nell'inventario (customjoinitems)
+
+Mette negli inventari dei giocatori gli oggetti decisi dallo staff — la bussola dei server sull'hub,
+un oggetto fisso nella barra rapida sul faction — e dice cosa i giocatori possono farci. **Di serie
+e' spento**: si accende con `customjoinitems: true` in `modules.yml`, server per server.
+
+Due file: `customjoinitems.yml` (quando e come si danno, regole generali) e `items.yml` (il catalogo
+degli oggetti: slot, materiale, nome, descrizione, texture, permesso, comandi al clic; ogni chiave
+e' spiegata nel file). Gli oggetti si riconoscono da un marchio con l'id della voce nei dati
+dell'oggetto, non dal nome.
+
+| Chiave | Cosa fa |
+|---|---|
+| `give-on.join` / `respawn` / `world-change` | Quando si danno. Al login si aspetta MagixAuth (`wait-for-login`). |
+| `clear-inventory` | Svuota tutto prima di dare: per l'hub, mai per il faction. |
+| `if-slot-occupied` | `move` (sposta la cosa del giocatore, se non c'e' posto non da l'oggetto), `replace`, `keep`. |
+| `rules.allow-*` | Regole generali: spostare, buttare, raccogliere, rompere e piazzare blocchi, scambiare le mani, durabilita'. `false` = vietato, per tutto e non solo per gli oggetti del modulo. |
+| `movable` / `droppable` / `vanilla-use` (per oggetto) | Spostarlo, buttarlo, usarlo come l'oggetto vero. Di serie tutti `false`. |
+
+Gli oggetti del modulo non cadono mai a terra alla morte e tornano alla rinascita. Il permesso
+`magixessentials.customjoinitems.bypass` (di serie op) salta le regole, non la consegna.
+Comandi: `/mess joinitems give [giocatore|all]` e `/mess joinitems remove [giocatore|all]`.
+
+---
+
 ## Comandi
 
 | Comando | Cosa fa | Permesso |
 |---|---|---|
 | `/magixessentials reload` (alias `/mess`, `/magixess`) | Riallinea i file, li rilegge e fa ripartire i moduli accesi | `magixessentials.admin` |
+| `/mess joinitems give\|remove [giocatore\|all]` | Rimette o toglie gli oggetti fissi dell'inventario (modulo `customjoinitems`) | `magixessentials.admin` |
 | `/<id valuta>` | I comandi delle valute (`/magix`, `/gems`...), vedi sopra | dinamico, per valuta |
 
 Il reload risponde in chat con l'elenco dei moduli e il loro stato, e lo stesso elenco finisce nel

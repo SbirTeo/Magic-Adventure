@@ -3,7 +3,7 @@ version: '${project.version}'
 main: com.teolo.magixessentials.MagixEssentials
 api-version: '26.1'
 author: teolo
-description: "Utilita' del server (MOTD, nametag, chat, valute e, in futuro, cio' che oggi fa CMI)."
+description: "Utilita' del server (MOTD, nametag, chat, valute, oggetti fissi dell'inventario e, in futuro, cio' che oggi fa CMI)."
 # PlaceholderAPI: opzionale. Se presente, i placeholder %...% nei nametag vengono risolti
 # (compresi i relazionali %rel_...%). Senza di lui restano scritti come sono.
 # ProtocolLib: opzionale. Serve al nametag in modalita' display (entita' di testo).
@@ -12,7 +12,7 @@ description: "Utilita' del server (MOTD, nametag, chat, valute e, in futuro, cio
 softdepend: [PlaceholderAPI, ProtocolLib, MagixLanguage]
 commands:
   magixessentials:
-    description: "Comandi di MagixEssentials (per ora, reload)."
+    description: "Comandi di MagixEssentials (reload, joinitems)."
     aliases: [mess, magixess]
     permission: magixessentials.admin
 permissions:
@@ -21,4 +21,7 @@ permissions:
     default: op
   magixessentials.chat.links:
     description: "I link scritti nella chat pubblica diventano cliccabili. Vale anche il vecchio magixfactions.chat.links."
+    default: op
+  magixessentials.customjoinitems.bypass:
+    description: "Salta le regole del modulo customjoinitems: muovere, buttare, raccogliere, rompere e piazzare come in vanilla. Non salta la consegna degli oggetti."
     default: op

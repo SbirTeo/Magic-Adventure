@@ -3,6 +3,7 @@ package com.teolo.magixessentials;
 import com.teolo.magixessentials.chat.ChatModule;
 import com.teolo.magixessentials.currency.CurrencyManager;
 import com.teolo.magixessentials.currency.CurrencyPlaceholders;
+import com.teolo.magixessentials.customjoinitems.CustomJoinItems;
 import com.teolo.magixessentials.hook.Papi;
 import com.teolo.magixessentials.lang.Messages;
 import com.teolo.magixessentials.module.Modules;
@@ -44,6 +45,7 @@ public final class MagixEssentials extends JavaPlugin {
     private TabCompleteFilter tabComplete;
     private ChatModule chat;
     private CurrencyManager currencies;
+    private CustomJoinItems joinItems;
     private Messages messages;
 
     @Override
@@ -87,6 +89,7 @@ public final class MagixEssentials extends JavaPlugin {
         switch (sub) {
             case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
             case "reload" -> reload(sender);
+            case "joinitems" -> joinItems(sender, args);
             default -> messages.send(sender, "unknown-subcommand");
         }
         return true;
@@ -95,11 +98,53 @@ public final class MagixEssentials extends JavaPlugin {
     @Override
     public java.util.List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                 @NotNull String alias, @NotNull String[] args) {
-        if (args.length != 1) {
-            return java.util.List.of();
+        String prefix = args[args.length - 1].toLowerCase(java.util.Locale.ROOT);
+        if (args.length == 1) {
+            return java.util.List.of("help", "reload", "joinitems").stream().filter(s -> s.startsWith(prefix)).toList();
         }
-        String prefix = args[0].toLowerCase(java.util.Locale.ROOT);
-        return java.util.List.of("help", "reload").stream().filter(s -> s.startsWith(prefix)).toList();
+        if (args[0].equalsIgnoreCase("joinitems")) {
+            if (args.length == 2) {
+                return java.util.List.of("give", "remove").stream().filter(s -> s.startsWith(prefix)).toList();
+            }
+            if (args.length == 3) {
+                java.util.List<String> names = new java.util.ArrayList<>(CustomJoinItems.onlineNames(prefix));
+                if ("all".startsWith(prefix)) names.add("all");
+                return names;
+            }
+        }
+        return java.util.List.of();
+    }
+
+    /** /mess joinitems give|remove [giocatore|all]: senza nome vale per chi scrive. */
+    private void joinItems(CommandSender sender, String[] args) {
+        if (joinItems == null) {
+            messages.send(sender, "customjoinitems.disabled");
+            return;
+        }
+        boolean give = args.length >= 2 && args[1].equalsIgnoreCase("give");
+        boolean remove = args.length >= 2 && args[1].equalsIgnoreCase("remove");
+        if (!give && !remove) {
+            messages.send(sender, "unknown-subcommand");
+            return;
+        }
+        java.util.Collection<? extends org.bukkit.entity.Player> targets;
+        if (args.length >= 3 && args[2].equalsIgnoreCase("all")) {
+            targets = Bukkit.getOnlinePlayers();
+        } else if (args.length >= 3) {
+            org.bukkit.entity.Player one = CustomJoinItems.find(args[2]);
+            if (one == null) {
+                messages.send(sender, "customjoinitems.player-not-found", "player", args[2]);
+                return;
+            }
+            targets = java.util.List.of(one);
+        } else if (sender instanceof org.bukkit.entity.Player self) {
+            targets = java.util.List.of(self);
+        } else {
+            messages.send(sender, "unknown-subcommand");
+            return;
+        }
+        int n = give ? joinItems.giveNow(targets) : joinItems.removeNow(targets);
+        messages.send(sender, give ? "customjoinitems.given" : "customjoinitems.removed", "count", String.valueOf(n));
     }
 
     private void reload(CommandSender sender) {
@@ -160,6 +205,10 @@ public final class MagixEssentials extends JavaPlugin {
             currencies = new CurrencyManager(this, modules.configurazioneDi(Modules.CURRENCIES));
             currencies.start();
         }
+        if (modules.attivo(Modules.CUSTOMJOINITEMS)) {
+            joinItems = new CustomJoinItems(this, modules.configurazioneDi(Modules.CUSTOMJOINITEMS), messages);
+            joinItems.start();
+        }
     }
 
     /**
@@ -185,6 +234,7 @@ public final class MagixEssentials extends JavaPlugin {
         if (tabComplete != null) { tabComplete.stop(); tabComplete = null; }
         if (chat != null) { chat.stop(); chat = null; }
         if (currencies != null) { currencies.stop(); currencies = null; }
+        if (joinItems != null) { joinItems.stop(); joinItems = null; }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -210,7 +260,11 @@ public final class MagixEssentials extends JavaPlugin {
                         .extra("NAMETAG_STILE", nametag == null
                                 ? "il modulo è spento, quindi nessuno"
                                 : nametag.describe())
-                        .also(currencies == null ? null : modules.configurazioneDi(Modules.CURRENCIES)))
+                        .also(currencies == null ? null : modules.configurazioneDi(Modules.CURRENCIES))
+                        .also(modules.configurazioneDi(Modules.CUSTOMJOINITEMS))
+                        .extra("JOINITEMS_NUMERO", joinItems == null
+                                ? "il modulo è spento"
+                                : String.valueOf(joinItems.itemCount())))
                 .intro("Raccoglie le utilità di base del server. Oggi ne fa cinque: la **MOTD**, le "
                         + "righe che si leggono nella lista server prima di entrare, il **nametag**, "
                         + "la targhetta sopra la testa dei giocatori, la **chat** pubblica (come si "
@@ -307,6 +361,51 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "funzionare anche sui server SENZA MagixEssentials, l'id della valuta va aggiunto "
                                 + "a **bridge.player-placeholders** nel config di MagixBridge: lì si legge come "
                                 + "%network_<server>_magixessentials_balance_<id>%.")
+
+                .section("Gli oggetti fissi nell'inventario (customjoinitems)",
+                        "Mette negli inventari dei giocatori gli oggetti che hai deciso tu — una bussola per "
+                                + "scegliere il server, una stella nella barra rapida — e ti lascia scegliere cosa "
+                                + "possono farci: spostarli, buttarli, usarli. Serve all'**hub** (inventario pulito, "
+                                + "niente si tocca) e al **faction** (un solo oggetto fisso, il resto dell'inventario "
+                                + "è dei giocatori). **Di serie è spento**: si accende con la riga customjoinitems "
+                                + "in modules.yml, server per server. Adesso: {{JOINITEMS_NUMERO}} oggetti caricati.",
+                        "Due file. **customjoinitems.yml** dice QUANDO e COME si danno e le regole generali; "
+                                + "**items.yml** è il catalogo degli oggetti, una voce ciascuno: materiale, slot "
+                                + "(0-8 barra rapida, 9-35 zaino, 36-39 armatura, 40 seconda mano), nome, descrizione, "
+                                + "brillantezza, texture, permesso per riceverlo, comandi al clic. Gli oggetti si "
+                                + "riconoscono da un marchio con l'id della voce, non dal nome: puoi rinominarli o "
+                                + "cambiare materiale senza perderli di vista.",
+                        "**Quando si danno:** al login (give-on.join, ora: **{{cfg:give-on.join}}**), alla "
+                                + "rinascita (give-on.respawn, ora: **{{cfg:give-on.respawn}}**) e al cambio di mondo "
+                                + "(give-on.world-change, ora: **{{cfg:give-on.world-change}}**). Se MagixAuth sta "
+                                + "ancora chiedendo la password, si aspetta che il giocatore sia entrato davvero. Gli "
+                                + "oggetti del modulo non cadono mai a terra quando si muore: tornano alla rinascita.",
+                        "**Lo slot è occupato?** if-slot-occupied (ora: **{{cfg:if-slot-occupied}}**): *move* "
+                                + "sposta la cosa del giocatore nel primo posto libero (e se lo zaino è pieno non "
+                                + "dà l'oggetto: non si butta mai niente di suo), *replace* la sovrascrive, *keep* "
+                                + "non dà l'oggetto. **clear-inventory** (ora: **{{cfg:clear-inventory}}**) svuota "
+                                + "tutto prima di dare: è la scelta per l'hub, mai per il faction.",
+                        "**Cosa possono farci, per oggetto:** *movable* (spostarlo nell'inventario, anche con "
+                                + "i tasti numerici o la seconda mano), *droppable* (buttarlo), *vanilla-use* (usarlo "
+                                + "come l'oggetto vero: mangiarlo, lanciarlo, piazzarlo). Di serie sono tutti e tre "
+                                + "falsi: l'oggetto resta fisso nel suo slot e serve solo per i suoi comandi.",
+                        "**Cosa possono fare in generale**, sezione **rules** di customjoinitems.yml: spostare "
+                                + "oggetti, buttarli, raccoglierli, rompere e piazzare blocchi, scambiare le mani, "
+                                + "consumare la durabilità. Ogni voce è *true* (si può, come in vanilla) o *false* "
+                                + "(vietato) e vale per TUTTO, non solo per gli oggetti del modulo: sull'hub si "
+                                + "spengono quasi tutte. Attenzione: **allow-move: false chiude ogni inventario**, "
+                                + "casse e banchi da lavoro compresi. Chi ha il permesso "
+                                + "**magixessentials.customjoinitems.bypass** (di serie gli operatori) salta tutte "
+                                + "le regole, ma gli oggetti li riceve lo stesso.",
+                        "**I comandi al clic.** In *commands* di una voce: con il prefisso *console:* li esegue "
+                                + "la console, con *player:* (o senza prefisso) il giocatore. Segnaposto {player}, "
+                                + "{uuid}, {world} e i placeholder di PlaceholderAPI. *click* sceglie quale clic "
+                                + "(any, left, right) e *cooldown-seconds* quanto aspettare prima del successivo.",
+                        "**Dopo aver cambiato items.yml** basta /magixessentials reload per i comandi e le "
+                                + "regole; per rimettere gli oggetti a chi è già online usa **/mess joinitems give** "
+                                + "[giocatore|all], e **/mess joinitems remove** per toglierli (anche dopo aver "
+                                + "spento il modulo: gli oggetti restano negli inventari finché non li togli). "
+                                + "Una voce sbagliata (materiale o slot) si salta e il motivo finisce nel log.")
 
                 .section("La targhetta sopra la testa (nametag)",
                         "È quella che si legge **sopra la testa** dei giocatori, in gioco: non il tablist "
@@ -526,7 +625,27 @@ public final class MagixEssentials extends JavaPlugin {
                         "nametag", "La targhetta sopra la testa. Spento, resta quella di CMI (o il nome nudo del gioco).",
                         "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.",
                         "chat", "Il formato della chat pubblica e dei messaggi del sito. Spento, la chat pubblica resta quella nuda del gioco.",
-                        "currencies", "I comandi delle valute (/magix, /gems...). Spento, quei comandi vengono tolti, anche dal TAB.")
+                        "currencies", "I comandi delle valute (/magix, /gems...). Spento, quei comandi vengono tolti, anche dal TAB.",
+                        "customjoinitems", "Gli oggetti fissi nell'inventario e le regole su cosa farci. Di serie spento: si accende sull'hub o sul faction dove serve.")
+
+                .settingsFrom(modules.configurazioneDi(Modules.CUSTOMJOINITEMS), "Oggetti fissi (customjoinitems.yml)",
+                        "worlds", "I mondi in cui il modulo lavora. Vuota = tutti.",
+                        "give-on.join", "Dà gli oggetti al login (dopo MagixAuth, se c'è).",
+                        "give-on.respawn", "Li rimette alla rinascita.",
+                        "give-on.world-change", "Li rimette al cambio di mondo.",
+                        "give-delay-ticks", "Quanti tick si aspetta dopo l'evento prima di darli.",
+                        "wait-for-login", "Aspetta il login di MagixAuth prima di dare gli oggetti.",
+                        "login-wait-seconds", "Al massimo quanti secondi si aspetta il login.",
+                        "clear-inventory", "Svuota tutto l'inventario prima di dare gli oggetti (hub sì, faction no).",
+                        "remove-orphans", "Toglie gli oggetti del modulo che non esistono più in items.yml.",
+                        "if-slot-occupied", "Slot occupato: move (sposta la cosa del giocatore), replace, keep.",
+                        "rules.allow-move", "Spostare oggetti nell'inventario (false chiude TUTTI gli inventari).",
+                        "rules.allow-drop", "Buttare oggetti a terra.",
+                        "rules.allow-pickup", "Raccogliere oggetti da terra.",
+                        "rules.allow-break-blocks", "Rompere blocchi.",
+                        "rules.allow-place-blocks", "Piazzare blocchi.",
+                        "rules.allow-swap-hands", "Scambiare gli oggetti fra le due mani.",
+                        "rules.allow-item-damage", "Consumare la durabilità degli oggetti.")
 
                 .settingsFrom(modules.configurazioneDi(Modules.CHAT), "Impostazioni della chat (chat.yml)",
                         "custom-format", "La riga scritta a mano per questo server: vince sugli stili. Vuota = decide lo stile.",
@@ -579,6 +698,13 @@ public final class MagixEssentials extends JavaPlugin {
                         "currencies", "Una voce per valuta: la chiave è l'id (/<id>), name il nome mostrato, "
                                 + "starting-balance il saldo di partenza, shared se il saldo è di rete.")
 
+                .issue("Gli oggetti fissi non arrivano ai giocatori",
+                        "Controlla in ordine: customjoinitems è acceso in modules.yml (di serie è spento)? "
+                                + "Il mondo del giocatore è in worlds (vuota = tutti)? items.yml ha almeno una voce, "
+                                + "e il log all'avvio dice quanti oggetti ha caricato e quali ha saltato col motivo "
+                                + "(materiale o slot sbagliati)? Se lo slot era occupato e lo zaino pieno, con "
+                                + "if-slot-occupied: move l'oggetto non viene dato. Chi deve ancora fare il login "
+                                + "li riceve solo dopo. Per rimetterli subito: /mess joinitems give <giocatore>.")
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Ho cambiato la MOTD e nella lista server si legge ancora quella vecchia",

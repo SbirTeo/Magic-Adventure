@@ -1,0 +1,73 @@
+# ============================================================
+#  MagixEssentials - Oggetti fissi nell'inventario (customjoinitems)
+# ============================================================
+# Gli oggetti che i giocatori ricevono al login (o alla rinascita, o al cambio di mondo) e le regole
+# su cosa possono farci. Va bene sia sull'hub (inventario pulito + bussola dei server) sia sul
+# faction (un oggetto fisso nella barra rapida): ogni server ha i suoi due file.
+#
+# Questo file dice QUANDO e COME si danno gli oggetti e quali regole valgono in generale. Gli
+# oggetti veri (materiale, nome, slot, comandi) stanno in items.yml, che è un catalogo: le voci le
+# aggiunge lo staff. L'interruttore sta nel modules.yml (customjoinitems: true/false, di serie
+# spento).
+#
+# Il permesso magixessentials.customjoinitems.bypass salta tutte le regole qui sotto (chi
+# costruisce può muovere, buttare e rompere come vuole). Non salta la consegna degli oggetti.
+
+# I mondi in cui il modulo lavora (consegna e regole). Lista vuota = tutti i mondi. Entrando in un
+# mondo che non è in elenco, gli oggetti del modulo vengono tolti.
+worlds: []
+
+# Quando si danno gli oggetti.
+give-on:
+  # Al login. Se MagixAuth chiede ancora la password, si aspetta che il giocatore sia entrato.
+  join: true
+  # Dopo la morte, alla rinascita (gli oggetti del modulo non cadono mai a terra).
+  respawn: true
+  # Quando il giocatore passa da un mondo all'altro (utile se i mondi hanno inventari separati).
+  world-change: false
+
+# Quanti tick si aspetta dopo l'evento prima di dare gli oggetti (20 tick = 1 secondo). Lascia
+# qualche tick agli altri plugin, che a volte rimettono a posto l'inventario proprio al login.
+give-delay-ticks: 5
+
+# Aspetta il login di MagixAuth prima di dare gli oggetti. Senza MagixAuth non fa niente.
+wait-for-login: true
+
+# Al massimo quanti secondi si aspetta il login prima di darli lo stesso.
+login-wait-seconds: 300
+
+# true = svuota TUTTO l'inventario (armatura e seconda mano comprese) prima di dare gli oggetti.
+# È la scelta per un hub. Sul faction va lasciato false: i giocatori perderebbero le loro cose.
+clear-inventory: false
+
+# Toglie gli oggetti del modulo che non esistono più in items.yml (o per cui il giocatore non ha più
+# il permesso). Gli oggetti di altri plugin non si toccano mai.
+remove-orphans: true
+
+# Cosa fare quando lo slot di un oggetto è già occupato da una cosa del giocatore:
+#   move     - la cosa si sposta nel primo posto libero dello zaino; se è pieno, l'oggetto del modulo
+#              non viene dato (non si butta mai niente di suo). È la scelta sicura per il faction.
+#   replace  - l'oggetto del modulo prende il posto (e la cosa di prima sparisce).
+#   keep     - non si dà l'oggetto del modulo.
+if-slot-occupied: move
+
+# Le regole GENERALI, per tutti quelli che non hanno il bypass, in tutti i mondi del modulo.
+# true = i giocatori possono (come in vanilla), false = è vietato. Valgono per qualunque oggetto,
+# non solo per quelli del modulo: per un hub si spengono quasi tutte, per il faction si lasciano
+# così e si usano le regole dei singoli oggetti (movable, droppable... in items.yml).
+rules:
+  # Spostare oggetti nell'inventario. ATTENZIONE: false chiude TUTTI gli inventari (casse, banchi
+  # da lavoro, incudini...): vale per un hub, non per un server di gioco.
+  allow-move: true
+  # Buttare oggetti a terra (anche col tasto Q).
+  allow-drop: true
+  # Raccogliere oggetti da terra.
+  allow-pickup: true
+  # Rompere blocchi.
+  allow-break-blocks: true
+  # Piazzare blocchi.
+  allow-place-blocks: true
+  # Scambiare gli oggetti fra le due mani (tasto F).
+  allow-swap-hands: true
+  # Consumare la durabilità degli oggetti (false = armi e attrezzi non si rovinano).
+  allow-item-damage: true

@@ -36,3 +36,10 @@ chat: true
 # coi permessi che gli servono. Spento, quei comandi vengono tolti (anche dal TAB, senza
 # riavviare). Si regola in currencies.yml.
 currencies: true
+
+# Oggetti fissi nell'inventario: li si danno al login (o alla rinascita, o al cambio di mondo) e si
+# decide se i giocatori possono spostarli, buttarli, raccoglierne altri, rompere blocchi... Serve
+# sia all'hub (inventario pulito con la bussola dei server) sia al faction (un oggetto fisso nella
+# barra rapida). DI SERIE SPENTO: va acceso dove serve. Quando e come si danno e le regole generali
+# stanno in customjoinitems.yml, gli oggetti veri in items.yml.
+customjoinitems: false

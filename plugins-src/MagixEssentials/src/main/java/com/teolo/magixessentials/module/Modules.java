@@ -65,6 +65,9 @@ public final class Modules {
     /** Le valute: da ogni voce di currencies.yml nasce un comando vero (/<id> add|take|...). */
     public static final String CURRENCIES = "currencies";
 
+    /** Gli oggetti fissi nell'inventario: si danno al login e si decide cosa i giocatori possono farci. */
+    public static final String CUSTOMJOINITEMS = "customjoinitems";
+
     private final JavaPlugin plugin;
     /** {@code modules.yml}: l'elenco delle funzioni, accese o spente. */
     private volatile YamlConfiguration file;

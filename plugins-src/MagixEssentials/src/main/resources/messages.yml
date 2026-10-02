@@ -32,6 +32,15 @@ currency:
   give-sent: "&7Hai dato &f{amount} {currency}&7 a &f{player}&7 (te ne restano &f{balance}&7)."
   give-received: "&7{sender} ti ha dato &f{amount} {currency}&7 (ora ne hai &f{balance}&7)."
 
+# Gli oggetti fissi nell'inventario (modulo customjoinitems). {seconds} i secondi che mancano al
+# prossimo clic valido, {count} quanti giocatori, {player} il nome.
+customjoinitems:
+  cooldown: "&7Aspetta ancora &f{seconds}s&7."
+  disabled: "&cIl modulo customjoinitems è spento: accendilo in modules.yml."
+  player-not-found: "&cNessun giocatore online con questo nome: {player}."
+  given: "&7Oggetti dati a &f{count}&7 giocatori."
+  removed: "&7Oggetti tolti a &f{count}&7 giocatori."
+
 # Il comando /magixessentials (alias /mess): risposta al reload e sottocomando sconosciuto.
 # {modules} = i moduli accesi dopo il reload.
 reloaded: "&#A8DC2CConfigurazione ricaricata &8· &#9A8CA8moduli: &f{modules}"
@@ -55,4 +64,6 @@ help:
       staff: true
       entries:
         - "/mess help :: questo elenco"
+        - "/mess joinitems give [giocatore|all] :: rimette gli oggetti fissi dell'inventario (modulo customjoinitems)"
+        - "/mess joinitems remove [giocatore|all] :: toglie gli oggetti fissi dell'inventario"
         - "/mess reload :: rilegge i file di config e riaccende i moduli scelti in modules.yml"
