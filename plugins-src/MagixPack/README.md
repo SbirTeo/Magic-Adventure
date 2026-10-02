@@ -415,6 +415,16 @@ Nel mondo:
 - `/mpack model remove [raggio]` toglie il modello piu' vicino (default 10 blocchi).
 - `/mpack model list` elenca i modelli caricati, coi pezzi, le animazioni e quanti ne sono nel mondo.
 
+I cubi **non ruotati** di uno stesso osso vengono fusi in **un solo modello** (un solo item display):
+un modello di centinaia o migliaia di cubetti fermi, come il logo dell'hub, e' UNA entita'. Solo i
+cubi ruotati restano un display ciascuno (un elemento di un modello di oggetto non puo' ruotare
+liberamente). I cubetti fusi vengono rimpiccioliti dentro i limiti di Minecraft (-16..32) e il display
+li riporta alla grandezza giusta.
+
+Ogni modello messo ricorda l'impronta del file da cui e' nato: se il `.bbmodel` cambia, al primo
+`/mpack reload` (o riavvio) il plugin lo **rifa' da solo** nello stesso punto, girato uguale, con la
+stessa scala, animazione e luce (`glow`). Niente remove/spawn a mano.
+
 I modelli messi sono entita' normali salvate col mondo: restano dopo un riavvio, e il plugin li
 ritrova dai loro dati quando il chunk si carica. L'animazione gira solo con un giocatore entro 96
 blocchi. Se il file cambia, `/mpack reload` aggiorna anche quelli gia' messi (se ha MENO pezzi di

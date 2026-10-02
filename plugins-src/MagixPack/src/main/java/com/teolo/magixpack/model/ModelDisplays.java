@@ -40,7 +40,7 @@ public final class ModelDisplays implements Listener {
 
     private final JavaPlugin plugin;
     private final ModelCatalog catalog;
-    private final NamespacedKey keyModel, keyPiece, keyPlacement, keyScale, keyAnimation;
+    private final NamespacedKey keyModel, keyPiece, keyPlacement, keyScale, keyAnimation, keyHash;
     private final Map<UUID, Placement> placements = new HashMap<>();
     private BukkitTask task;
     private long tick;
@@ -50,6 +50,8 @@ public final class ModelDisplays implements Listener {
         final String model;
         double scale;
         final String animation;
+        /** Hash of the model file it was built from ("" = unknown, made by an older version). */
+        String hash = "";
         final Map<Integer, ItemDisplay> pieces = new HashMap<>();
         /** The rest pose (or the current model file) still has to be sent. */
         boolean dirty = true;
@@ -75,6 +77,7 @@ public final class ModelDisplays implements Listener {
         keyPlacement = new NamespacedKey(plugin, "model-placement");
         keyScale = new NamespacedKey(plugin, "model-scale");
         keyAnimation = new NamespacedKey(plugin, "model-animation");
+        keyHash = new NamespacedKey(plugin, "model-hash");
     }
 
     public void start() {
@@ -98,6 +101,11 @@ public final class ModelDisplays implements Listener {
     public int spawn(String id, Location at, double scale, String animation) {
         BbModel m = catalog.get(id);
         if (m == null) return 0;
+        place(id, m, at, scale, animation, false);
+        return m.pieces.size();
+    }
+
+    private void place(String id, BbModel m, Location at, double scale, String animation, boolean glow) {
         UUID placement = UUID.randomUUID();
         Location loc = at.clone();
         loc.setPitch(0);
@@ -118,10 +126,28 @@ public final class ModelDisplays implements Listener {
                 pdc.set(keyPlacement, PersistentDataType.STRING, placement.toString());
                 pdc.set(keyScale, PersistentDataType.DOUBLE, scale);
                 pdc.set(keyAnimation, PersistentDataType.STRING, animation == null ? "" : animation);
+                pdc.set(keyHash, PersistentDataType.STRING, m.hash);
+                if (glow) display.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
             });
             track(d);
         }
-        return m.pieces.size();
+    }
+
+    /** The model file changed since this one was placed (its pieces no longer match): put it again in
+     *  the same spot, facing the same way, with the same size, animation and light. */
+    private void rebuild(Placement p) {
+        BbModel m = catalog.get(p.model);
+        Location at = p.location();
+        if (m == null || at == null) return;
+        boolean glow = false;
+        for (ItemDisplay d : p.pieces.values()) {
+            if (d.isValid() && d.getBrightness() != null) glow = true;
+            if (d.isValid()) d.remove();
+        }
+        placements.remove(p.id);
+        place(p.model, m, at, p.scale, p.animation, glow);
+        plugin.getLogger().info("[Models] " + p.model + " a " + at.getBlockX() + " " + at.getBlockY() + " "
+                + at.getBlockZ() + " rifatto: il file del modello è cambiato.");
     }
 
     /** Removes the placed model closest to {@code near}, within {@code radius}. @return its model
@@ -202,6 +228,8 @@ public final class ModelDisplays implements Listener {
         String anim = pdc.get(keyAnimation, PersistentDataType.STRING);
         Placement p = placements.computeIfAbsent(uuid, u -> new Placement(u, model, scale == null ? 1 : scale,
                 anim == null || anim.isEmpty() ? null : anim));
+        String hash = pdc.get(keyHash, PersistentDataType.STRING);
+        p.hash = hash == null ? "" : hash;
         p.pieces.put(piece, d);
         p.dirty = true;
     }
@@ -233,6 +261,7 @@ public final class ModelDisplays implements Listener {
     private void step() {
         tick += STEP;
         List<UUID> gone = new ArrayList<>();
+        List<Placement> outdated = new ArrayList<>();
         for (Placement p : placements.values()) {
             p.pieces.values().removeIf(d -> !d.isValid());
             if (p.pieces.isEmpty()) {
@@ -241,6 +270,10 @@ public final class ModelDisplays implements Listener {
             }
             BbModel m = catalog.get(p.model);
             if (m == null) continue;
+            if (!m.hash.equals(p.hash)) {
+                outdated.add(p);
+                continue;
+            }
             BbModel.Animation anim = p.animation == null ? null : m.animations.get(p.animation);
             if (anim != null && anim.length() > 0 && playerNear(p)) {
                 double t = tick / 20.0;
@@ -252,6 +285,7 @@ public final class ModelDisplays implements Listener {
             p.dirty = false;
         }
         gone.forEach(placements::remove);
+        outdated.forEach(this::rebuild);
     }
 
     private void apply(Placement p, BbModel m, BbModel.Animation anim, double t, int interpolation) {

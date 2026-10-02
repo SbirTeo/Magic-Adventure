@@ -48,7 +48,9 @@ public final class ModelCatalog {
             for (File f : files) {
                 String id = idOf(f.getName());
                 try {
-                    BbModel m = BbModel.parse(Files.readString(f.toPath(), StandardCharsets.UTF_8));
+                    String content = Files.readString(f.toPath(), StandardCharsets.UTF_8);
+                    BbModel m = BbModel.parse(content);
+                    m.hash = Integer.toHexString(content.hashCode()) + "-" + content.length();
                     if (m.pieces.isEmpty()) {
                         plugin.getLogger().warning("[Models] " + f.getName() + ": nessun pezzo da disegnare, saltato.");
                         continue;
@@ -97,8 +99,11 @@ public final class ModelCatalog {
             for (int i = 0; i < m.pieces.size(); i++) {
                 BbModel.Piece p = m.pieces.get(i);
                 JsonObject textures = new JsonObject();
+                JsonArray elements = new JsonArray();
+                List<BbModel.Piece> parts = p.parts() != null ? p.parts() : List.of(p);
+                for (BbModel.Piece part : parts) {
                 JsonObject faces = new JsonObject();
-                for (Map.Entry<String, JsonObject> f : p.faces().entrySet()) {
+                for (Map.Entry<String, JsonObject> f : part.faces().entrySet()) {
                     int tex = f.getValue().get("texture").getAsInt();
                     if (tex < 0 || tex >= m.textures.size()) continue;
                     BbModel.Texture texture = m.textures.get(tex);
@@ -118,11 +123,24 @@ public final class ModelCatalog {
                     faces.add(f.getKey(), face);
                 }
                 JsonObject element = new JsonObject();
-                element.add("from", triple(0, 0, 0));
-                element.add("to", triple(16, 16, 16));
+                if (p.parts() == null) {
+                    element.add("from", triple(0, 0, 0));
+                    element.add("to", triple(16, 16, 16));
+                } else {
+                    // merged: the part's box in model space, shrunk by modelScale around the centre (8)
+                    double f = p.modelScale();
+                    double[] from = new double[3], to = new double[3];
+                    for (int k = 0; k < 3; k++) {
+                        double c = part.center().get(k) - p.center().get(k), h = part.size().get(k) / 2;
+                        from[k] = round4(8 + (c - h) * f);
+                        to[k] = round4(8 + (c + h) * f);
+                    }
+                    element.add("from", triple(from[0], from[1], from[2]));
+                    element.add("to", triple(to[0], to[1], to[2]));
+                }
                 element.add("faces", faces);
-                JsonArray elements = new JsonArray();
                 elements.add(element);
+                }
                 JsonObject model = new JsonObject();
                 model.add("textures", textures);
                 model.add("elements", elements);
@@ -133,6 +151,10 @@ public final class ModelCatalog {
             }
         }
         return out;
+    }
+
+    private static double round4(double v) {
+        return Math.round(v * 10000.0) / 10000.0;
     }
 
     private static JsonArray triple(double a, double b, double c) {

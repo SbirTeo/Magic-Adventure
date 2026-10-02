@@ -446,7 +446,9 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "l'id), poi /mpack reload. Ogni pezzo diventa un item display; i cubi restano cubi, "
                                 + "le mesh (che Minecraft non sa disegnare) diventano il blocco che le contiene meglio, "
                                 + "orientato come il pezzo e con la sua texture. Ossa e animazioni restano quelle di "
-                                + "Blockbench.",
+                                + "Blockbench. I cubi non ruotati di uno stesso osso diventano un solo modello (una "
+                                + "sola entità), anche se sono migliaia; se il file cambia, i modelli già messi si "
+                                + "rifanno da soli al primo reload, nello stesso punto e con le stesse impostazioni.",
                         "/mpack model spawn <id> lo mette ai propri piedi, girato verso chi lo lancia, con "
                                 + "l'animazione idle in loop (se c'è); resta lì anche dopo i riavvii. /mpack model "
                                 + "rotate <gradi> lo gira, /mpack model remove lo toglie. L'animazione gira solo con un "
