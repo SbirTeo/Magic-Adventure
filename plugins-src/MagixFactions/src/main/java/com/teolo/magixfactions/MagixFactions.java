@@ -47,6 +47,7 @@ public final class MagixFactions extends JavaPlugin {
         // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
         // resterebbe indietro in silenzio (vedi util/ConfigAlign).
         ConfigAlign.alignAll(this);
+        com.teolo.magixfactions.config.PlaytimeMigration.run(this);
         reloadConfig();
         getDataFolder().mkdirs();
         // Puro I/O su file, nessuna API Bukkit coinvolta: non deve bloccare il tick di avvio.

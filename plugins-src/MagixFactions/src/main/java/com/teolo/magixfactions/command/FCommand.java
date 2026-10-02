@@ -123,6 +123,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             // Prima si allineano i file del server a quelli del jar (le chiavi nuove di un
         // deploy compaiono anche senza riavvio), poi si rilegge.
         ConfigAlign.alignAll(plugin);
+        com.teolo.magixfactions.config.PlaytimeMigration.run(plugin);
         plugin.reloadConfig();
             ranks.load(plugin.getConfig());
             fm.syncRanksToDb(); // rispecchia i gradi aggiornati nella tabella per il sito

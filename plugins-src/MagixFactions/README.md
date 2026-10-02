@@ -106,7 +106,9 @@ Operatori condizioni: `>= <= > < == !=`.
 
 Per il tempo di gioco minimo si usa `min-playtime-seconds`, non una condizione `placeholders`: cosi'
 il tutorial lo racconta da solo (`{{secondi:create-cost.min-playtime-seconds}}`), mentre una condizione
-libera non si puo' tradurre in una frase per i giocatori.
+libera non si puo' tradurre in una frase per i giocatori. Se la condizione
+`%magixessentials_playtime% >= N` e' scritta in `placeholders` e `min-playtime-seconds` vale 0, il
+plugin la sposta da solo nella chiave a ogni avvio e `/f reload` (`config/PlaytimeMigration`, con copia in `.bak/`).
 
 Lo **stesso motore di costo** vale per **`/f sethome`** (sezione `sethome-cost`), di default **gratis**.
 
