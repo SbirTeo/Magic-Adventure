@@ -1,71 +1,71 @@
 # Testo che il giocatore (in questo caso lo staff, l'unico che usa /mpack) legge in chat.
 # Tradotto in automatico da MagixLanguage se installato (vedi lang/Messages.java).
-reloaded: "&aMagixPack ricaricato."
-unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/mpack help&c."
-no-permission: "&cNon hai il permesso per farlo."
-player-required: "&cSpecifica un giocatore (comando eseguibile solo da un giocatore, altrimenti)."
-player-not-found: "&cGiocatore '{player}' non trovato (deve essere online)."
+reloaded: "&#A8DC2CMagixPack ricaricato."
+unknown-subcommand: "&#FF6B6BNon conosco questo comando. Prova &#A8DC2C/mpack help&#FF6B6B."
+no-permission: "&#FF6B6BNon hai il permesso per farlo."
+player-required: "&#FF6B6BSpecifica un giocatore: dalla console non c'è nessuno a cui darlo."
+player-not-found: "&#FF6B6BGiocatore &f{player}&#FF6B6B non trovato (deve essere online)."
 
-item-usage: "&eUso: &a/mpack item give <id> [giocatore] &7| &a/mpack item list"
-item-unknown: "&cNessun oggetto custom '{item}' in items.yml (o gli manca la texture in items/)."
-item-given: "&aDato l'oggetto custom '{item}' a &f{player}&a."
-item-avatar-no-skin: "&eNessuna skin trovata per &f{player}&e (account non premium, o Mojang non raggiungibile): l'oggetto avatar non avrà la faccia nella descrizione."
-item-list-empty: "&7Nessun oggetto custom in items.yml."
-item-list-header: "&e{count} oggetto/i custom in items.yml:"
-item-list-row: "&7 - &f{item}"
+item-usage: "&#FFD166Uso: &#A8DC2C/mpack item give <id> [giocatore] &8· &#A8DC2C/mpack item list"
+item-unknown: "&#FF6B6BNessun oggetto custom &f{item}&#FF6B6B in items.yml (o gli manca la texture in items/)."
+item-given: "&#A8DC2CDato l'oggetto custom &f{item}&#A8DC2C a &f{player}&#A8DC2C."
+item-avatar-no-skin: "&#FFD166Nessuna skin trovata per &f{player}&#FFD166 (account non premium, o Mojang non raggiungibile): l'oggetto avatar non avrà la faccia nella descrizione."
+item-list-empty: "&#9A8CA8Nessun oggetto custom in items.yml."
+item-list-header: "&#5A5068─────&#C046E8&l Oggetti custom &#9A8CA8{count} in items.yml &#5A5068─────"
+item-list-row: "  &#A8DC2C{item}"
 
-glyph-usage: "&eUso: &a/mpack glyph list &7| &a/mpack glyph show <id>[,<id>...] [giocatore]"
-glyph-list-empty: "&7Nessuna icona custom in glyphs.yml."
-glyph-list-heading: "&e{count} icona/e custom in glyphs.yml &7(i caratteri si riassegnano a ogni avvio):"
+glyph-usage: "&#FFD166Uso: &#A8DC2C/mpack glyph list &8· &#A8DC2C/mpack glyph show <id>[,<id>...] [giocatore]"
+glyph-list-empty: "&#9A8CA8Nessuna icona custom in glyphs.yml."
+glyph-list-heading: "&#5A5068─────&#C046E8&l Icone &#9A8CA8{count} in glyphs.yml, caratteri riassegnati a ogni avvio &#5A5068─────"
 # {char} = il carattere dell'icona (incollabile in qualunque testo), {placeholder} = quello di PlaceholderAPI.
-glyph-list-entry: "&7 - &f{glyph}&7: &f{char} &8({codepoint}) &7{placeholder}"
-glyph-list-entry-avatar: "&7 - &f{glyph}&7: avatar del giocatore &7{placeholder}"
+glyph-list-entry: "  &#A8DC2C{glyph} &8· &f{char} &8({codepoint}) &8· &#9A8CA8{placeholder}"
+glyph-list-entry-avatar: "  &#A8DC2C{glyph} &8· &#9A8CA8avatar del giocatore &8· &#9A8CA8{placeholder}"
 # I due pulsanti in fondo a ogni riga: copia negli appunti, oppure scrivi nella barra della chat
 # (da lì si usa subito, o si copia con Ctrl+A e Ctrl+C).
-glyph-list-button-copy: " &a[copia]"
-glyph-list-button-chat: " &b[in chat]"
-glyph-list-hover-copy: "&7Copia negli appunti: &f{value}"
-glyph-list-hover-chat: "&7Scrivi nella barra della chat: &f{value}"
+glyph-list-button-copy: " &#A8DC2C[copia]"
+glyph-list-button-chat: " &#A8DC2C[in chat]"
+glyph-list-hover-copy: "&#9A8CA8Copia negli appunti: &f{value}"
+glyph-list-hover-chat: "&#9A8CA8Scrivi nella barra della chat: &f{value}"
 # Un'icona player-avatar è un PLACEHOLDER (diverso per ogni giocatore, lo risolve
 # PlaceholderAPI): il testo digitato in chat NON passa mai da PlaceholderAPI (apposta, per non
 # far scrivere a un giocatore il grado di un altro), quindi incollato lì resterebbe testo
 # letterale, non l'avatar. Il pulsante [copia] resta (serve per un menu/scoreboard/tablist, dove
 # PAPI lo risolve davvero), ma [in chat] qui suggerisce il comando di anteprima vero, non il
 # placeholder da incollare.
-glyph-list-hover-copy-avatar: "&7Copia negli appunti (per un menu/scoreboard/tablist, non per la chat): &f{value}"
-glyph-list-button-preview: " &b[anteprima]"
-glyph-list-hover-preview: "&7Vedila in chat: &f{command}"
-glyph-unknown: "&cNessuna icona '{glyph}' in glyphs.yml (o le manca la texture in glyphs/)."
-glyph-player-only: "&cL'anteprima si vede solo in gioco: comando riservato ai giocatori."
-glyph-avatar-loading: "&7Scarico la skin di &f{player}&7..."
-glyph-avatar-no-skin: "&cNessuna skin trovata per '{player}' (account non premium, o Mojang non raggiungibile)."
+glyph-list-hover-copy-avatar: "&#9A8CA8Copia negli appunti (per un menu/scoreboard/tablist, non per la chat): &f{value}"
+glyph-list-button-preview: " &#A8DC2C[anteprima]"
+glyph-list-hover-preview: "&#9A8CA8Vedila in chat: &f{command}"
+glyph-unknown: "&#FF6B6BNessuna icona &f{glyph}&#FF6B6B in glyphs.yml (o le manca la texture in glyphs/)."
+glyph-player-only: "&#FF6B6BL'anteprima si vede solo in gioco: comando riservato ai giocatori."
+glyph-avatar-loading: "&#9A8CA8Scarico la skin di &f{player}&#9A8CA8..."
+glyph-avatar-no-skin: "&#FF6B6BNessuna skin trovata per &f{player}&#FF6B6B (account non premium, o Mojang non raggiungibile)."
 # Finiti i punti di codice per i caratteri-avatar (migliaia di skin diverse in un avvio: non
 # dovrebbe succedere mai davvero).
-glyph-avatar-chars-full: "&cTroppe skin diverse viste in questo avvio: nessun carattere libero per una nuova."
+glyph-avatar-chars-full: "&#FF6B6BTroppe skin diverse viste in questo avvio: nessun carattere libero per una nuova."
 # Scritto subito a destra dell'icona nell'anteprima di /mpack glyph show.
-glyph-show-caption: " &7{glyph}"
+glyph-show-caption: " &#9A8CA8{glyph}"
 # Solo per un avatar: pulsante che copia UN CARATTERE VERO (una texture della faccia, assegnata al
 # volo - come Oraxen per le teste custom), non un placeholder né un trucco di codici colore -
 # incollato in un messaggio di chat vero funziona per chiunque veda il pacchetto, nessuna
 # risoluzione lato server necessaria.
-glyph-show-copy-button: " &a[copia]"
-glyph-show-copy-hover: "&7Copia negli appunti: funziona incollato in un vero messaggio di chat."
+glyph-show-copy-button: " &#A8DC2C[copia]"
+glyph-show-copy-hover: "&#9A8CA8Copia negli appunti: funziona incollato in un vero messaggio di chat."
 
 # /mpack model: i modelli Blockbench (.bbmodel) messi in plugins/MagixPack/models/
-model-usage: "&eUso: &a/mpack model list &7| &a/mpack model spawn <id> [scala] [animazione|none] &7| &a/mpack model remove [raggio] &7| &a/mpack model rotate <gradi> &7| &a/mpack model scale <valore> &7| &a/mpack model glow <on|off>"
-model-player-only: "&cQuesto si fa solo in gioco: il modello compare dove sei."
-model-unknown: "&cNessun modello '{model}' in models/ (vedi /mpack model list)."
-model-animation-unknown: "&cNessuna animazione '{animation}' in questo modello. Ci sono: &f{animations}"
-model-spawned: "&aModello &f{model}&a messo qui ({pieces} pezzi, animazione: &f{animation}&a)."
-model-removed: "&aModello &f{model}&a tolto."
-model-rotated: "&aModello &f{model}&a girato di {degrees} gradi."
-model-scaled: "&aModello &f{model}&a ora in scala {scale}."
-model-glow-on: "&aModello &f{model}&a sempre illuminato (luce piena anche al buio)."
-model-glow-off: "&aModello &f{model}&a di nuovo con la luce del posto in cui sta."
-model-none-near: "&cNessun modello entro {radius} blocchi da te."
-model-list-empty: "&7Nessun modello in plugins/MagixPack/models/ (servono file .bbmodel di Blockbench)."
-model-list-header: "&e{count} modello/i in models/:"
-model-list-row: "&7 - &f{model}&7: {pieces} pezzi, animazioni: &f{animations}&7, messi nel mondo: &f{placed}"
+model-usage: "&#FFD166Uso: &#A8DC2C/mpack model list &8· &#A8DC2Cspawn <id> [scala] [animazione|none] &8· &#A8DC2Cremove [raggio] &8· &#A8DC2Crotate <gradi> &8· &#A8DC2Cscale <valore> &8· &#A8DC2Cglow <on|off>"
+model-player-only: "&#FF6B6BQuesto si fa solo in gioco: il modello compare dove sei."
+model-unknown: "&#FF6B6BNessun modello &f{model}&#FF6B6B in models/. &#9A8CA8Elenco: &#A8DC2C/mpack model list"
+model-animation-unknown: "&#FF6B6BNessuna animazione &f{animation}&#FF6B6B in questo modello. &#9A8CA8Ci sono: &f{animations}"
+model-spawned: "&#A8DC2CModello &f{model}&#A8DC2C messo qui &8· &#9A8CA8{pieces} pezzi, animazione &f{animation}"
+model-removed: "&#A8DC2CModello &f{model}&#A8DC2C tolto."
+model-rotated: "&#A8DC2CModello &f{model}&#A8DC2C girato di &f{degrees}&#A8DC2C gradi."
+model-scaled: "&#A8DC2CModello &f{model}&#A8DC2C ora in scala &f{scale}&#A8DC2C."
+model-glow-on: "&#A8DC2CModello &f{model}&#A8DC2C sempre illuminato &8· &#9A8CA8luce piena anche al buio"
+model-glow-off: "&#A8DC2CModello &f{model}&#A8DC2C di nuovo con la luce del posto in cui sta."
+model-none-near: "&#FF6B6BNessun modello entro &f{radius}&#FF6B6B blocchi da te."
+model-list-empty: "&#9A8CA8Nessun modello in plugins/MagixPack/models/ (servono file .bbmodel di Blockbench)."
+model-list-header: "&#5A5068─────&#C046E8&l Modelli &#9A8CA8{count} in models/ &#5A5068─────"
+model-list-row: "  &#A8DC2C{model} &8· &#9A8CA8{pieces} pezzi &8· &#9A8CA8animazioni &f{animations} &8· &#9A8CA8nel mondo &f{placed}"
 
 # ---------------------------------------------------------------- /mpack help
 # L'elenco dei comandi lo impagina la classe Help (la stessa in tutti i plugin Magix, vedi

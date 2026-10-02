@@ -34,8 +34,8 @@ currency:
 
 # Il comando /magixessentials (alias /mess): risposta al reload e sottocomando sconosciuto.
 # {modules} = i moduli accesi dopo il reload.
-reloaded: "&dMagixEssentials &8» &7Configurazione ricaricata &8(&7moduli: &f{modules}&8)&7."
-unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/mess help&c."
+reloaded: "&#A8DC2CConfigurazione ricaricata &8· &#9A8CA8moduli: &f{modules}"
+unknown-subcommand: "&#FF6B6BNon conosco questo comando. Prova &#A8DC2C/mess help&#FF6B6B."
 
 # L'elenco comandi di /mess help, con la pagina comune dei plugin Magix (util/Help).
 help:
