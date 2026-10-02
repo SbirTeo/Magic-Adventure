@@ -134,6 +134,18 @@ public final class ModelDisplays implements Listener {
         return p.model;
     }
 
+    /** Full light on every piece of the placed model closest to {@code near} (true), or the light
+     *  of the place it stands in (false). Saved with the entities: it stays after a restart.
+     *  @return its id or null. */
+    public String glowNearest(Location near, double radius, boolean glow) {
+        Placement p = nearest(near, radius);
+        if (p == null) return null;
+        for (ItemDisplay d : p.pieces.values()) {
+            if (d.isValid()) d.setBrightness(glow ? new org.bukkit.entity.Display.Brightness(15, 15) : null);
+        }
+        return p.model;
+    }
+
     /** Resizes the placed model closest to {@code near} (1 = Blockbench size). @return its id or null. */
     public String scaleNearest(Location near, double radius, double scale) {
         Placement p = nearest(near, radius);

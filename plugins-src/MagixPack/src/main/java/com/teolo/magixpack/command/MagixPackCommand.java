@@ -299,7 +299,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
 
     // -------------------------------------------------------------------------------------- model
 
-    /** /mpack model list | spawn <id> [scale] [animation|none] | remove [radius] | rotate <degrees> | scale <size>. */
+    /** /mpack model list | spawn <id> [scale] [animation|none] | remove [radius] | rotate <degrees> | scale <size> | glow on|off. */
     private void model(CommandSender sender, String[] args) {
         if (!sender.hasPermission("magixpack.model")) {
             sender.sendMessage(messages.get(sender, "no-permission"));
@@ -333,6 +333,17 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage(id == null
                         ? messages.get(player, "model-none-near").replace("{radius}", "16")
                         : messages.get(player, "model-rotated").replace("{model}", id).replace("{degrees}", fmt(degrees)));
+            }
+            case "glow" -> {
+                if (args.length < 3 || !(args[2].equalsIgnoreCase("on") || args[2].equalsIgnoreCase("off"))) {
+                    player.sendMessage(messages.get(player, "model-usage"));
+                    return;
+                }
+                boolean glow = args[2].equalsIgnoreCase("on");
+                String id = plugin.modelDisplays().glowNearest(player.getLocation(), 24, glow);
+                player.sendMessage(id == null
+                        ? messages.get(player, "model-none-near").replace("{radius}", "24")
+                        : messages.get(player, glow ? "model-glow-on" : "model-glow-off").replace("{model}", id));
             }
             case "scale" -> {
                 if (args.length < 3) {
@@ -436,7 +447,7 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("model")) {
-            for (String s : List.of("list", "spawn", "remove", "rotate", "scale")) {
+            for (String s : List.of("list", "spawn", "remove", "rotate", "scale", "glow")) {
                 if (s.startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(s);
             }
             return out;
@@ -453,6 +464,12 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 for (String a : m.animations.keySet()) if (a.startsWith(args[4])) out.add(a);
             }
             if ("none".startsWith(args[4].toLowerCase(Locale.ROOT))) out.add("none");
+            return out;
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("model") && args[1].equalsIgnoreCase("glow")) {
+            for (String s : List.of("on", "off")) {
+                if (s.startsWith(args[2].toLowerCase(Locale.ROOT))) out.add(s);
+            }
             return out;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("glyph")) {

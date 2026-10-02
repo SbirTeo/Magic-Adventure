@@ -407,6 +407,9 @@ Nel mondo:
   Scala 1 = la grandezza di Blockbench (16 pixel = un blocco). Senza animazione indicata parte
   `idle`, se c'e', altrimenti la prima animazione in loop.
 - `/mpack model rotate <gradi>` gira il modello piu' vicino (entro 16 blocchi).
+- `/mpack model glow on|off` accende (o spegne) la luce piena sul modello piu' vicino (entro 24
+  blocchi): con `on` si vede illuminato come di giorno anche al buio, come un'insegna. Resta dopo i
+  riavvii (e' salvato sulle entita').
 - `/mpack model scale <scala>` cambia la grandezza del modello piu' vicino (entro 16 blocchi):
   1 = grandezza di Blockbench, 0.5 = meta', 2 = doppio. Resta anche dopo i riavvii.
 - `/mpack model remove [raggio]` toglie il modello piu' vicino (default 10 blocchi).
@@ -441,7 +444,7 @@ Dal repo: il file sta in `plugins-src/MagixPack/overrides-vps/models/` e arriva 
   "Oggetti custom" sopra.
 - `/mpack glyph list` / `/mpack glyph show <id> [giocatore]` (permesso `magixpack.glyph.list`) — vedi
   "Icone custom via font" e "L'avatar come glifo" sopra.
-- `/mpack model list|spawn|remove|rotate|scale` (permesso `magixpack.model`) — vedi "Modelli Blockbench nel
+- `/mpack model list|spawn|remove|rotate|scale|glow` (permesso `magixpack.model`) — vedi "Modelli Blockbench nel
   mondo" sopra.
 
 ## Permessi
@@ -451,7 +454,7 @@ Dal repo: il file sta in `plugins-src/MagixPack/overrides-vps/models/` e arriva 
   carica (lo riceve comunque). Salvaguardia per non restare chiusi fuori dal proprio server.
 - `magixpack.item.give` (default op) — `/mpack item give` e `/mpack item list`.
 - `magixpack.glyph.list` (default op) — `/mpack glyph list` e `/mpack glyph show`.
-- `magixpack.model` (default op) — `/mpack model list|spawn|remove|rotate|scale`.
+- `magixpack.model` (default op) — `/mpack model list|spawn|remove|rotate|scale|glow`.
 
 ## Su piu' server (faction, hub)
 
