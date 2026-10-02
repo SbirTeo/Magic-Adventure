@@ -189,6 +189,7 @@ public final class MagixGuard extends JavaPlugin {
         if (!file.exists()) {
             saveResource("sanctions.yml", false);
         }
+        fixOldDefaults(file);
         SanctionsConfig cfg = new SanctionsConfig(SanctionsConfig.load(file));
 
         siteDb = new SiteDb(cfg);
@@ -298,6 +299,44 @@ public final class MagixGuard extends JavaPlugin {
 
         // Chi e' gia' collegato (avvio a caldo) va profilato subito: non arrivera' nessun join.
         Bukkit.getScheduler().runTaskLater(this, () -> collector.trackOnlinePlayers(), 40L);
+    }
+
+    /**
+     * Testi di serie di sanctions.yml che erano scritti con l'apostrofo al posto dell'accento
+     * ("Pubblicita'", "piu'") e finiscono nel regolamento pubblico. sanctions.yml e' un catalogo dello
+     * staff, quindi ConfigAlign non ne tocca i valori: qui si corregge SOLO il testo di serie identico
+     * a quello vecchio (un testo cambiato a mano resta com'e'), con la copia in .bak/ prima.
+     */
+    private static final String[][] OLD_DEFAULTS = {
+            {"\"Pubblicita' di altri server\"", "\"Pubblicità di altri server\""},
+            {"\"Volo, velocita' e movimenti impossibili.\"", "\"Volo, velocità e movimenti impossibili.\""},
+            {"chi insiste paga di piu'.\"", "chi insiste paga di più.\""},
+    };
+
+    private void fixOldDefaults(java.io.File file) {
+        try {
+            java.nio.file.Path path = file.toPath();
+            String text = java.nio.file.Files.readString(path, java.nio.charset.StandardCharsets.UTF_8);
+            String fixed = text;
+            for (String[] pair : OLD_DEFAULTS) {
+                fixed = fixed.replace(pair[0], pair[1]);
+            }
+            if (fixed.equals(text)) {
+                return;
+            }
+            java.io.File dataFolder = getDataFolder().getAbsoluteFile();
+            java.io.File serverRoot = dataFolder.getParentFile() == null ? null : dataFolder.getParentFile().getParentFile();
+            java.io.File bak = serverRoot == null ? dataFolder : new java.io.File(new java.io.File(serverRoot, ".bak"), dataFolder.getName());
+            java.nio.file.Files.createDirectories(bak.toPath());
+            String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+            java.nio.file.Files.copy(path, new java.io.File(bak, file.getName() + ".bak-" + stamp).toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            java.nio.file.Files.writeString(path, fixed, java.nio.charset.StandardCharsets.UTF_8);
+            getLogger().info("sanctions.yml: corretti gli accenti dei testi di serie (Pubblicità, velocità, più).");
+        } catch (Exception e) {
+            getLogger().warning("sanctions.yml: correzione degli accenti non riuscita (" + e.getClass().getSimpleName()
+                    + "): il file non e' stato toccato.");
+        }
     }
 
     /** Ricarica config.yml e ricostruisce i componenti senza riavviare il server. */

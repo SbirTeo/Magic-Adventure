@@ -105,7 +105,7 @@ categories:
     scope: entrambi
     automatic: true
   chat.pubblicita:
-    name: "Pubblicita' di altri server"
+    name: "Pubblicità di altri server"
     description: "Indirizzi, inviti e richiami verso altri server."
     points: 25
     scope: entrambi
@@ -120,7 +120,7 @@ categories:
     automatic: false
   cheat.movimento:
     name: "Cheat di movimento"
-    description: "Volo, velocita' e movimenti impossibili."
+    description: "Volo, velocità e movimenti impossibili."
     points: 40
     scope: gioco
     automatic: true
@@ -177,4 +177,4 @@ rulebook:
   # e a ogni /mg reload.
   generate: true
   # Riga di apertura del blocco generato.
-  intro: "Ogni violazione vale dei punti. I punti si sommano e dimezzano ogni {dimezzamento} giorni: chi sbaglia una volta non se lo porta dietro per sempre, chi insiste paga di piu'."
+  intro: "Ogni violazione vale dei punti. I punti si sommano e dimezzano ogni {dimezzamento} giorni: chi sbaglia una volta non se lo porta dietro per sempre, chi insiste paga di più."

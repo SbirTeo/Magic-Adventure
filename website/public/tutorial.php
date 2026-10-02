@@ -136,13 +136,31 @@ require __DIR__ . '/../includes/header.php';
 </section>
 
 <section class="rank-tab-panel" id="tab-regolamento" role="tabpanel" aria-label="Regolamento" hidden>
-  <div class="panel panel-modificabile">
+  <?php /* Il regolamento si legge come la guida: capitoli numerati a schede e indice in cima. Il
+           testo resta quello del gestionale; ogni <h2> che lo staff scrive apre un capitolo. */ ?>
+  <?php $reg = rulebook_chapters($corpoReg); ?>
+  <div class="panel panel-modificabile regolamento">
     <?php /* Stessa matita delle tessere in home: porta dritto al testo di questa pagina. */ ?>
     <?php if (is_admin()): ?>
       <a href="/manage?section=page_edit&slug=regolamento" class="card-edit-btn" title="Modifica il regolamento" aria-label="Modifica il regolamento">✎</a>
     <?php endif; ?>
-    <div class="blog-body<?= corpo_e_html($bodyReg) ? ' corpo-html' : '' ?>"><?= $corpoReg ?></div>
+    <?php if (trim(strip_tags($reg['intro'])) !== ''): ?>
+      <div class="blog-body<?= corpo_e_html($bodyReg) ? ' corpo-html' : '' ?> regolamento-intro"><?= $reg['intro'] ?></div>
+    <?php endif; ?>
+    <?php if ($reg['capitoli']): ?>
+      <nav class="regolamento-indice" aria-label="Indice del regolamento">
+        <?php foreach ($reg['capitoli'] as $cap): ?>
+          <a href="#<?= h($cap['id']) ?>"><span class="regolamento-n"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></a>
+        <?php endforeach; ?>
+      </nav>
+    <?php endif; ?>
   </div>
+  <?php foreach ($reg['capitoli'] as $cap): ?>
+    <div class="panel regolamento regolamento-capitolo" id="<?= h($cap['id']) ?>">
+      <h2><span class="regolamento-n"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></h2>
+      <div class="blog-body corpo-html"><?= $cap['corpo'] ?></div>
+    </div>
+  <?php endforeach; ?>
 </section>
 
 <script>
@@ -175,7 +193,14 @@ require __DIR__ . '/../includes/header.php';
     });
   });
   var start = (location.hash || '').replace('#', '');
-  show(panels[start] ? start : 'guida');
+  // Un link a un capitolo del regolamento (#regola-...) apre la scheda del regolamento e ci arriva.
+  if (start.indexOf('regola-') === 0) {
+    show('regolamento');
+    var cap = document.getElementById(start);
+    if (cap) setTimeout(function () { cap.scrollIntoView(); }, 0);
+  } else {
+    show(panels[start] ? start : 'guida');
+  }
 })();
 </script>
 
