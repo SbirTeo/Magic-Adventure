@@ -176,6 +176,7 @@ HTML = r"""<!DOCTYPE html>
   <h2><span class="n">2</span>Creare la tua fazione</h2>
   <p>Per fondare una fazione usa:</p>
   <p><span class="cmd">/f create &lt;nome&gt;</span> — diventi automaticamente il <b>leader</b>.</p>
+  {{se:create-cost.money!=0}}{{se:create-cost.money!=0.0}}<div class="warn">Fondare una fazione <b>costa {{cfg:create-cost.money}}</b>: il denaro viene prelevato dal tuo portafoglio nel momento in cui crei la fazione, quindi controlla di averne abbastanza prima di scrivere il comando.</div>{{/se}}{{/se}}
   <h3>Regole del nome</h3>
   <ul>
     <li>solo <b>lettere e numeri</b> (niente spazi, simboli o punteggiatura);</li>
