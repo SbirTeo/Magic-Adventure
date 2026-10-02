@@ -1,5 +1,6 @@
-# MagixCosmetics - cosmetici a particelle per i giocatori.
-# Per ora c'è una cosa sola: l'aureola colorata che gira sopra la testa dei VIP.
+# MagixCosmetics - cosmetici per i giocatori.
+# Per ora due cose: l'aureola colorata che gira sopra la testa dei VIP (sezione "halo") e il
+# firework di benvenuto che esplode quando un giocatore entra nel server (sezione "join-firework").
 #
 # Chi vede l'aureola? Chi ha il permesso magixcosmetics.halo (di norma il grado VIP su
 # LuckPerms). NON basta però: senza ANCHE un permesso colore (vedi halo.colors sotto)
@@ -65,3 +66,56 @@ halo:
 
     # Quanti secondi dopo l'ultimo colpo dato o subito l'aureola torna a vedersi.
     cooldown-after-combat-seconds: 30
+
+# Il firework di benvenuto: quando un giocatore entra in QUESTO server, sopra di lui esplode un
+# firework. Di serie è SPENTO (sul faction non serve): si accende solo dove lo si vuole, cioè
+# nel config dell'hub. Di serie è una sfera magenta e verde; chi ha i permessi lo personalizza con
+# /firework (colori, sfumatura, forma, sfarfallio, scia). Senza permessi nessuno cambia niente.
+# Permessi: magixcosmetics.firework (usare /firework) + uno per ogni scelta, vedi i permessi del plugin:
+# .color.<nome> (un colore della tavolozza), .color.custom (colori #RRGGBB liberi), .fade, .shape.<forma>,
+# .flicker, .trail, .preview, .toggle. Di serie nessuno li ha.
+join-firework:
+  # Interruttore: spento, nessun firework all'ingresso e /firework risponde "disattivato".
+  enabled: false
+
+  # Quanti tick dopo l'ingresso esplode (20 tick = 1 secondo): lascia al giocatore il tempo di caricarsi.
+  delay-ticks: 20
+
+  # Nascondi il firework a chi entra in vanish (staff invisibile): altrimenti lo tradirebbe.
+  hide-when-vanished: true
+
+  # Quanti colori al massimo, sia per i colori sia per la sfumatura finale (da 1 a 8).
+  max-colors: 4
+
+  # Ogni quanti secondi chi ha il permesso può rivedere l'anteprima con /firework preview.
+  preview-cooldown-seconds: 15
+
+  # Il look di chi non ha scelto niente (o non ha i permessi per le sue scelte). Colori e sfumatura
+  # sono nomi della tavolozza qui sotto oppure esadecimali #RRGGBB.
+  default:
+    # I colori dell'esplosione. Di serie magenta e verde.
+    colors:
+      - magenta
+      - green
+    # I colori in cui sfuma alla fine. Vuoto = nessuna sfumatura.
+    fade: []
+    # La forma: ball (sfera), large (sfera grande), star (stella), burst (scoppio), creeper (faccia di creeper).
+    shape: ball
+    # Sfarfallio (le scintille lampeggiano) e scia (le scintille lasciano una coda).
+    flicker: false
+    trail: false
+
+  # La tavolozza: nome del colore -> esadecimale #RRGGBB. I nomi sono fissi (ognuno ha il suo permesso
+  # magixcosmetics.firework.color.<nome>), si cambia solo la tinta.
+  palette:
+    red: "#FF3030"
+    orange: "#FF9020"
+    yellow: "#FFE030"
+    lime: "#A8DC2C"
+    green: "#30E030"
+    aqua: "#30E0E0"
+    blue: "#3070FF"
+    purple: "#9030E0"
+    magenta: "#FF20D0"
+    pink: "#FF90C0"
+    white: "#F5F5F5"

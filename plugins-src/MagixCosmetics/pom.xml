@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixCosmetics</artifactId>
-    <version>0.1.13</version>
+    <version>0.2.0</version>
     <packaging>jar</packaging>
 
     <name>MagixCosmetics</name>
