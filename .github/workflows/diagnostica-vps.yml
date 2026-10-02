@@ -268,9 +268,16 @@ jobs:
               echo "(download da 127.0.0.1:${PORT}/pack.zip fallito: il servizio HTTP non risponde)"
             else
               echo "Scaricato $(stat -c%s /tmp/diag-pack.zip 2>/dev/null || echo '?') byte da 127.0.0.1:${PORT}/pack.zip"
-              python3 -c "import zipfile; z = zipfile.ZipFile('/tmp/diag-pack.zip'); names = z.namelist(); mp = sorted(n for n in names if n.startswith('assets/magixpack/')); legacy = sorted(n for n in names if n.startswith('assets/minecraft/models/item/') and b'magixpack' in z.read(n)); print(f'{len(names)} file nello zip, {len(mp)} sotto assets/magixpack/ (oggetti/icone custom di MagixPack), {len(legacy)} override legacy su modelli vanilla (CustomModelData):'); [print('  ' + n, '(' + str(len(z.read(n))) + ' byte)') for n in mp + legacy]; print(); print('--- contenuto dei .json (per controllare che siano scritti davvero cosi) ---'); [print(n + ':', z.read(n).decode('utf-8', 'replace')) for n in mp + legacy if n.endswith('.json')]"
+              python3 -c "import zipfile; z = zipfile.ZipFile('/tmp/diag-pack.zip'); names = z.namelist(); mp = sorted(n for n in names if n.startswith('assets/magixpack/')); legacy = sorted(n for n in names if n.startswith('assets/minecraft/models/item/') and b'magixpack' in z.read(n)); print(f'{len(names)} file nello zip, {len(mp)} sotto assets/magixpack/ (oggetti/icone custom di MagixPack), {len(legacy)} override legacy su modelli vanilla (CustomModelData):'); [print('  ' + n, '(' + str(len(z.read(n))) + ' byte)') for n in mp + legacy]; print(); print('--- contenuto dei .json (per controllare che siano scritti davvero cosi) ---'); [print(n + ':', z.read(n).decode('utf-8', 'replace')) for n in mp + legacy if n.endswith('.json') and len(z.read(n)) < 20000]"
               rm -f /tmp/diag-pack.zip
             fi
+            # quanto lontano si vedono i modelli: il server manda le entita' solo entro la sua
+            # distanza di visuale e di tracciamento (spigot.yml), il client le disegna entro
+            # view_range x 64 blocchi (MagixPack: models.view-distance)
+            echo; echo "=== DISTANZE (visuale del server, tracciamento entita') ==="
+            grep -E '^(view-distance|simulation-distance|entity-broadcast-range-percentage)=' "$BASE/server.properties"
+            sed -n '/entity-tracking-range:/,/^ *[a-z-]*:$/p' "$BASE/spigot.yml" | head -n 12
+            grep -E 'view-distance' "$BASE/plugins/$PLUGIN/config.yml" 2>/dev/null
           fi
 
           # La coda di traduzione del sito (site_translations) sta nel database del sito, non in
