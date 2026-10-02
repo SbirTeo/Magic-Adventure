@@ -250,6 +250,23 @@ body.pagina-store {
   animation: drop-spin 2.4s linear infinite;
 }
 .auth-box { display: flex; align-items: center; gap: 10px; font-size: var(--fs-base); }
+/* Schermo largo: i tasti di destra (vota, tema, lingua, profilo, gestione, esci) stanno su una
+   riga loro, in alto, e sotto la barra delle voci ha tutta la larghezza. La barra non va mai a
+   capo: se le voci non ci stanno (in inglese sono piu' lunghe) scorre di lato. Sotto i 960px
+   resta il menu ad hamburger di sempre. */
+@media (min-width: 961px) {
+  .header-inner { flex-wrap: wrap; row-gap: 6px; padding-top: 10px; padding-bottom: 4px; }
+  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; }
+  .nav-collapse { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
+  .main-nav {
+    flex-wrap: nowrap; min-width: 0;
+    overflow-x: auto; overflow-y: hidden;
+    /* un po' d'aria sopra e sotto: il bagliore dello Store non deve restare tagliato */
+    padding: 6px 4px 2px; margin: -6px -4px 0;
+    scrollbar-width: thin;
+  }
+  .main-nav > * { flex-shrink: 0; white-space: nowrap; }
+}
 /* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata.
    ".btn.cambia-tema" e non solo ".cambia-tema": .btn e' definito piu' sotto nel file e a pari
    peso vinceva lui (display: inline-block, il suo padding), quindi niente centratura e l'icona
