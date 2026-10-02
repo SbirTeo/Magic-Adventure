@@ -6,7 +6,7 @@
 # mano. Nel testo un capitolo e' <section id="..." data-desc="riga per l'indice"> con
 # <h2><span class="n">#</span>Titolo</h2> (il # diventa il numero), le parti sono commenti
 # <!--PART Titolo | descrizione--> e l'indice va dove c'e' <!--TOC-->. Ogni <h3> riceve un id
-# suo e finisce nell'indice sotto il suo capitolo. Cosi' spostare o aggiungere un capitolo
+# suo e finisce in "In questo capitolo" in testa al suo capitolo. Cosi' spostare o aggiungere un capitolo
 # non lascia mai un indice vecchio o una numerazione sbagliata.
 import re
 import unicodedata
@@ -34,6 +34,12 @@ def structure(html):
             return '<h3 id="%s">%s</h3>' % (sub_id, mm.group(1))
         body = re.sub(r"<h3>(.*?)</h3>", h3, body, flags=re.S)
         toc[-1][2].append((sid, count[0], title, desc, subs))
+        # "In questo capitolo": i sottocapitoli come etichette sotto il titolo (come nella guida per
+        # lo staff e nel regolamento del sito), invece che nell'indice in cima.
+        if len(subs) > 1:
+            chips = "".join('<a href="#%s">%s</a>' % (i, t) for i, t in subs)
+            body = re.sub(r"(</h2>)", r'\1\n  <nav class="chips" aria-label="In questo capitolo"><span>In questo capitolo:</span>%s</nav>'
+                          % chips.replace("\\", "\\\\"), body, count=1)
         back = '\n  <p class="back"><a href="#indice">↑ Indice</a></p>\n'
         return '<section id="%s" data-desc="%s">%s%s</section>' % (sid, desc, body.rstrip() + "\n", back)
 
@@ -59,10 +65,8 @@ def structure(html):
     for n, (ptitle, pdesc, chapters) in enumerate(toc, 1):
         items = []
         for sid, num, title, desc, subs in chapters:
-            sub = "".join('<a href="#%s">%s</a>' % (i, t) for i, t in subs)
             items.append('<li><a class="toc-ch" href="#%s"><span class="toc-n">%d</span>%s</a>'
-                         '<span class="toc-d">%s</span>%s</li>'
-                         % (sid, num, title, desc, ('<span class="toc-sub">%s</span>' % sub) if sub else ""))
+                         '<span class="toc-d">%s</span></li>' % (sid, num, title, desc))
         cards.append('<div class="toc-part"><a class="toc-pt" href="#parte-%d">Parte %d · %s</a>'
                      '<ol>%s</ol></div>' % (n, n, ptitle, "".join(items)))
     toc_html = ('<nav class="toc" id="indice" aria-label="Indice"><div class="toc-h">Indice</div>'

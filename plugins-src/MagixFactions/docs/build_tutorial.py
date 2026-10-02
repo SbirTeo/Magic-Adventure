@@ -72,19 +72,23 @@ HTML = r"""<!DOCTYPE html>
   .toc-part ol{list-style:none;margin:0;padding:0}
   .toc-part li{margin:0 0 10px}
   .toc-ch{display:flex;gap:8px;align-items:center;color:var(--txt);font-weight:700;text-decoration:none;font-size:15px}
-  .toc-ch:hover{color:var(--cyan)}
+  .toc-ch:hover{color:var(--gold)}
   .toc-n{display:inline-flex;width:22px;height:22px;flex:none;align-items:center;justify-content:center;
     background:var(--green);color:#0c1a0e;border-radius:6px;font-size:12px;font-weight:800}
   .toc-d{display:block;color:var(--sub);font-size:13px;margin:2px 0 0 30px;line-height:1.4}
-  .toc-sub{display:flex;flex-wrap:wrap;gap:4px 10px;margin:4px 0 0 30px}
-  .toc-sub a{color:var(--cyan);font-size:12.5px;text-decoration:none} .toc-sub a:hover{text-decoration:underline}
+  /* "In questo capitolo": stesse etichette della guida per lo staff e del regolamento (doc-chips). */
+  .chips{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:0 0 14px}
+  .chips span{color:var(--sub);font-size:12px}
+  .chips a{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--card2);border:1px solid var(--line);
+    color:var(--sub);text-decoration:none}
+  .chips a:hover{color:var(--txt);border-color:var(--gold)}
   /* Intestazione di una parte, fra un capitolo e l'altro. */
   .part{margin:34px 0 6px;padding:0 4px;scroll-margin-top:110px}
   .part-n{display:block;color:var(--arancio);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
   .part-t{display:block;font-size:24px;font-weight:800;color:var(--giallo)}
   .part-d{display:block;color:var(--sub);font-size:14px}
   .back{text-align:right;margin:14px 0 0} .back a{color:var(--sub);font-size:12.5px;text-decoration:none}
-  .back a:hover{color:var(--cyan)}
+  .back a:hover{color:var(--txt)}
   /* Il riquadro "Inizia da qui" per chi entra la prima volta. */
   .start{background:linear-gradient(135deg,rgba(253,119,2,.12),rgba(253,209,1,.06));border:1px solid var(--line);
     border-radius:14px;padding:16px 20px;margin:18px 0}

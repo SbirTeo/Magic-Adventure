@@ -104,16 +104,11 @@ vedi `website/VERIFICA-DUE-PASSAGGI.md`).
 - capitoli divisi in **aree** (Moderazione e accessi, Il gioco, Grafica e interfaccia, Rete, sito e
   lingue): l'elenco e' `guide_staff_areas()` in `website/includes/sanzioni.php`. **Un plugin nuovo va
   aggiunto li'** nella sua area; finche' non c'e', finisce in "Altri plugin" (la guida resta completa);
-- in cima una **panoramica** per aree; a sinistra un **indice a due livelli** (area -> plugin, col nome
-  breve e cosa fa, preso dal titolo "Nome — cosa fa" di `StaffGuide.create`) con un filtro e il capitolo
-  in lettura evidenziato, che apre i suoi sottocapitoli (gli `<h4>` del capitolo, con un id ciascuno);
-- in testa a ogni capitolo un **"In questo capitolo"** coi sottocapitoli cliccabili, in fondo "torna
-  all'indice"; la ricerca porta dritta al sottocapitolo che risponde;
+- **stessa impostazione della guida dei giocatori e del regolamento** (classi `doc-*` in style.css): indice in cima a schede per area, "Parte N", capitoli numerati, nome breve e cosa fa (dal titolo "Nome — cosa fa" di `StaffGuide.create`), "In questo capitolo" coi sottocapitoli (gli `<h4>`, con un id ciascuno) e "↑ Indice". Niente barra laterale;
+- la ricerca porta dritta al sottocapitolo che risponde;
 - per ogni capitolo: **versione del plugin** e **data dell'ultimo aggiornamento** in testa, cosi'
   si vede a colpo d'occhio se il server sta girando una versione vecchia;
 - ricerca testuale su tutti i capitoli: quando serve una guida, serve in fretta;
-- niente riquadri decorativi: elenco sobrio e leggibile, come il forum
-  (vedi la regola "niente layout a blocchi").
 
 **Avviso di disallineamento:** se un plugin non consegna il capitolo da piu' di N giorni (server
 riavviato senza quel plugin, o plugin in errore), la voce resta visibile ma marcata *non

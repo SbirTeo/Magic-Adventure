@@ -324,6 +324,8 @@ function guide_ai_public_chapters(): array {
     preg_match_all('~<section\s+id="([^"]+)"[^>]*>(.*?)</section>~is', $html, $sezioni, PREG_SET_ORDER);
     foreach ($sezioni as $s) {
         [, $ancora, $corpo] = $s;
+        // Indice del capitolo ("In questo capitolo", "↑ Indice"): navigazione, non testo da cercare.
+        $corpo = preg_replace('~<nav\b.*?</nav>|<p class="back">.*?</p>~is', '', $corpo) ?? $corpo;
         if (!preg_match('~<h2[^>]*>(.*?)</h2>~is', $corpo, $t)) {
             continue;
         }

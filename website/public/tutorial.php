@@ -147,19 +147,24 @@ require __DIR__ . '/../includes/header.php';
     <?php if (trim(strip_tags($reg['intro'])) !== ''): ?>
       <div class="blog-body<?= corpo_e_html($bodyReg) ? ' corpo-html' : '' ?> regolamento-intro"><?= $reg['intro'] ?></div>
     <?php endif; ?>
-    <?php if ($reg['capitoli']): ?>
-      <nav class="regolamento-indice" aria-label="Indice del regolamento">
-        <?php foreach ($reg['capitoli'] as $cap): ?>
-          <a href="#<?= h($cap['id']) ?>"><span class="regolamento-n"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></a>
-        <?php endforeach; ?>
-      </nav>
-    <?php endif; ?>
   </div>
+  <?php if ($reg['capitoli']): ?>
+    <?php /* Stessa impostazione della guida e della guida per lo staff (classi doc-*). */ ?>
+    <nav class="doc-toc" id="regolamento-indice" aria-label="Indice del regolamento">
+      <div class="doc-toc-h">Indice</div>
+      <ol class="doc-toc-list">
+        <?php foreach ($reg['capitoli'] as $cap): ?>
+          <li><a class="doc-toc-ch" href="#<?= h($cap['id']) ?>"><span class="doc-n doc-n-sm"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></a></li>
+        <?php endforeach; ?>
+      </ol>
+    </nav>
+  <?php endif; ?>
   <?php foreach ($reg['capitoli'] as $cap): ?>
-    <div class="panel regolamento regolamento-capitolo" id="<?= h($cap['id']) ?>">
-      <h2><span class="regolamento-n"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></h2>
+    <section class="panel doc-chapter regolamento" id="<?= h($cap['id']) ?>">
+      <h2 class="doc-chapter-t"><span class="doc-n"><?= (int) $cap['numero'] ?></span><?= h($cap['titolo']) ?></h2>
       <div class="blog-body corpo-html"><?= $cap['corpo'] ?></div>
-    </div>
+      <p class="doc-back"><a href="#regolamento-indice">↑ Indice</a></p>
+    </section>
   <?php endforeach; ?>
 </section>
 
@@ -194,7 +199,7 @@ require __DIR__ . '/../includes/header.php';
   });
   var start = (location.hash || '').replace('#', '');
   // Un link a un capitolo del regolamento (#regola-...) apre la scheda del regolamento e ci arriva.
-  if (start.indexOf('regola-') === 0) {
+  if (start.indexOf('regola') === 0 && start !== 'regolamento') {
     show('regolamento');
     var cap = document.getElementById(start);
     if (cap) setTimeout(function () { cap.scrollIntoView(); }, 0);
