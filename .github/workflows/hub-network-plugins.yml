@@ -1,4 +1,4 @@
-name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, ProtocolLib, CMI, MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack)
+name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, ProtocolLib, CMI, MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack, MagixTime)
 
 # Mette sull'hub i plugin che servono in OGNI server di gioco della rete, presi dal faction
 # (stessa versione gia' collaudata) insieme alla loro configurazione, che contiene le credenziali
@@ -29,6 +29,8 @@ name: Hub - installa i plugin di rete (LuckPerms, PlaceholderAPI, ProtocolLib, C
 #    faction: due server HTTP sulla stessa porta non stanno) e la regola ufw per la 8444, perche'
 #    i client scaricano il pacchetto da fuori. Le texture dell'hub: overrides-hub/ nel repo +
 #    deploy-plugin-override.yml con server=hub.
+#  - MagixTime: ora, stagioni e meteo reali come sul faction. config.yml e messages.yml del
+#    faction solo al primo giro, poi sull'hub si modificano li'.
 #  - CMI (+ CMILib): config NUOVO, generato da CMI al primo avvio (warp, kit, economia del faction
 #    non c'entrano con l'hub). Dal faction si copiano SOLO gli alias dei comandi
 #    (Settings/Alias.yml e la cartella CustomAlias/) e le programmazioni (Settings/Schedules.yml),
@@ -104,7 +106,7 @@ jobs:
           echo; echo "=== 2) JAR DAL FACTION ==="
           mkdir -p "$HUB/plugins" "$BAK"
           # Schema del nome del jar: "CMI-*" e non "CMI*", che prenderebbe anche CMILib.
-          for P in 'LuckPerms-*' 'PlaceholderAPI*' 'CMI-*' 'CMILib*' 'MagixAuth-*' 'MagixLanguage-*' 'MagixGuard-*' 'MagixBridge-*' 'ProtocolLib*' 'MagixEssentials-*' 'MagixMenus-*' 'MagixPack-*'; do
+          for P in 'LuckPerms-*' 'PlaceholderAPI*' 'CMI-*' 'CMILib*' 'MagixAuth-*' 'MagixLanguage-*' 'MagixGuard-*' 'MagixBridge-*' 'ProtocolLib*' 'MagixEssentials-*' 'MagixMenus-*' 'MagixPack-*' 'MagixTime-*'; do
             J="$(ls "$FAZ"/plugins/$P.jar 2>/dev/null | head -n1)"
             [ -n "$J" ] || { echo "::error::$P.jar non trovato nel faction"; exit 1; }
             for old in "$HUB"/plugins/$P.jar; do [ -e "$old" ] && mv "$old" "$BAK/"; done
@@ -179,6 +181,12 @@ jobs:
           if ! sudo ufw status | grep -qE '^8444/tcp +ALLOW'; then
             sudo ufw allow 8444/tcp comment 'MagixPack hub resource pack' | tail -n1
           fi
+          # MagixTime: come sul faction, i suoi config solo la prima volta.
+          if [ ! -f "$HUB/plugins/MagixTime/config.yml" ]; then
+            for f in config.yml messages.yml; do
+              [ -f "$FAZ/plugins/MagixTime/$f" ] && copia_cfg MagixTime "$f"
+            done
+          fi
           # CMI: solo alias e programmazioni, e solo se sull'hub non ci sono ancora.
           if [ ! -f "$HUB/plugins/CMI/Settings/Alias.yml" ]; then
             copia_cfg CMI Settings/Alias.yml
@@ -222,7 +230,7 @@ jobs:
             tail -n +"$((R + 1))" "$LOG" 2>/dev/null | grep -q 'Done (' && { echo "hub pronto dopo ~$((i*3))s"; break; }
           done
           echo "--- plugin e messaggi all'avvio ---"
-          tail -n +"$((R + 1))" "$LOG" | grep -E 'Enabling|LuckPerms\].*(storage|messaging)|MagixAuth\]|MagixLanguage\]|\[CMI\].*([Aa]lias|[Ss]chedul|licen|[Ee]rror)|\[MagixGuard\]|\[MagixBridge\]|\[MagixEssentials\]|\[MagixMenus\]|\[MagixPack\]|ERROR|Exception|Done \(' | grep -v 'UpdateNotification' | head -n 50
+          tail -n +"$((R + 1))" "$LOG" | grep -E 'Enabling|LuckPerms\].*(storage|messaging)|MagixAuth\]|MagixLanguage\]|\[CMI\].*([Aa]lias|[Ss]chedul|licen|[Ee]rror)|\[MagixGuard\]|\[MagixBridge\]|\[MagixEssentials\]|\[MagixMenus\]|\[MagixPack\]|\[MagixTime\]|ERROR|Exception|Done \(' | grep -v 'UpdateNotification' | head -n 50
           ls -la "$HUB/plugins"
           exit 0
           REMOTE

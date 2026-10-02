@@ -124,8 +124,8 @@ a CMI.
   vuoto. Sorgente nel repo: `server-hub/` (`start.sh` e' la copia di `server/start.sh`: se si
   tocca uno dei due si allinea l'altro). Installato e riallineato dal workflow idempotente
   `predisponi-hub.yml`. Plugin di rete (LuckPerms condiviso, PlaceholderAPI, ProtocolLib, CMI,
-  MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack, con i config
-  copiati dal faction) installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin
+  MagixAuth, MagixLanguage, MagixGuard, MagixBridge, MagixEssentials, MagixMenus, MagixPack, MagixTime, con i
+  config copiati dal faction) installati da `hub-network-plugins.yml`; poi gli aggiornamenti dei plugin
   Magix con `deploy.target` = `faction hub` arrivano dal deploy automatico. Il deploy riavvia l'hub
   con `stopserverfast` (c'e' CMI). MagixPack dell'hub serve il suo pacchetto sulla porta **8444**
   (8443 e' del faction); texture e menu dell'hub: `overrides-hub/` + `deploy-plugin-override.yml`
