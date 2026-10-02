@@ -288,10 +288,10 @@ HTML = r"""<!DOCTYPE html>
   <h2><span class="n">7</span>Conquistare territori</h2>
   <p>Un <b>territorio</b> è un <b>chunk</b> (16×16 blocchi). Mettiti dove vuoi e usa:</p>
   <p><span class="cmd">/f claim</span> — conquista il chunk in cui ti trovi.</p>
-  <h3>Quanto costa un territorio</h3>
-  <p>{{PREZZI_CLAIM}}</p>
   <div class="tip">Puoi rivendicare terreno <b>{{MONDI_CLAIM_FRASE}}</b>: nel Nether, nell'End e negli altri mondi il claim non è permesso.</div>
   {{se:claims.protected-spawn.enabled=true}}<div class="warn">Attorno allo <b>spawn</b> c'è un'<b>area protetta</b>: nel mondo «{{cfg:claims.protected-spawn.world}}», un quadrato di <b>{{cfg:claims.protected-spawn.radius}} blocchi</b> su ogni lato dal centro (X {{cfg:claims.protected-spawn.center-x}}, Z {{cfg:claims.protected-spawn.center-z}}). Lì <b>non puoi fondare la fazione né conquistare territori</b>: devi uscire da questo quadrato. I blocchi però <b>non</b> sono protetti — puoi costruire e rompere liberamente, semplicemente non si claima.</div>{{/se}}
+  <h3>Quanto costa un territorio</h3>
+  <p>{{PREZZI_CLAIM}}</p>
   {{OGGETTI_CLAIM}}
   <h3>Quando puoi claimare (territorio neutrale)</h3>
   <ul>

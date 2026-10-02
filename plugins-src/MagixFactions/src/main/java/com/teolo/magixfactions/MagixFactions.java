@@ -854,7 +854,10 @@ public final class MagixFactions extends JavaPlugin {
         for (int owned = 0; owned < 10; owned++) {
             double cost = com.teolo.magixfactions.command.FCommand.nextClaimCost(spec, owned);
             if (cost > 0) free = false;
-            if (owned > 0) prices.append(", il ").append(owned + 1).append("° ");
+            if (owned > 0) {
+                int n = owned + 1;   // "l'8°", "l'11°": l'articolo si apostrofa davanti a otto e undici
+                prices.append(n == 8 || n == 11 ? ", l'" : ", il ").append(n).append("° ");
+            }
             prices.append("<b>").append(DurationText.number(cost)).append("</b>");
         }
         v.extra("PREZZI_CLAIM", free
