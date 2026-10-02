@@ -256,7 +256,21 @@ body.pagina-store {
    resta il menu ad hamburger di sempre. */
 @media (min-width: 961px) {
   .header-inner { flex-wrap: wrap; row-gap: 6px; padding-top: 10px; padding-bottom: 4px; }
-  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; }
+  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative; }
+  /* La riga dei tasti ha una fascia piu' scura, a tutta larghezza dello schermo (non solo del
+     contenuto centrato): la fa uno sfondo dietro, largo quanto la finestra, tagliato dalla testata
+     con overflow-x: clip (clip e non hidden: non crea un'area di scorrimento, la barra resta
+     appiccicata in alto). Il colore viene da quello della testata, quindi segue i temi. */
+  .site-header { overflow-x: clip; }
+  .header-inner > .auth-box::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: -10px; bottom: -3px;
+    left: -100vw; right: -100vw;
+    background: color-mix(in srgb, var(--bg-testata) 55%, #000);
+    border-bottom: 1px solid var(--border);
+  }
   .nav-collapse { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
   .main-nav {
     flex-wrap: nowrap; min-width: 0;
