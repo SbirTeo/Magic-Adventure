@@ -4,7 +4,7 @@ import com.teolo.magixcosmetics.util.ConfigAlign;
 import com.teolo.magixcosmetics.command.FireworkCommand;
 import com.teolo.magixcosmetics.command.HaloCommand;
 import com.teolo.magixcosmetics.command.MagixCosmeticsCommand;
-import com.teolo.magixcosmetics.cosmetic.FireworkJoinListener;
+import com.teolo.magixcosmetics.cosmetic.FireworkListener;
 import com.teolo.magixcosmetics.cosmetic.FireworkManager;
 import com.teolo.magixcosmetics.cosmetic.HaloCombatListener;
 import com.teolo.magixcosmetics.cosmetic.HaloManager;
@@ -24,6 +24,9 @@ import org.bukkit.plugin.java.JavaPlugin;
  * gli altri cosmetici — scie, ali, cappelli — senza appesantire i plugin gia' esistenti.</p>
  */
 public final class MagixCosmetics extends JavaPlugin {
+
+    /** Il minimo dell'altezza di scoppio, scritto nella guida (viene dal codice, non dal config). */
+    private static final String MIN_BURST_HEIGHT_TEXT = String.valueOf(FireworkManager.MIN_BURST_HEIGHT);
 
     private Messages messages;
     private HaloManager halo;
@@ -53,7 +56,7 @@ public final class MagixCosmetics extends JavaPlugin {
 
         firework = new FireworkManager(this);
         firework.load();
-        Bukkit.getPluginManager().registerEvents(new FireworkJoinListener(firework), this);
+        Bukkit.getPluginManager().registerEvents(new FireworkListener(firework), this);
 
         PluginCommand cmd = getCommand("magixcosmetics");
         if (cmd != null) {
@@ -95,7 +98,8 @@ public final class MagixCosmetics extends JavaPlugin {
         halo.load();
         halo.start();
         firework.load();
-        getLogger().info("Configurazione ricaricata: aureola " + (halo.enabled() ? "attiva" : "disattivata") + ".");
+        getLogger().info("Configurazione ricaricata: aureola " + (halo.enabled() ? "attiva" : "disattivata")
+                + ", firework d'ingresso " + (firework.enabled() ? "attivo" : "disattivato") + ".");
     }
 
     public Messages messages() { return messages; }
@@ -162,8 +166,11 @@ public final class MagixCosmetics extends JavaPlugin {
 
                 .section("Il firework d'ingresso",
                         "{{se:join-firework.enabled=true}}Su questo server il firework è **acceso**: quando un giocatore "
-                                + "entra, {{cfg:join-firework.delay-ticks}} tick dopo esplode un firework sopra di lui, visibile a "
-                                + "tutti. Di serie è una sfera magenta e verde.{{/se}}"
+                                + "entra, {{cfg:join-firework.delay-ticks}} tick dopo parte un firework dai suoi piedi: sale dritto e "
+                                + "scoppia a {{cfg:join-firework.burst-height}} blocchi d'altezza (mai più in basso di "
+                                + MIN_BURST_HEIGHT_TEXT + " blocchi, anche se il config dice meno), visibile a tutti. "
+                                + "Non fa danno a nessuno: l'esplosione dei firework del plugin è annullata. "
+                                + "Di serie è una sfera magenta e verde.{{/se}}"
                                 + "{{se:join-firework.enabled!=true}}Su questo server il firework è **spento** "
                                 + "(**join-firework.enabled: false**, come sul faction): si accende solo dove lo si vuole, "
                                 + "cioè sull'hub.{{/se}}",
@@ -200,7 +207,8 @@ public final class MagixCosmetics extends JavaPlugin {
                         "halo.spin-speed", "Quanto avanza lungo il cerchio a ogni passo: più alto = orbita più veloce.",
                         "halo.update-interval-ticks", "Ogni quanti tick il puntino avanza: 1 = più fluido; più alto = più leggero.",
                         "join-firework.enabled", "Interruttore del firework d'ingresso: spento sul faction, acceso sull'hub.",
-                        "join-firework.delay-ticks", "Quanti tick dopo l'ingresso esplode il firework.",
+                        "join-firework.delay-ticks", "Quanti tick dopo l'ingresso parte il firework.",
+                        "join-firework.burst-height", "A quanti blocchi sopra i piedi scoppia (minimo " + MIN_BURST_HEIGHT_TEXT + ").",
                         "join-firework.max-colors", "Quanti colori al massimo per i colori e per la sfumatura (1-8).",
                         "join-firework.preview-cooldown-seconds", "Ogni quanti secondi si può rivedere l'anteprima con /firework preview.")
 

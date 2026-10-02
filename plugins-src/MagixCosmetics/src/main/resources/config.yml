@@ -78,8 +78,13 @@ join-firework:
   # Interruttore: spento, nessun firework all'ingresso e /firework risponde "disattivato".
   enabled: false
 
-  # Quanti tick dopo l'ingresso esplode (20 tick = 1 secondo): lascia al giocatore il tempo di caricarsi.
+  # Quanti tick dopo l'ingresso parte (20 tick = 1 secondo): lascia al giocatore il tempo di caricarsi.
   delay-ticks: 20
+
+  # Il firework parte dai piedi del giocatore, sale dritto e scoppia a questa altezza, in blocchi.
+  # Minimo 10 (un valore più basso vale 10): così scoppia lontano dalle teste. L'esplosione non fa
+  # danno a nessuno in ogni caso. Se un soffitto lo ferma prima, scoppia lo stesso dopo 5 secondi.
+  burst-height: 12
 
   # Nascondi il firework a chi entra in vanish (staff invisibile): altrimenti lo tradirebbe.
   hide-when-vanished: true
