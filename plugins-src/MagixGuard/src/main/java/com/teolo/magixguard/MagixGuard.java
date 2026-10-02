@@ -313,9 +313,13 @@ public final class MagixGuard extends JavaPlugin {
             if (in == null) {
                 return;
             }
-            fixes = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(
-                    new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+            // Le chiavi sono nomi di file ("messages.yml"): col punto come separatore Bukkit le
+            // leggerebbe come "messages" -> "yml" e non troverebbe nessun file. Si usa "/".
+            fixes = new org.bukkit.configuration.file.YamlConfiguration();
+            fixes.options().pathSeparator('/');
+            fixes.load(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
         } catch (Exception e) {
+            getLogger().warning("value-fixes.yml illeggibile (" + e.getClass().getSimpleName() + "): nessun testo aggiornato.");
             return;
         }
         for (String fileName : fixes.getKeys(false)) {
