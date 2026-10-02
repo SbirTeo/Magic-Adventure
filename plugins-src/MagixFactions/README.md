@@ -97,11 +97,16 @@ Tutto opzionale: lascia `0`/vuoto ciò che non vuoi.
 ```yaml
 create-cost:
   money: 1000                       # richiede Vault
+  min-playtime-seconds: 3600        # tempo di gioco minimo (statistiche di Minecraft), 0 = nessuno
   items: ["DIAMOND:10", "EMERALD:3"]
   placeholders: ["%player_level% >= 10"]   # richiede PlaceholderAPI
   permission: "magixfactions.create"
 ```
 Operatori condizioni: `>= <= > < == !=`.
+
+Per il tempo di gioco minimo si usa `min-playtime-seconds`, non una condizione `placeholders`: cosi'
+il tutorial lo racconta da solo (`{{secondi:create-cost.min-playtime-seconds}}`), mentre una condizione
+libera non si puo' tradurre in una frase per i giocatori.
 
 Lo **stesso motore di costo** vale per **`/f sethome`** (sezione `sethome-cost`), di default **gratis**.
 

@@ -50,6 +50,8 @@ create:
   # {max} = faction-name.max-consecutive del config
   name-consecutive: "&cNel nome lo stesso carattere puo' ripetersi al massimo &e{max}&c volte di fila."
   name-taken: "&cEsiste gia' una fazione con questo nome."
+  # Tempo di gioco insufficiente (create-cost.min-playtime-seconds). {required} = minimo, {played} = giocato finora.
+  playtime: "&cPer fondare una fazione devi aver giocato almeno &e{required}&c (finora: &e{played}&c)."
   success: "&aFazione &e{name}&a creata! Sei il &6leader&a."
   # Annuncio a TUTTO il server quando nasce una nuova fazione. {name} = nome, {player} = fondatore.
   broadcast: "&#A8DC2C&lNUOVA FAZIONE &r&7» &f{player}&7 ha fondato la fazione &f{name}&7!"

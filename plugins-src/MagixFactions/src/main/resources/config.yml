@@ -199,6 +199,9 @@ score:
 # Tutto opzionale: lascia vuoto/0 cio' che non vuoi richiedere.
 create-cost:
   money: 0                # richiede Vault + plugin economia
+  # Tempo minimo di gioco (in secondi) sul server prima di poter fondare una fazione. 0 = nessun minimo.
+  # Si legge dalle statistiche di Minecraft, senza bisogno di PlaceholderAPI; il tutorial lo racconta da solo.
+  min-playtime-seconds: 0
   items: []              # es: ["DIAMOND:10", "GOLD_INGOT:5"]
   placeholders: []       # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI)
   permission: ""         # es: "magixfactions.create"
