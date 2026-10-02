@@ -247,7 +247,7 @@ require __DIR__ . '/../includes/header.php';
           // foglio di stile): i capitoli della guida devono seguirlo, se no restano gli
           // unici riquadri con la cornice in mezzo a tutto il resto.
           '@media(max-width:700px){' +
-          'section,.toc{border-radius:0;border-left:0;border-right:0;' +
+          'section,.toc,.start{border-radius:0;border-left:0;border-right:0;' +
           'padding-left:15px;padding-right:15px;margin:12px 0}' +
           '.tip,.warn{border-radius:0}' +
           '}';

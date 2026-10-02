@@ -5799,21 +5799,86 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .revoca-form input[type="text"] { min-width: 190px; }
 
 /* --- guida per amministratori --- */
-.guida-staff { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.guida-staff { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 20px; align-items: start; }
+/* Indice a due livelli: area -> capitolo (nome breve e cosa fa) -> sottocapitoli. Scorre da
+   solo se e' piu' alto dello schermo, cosi' resta tutto raggiungibile anche coi capitoli aperti. */
 .guida-indice {
   position: sticky;
   /* Stesso stacco della colonna laterale del sito: sotto la barra di navigazione. */
   top: calc(var(--h-testata, 98px) + 16px);
+  max-height: calc(100vh - var(--h-testata, 98px) - 32px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 14px 14px;
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-.guida-indice a { color: var(--text-dim); font-size: var(--fs-sm); padding: 5px 0; }
-.guida-indice a:hover { color: var(--text); }
+.guida-filtro {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: var(--fs-sm);
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+}
+.guida-indice-titolo {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 4px;
+}
+.guida-indice-voce { border-left: 2px solid transparent; padding-left: 8px; margin: 2px 0; }
+.guida-indice-voce.is-attiva { border-left-color: var(--purple); }
+.guida-indice-plugin { display: flex; flex-direction: column; padding: 4px 0; color: var(--text); }
+.guida-indice-plugin span { font-weight: 600; font-size: var(--fs-sm); }
+.guida-indice-plugin small { color: var(--text-dimmer); font-size: var(--fs-xs); line-height: 1.35; }
+.guida-indice-plugin:hover span { color: var(--purple); }
+/* I sottocapitoli si vedono solo per il capitolo che si sta leggendo: sempre
+   aperti sarebbero una colonna di cento righe. */
+.guida-indice-sezioni { display: none; flex-direction: column; padding: 2px 0 6px 8px; }
+.guida-indice-voce.is-attiva .guida-indice-sezioni { display: flex; }
+.guida-indice-sezioni a { color: var(--text-dim); font-size: var(--fs-xs); padding: 2px 0; }
+.guida-indice-sezioni a:hover { color: var(--text); }
+.guida-indice-vuoto { color: var(--text-dimmer); font-size: var(--fs-sm); margin: 0; }
+/* Panoramica in cima: le aree come schede. */
+.guida-panoramica { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.guida-panoramica-area { background: var(--bg-panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.guida-panoramica-titolo { font-weight: 700; color: var(--purple); }
+.guida-panoramica-desc { color: var(--text-dimmer); font-size: var(--fs-xs); margin-bottom: 8px; }
+.guida-panoramica-area a { display: block; padding: 3px 0; color: var(--text); font-size: var(--fs-sm); line-height: 1.35; }
+.guida-panoramica-area a span { display: block; color: var(--text-dim); font-size: var(--fs-xs); }
+.guida-panoramica-area a:hover strong { color: var(--purple); }
+.guida-area-titolo {
+  margin: 14px 0 -4px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--purple);
+}
+.guida-sottotitolo { font-weight: 400; color: var(--text-dim); font-size: var(--fs-base); }
+/* "In questo capitolo": i sottocapitoli come etichette cliccabili sotto il titolo. */
+.guida-mini-indice { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 0 0 16px; }
+.guida-mini-indice span { color: var(--text-dimmer); font-size: var(--fs-xs); }
+.guida-mini-indice a {
+  font-size: var(--fs-xs);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.guida-mini-indice a:hover { color: var(--text); border-color: var(--purple); }
+.guida-torna { text-align: right; margin: 12px 0 0; font-size: var(--fs-xs); }
+.guida-torna a { color: var(--text-dimmer); }
+.guida-corpo h4 { scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
+#guida-inizio { scroll-margin-top: calc(var(--h-testata, 98px) + 16px); }
 .guida-capitoli { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* Il salto dall'indice e' l'ancora nativa del browser: senza questo stacco il capitolo
    raggiunto finisce a filo viewport, cioe' mezzo coperto dalla barra di navigazione fissa.
@@ -5853,7 +5918,9 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
   .sanzione-riga { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .sanzione-stato { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; }
   .guida-staff { grid-template-columns: minmax(0, 1fr); }
-  .guida-indice { position: static; flex-direction: row; flex-wrap: wrap; gap: 12px; }
+  /* Su telefono l'indice laterale sparisce: c'e' gia' la panoramica in cima, che fa lo stesso
+     lavoro senza occupare mezzo schermo prima del primo capitolo. */
+  .guida-indice { display: none; }
 }
 
 /* --- guida per amministratori: gerarchia e colore -------------------

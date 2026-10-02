@@ -101,7 +101,14 @@ StaffGuide.create(this, "MagixTime — ora, stagioni e meteo reali", 60)
 `/manage.php?section=guida`, dietro permesso web-admin (quindi gia' coperto dall'OTP obbligatorio,
 vedi `website/VERIFICA-DUE-PASSAGGI.md`).
 
-- indice a sinistra con un plugin per voce, capitolo a destra;
+- capitoli divisi in **aree** (Moderazione e accessi, Il gioco, Grafica e interfaccia, Rete, sito e
+  lingue): l'elenco e' `guide_staff_areas()` in `website/includes/sanzioni.php`. **Un plugin nuovo va
+  aggiunto li'** nella sua area; finche' non c'e', finisce in "Altri plugin" (la guida resta completa);
+- in cima una **panoramica** per aree; a sinistra un **indice a due livelli** (area -> plugin, col nome
+  breve e cosa fa, preso dal titolo "Nome — cosa fa" di `StaffGuide.create`) con un filtro e il capitolo
+  in lettura evidenziato, che apre i suoi sottocapitoli (gli `<h4>` del capitolo, con un id ciascuno);
+- in testa a ogni capitolo un **"In questo capitolo"** coi sottocapitoli cliccabili, in fondo "torna
+  all'indice"; la ricerca porta dritta al sottocapitolo che risponde;
 - per ogni capitolo: **versione del plugin** e **data dell'ultimo aggiornamento** in testa, cosi'
   si vede a colpo d'occhio se il server sta girando una versione vecchia;
 - ricerca testuale su tutti i capitoli: quando serve una guida, serve in fretta;

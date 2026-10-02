@@ -4166,37 +4166,94 @@ if ($section === 'dashboard') {
         </p>
       </div>
     <?php else: ?>
-      <div class="guida-staff">
+      <?php
+        // Capitoli pronti (nome breve, sottocapitoli con id) e raggruppati per area: l'indice
+        // e' a due livelli, area -> plugin -> sottocapitoli, invece di un elenco piatto di titoli.
+        $prep = array_map('guide_staff_prepare', $capitoli);
+        $perArea = [];
+        foreach ($prep as $c) {
+            $perArea[$c['area']][] = $c;
+        }
+        $aree = array_filter(guide_staff_areas(), fn($k) => !empty($perArea[$k]), ARRAY_FILTER_USE_KEY);
+      ?>
+      <div class="guida-staff" id="guida-inizio">
         <nav class="guida-indice" aria-label="Indice della guida">
-          <?php foreach ($capitoli as $c): ?>
-            <a href="#guida-<?= h($c['plugin']) ?>"><?= h($c['title']) ?></a>
+          <input type="search" class="guida-filtro" placeholder="Filtra i capitoli…"
+                 aria-label="Filtra i capitoli della guida" data-guida-filtro>
+          <?php foreach ($aree as $chiave => [$nomeArea]): ?>
+            <div class="guida-indice-area" data-area>
+              <div class="guida-indice-titolo"><?= h($nomeArea) ?></div>
+              <?php foreach ($perArea[$chiave] as $c): ?>
+                <div class="guida-indice-voce" data-voce="<?= h(mb_strtolower($c['nome'] . ' ' . $c['sottotitolo'] . ' ' . implode(' ', array_column($c['sezioni'], 'titolo')))) ?>">
+                  <a href="#guida-<?= h($c['plugin']) ?>" class="guida-indice-plugin" data-capitolo="guida-<?= h($c['plugin']) ?>">
+                    <span><?= h($c['nome']) ?></span>
+                    <?php if ($c['sottotitolo'] !== ''): ?><small><?= h($c['sottotitolo']) ?></small><?php endif; ?>
+                  </a>
+                  <?php if ($c['sezioni']): ?>
+                    <div class="guida-indice-sezioni">
+                      <?php foreach ($c['sezioni'] as $sez): ?>
+                        <a href="#<?= h($sez['id']) ?>"><?= h($sez['titolo']) ?></a>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
           <?php endforeach; ?>
+          <p class="guida-indice-vuoto" hidden data-guida-vuoto>Nessun capitolo con queste parole.</p>
         </nav>
 
         <div class="guida-capitoli">
-          <?php foreach ($capitoli as $c): ?>
-            <?php
-              $quando = strtotime((string) $c['updated_at']);
-              // Un capitolo fermo da una settimana e' sospetto: o il server e' rimasto spento,
-              // o quel plugin non parte piu'. Meglio dirlo che far finta di niente.
-              $vecchia = $quando < strtotime('-7 days');
-            ?>
-            <section class="panel" id="guida-<?= h($c['plugin']) ?>">
-              <div class="guida-testa">
-                <h3 style="margin:0;"><?= h($c['title']) ?></h3>
-                <span class="guida-versione">
-                  <?= h($c['plugin']) ?><?= $c['version'] ? ' ' . h($c['version']) : '' ?>
-                  · aggiornata <?= h(time_ago((string) $c['updated_at'])) ?>
-                </span>
+          <?php /* Panoramica: le aree come schede, per chi arriva e non sa da dove partire. */ ?>
+          <div class="panel guida-panoramica">
+            <?php foreach ($aree as $chiave => [$nomeArea, $descArea]): ?>
+              <div class="guida-panoramica-area">
+                <div class="guida-panoramica-titolo"><?= h($nomeArea) ?></div>
+                <div class="guida-panoramica-desc"><?= h($descArea) ?></div>
+                <?php foreach ($perArea[$chiave] as $c): ?>
+                  <a href="#guida-<?= h($c['plugin']) ?>"><strong><?= h($c['nome']) ?></strong>
+                    <?php if ($c['sottotitolo'] !== ''): ?><span><?= h($c['sottotitolo']) ?></span><?php endif; ?></a>
+                <?php endforeach; ?>
               </div>
-              <?php if ($vecchia): ?>
-                <p class="guida-avviso">
-                  Non si aggiorna da <?= h(time_ago((string) $c['updated_at'])) ?>:
-                  potrebbe descrivere una versione diversa da quella in funzione.
-                </p>
-              <?php endif; ?>
-              <div class="guida-corpo"><?= $c['body_html'] ?></div>
-            </section>
+            <?php endforeach; ?>
+          </div>
+
+          <?php foreach ($aree as $chiave => [$nomeArea]): ?>
+            <div class="guida-area-titolo"><?= h($nomeArea) ?></div>
+            <?php foreach ($perArea[$chiave] as $c): ?>
+              <?php
+                $quando = strtotime((string) $c['updated_at']);
+                // Un capitolo fermo da una settimana e' sospetto: o il server e' rimasto spento,
+                // o quel plugin non parte piu'. Meglio dirlo che far finta di niente.
+                $vecchia = $quando < strtotime('-7 days');
+              ?>
+              <section class="panel" id="guida-<?= h($c['plugin']) ?>">
+                <div class="guida-testa">
+                  <h3 style="margin:0;"><?= h($c['nome']) ?>
+                    <?php if ($c['sottotitolo'] !== ''): ?><span class="guida-sottotitolo">— <?= h($c['sottotitolo']) ?></span><?php endif; ?></h3>
+                  <span class="guida-versione">
+                    <?= h($c['plugin']) ?><?= $c['version'] ? ' ' . h($c['version']) : '' ?>
+                    · aggiornata <?= h(time_ago((string) $c['updated_at'])) ?>
+                  </span>
+                </div>
+                <?php if ($vecchia): ?>
+                  <p class="guida-avviso">
+                    Non si aggiorna da <?= h(time_ago((string) $c['updated_at'])) ?>:
+                    potrebbe descrivere una versione diversa da quella in funzione.
+                  </p>
+                <?php endif; ?>
+                <?php if (count($c['sezioni']) > 1): ?>
+                  <nav class="guida-mini-indice" aria-label="In questo capitolo">
+                    <span>In questo capitolo:</span>
+                    <?php foreach ($c['sezioni'] as $sez): ?>
+                      <a href="#<?= h($sez['id']) ?>"><?= h($sez['titolo']) ?></a>
+                    <?php endforeach; ?>
+                  </nav>
+                <?php endif; ?>
+                <div class="guida-corpo"><?= $c['corpo'] ?></div>
+                <p class="guida-torna"><a href="#guida-inizio">↑ Torna all'indice</a></p>
+              </section>
+            <?php endforeach; ?>
           <?php endforeach; ?>
         </div>
       </div>
@@ -4484,13 +4541,16 @@ if ($section === 'dashboard') {
 // uno scorrimento morbido fino al capitolo, con lo stesso stacco (altezza reale della barra,
 // misurata in --h-testata) usato dal resto del sito. Stesso motore di guida-ia.js.
 (function () {
-  var indice = document.querySelector('.guida-indice');
-  if (!indice) return;
+  var guida = document.querySelector('.guida-staff');
+  if (!guida) return;
+  var indice = guida.querySelector('.guida-indice');
   function stacco() {
     var h = document.querySelector('.site-header');
     return (h ? h.getBoundingClientRect().height : 98) + 16;
   }
-  indice.addEventListener('click', function (ev) {
+  // Indice laterale, mini-indici dei capitoli, panoramica e "torna all'indice": tutti i link
+  // interni della guida passano di qui.
+  guida.addEventListener('click', function (ev) {
     var a = ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
     if (!a) return;
     var meta = document.getElementById(a.getAttribute('href').slice(1));
@@ -4506,7 +4566,50 @@ if ($section === 'dashboard') {
         window.scrollTo(0, y);
       }
     }, 350);
+    if (history.replaceState) history.replaceState(null, '', '#' + meta.id);
   });
+
+  // Filtro dell'indice: nasconde i capitoli che non contengono le parole scritte (nome,
+  // sottotitolo, titoli dei sottocapitoli). Le aree rimaste vuote spariscono con loro.
+  var filtro = indice && indice.querySelector('[data-guida-filtro]');
+  var vuoto = indice && indice.querySelector('[data-guida-vuoto]');
+  if (filtro) {
+    filtro.addEventListener('input', function () {
+      var parole = filtro.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      var trovati = 0;
+      indice.querySelectorAll('[data-area]').forEach(function (area) {
+        var visibili = 0;
+        area.querySelectorAll('[data-voce]').forEach(function (voce) {
+          var testo = voce.getAttribute('data-voce');
+          var ok = parole.every(function (p) { return testo.indexOf(p) !== -1; });
+          voce.hidden = !ok;
+          if (ok) visibili++;
+        });
+        area.hidden = visibili === 0;
+        trovati += visibili;
+      });
+      if (vuoto) vuoto.hidden = trovati !== 0;
+    });
+  }
+
+  // Il capitolo che si sta leggendo si accende nell'indice e apre i suoi sottocapitoli.
+  if (indice && 'IntersectionObserver' in window) {
+    var voci = {};
+    indice.querySelectorAll('[data-capitolo]').forEach(function (a) { voci[a.getAttribute('data-capitolo')] = a; });
+    var visibili = {};
+    var osserva = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { visibili[e.target.id] = e.isIntersecting ? e.boundingClientRect.top : null; });
+      var attivo = null, migliore = Infinity;
+      Object.keys(visibili).forEach(function (id) {
+        var top = visibili[id];
+        if (top !== null && Math.abs(top) < migliore) { migliore = Math.abs(top); attivo = id; }
+      });
+      Object.keys(voci).forEach(function (id) {
+        voci[id].parentNode.classList.toggle('is-attiva', id === attivo);
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    guida.querySelectorAll('.guida-capitoli > section[id]').forEach(function (s) { osserva.observe(s); });
+  }
 })();
 </script>
 <?php endif; ?>

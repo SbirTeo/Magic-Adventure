@@ -60,10 +60,39 @@ HTML = r"""<!DOCTYPE html>
   header .logo{font-size:34px;font-weight:800;letter-spacing:.5px}
   header .logo b{color:var(--arancio)} header .logo i{color:var(--giallo);font-style:normal}
   header p{color:var(--sub);margin:.5rem 0 0;font-size:15px}
-  .toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:22px 0}
-  .toc h3{margin:.1rem 0 .6rem;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub)}
-  .toc ol{margin:0;padding-left:20px;columns:2;column-gap:30px}
-  .toc a{color:var(--cyan);text-decoration:none} .toc a:hover{text-decoration:underline}
+  /* Indice: una scheda per parte, ogni capitolo col suo numero, una riga che dice cosa c'e'
+     dentro e i sottocapitoli cliccabili. Lo genera structure() in fondo allo script. */
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:22px 0;
+    scroll-margin-top:110px}
+  .toc-h{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--sub);margin:0 0 12px;font-weight:700}
+  .toc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .toc-part{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .toc-pt{display:block;color:var(--giallo);font-weight:800;font-size:13px;letter-spacing:.06em;
+    text-transform:uppercase;text-decoration:none;margin-bottom:8px}
+  .toc-part ol{list-style:none;margin:0;padding:0}
+  .toc-part li{margin:0 0 10px}
+  .toc-ch{display:flex;gap:8px;align-items:center;color:var(--txt);font-weight:700;text-decoration:none;font-size:15px}
+  .toc-ch:hover{color:var(--cyan)}
+  .toc-n{display:inline-flex;width:22px;height:22px;flex:none;align-items:center;justify-content:center;
+    background:var(--green);color:#0c1a0e;border-radius:6px;font-size:12px;font-weight:800}
+  .toc-d{display:block;color:var(--sub);font-size:13px;margin:2px 0 0 30px;line-height:1.4}
+  .toc-sub{display:flex;flex-wrap:wrap;gap:4px 10px;margin:4px 0 0 30px}
+  .toc-sub a{color:var(--cyan);font-size:12.5px;text-decoration:none} .toc-sub a:hover{text-decoration:underline}
+  /* Intestazione di una parte, fra un capitolo e l'altro. */
+  .part{margin:34px 0 6px;padding:0 4px;scroll-margin-top:110px}
+  .part-n{display:block;color:var(--arancio);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+  .part-t{display:block;font-size:24px;font-weight:800;color:var(--giallo)}
+  .part-d{display:block;color:var(--sub);font-size:14px}
+  .back{text-align:right;margin:14px 0 0} .back a{color:var(--sub);font-size:12.5px;text-decoration:none}
+  .back a:hover{color:var(--cyan)}
+  /* Il riquadro "Inizia da qui" per chi entra la prima volta. */
+  .start{background:linear-gradient(135deg,rgba(253,119,2,.12),rgba(253,209,1,.06));border:1px solid var(--line);
+    border-radius:14px;padding:16px 20px;margin:18px 0}
+  .start-t{font-weight:800;font-size:17px;color:var(--giallo);margin-bottom:4px}
+  .start a{color:var(--cyan);text-decoration:none;font-size:13px;white-space:nowrap}
+  h3{scroll-margin-top:110px}
+  section p a,section li a,.tip a,.warn a{color:var(--cyan);text-decoration:none}
+  section p a:hover,section li a:hover{text-decoration:underline}
   section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:20px 0;
     /* Dentro il sito questo file vive in un iframe sotto la barra fissa del sito (che qui non
        esiste: questo documento e' scuro e autonomo, si apre anche da solo). Il salto a un
@@ -123,7 +152,7 @@ HTML = r"""<!DOCTYPE html>
   @media (max-width:520px){
     .wrap{padding:20px 14px 60px}
     section{padding:18px 16px}
-    .toc ol{columns:1}
+    .toc-grid{grid-template-columns:1fr}
     table{display:block;overflow-x:auto}
     .cmd{white-space:normal}
   }
@@ -145,29 +174,27 @@ HTML = r"""<!DOCTYPE html>
   server</i> che siano <b>consentiti</b>, poi rientra.
 </div>
 
-<div class="toc">
-  <h3>Indice</h3>
-  <ol>
-    <li><a href="#s1">Cos'è una fazione</a></li>
-    <li><a href="#s2">Creare la tua fazione</a></li>
-    <li><a href="#s3">Membri, gradi e permessi</a></li>
-    <li><a href="#s4">Chat di fazione</a></li>
-    <li><a href="#s5">Alleati e nemici</a></li>
-    <li><a href="#s6">La Potenza</a></li>
-    <li><a href="#s7">Conquistare territori</a></li>
-    <li><a href="#s8">La banca della fazione</a></li>
-    <li><a href="#s9">La mappa (/f map)</a></li>
-    <li><a href="#s10">La casa (/f home)</a></li>
-    <li><a href="#s11">Perdere territori (sovraccarico)</a></li>
-    <li><a href="#s12">Guardare le info</a></li>
-    <li><a href="#sPvp">PvP: colpire i nemici</a></li>
-    <li><a href="#sTop">La classifica del server</a></li>
-    <li><a href="#s13">Tutti i comandi</a></li>
+<div class="start">
+  <div class="start-t">Nuovo sul server? Inizia da qui</div>
+  <ol class="steps">
+    <li><b>Fonda o entra in una fazione</b>: <span class="cmd">/f create &lt;nome&gt;</span>, oppure fatti
+      invitare e usa <span class="cmd">/f join &lt;fazione&gt;</span>. <a href="#creare">Come si fonda →</a></li>
+    <li><b>Riempi la banca</b> con <span class="cmd">/f deposit &lt;soldi&gt;</span>: i territori si pagano da lì.
+      <a href="#banca">La banca →</a></li>
+    <li><b>Conquista il primo territorio</b> con <span class="cmd">/f claim</span>, fuori dall'area dello spawn.
+      <a href="#territori">Territori e prezzi →</a></li>
+    <li><b>Imposta la casa</b> nel tuo territorio con <span class="cmd">/f sethome</span>.
+      <a href="#casa">La casa →</a></li>
+    <li><b>Gioca e tieni alta la Potenza</b>: è lei che vi permette di tenere la terra.
+      <a href="#potenza">La Potenza →</a></li>
   </ol>
 </div>
 
-<section id="s1">
-  <h2><span class="n">1</span>Cos'è una fazione</h2>
+<!--TOC-->
+
+<!--PART Primi passi | Cos'è una fazione e come fondare la tua-->
+<section id="fazione" data-desc="Il comando /f, l'aiuto in gioco e le idee di base.">
+  <h2><span class="n">#</span>Cos'è una fazione</h2>
   <p>Una <b>fazione</b> è un gruppo di giocatori che gioca insieme: ha un <b>leader</b>, dei <b>membri</b> con
   <b>gradi</b>, può stringere <b>alleanze</b>, accumulare <b>Potenza</b> e <b>conquistare territori</b> (i chunk del
   mondo) per difendere la propria zona.</p>
@@ -176,9 +203,8 @@ HTML = r"""<!DOCTYPE html>
   divisa in pagine (le frecce <b>‹ indietro</b> e <b>avanti ›</b> in fondo, oppure <span class="cmd">/f help 3</span>)
   e <b>ogni riga si clicca</b> per ritrovarsi il comando già scritto nella barra della chat.</div>
 </section>
-
-<section id="s2">
-  <h2><span class="n">2</span>Creare la tua fazione</h2>
+<section id="creare" data-desc="Il comando, cosa serve per fondarla e le regole del nome.">
+  <h2><span class="n">#</span>Creare la tua fazione</h2>
   <p>Per fondare una fazione usa:</p>
   <p><span class="cmd">/f create &lt;nome&gt;</span> — diventi automaticamente il <b>leader</b>.</p>
   {{se:create-cost.money!=0}}{{se:create-cost.money!=0.0}}<div class="warn">Fondare una fazione <b>costa {{SOLDI_CREATE}}</b>: il denaro viene prelevato dal tuo portafoglio nel momento in cui crei la fazione, quindi controlla di averne abbastanza prima di scrivere il comando.</div>{{/se}}{{/se}}
@@ -201,8 +227,9 @@ HTML = r"""<!DOCTYPE html>
   {{OGGETTI_RENAME}}
 </section>
 
-<section id="s3">
-  <h2><span class="n">3</span>Membri, gradi e permessi</h2>
+<!--PART La tua fazione | Le persone, le alleanze, i soldi e la casa-->
+<section id="membri" data-desc="Invitare, espellere, i gradi e chi comanda.">
+  <h2><span class="n">#</span>Membri, gradi e permessi</h2>
   <p>Fai crescere la fazione invitando altri giocatori. Una fazione può avere fino a
   <b>{{cfg:members.base}} membri</b>; se il leader è <b>VIP</b> il limite sale.</p>
   <ul>
@@ -223,9 +250,8 @@ HTML = r"""<!DOCTYPE html>
   <div class="tip">Se il leader esce, il comando passa in automatico al membro di grado più alto (a parità, a chi è
   in quel grado da più tempo). Se il leader è l'unico membro e se ne va, la fazione si scioglie.</div>
 </section>
-
-<section id="s4">
-  <h2><span class="n">4</span>Chat di fazione</h2>
+<section id="chat" data-desc="Parlare solo con la fazione o con gli alleati.">
+  <h2><span class="n">#</span>Chat di fazione</h2>
   <p>Con <span class="cmd">/f chat</span> scegli in quale canale parli:</p>
   <ul>
     <li><b>PUBBLICA</b> — la chat normale del server;</li>
@@ -235,9 +261,8 @@ HTML = r"""<!DOCTYPE html>
   <p class="sub">Senza argomento, <span class="cmd">/f chat</span> cambia canale a rotazione; oppure
   <span class="cmd">/f chat faction</span>, ecc.</p>
 </section>
-
-<section id="s5">
-  <h2><span class="n">5</span>Alleati e nemici</h2>
+<section id="alleati" data-desc="Alleanze, nemici e quanti alleati puoi avere.">
+  <h2><span class="n">#</span>Alleati e nemici</h2>
   <p>Esistono solo due relazioni: <b>alleato</b> e <b>nemico</b>. <b>Di default ogni fazione è nemica di tutte.</b></p>
   <ul>
     <li><span class="cmd">/f ally &lt;fazione&gt;</span> — chiedi un'alleanza. Diventa reale solo quando <b>anche
@@ -257,9 +282,45 @@ HTML = r"""<!DOCTYPE html>
   <div class="tip">In <span class="cmd">/f info</span> le richieste di alleanza in sospeso compaiono come
   <b>"(in attesa)"</b>: passandoci sopra col mouse leggi se devi accettarle, e cliccando scrivi il comando pronto.</div>
 </section>
+<section id="banca" data-desc="Versare e prelevare i soldi comuni.">
+  <h2><span class="n">#</span>La banca della fazione</h2>
+  <p>Ogni fazione ha una <b>banca comune</b>: un salvadanaio condiviso per far crescere la fazione
+  (costi di claim, progetti comuni, guerre...).</p>
+  <p><span class="cmd">/f deposit &lt;soldi&gt;</span> (o <span class="cmd">/f d</span>) — <b>versa</b> i tuoi
+  soldi nella banca. Possono farlo <b>tutti i membri</b>.</p>
+  <p><span class="cmd">/f withdraw &lt;soldi&gt;</span> (o <span class="cmd">/f w</span>) — <b>preleva</b> dalla
+  banca. Riservato a chi ha il permesso <b>withdraw</b> del grado: con i gradi di questo server {{GRADI_PRELIEVO}}.</p>
+  <p class="sub">Il saldo della banca è sempre visibile in <span class="cmd">/f info</span>.</p>
+  <p class="sub"><b>A cosa servono i soldi della banca?</b> Soprattutto a <b>pagare i territori</b>: ogni
+  <span class="cmd">/f claim</span> si paga dalla banca della fazione, non dal tuo portafoglio. I prezzi sono
+  nel capitolo <a href="#territori">Conquistare territori</a>.</p>
+</section>
+<section id="casa" data-desc="Impostare la casa e tornarci con /f home.">
+  <h2><span class="n">#</span>La casa della fazione — <span class="cmd" style="font-size:15px">/f home</span></h2>
+  <ol class="steps">
+    <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.{{se:sethome-cost.money!=0}}{{se:sethome-cost.money!=0.0}}
+      Impostarla costa <b>{{SOLDI_SETHOME}}</b>.{{/se}}{{/se}}</li>
+    <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione dopo
+      <b>{{secondi:home-warmup.seconds}}</b> di attesa immobile: se ti muovi (anche di un blocco) o <b>subisci un
+      danno</b> (un mob, una caduta, il fuoco, un altro giocatore...) il teletrasporto si annulla e va ripetuto
+      il comando — non è una via di fuga. Attaccare un altro giocatore annulla il tuo, anche se non subisci
+      danno tu.</li>
+    <li><span class="cmd">/f unsethome</span> toglie la casa: la fazione resta senza, e <span class="cmd">/f home</span>
+      non porta più da nessuna parte finché non ne imposti un'altra.</li>
+  </ol>
+  {{OGGETTI_SETHOME}}
+  <div class="tip">Il chunk della home è il <b>cuore</b> della fazione: per <b>sovraccarico</b> non lo perdi
+  mai, perché il decadimento mangia sempre i territori più lontani e si ferma prima di toccarlo (vedi <a href="#sovraccarico">Perdere territori</a>).</div>
+  <div class="warn"><b>Ma conquistare si può.</b> Un nemico che ti trova <b>raidabile</b> può prendersi anche il
+  chunk della home, come qualsiasi altro. Se succede <b>perdi la casa</b>: tutta la fazione riceve l'avviso, la
+  home viene <b>cancellata</b> e <span class="cmd">/f home</span> non porta più da nessuna parte finché non ne
+  imposti un'altra con <span class="cmd">/f sethome</span> in un territorio tuo. È voluto: se restasse dov'era,
+  <span class="cmd">/f home</span> vi teletrasporterebbe uno alla volta <b>dentro la base del nemico</b>.</div>
+</section>
 
-<section id="s6">
-  <h2><span class="n">6</span>La Potenza</h2>
+<!--PART Potenza e territori | Come si conquista, si difende e si perde la terra-->
+<section id="potenza" data-desc="Quanta ne hai, come si guadagna e come si perde.">
+  <h2><span class="n">#</span>La Potenza</h2>
   <p>Ogni giocatore ha un valore di <b>Potenza</b> (da {{POWER_MAX_NEG}} a {{POWER_MAX_POS}}). Serve a conquistare e tenere i territori.</p>
   <div class="powerbar">
     <div class="mk" style="left:15%"></div>
@@ -283,11 +344,11 @@ HTML = r"""<!DOCTYPE html>
   <span class="cmd">/cosmetics halo off</span> e la rimette con <span class="cmd">/cosmetics halo on</span>
   (dopo un riavvio del server torna accesa).</div>
 </section>
-
-<section id="s7">
-  <h2><span class="n">7</span>Conquistare territori</h2>
+<section id="territori" data-desc="Quanto costa un territorio, quando puoi conquistarlo, chi può costruirci.">
+  <h2><span class="n">#</span>Conquistare territori</h2>
   <p>Un <b>territorio</b> è un <b>chunk</b> (16×16 blocchi). Mettiti dove vuoi e usa:</p>
   <p><span class="cmd">/f claim</span> — conquista il chunk in cui ti trovi.</p>
+  <h3>Dove puoi conquistare</h3>
   <div class="tip">Puoi rivendicare terreno <b>{{MONDI_CLAIM_FRASE}}</b>: nel Nether, nell'End e negli altri mondi il claim non è permesso.</div>
   {{se:claims.protected-spawn.enabled=true}}<div class="warn">Attorno allo <b>spawn</b> c'è un'<b>area protetta</b>: nel mondo «{{cfg:claims.protected-spawn.world}}», un quadrato di <b>{{cfg:claims.protected-spawn.radius}} blocchi</b> su ogni lato dal centro (X {{cfg:claims.protected-spawn.center-x}}, Z {{cfg:claims.protected-spawn.center-z}}). Lì <b>non puoi fondare la fazione né conquistare territori</b>: devi uscire da questo quadrato. I blocchi però <b>non</b> sono protetti — puoi costruire e rompere liberamente, semplicemente non si claima.</div>{{/se}}
   <h3>Quanto costa un territorio</h3>
@@ -315,8 +376,8 @@ HTML = r"""<!DOCTYPE html>
   <div class="tip">Se il chunk che rilasci (con <span class="cmd">/f unclaim</span> o <span class="cmd">/f unclaimall</span>)
   conteneva la <b>casa</b> della fazione, la casa viene tolta insieme al territorio: dovrai impostarne una nuova
   con <span class="cmd">/f sethome</span> in un territorio che possiedi ancora.</div>
-{{se:protection.enabled=true}}
   <h3>Chi può costruire nei territori</h3>
+{{se:protection.enabled=true}}
   <p>Dentro un territorio di una fazione <b>solo i suoi membri</b> possono rompere e piazzare blocchi o usare
   casse, porte, leve, secchi e cornici.{{se:protection.ally-can-build=true}} Lo stesso vale per le fazioni
   <b>alleate</b>: anche loro possono costruire da voi, e voi da loro.{{/se}}{{se:protection.ally-can-build!=true}}
@@ -346,23 +407,31 @@ HTML = r"""<!DOCTYPE html>
   <div class="tip">È il modo per fidarti a metà: fai entrare qualcuno nella fazione senza dargli le chiavi di
   <b>tutto</b>. Il proprietario decade da solo se il chunk viene conquistato da un nemico.</div>
 </section>
-
-<section id="s8">
-  <h2><span class="n">8</span>La banca della fazione</h2>
-  <p>Ogni fazione ha una <b>banca comune</b>: un salvadanaio condiviso per far crescere la fazione
-  (costi di claim, progetti comuni, guerre...).</p>
-  <p><span class="cmd">/f deposit &lt;soldi&gt;</span> (o <span class="cmd">/f d</span>) — <b>versa</b> i tuoi
-  soldi nella banca. Possono farlo <b>tutti i membri</b>.</p>
-  <p><span class="cmd">/f withdraw &lt;soldi&gt;</span> (o <span class="cmd">/f w</span>) — <b>preleva</b> dalla
-  banca. Riservato a chi ha il permesso <b>withdraw</b> del grado: con i gradi di questo server {{GRADI_PRELIEVO}}.</p>
-  <p class="sub">Il saldo della banca è sempre visibile in <span class="cmd">/f info</span>.</p>
-  <p class="sub"><b>A cosa servono i soldi della banca?</b> Soprattutto a <b>pagare i territori</b>: ogni
-  <span class="cmd">/f claim</span> si paga dalla banca della fazione, non dal tuo portafoglio. I prezzi sono
-  nel capitolo <a href="#s7">Conquistare territori</a>.</p>
+<section id="sovraccarico" data-desc="Cosa succede se avete più terra di quanta ne potete tenere.">
+  <h2><span class="n">#</span>Perdere territori (sovraccarico)</h2>
+  <p>Se la fazione possiede <b>più territori del tetto</b> — ad esempio dopo aver perso un membro — scatta un
+  allarme: tutti i membri online ricevono un <b>avviso al centro dello schermo con un suono di pericolo</b>,
+  ripetuto ogni {{secondi:decay.warn-interval-seconds}} finché la situazione non si sistema.</p>
+  <p>Se non rientri nel limite (di solito <b>invitando un altro giocatore</b>) entro <b>{{ore:decay.grace-hours}}</b>, la fazione
+  inizia a <b>perdere 1 territorio ogni {{ore:decay.loss-interval-hours}}</b>. Si perdono sempre i chunk <b>più lontani dalla home</b>, e il chunk
+  della <b>home non si perde mai</b>.</p>
+  <p>Non è una punizione a tempo: <b>la perdita si ferma da sola</b> appena la fazione torna stabile. I territori
+  continuano a cadere uno per volta finché quelli posseduti non tornano <b>pari o inferiori al tetto</b>, cioè al
+  <b>{{percento:claims.max-percent}} della Potenza massima</b> della fazione. Puoi fermarla in qualsiasi momento in due modi: far entrare un
+  membro (alza il tetto) oppure rilasciare tu i territori di troppo con <span class="cmd">/f unclaim</span>.</p>
+  <div class="tip">Non confondere le due soglie, perché guardano numeri diversi. Il <b>tetto</b>, che ferma il
+  decadimento, dipende dalla Potenza <b>massima</b> della fazione. L'essere <b>attaccabile</b> dai nemici dipende
+  invece dalla Potenza <b>attuale</b>: finché resta pari o superiore al numero di territori posseduti, nessuno può
+  conquistarti terreno — anche se sei in pieno decadimento.</div>
+  <figure>
+    <img src="__GIF__" alt="Animazione del decadimento dei territori verso la home">
+    <figcaption>Il territorio si "restringe" verso la home (in oro), perdendo prima i gruppi più lontani.</figcaption>
+  </figure>
+  <div class="warn">Regola d'oro: <b>tieni la Potenza alta e i membri attivi</b>, e imposta la <b>home</b> nel cuore
+  del tuo territorio.</div>
 </section>
-
-<section id="s9">
-  <h2><span class="n">9</span>La Mappa Fazioni — <span class="cmd" style="font-size:15px">/f map</span></h2>
+<section id="mappa" data-desc="Vedere i territori attorno a te e i loro confini.">
+  <h2><span class="n">#</span>La Mappa Fazioni — <span class="cmd" style="font-size:15px">/f map</span></h2>
 {{se:map.mode=chat}}
   <p>Il comando <span class="cmd">/f map</span> ti stampa <b>in chat</b> la mappa dei territori attorno a te: un
   quadrato con <b>te al centro</b>, grande quanto lo <b>zoom</b> della tua mappa/minimap (più sei zoomato
@@ -436,74 +505,9 @@ HTML = r"""<!DOCTYPE html>
 {{/se}}
 </section>
 
-<section id="s10">
-  <h2><span class="n">10</span>La casa della fazione — <span class="cmd" style="font-size:15px">/f home</span></h2>
-  <ol class="steps">
-    <li>Mettiti in un <b>tuo territorio</b> e usa <span class="cmd">/f sethome</span> per impostare la casa.{{se:sethome-cost.money!=0}}{{se:sethome-cost.money!=0.0}}
-      Impostarla costa <b>{{SOLDI_SETHOME}}</b>.{{/se}}{{/se}}</li>
-    <li>Da qualsiasi punto, <span class="cmd">/f home</span> ti <b>teletrasporta</b> alla casa della fazione dopo
-      <b>{{secondi:home-warmup.seconds}}</b> di attesa immobile: se ti muovi (anche di un blocco) o <b>subisci un
-      danno</b> (un mob, una caduta, il fuoco, un altro giocatore...) il teletrasporto si annulla e va ripetuto
-      il comando — non è una via di fuga. Attaccare un altro giocatore annulla il tuo, anche se non subisci
-      danno tu.</li>
-    <li><span class="cmd">/f unsethome</span> toglie la casa: la fazione resta senza, e <span class="cmd">/f home</span>
-      non porta più da nessuna parte finché non ne imposti un'altra.</li>
-  </ol>
-  {{OGGETTI_SETHOME}}
-  <div class="tip">Il chunk della home è il <b>cuore</b> della fazione: per <b>sovraccarico</b> non lo perdi
-  mai, perché il decadimento mangia sempre i territori più lontani e si ferma prima di toccarlo (vedi sotto).</div>
-  <div class="warn"><b>Ma conquistare si può.</b> Un nemico che ti trova <b>raidabile</b> può prendersi anche il
-  chunk della home, come qualsiasi altro. Se succede <b>perdi la casa</b>: tutta la fazione riceve l'avviso, la
-  home viene <b>cancellata</b> e <span class="cmd">/f home</span> non porta più da nessuna parte finché non ne
-  imposti un'altra con <span class="cmd">/f sethome</span> in un territorio tuo. È voluto: se restasse dov'era,
-  <span class="cmd">/f home</span> vi teletrasporterebbe uno alla volta <b>dentro la base del nemico</b>.</div>
-</section>
-
-<section id="s11">
-  <h2><span class="n">11</span>Perdere territori (sovraccarico)</h2>
-  <p>Se la fazione possiede <b>più territori del tetto</b> — ad esempio dopo aver perso un membro — scatta un
-  allarme: tutti i membri online ricevono un <b>avviso al centro dello schermo con un suono di pericolo</b>,
-  ripetuto ogni {{secondi:decay.warn-interval-seconds}} finché la situazione non si sistema.</p>
-  <p>Se non rientri nel limite (di solito <b>invitando un altro giocatore</b>) entro <b>{{ore:decay.grace-hours}}</b>, la fazione
-  inizia a <b>perdere 1 territorio ogni {{ore:decay.loss-interval-hours}}</b>. Si perdono sempre i chunk <b>più lontani dalla home</b>, e il chunk
-  della <b>home non si perde mai</b>.</p>
-  <p>Non è una punizione a tempo: <b>la perdita si ferma da sola</b> appena la fazione torna stabile. I territori
-  continuano a cadere uno per volta finché quelli posseduti non tornano <b>pari o inferiori al tetto</b>, cioè al
-  <b>{{percento:claims.max-percent}} della Potenza massima</b> della fazione. Puoi fermarla in qualsiasi momento in due modi: far entrare un
-  membro (alza il tetto) oppure rilasciare tu i territori di troppo con <span class="cmd">/f unclaim</span>.</p>
-  <div class="tip">Non confondere le due soglie, perché guardano numeri diversi. Il <b>tetto</b>, che ferma il
-  decadimento, dipende dalla Potenza <b>massima</b> della fazione. L'essere <b>attaccabile</b> dai nemici dipende
-  invece dalla Potenza <b>attuale</b>: finché resta pari o superiore al numero di territori posseduti, nessuno può
-  conquistarti terreno — anche se sei in pieno decadimento.</div>
-  <figure>
-    <img src="__GIF__" alt="Animazione del decadimento dei territori verso la home">
-    <figcaption>Il territorio si "restringe" verso la home (in oro), perdendo prima i gruppi più lontani.</figcaption>
-  </figure>
-  <div class="warn">Regola d'oro: <b>tieni la Potenza alta e i membri attivi</b>, e imposta la <b>home</b> nel cuore
-  del tuo territorio.</div>
-</section>
-
-<section id="s12">
-  <h2><span class="n">12</span>Guardare le info</h2>
-  <p><span class="cmd">/f info</span> mostra tutto sulla tua fazione (o su un'altra: <span class="cmd">/f info &lt;nome&gt;</span>):</p>
-  <div class="chat">
-    <span class="g">Fazione:</span> <span class="gn">Draghi</span><br>
-    <span class="g">Descrizione:</span> <span class="w">Questa è una fazione di MagicAdventure!</span><br>
-    <span class="g">Membri:</span> <span class="w">3/5</span><br>
-    <span class="gr">([L] Teo, [U] Alex, [R] Sam)</span><br>
-    <span class="g">Stato:</span> <span class="gn">3/5/30</span> <span class="gr">(territori/potenza/potenza-max)</span><br>
-    <span class="gn">La fazione è forte. Non puoi conquistarla.</span><br>
-    <span class="g">Banca:</span> <span class="w">12.500</span><br>
-    <span class="g">Punteggio:</span> <span class="cy">72,5</span> <span class="gr">(#1 in classifica)</span><br>
-    <span class="g">Alleati:</span> <span class="mg">Fenix</span><span class="gr">,</span> <span class="w">Nova (in attesa)</span>
-  </div>
-  <p class="sub">Lo <b>Stato</b> è verde se la fazione è al sicuro, rosso se è <b>raidabile</b>, bianco se non ha territori.</p>
-  <p class="sub">Il <b>Punteggio</b> e la posizione in classifica li spieghiamo qui sotto.</p>
-  <p><span class="cmd">/f list</span> elenca invece <b>tutte</b> le fazioni del server.</p>
-</section>
-
-<section id="sPvp">
-  <h2><span class="n">⚔</span>PvP: colpire i nemici</h2>
+<!--PART Combattere e competere | PvP, informazioni sulle fazioni e classifica-->
+<section id="pvp" data-desc="Chi puoi colpire e quali uccisioni contano.">
+  <h2><span class="n">#</span>PvP: colpire i nemici</h2>
   <p>Fuori dai territori protetti si combatte.{{se:combat.friendly-fire.faction=true}} Tra <b>compagni di
   fazione</b> il PvP è <b>disattivato</b>: se provi a colpirli, <b>il colpo non fa danno</b>.{{/se}}{{se:combat.friendly-fire.faction!=true}}
   Attenzione: anche i <b>compagni di fazione</b> possono colpirsi.{{/se}}{{se:combat.friendly-fire.allies=true}}
@@ -522,9 +526,26 @@ HTML = r"""<!DOCTYPE html>
   </ul>
   In quei casi né tu prendi l'uccisione né la vittima prende la morte.</div>
 </section>
-
-<section id="sTop">
-  <h2><span class="n">C</span>La classifica del server — <span class="cmd" style="font-size:15px">/f top</span></h2>
+<section id="info" data-desc="Leggere lo stato di una fazione con /f info.">
+  <h2><span class="n">#</span>Guardare le info</h2>
+  <p><span class="cmd">/f info</span> mostra tutto sulla tua fazione (o su un'altra: <span class="cmd">/f info &lt;nome&gt;</span>):</p>
+  <div class="chat">
+    <span class="g">Fazione:</span> <span class="gn">Draghi</span><br>
+    <span class="g">Descrizione:</span> <span class="w">Questa è una fazione di MagicAdventure!</span><br>
+    <span class="g">Membri:</span> <span class="w">3/5</span><br>
+    <span class="gr">([L] Teo, [U] Alex, [R] Sam)</span><br>
+    <span class="g">Stato:</span> <span class="gn">3/5/30</span> <span class="gr">(territori/potenza/potenza-max)</span><br>
+    <span class="gn">La fazione è forte. Non puoi conquistarla.</span><br>
+    <span class="g">Banca:</span> <span class="w">12.500</span><br>
+    <span class="g">Punteggio:</span> <span class="cy">72,5</span> <span class="gr">(#1 in classifica)</span><br>
+    <span class="g">Alleati:</span> <span class="mg">Fenix</span><span class="gr">,</span> <span class="w">Nova (in attesa)</span>
+  </div>
+  <p class="sub">Lo <b>Stato</b> è verde se la fazione è al sicuro, rosso se è <b>raidabile</b>, bianco se non ha territori.</p>
+  <p class="sub">Il <b>Punteggio</b> e la posizione in classifica li spieghiamo nel capitolo <a href="#classifica">La classifica</a>.</p>
+  <p><span class="cmd">/f list</span> elenca invece <b>tutte</b> le fazioni del server.</p>
+</section>
+<section id="classifica" data-desc="Come si calcola il punteggio di /f top.">
+  <h2><span class="n">#</span>La classifica del server — <span class="cmd" style="font-size:15px">/f top</span></h2>
   <p><span class="cmd">/f top</span> mostra la <b>classifica</b> delle fazioni. Non conta chi ha più territori
   e basta, o più soldi e basta: ogni fazione ha un <b>Punteggio</b> che la confronta con le altre <b>voce
   per voce</b>.</p>
@@ -568,37 +589,56 @@ HTML = r"""<!DOCTYPE html>
   <b>ricchezza media</b> no: quelle partono da quando è arrivato il sistema di punteggio, e crescono da lì.</p>
 </section>
 
-<section id="s13">
-  <h2><span class="n">13</span>Tutti i comandi</h2>
+<!--PART Riferimento | Da tenere sotto mano-->
+<section id="comandi" data-desc="Tutti i comandi, divisi per argomento.">
+  <h2><span class="n">#</span>Tutti i comandi</h2>
+  <p class="sub">In gioco li trovi anche con <span class="cmd">/f help</span>: ogni riga si clicca e ti scrive il comando.</p>
+  <h3>Fondare e gestire la fazione</h3>
   <table>
-    <tr><th>Comando</th><th>Cosa fa</th></tr>
     <tr><td><span class="cmd">/f create &lt;nome&gt;</span></td><td>Crea una fazione (diventi leader)</td></tr>
+    <tr><td><span class="cmd">/f description &lt;testo&gt;</span></td><td>Imposta la descrizione</td></tr>
+    <tr><td><span class="cmd">/f rename &lt;nome&gt;</span></td><td>Cambia il nome (leader, una volta ogni {{cfg:rename.cooldown-days}} giorni)</td></tr>
+    <tr><td><span class="cmd">/f disband</span></td><td>Scioglie la fazione (leader)</td></tr>
+  </table>
+  <h3>Membri e gradi</h3>
+  <table>
     <tr><td><span class="cmd">/f invite &lt;gioc&gt;</span></td><td>Invita un giocatore</td></tr>
-    <tr><td><span class="cmd">/f join &lt;fazione&gt;</span></td><td>Entra se invitato</td></tr>
+    <tr><td><span class="cmd">/f join &lt;fazione&gt;</span></td><td>Entra, se sei stato invitato</td></tr>
     <tr><td><span class="cmd">/f leave</span></td><td>Esci dalla fazione</td></tr>
     <tr><td><span class="cmd">/f kick &lt;gioc&gt;</span></td><td>Espelli un membro</td></tr>
-    <tr><td><span class="cmd">/f promote / demote &lt;gioc&gt;</span></td><td>Cambia grado a un membro</td></tr>
+    <tr><td><span class="cmd">/f promote / demote &lt;gioc&gt;</span></td><td>Sali o scendi di grado un membro</td></tr>
     <tr><td><span class="cmd">/f transfer &lt;gioc&gt;</span></td><td>Cedi il comando (leader)</td></tr>
-    <tr><td><span class="cmd">/f chat [public|faction|ally]</span></td><td>Cambia canale chat</td></tr>
-    <tr><td><span class="cmd">/f ally &lt;fazione&gt;</span></td><td>Chiedi/annulla un'alleanza</td></tr>
-    <tr><td><span class="cmd">/f enemy &lt;fazione&gt;</span></td><td>Torna nemico / rompi alleanza</td></tr>
+  </table>
+  <h3>Alleanze e chat</h3>
+  <table>
+    <tr><td><span class="cmd">/f ally &lt;fazione&gt;</span></td><td>Chiedi o annulla un'alleanza</td></tr>
+    <tr><td><span class="cmd">/f enemy &lt;fazione&gt;</span></td><td>Torna nemico, rompe un'alleanza</td></tr>
+    <tr><td><span class="cmd">/f chat [public|faction|ally]</span></td><td>Cambia il canale della chat</td></tr>
+  </table>
+  <h3>Soldi e casa</h3>
+  <table>
+    <tr><td><span class="cmd">/f deposit &lt;soldi&gt;</span></td><td>Versa nella banca della fazione (o /f d)</td></tr>
+    <tr><td><span class="cmd">/f withdraw &lt;soldi&gt;</span></td><td>Preleva dalla banca (o /f w), se il grado lo permette</td></tr>
+    <tr><td><span class="cmd">/f sethome / home</span></td><td>Imposta la casa / vai alla casa</td></tr>
+    <tr><td><span class="cmd">/f unsethome</span></td><td>Toglie la casa</td></tr>
+  </table>
+  <h3>Territori</h3>
+  <table>
     <tr><td><span class="cmd">/f claim</span></td><td>Conquista il chunk dove sei</td></tr>
     <tr><td><span class="cmd">/f unclaim</span></td><td>Rilascia il chunk dove sei</td></tr>
     <tr><td><span class="cmd">/f unclaimall</span></td><td>Rilascia TUTTI i territori (irreversibile, chiede conferma)</td></tr>
     <tr><td><span class="cmd">/f owner [gioc|clear]</span></td><td>Proprietario della land dove sei (solo leader)</td></tr>
+  </table>
+  <h3>Mappa e informazioni</h3>
+  <table>
     <tr><td><span class="cmd">/f map</span></td><td>{{se:map.mode=chat}}Stampa in chat la mappa dei territori attorno a te{{/se}}{{se:map.mode=item}}Ricevi la Mappa Fazioni (item dinamico){{/se}}</td></tr>
 {{se:borders.enabled=true}}    <tr><td><span class="cmd">/f borders &lt;on|off&gt;</span></td><td>Accendi/spegni le particelle sui confini delle land</td></tr>
 {{/se}}    <tr><td><span class="cmd">/f minimap &lt;on|off&gt;</span></td><td>Accendi/spegni la minimap a schermo (se hai il permesso)</td></tr>
-    <tr><td><span class="cmd">/f sethome / home</span></td><td>Imposta / vai alla casa della fazione</td></tr>
-    <tr><td><span class="cmd">/f unsethome</span></td><td>Toglie la casa della fazione</td></tr>
-    <tr><td><span class="cmd">/f description &lt;testo&gt;</span></td><td>Imposta la descrizione</td></tr>
-    <tr><td><span class="cmd">/f rename &lt;nome&gt;</span></td><td>Cambia il nome della fazione (leader, 1 ogni {{cfg:rename.cooldown-days}} giorni)</td></tr>
-    <tr><td><span class="cmd">/f info [fazione]</span></td><td>Info sulla fazione</td></tr>
+    <tr><td><span class="cmd">/f info [fazione]</span></td><td>Tutto su una fazione</td></tr>
+    <tr><td><span class="cmd">/f power [gioc]</span></td><td>La Potenza di un giocatore</td></tr>
     <tr><td><span class="cmd">/f list</span></td><td>Elenca tutte le fazioni</td></tr>
-    <tr><td><span class="cmd">/f top</span></td><td>La classifica delle fazioni per punteggio</td></tr>
-    <tr><td><span class="cmd">/f disband</span></td><td>Scioglie la fazione (leader)</td></tr>
+    <tr><td><span class="cmd">/f top</span></td><td>La classifica delle fazioni</td></tr>
   </table>
-  <p style="text-align:center;margin-top:16px"><a class="top" href="#">↑ Torna su</a></p>
 </section>
 
 <footer>
@@ -608,6 +648,13 @@ HTML = r"""<!DOCTYPE html>
 </body>
 </html>
 """
+
+
+# Numeri dei capitoli, indice e parti: li scrive tutorial_structure.py (vedi li').
+import sys
+sys.path.insert(0, DOCS)
+from tutorial_structure import structure
+HTML = structure(HTML)
 
 HTML = HTML.replace("__GIF__", GIF)
 out = os.path.join(DOCS, "tutorial.html")

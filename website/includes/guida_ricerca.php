@@ -368,7 +368,9 @@ function guide_ai_staff_chapters(): array {
                 continue;
             }
             $capitoli[] = [
-                'ancora'   => $ancora,
+                // Dritti al sottocapitolo (la pagina gli da' lo stesso id): prima si finiva
+                // all'inizio del plugin e si cercava a occhio il punto giusto.
+                'ancora'   => $sottoTitolo !== '' ? guide_staff_section_id((string) $c['plugin'], $h[1]) : $ancora,
                 'numero'   => '',
                 'titolo'   => $sottoTitolo !== '' ? $sottoTitolo : 'In breve',
                 'gruppo'   => $titoloPlugin,
