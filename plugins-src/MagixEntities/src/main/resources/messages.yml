@@ -13,13 +13,13 @@ no-permission: "&#FF6B6B✖ Non hai il permesso per questo comando."
 players-only: "&#FF6B6B✖ Questo comando va usato in gioco."
 unknown-sub: "&#FF6B6B✖ Sottocomando sconosciuto: &f{sub}&7. Scrivi &f/mentities help&7."
 name-invalid: "&#FF6B6B✖ Nome non valido &8· &7solo lettere, numeri, &f_&7 e &f-&7 (max 32 caratteri)."
-already-exists: "&#FF6B6B✖ Esiste gia' un'entita' chiamata &f{name}&7."
-not-found: "&#FF6B6B✖ Nessuna entita' chiamata &f{name}&7. Vedi &f/mentities list&7."
+already-exists: "&#FF6B6B✖ Esiste già un'entita' chiamata &f{name}&7."
+not-found: "&#FF6B6B✖ Nessuna entità chiamata &f{name}&7. Vedi &f/mentities list&7."
 type-invalid: "&#FF6B6B✖ Tipo &f{type}&7 non valido &8· &7usa &fplayer&7 o un mob (zombie, blaze, villager...)."
-world-missing: "&#FF6B6B✖ Il mondo &f{world}&7 non e' caricato."
+world-missing: "&#FF6B6B✖ Il mondo &f{world}&7 non è caricato."
 pose-invalid: "&#FF6B6B✖ Posa non valida &8· &7disponibili: &f{poses}"
-pose-not-player: "&#FF6B6B✖ Le pose valgono solo per le entita' di tipo &fplayer&7."
-skin-not-player: "&#FF6B6B✖ &f{name}&7 non e' di tipo &fplayer&7: non ha una skin."
+pose-not-player: "&#FF6B6B✖ Le pose valgono solo per le entità di tipo &fplayer&7."
+skin-not-player: "&#FF6B6B✖ &f{name}&7 non è di tipo &fplayer&7: non ha una skin."
 option-unknown: "&#FF6B6B✖ Opzione sconosciuta &8· &7disponibili: &f{options}"
 scale-invalid: "&#FF6B6B✖ Scala non valida &8· &7dev'essere un numero fra &f{min}&7 e &f{max}&7 (1 = normale)."
 followradius-invalid: "&#FF6B6B✖ Raggio non valido &8· &7un numero di blocchi fra &f{min}&7 e &f{max}&7, oppure &freset&7 (torna a &f{default}&7)."
@@ -49,37 +49,37 @@ usage-cmd-add: "&#FFD166▸ Uso: &f/mentities cmd <nome> add <comando> &8· &7pr
 # ------------------------------------------------------------------ esiti
 created: "&#A8DC2C✔ Creata &f{name} &8· &7{type} &8· &r{display}"
 created-player-hint: "&8  ↳ &7skin da &f{skin}&7, cambiala con &f/mentities skin {name} <nick>"
-# Un altro plugin (tipicamente WorldGuard) ha annullato la nascita: la definizione e' salvata,
-# ma nel mondo non e' entrato niente. Il perche' esteso e' scritto in console.
-spawn-refused: "&#FFD166▲ &f{name} &7e' salvata ma un altro plugin ne blocca la nascita nel mondo &f{world}&7. Con WorldGuard: &fmob-spawning: deny &7+ &fmobs.block-plugin-spawning: true&7 — metti quest'ultimo a &ffalse&7 (poi &f/wg reload&7). Dettagli in console."
-removed: "&#A8DC2C✔ Entita' &f{name} &7rimossa."
+# Un altro plugin (tipicamente WorldGuard) ha annullato la nascita: la definizione è salvata,
+# ma nel mondo non è entrato niente. Il perché esteso è scritto in console.
+spawn-refused: "&#FFD166▲ &f{name} &7è salvata ma un altro plugin ne blocca la nascita nel mondo &f{world}&7. Con WorldGuard: &fmob-spawning: deny &7+ &fmobs.block-plugin-spawning: true&7 — metti quest'ultimo a &ffalse&7 (poi &f/wg reload&7). Dettagli in console."
+removed: "&#A8DC2C✔ Entità &f{name} &7rimossa."
 renamed: "&#A8DC2C✔ &f{old} &7ora si chiama &f{new}&7."
-renamed-skin-hint: "&8  ↳ &7la skin segue il nome: ora e' &f{skin}"
-renamed-display-hint: "&8  ↳ &7il displayname segue il nome: ora e' &r{display}"
+renamed-skin-hint: "&8  ↳ &7la skin segue il nome: ora è &f{skin}"
+renamed-display-hint: "&8  ↳ &7il displayname segue il nome: ora è &r{display}"
 display-set: "&#A8DC2C✔ Displayname di &f{name}&7: &r{display}"
 display-reset: "&#A8DC2C✔ Displayname di &f{name} &7torna a seguire il nome: &r{display}"
-display-mirror: "&#A8DC2C✔ Displayname di &f{name} &7in modalita' &#A8DC2Cmirror &8· &7ognuno vedra' il proprio nome."
+display-mirror: "&#A8DC2C✔ Displayname di &f{name} &7in modalità &#A8DC2Cmirror &8· &7ognuno vedrà il proprio nome."
 display-off: "&#A8DC2C✔ Nome sopra la testa di &f{name} &7nascosto."
 display-on: "&#A8DC2C✔ Nome sopra la testa di &f{name} &7di nuovo visibile: &r{display}"
-type-set: "&#A8DC2C✔ &f{name} &7ora e' di tipo &f{type} &8· &7era &f{old}"
-type-same: "&#FFD166▸ &f{name}&7 e' gia' di tipo &f{type}&7."
+type-set: "&#A8DC2C✔ &f{name} &7ora è di tipo &f{type} &8· &7era &f{old}"
+type-same: "&#FFD166▸ &f{name}&7 è già di tipo &f{type}&7."
 type-player-hint: "&8  ↳ &7skin da &f{skin}&7, cambiala con &f/mentities skin {name} <nick>"
 type-kept-hint: "&8  ↳ &7skin e posa restano salvate: tornando al tipo &fplayer&7 le ritrovi."
 skin-set: "&#A8DC2C✔ Skin di &f{name}&7: &f{skin}"
-skin-mirror: "&#A8DC2C✔ Skin di &f{name} &7in modalita' &#A8DC2Cmirror &8· &7ognuno la vedra' con la propria."
+skin-mirror: "&#A8DC2C✔ Skin di &f{name} &7in modalità &#A8DC2Cmirror &8· &7ognuno la vedrà con la propria."
 skin-failed: "&#FFD166▸ Texture di &f{skin}&7 non trovate: uso il solo nome, la skin potrebbe non apparire."
 pose-set: "&#A8DC2C✔ Posa di &f{name}&7: &f{pose}"
 scale-set: "&#A8DC2C✔ Scala di &f{name}&7: &f{scale}"
 option-set: "&#A8DC2C✔ &f{name} &8· &7{option} &8→ &f{value}"
 followradius-set: "&#A8DC2C✔ Raggio del follow di &f{name}&7: &f{radius} &7blocchi"
 followradius-reset: "&#A8DC2C✔ Raggio del follow di &f{name} &7torna a quello del config: &f{radius} &7blocchi"
-followradius-off-hint: "&8  ↳ &7il follow di &f{name} &7e' spento: accendilo con &f/mentities set {name} follow on"
+followradius-off-hint: "&8  ↳ &7il follow di &f{name} &7è spento: accendilo con &f/mentities set {name} follow on"
 teleported: "&#A8DC2C✔ Teletrasportato da &f{name}&7."
 moved: "&#A8DC2C✔ &f{name} &7spostata nella tua posizione."
 position-set: "&#A8DC2C✔ &f{name} &8· &7{axis} {delta} &8→ &f{x} {y} {z}"
 respawned: "&#A8DC2C✔ &f{name} &7ricreata."
-reloaded: "&#A8DC2C✔ Configurazione ricaricata &8· &7entita': &f{count}"
-not-loaded: "&#FFD166▸ &f{name} &7non e' caricata (chunk scarico): la modifica e' salvata e verra' applicata al ritorno."
+reloaded: "&#A8DC2C✔ Configurazione ricaricata &8· &7entità: &f{count}"
+not-loaded: "&#FFD166▸ &f{name} &7non è caricata (chunk scarico): la modifica è salvata e verrà applicata al ritorno."
 
 # ------------------------------------------------------ equipaggiamento
 equip-title: "Equipaggiamento · {name}"
@@ -105,8 +105,8 @@ cmd-entry: " &8│ &7#{index} &8· &f{cmd}"
 cmd-entry-hover: "&#A8DC2C▸ Clicca per proporre la rimozione"
 
 # -------------------------------------------------------------------- list
-list-empty: "&7Nessuna entita' creata. Inizia con &f/mentities create <nome> <tipo>&7."
-list-header: "&#C046E8&l ENTITA' &8· &7{count} totali &8· &7pagina &f{page}&7/&f{pages}"
+list-empty: "&7Nessuna entità creata. Inizia con &f/mentities create <nome> <tipo>&7."
+list-header: "&#C046E8&l ENTITÀ &8· &7{count} totali &8· &7pagina &f{page}&7/&f{pages}"
 list-entry: " &8│ &f{name} &8· &#A8DC2C{type} &8│ &r{display} &8│ {status}"
 list-entry-hover: "&7Mondo &f{world}&7\n&7Posizione &f{x} {y} {z}\n&7Displayname &r{display}\n\n&#A8DC2C▸ Clicca per i dettagli"
 list-nav-prev: "&#A8DC2C◀ Indietro"
@@ -115,7 +115,7 @@ list-nav-disabled: "&8"
 status-ok: "&#A8DC2C●"
 status-unloaded: "&8●"
 status-missing: "&#FF6B6B●"
-# Entita' che NON riesce a nascere: un altro plugin annulla la nascita (vedi spawn-refused).
+# Entità che NON riesce a nascere: un altro plugin annulla la nascita (vedi spawn-refused).
 status-refused: "&#FFD166●"
 status-legend: " &8└ &#A8DC2C● &7attiva &8· &8● &7chunk scarico &8· &#FF6B6B● &7assente &8· &#FFD166● &7nascita bloccata"
 
@@ -155,7 +155,7 @@ editor-display-lore:
 editor-rename-name: "&fNome"
 editor-rename-lore:
   - "&7Ora: &f{name}"
-  - "&7Per il tipo player e' anche la skin"
+  - "&7Per il tipo player è anche la skin"
   - " "
   - "&#A8DC2C▸ Clicca per scriverlo in chat"
 editor-skin-name: "&fSkin"
@@ -205,12 +205,12 @@ editor-option-desc-glowing: "Contorno luminoso"
 editor-option-desc-collidable: "I giocatori la spingono e la urtano"
 editor-option-desc-immovable: "Statua bloccata del tutto"
 editor-option-desc-interact: "Il clic arriva anche agli altri plugin (CMI...)"
-editor-option-desc-follow: "Ognuno vicino la vede girata verso di se'"
+editor-option-desc-follow: "Ognuno vicino la vede girata verso di sé"
 editor-radius-name: "&fRaggio del follow"
 editor-radius-lore:
   - "&7Ora: &f{radius} &7blocchi &8({source})"
   - "&7Entro questo raggio ognuno la vede"
-  - "&7girata verso di se'"
+  - "&7girata verso di sé"
   - " "
   - "&#A8DC2C▸ Clic sinistro: +2 &8· &#A8DC2Cdestro: -2"
   - "&#A8DC2C▸ Shift+clic: di 8"
@@ -221,7 +221,7 @@ editor-position-name: "&fPosizione"
 editor-position-lore:
   - "&7{world} &8· &f{x} {y} {z}"
   - " "
-  - "&#A8DC2C▸ Clicca per spostarla su, giu', X e Z"
+  - "&#A8DC2C▸ Clicca per spostarla su, giù, X e Z"
 editor-tp-name: "&fVai dall'entita'"
 editor-tp-lore:
   - "&#A8DC2C▸ Clicca per teletrasportarti"
@@ -238,7 +238,7 @@ editor-commands-lore:
   - "&#A8DC2C▸ Clic destro: aggiungine uno"
 editor-respawn-name: "&fRicrea"
 editor-respawn-lore:
-  - "&7Se e' sparita o si comporta in modo strano"
+  - "&7Se è sparita o si comporta in modo strano"
   - " "
   - "&#A8DC2C▸ Clicca per ricrearla"
 editor-remove-name: "&#FF6B6BRimuovi"
@@ -266,8 +266,8 @@ editor-pos-step-name: "&fPasso: {step} blocchi"
 editor-pos-step-lore:
   - "&7Di quanto si sposta a ogni clic"
   - " "
-  - "&#A8DC2C▸ Clic sinistro: passo piu' grande"
-  - "&#A8DC2C▸ Clic destro: passo piu' piccolo"
+  - "&#A8DC2C▸ Clic sinistro: passo più grande"
+  - "&#A8DC2C▸ Clic destro: passo più piccolo"
 editor-suggest: "&#A8DC2C▸ Clicca qui per scrivere &f{cmd}"
 editor-suggest-hover: "&7Il comando finisce nella barra della chat: completalo e invia"
 
@@ -276,13 +276,13 @@ editor-suggest-hover: "&7Il comando finisce nella barra della chat: completalo e
 # sezione per volta, frecce per sfogliare, ogni riga cliccabile per scriversi il
 # comando in chat.
 # Formato di una riga:  "<comando> [argomenti] :: spiegazione"
-#   - il comando (le parole semplici iniziali) e' quello che il clic scrive;
+#   - il comando (le parole semplici iniziali) è quello che il clic scrive;
 #   - gli argomenti fra <> o [] restano da riempire a mano;
 #   - staff: true su una sezione = la vede solo chi ha magixentities.admin.
 help:
   title: "MagixEntities"
   # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
-  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # non cambia da un plugin all'altro, ma vive comunque qui perché Help lo legge da
   # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
   chrome:
     no-commands: "Nessun comando disponibile."
@@ -294,15 +294,15 @@ help:
     page: "Pagina {numero}"
   sections:
     entita:
-      title: "Entita'"
+      title: "Entità"
       entries:
         - "/mentities create <nome> <tipo> [displayname] :: crea dove sei (tipo: player o un mob)"
         - "/mentities remove <nome> :: elimina l'entita'"
-        - "/mentities list [pagina] :: elenco delle entita'"
-        - "/mentities info <nome> :: dettagli di una entita'"
+        - "/mentities list [pagina] :: elenco delle entità"
+        - "/mentities info <nome> :: dettagli di una entità"
         - "/mentities editor <nome> :: pannello con tutti i comandi dell'entita', posizione compresa"
         - "/mentities type <nome> <tipo> :: cambia il tipo tenendo tutto il resto"
-        - "/mentities respawn <nome> :: ricrea l'entita' se e' sparita"
+        - "/mentities respawn <nome> :: ricrea l'entita' se è sparita"
     aspetto:
       title: "Aspetto"
       entries:
@@ -313,7 +313,7 @@ help:
         - "/mentities scale <nome> <valore|reset> :: ingrandisce o rimpicciolisce l'entita' (1 = normale, qualsiasi tipo)"
         - "/mentities equip <nome> :: menu per vestirla (armatura e mani)"
         - "/mentities set <nome> <opzione> <on|off> :: invulnerable, nametag, ai, gravity, glowing... (tab per l'elenco)"
-        - "/mentities followradius <nome> <blocchi|reset> :: raggio del follow di questa entita' (reset = quello del config)"
+        - "/mentities followradius <nome> <blocchi|reset> :: raggio del follow di questa entità (reset = quello del config)"
     interazione:
       title: "Interazione"
       entries:
@@ -323,7 +323,7 @@ help:
         - "/mentities cmd <nome> clear :: toglie tutti i comandi"
         - "/mentities set <nome> interact on :: lascia passare il clic ad altri plugin (CMI...)"
     position:
-      title: "Posizione e utilita'"
+      title: "Posizione e utilità"
       entries:
         - "/mentities tp <nome> :: teletrasportati dall'entita'"
         - "/mentities here <nome> :: sposta l'entita' dove sei tu"
@@ -332,4 +332,4 @@ help:
       title: "Staff"
       staff: true
       entries:
-        - "/mentities reload :: ricarica config, messaggi ed entita'"
+        - "/mentities reload :: ricarica config, messaggi ed entità"

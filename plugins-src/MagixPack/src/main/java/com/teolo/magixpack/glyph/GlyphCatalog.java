@@ -141,7 +141,7 @@ public final class GlyphCatalog {
                 }
                 try {
                     BufferedImage img = ImageIO.read(textureFile(id));
-                    if (img == null) throw new IOException("non e' un'immagine");
+                    if (img == null) throw new IOException("non è un'immagine");
                     rows = img.getHeight();
                     contentWidth = contentWidth(img);
                 } catch (IOException ex) {

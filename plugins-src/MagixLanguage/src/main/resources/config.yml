@@ -114,7 +114,7 @@ translations:
   # avrebbe solo il testo italiano da tradurre a mano.
   auto-translate:
     # Se false nessuna chiave esce verso il servizio di traduzione: le lingue diverse
-    # dall'italiano restano col testo italiano finche' non lo corregge lo staff (vedi
+    # dall'italiano restano col testo italiano finché non lo corregge lo staff (vedi
     # <lingua>-overrides.yml dentro ogni cartella di translations/<Plugin>/).
     enabled: true
 
@@ -122,26 +122,26 @@ translations:
     # quella chiave (resta in italiano fino al prossimo giro, si riprova da sola).
     timeout-ms: 4000
 
-    # Pausa fra una richiesta di traduzione e la successiva: il servizio e' gratuito e
+    # Pausa fra una richiesta di traduzione e la successiva: il servizio è gratuito e
     # senza chiave, quindi va usato con garbo per non farsi bloccare temporaneamente.
     # Con molte chiavi nuove insieme (es. un plugin aggiunto oggi) la prima
-    # sincronizzazione puo' volerci qualche minuto: gira fuori dal thread principale,
+    # sincronizzazione può volerci qualche minuto: gira fuori dal thread principale,
     # quindi non blocca il gioco nel frattempo.
     delay-ms: 150
 
     # Indirizzo email da segnalare a MyMemory (parametro "de" della loro API): alza il
     # limite giornaliero da 5000 a 10000 parole tradotte per questo server. Facoltativo,
-    # lasciare vuoto per restare anonimi (limite piu' basso ma nessun dato in piu' inviato).
+    # lasciare vuoto per restare anonimi (limite più basso ma nessun dato in più inviato).
     contact-email: "admin@magicadventure.it"
 
     # Quando MyMemory rifiuta tre richieste di fila (quota del giorno finita), nessuno lo
-    # richiama per un po' - ne' i plugin ne' il sito - e poi si riprova DA SOLI, senza
+    # richiama per un po' - né i plugin né il sito - e poi si riprova DA SOLI, senza
     # aspettare un riavvio. La durata la dice di solito MyMemory stessa nella risposta
     # ("next available in..."): questo valore, in minuti, si usa solo quando non la dice.
     pause-after-block-minutes: 120
 
     # Senza blocchi, ogni quanti minuti riprovare da soli le chiavi dei plugin rimaste in
-    # italiano (di solito traduzioni scartate perche' rovinavano un colore o un placeholder):
+    # italiano (di solito traduzioni scartate perché rovinavano un colore o un placeholder):
     # vale anche per i riavvii, che altrimenti riproverebbero tutto ogni volta consumando
     # quota. Minimo 30; /language sync force riprova comunque subito.
     retry-interval-minutes: 180

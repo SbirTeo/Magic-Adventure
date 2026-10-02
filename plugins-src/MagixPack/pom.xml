@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixPack</artifactId>
-    <version>0.7.0</version>
+    <version>0.7.1</version>
     <packaging>jar</packaging>
 
     <name>MagixPack</name>
@@ -52,7 +52,7 @@
         <dependency>
             <groupId>com.teolo</groupId>
             <artifactId>MagixLanguage</artifactId>
-            <version>0.4.13</version>
+            <version>0.4.14</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

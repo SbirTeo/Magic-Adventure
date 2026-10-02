@@ -37,6 +37,12 @@ What it reports, for each .yml config file:
       declared NOT for players by writing [solo staff] / [staff only] in its comment or in the comment
       of a section above it. The tutorial tells only what touches the players; everything else is
       declared, so a new key forces the choice instead of vanishing in silence.
+  [11] HAND-WRITTEN NUMBER in the staff guide (the texts of StaffGuide.create(...) ... .write()) that
+      matches a config value -> use {{cfg:key}} (the guide is bound to the config with .values(...)).
+      A real coincidence (a texture size, an example) goes in STAFF_NUMBER_OK with a bit of its text.
+  [12] ACCENT WRITTEN WITH AN APOSTROPHE ("piu'", "e'", "perche'") in what people read: YAML values
+      and comments, Java string literals. Write the accented letter (più, è, perché). "po'" is right
+      as it is, and a word between single quotes ('dai_soldi') is not an accent.
 
 Exits with code 1 if it found anything: can be wired to a hook or to the build.
 """
@@ -303,6 +309,88 @@ def keys_not_told(folder, keys, code):
     return problems
 
 
+# [11] Numbers in the staff guide that happen to equal a config value but have nothing to do with
+# it: (plugin, a piece of the sentence). Checked by eye, one by one.
+STAFF_NUMBER_OK = [
+    ("MagixFactions", "powermax.20 = tetto 20"),        # example of the permission syntax
+    ("MagixFactions", "servono almeno 10 righe vuote"),  # tablist layout, from the logo height
+    ("MagixFactions", "le 80 caselle finte"),            # fixed texture of the tablist
+    ("MagixFactions", "di serie 6 fazioni da 2-5"),       # defaults of /mf admin fake create
+    ("MagixGuard", "40:40 mgviolation"),                 # example line of another plugin's file
+]
+STRING_LITERAL = re.compile(r'"(?:[^"\\\n]|\\.)*"')
+NUMBER_IN_TEXT = re.compile(r"(?<![\w.&#])(\d+(?:[.,]\d+)?)(?![\w.])")
+
+
+def staff_guide_numbers(name, keys):
+    """[11] see the header: hand-written numbers in the staff guide that match a config value."""
+    values = {}
+    for c in keys:
+        v = c["value"].split("#")[0].strip().strip('"\'')
+        if re.fullmatch(r"\d+(?:\.\d+)?", v or "") and float(v) >= 3:
+            values.setdefault(v, []).append(c["key"])
+    problems = []
+    for root, _, files in os.walk(os.path.join(HERE, name, "src", "main", "java")):
+        for f in files:
+            if not f.endswith(".java") or f == "StaffGuide.java":
+                continue
+            with open(os.path.join(root, f), encoding="utf-8", errors="ignore") as fh:
+                src = fh.read()
+            start = src.find("StaffGuide.create(")
+            if start < 0:
+                continue
+            end = src.find(".write()", start)
+            for lit in STRING_LITERAL.findall(src[start:end if end > 0 else len(src)]):
+                if any(p == name and piece in lit for p, piece in STAFF_NUMBER_OK):
+                    continue
+                text = re.sub(r"\{\{[^}]{1,80}\}\}|`[^`]*`", " ", lit)
+                for n in NUMBER_IN_TEXT.findall(text):
+                    if n in values:
+                        problems.append((f, 0, "[11] hand-written number (" + n + ") in the staff guide, matches",
+                                         ", ".join(values[n][:3])))
+    return problems
+
+
+ACCENT_APOSTROPHE = re.compile(r"(?<![A-Za-zÀ-ÿ'])([A-Za-z]*[aeiouAEIOU])'(?=[\s.,:;!?)\"&<>{}\[\]§*~/|-]|$)")
+ACCENT_OK = {"po", "de", "mo", "to", "pe", "ca", "fa", "sta", "va", "di", "tu", "be", "ma", "fe", "pie"}
+SINGLE_QUOTED = re.compile(r"(?<![A-Za-zÀ-ÿ])'[^'\n\"]{1,80}'(?![A-Za-zÀ-ÿ])")
+TRANSLATIONS = ("en.yml", "es.yml", "de.yml")
+
+
+def apostrophe_accents(text):
+    text = SINGLE_QUOTED.sub(" ", text)
+    out = [w for w in ACCENT_APOSTROPHE.findall(text) if w.lower() not in ACCENT_OK]
+    out += re.findall(r"[cC]'[eE]'(?=[\s.,:;!?)\"&<]|$)", text)
+    return out
+
+
+def accents_with_apostrophe(name):
+    """[12] see the header: accents written with an apostrophe in what people read."""
+    problems = []
+    base = os.path.join(HERE, name, "src", "main")
+    for root, _, files in os.walk(base):
+        for f in files:
+            path = os.path.join(root, f)
+            if f.endswith(".yml") and f not in ("plugin.yml", "value-fixes.yml", "renames.yml") + TRANSLATIONS:
+                with open(path, encoding="utf-8", errors="ignore") as fh:
+                    for i, line in enumerate(fh, 1):
+                        body = line
+                        m = re.match(r"^(\s*(?:-\s+)?(?:[^\s:#\"'][^:#]*:[ \t]*)?)'((?:[^']|'')*)'(.*)$", line)
+                        if m:   # a single-quoted YAML value: its apostrophes are written twice
+                            body = m.group(2).replace("''", "\x01") + m.group(3)
+                        for w in apostrophe_accents(body):
+                            problems.append((os.path.relpath(path, base), i, "[12] accent written with an apostrophe", w + "'"))
+            elif f.endswith(".java"):
+                with open(path, encoding="utf-8", errors="ignore") as fh:
+                    for i, line in enumerate(fh, 1):
+                        if line.strip().startswith(("//", "*", "/*")):
+                            continue
+                        for lit in STRING_LITERAL.findall(line):
+                            for w in apostrophe_accents(lit):
+                                problems.append((f, i, "[12] accent written with an apostrophe", w + "'"))
+    return problems
+
+
 def check(name):
     folder = os.path.join(HERE, name)
     resources = os.path.join(folder, "src", "main", "resources")
@@ -368,6 +456,8 @@ def check(name):
             problems += modes_not_told(folder, keys, code)
             if f == "config.yml":
                 problems += keys_not_told(folder, keys, code)
+                problems += staff_guide_numbers(name, keys)
+    problems += accents_with_apostrophe(name)
     problems += help_arguments_unknown(name)
     problems += placeholders_undocumented(name)
     return problems

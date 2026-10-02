@@ -59,7 +59,7 @@ help:
       staff: true
       entries:
         - "/mscoreboard list :: elenco delle scoreboard configurate, con peso e condizioni"
-        - "/mscoreboard debug <giocatore> :: quale scoreboard vede e perche' (punteggi di ognuna)"
+        - "/mscoreboard debug <giocatore> :: quale scoreboard vede e perché (punteggi di ognuna)"
         - "/mscoreboard reload :: ricarica config.yml e messages.yml"
 
 # ---------------------------------------------------------------- /mscoreboard list

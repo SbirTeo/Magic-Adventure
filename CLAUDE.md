@@ -382,6 +382,11 @@ Regole che ne discendono:
   ne riconosce **nessuna** (successe coi fine riga di Windows), il file non si tocca; e se il
   risultato conterrebbe una chiave **doppia**, l'allineamento si annulla. In YAML vince l'ultima
   chiave: un doppione accodato copre i valori veri, comprese le credenziali del database.
+- **Un testo di serie cambiato** (es. un accento corretto) non arriva da solo sul server: i valori
+  gia' presenti non si toccano. Si dichiara in **`value-fixes.yml`** nelle risorse del plugin
+  (`<file>: [{old: "testo vecchio", new: "testo nuovo"}]`): `ConfigAlign` all'avvio e a ogni reload
+  sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano dallo staff resta), con
+  la copia in `.bak/`. MagixProxy (Velocity, senza ConfigAlign) fa lo stesso in `ProxyConfig`.
 - `deploy-plugin-config.yml` resta per gli interventi a mano: `mode=set` per cambiare un valore
   gia' presente sul server, `mode=rename` per una rinomina una tantum, `mode=dedup` per rimediare
   a un file con blocchi duplicati.
@@ -516,7 +521,11 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    la guida staff non elenca (costante `DOCS` della classe dei placeholder, passata a
    `StaffGuide.placeholders(...)`), **[10]** segnala una chiave di `config.yml` che il tutorial non racconta e
    che non e' marcata `[solo staff]` nel commento (della chiave o di una sezione sopra): il tutorial cita
-   **solo** quello che tocca i giocatori, e ogni chiave nuova obbliga a scegliere. Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
+   **solo** quello che tocca i giocatori, e ogni chiave nuova obbliga a scegliere. **[11]** segnala un numero
+   scritto a mano nelle frasi della guida staff che coincide con un valore del config (si usa
+   `{{cfg:...}}`; le coincidenze vere vanno in `STAFF_NUMBER_OK`), **[12]** segnala un accento scritto
+   con l'apostrofo ("piu'", "e'") nei testi dei plugin — valori e commenti YAML, stringhe Java: si
+   scrive la lettera accentata (più, è, perché; "po'" resta così). Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
    `git config core.hooksPath .githooks`) e va lanciato prima di un rilascio.
 5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
    plugin e i `docs/` relativi, nello stesso commit della modifica.

@@ -9,7 +9,7 @@ player-not-found: "&cGiocatore '{player}' non trovato (deve essere online)."
 item-usage: "&eUso: &a/mpack item give <id> [giocatore] &7| &a/mpack item list"
 item-unknown: "&cNessun oggetto custom '{item}' in items.yml (o gli manca la texture in items/)."
 item-given: "&aDato l'oggetto custom '{item}' a &f{player}&a."
-item-avatar-no-skin: "&eNessuna skin trovata per &f{player}&e (account non premium, o Mojang non raggiungibile): l'oggetto avatar non avra' la faccia nella descrizione."
+item-avatar-no-skin: "&eNessuna skin trovata per &f{player}&e (account non premium, o Mojang non raggiungibile): l'oggetto avatar non avrà la faccia nella descrizione."
 item-list-empty: "&7Nessun oggetto custom in items.yml."
 item-list-header: "&e{count} oggetto/i custom in items.yml:"
 item-list-row: "&7 - &f{item}"
@@ -21,14 +21,14 @@ glyph-list-heading: "&e{count} icona/e custom in glyphs.yml &7(i caratteri si ri
 glyph-list-entry: "&7 - &f{glyph}&7: &f{char} &8({codepoint}) &7{placeholder}"
 glyph-list-entry-avatar: "&7 - &f{glyph}&7: avatar del giocatore &7{placeholder}"
 # I due pulsanti in fondo a ogni riga: copia negli appunti, oppure scrivi nella barra della chat
-# (da li' si usa subito, o si copia con Ctrl+A e Ctrl+C).
+# (da lì si usa subito, o si copia con Ctrl+A e Ctrl+C).
 glyph-list-button-copy: " &a[copia]"
 glyph-list-button-chat: " &b[in chat]"
 glyph-list-hover-copy: "&7Copia negli appunti: &f{value}"
 glyph-list-hover-chat: "&7Scrivi nella barra della chat: &f{value}"
-# Un'icona player-avatar e' un PLACEHOLDER (diverso per ogni giocatore, lo risolve
+# Un'icona player-avatar è un PLACEHOLDER (diverso per ogni giocatore, lo risolve
 # PlaceholderAPI): il testo digitato in chat NON passa mai da PlaceholderAPI (apposta, per non
-# far scrivere a un giocatore il grado di un altro), quindi incollato li' resterebbe testo
+# far scrivere a un giocatore il grado di un altro), quindi incollato lì resterebbe testo
 # letterale, non l'avatar. Il pulsante [copia] resta (serve per un menu/scoreboard/tablist, dove
 # PAPI lo risolve davvero), ma [in chat] qui suggerisce il comando di anteprima vero, non il
 # placeholder da incollare.
@@ -45,7 +45,7 @@ glyph-avatar-chars-full: "&cTroppe skin diverse viste in questo avvio: nessun ca
 # Scritto subito a destra dell'icona nell'anteprima di /mpack glyph show.
 glyph-show-caption: " &7{glyph}"
 # Solo per un avatar: pulsante che copia UN CARATTERE VERO (una texture della faccia, assegnata al
-# volo - come Oraxen per le teste custom), non un placeholder ne' un trucco di codici colore -
+# volo - come Oraxen per le teste custom), non un placeholder né un trucco di codici colore -
 # incollato in un messaggio di chat vero funziona per chiunque veda il pacchetto, nessuna
 # risoluzione lato server necessaria.
 glyph-show-copy-button: " &a[copia]"

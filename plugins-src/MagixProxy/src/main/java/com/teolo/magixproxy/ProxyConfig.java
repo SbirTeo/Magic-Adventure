@@ -64,6 +64,7 @@ public final class ProxyConfig {
     public static ProxyConfig load(Path dataDirectory, Logger log) throws IOException {
         Files.createDirectories(dataDirectory);
         Map<String, Object> cfg = read(copyDefault(dataDirectory, "config.yml", log));
+        applyValueFixes(dataDirectory, log);
         Map<String, Object> msg = read(copyDefault(dataDirectory, "messages.yml", log));
         Map<String, Object> def = readResource("config.yml");
         return new ProxyConfig(cfg, def, databaseSource(cfg, def, log), msg, readResource("messages.yml"));
@@ -106,6 +107,48 @@ public final class ProxyConfig {
             v = lookup(defaultMessages, path);
         }
         return v == null ? path : v.toString();
+    }
+
+    /**
+     * Default texts that changed in the jar (e.g. accents written with an apostrophe, "piu'") are
+     * updated in the proxy's own files too: value-fixes.yml lists old -> new pairs per file, and only
+     * a value IDENTICAL to the old default is replaced (one the staff changed stays). Same rule as
+     * util/ConfigAlign in the Paper plugins, which this proxy plugin does not have.
+     */
+    @SuppressWarnings("unchecked")
+    private static void applyValueFixes(Path dir, Logger log) {
+        Map<String, Object> fixes;
+        try {
+            fixes = readResource("value-fixes.yml");
+        } catch (IOException | RuntimeException e) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : fixes.entrySet()) {
+            Path file = dir.resolve(entry.getKey());
+            if (!Files.isRegularFile(file) || !(entry.getValue() instanceof java.util.List<?> pairs)) {
+                continue;
+            }
+            try {
+                String original = Files.readString(file, StandardCharsets.UTF_8);
+                String fixed = original;
+                for (Object o : pairs) {
+                    if (!(o instanceof Map<?, ?> pair)) continue;
+                    fixed = fixed.replace("\"" + escaped(String.valueOf(pair.get("old"))) + "\"",
+                            "\"" + escaped(String.valueOf(pair.get("new"))) + "\"");
+                }
+                if (fixed.equals(original)) continue;
+                Files.copy(file, file.resolveSibling(file.getFileName() + ".bak-" + System.currentTimeMillis()));
+                Files.writeString(file, fixed, StandardCharsets.UTF_8);
+                log.info("MagixProxy: {} aggiornato coi testi di serie nuovi (value-fixes.yml).", entry.getKey());
+            } catch (IOException | RuntimeException e) {
+                log.warn("MagixProxy: {} non aggiornato ({}): il file non è stato toccato.", entry.getKey(), e.toString());
+            }
+        }
+    }
+
+    /** A text as written between double quotes in YAML. */
+    private static String escaped(String text) {
+        return text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t");
     }
 
     private static Path copyDefault(Path dir, String name, Logger log) throws IOException {

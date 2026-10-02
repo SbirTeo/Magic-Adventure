@@ -86,14 +86,14 @@ public final class MagixProxy {
                     config.motdDefaultIcon.isEmpty() ? null : Path.of(config.motdDefaultIcon).toAbsolutePath().normalize()));
         }
         if (proxy.getServer(config.mainServer).isEmpty()) {
-            log.error("MagixProxy: network.main_server \"{}\" non e' fra i [servers] di velocity.toml: "
-                    + "nessuno potra' entrare finche' non si corregge.", config.mainServer);
+            log.error("MagixProxy: network.main_server \"{}\" non è fra i [servers] di velocity.toml: "
+                    + "nessuno potrà entrare finché non si corregge.", config.mainServer);
         }
         log.info("MagixProxy: attivo (UUID e skin decisi dal proxy, skin da Mojang {}; server principale {}, "
                         + "altri server {}, uscendo da un altro server si torna al principale: {}).",
                 config.skinFromMojang ? "accesa" : "spenta", config.mainServer,
                 config.othersRequireLogin ? "solo dopo il login" : "liberi",
-                config.fallbackToMain ? "si'" : "no");
+                config.fallbackToMain ? "sì" : "no");
     }
 
     @Subscribe

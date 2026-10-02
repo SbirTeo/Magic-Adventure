@@ -156,7 +156,7 @@ public final class PlayerStatsManager {
                     if (Boolean.TRUE.equals(e.getValue())) hiddenCount++;
                     applyHidden(e.getKey(), e.getValue());
                 }
-                plugin.getLogger().info("[Classifiche] Visibilita' staff riletta da LuckPerms: " + hiddenCount
+                plugin.getLogger().info("[Classifiche] Visibilità staff riletta da LuckPerms: " + hiddenCount
                         + " nascosti su " + read.size() + " giocatori offline controllati.");
             });
         });

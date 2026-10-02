@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixAuth</artifactId>
-    <version>0.7.29</version>
+    <version>0.7.30</version>
     <packaging>jar</packaging>
 
     <name>MagixAuth</name>
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>com.teolo</groupId>
             <artifactId>MagixLanguage</artifactId>
-            <version>0.4.13</version>
+            <version>0.4.14</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

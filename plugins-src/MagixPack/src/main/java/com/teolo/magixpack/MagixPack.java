@@ -333,40 +333,43 @@ public final class MagixPack extends JavaPlugin implements Listener {
 
     private void writeStaffGuide() {
         StaffGuide.create(this, "MagixPack — il pacchetto risorse unico", 5)
+                // Numeri presi dal config vero ({{cfg:...}} nel testo): una guida con numeri
+                // scritti a mano comincia a mentire alla prima modifica del config.
+                .values(new com.teolo.magixpack.util.ConfigValues(this))
                 .intro("Un client Minecraft applica UN SOLO pacchetto risorse alla volta. MagixPack esiste "
                         + "per questo: invece che ogni plugin (MagixFactions per la minimap e il logo del "
                         + "tablist, MagixAuth per le schermate di accesso...) spedisca il proprio, tutti "
                         + "registrano qui il loro contenuto e questo plugin li fonde in un unico zip, lo "
                         + "serve da solo via un piccolo server HTTP integrato e lo rende obbligatorio al join. "
-                        + "Non ha comandi per i giocatori: e' infrastruttura.")
+                        + "Non ha comandi per i giocatori: è infrastruttura.")
 
                 .section("Chi ci mette cosa",
                         "MagixFactions registra lo shader della minimap/mappa e il logo del tablist "
-                                + "(gia' con i propri segnaposto risolti dal SUO config, es. dimensione della "
+                                + "(già con i propri segnaposto risolti dal SUO config, es. dimensione della "
                                 + "minimap o altezza del logo). MagixAuth registra le schermate di accesso e i "
                                 + "tasti del tastierino OTP. Ogni plugin nuovo che vuole aggiungere texture/font "
                                 + "propri si registra allo stesso modo, senza toccare questo plugin.",
                         "Il pacchetto vero e proprio si costruisce solo a fine avvio (quando TUTTI i plugin "
-                                + "hanno gia' fatto il loro onEnable e quindi la loro registrazione), non subito: "
-                                + "cosi' l'ordine di caricamento fra i vari plugin contributori non conta.")
+                                + "hanno già fatto il loro onEnable e quindi la loro registrazione), non subito: "
+                                + "così l'ordine di caricamento fra i vari plugin contributori non conta.")
 
                 .section("Personalizzare il pacchetto a mano (senza toccare codice)",
-                        "La cartella plugins/MagixPack/overrides/ (creata vuota gia' al primo avvio) e' per "
+                        "La cartella plugins/MagixPack/overrides/ (creata vuota già al primo avvio) è per "
                                 + "chi vuole aggiungere o sostituire un file del pacchetto senza scrivere un "
-                                + "plugin: ogni file li' dentro entra nello zip allo stesso percorso relativo a "
+                                + "plugin: ogni file lì dentro entra nello zip allo stesso percorso relativo a "
                                 + "quella cartella — plugins/MagixPack/overrides/assets/minecraft/textures/gui/"
                                 + "container/inventory.png diventa assets/minecraft/textures/gui/container/"
-                                + "inventory.png nel pacchetto — e VINCE sempre su qualunque contenuto gia' "
+                                + "inventory.png nel pacchetto — e VINCE sempre su qualunque contenuto già "
                                 + "presente (file propri di MagixPack o registrato da un plugin). Stesso "
                                 + "principio di Oraxen: le risorse stanno nella cartella DATI del plugin, non nel "
                                 + "jar, e basta un file + /mpack reload per vederle in gioco, senza ricompilare o "
                                 + "ridistribuire niente.",
-                        "E' il posto giusto per una texture vanilla d'atmosfera (es. lo sfondo dell'inventario) "
+                        "È il posto giusto per una texture vanilla d'atmosfera (es. lo sfondo dell'inventario) "
                                 + "o per provare qualcosa prima di deciderne l'appartenenza definitiva a un "
-                                + "plugin. Attenzione pero' alle texture vanilla con un LAYOUT fisso (l'inventario "
-                                + "e' 176x166 px con le caselle in posizioni scritte nel client, non nell'immagine): "
+                                + "plugin. Attenzione però alle texture vanilla con un LAYOUT fisso (l'inventario "
+                                + "è 176x166 px con le caselle in posizioni scritte nel client, non nell'immagine): "
                                 + "un file con proporzioni diverse viene scalato lo stesso a quella dimensione, e "
-                                + "il risultato puo' venire illeggibile se non e' stato disegnato apposta per "
+                                + "il risultato può venire illeggibile se non è stato disegnato apposta per "
                                 + "quel formato.")
 
                 .section("Comunicazione fra plugin senza dipendenze",
@@ -374,7 +377,7 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "deploy-plugin.yml): due plugin non possono quindi condividere un'interfaccia "
                                 + "a compile-time senza che uno dipenda dal jar dell'altro, cosa che romperebbe "
                                 + "la build indipendente. La registrazione passa per RIFLESSIONE (stesso schema "
-                                + "gia' usato per la chat live del sito verso MagixFactions): l'altro plugin cerca "
+                                + "già usato per la chat live del sito verso MagixFactions): l'altro plugin cerca "
                                 + "il plugin \"MagixPack\" e ne chiama i metodi pubblici per nome.")
 
                 .section("Pacchetto obbligatorio ed espulsione",
@@ -383,30 +386,30 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "timeout-seconds — viene espulso con un messaggio che glielo spiega. Il "
                                 + "permesso magixpack.bypass serve a chi deve entrare senza: riceve comunque il "
                                 + "pacchetto, ma non viene mai espulso se non lo carica.",
-                        "Se il servizio HTTP non e' raggiungibile (public-host vuoto, porta chiusa sul "
+                        "Se il servizio HTTP non è raggiungibile (public-host vuoto, porta chiusa sul "
                                 + "firewall, server appena riavviato) nessuno viene espulso: il pacchetto "
-                                + "semplicemente non e' ancora obbligatorio finche' non torna servibile. E' una "
+                                + "semplicemente non è ancora obbligatorio finché non torna servibile. È una "
                                 + "rete di sicurezza voluta, contro il rischio di chiudere fuori l'intero server "
                                 + "per un problema di rete.")
 
                 .section("Il watchdog",
                         "Ogni watchdog-seconds il plugin scarica da solo il pacchetto in loopback "
-                                + "(127.0.0.1): se non risponde piu' come dovrebbe, riavvia il server HTTP da "
+                                + "(127.0.0.1): se non risponde più come dovrebbe, riavvia il server HTTP da "
                                 + "solo, senza bisogno di intervento. Nasce da un guasto vero: dopo ore di uptime "
-                                + "il server HTTP smetteva di rispondere e nessuno riusciva piu' a scaricare il "
-                                + "pacchetto finche' non si riavviava l'intero server Minecraft.")
+                                + "il server HTTP smetteva di rispondere e nessuno riusciva più a scaricare il "
+                                + "pacchetto finché non si riavviava l'intero server Minecraft.")
 
                 .subcommands("I comandi (/mpack)",
                         "/mpack reload", "Rilegge config.yml (porta, host, messaggi, scadenze), items.yml e "
-                                + "glyphs.yml, ricostruisce subito il pacchetto con le registrazioni gia' in "
-                                + "mano e lo RIMANDA a chi e' gia' online (senza, un client gia' connesso non "
-                                + "saprebbe mai che lo zip e' cambiato: il pacchetto si manda da solo solo al "
-                                + "join). F3+T dal client NON basta: ricarica solo i pacchetti gia' scaricati "
+                                + "glyphs.yml, ricostruisce subito il pacchetto con le registrazioni già in "
+                                + "mano e lo RIMANDA a chi è già online (senza, un client già connesso non "
+                                + "saprebbe mai che lo zip è cambiato: il pacchetto si manda da solo solo al "
+                                + "join). F3+T dal client NON basta: ricarica solo i pacchetti già scaricati "
                                 + "sul disco, non ricontatta il server. Non richiede di nuovo il contenuto agli "
-                                + "altri plugin: se e' cambiato un LORO segnaposto, serve ricaricare (o "
+                                + "altri plugin: se è cambiato un LORO segnaposto, serve ricaricare (o "
                                 + "riavviare) quel plugin, non questo.",
-                        "/mpack item give <id> [giocatore]", "Da' un oggetto custom di items.yml (texture e "
-                                + "modello propri, come Oraxen). Senza destinatario lo da' a chi lancia il "
+                        "/mpack item give <id> [giocatore]", "Dà un oggetto custom di items.yml (texture e "
+                                + "modello propri, come Oraxen). Senza destinatario lo dà a chi lancia il "
                                 + "comando.",
                         "/mpack item list", "Elenca gli oggetti custom caricati da items.yml in questo momento "
                                 + "(quelli con la texture mancante in items/ non compaiono: vedi la console).",
@@ -418,50 +421,50 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "di chat vero: la chat digitata non passa mai da PlaceholderAPI, apposta) e il "
                                 + "comando di anteprima vero (/mpack glyph show <id>).",
                         "/mpack glyph show <id>[,<id>...] [giocatore]", "Mostra un'icona di glyphs.yml in chat, per "
-                                + "provarla; con piu' id separati da virgola (es. avatar,cornice) li mostra impilati "
-                                + "nello stesso punto, sopra quello con priority piu' alta. Per la voce avatar (type: player-avatar) mostra la FACCIA della "
+                                + "provarla; con più id separati da virgola (es. avatar,cornice) li mostra impilati "
+                                + "nello stesso punto, sopra quello con priority più alta. Per la voce avatar (type: player-avatar) mostra la FACCIA della "
                                 + "skin del giocatore indicato (di chi lancia il comando, se manca), dopo averne "
-                                + "scaricato la skin, con un pulsante [copia] che da' un CARATTERE VERO (non un "
-                                + "placeholder): quello si puo' davvero incollare in un messaggio di chat normale "
+                                + "scaricato la skin, con un pulsante [copia] che dà un CARATTERE VERO (non un "
+                                + "placeholder): quello si può davvero incollare in un messaggio di chat normale "
                                 + "e si vede da chiunque abbia il pacchetto — assegnato al volo la prima volta che "
                                 + "serve, come una texture custom di Oraxen, senza bisogno di riavviare il server.",
                         "/mpack model list", "Elenca i modelli Blockbench caricati da models/, con pezzi, animazioni "
                                 + "e quanti ne sono messi nel mondo.",
                         "/mpack model spawn <id> [scala] [animazione|none]", "Mette il modello ai propri piedi, "
-                                + "girato verso di se'. Scala 1 = grandezza di Blockbench (16 pixel = un blocco); senza "
+                                + "girato verso di sé. Scala 1 = grandezza di Blockbench (16 pixel = un blocco); senza "
                                 + "animazione parte idle (o la prima in loop), none = fermo.",
-                        "/mpack model rotate <gradi>", "Gira il modello piu' vicino (entro 16 blocchi).",
-                        "/mpack model remove [raggio]", "Toglie il modello piu' vicino (default entro 10 blocchi).")
+                        "/mpack model rotate <gradi>", "Gira il modello più vicino (entro 16 blocchi).",
+                        "/mpack model remove [raggio]", "Toglie il modello più vicino (default entro 10 blocchi).")
 
                 .section("Modelli Blockbench nel mondo (models/)",
-                        "Un modello di Blockbench si mette nel mondo cosi' com'e', senza Animated Java ne' export: "
-                                + "il file .bbmodel va in plugins/MagixPack/models/ (il nome del file in minuscolo e' "
+                        "Un modello di Blockbench si mette nel mondo così com'e', senza Animated Java né export: "
+                                + "il file .bbmodel va in plugins/MagixPack/models/ (il nome del file in minuscolo è "
                                 + "l'id), poi /mpack reload. Ogni pezzo diventa un item display; i cubi restano cubi, "
                                 + "le mesh (che Minecraft non sa disegnare) diventano il blocco che le contiene meglio, "
                                 + "orientato come il pezzo e con la sua texture. Ossa e animazioni restano quelle di "
                                 + "Blockbench.",
                         "/mpack model spawn <id> lo mette ai propri piedi, girato verso chi lo lancia, con "
-                                + "l'animazione idle in loop (se c'e'); resta li' anche dopo i riavvii. /mpack model "
+                                + "l'animazione idle in loop (se c'è); resta lì anche dopo i riavvii. /mpack model "
                                 + "rotate <gradi> lo gira, /mpack model remove lo toglie. L'animazione gira solo con un "
                                 + "giocatore entro 96 blocchi.")
 
                 .section("Oggetti custom (items.yml)",
                         "Catalogo staff-editable per oggetti con texture E MODELLO propri, non un semplice "
                                 + "glifo: un vero modello 2D generato (parent item/generated), sopra un item "
-                                + "base di Minecraft che decide solo le meccaniche (danno, durabilita', "
-                                + "impilabilita'...), mai l'aspetto. Basta un file in plugins/MagixPack/items/"
+                                + "base di Minecraft che decide solo le meccaniche (danno, durabilità, "
+                                + "impilabilità...), mai l'aspetto. Basta un file in plugins/MagixPack/items/"
                                 + "<id>.png + una voce in items.yml (material, name, lore) + /mpack reload: il "
                                 + "plugin genera da solo il JSON del modello, non serve scriverlo a mano. Per un "
                                 + "modello 3D vero basta items/<id>-model.json. Con furniture: true l'oggetto si "
-                                + "puo' anche piazzare per terra (tasto destro su un blocco, shift richiesto per "
+                                + "può anche piazzare per terra (tasto destro su un blocco, shift richiesto per "
                                 + "default - furniture-shift-required: false lo toglie - si rompe attaccandolo) "
-                                + "col suo aspetto vero; furniture-solid: true gli da' collisione vera. Vedi il "
+                                + "col suo aspetto vero; furniture-solid: true gli dà collisione vera. Vedi il "
                                 + "README per i dettagli.",
-                        "La voce avatar (type: player-avatar) e' speciale: niente texture, e' costruita per un "
-                                + "giocatore — l'icona e' la sua testa, e passandoci sopra si vede il suo AVATAR "
-                                + "(la faccia della skin, piatta, alta come una lettera). /mpack item give avatar [giocatore] da' "
+                        "La voce avatar (type: player-avatar) è speciale: niente texture, è costruita per un "
+                                + "giocatore — l'icona è la sua testa, e passandoci sopra si vede il suo AVATAR "
+                                + "(la faccia della skin, piatta, alta come una lettera). /mpack item give avatar [giocatore] dà "
                                 + "l'avatar di chi lo riceve; in un menu di MagixMenus si scrive magixpack: avatar "
-                                + "e si vede l'avatar di chi guarda. Il server e' in offline-mode: la skin si prende dal profilo se c'e' "
+                                + "e si vede l'avatar di chi guarda. Il server è in offline-mode: la skin si prende dal profilo se c'è "
                                 + "(plugin di skin), altrimenti da Mojang per nome (avatar.mojang-lookup); un "
                                 + "account non premium senza plugin di skin non ha avatar.")
 
@@ -470,33 +473,33 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "hanno il loro modello vero, vedi sopra). Le icone stanno nel font NORMALE di "
                                 + "Minecraft, quindi il loro carattere funziona in qualunque testo (messaggi, config "
                                 + "di CMI, cartelli). Il carattere lo assegna il plugin da solo a ogni avvio, in "
-                                + "ordine alfabetico: /mpack glyph list lo mostra e un clic lo copia. Puo' cambiare "
+                                + "ordine alfabetico: /mpack glyph list lo mostra e un clic lo copia. Può cambiare "
                                 + "se il catalogo cambia: in un config che deve durare si usa il placeholder "
-                                + "%magixpack_glyph_<id>% (PlaceholderAPI), che non cambia mai; per un avatar da' "
+                                + "%magixpack_glyph_<id>% (PlaceholderAPI), che non cambia mai; per un avatar dà "
                                 + "la faccia di chi legge. Il default.json del pacchetto viene FUSO con quello degli "
                                 + "altri plugin (il logo del tablist di MagixFactions) e richiama i font vanilla: "
                                 + "le lettere normali restano.",
                         "Ogni voce ha tre chiavi facoltative per grandezza e posizione: scale (2 = due volte "
-                                + "piu' grande, 0.8 = un quinto piu' piccola), offset-x (pixel a destra, negativo a "
-                                + "sinistra: il testo dopo non si sposta) e offset-y (pixel in su, negativo in giu'). "
-                                + "Valgono anche per l'avatar, e si possono fare piu' voci avatar di grandezze "
+                                + "più grande, 0.8 = un quinto più piccola), offset-x (pixel a destra, negativo a "
+                                + "sinistra: il testo dopo non si sposta) e offset-y (pixel in su, negativo in giù). "
+                                + "Valgono anche per l'avatar, e si possono fare più voci avatar di grandezze "
                                 + "diverse; l'oggetto avatar di items.yml sceglie quale usare con glyph:. Dopo "
                                 + "averle cambiate: /mpack reload, poi /mpack glyph show <id> per vederle.",
                         "Uno di questi caratteri, incollato/digitato in un vero messaggio di chat (non un "
                                 + "Component costruito dal plugin), NON funziona: un codice colore nel testo "
                                 + "digitato dalla chat firmata (1.19+) resta letterale, mai colore (verificato in "
-                                + "gioco). Per l'avatar l'unico che funziona davvero incollato e' il carattere del "
+                                + "gioco). Per l'avatar l'unico che funziona davvero incollato è il carattere del "
                                 + "pulsante [copia] di /mpack glyph show avatar — una texture vera assegnata al "
                                 + "volo (come Oraxen per le teste custom), non un trucco di colori.",
                         "Chi sta SOPRA quando due glifi si sovrappongono lo decide priority in glyphs.yml, da 0 a 100 "
-                                + "(numero piu' alto = sopra, default 0): il placeholder "
+                                + "(numero più alto = sopra, default 0): il placeholder "
                                 + "%magixpack_stack_avatar,cornice% (o /mpack glyph show avatar,cornice) li disegna "
                                 + "nello stesso punto, in ordine di priority — in Minecraft vince sempre il carattere "
-                                + "scritto per ultimo, e lo stack scrive per ultimo quello con priority piu' alta. "
+                                + "scritto per ultimo, e lo stack scrive per ultimo quello con priority più alta. "
                                 + "Sono centrati uno sull'altro in larghezza e in altezza (ogni voce ha nel pacchetto "
                                 + "anche una copia centrata su una linea comune, usata solo dagli stack); per ritoccarne "
                                 + "uno a mano restano offset-x e offset-y, quindi per un centraggio esatto lasciali a 0.",
-                        "GlyphCatalog.shift(pixel) da' invece caratteri FISSI (come lo shifts.yml di Oraxen, "
+                        "GlyphCatalog.shift(pixel) dà invece caratteri FISSI (come lo shifts.yml di Oraxen, "
                                 + "generati non configurati) che spostano quello che li segue senza bisogno di una "
                                 + "voce in glyphs.yml: utili per allineare un'icona/avatar in un testo composto a "
                                 + "mano. Non cambiano mai, sicuri da scrivere a mano ovunque.")
@@ -507,18 +510,18 @@ public final class MagixPack extends JavaPlugin implements Listener {
                 .settings(
                         "public-host", "IP pubblico da cui i client scaricano il pacchetto. Vuoto = pacchetto disabilitato.",
                         "port", "Porta del server HTTP che serve lo zip: va aperta sul firewall del VPS.",
-                        "required", "Se il pacchetto e' obbligatorio (true, default) o facoltativo (false, nessuna espulsione).",
+                        "required", "Se il pacchetto è obbligatorio (true, default) o facoltativo (false, nessuna espulsione).",
                         "watchdog-seconds", "Ogni quanti secondi si verifica che il pacchetto sia ancora scaricabile.",
                         "avatar.mojang-lookup", "Se chiedere la skin a Mojang per nome quando il profilo del giocatore non la ha.")
 
-                .issue("Un giocatore e' stato espulso appena entrato",
-                        "Ha rifiutato il pacchetto, o il download e' fallito, o il client non ha risposto in "
-                                + "tempo. Il messaggio che vede gia' spiega il motivo. Se deve entrare comunque "
+                .issue("Un giocatore è stato espulso appena entrato",
+                        "Ha rifiutato il pacchetto, o il download è fallito, o il client non ha risposto in "
+                                + "tempo. Il messaggio che vede già spiega il motivo. Se deve entrare comunque "
                                 + "(prove, riprese, ospiti), serve il permesso magixpack.bypass.")
                 .issue("Mancano texture/font di un plugin dopo un suo aggiornamento",
-                        "Quel plugin si registra al proprio onEnable: se e' stato ricaricato a caldo (senza "
-                                + "riavviare tutto il server) con softdepend rotto, o se MagixPack e' partito DOPO "
-                                + "di lui, la registrazione puo' non essere arrivata. Un riavvio completo del "
+                        "Quel plugin si registra al proprio onEnable: se è stato ricaricato a caldo (senza "
+                                + "riavviare tutto il server) con softdepend rotto, o se MagixPack è partito DOPO "
+                                + "di lui, la registrazione può non essere arrivata. Un riavvio completo del "
                                 + "server risolve sempre: rifà tutte le registrazioni nell'ordine giusto.")
                 .issue("Ho messo un file in overrides/ ma non lo vedo in gioco",
                         "Serve /mpack reload (o un riavvio) dopo aver aggiunto/modificato un file: la "
@@ -531,14 +534,14 @@ public final class MagixPack extends JavaPlugin implements Listener {
                                 + "un errore bloccante. Controlla che il nome del file combaci ESATTAMENTE con "
                                 + "la chiave in items.yml/glyphs.yml (maiuscole comprese), poi /mpack reload.")
                 .issue("Il pacchetto non si scarica per nessuno",
-                        "Quasi sempre la porta configurata non e' aperta sul firewall del VPS verso "
-                                + "l'esterno, oppure public-host e' vuoto/sbagliato. Il log segnala i download "
+                        "Quasi sempre la porta configurata non è aperta sul firewall del VPS verso "
+                                + "l'esterno, oppure public-host è vuoto/sbagliato. Il log segnala i download "
                                 + "falliti a ripetizione con l'URL esatto da verificare.")
 
                 .never("Non registrare nello stesso percorso di zip usato da un altro plugin: MagixPack "
                         + "scarta il secondo con un avviso nel log invece di sovrascrivere, ma il contenuto di "
                         + "chi arriva dopo semplicemente non finisce nel pacchetto.")
-                .never("Non disattivare required senza sapere perche': i plugin che si aspettano il loro "
+                .never("Non disattivare required senza sapere perché: i plugin che si aspettano il loro "
                         + "shader/font (es. la minimap di MagixFactions) restano senza, in silenzio, per chi non "
                         + "carica il pacchetto facoltativo.")
                 .write();

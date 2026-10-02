@@ -20,13 +20,13 @@ public-host: "141.94.123.249"
 
 # Ogni quanti secondi il plugin verifica DA SOLO che il pacchetto sia ancora scaricabile (una
 # richiesta in loopback su 127.0.0.1). Se non risponde, il servizio HTTP viene riavviato al volo.
-# E' la rete di sicurezza contro il blocco visto in passato: dopo qualche ora di uptime nessuno
-# riusciva piu' a scaricare il pacchetto finche' non si riavviava l'intero server.
+# È la rete di sicurezza contro il blocco visto in passato: dopo qualche ora di uptime nessuno
+# riusciva più a scaricare il pacchetto finché non si riavviava l'intero server.
 # 0 = controllo disattivato (sconsigliato).
 watchdog-seconds: 120
 
 # ---- PACCHETTO OBBLIGATORIO ----
-# true (default): il pacchetto e' RICHIESTO per giocare. Viene inviato a TUTTI al join con il
+# true (default): il pacchetto è RICHIESTO per giocare. Viene inviato a TUTTI al join con il
 # flag "obbligatorio" del protocollo — il client vanilla in quel caso non offre nemmeno il
 # tasto "No". Se comunque non viene caricato (client modificato, mod che disattiva i pack,
 # download fallito, o il giocatore che lo rimuove dalle impostazioni), il giocatore viene
@@ -47,18 +47,18 @@ timeout-seconds: 30
 
 # Testo mostrato dal client nella richiesta del pacchetto ("Questo server richiede...").
 # Supporta i codici colore & e \n per andare a capo.
-prompt: "&e&lMAGICADVENTURE\n&7Il pacchetto risorse e' &cobbligatorio&7 per giocare qui."
+prompt: "&e&lMAGICADVENTURE\n&7Il pacchetto risorse è &cobbligatorio&7 per giocare qui."
 
 # Messaggi di espulsione (schermata di disconnessione), uno per motivo. Colori & e \n per
-# andare a capo. Se un motivo e' vuoto viene usato quello di 'declined'.
+# andare a capo. Se un motivo è vuoto viene usato quello di 'declined'.
 #  - declined: il giocatore ha RIFIUTATO il pacchetto.
-#  - failed:   download fallito / URL non valido / il client non e' riuscito ad applicarlo o
-#              l'ha rimosso (e' il caso "per qualche strano motivo non si e' caricato").
+#  - failed:   download fallito / URL non valido / il client non è riuscito ad applicarlo o
+#              l'ha rimosso (è il caso "per qualche strano motivo non si è caricato").
 #  - timeout:  il client non ha mai risposto entro timeout-seconds.
 kick-messages:
-  declined: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Su &6MAGICADVENTURE&7 il pacchetto risorse e' &cobbligatorio&7.\n&7Rientra e premi &aAccetta&7 quando ti viene chiesto.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
-  failed: "&c&lPACCHETTO RISORSE NON CARICATO\n\n&7Il pacchetto risorse &cobbligatorio&7 non e' stato scaricato dal tuo client.\n&7Riprova tra poco; se continua, controlla la connessione o\n&7svuota la cartella &fserver-resource-packs&7 del gioco.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
-  timeout: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Il tuo client non ha risposto alla richiesta del pacchetto.\n&7Il pacchetto e' &cobbligatorio&7 per giocare: rientra e accetta il download.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+  declined: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Su &6MAGICADVENTURE&7 il pacchetto risorse è &cobbligatorio&7.\n&7Rientra e premi &aAccetta&7 quando ti viene chiesto.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+  failed: "&c&lPACCHETTO RISORSE NON CARICATO\n\n&7Il pacchetto risorse &cobbligatorio&7 non è stato scaricato dal tuo client.\n&7Riprova tra poco; se continua, controlla la connessione o\n&7svuota la cartella &fserver-resource-packs&7 del gioco.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+  timeout: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Il tuo client non ha risposto alla richiesta del pacchetto.\n&7Il pacchetto è &cobbligatorio&7 per giocare: rientra e accetta il download.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
 
 # ---- AVATAR DELLA SKIN ----
 # Glifo con la FACCIA della skin del giocatore (piatta, secondo strato compreso),
@@ -67,7 +67,7 @@ kick-messages:
 # posizione (scale, offset-x, offset-y) si regolano nella voce "avatar" di glyphs.yml, come per
 # ogni altra icona. Vedi README.md.
 avatar:
-  # Il server e' in offline-mode: se il profilo non ha una skin (nessun plugin di skin che la
-  # imposta), la si chiede a Mojang per NOME, cioe' la skin dell'account premium con quel nome.
+  # Il server è in offline-mode: se il profilo non ha una skin (nessun plugin di skin che la
+  # imposta), la si chiede a Mojang per NOME, cioè la skin dell'account premium con quel nome.
   # false = solo la skin del profilo.
   mojang-lookup: true

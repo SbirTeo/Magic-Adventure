@@ -70,7 +70,7 @@ public final class MagixAuth extends JavaPlugin {
             // Non e' fatale: chi non usa la verifica in due passaggi entra lo stesso. Ma per
             // gli amministratori lo e', ed e' meglio scoprirlo adesso che al primo ingresso.
             getLogger().warning("MagixAuth: database.otp_key_base64 mancante o non valida. "
-                    + "Nessun codice di verifica potra' essere controllato: copiala da "
+                    + "Nessun codice di verifica potrà essere controllato: copiala da "
                     + "OTP_CHIAVE in website/config.php.");
         }
 
@@ -148,7 +148,7 @@ public final class MagixAuth extends JavaPlugin {
             // e' passata dal cancello e non lo passera'. Va detto chiaro, perche' e' una
             // finestra in cui il server e' senza autenticazione.
             getLogger().warning("MagixAuth: caricato con " + Bukkit.getOnlinePlayers().size()
-                    + " giocatori gia' collegati, che NON hanno fatto il login. "
+                    + " giocatori già collegati, che NON hanno fatto il login. "
                     + "Su un server in offline mode il plugin va caricato all'avvio, mai a caldo.");
         }
 
@@ -207,11 +207,11 @@ public final class MagixAuth extends JavaPlugin {
                         "Le skin buone prese da Mojang vengono scritte su disco, in **skins.tsv** nella cartella "
                                 + "del plugin, e rilette all'avvio. Prima (fino alla v0.7.13) stavano solo in "
                                 + "memoria: dopo ogni riavvio la memoria era vuota, e chi rientrava per primo — "
-                                + "quando Mojang e' lento o non risponde — si ritrovava addosso la skin di uno "
-                                + "sconosciuto. Adesso, finche' il file c'e', la skin giusta e' gia' li'.",
-                        "Sempre all'avvio, se premium.skin_from_mojang e' acceso, si apre **a vuoto** un "
-                                + "collegamento verso Mojang: il primo collegamento sicuro della JVM e' il piu' "
-                                + "lento, e cosi' non lo paga il primo giocatore che entra. Il file si riscrive da "
+                                + "quando Mojang è lento o non risponde — si ritrovava addosso la skin di uno "
+                                + "sconosciuto. Adesso, finché il file c'è, la skin giusta è già lì.",
+                        "Sempre all'avvio, se premium.skin_from_mojang è acceso, si apre **a vuoto** un "
+                                + "collegamento verso Mojang: il primo collegamento sicuro della JVM è il più "
+                                + "lento, e così non lo paga il primo giocatore che entra. Il file si riscrive da "
                                 + "solo: **non va modificato a mano**, e cancellarlo non rompe niente — si "
                                 + "ricostruisce, ma torna il rischio del primo ingresso a freddo.")
 
@@ -228,7 +228,7 @@ public final class MagixAuth extends JavaPlugin {
                                 + "giocatore si trova in quel momento; se non è su nessun server, la richiesta si "
                                 + "butta dopo un paio di minuti (la sessione il sito l'ha già chiusa comunque).",
                         "MagixAuth sta su **ogni** server di gioco (hub, faction...), non sul proxy: se qualcuno "
-                                + "arrivasse a un server senza passare dall'hub, il login lo troverebbe comunque li'. "
+                                + "arrivasse a un server senza passare dall'hub, il login lo troverebbe comunque lì. "
                                 + "La posizione di chi esce mentre è fermo al cancello si salva **per mondo**, col "
                                 + "codice univoco del mondo: l'hub non riporta nessuno alle coordinate del faction e non "
                                 + "cancella la posizione salvata dal faction, anche se i due mondi si chiamano uguale.")
@@ -248,16 +248,16 @@ public final class MagixAuth extends JavaPlugin {
                         "login.max_attempts", "Quante password sbagliate prima del blocco temporaneo.",
                         "login.lockout_minutes", "Per quanti minuti resta bloccato dopo troppi tentativi.",
                         "login.min_password_length", "Lunghezza minima della password.",
-                        "login.session_hours", "Per quante ore vale una sessione gia' autenticata.",
+                        "login.session_hours", "Per quante ore vale una sessione già autenticata.",
                         "login.device_cookie", "Se il computer si riconosce anche da un gettone del client, oltre che dall'indirizzo di rete.",
                         "login.cookie_wait_millis", "Quanto si aspetta il gettone dal client prima di passare all'indirizzo.",
                         "otp.order", "Se il codice si chiede prima o dopo la password: `password-first` (consigliato) oppure `otp-first`.",
-                        "otp.optional_for_players", "Se la verifica in due passaggi e' obbligatoria solo per lo staff.",
+                        "otp.optional_for_players", "Se la verifica in due passaggi è obbligatoria solo per lo staff.",
                         "premium.skin_from_mojang", "Se la skin degli account premium veri viene presa da Mojang.",
-                        "premium.skin_cache_minutes", "Ogni quanti minuti la skin gia' presa viene richiesta di nuovo a Mojang.")
+                        "premium.skin_cache_minutes", "Ogni quanti minuti la skin già presa viene richiesta di nuovo a Mojang.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«In gioco ho addosso la skin di un'altra persona»",
                         "La skin la mette il server, perché in offline mode il gioco non la chiede più a "
                                 + "nessuno. Se la richiesta a Mojang non riesce, chi entra da un launcher non "

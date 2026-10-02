@@ -3,7 +3,7 @@
 # Vale in due posti:
 #  - la SINTASSI delle righe di aiuto (la parte prima di "::"), che non passa mai dal traduttore
 #    automatico: MyMemory ci metteva parole di un'altra lingua ("[jugador|clear]" in un testo
-#    inglese) e poteva tradurre un sottocomando che il giocatore deve scrivere cosi' com'e'. Qui si
+#    inglese) e poteva tradurre un sottocomando che il giocatore deve scrivere così com'e'. Qui si
 #    traducono le parole dentro < > e [ ];
 #  - ogni <...> in qualunque altro messaggio ("Uso: /f join <fazione>"): il traduttore lo
 #    protegge per intero (senza, MyMemory lo scambiava per un tag HTML e mangiava gli spazi), e al
@@ -12,11 +12,11 @@
 #
 # Letto dal jar, mai copiato nella cartella dati: si cambia qui, nel sorgente di MagixLanguage.
 # check_config.py [8] blocca il commit se un messages.yml usa tra < > (o tra [ ] in una riga di
-# aiuto) una parola che non e' ne' in "words" ne' in "keep".
+# aiuto) una parola che non è né in "words" né in "keep".
 
-# Una voce per nome di argomento: "it" e' la parola come compare in messages.yml, le altre lingue
-# la sostituiscono (una lingua mancante lascia la parola italiana). Una voce puo' essere una parola
-# col trattino ("blocchi-per-pixel") o di piu' parole ("codice a sei cifre"): conta intera.
+# Una voce per nome di argomento: "it" è la parola come compare in messages.yml, le altre lingue
+# la sostituiscono (una lingua mancante lascia la parola italiana). Una voce può essere una parola
+# col trattino ("blocchi-per-pixel") o di più parole ("codice a sei cifre"): conta intera.
 words:
   - {it: "nome", en: "name", es: "nombre", de: "Name"}
   - {it: "giocatore", en: "player", es: "jugador", de: "Spieler"}
@@ -52,7 +52,7 @@ words:
   - {it: "codice a sei cifre", en: "six-digit code", es: "código de seis cifras", de: "sechsstelliger Code"}
 
 # Parole tra < > o [ ] che restano IDENTICHE in ogni lingua: opzioni che il giocatore scrive
-# davvero ("on|off", "clear", "pubblico" di /mg dossier...) e nomi gia' uguali ovunque ("nick").
+# davvero ("on|off", "clear", "pubblico" di /mg dossier...) e nomi già uguali ovunque ("nick").
 keep: ["on", "off", "it", "en", "es", "de", "public", "faction", "ally", "enemy", "clear", "reset",
        "mirror", "auto", "info", "migrate", "sqlite", "mariadb", "x", "y", "z", "rain", "storm",
        "nick", "nick2", "displayname", "n", "a", "b", "zoom", "pubblico", "add", "list", "remove",

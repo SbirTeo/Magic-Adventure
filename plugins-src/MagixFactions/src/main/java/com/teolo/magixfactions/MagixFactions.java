@@ -405,7 +405,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "**ONLINE** (+{{cfg:power.gain-amount}} ogni {{secondi:power.gain-interval-seconds}}), "
                                 + "scende alla morte (-{{cfg:power.death-loss}}) e {{PERDITA_OFFLINE_FRASE}}, senza mai "
                                 + "andare sotto il negativo del tetto.",
-                        "La perdita da assenza e' la domanda che arriverà più spesso: «sono tornato e avevo meno "
+                        "La perdita da assenza è la domanda che arriverà più spesso: «sono tornato e avevo meno "
                                 + "Potenza di quando sono uscito». È voluta, e cala davvero mentre il giocatore è via, "
                                 + "non tutta in blocco al rientro — serve a impedire che una fazione di gente che non "
                                 + "gioca più tenga terreno per sempre. Chi ha il permesso VIP la subisce più "
@@ -702,7 +702,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "MagixEssentials (tablist.yml -> fixed-slots) mandano una latenza NEGATIVA per non "
                                 + "avere un giocatore vero dietro, e il client la disegna con l'icona \"connessione "
                                 + "sconosciuta\" (ping_unknown.png). Il pacchetto sostituisce SOLO quel file con uno "
-                                + "trasparente: e' l'unica delle sei icone di ping che un giocatore vero non puo' mai "
+                                + "trasparente: è l'unica delle sei icone di ping che un giocatore vero non può mai "
                                 + "avere per davvero, quindi l'unica spegnibile senza spegnere anche la barra di "
                                 + "qualcun altro (le cinque \"ping_1..5\" vere non si toccano). Vale la stessa regola "
                                 + "di sopra: cambia solo con un riavvio, non con un reload.")
@@ -744,7 +744,7 @@ public final class MagixFactions extends JavaPlugin {
                                 + "da tenere in mano). Cambiandola si aggiorna da sé anche la guida dei giocatori.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«Non riesco a fare claim»",
                         "Quasi sempre è Potenza insufficiente o tetto raggiunto, non un guasto. /f info sulla sua "
                                 + "fazione mostra territori, Potenza e stato: se la riga è rossa la fazione è "

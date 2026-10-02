@@ -88,8 +88,8 @@ public final class BoardManager {
 
         if (anyRegionCondition && !worldGuard.enabled() && !warnedRegionsWithoutWorldGuard) {
             warnedRegionsWithoutWorldGuard = true;
-            plugin.getLogger().warning("Una o piu' scoreboard hanno condizioni \"regions\" ma WorldGuard"
-                    + " non e' installato: quelle condizioni non corrisponderanno mai.");
+            plugin.getLogger().warning("Una o più scoreboard hanno condizioni \"regions\" ma WorldGuard"
+                    + " non è installato: quelle condizioni non corrisponderanno mai.");
         }
     }
 

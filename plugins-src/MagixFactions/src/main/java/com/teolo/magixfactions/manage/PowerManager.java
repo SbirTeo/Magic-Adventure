@@ -701,7 +701,7 @@ public final class PowerManager {
             default -> {
                 if (!per.equals(periodoIgnotoAvvisato)) {
                     periodoIgnotoAvvisato = per;
-                    plugin.getLogger().warning("[Potenza] power.offline-decay.per = \"" + per + "\" non e' un valore "
+                    plugin.getLogger().warning("[Potenza] power.offline-decay.per = \"" + per + "\" non è un valore "
                             + "valido (hour | day | week | month): uso GIORNO. Correggi il config.yml.");
                 }
                 yield 86_400_000L;

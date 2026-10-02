@@ -44,11 +44,11 @@ public final class PlaytimeMigration {
             Files.copy(file.toPath(), new File(bak, "config.yml.bak-" + stamp).toPath(),
                     java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-            plugin.getLogger().info("[Config] create-cost: la condizione sul tempo di gioco e' diventata "
+            plugin.getLogger().info("[Config] create-cost: la condizione sul tempo di gioco è diventata "
                     + "min-playtime-seconds: " + seconds + " (tolta da placeholders).");
         } catch (Exception e) {
             plugin.getLogger().warning("[Config] spostamento del tempo di gioco in create-cost non riuscito ("
-                    + e.getClass().getSimpleName() + "): il file non e' stato toccato.");
+                    + e.getClass().getSimpleName() + "): il file non è stato toccato.");
         }
     }
 

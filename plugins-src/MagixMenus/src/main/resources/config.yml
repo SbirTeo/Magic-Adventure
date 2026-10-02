@@ -2,7 +2,7 @@
 #  MagixMenus - configurazione
 #
 #  Qui dentro ci sono solo le regole che valgono per TUTTI i menu. Ogni menu ha il suo file
-#  in plugins/MagixMenus/menus/: e' li' che si decide com'e' fatto.
+#  in plugins/MagixMenus/menus/: è lì che si decide com'e' fatto.
 #
 #  Dopo ogni modifica: /menus reload
 # ==========================================================================================
@@ -12,16 +12,16 @@ actions:
   # L'azione "op_command:" esegue un comando dando l'op al giocatore per il tempo di quel
   # comando. Sta spenta apposta.
   #
-  # Quasi sempre chi la cerca vuole in realta' "console:", che esegue il comando come server e
-  # non da' niente a nessuno. L'op serve solo per quei rarissimi comandi che pretendono di
+  # Quasi sempre chi la cerca vuole in realtà "console:", che esegue il comando come server e
+  # non dà niente a nessuno. L'op serve solo per quei rarissimi comandi che pretendono di
   # essere digitati dal giocatore E richiedono l'op: se accendi questa chiave, ricordati che per
-  # la durata di quel comando il giocatore E' operatore a tutti gli effetti.
+  # la durata di quel comando il giocatore È operatore a tutti gli effetti.
   allow-op-commands: false
 
-# Ogni quanti tick, al minimo, un menu puo' ridisegnarsi.
+# Ogni quanti tick, al minimo, un menu può ridisegnarsi.
 #
 # Nei file dei menu si scrive "update: 20" (un secondo), "update: 1" (ogni tick).
-# Questo numero e' il pavimento: un menu che chiedesse di aggiornarsi piu' spesso viene riportato
+# Questo numero è il pavimento: un menu che chiedesse di aggiornarsi più spesso viene riportato
 # qui. Serve come rete di sicurezza, non come freno — il plugin ridisegna comunque solo gli item
 # che possono essere cambiati, e solo per chi sta guardando il menu.
 min-update-ticks: 1

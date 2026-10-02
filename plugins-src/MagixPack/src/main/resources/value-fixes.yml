@@ -1,0 +1,17 @@
+# Testi DI SERIE che sono cambiati nel jar e vanno aggiornati anche sul server (vedi
+# util/ConfigAlign.applyValueFixes). L'allineamento aggiunge le chiavi nuove ma non tocca i valori
+# gia' scelti: qui si elencano le coppie testo vecchio -> testo nuovo, e all'avvio e a ogni reload
+# si sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano resta com'e'), dopo
+# averne fatto la copia in .bak/. Nato per gli accenti scritti con l'apostrofo ("piu'", "e'").
+config.yml:
+  - old: "&e&lMAGICADVENTURE\n&7Il pacchetto risorse e' &cobbligatorio&7 per giocare qui."
+    new: "&e&lMAGICADVENTURE\n&7Il pacchetto risorse è &cobbligatorio&7 per giocare qui."
+  - old: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Su &6MAGICADVENTURE&7 il pacchetto risorse e' &cobbligatorio&7.\n&7Rientra e premi &aAccetta&7 quando ti viene chiesto.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+    new: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Su &6MAGICADVENTURE&7 il pacchetto risorse è &cobbligatorio&7.\n&7Rientra e premi &aAccetta&7 quando ti viene chiesto.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+  - old: "&c&lPACCHETTO RISORSE NON CARICATO\n\n&7Il pacchetto risorse &cobbligatorio&7 non e' stato scaricato dal tuo client.\n&7Riprova tra poco; se continua, controlla la connessione o\n&7svuota la cartella &fserver-resource-packs&7 del gioco.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+    new: "&c&lPACCHETTO RISORSE NON CARICATO\n\n&7Il pacchetto risorse &cobbligatorio&7 non è stato scaricato dal tuo client.\n&7Riprova tra poco; se continua, controlla la connessione o\n&7svuota la cartella &fserver-resource-packs&7 del gioco.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+  - old: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Il tuo client non ha risposto alla richiesta del pacchetto.\n&7Il pacchetto e' &cobbligatorio&7 per giocare: rientra e accetta il download.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+    new: "&c&lPACCHETTO RISORSE OBBLIGATORIO\n\n&7Il tuo client non ha risposto alla richiesta del pacchetto.\n&7Il pacchetto è &cobbligatorio&7 per giocare: rientra e accetta il download.\n\n&8(Impostazioni > Multigiocatore > Pacchetti del server: consenti)"
+messages.yml:
+  - old: "&eNessuna skin trovata per &f{player}&e (account non premium, o Mojang non raggiungibile): l'oggetto avatar non avra' la faccia nella descrizione."
+    new: "&eNessuna skin trovata per &f{player}&e (account non premium, o Mojang non raggiungibile): l'oggetto avatar non avrà la faccia nella descrizione."

@@ -150,7 +150,7 @@ public class GuideSync {
                 removed += ps.executeUpdate();
             }
             if (removed > 0) {
-                plugin.getLogger().info("MagixBridge: tolti dalla guida i capitoli di plugin non piu' presenti: " + stale + ".");
+                plugin.getLogger().info("MagixBridge: tolti dalla guida i capitoli di plugin non più presenti: " + stale + ".");
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("MagixBridge: capitoli vecchi della guida non tolti: " + e.getMessage());

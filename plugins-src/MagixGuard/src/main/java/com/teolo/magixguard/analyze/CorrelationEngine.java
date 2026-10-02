@@ -175,7 +175,7 @@ public final class CorrelationEngine {
             dao.setEvidenceOccurrences(s.playerId, otherId, EvidenceType.NEVER_TOGETHER, 1, now, new Detail()
                     .put("sessioni_a", self.sessionCount())
                     .put("sessioni_b", other.sessionCount())
-                    .put("nota", "nessuna sessione sovrapposta nonostante entrambi giochino con continuita'"));
+                    .put("nota", "nessuna sessione sovrapposta nonostante entrambi giochino con continuità"));
         }
 
         String otherFingerprint = dao.latestFingerprint(otherId);

@@ -264,7 +264,7 @@ public final class CurrencyManager implements Listener {
             }
             if (commandMap != null && commandMap.getCommand(id) != null) {
                 plugin.getLogger().warning("[Valute] id valuta \"" + id
-                        + "\" gia' usato da un altro comando del server: saltata.");
+                        + "\" già usato da un altro comando del server: saltata.");
                 continue;
             }
             ConfigurationSection s = root.getConfigurationSection(id);
@@ -281,7 +281,7 @@ public final class CurrencyManager implements Listener {
     private void apriDatabase() {
         ConfigurationSection conf = plugin.getConfig().getConfigurationSection("database");
         if (conf == null) {
-            plugin.getLogger().severe("[Valute] almeno una valuta e' \"shared: true\" ma manca la sezione"
+            plugin.getLogger().severe("[Valute] almeno una valuta è \"shared: true\" ma manca la sezione"
                     + " \"database\" in config.yml: resta senza saldo condiviso, l'errore si vede a ogni comando.");
             return;
         }

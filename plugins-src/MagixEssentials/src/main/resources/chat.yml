@@ -2,17 +2,17 @@
 #  MagixEssentials - Chat
 # ============================================================
 # Il FORMATO della chat pubblica: come si legge in gioco una riga scritta da un giocatore (o dalla
-# chat del sito). Su ogni server della rete e' questo modulo a scriverla: CMI la chat non la tocca
-# piu' (vedi cmi.disable-module in fondo).
+# chat del sito). Su ogni server della rete è questo modulo a scriverla: CMI la chat non la tocca
+# più (vedi cmi.disable-module in fondo).
 #
-# Questo file dice COM'E' FATTA la riga, non se c'e': l'interruttore sta nel modules.yml
+# Questo file dice COM'E' FATTA la riga, non se c'è: l'interruttore sta nel modules.yml
 # (chat: true/false).
 #
 # Valgono i codici colore & e &#RRGGBB, i tag <bold>/<gradient:...> (MiniMessage) e TUTTI i
 # placeholder di PlaceholderAPI, risolti per chi scrive (%luckperms_prefix%, %magixweb_namecolor%...),
 # compresi quelli relazionali %rel_...% (fra chi legge e chi scrive). Segnaposto:
 #   {name}     il nome di chi scrive
-#   {message}  il messaggio, sempre come testo semplice: chi scrive non puo' metterci colori ne'
+#   {message}  il messaggio, sempre come testo semplice: chi scrive non può metterci colori né
 #              placeholder
 # Solo con MagixFactions sullo stesso server (sul faction):
 #   {faction}  la fazione di chi scrive
@@ -21,40 +21,40 @@
 #   {rank}     il tag del suo grado di fazione, nel colore della relazione
 #
 # PEZZI FACOLTATIVI: quello che sta fra [[ e ]] sparisce se TUTTI i segnaposto e i placeholder che
-# contiene risultano vuoti. Cosi' "[[&8[{faction}&8] ]]" mostra [Fazione] a chi ce l'ha e niente a chi
+# contiene risultano vuoti. Così "[[&8[{faction}&8] ]]" mostra [Fazione] a chi ce l'ha e niente a chi
 # non ce l'ha (o la nasconde col permesso magixfactions.chat.hidefactions), senza bisogno di due righe.
 #
 # I canali di fazione e alleati (/f chat) restano a MagixFactions: sono una funzione delle fazioni,
-# e una riga scritta li' non arriva mai qui.
+# e una riga scritta lì non arriva mai qui.
 
-# La riga scritta a mano per QUESTO server: se c'e', vince su tutto (anche sugli stili qui sotto).
-# Vuota (di fabbrica) = decide lo stile: e' cosi' che lo stesso jar va bene su ogni modalita'.
+# La riga scritta a mano per QUESTO server: se c'è, vince su tutto (anche sugli stili qui sotto).
+# Vuota (di fabbrica) = decide lo stile: è così che lo stesso jar va bene su ogni modalità.
 custom-format: ""
 
-# Quale stile si usa quando custom-format e' vuota:
-#   auto          - (di fabbrica) il primo dell'elenco qui sotto i cui plugin ci sono TUTTI. E' la
-#                   rilevazione della modalita': sul faction (c'e' MagixFactions) esce lo stile
-#                   factions, sull'hub (non c'e') quello senza requisiti.
+# Quale stile si usa quando custom-format è vuota:
+#   auto          - (di fabbrica) il primo dell'elenco qui sotto i cui plugin ci sono TUTTI. È la
+#                   rilevazione della modalità: sul faction (c'è MagixFactions) esce lo stile
+#                   factions, sull'hub (non c'è) quello senza requisiti.
 #   <nome stile>  - quello e basta, che i suoi plugin ci siano o no.
 # Quale ha scelto lo scrive nel log all'avvio e a ogni /magixessentials reload.
 style: auto
 
-# Gli stili: una voce per modalita' di gioco, come gli stili del nametag (nametag.yml). Si leggono
-# dall'alto in basso e vince il primo che va bene: quelli con piu' pretese in cima, quello che non
+# Gli stili: una voce per modalità di gioco, come gli stili del nametag (nametag.yml). Si leggono
+# dall'alto in basso e vince il primo che va bene: quelli con più pretese in cima, quello che non
 # chiede niente (requires vuoto) in fondo. Di ogni voce: 'name' il nome, 'requires' i plugin che
-# devono esserci TUTTI (e' una E: per due modalita' si scrivono due voci), 'format' la riga.
+# devono esserci TUTTI (è una E: per due modalità si scrivono due voci), 'format' la riga.
 # Fra i requisiti vanno solo i plugin senza cui lo stile non ha senso: MagixBridge
 # (%magixweb_namecolor%) no, se manca il nome resta senza colore; MagixFactions in uno stile che
-# scrive la fazione si'. I plugin si cercano fra quelli CARICATI (l'ordine di accensione non conta).
-# Per una modalita' NUOVA si aggiunge una voce qui, sopra quella senza requisiti: e' un elenco, e
-# l'allineamento dei config non tocca le voci in piu'.
+# scrive la fazione sì. I plugin si cercano fra quelli CARICATI (l'ordine di accensione non conta).
+# Per una modalità NUOVA si aggiunge una voce qui, sopra quella senza requisiti: è un elenco, e
+# l'allineamento dei config non tocca le voci in più.
 styles:
   # Fazioni: [grado+fazione] nel colore della relazione di chi legge, poi grado di server e nome.
   # Chi non ha una fazione perde da solo il pezzo fra [[ ]].
   - name: factions
     requires: [MagixFactions]
     format: "[[&8[{rank}{relcolor}{faction}&8] ]]%luckperms_prefix%&7%magixweb_namecolor%{name} &8» &f{message}"
-  # Nessuna modalita' riconosciuta (l'hub): grado di server e nome col colore del grado. Non chiede
+  # Nessuna modalità riconosciuta (l'hub): grado di server e nome col colore del grado. Non chiede
   # niente, quindi va sempre bene: per questo sta in fondo.
   - name: plain
     requires: []
@@ -77,7 +77,7 @@ tooltip:
 # modulo acceso non deve fare niente, altrimenti due plugin scrivono la stessa riga. Acceso, il
 # modulo spegne una volta per tutte i controlli della chat di CMI nei suoi file (Settings/Chat.yml,
 # Settings/ChatFilter.yml, Settings/Modules.yml), con una copia di scorta in .bak/. Il filtro della
-# chat (pubblicita', spam, insulti) lo fa MagixGuard. CMI quei file li legge all'avvio: vale dal
+# chat (pubblicità, spam, insulti) lo fa MagixGuard. CMI quei file li legge all'avvio: vale dal
 # riavvio dopo. I messaggi privati (/msg) restano a CMI.
 cmi:
   disable-module: true

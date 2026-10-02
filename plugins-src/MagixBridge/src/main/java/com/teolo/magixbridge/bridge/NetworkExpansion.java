@@ -16,12 +16,12 @@ public final class NetworkExpansion extends PlaceholderExpansion {
     /** Staff guide list (StaffGuide.placeholders): pairs placeholder, what it shows.
      *  check_config.py [9] blocks the commit if a placeholder resolved below is missing here. */
     public static final String[] DOCS = {
-            "%network_<server>_<placeholder>%", "Il valore di un placeholder di un'altra modalita', "
-                    + "senza il suo plugin installato qui: <server> e' il network.server-name di quel "
+            "%network_<server>_<placeholder>%", "Il valore di un placeholder di un'altra modalità, "
+                    + "senza il suo plugin installato qui: <server> è il network.server-name di quel "
                     + "server, <placeholder> quello originale senza i %. Esempio sull'hub: "
                     + "%network_faction_magixfactions_faction% = la fazione del giocatore. Funziona solo "
                     + "per i placeholder che quel server pubblica (bridge.player-placeholders e "
-                    + "bridge.global-placeholders del SUO config); vuoto finche' non e' mai stato pubblicato.",
+                    + "bridge.global-placeholders del SUO config); vuoto finché non è mai stato pubblicato.",
             "%network_<server>_online%", "Quanti giocatori sono connessi adesso su quel server (es. "
                     + "%network_faction_online%).",
             "%network_online%", "Quanti giocatori sono connessi adesso su tutta la rete.",

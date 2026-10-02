@@ -1,7 +1,7 @@
 # =====================================================================
 #  MagixGuard - sanzioni
 #
-#  Questo file e' la FONTE della tabella delle sanzioni che compare nel
+#  Questo file è la FONTE della tabella delle sanzioni che compare nel
 #  regolamento del sito: il plugin la rigenera a ogni avvio e a ogni
 #  /mg reload. La tabella nel regolamento NON si scrive a mano.
 #
@@ -9,7 +9,7 @@
 # =====================================================================
 
 # Collegamento al database del SITO, dove vivono sanzioni, ricorsi e coda.
-# E' lo stesso database che usa MagixBridge: qui le sanzioni le SCRIVE il plugin,
+# È lo stesso database che usa MagixBridge: qui le sanzioni le SCRIVE il plugin,
 # il sito le legge (e ci aggiunge solo ricorsi e decisioni dello staff).
 site:
   host: "127.0.0.1"
@@ -29,10 +29,10 @@ report:
   active: true
   # Pausa fra una segnalazione e l'altra, per lo stesso giocatore (secondi).
   pause-seconds: 60
-  # Quante segnalazioni ancora aperte puo' avere una persona alla volta.
+  # Quante segnalazioni ancora aperte può avere una persona alla volta.
   # Serve a evitare che qualcuno riempia la coda per ripicca.
   max-open: 3
-  # Lunghezza minima del motivo. "barare" non dice niente a chi dovra' controllare.
+  # Lunghezza minima del motivo. "barare" non dice niente a chi dovrà controllare.
   min-reason: 15
 
 # --------------------------- APPLICAZIONE ----------------------------
@@ -42,11 +42,11 @@ application:
   # automatico = il plugin applica sempre da solo, entro il tetto qui sotto
   # proposta   = il plugin non applica mai niente da solo: tutto in coda
   mode: misto
-  # Nessun automatismo puo' superare questa durata: oltre, diventa una proposta.
+  # Nessun automatismo può superare questa durata: oltre, diventa una proposta.
   # 0 = nessun automatismo di durata (solo warn e mute brevi).
   auto-max-duration: 30d
-  # Il ban PERMANENTE non e' mai automatico, qualunque cosa dica 'modo'.
-  # Non e' configurabile di proposito: e' la decisione piu' grave che esista.
+  # Il ban PERMANENTE non è mai automatico, qualunque cosa dica 'modo'.
+  # Non è configurabile di proposito: è la decisione più grave che esista.
 
   # Cosa vede il giocatore quando viene espulso o bloccato.
   # {motivo} {durata} {scadenza} {id} vengono sostituiti.
@@ -59,17 +59,17 @@ application:
   kick-message: |
     &#FFD166&lSei stato espulso
     &7Motivo: &f{motivo}
-  # Messaggio a chi prova a scrivere mentre e' silenziato.
+  # Messaggio a chi prova a scrivere mentre è silenziato.
   mute-message: "&#FF6B6BNon puoi scrivere in chat: &f{motivo} &7(finisce fra {scadenza})"
 
 # ------------------------------ PUNTI --------------------------------
 points:
-  # I punti si sommano e DECADONO: meta' del loro valore ogni N giorni.
-  # E' la stessa curva del punteggio multi-account: chi sbaglia una volta a marzo
-  # non se lo porta dietro per sempre, il recidivo si'.
+  # I punti si sommano e DECADONO: metà del loro valore ogni N giorni.
+  # È la stessa curva del punteggio multi-account: chi sbaglia una volta a marzo
+  # non se lo porta dietro per sempre, il recidivo sì.
   halving-days: 90
   # Soglie: raggiunti i punti indicati, scatta il provvedimento.
-  # Si legge dall'alto verso il basso: vince la soglia piu' alta superata.
+  # Si legge dall'alto verso il basso: vince la soglia più alta superata.
   thresholds:
     - points: 10
       type: mute
@@ -89,8 +89,8 @@ points:
 
 # ---------------------------- CATEGORIE ------------------------------
 # Ogni violazione appartiene a una categoria. Da qui escono: i punti, l'ambito
-# (dove vale il provvedimento) e se il provvedimento puo' essere automatico.
-# Il 'nome' e' quello che legge il pubblico nel regolamento e nell'elenco.
+# (dove vale il provvedimento) e se il provvedimento può essere automatico.
+# Il 'nome' è quello che legge il pubblico nel regolamento e nell'elenco.
 categories:
   chat.spam:
     name: "Spam in chat"
@@ -115,7 +115,7 @@ categories:
     description: "Numeri, indirizzi, richieste di contatti o foto ad altri giocatori."
     points: 20
     scope: entrambi
-    # MAI automatico: il pubblico e' in larga parte minorenne e qui un falso
+    # MAI automatico: il pubblico è in larga parte minorenne e qui un falso
     # positivo pesa molto meno di uno staff che non viene avvisato.
     automatic: false
   cheat.movimento:
@@ -158,8 +158,8 @@ categories:
 # --------------------------- POTERI STAFF ----------------------------
 # Tetto di durata per grado (gruppo primario LuckPerms). Oltre il tetto la
 # sanzione NON viene rifiutata: diventa una proposta motivata per il grado
-# superiore, con le prove gia' allegate. Chi vede il problema non perde il lavoro.
-#   -1 = nessun limite     0 = non puo' dare quel tipo di sanzione
+# superiore, con le prove già allegate. Chi vede il problema non perde il lavoro.
+#   -1 = nessun limite     0 = non può dare quel tipo di sanzione
 powers:
   helper:
     mute: 1h

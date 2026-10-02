@@ -157,7 +157,7 @@ public final class Translator {
             // si e' piu' riconosciuto per rimetterlo a posto: meglio niente traduzione che un
             // messaggio con un pezzo rotto in mezzo (visto succedere davvero: "&7" sparito e
             // rimasto un residuo tipo "[2]" al suo posto). Conta come fallimento, si riprova dopo.
-            log.warning("MagixLanguage: traduzione verso " + targetLang + " scartata: un segnaposto non e' "
+            log.warning("MagixLanguage: traduzione verso " + targetLang + " scartata: un segnaposto non è "
                     + "tornato al suo posto (testo: " + restored + ").");
             return null;
         }
@@ -170,7 +170,7 @@ public final class Translator {
                 // assomiglia piu' a un segnaposto). Si verifica che ogni pezzo protetto sia
                 // davvero tornato, non solo che non ne resti un residuo visibile.
                 log.warning("MagixLanguage: traduzione verso " + targetLang + " scartata: un colore o un "
-                        + "placeholder e' sparito invece di tornare al suo posto (mancante: " + token
+                        + "placeholder è sparito invece di tornare al suo posto (mancante: " + token
                         + ", testo: " + restored + ").");
                 return null;
             }

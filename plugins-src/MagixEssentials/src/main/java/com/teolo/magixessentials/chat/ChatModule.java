@@ -141,7 +141,7 @@ public final class ChatModule implements Listener {
         style = auto ? "nessuno" : wanted + " (che non esiste)";
         plugin.getLogger().warning("[Chat] " + (auto
                 ? "nessuno stile va bene per questo server (manca quello senza requisiti?)"
-                : "lo stile «" + wanted + "» non e' nell'elenco degli stili")
+                : "lo stile «" + wanted + "» non è nell'elenco degli stili")
                 + ": uso la riga di ripiego. Scrivila in chat.yml -> custom-format, o aggiungi lo stile che manca.");
     }
 

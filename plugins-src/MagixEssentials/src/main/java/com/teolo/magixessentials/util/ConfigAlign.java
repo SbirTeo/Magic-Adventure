@@ -111,9 +111,10 @@ public final class ConfigAlign {
      * plugin (saveDefaultConfig, saveResource), cosi' un menu cancellato apposta resta cancellato.</p>
      */
     public static void alignAll(JavaPlugin plugin) {
+        applyValueFixes(plugin);
         Map<String, Map<String, String>> renames = renamesFromJar(plugin);
         for (String name : ymlInJar(plugin)) {
-            if (name.equals(RENAMES_FILE)) continue;
+            if (name.equals(RENAMES_FILE) || name.equals(VALUE_FIXES_FILE)) continue;
             if (!new File(plugin.getDataFolder(), name).isFile()) continue;
             align(plugin, name, renames.getOrDefault(name, Map.of()), cleanable(name), commentsSynced(name));
         }
@@ -121,6 +122,90 @@ public final class ConfigAlign {
 
     /** Il file con le rinomine dichiarate dal plugin. */
     private static final String RENAMES_FILE = "renames.yml";
+
+    /** Il file con i testi di serie da aggiornare sul server (vedi {@link #applyValueFixes}). */
+    private static final String VALUE_FIXES_FILE = "value-fixes.yml";
+
+    /**
+     * Aggiorna nei file del server i TESTI DI SERIE cambiati nel jar. L'allineamento aggiunge le
+     * chiavi nuove ma non tocca mai i valori gia' presenti (sono le scelte dello staff): cosi' un
+     * testo corretto nel sorgente (es. "piu'" diventato "più") restava vecchio per sempre sul server.
+     *
+     * <p>Le coppie si dichiarano in {@code value-fixes.yml} dentro le risorse del plugin, un elenco
+     * per file ({@code messages.yml: [{old: "...", new: "..."}]}). Si sostituisce SOLO un valore
+     * identico a quello vecchio — fra virgolette doppie, fra apici singoli o senza virgolette — quindi
+     * un testo che lo staff ha cambiato a mano resta com'e'. Prima di scrivere si fa la copia in
+     * {@code .bak/}, come per l'allineamento; se la copia non riesce il file non si tocca.</p>
+     */
+    /**
+     * Il testo di un file yml con i valori vecchi sostituiti da quelli nuovi: fra virgolette doppie,
+     * fra apici singoli (l'apostrofo vi si scrive doppio) oppure senza virgolette fino a fine riga.
+     */
+    static String fixValues(String text, List<Map<?, ?>> pairs) {
+        String fixed = text;
+        for (Map<?, ?> pair : pairs) {
+            String from = String.valueOf(pair.get("old"));
+            String to = String.valueOf(pair.get("new"));
+            fixed = fixed.replace("\"" + yamlEscaped(from) + "\"", "\"" + yamlEscaped(to) + "\"");
+            fixed = fixed.replace("'" + from.replace("'", "''") + "'", "'" + to.replace("'", "''") + "'");
+            fixed = Pattern.compile("(:[ \\t]+)" + Pattern.quote(from) + "([ \\t]*(#.*)?)$", Pattern.MULTILINE)
+                    .matcher(fixed).replaceAll(m -> Matcher.quoteReplacement(m.group(1) + "\"" + yamlEscaped(to) + "\"" + m.group(2)));
+            // Blocco su piu' righe ("- |"): ogni riga sta da sola nel file. Si sostituiscono le righe
+            // cambiate, solo se il testo vecchio e quello nuovo hanno lo stesso numero di righe.
+            String[] oldLines = from.split("\n", -1);
+            String[] newLines = to.split("\n", -1);
+            if (oldLines.length > 1 && oldLines.length == newLines.length) {
+                for (int i = 0; i < oldLines.length; i++) {
+                    if (oldLines[i].isBlank() || oldLines[i].equals(newLines[i])) continue;
+                    String repl = newLines[i];
+                    fixed = Pattern.compile("^([ \\t]+)" + Pattern.quote(oldLines[i]) + "[ \\t]*$", Pattern.MULTILINE)
+                            .matcher(fixed).replaceAll(m -> Matcher.quoteReplacement(m.group(1) + repl));
+                }
+            }
+        }
+        return fixed;
+    }
+
+    /** Un testo come si scrive fra virgolette doppie in YAML: "a capo" diventa \\n, ecc. */
+    private static String yamlEscaped(String text) {
+        return text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t");
+    }
+
+    private static void applyValueFixes(JavaPlugin plugin) {
+        String text = resource(plugin, VALUE_FIXES_FILE);
+        if (text == null) return;
+        org.bukkit.configuration.file.YamlConfiguration fixes = new org.bukkit.configuration.file.YamlConfiguration();
+        // Le chiavi sono nomi di file ("messages.yml"): col punto come separatore sarebbero lette
+        // come "messages" -> "yml". Si usa "/".
+        fixes.options().pathSeparator('/');
+        try {
+            fixes.loadFromString(text);
+        } catch (Exception e) {
+            plugin.getLogger().warning(VALUE_FIXES_FILE + " illeggibile (" + e.getClass().getSimpleName()
+                    + "): nessun testo di serie aggiornato.");
+            return;
+        }
+        for (String fileName : fixes.getKeys(false)) {
+            File file = new File(plugin.getDataFolder(), fileName);
+            if (!file.isFile()) continue;
+            try {
+                String original = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+                List<Map<?, ?>> pairs = fixes.getMapList(fileName);
+                String fixed = fixValues(original, pairs);
+                int count = 0;
+                for (Map<?, ?> pair : pairs) {
+                    if (!fixValues(original, List.of(pair)).equals(original)) count++;
+                }
+                if (count == 0) continue;
+                backup(plugin, file);
+                Files.writeString(file.toPath(), fixed, StandardCharsets.UTF_8);
+                plugin.getLogger().info(fileName + ": aggiornati " + count + " testi di serie (" + VALUE_FIXES_FILE + ").");
+            } catch (Exception e) {
+                plugin.getLogger().warning(fileName + ": testi di serie non aggiornati (" + e.getClass().getSimpleName()
+                        + "): il file non è stato toccato.");
+            }
+        }
+    }
 
     /**
      * Su quali file si possono TOGLIERE le chiavi che il sorgente non ha piu'.
@@ -229,14 +314,14 @@ public final class ConfigAlign {
                     renames, cleanable, syncComments);
             if (result.unreadable) {
                 plugin.getLogger().warning(fileName + ": non ci ho capito niente (nessuna chiave"
-                        + " riconosciuta) e NON l'ho toccato. Va guardato a mano: e' il file che il"
+                        + " riconosciuta) e NON l'ho toccato. Va guardato a mano: è il file che il"
                         + " plugin legge davvero.");
                 return result;
             }
             if (!result.duplicated.isEmpty()) {
                 plugin.getLogger().warning(fileName + ": allineamento ANNULLATO, sarebbero uscite"
                         + " chiavi doppie (" + String.join(", ", result.duplicated) + ") e in YAML"
-                        + " vince l'ultima. Il file e' rimasto com'era.");
+                        + " vince l'ultima. Il file è rimasto com'era.");
                 return result;
             }
             if (result.changed()) {
@@ -257,7 +342,7 @@ public final class ConfigAlign {
             }
             if (!result.removed.isEmpty()) {
                 plugin.getLogger().info(fileName + ": tolte le righe morte, che il codice non legge"
-                        + " piu' (" + String.join(", ", result.removed) + "). La copia di prima e'"
+                        + " più (" + String.join(", ", result.removed) + "). La copia di prima è"
                         + " nella cartella .bak/ del server, col nome che finisce in .bak-<data>.");
             }
             if (!result.comments.isEmpty()) {
@@ -266,7 +351,7 @@ public final class ConfigAlign {
             }
             if (!result.unknown.isEmpty()) {
                 plugin.getLogger().info(fileName + ": sul server ci sono chiavi che il codice non legge"
-                        + " piu' (rinominate o tolte): " + String.join(", ", result.unknown) + ".");
+                        + " più (rinominate o tolte): " + String.join(", ", result.unknown) + ".");
             }
             return result;
         } catch (Exception e) {

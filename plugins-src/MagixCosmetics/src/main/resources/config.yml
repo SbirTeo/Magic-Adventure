@@ -1,22 +1,22 @@
 # MagixCosmetics - cosmetici a particelle per i giocatori.
-# Per ora c'e' una cosa sola: l'aureola colorata che gira sopra la testa dei VIP.
+# Per ora c'è una cosa sola: l'aureola colorata che gira sopra la testa dei VIP.
 #
 # Chi vede l'aureola? Chi ha il permesso magixcosmetics.halo (di norma il grado VIP su
-# LuckPerms). NON basta pero': senza ANCHE un permesso colore (vedi halo.colors sotto)
+# LuckPerms). NON basta però: senza ANCHE un permesso colore (vedi halo.colors sotto)
 # l'aureola non ha nessun colore e non si disegna. Non serve nessun comando per accenderla:
 # appena i due permessi ci sono, l'aureola compare da sola nel colore giusto.
 # I testi e i colori dei messaggi stanno in messages.yml; qui ci sono solo i numeri della resa.
 
-# L'aureola e' un SOLO puntino che orbita in cerchio sopra la testa (non un anello pieno).
+# L'aureola è un SOLO puntino che orbita in cerchio sopra la testa (non un anello pieno).
 halo:
   # Interruttore generale dell'aureola. Spento, nessuno la vede e il task non gira.
   enabled: true
 
-  # La tavolozza dei colori disponibili, in esadecimale #RRGGBB. Ogni nome qui sotto e' anche
+  # La tavolozza dei colori disponibili, in esadecimale #RRGGBB. Ogni nome qui sotto è anche
   # un permesso: magixcosmetics.halo.color.<nome> (es. magixcosmetics.halo.color.yellow).
-  # NON c'e' un colore di default: un giocatore senza nessuno di questi permessi non ha
+  # NON c'è un colore di default: un giocatore senza nessuno di questi permessi non ha
   # colore, quindi l'aureola non si disegna anche se ha magixcosmetics.halo. Con uno di questi
-  # permessi il colore si accende da solo; con piu' di uno si sceglie con /halo setcolor <nome>.
+  # permessi il colore si accende da solo; con più di uno si sceglie con /halo setcolor <nome>.
   colors:
     yellow: "#FFDD33"
     red: "#FF5C5C"
@@ -34,27 +34,27 @@ halo:
   # Altezza sopra i piedi del giocatore, in blocchi. 2.1 la mette appena sopra la testa.
   height: 2.1
 
-  # Dimensione del puntino (particella DUST). 1.0 e' la taglia normale; 0.55 e' un puntino sottile,
+  # Dimensione del puntino (particella DUST). 1.0 è la taglia normale; 0.55 è un puntino sottile,
   # discreto, pensato per non saltare troppo all'occhio.
   particle-size: 0.55
 
   # Da quanti blocchi si vede l'aureola (giocatori e statue di MagixEntities). Le particelle normali
-  # arrivano solo entro 32 blocchi: su una statua gigante, che si vede da molto piu' lontano,
+  # arrivano solo entro 32 blocchi: su una statua gigante, che si vede da molto più lontano,
   # l'aureola spariva prima della statua. Qui si mandano "a lunga distanza"; massimo 512.
   view-distance: 96
 
-  # Ogni quanti tick il puntino avanza (e viene disegnato). 1 = ogni tick, il movimento piu' fluido.
-  # Piu' alto = piu' leggero ma il movimento e' piu' a scatti.
+  # Ogni quanti tick il puntino avanza (e viene disegnato). 1 = ogni tick, il movimento più fluido.
+  # Più alto = più leggero ma il movimento è più a scatti.
   update-interval-ticks: 1
 
-  # Quanto avanza lungo il cerchio a ogni passo, in radianti. Piu' alto = orbita piu' veloce.
+  # Quanto avanza lungo il cerchio a ogni passo, in radianti. Più alto = orbita più veloce.
   # 0.25 fa un giro completo in circa un secondo e mezzo.
   spin-speed: 0.25
 
-  # Nascondi l'aureola a chi e' in vanish (staff invisibile): altrimenti lo tradirebbe.
+  # Nascondi l'aureola a chi è in vanish (staff invisibile): altrimenti lo tradirebbe.
   hide-when-vanished: true
 
-  # Nascondi l'aureola a chi ha la pozione di invisibilita'.
+  # Nascondi l'aureola a chi ha la pozione di invisibilità.
   hide-when-invisible: true
 
   # L'aureola sparisce durante un combattimento PvP e per un po' dopo: da bersaglio colorato

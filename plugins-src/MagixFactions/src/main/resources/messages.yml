@@ -25,7 +25,7 @@ decay:
   lost: "&c&lLa fazione ha perso un territorio per sovraccarico!"
 
 errors:
-  players-only: "&cSolo un giocatore puo' usare questo comando."
+  players-only: "&cSolo un giocatore può usare questo comando."
   no-faction: "&cNon sei in una fazione."
   no-permission: "&cNon hai il permesso."
   generic: "&cErrore: {error}"
@@ -43,13 +43,13 @@ chat:
 
 create:
   usage: "&cUso: /f create <nome>"
-  already-in: "&cSei gia' in una fazione."
+  already-in: "&cSei già in una fazione."
   name-length: "&cIl nome deve avere tra &e{min}&c e &e{max}&c caratteri."
-  name-chars: "&cIl nome puo' contenere solo lettere e numeri (niente spazi, simboli o punteggiatura)."
-  name-digits: "&cIl nome puo' contenere al massimo &e{max}&c cifre."
+  name-chars: "&cIl nome può contenere solo lettere e numeri (niente spazi, simboli o punteggiatura)."
+  name-digits: "&cIl nome può contenere al massimo &e{max}&c cifre."
   # {max} = faction-name.max-consecutive del config
-  name-consecutive: "&cNel nome lo stesso carattere puo' ripetersi al massimo &e{max}&c volte di fila."
-  name-taken: "&cEsiste gia' una fazione con questo nome."
+  name-consecutive: "&cNel nome lo stesso carattere può ripetersi al massimo &e{max}&c volte di fila."
+  name-taken: "&cEsiste già una fazione con questo nome."
   # Tempo di gioco insufficiente (create-cost.min-playtime-seconds). {required} = minimo, {played} = giocato finora.
   playtime: "&cPer fondare una fazione devi aver giocato almeno &e{required}&c (finora: &e{played}&c)."
   success: "&aFazione &e{name}&a creata! Sei il &6leader&a."
@@ -58,54 +58,54 @@ create:
 
 rename:
   usage: "&cUso: /f rename <nuovonome>"
-  not-leader: "&cSolo il leader puo' rinominare la fazione."
-  same-name: "&cLa fazione si chiama gia' cosi'."
+  not-leader: "&cSolo il leader può rinominare la fazione."
+  same-name: "&cLa fazione si chiama già così."
   cooldown: "&cPuoi rinominare la fazione di nuovo tra &e{time}&c."
   broadcast: "&eLa fazione &f{old}&e ora si chiama &f{name}&e."
   success: "&aFazione rinominata in &e{name}&a."
 
 disband:
-  not-leader: "&cSolo il leader puo' sciogliere la fazione."
+  not-leader: "&cSolo il leader può sciogliere la fazione."
   # Annuncio a TUTTO il server quando una fazione viene sciolta. {name} = nome, {player} = leader.
-  # Chiave nuova (announce) invece della vecchia broadcast: sui server con un messages.yml gia'
+  # Chiave nuova (announce) invece della vecchia broadcast: sui server con un messages.yml già
   # esistente la vecchia chiave avrebbe la meglio sul default, mostrando il testo vecchio senza nome.
-  announce: "&c&lFAZIONE SCIOLTA &r&7» &f{name}&7 e' stata sciolta da &f{player}&7."
+  announce: "&c&lFAZIONE SCIOLTA &r&7» &f{name}&7 è stata sciolta da &f{player}&7."
   success: "&aFazione sciolta. I territori sono tornati neutrali."
 
 leave:
-  disbanded: "&aEri l'unico membro: la fazione e' stata sciolta e i territori sono neutrali."
-  succession: "&aHai lasciato la fazione. Il comando e' passato al successore."
+  disbanded: "&aEri l'unico membro: la fazione è stata sciolta e i territori sono neutrali."
+  succession: "&aHai lasciato la fazione. Il comando è passato al successore."
   new-leader: "&6Sei il nuovo leader della fazione &e{name}&6!"
   left: "&aHai lasciato la fazione."
-  # Annuncio ai membri rimasti quando qualcuno lascia la fazione. {player} = chi e' uscito.
+  # Annuncio ai membri rimasti quando qualcuno lascia la fazione. {player} = chi è uscito.
   broadcast: "&e{player}&7 ha lasciato la fazione."
   # Annuncio ai membri rimasti quando esce il leader e il comando passa al successore. {leader} = nuovo leader.
-  succession-broadcast: "&6{leader}&7 e' il nuovo leader della fazione."
+  succession-broadcast: "&6{leader}&7 è il nuovo leader della fazione."
 
 transfer:
-  not-leader: "&cSolo il leader puo' trasferire il comando."
+  not-leader: "&cSolo il leader può trasferire il comando."
   usage: "&cUso: /f transfer <giocatore>"
-  not-member: "&cQuel giocatore non e' nella tua fazione."
-  already-leader: "&cSei gia' il leader."
+  not-member: "&cQuel giocatore non è nella tua fazione."
+  already-leader: "&cSei già il leader."
   success: "&aHai trasferito il comando a &e{player}&a."
   received: "&6Sei il nuovo leader della fazione &e{name}&6!"
 
 promote:
   no-perm: "&cNon hai il permesso di promuovere."
   usage: "&cUso: /f promote <giocatore>"
-  not-member: "&cQuel giocatore non e' nella tua fazione."
+  not-member: "&cQuel giocatore non è nella tua fazione."
   cant-leader: "&cNon puoi promuovere il leader."
   too-high: "&cNon puoi promuovere chi ha grado pari o superiore al tuo."
-  max: "&eIl giocatore e' gia' al grado massimo che puoi assegnare."
+  max: "&eIl giocatore è già al grado massimo che puoi assegnare."
   success: "&a{player} promosso a &e{rank}&a."
   received: "&aSei stato promosso a &e{rank}&a!"
 
 demote:
   no-perm: "&cNon hai il permesso di degradare."
   usage: "&cUso: /f demote <giocatore>"
-  not-member: "&cQuel giocatore non e' nella tua fazione."
+  not-member: "&cQuel giocatore non è nella tua fazione."
   cant-leader: "&cNon puoi degradare il leader."
-  min: "&eIl giocatore e' gia' al grado piu' basso."
+  min: "&eIl giocatore è già al grado più basso."
   success: "&a{player} degradato a &e{rank}&a."
   received: "&cSei stato degradato a &e{rank}&c."
 
@@ -113,24 +113,24 @@ invite:
   no-perm: "&cNon hai il permesso di invitare."
   usage: "&cUso: /f invite <giocatore>"
   not-online: "&cGiocatore non online."
-  already-in: "&cQuel giocatore e' gia' in una fazione."
-  full: "&cLa fazione e' al numero massimo di membri (&e{max}&c)."
+  already-in: "&cQuel giocatore è già in una fazione."
+  full: "&cLa fazione è al numero massimo di membri (&e{max}&c)."
   sent: "&aHai invitato &e{player}&a."
   received: "&aSei stato invitato nella fazione &e{name}&a. Usa &f/f join {name}&a per entrare."
 
 join:
-  already-in: "&cSei gia' in una fazione."
+  already-in: "&cSei già in una fazione."
   usage: "&cUso: /f join <fazione>"
   not-found: "&cFazione non trovata."
   not-invited: "&cNon sei stato invitato in questa fazione."
-  full: "&cLa fazione e' piena."
+  full: "&cLa fazione è piena."
   success: "&aSei entrato nella fazione &e{name}&a!"
-  broadcast: "&e{player}&a si e' unito alla fazione."
+  broadcast: "&e{player}&a si è unito alla fazione."
 
 kick:
   no-perm: "&cNon hai il permesso di espellere."
   usage: "&cUso: /f kick <giocatore>"
-  not-member: "&cQuel giocatore non e' nella tua fazione."
+  not-member: "&cQuel giocatore non è nella tua fazione."
   cant-leader: "&cNon puoi espellere il leader."
   too-high: "&cNon puoi espellere chi ha grado pari o superiore al tuo."
   success: "&aHai espulso &e{player}&a."
@@ -142,12 +142,12 @@ claim:
   paid: "&7Territorio pagato: &e{cost}&7 dalla banca (saldo: &6{bank}&7)."
   no-perm: "&cNon hai il permesso di conquistare territori (solo il leader di default)."
   wrong-world: "&cIn questo mondo non si possono rivendicare territori. I claim sono consentiti solo nel mondo principale."
-  already-own: "&eQuesto territorio e' gia' della tua fazione."
+  already-own: "&eQuesto territorio è già della tua fazione."
   cap-reached: "&cHai raggiunto il numero massimo di territori (&e{cap}&c). Aumenta il maxpower della fazione."
-  not-enough-power: "&cPotenza insufficiente: serve piu' della quantita' di territori posseduti (&ePotenza {power}&c, territori &e{claims}&c)."
+  not-enough-power: "&cPotenza insufficiente: serve più della quantità di territori posseduti (&ePotenza {power}&c, territori &e{claims}&c)."
   ally-land: "&cNon puoi conquistare un territorio di un'alleata (&e{name}&c)."
-  enemy-not-raidable: "&cLa fazione &e{name}&c non e' raidabile: la sua Potenza (&e{power}&c) non e' inferiore ai suoi territori (&e{claims}&c)."
-  not-border: "&cPuoi conquistare solo i territori PIU' ESTERNI di &e{name}&c, non dall'interno."
+  enemy-not-raidable: "&cLa fazione &e{name}&c non è raidabile: la sua Potenza (&e{power}&c) non è inferiore ai suoi territori (&e{claims}&c)."
+  not-border: "&cPuoi conquistare solo i territori PIÙ ESTERNI di &e{name}&c, non dall'interno."
   success: "&aTerritorio conquistato! Chunk &e{x}, {z} &7(territori: &f{count}&7/&f{cap}&7)."
   overclaim-success: "&aHai strappato un territorio a &e{name}&a! Chunk &e{x}, {z}&a."
   overclaimed-victim: "&cLa fazione &e{name}&c vi ha conquistato il territorio al chunk &e{x}, {z}&c!"
@@ -155,19 +155,19 @@ claim:
   overclaim-alert-title: "&4&l⚔ TERRITORIO CONQUISTATO ⚔"
   overclaim-alert-subtitle: "&e{attacker} &7ha strappato un territorio a &c{victim} &7(&f{x}, {z}&7)"
   # Mostrati quando il territorio conquistato conteneva la HOME della fazione nemica (che quindi la perde).
-  overclaim-home-taken: "&aHai conquistato anche la &eHOME&a di &e{name}&a: non potranno piu' teletrasportarsi qui."
-  overclaim-home-lost: "&4&lLa vostra HOME era in quel territorio ed e' andata persa!&c Impostatene una nuova con &e/f sethome&c."
+  overclaim-home-taken: "&aHai conquistato anche la &eHOME&a di &e{name}&a: non potranno più teletrasportarsi qui."
+  overclaim-home-lost: "&4&lLa vostra HOME era in quel territorio ed è andata persa!&c Impostatene una nuova con &e/f sethome&c."
 
 # Area protetta dello spawn (config claims.protected-spawn): quadrato centrale dove non si fondano
-# fazioni ne' si conquistano territori. I blocchi NON sono protetti (si costruisce liberamente).
+# fazioni né si conquistano territori. I blocchi NON sono protetti (si costruisce liberamente).
 protected-spawn:
   no-create: "&cNon puoi fondare una fazione nell'area protetta dello spawn (entro &e{radius}&c blocchi dal centro). Allontanati oltre questo confine per fondarla e conquistare territori."
-  no-claim: "&cQui non puoi conquistare territori: e' l'area protetta dello spawn. Supera il confine (oltre &e{radius}&c blocchi dal centro) per rivendicare terreno."
+  no-claim: "&cQui non puoi conquistare territori: è l'area protetta dello spawn. Supera il confine (oltre &e{radius}&c blocchi dal centro) per rivendicare terreno."
 
 unclaim:
   refund: "&7Rimborso: &e{refund}&7 accreditati alla banca della fazione (saldo: &6{bank}&7)."
   no-perm: "&cNon hai il permesso di rilasciare territori (solo il leader di default)."
-  not-your-land: "&cQuesto territorio non e' della tua fazione."
+  not-your-land: "&cQuesto territorio non è della tua fazione."
   success: "&aTerritorio rilasciato. Chunk &e{x}, {z} &7(territori rimasti: &f{count}&7)."
 
 unclaimall:
@@ -181,13 +181,13 @@ unclaimall:
 # Proprietario della land (/f owner). Solo il leader lo imposta; nel chunk con proprietario interagiscono
 # solo owner + leader (vedi protection.owner-denied).
 owner:
-  not-leader: "&cSolo il leader della fazione puo' impostare il proprietario di una land."
-  not-your-land: "&cQuesto chunk non e' della tua fazione: mettiti dentro una vostra land."
+  not-leader: "&cSolo il leader della fazione può impostare il proprietario di una land."
+  not-your-land: "&cQuesto chunk non è della tua fazione: mettiti dentro una vostra land."
   none-here: "&7Questa land non ha un proprietario: possono interagirci tutti i membri. &8Usa &f/f owner <giocatore>&8 per assegnarla."
   current: "&7Proprietario di questa land: &e{owner}&7. &8Usa &f/f owner clear&8 per toglierlo."
   not-member: "&cNon fa parte della tua fazione."
   set: "&aOra questa land appartiene a &e{player}&a: solo lui e il leader possono interagirci."
-  received: "&aTi e' stata assegnata una land della fazione: solo tu e il leader potete interagirci."
+  received: "&aTi è stata assegnata una land della fazione: solo tu e il leader potete interagirci."
   cleared: "&aProprietario rimosso: ora tutti i membri possono interagire in questa land."
 
 # Banca di fazione: /f deposit|d <soldi> (tutti i membri), /f withdraw|w <soldi> (permesso di grado
@@ -207,7 +207,7 @@ bank:
 description:
   no-perm: "&cNon hai il permesso di modificare la descrizione (solo il leader di default)."
   usage: "&cUso: /f description <testo>"
-  too-long: "&cLa descrizione e' troppo lunga (max &e{max}&c caratteri)."
+  too-long: "&cLa descrizione è troppo lunga (max &e{max}&c caratteri)."
   success: "&aDescrizione della fazione aggiornata."
 
 info:
@@ -230,20 +230,20 @@ info:
   score: "&6Punteggio: &b{score} &7(#{pos} in classifica)"
   # Variante per una fazione INATTIVA, oscurata dalla classifica (nessuna posizione).
   score-unranked: "&6Punteggio: &b{score} &7(fuori classifica - inattiva)"
-  # Avviso mostrato in /f info quando la fazione e' INATTIVA. {days} = giorni di assenza richiesti.
+  # Avviso mostrato in /f info quando la fazione è INATTIVA. {days} = giorni di assenza richiesti.
   inactive: "&c⚠ Fazione inattiva: tutti i membri assenti da oltre {days} giorni. Fuori dalla classifica finché non rientra qualcuno."
   status-safe-color: "&a"
   status-raid-color: "&c"
   status-none-color: "&f"
-  status-weak: "&cLa fazione e' debole, puoi conquistarla."
-  status-strong: "&aLa fazione e' forte. Non puoi conquistarla."
+  status-weak: "&cLa fazione è debole, puoi conquistarla."
+  status-strong: "&aLa fazione è forte. Non puoi conquistarla."
   status-none: "&fQuesta fazione non ha ancora un territorio."
   # Varianti mostrate in /f info quando si guarda la PROPRIA fazione (seconda persona).
-  status-weak-self: "&cLa tua fazione e' debole, puo' essere conquistata."
-  status-strong-self: "&aLa tua fazione e' forte. Non puo' essere conquistata."
+  status-weak-self: "&cLa tua fazione è debole, può essere conquistata."
+  status-strong-self: "&aLa tua fazione è forte. Non può essere conquistata."
   status-none-self: "&fLa tua fazione non ha ancora un territorio."
   # Testi del placeholder %magixfactions_status% (scoreboard, tablist...): solo queste due frasi.
-  # Senza territori non c'e' nulla da conquistare, quindi conta come sicura (come status_raw).
+  # Senza territori non c'è nulla da conquistare, quindi conta come sicura (come status_raw).
   status-placeholder-safe: "&aLa fazione è sicura"
   status-placeholder-unsafe: "&cLa fazione non è sicura"
   # Riga "Alleati:" con elenco fazioni; le richieste in sospeso hanno "(in attesa)" + tooltip (hover).
@@ -266,8 +266,8 @@ relation:
   name-ally: "&dAlleata"
   name-enemy: "&cNemica"
   # --- alleanza (richiede consenso reciproco) ---
-  ally-already: "&eSiete gia' alleati con &f{name}&e."
-  ally-pending-self: "&eHai gia' richiesto l'alleanza a &f{name}&e. Attendi la conferma."
+  ally-already: "&eSiete già alleati con &f{name}&e."
+  ally-pending-self: "&eHai già richiesto l'alleanza a &f{name}&e. Attendi la conferma."
   ally-max: "&cHai raggiunto il numero massimo di alleati (&e{max}&c)."
   ally-requested: "&aRichiesta di alleanza inviata a &f{name}&a."
   ally-incoming: "&e{name}&a vi ha chiesto un'alleanza. Usa &f/f ally {name}&a per accettare."
@@ -276,7 +276,7 @@ relation:
   ally-rejected-self: "&7Hai rifiutato la richiesta di alleanza di &f{name}&7."
   ally-rejected-other: "&e{name}&7 ha rifiutato la vostra richiesta di alleanza."
   # --- nemici (default per tutte le fazioni) ---
-  enemy-already: "&eSiete gia' nemici con &f{name}&e."
+  enemy-already: "&eSiete già nemici con &f{name}&e."
   enemy-broke-self: "&cHai sciolto l'alleanza con &f{name}&c: ora siete nemici."
   enemy-broke-other: "&c{name}&c ha sciolto l'alleanza con voi: ora siete nemici."
   # --- /f relations ---
@@ -297,29 +297,29 @@ home:
   set: "&aHome della fazione impostata qui."
   unset: "&aHome della fazione rimossa."
   not-set: "&cLa tua fazione non ha una home impostata."
-  world-missing: "&cIl mondo della home non e' disponibile."
+  world-missing: "&cIl mondo della home non è disponibile."
   warmup-start: "&eTeletrasporto alla home tra &6{seconds}&e secondi... non muoverti o si annulla!"
   warmup-cancelled: "&cTeletrasporto alla home annullato: ti sei mosso."
   warmup-cancelled-damage: "&cTeletrasporto alla home annullato: hai subito un danno."
   warmup-cancelled-pvp: "&cTeletrasporto alla home annullato: hai attaccato un altro giocatore."
   teleported: "&aTeletrasportato alla home della fazione."
   failed: "&cTeletrasporto fallito, riprova."
-  lost-unclaim: "&cAvevi la HOME in quel territorio: e' stata rimossa. Impostane una nuova con &e/f sethome&c."
+  lost-unclaim: "&cAvevi la HOME in quel territorio: è stata rimossa. Impostane una nuova con &e/f sethome&c."
 
 # Potenza (Power): /f power [giocatore] e avviso alla morte.
 power:
   self: "&6La tua Potenza: &e{power}&7/&e{maxpower}&6."
   # Mostrata solo a chi ha un recupero diverso dal normale (permesso magixfactions.power.speed.<%>).
-  speed: "&6Recupero Potenza: &a{speed}%&6 della velocita' normale &7(un punto ogni {minutes})."
+  speed: "&6Recupero Potenza: &a{speed}%&6 della velocità normale &7(un punto ogni {minutes})."
   # Mostrata solo a chi ha una perdita diversa dal normale (permesso magixfactions.power.speed.loss.<%>).
-  loss-speed: "&6Perdita da offline: &a{speed}%&6 della velocita' normale."
+  loss-speed: "&6Perdita da offline: &a{speed}%&6 della velocità normale."
   other: "&6Potenza di &e{player}&6: &e{power}&7/&e{maxpower}&6."
   not-found: "&cGiocatore &e{player}&c non trovato (dev'essere entrato almeno una volta)."
   death-loss: "&cSei morto! Hai perso &e{lost}&c Potenza. Ora hai &e{power}&7/&e{maxpower}&c."
 
 # Protezione territori (config: protection).
 protection:
-  denied: "&cQuesto territorio e' della fazione &e{name}&c: non puoi costruire o interagire qui."
+  denied: "&cQuesto territorio è della fazione &e{name}&c: non puoi costruire o interagire qui."
   # Mostrato a un COMPAGNO di fazione dentro una land che ha un proprietario (/f owner): solo owner + leader.
   owner-denied: "&cQuesta land ha come proprietario &e{owner}&c: solo lui e il leader possono interagire qui."
 
@@ -328,17 +328,17 @@ combat:
   friendly-fire: "&cNon puoi colpire i tuoi compagni di fazione o gli alleati."
 
 map:
-  # Modalita' ITEM: consegna un item mappa dinamico da tenere in mano.
+  # Modalità ITEM: consegna un item mappa dinamico da tenere in mano.
   given: "&aHai ricevuto la &6Mappa Fazioni&a. Tienila in mano per vedere i territori attorno a te."
   inventory-full: "&cInventario pieno! Libera uno slot e riesegui &6/f map&c."
-  # Modalita' CHAT: mappa testuale. {zoom} = livello di zoom attuale.
+  # Modalità CHAT: mappa testuale. {zoom} = livello di zoom attuale.
   chat-header: "&8&m--&r &6Mappa Fazioni &7(zoom: {zoom}) &8&m--"
   chat-legend: "&7Legenda: &f&l+ &7tu   &6&l⌂ &7casa   &8- &7libero"
   chat-legend-entry: "  {relcolor}{letter} &7= {relcolor}{name}"
 
 minimap:
   usage: "&cUso: /f minimap <on|off>"
-  no-permission: "&cLa minimap non e' disponibile per te."
+  no-permission: "&cLa minimap non è disponibile per te."
   # NB: le chiavi NON possono chiamarsi 'on'/'off' — in YAML sono booleani riservati e verrebbero lette
   # come true/false (a runtime il messaggio risulterebbe mancante). Usare enabled/disabled.
   enabled: "&aMinimap &2accesa&a. La vedi nell'angolo dello schermo; la mappa in chat con &6/f map&a resta sempre disponibile."
@@ -351,7 +351,7 @@ minimap:
 borders:
   usage: "&cUso: /f borders <on|off>"
   enabled: "&aConfini &2accesi&a. Particelle lungo i bordi dei territori vicini: &2verde&a la tua, &dmagenta&a gli alleati, &crosso&a i nemici."
-  disabled: "&aConfini &cspenti&a. Le particelle dei bordi non ti verranno piu' mostrate."
+  disabled: "&aConfini &cspenti&a. Le particelle dei bordi non ti verranno più mostrate."
 
 list:
   empty: "&7Non esiste ancora nessuna fazione."
@@ -359,7 +359,7 @@ list:
   entry: "  {relcolor}{name} &7- &f{members}&7/&f{max} membri"
 
 # ---------------------------------------------------------------- /f top (classifica)
-# Classifica per PUNTEGGIO composito (territori, membri, banca, longevita', potenza; pesi in config
+# Classifica per PUNTEGGIO composito (territori, membri, banca, longevità, potenza; pesi in config
 # score.weights). {pos} = posizione, {name} = fazione (colorata per relazione), {score} = punteggio 0-100.
 top:
   empty: "&7Non esiste ancora nessuna fazione da mettere in classifica."
@@ -376,7 +376,7 @@ top:
 # {value}=valore usato, {pct}=% rispetto al migliore, {points}=punti che aggiunge, {max}=punti massimi.
 score-tooltip:
   header: "&bCome si calcola il punteggio"
-  intro: "&7In ogni voce la fazione migliore vale il massimo; tu ne prendi la percentuale rispetto a lei. Il punteggio e' la somma delle voci."
+  intro: "&7In ogni voce la fazione migliore vale il massimo; tu ne prendi la percentuale rispetto a lei. Il punteggio è la somma delle voci."
   # {best} = fazione migliore in quella voce, {bestval} = il suo valore (il 100%).
   line: "&7{label} &8(&f{value}&8) &7{best} &8· &7{pct} del migliore &8· &f{points}&7/{max}"
   # Riferimento al migliore della voce (quando non sei tu).
@@ -400,9 +400,9 @@ db:
 admin:
   usage: "&cUso: /mf admin <setpower|setmap|fake|bypass|home|disband|rename|join|promote|demote> ..."
   not-found: "&cGiocatore &e{player}&c non trovato (dev'essere entrato almeno una volta)."
-  no-faction: "&cIl giocatore &e{player}&c non e' in nessuna fazione."
+  no-faction: "&cIl giocatore &e{player}&c non è in nessuna fazione."
   join-usage: "&cUso: /mf admin join <fazione>"
-  join-already-in: "&cSei gia' in una fazione: esci prima con &e/f leave&c."
+  join-already-in: "&cSei già in una fazione: esci prima con &e/f leave&c."
   promote-usage: "&cUso: /mf admin promote <giocatore>"
   demote-usage: "&cUso: /mf admin demote <giocatore>"
   faction-not-found: "&cFazione &e{faction}&c non trovata."
@@ -432,7 +432,7 @@ admin:
     info: "&eDati di test attuali: &6{factions}&e fazioni finte, &6{players}&e giocatori finti. Rimuovili con &6/mf admin fake clear&e."
 
 # Come il tutorial scrive una cifra in soldi (prezzi dei territori, costo di creazione...) quando
-# l'economia del server non e' ancora pronta mentre la guida viene scritta. Di norma la cifra la
+# l'economia del server non è ancora pronta mentre la guida viene scritta. Di norma la cifra la
 # formatta l'economia stessa (CMI tramite Vault), uguale a quella che si vede in gioco.
 guide-money: "{amount}€"
 
@@ -476,13 +476,13 @@ reload: "&aConfigurazione e messaggi ricaricati."
 # una sezione per volta, con le frecce per sfogliare, e ogni riga si clicca per
 # scriversi il comando in chat.
 # Formato di una riga:  "<comando> [argomenti] :: spiegazione"
-#   - il comando (le parole semplici iniziali) e' quello che il clic scrive;
+#   - il comando (le parole semplici iniziali) è quello che il clic scrive;
 #   - gli argomenti fra <> o [] restano da riempire a mano;
 #   - staff: true su una sezione = la vede solo chi ha magixfactions.admin.
 help:
   title: "MagixFactions"
   # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
-  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # non cambia da un plugin all'altro, ma vive comunque qui perché Help lo legge da
   # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
   chrome:
     no-commands: "Nessun comando disponibile."

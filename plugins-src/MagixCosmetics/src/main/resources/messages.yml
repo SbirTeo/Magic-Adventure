@@ -43,16 +43,16 @@ halo-status-server-off:
   - "  &7Aureola: &#FF6B6Bdisattivata &8(halo.enabled: false)."
 
 # ---------------------------------------------------------------- /halo
-halo-set-on: "&aLa tua aureola e' stata riaccesa."
-halo-set-off: "&7La tua aureola e' stata spenta."
-halo-already-on: "&eLa tua aureola era gia' accesa."
-halo-already-off: "&eLa tua aureola era gia' spenta."
-halo-no-vip: "&cL'aureola e' riservata ai VIP."
-halo-disabled: "&cIn questo momento l'aureola e' disattivata sul server."
+halo-set-on: "&aLa tua aureola è stata riaccesa."
+halo-set-off: "&7La tua aureola è stata spenta."
+halo-already-on: "&eLa tua aureola era già accesa."
+halo-already-off: "&eLa tua aureola era già spenta."
+halo-no-vip: "&cL'aureola è riservata ai VIP."
+halo-disabled: "&cIn questo momento l'aureola è disattivata sul server."
 halo-usage: "&eUso: &#A8DC2C/halo <on|off> &7oppure &#A8DC2C/halo setcolor <colore>"
 # {colors} = elenco dei nomi di colore validi (vedi color-names), separati da virgola.
 halo-setcolor-unknown: "&cColore sconosciuto. Colori disponibili: &e{colors}"
-# {color} = nome del colore che non gli e' permesso.
+# {color} = nome del colore che non gli è permesso.
 halo-setcolor-no-permission: "&cNon hai il permesso per il colore &e{color}&c. Chiedilo allo staff."
 # {color} = nome del colore appena scelto.
 halo-setcolor-set: "&aAureola impostata al colore &e{color}&a."
@@ -80,7 +80,7 @@ color-names:
 help:
   title: "MagixCosmetics"
   # Il testo di cornice dell'elenco comandi (Help.java, condiviso da tutti i plugin Magix):
-  # non cambia da un plugin all'altro, ma vive comunque qui perche' Help lo legge da
+  # non cambia da un plugin all'altro, ma vive comunque qui perché Help lo legge da
   # messages.yml come ogni altro testo del giocatore (vedi CLAUDE.md).
   chrome:
     no-commands: "Nessun comando disponibile."

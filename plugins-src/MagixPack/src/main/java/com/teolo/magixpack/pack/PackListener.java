@@ -107,7 +107,7 @@ public final class PackListener implements Listener {
                     plugin.getLogger().severe("[ResourcePack] " + consecutiveDownloadFailures
                             + " download falliti di fila: verifica che " + service.publicUrl()
                             + " sia raggiungibile dai client (porta aperta sul firewall del server). "
-                            + "Finche' non lo e', ogni giocatore viene espulso al join.");
+                            + "Finché non lo è, ogni giocatore viene espulso al join.");
                 }
                 kick(p, "failed");
             }
@@ -151,7 +151,7 @@ public final class PackListener implements Listener {
         String raw = plugin.getConfig().getString("kick-messages." + reason);
         if (raw == null || raw.isBlank()) {
             raw = plugin.getConfig().getString("kick-messages.declined",
-                    "&cIl pacchetto risorse e' OBBLIGATORIO su questo server.");
+                    "&cIl pacchetto risorse è OBBLIGATORIO su questo server.");
         }
         var message = LegacyComponentSerializer.legacySection().deserialize(Colors.translate(raw));
         Runnable doKick = () -> {

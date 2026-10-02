@@ -39,7 +39,7 @@ public final class NpcStore {
             try {
                 type = EntityType.valueOf(s.getString("type", "MANNEQUIN").toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Entita' '" + key + "': tipo sconosciuto, la salto.");
+                plugin.getLogger().warning("Entità '" + key + "': tipo sconosciuto, la salto.");
                 continue;
             }
             NpcDef d = new NpcDef(name, type);

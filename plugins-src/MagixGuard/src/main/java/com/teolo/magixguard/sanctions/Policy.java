@@ -81,10 +81,10 @@ public final class Policy {
             return Outcome.proponi("un ban permanente lo decide sempre una persona");
         }
         if (cfg.mode.equals("proposta")) {
-            return Outcome.proponi("il plugin e' impostato per non applicare nulla da solo");
+            return Outcome.proponi("il plugin è impostato per non applicare nulla da solo");
         }
         if (!category.automatic()) {
-            return Outcome.proponi("la categoria " + category.name() + " non e' mai automatica");
+            return Outcome.proponi("la categoria " + category.name() + " non è mai automatica");
         }
         if (cfg.mode.equals("automatico")) {
             return withinCap(duration);

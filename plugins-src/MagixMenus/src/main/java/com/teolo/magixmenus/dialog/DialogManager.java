@@ -63,7 +63,7 @@ public final class DialogManager {
     public void open(Player p, MenuDef def, List<String> arguments, OpenMenu provenienza) {
         MenuDialog dlg = def.dialog();
         if (dlg == null) {
-            plugin.getLogger().warning("Il menu \"" + def.name() + "\" e' di tipo dialogo ma non ha "
+            plugin.getLogger().warning("Il menu \"" + def.name() + "\" è di tipo dialogo ma non ha "
                     + "il blocco del dialogo: non lo apro.");
             return;
         }

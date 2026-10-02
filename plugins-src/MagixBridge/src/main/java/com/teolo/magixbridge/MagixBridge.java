@@ -146,7 +146,7 @@ public class MagixBridge extends JavaPlugin {
                                 + "sul sito: MagixLanguage lancia un evento e MagixBridge lo scrive nella stessa riga "
                                 + "mc_ranks del grado. Se MagixLanguage manca, la colonna resta vuota e il sito "
                                 + "parla nella lingua di chi lo visita, non in quella del giocatore.",
-                        "Come per i gradi, chi e' gia' online quando MagixBridge riparte non genera un nuovo ingresso: "
+                        "Come per i gradi, chi è già online quando MagixBridge riparte non genera un nuovo ingresso: "
                                 + "un giro dopo l'avvio sincronizza anche loro.")
 
                 .section("L'aureola sul sito",
@@ -164,8 +164,8 @@ public class MagixBridge extends JavaPlugin {
                                 + "visita: ogni pagina accoda in site_translations le frasi che incontra e non ha "
                                 + "ancora, e questo plugin le smalta un lotto alla volta chiedendole a "
                                 + "MagixLanguage. Nessuna traduzione avviene DURANTE il caricamento di una pagina: "
-                                + "chi visita vede il testo italiano finche' il lotto successivo non arriva, poi lo "
-                                + "trova gia' pronto.",
+                                + "chi visita vede il testo italiano finché il lotto successivo non arriva, poi lo "
+                                + "trova già pronto.",
                         "Stessa quota giornaliera di MyMemory dei messaggi di gioco (vedi il capitolo di "
                                 + "MagixLanguage): tradurre molto testo del sito in un giorno lascia meno margine "
                                 + "per le chiavi dei plugin, e viceversa.")
@@ -192,23 +192,23 @@ public class MagixBridge extends JavaPlugin {
                                 + "scheda Store.")
 
                 .section("Su tutti i server della rete",
-                        "MagixBridge (fino alla 0.12 si chiamava MagixWeb) gira su ogni modalita': faction, hub e "
+                        "MagixBridge (fino alla 0.12 si chiamava MagixWeb) gira su ogni modalità: faction, hub e "
                                 + "quelle che verranno. Ognuna ha il suo network.server-name. I lavori che vanno "
                                 + "fatti una volta sola (consegna degli acquisti, traduzione del sito, elenco dei "
                                 + "gruppi, guida per amministratori, pulizia della chat) li fa solo il server con "
-                                + "network.site-jobs: true, che e' {{cfg:network.server-name}} su questo. Tutti gli altri "
-                                + "fanno il resto: gradi e lingua di chi e' li', la propria chat pubblica verso il "
+                                + "network.site-jobs: true, che è {{cfg:network.server-name}} su questo. Tutti gli altri "
+                                + "fanno il resto: gradi e lingua di chi è lì, la propria chat pubblica verso il "
                                 + "sito e i messaggi scritti nella propria scheda della chat del sito.",
-                        "Il ponte dei placeholder porta i valori di una modalita' sulle altre, passando dal "
+                        "Il ponte dei placeholder porta i valori di una modalità sulle altre, passando dal "
                                 + "database del sito: ogni server scrive chi ha online e calcola i placeholder "
                                 + "elencati in bridge.player-placeholders (per i suoi giocatori e per quelli "
                                 + "connessi altrove) e in bridge.global-placeholders (classifiche, totali). Gli "
                                 + "altri li leggono come %network_<server>_<placeholder>%: sull'hub, dove "
-                                + "MagixFactions non c'e', %network_faction_magixfactions_faction% e' la fazione "
-                                + "del giocatore. Un placeholder che un server non sa calcolare (il suo plugin li' "
-                                + "non c'e') non viene pubblicato, quindi lo stesso elenco va bene ovunque.",
+                                + "MagixFactions non c'è, %network_faction_magixfactions_faction% è la fazione "
+                                + "del giocatore. Un placeholder che un server non sa calcolare (il suo plugin lì "
+                                + "non c'è) non viene pubblicato, quindi lo stesso elenco va bene ovunque.",
                         "I valori arrivano con qualche secondo di ritardo (bridge.publish-interval-seconds "
-                                + "e bridge.read-interval-seconds). Chi non e' connesso a quel server tiene "
+                                + "e bridge.read-interval-seconds). Chi non è connesso a quel server tiene "
                                 + "l'ultimo valore che aveva, se il plugin che lo calcola non lo sa da offline.")
 
                 .section("La guida per amministratori",
@@ -228,7 +228,7 @@ public class MagixBridge extends JavaPlugin {
                         "chat.skip-older-than-minutes", "Oltre quanti minuti un messaggio del sito non viene più ripubblicato in gioco.",
                         "store.check-interval-seconds", "Ogni quanto il server guarda se ci sono acquisti da consegnare.",
                         "guide.check-interval-minutes", "Ogni quanto si rileggono i capitoli della guida.",
-                        "network.server-name", "Il nome di questo server nella rete (faction, hub...): e' quello "
+                        "network.server-name", "Il nome di questo server nella rete (faction, hub...): è quello "
                                 + "che gli altri scrivono in %network_<server>_...%. Senza trattini bassi.",
                         "network.site-jobs", "true su UN solo server: consegna acquisti, traduzione del sito, "
                                 + "gruppi, guida, pulizia della chat. Su due server un acquisto arriverebbe due volte.",
@@ -236,20 +236,21 @@ public class MagixBridge extends JavaPlugin {
                         "bridge.global-placeholders", "I placeholder senza giocatore (classifiche, totali) che pubblica.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Il sito resta in italiano anche per chi ha scelto un'altra lingua",
                         "Normale nei primi minuti dopo che una frase compare per la prima volta: viene "
                                 + "accodata e tradotta al giro successivo (site-translation.check-interval-seconds), "
-                                + "non sul momento. Se dura da ore, guarda /language status: se MyMemory e' in pausa "
+                                + "non sul momento. Se dura da ore, guarda /language status: se MyMemory è in pausa "
                                 + "dopo un blocco (quota del giorno finita), le frasi aspettano in coda e ripartono "
                                 + "da sole a fine pausa, senza perdere tentativi. Controlla anche che MagixLanguage sia "
                                 + "presente e che translations.auto-translate.enabled sia acceso nel SUO config: "
                                 + "senza, il lotto resta 'pending' per sempre. Una riga in site_translations con "
-                                + "status 'failed' ha esaurito i tentativi (5) con MyMemory disponibile: il servizio "
+                                + "status 'failed' ha esaurito i tentativi (" + com.teolo.magixbridge.language.SiteTranslationWorker.MAX_ATTEMPTS
+                                + ") con MyMemory disponibile: il servizio "
                                 + "l'ha rifiutata o rovinata ogni volta. Fino alla 0.12.10 contava come tentativo "
                                 + "anche un giro in pausa, e ogni frase finiva 'failed' in due minuti senza essere "
                                 + "mai provata: la migrazione 2026-09-26-riprova-traduzioni-sito.sql le rimette in coda.")
-                .issue("Sul sito la lingua di un giocatore e' vecchia o mancante",
+                .issue("Sul sito la lingua di un giocatore è vecchia o mancante",
                         "Controlla che MagixLanguage sia installato e attivo: senza, MagixBridge lo scrive nel log "
                                 + "all'avvio e non tenta nessuna sincronizzazione. Con MagixLanguage presente, un "
                                 + "/language set o un nuovo ingresso in gioco aggiornano la colonna subito.")
@@ -263,13 +264,13 @@ public class MagixBridge extends JavaPlugin {
                         "Controlla che il modulo chat sia acceso. Se il server è appena ripartito, i messaggi "
                                 + "vecchi vengono scartati apposta.")
                 .issue("Sull'hub %network_faction_...% resta vuoto",
-                        "Il faction lo pubblica solo se e' nel SUO bridge.player-placeholders (o "
-                                + "global-placeholders), scritto come si scriverebbe li' (es. magixfactions_faction, "
+                        "Il faction lo pubblica solo se è nel SUO bridge.player-placeholders (o "
+                                + "global-placeholders), scritto come si scriverebbe lì (es. magixfactions_faction, "
                                 + "con o senza %). Dopo averlo aggiunto serve un reload del faction o un riavvio. "
-                                + "Il valore arriva la prima volta che il faction lo calcola, cioe' entro "
-                                + "{{cfg:bridge.publish-interval-seconds}} secondi se il giocatore e' connesso da "
+                                + "Il valore arriva la prima volta che il faction lo calcola, cioè entro "
+                                + "{{cfg:bridge.publish-interval-seconds}} secondi se il giocatore è connesso da "
                                 + "qualche parte.")
-                .issue("Un acquisto e' arrivato due volte",
+                .issue("Un acquisto è arrivato due volte",
                         "Due server hanno network.site-jobs: true. Deve essere true su uno solo: il log di ogni "
                                 + "server lo dice all'avvio (lavori del sito QUI / su un altro server).")
                 .issue("La guida per amministratori è vuota",

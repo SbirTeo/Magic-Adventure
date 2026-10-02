@@ -86,7 +86,7 @@ public final class Actions {
 
             case COMMAND_OP -> {
                 if (!plugin.getConfig().getBoolean("actions.allow-op-commands", false)) {
-                    plugin.getLogger().warning("Azione 'comando_op' ignorata (" + arg + "): e' spenta nel "
+                    plugin.getLogger().warning("Azione 'comando_op' ignorata (" + arg + "): è spenta nel "
                             + "config, chiave azioni.permetti-comandi-op. Quasi sempre 'console' fa lo stesso.");
                     return true;
                 }
@@ -130,7 +130,7 @@ public final class Actions {
 
             case DAI_SOLDI -> {
                 if (!EconomyHook.disponibile()) {
-                    plugin.getLogger().warning("Azione 'dai_soldi' ignorata: Vault non e' installato.");
+                    plugin.getLogger().warning("Azione 'dai_soldi' ignorata: Vault non è installato.");
                     return true;
                 }
                 EconomyHook.dai(p, quanto(arg));
@@ -138,7 +138,7 @@ public final class Actions {
 
             case TAKE_MONEY -> {
                 if (!EconomyHook.disponibile()) {
-                    plugin.getLogger().warning("Azione 'togli_soldi' ignorata: Vault non e' installato.");
+                    plugin.getLogger().warning("Azione 'togli_soldi' ignorata: Vault non è installato.");
                     return true;
                 }
                 if (!EconomyHook.remove(p, quanto(arg))) {

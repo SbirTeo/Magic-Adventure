@@ -157,7 +157,7 @@ public final class ItemBuilder {
         if (def.modelloCustom() != null && !def.modelloCustom().isBlank()) {
             Double n = Text.number(Text.raw(p, variabili, def.modelloCustom()));
             if (n == null) {
-                problemi.add("modello_custom non e' un numero: " + def.modelloCustom());
+                problemi.add("modello_custom non è un numero: " + def.modelloCustom());
             } else {
                 meta.setCustomModelData((int) (double) n);
             }
@@ -166,7 +166,7 @@ public final class ItemBuilder {
             NamespacedKey k = NamespacedKey.fromString(
                     Text.raw(p, variabili, def.modelloItem()).trim().toLowerCase(Locale.ROOT));
             if (k == null) {
-                problemi.add("modello_item non e' un nome valido: " + def.modelloItem());
+                problemi.add("modello_item non è un nome valido: " + def.modelloItem());
             } else {
                 meta.setItemModel(k);
             }
@@ -276,7 +276,7 @@ public final class ItemBuilder {
         } catch (Throwable t) {
             // Il formato dei componenti cambia fra le versioni di Minecraft: un errore qui e'
             // quasi sempre un menu scritto per una versione precedente, e va detto per intero.
-            problemi.add("il campo avanzate non e' stato accettato: " + t.getMessage());
+            problemi.add("il campo avanzate non è stato accettato: " + t.getMessage());
             log.warning("[MagixMenus] item \"" + def.name() + "\": componenti non validi \"" + snbt + "\"");
             return stack;
         }
@@ -314,7 +314,7 @@ public final class ItemBuilder {
         } else if (meta instanceof PotionMeta pozione) {
             pozione.setColor(c);
         } else {
-            problemi.add("questo item non si puo' colorare");
+            problemi.add("questo item non si può colorare");
         }
     }
 

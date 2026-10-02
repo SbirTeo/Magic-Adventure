@@ -1,0 +1,44 @@
+# Testi DI SERIE che sono cambiati nel jar e vanno aggiornati anche sul server (vedi
+# util/ConfigAlign.applyValueFixes). L'allineamento aggiunge le chiavi nuove ma non tocca i valori
+# gia' scelti: qui si elencano le coppie testo vecchio -> testo nuovo, e all'avvio e a ogni reload
+# si sostituisce SOLO un valore identico a quello vecchio (uno cambiato a mano resta com'e'), dopo
+# averne fatto la copia in .bak/. Nato per gli accenti scritti con l'apostrofo ("piu'", "e'").
+menus/test-dialogo.yml:
+  - old: "Questa e' una finestra di dialogo di Minecraft, non un inventario."
+    new: "Questa è una finestra di dialogo di Minecraft, non un inventario."
+  - old: "Lo vedi perche' hai magixmenus.admin"
+    new: "Lo vedi perché hai magixmenus.admin"
+menus/test.yml:
+  - old: "&#9A8CA8Un item con tutto quello che si puo' mettere:"
+    new: "&#9A8CA8Un item con tutto quello che si può mettere:"
+  - old: "&#9A8CA8Per quello che qui non e' previsto c'e'"
+    new: "&#9A8CA8Per quello che qui non è previsto c'è"
+  - old: "&#9A8CA8Lo vedi perche' hai il permesso"
+    new: "&#9A8CA8Lo vedi perché hai il permesso"
+  - old: "&#9A8CA8Lo vedi perche' NON hai il permesso"
+    new: "&#9A8CA8Lo vedi perché NON hai il permesso"
+  - old: "&#9A8CA8magixmenus.admin: e' lo stesso posto,"
+    new: "&#9A8CA8magixmenus.admin: è lo stesso posto,"
+  - old: "&#9A8CA8hai i soldi: cosi' chi non li ha capisce"
+    new: "&#9A8CA8hai i soldi: così chi non li ha capisce"
+  - old: "&#9A8CA8WORLD           e' in un mondo"
+    new: "&#9A8CA8WORLD           è in un mondo"
+  - old: "&#9A8CA8ribaltarsi, e un blocco puo' avere"
+    new: "&#9A8CA8ribaltarsi, e un blocco può avere"
+  - old: "&#C046E8Quello che si puo' scrivere"
+    new: "&#C046E8Quello che si può scrivere"
+  - old: "&#9A8CA8Da li', &fback&#9A8CA8 riporta qui."
+    new: "&#9A8CA8Da lì, &fback&#9A8CA8 riporta qui."
+messages.yml:
+  - old: "&#FF6B6BQuesto comando lo puo' usare solo chi sta giocando."
+    new: "&#FF6B6BQuesto comando lo può usare solo chi sta giocando."
+  - old: "&#FF6B6BQuesto menu e' di tipo &f{type}&#FF6B6B e il server non lo lascia aprire."
+    new: "&#FF6B6BQuesto menu è di tipo &f{type}&#FF6B6B e il server non lo lascia aprire."
+  - old: "&#FFD166Il comando &f/{command}&#FFD166 non apre piu' nessun menu: sparira' al prossimo riavvio del server."
+    new: "&#FFD166Il comando &f/{command}&#FFD166 non apre più nessun menu: sparirà al prossimo riavvio del server."
+  - old: "&#FF6B6BIl pagamento non e' andato a buon fine: non ti ho tolto niente."
+    new: "&#FF6B6BIl pagamento non è andato a buon fine: non ti ho tolto niente."
+  - old: "&#FF6B6BSul server non c'e' un'economia: avvisa lo staff."
+    new: "&#FF6B6BSul server non c'è un'economia: avvisa lo staff."
+  - old: "/menus reload :: rilegge i file dei menu e rifa' i comandi"
+    new: "/menus reload :: rilegge i file dei menu e rifà i comandi"

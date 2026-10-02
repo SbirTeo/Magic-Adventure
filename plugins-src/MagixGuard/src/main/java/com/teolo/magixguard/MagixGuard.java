@@ -74,7 +74,6 @@ public final class MagixGuard extends JavaPlugin {
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
         // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
         // resterebbe indietro in silenzio (vedi util/ConfigAlign).
-        applyValueFixes();
         ConfigAlign.alignAll(this);
         reloadConfig();
         getDataFolder().mkdirs();
@@ -87,8 +86,8 @@ public final class MagixGuard extends JavaPlugin {
 
         GuardConfig config = new GuardConfig(getConfig());
         if (config.pepperIsDefault()) {
-            getLogger().warning("privacy.pepper e' ancora quello di esempio: cambialo in config.yml e riavvia. "
-                    + "Finche' resta quello, chiunque ottenga una copia del database puo' risalire agli IP.");
+            getLogger().warning("privacy.pepper è ancora quello di esempio: cambialo in config.yml e riavvia. "
+                    + "Finché resta quello, chiunque ottenga una copia del database può risalire agli IP.");
         }
 
         try {
@@ -106,7 +105,7 @@ public final class MagixGuard extends JavaPlugin {
                 // L'import dello storico lo fa il server principale al suo primo avvio, e solo se
                 // il database e' vuoto: se questo server cominciasse a scriverci prima, l'import
                 // non partirebbe piu' e lo storico resterebbe fuori per sempre.
-                throw new IllegalStateException("il database condiviso e' ancora vuoto: deve partire prima "
+                throw new IllegalStateException("il database condiviso è ancora vuoto: deve partire prima "
                         + "il server principale (network.site-jobs: true), che ci importa lo storico. "
                         + "Riavvia questo server dopo.");
             }
@@ -173,8 +172,8 @@ public final class MagixGuard extends JavaPlugin {
         }
         java.io.File done = new java.io.File(getDataFolder(), name + ".importato");
         if (!file.renameTo(done)) {
-            getLogger().warning("Import fatto, ma " + name + " non si e' potuto rinominare: toglilo a mano "
-                    + "(altrimenti resta li', inutilizzato).");
+            getLogger().warning("Import fatto, ma " + name + " non si è potuto rinominare: toglilo a mano "
+                    + "(altrimenti resta lì, inutilizzato).");
         }
     }
 
@@ -301,69 +300,10 @@ public final class MagixGuard extends JavaPlugin {
         Bukkit.getScheduler().runTaskLater(this, () -> collector.trackOnlinePlayers(), 40L);
     }
 
-    /**
-     * Testi DI SERIE cambiati nel jar che vanno aggiornati anche nei file del server (es. gli accenti
-     * scritti con l'apostrofo: "piu'", "e'"). ConfigAlign non tocca i valori gia' presenti, quindi le
-     * coppie vecchio -> nuovo stanno in value-fixes.yml dentro il jar: si sostituisce SOLO un valore
-     * identico a quello vecchio (uno cambiato a mano dallo staff resta com'e'), con la copia in .bak/.
-     */
-    private void applyValueFixes() {
-        org.bukkit.configuration.file.YamlConfiguration fixes;
-        try (java.io.InputStream in = getResource("value-fixes.yml")) {
-            if (in == null) {
-                return;
-            }
-            // Le chiavi sono nomi di file ("messages.yml"): col punto come separatore Bukkit le
-            // leggerebbe come "messages" -> "yml" e non troverebbe nessun file. Si usa "/".
-            fixes = new org.bukkit.configuration.file.YamlConfiguration();
-            fixes.options().pathSeparator('/');
-            fixes.load(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            getLogger().warning("value-fixes.yml illeggibile (" + e.getClass().getSimpleName() + "): nessun testo aggiornato.");
-            return;
-        }
-        for (String fileName : fixes.getKeys(false)) {
-            java.io.File file = new java.io.File(getDataFolder(), fileName);
-            if (!file.isFile()) {
-                continue;
-            }
-            try {
-                java.nio.file.Path path = file.toPath();
-                String text = java.nio.file.Files.readString(path, java.nio.charset.StandardCharsets.UTF_8);
-                String fixed = text;
-                int count = 0;
-                for (java.util.Map<?, ?> pair : fixes.getMapList(fileName)) {
-                    String from = "\"" + pair.get("old") + "\"";
-                    String to = "\"" + pair.get("new") + "\"";
-                    if (fixed.contains(from)) {
-                        fixed = fixed.replace(from, to);
-                        count++;
-                    }
-                }
-                if (count == 0) {
-                    continue;
-                }
-                java.io.File dataFolder = getDataFolder().getAbsoluteFile();
-                java.io.File serverRoot = dataFolder.getParentFile() == null ? null : dataFolder.getParentFile().getParentFile();
-                java.io.File bak = serverRoot == null ? dataFolder : new java.io.File(new java.io.File(serverRoot, ".bak"), dataFolder.getName());
-                java.nio.file.Files.createDirectories(bak.toPath());
-                String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
-                java.nio.file.Files.copy(path, new java.io.File(bak, fileName + ".bak-" + stamp).toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                java.nio.file.Files.writeString(path, fixed, java.nio.charset.StandardCharsets.UTF_8);
-                getLogger().info(fileName + ": aggiornati " + count + " testi di serie (value-fixes.yml).");
-            } catch (Exception e) {
-                getLogger().warning(fileName + ": aggiornamento dei testi di serie non riuscito ("
-                        + e.getClass().getSimpleName() + "): il file non e' stato toccato.");
-            }
-        }
-    }
-
     /** Ricarica config.yml e ricostruisce i componenti senza riavviare il server. */
     public void reloadGuard() {
         // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
         // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
-        applyValueFixes();
         ConfigAlign.alignAll(this);
         reloadConfig();
         messages.reload();
@@ -398,7 +338,7 @@ public final class MagixGuard extends JavaPlugin {
         org.bukkit.configuration.ConfigurationSection sezChat = conf.getConfigurationSection("chat");
         if (sezChat == null || sezChat.getBoolean("attivo", true)) {
             getServer().getPluginManager().registerEvents(new ChatFilter(detector, sezChat, messages), this);
-            getLogger().info("Filtro chat attivo (spam, insulti, pubblicita', dati personali).");
+            getLogger().info("Filtro chat attivo (spam, insulti, pubblicità, dati personali).");
         }
 
         org.bukkit.configuration.ConfigurationSection sezXray = conf.getConfigurationSection("xray");
@@ -564,87 +504,87 @@ public final class MagixGuard extends JavaPlugin {
                                 + "sanzioni.")
 
                 .section("Il filtro della chat",
-                        "Quattro cose diverse, con quattro reazioni diverse — e la differenza non e' "
-                                + "un dettaglio. **Pubblicita'** di altri server e **dati personali**: "
+                        "Quattro cose diverse, con quattro reazioni diverse — e la differenza non è "
+                                + "un dettaglio. **Pubblicità** di altri server e **dati personali**: "
                                 + "messaggio **bloccato**, non lo vede nessuno. **Insulti**: passa "
-                                + "**censurato**, cosi' lo staff puo' ancora leggere di cosa stavano "
-                                + "discutendo. **Spam**: bloccato **in silenzio**, cioe' lo vede solo chi "
+                                + "**censurato**, così lo staff può ancora leggere di cosa stavano "
+                                + "discutendo. **Spam**: bloccato **in silenzio**, cioè lo vede solo chi "
                                 + "l'ha scritto — chi provoca non deve vedere l'effetto che fa.",
                         "In tutti e quattro i casi il messaggio **originale integro** finisce nelle prove "
-                                + "insieme alle righe di chat intorno. E' quello che rende una violazione "
+                                + "insieme alle righe di chat intorno. È quello che rende una violazione "
                                 + "utilizzabile in un ricorso: un insulto isolato, senza contesto, non "
                                 + "dimostra niente.",
                         "Il confronto avviene sulla forma **nuda** del messaggio: c4zz0, c a z z o e "
                                 + "cazzzzo arrivano tutti al dizionario come la stessa parola. Per evitare "
                                 + "il rovescio — trovare una parola vietata dentro una innocente — il "
-                                + "controllo e' su parola intera, e la forma compattata si usa solo per le "
+                                + "controllo è su parola intera, e la forma compattata si usa solo per le "
                                 + "parole lunghe.",
                         "Lo staff con **magixguard.chat.bypass** non passa dal filtro: deve poter citare "
-                                + "un indirizzo o una parola per spiegare perche' e' vietata, senza "
+                                + "un indirizzo o una parola per spiegare perché è vietata, senza "
                                 + "sanzionarsi da solo.")
 
-                .section("Anti-xray: perche' e' statistico",
-                        "L'xray **non e' un problema di pacchetti**: il client non fa niente di strano, "
-                                + "guarda soltanto dei blocchi che il server gli ha gia' mandato. Nessun "
-                                + "anticheat lo rileva bene, e non e' colpa loro. La prima difesa e' "
+                .section("Anti-xray: perché è statistico",
+                        "L'xray **non è un problema di pacchetti**: il client non fa niente di strano, "
+                                + "guarda soltanto dei blocchi che il server gli ha già mandato. Nessun "
+                                + "anticheat lo rileva bene, e non è colpa loro. La prima difesa è "
                                 + "l'offuscamento nativo di Paper (**engine-mode 2**), che i minerali non "
                                 + "li manda proprio.",
-                        "Il secondo strato e' qui, e guarda **cosa scava** una persona invece di come si "
+                        "Il secondo strato è qui, e guarda **cosa scava** una persona invece di come si "
                                 + "muove: quanti minerali preziosi ogni mille blocchi di roccia, e quanti "
-                                + "ne rompe mentre erano completamente circondati — cioe' invisibili fino "
+                                + "ne rompe mentre erano completamente circondati — cioè invisibili fino "
                                 + "all'istante prima.",
                         "Non si giudica mai prima di **blocchi-minimi** blocchi scavati: sui primi cento "
-                                + "qualunque numero e' rumore. E il modulo parte in **sola osservazione**: "
-                                + "avvisa e basta, senza punti e senza provvedimenti, finche' le soglie non "
+                                + "qualunque numero è rumore. E il modulo parte in **sola osservazione**: "
+                                + "avvisa e basta, senza punti e senza provvedimenti, finché le soglie non "
                                 + "sono state tarate sui dati veri di questo server. Metterlo in "
                                 + "`modo: attivo` prima di aver guardato i numeri vuol dire accusare "
                                 + "qualcuno con una soglia inventata.")
 
                 .section("Anti-AFK: due misure che rispondono a due problemi",
                         "**Niente guadagni da fermo.** Dopo i minuti indicati nel config, attorno a chi "
-                                + "e' immobile i mostri non nascono piu', e oggetti ed esperienza non gli "
+                                + "è immobile i mostri non nascono più, e oggetti ed esperienza non gli "
                                 + "arrivano addosso. Non viene espulso e non viene punito: semplicemente il "
                                 + "gioco smette di premiare il fatto di essere collegato invece che di "
                                 + "giocare. Chi resta per chiacchierare non se ne accorge nemmeno.",
-                        "Lo spawn si blocca solo se nel raggio **non c'e' nessun giocatore sveglio**: "
+                        "Lo spawn si blocca solo se nel raggio **non c'è nessun giocatore sveglio**: "
                                 + "altrimenti basterebbe un AFK di passaggio per rovinare la serata a chi "
-                                + "sta giocando li' accanto.",
+                                + "sta giocando lì accanto.",
                         "**Caccia ai dispositivi.** Chi mette un peso sul mouse, gira in barca o si fa "
-                                + "spingere da un pistone non e' fermo: sta **aggirando** la misura di "
+                                + "spingere da un pistone non è fermo: sta **aggirando** la misura di "
                                 + "sopra, e questo si sanziona. Ma solo su segnali che una mano umana non "
-                                + "puo' produrre: click a intervallo costante al millisecondo per minuti "
+                                + "può produrre: click a intervallo costante al millisecondo per minuti "
                                 + "interi. Nelle prove finisce la serie: quanti click, per quanto tempo, "
                                 + "con che scarto.")
 
                 .section("L'aggancio all'anticheat",
                         "Grim non parla con MagixGuard attraverso un'API: gli si fa **eseguire un "
                                 + "comando** quando un giocatore supera una sua soglia. Nel suo "
-                                + "`punishments.yml` la riga e' `\"40:40 mgviolation %player% "
+                                + "`punishments.yml` la riga è `\"40:40 mgviolation %player% "
                                 + "cheat.movimento %check_name% (vl %vl%)\"`.",
-                        "Sembra rozzo ed e' invece la parte piu' solida del disegno: **non dipendiamo "
-                                + "dalla versione di nessun anticheat**, ne' dal fatto che continui a "
+                        "Sembra rozzo ed è invece la parte più solida del disegno: **non dipendiamo "
+                                + "dalla versione di nessun anticheat**, né dal fatto che continui a "
                                 + "esistere. Se domani Grim viene sostituito, si riscrivono quattro righe "
                                 + "di configurazione e il sistema sanzioni non se ne accorge.",
-                        "Chi decide **quando** chiamare e' l'anticheat; chi decide **cosa succede** e' il "
+                        "Chi decide **quando** chiamare è l'anticheat; chi decide **cosa succede** è il "
                                 + "registro punti. Si tarano separatamente.")
 
                 .section("«Da controllare»: da dove cominciare quando hai dieci minuti",
-                        "Nel gestionale c'e' una scheda che mette i giocatori **in ordine di quanto "
+                        "Nel gestionale c'è una scheda che mette i giocatori **in ordine di quanto "
                                 + "conviene andarli a guardare** — non di quanto sono colpevoli. Il "
                                 + "punteggio somma tre cose: i punti delle violazioni (col decadimento, "
                                 + "quindi una cosa di sei mesi fa quasi non conta), le segnalazioni dei "
-                                + "giocatori ancora aperte, e i provvedimenti gia' attivi.",
+                                + "giocatori ancora aperte, e i provvedimenti già attivi.",
                         "Le segnalazioni pesano per **quanti giocatori diversi** le hanno mandate: tre "
                                 + "segnalazioni della stessa persona valgono molto meno di tre persone che "
-                                + "segnalano lo stesso nome. E' la differenza fra un sospetto e una "
+                                + "segnalano lo stesso nome. È la differenza fra un sospetto e una "
                                 + "ripicca.",
-                        "Accanto al punteggio c'e' sempre **da cosa e' fatto**. Non e' un dettaglio "
-                                + "estetico: un numero senza il suo perche' finirebbe per essere usato "
-                                + "come prova, e non lo e'. La classifica dice dove guardare, mai cosa "
+                        "Accanto al punteggio c'è sempre **da cosa è fatto**. Non è un dettaglio "
+                                + "estetico: un numero senza il suo perché finirebbe per essere usato "
+                                + "come prova, e non lo è. La classifica dice dove guardare, mai cosa "
                                 + "decidere.",
                         "Quando ne hai guardato uno, segnalo come **controllato**: esce dalla lista per "
-                                + "una settimana, cosi' non lo ricontrolli tu domani e un altro dello "
-                                + "staff dopodomani. Se e' rimasto sospetto c'e' il pulsante apposta, e "
+                                + "una settimana, così non lo ricontrolli tu domani e un altro dello "
+                                + "staff dopodomani. Se è rimasto sospetto c'è il pulsante apposta, e "
                                 + "resta in cima.")
 
                 .section("Come i punti diventano un provvedimento",
@@ -654,34 +594,34 @@ public final class MagixGuard extends JavaPlugin {
                                 + "deve restare comunque agli atti: senza, il terzo spam di un giocatore "
                                 + "sarebbe identico al primo.",
                         "Il provvedimento scatta solo quando una soglia viene **appena superata**: chi "
-                                + "resta sopra i 50 punti non si becca un ban a ogni sciocchezza "
+                                + "resta sopra una soglia non si becca un ban a ogni sciocchezza "
                                 + "successiva. E se un ricorso viene accolto, le violazioni che avevano "
                                 + "fatto scattare quel provvedimento **smettono di contare** — altrimenti "
-                                + "il giocatore resterebbe a un passo dalla soglia dopo, cioe' punito lo "
-                                + "stesso, a meta'.")
+                                + "il giocatore resterebbe a un passo dalla soglia dopo, cioè punito lo "
+                                + "stesso, a metà.")
 
                 .section("Le segnalazioni dei giocatori",
-                        "**/report <giocatore> <motivo>** e' aperto a tutti ed e' il canale che fa "
+                        "**/report <giocatore> <motivo>** è aperto a tutti ed è il canale che fa "
                                 + "emergere quello che nessun algoritmo vede: truffe, molestie, accordi "
                                 + "fra due account, comportamenti che stanno nelle intenzioni e non nei "
                                 + "pacchetti.",
-                        "Una segnalazione **non e' una sanzione** e non ne fa scattare nessuna da sola: "
-                                + "apre un caso nella stessa coda dei rilevamenti automatici, cosi' avete "
+                        "Una segnalazione **non è una sanzione** e non ne fa scattare nessuna da sola: "
+                                + "apre un caso nella stessa coda dei rilevamenti automatici, così avete "
                                 + "un posto solo da guardare. Nel gestionale compare marcata come "
                                 + "«Segnalazione», e chi la chiude **sceglie il provvedimento**: il caso "
-                                + "arriva senza una pena gia' proposta, perche' a proporla era un giocatore, "
+                                + "arriva senza una pena già proposta, perché a proporla era un giocatore, "
                                 + "non il sistema.",
                         "Al caso vengono allegati da soli il nome di chi segnala, l'ora, la posizione di "
                                 + "tutti e due e la distanza fra loro: sono le prime tre cose che servono "
                                 + "per decidere se andare a guardare subito o con calma.",
                         "Contro l'abuso ci sono tre freni: una pausa fra una segnalazione e l'altra, un "
                                 + "numero massimo di casi aperti a testa, e un motivo che deve essere scritto "
-                                + "davvero — «barare» non dice niente a chi dovra' controllare. Chi apre "
+                                + "davvero — «barare» non dice niente a chi dovrà controllare. Chi apre "
                                 + "segnalazioni false lo si vede dalla coda, e resta comunque sanzionabile.")
 
                 .subcommands("I comandi di moderazione",
                         "/ban <nome> <motivo>", "Bandisce per sempre. Il giocatore vede il motivo e il collegamento al ricorso.",
-                        "/mute <nome> <motivo>", "Gli impedisce di scrivere in chat, finche' non lo togli.",
+                        "/mute <nome> <motivo>", "Gli impedisce di scrivere in chat, finché non lo togli.",
                         "/tempban <nome> <durata> <motivo>", "Ban a tempo: 30m, 6h, 3d, 2w.",
                         "/tempmute <nome> <durata> <motivo>", "Silenzio a tempo, stesse durate.",
                         "/kick <nome> <motivo>", "Lo butta fuori adesso; può rientrare subito.",
@@ -751,7 +691,7 @@ public final class MagixGuard extends JavaPlugin {
                         "sito/controllo-secondi", "Ogni quanto si rileggono le decisioni prese sul sito.",
                         "report/attivo", "Accende o spegne /report per i giocatori.",
                         "report/pausa-secondi", "Quanto deve aspettare un giocatore fra una segnalazione e l'altra.",
-                        "report/massimo-aperte", "Quante segnalazioni ancora aperte puo' avere una persona alla volta.",
+                        "report/massimo-aperte", "Quante segnalazioni ancora aperte può avere una persona alla volta.",
                         "report/motivo-minimo", "Lunghezza minima del motivo di una segnalazione.",
                         "chat/attivo", "Accende o spegne tutto il filtro della chat.",
                         "chat/insulti/censura", "Se gli insulti passano censurati o vengono bloccati del tutto.",
@@ -759,14 +699,14 @@ public final class MagixGuard extends JavaPlugin {
                         "xray/blocchi-minimi", "Sotto questi blocchi scavati non si giudica: sarebbe rumore.",
                         "xray/estremo-per-mille", "Minerali preziosi ogni 1000 blocchi oltre i quali scatta il provvedimento.",
                         "afk/minuti-inattivo", "Dopo quanti minuti fermo il gioco smette di produrre intorno a lui.",
-                        "afk/dispositivi/scarto-massimo-ms", "Quanto puo' essere regolare la cadenza dei click prima di essere disumana.")
+                        "afk/dispositivi/scarto-massimo-ms", "Quanto può essere regolare la cadenza dei click prima di essere disumana.")
                 .settings(
                         "analysis.link-threshold", "Punteggio oltre il quale due account risultano collegati.",
                         "analysis.alert-threshold", "Punteggio oltre il quale parte la segnalazione allo staff.",
                         "privacy.session-retention-days", "Per quanti giorni si tengono gli indirizzi in chiaro.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("«Ho bannato ma il giocatore è ancora dentro»",
                         "Il ban vale all'ingresso: se era già collegato viene espulso subito, ma solo se "
                                 + "l'ambito comprende il gioco. Un provvedimento con ambito «sito» in "
@@ -780,25 +720,25 @@ public final class MagixGuard extends JavaPlugin {
                                 + "il plugin non gira: nel gestionale la vedi nell'elenco «revoche in "
                                 + "attesa del server».")
                 .issue("«Ho scritto una parola normale e me l'ha censurata»",
-                        "Guarda quale parola ha fatto scattare il filtro: e' scritta nelle prove della "
-                                + "violazione. Se e' un falso positivo, si toglie dal dizionario in "
+                        "Guarda quale parola ha fatto scattare il filtro: è scritta nelle prove della "
+                                + "violazione. Se è un falso positivo, si toglie dal dizionario in "
                                 + "sanctions.yml — e la violazione si annulla revocando il provvedimento.")
                 .issue("L'anti-xray segnala un minatore che sembra onesto",
-                        "Puo' succedere: e' una statistica, non una prova. Per questo di serie il modulo "
-                                + "e' in sola osservazione e il provvedimento automatico scatta solo oltre "
+                        "Può succedere: è una statistica, non una prova. Per questo di serie il modulo "
+                                + "è in sola osservazione e il provvedimento automatico scatta solo oltre "
                                 + "la soglia estrema. Guarda i numeri nelle prove prima di decidere.")
-                .issue("«Non mi nascono piu' i mostri nella mia farm»",
-                        "E' l'anti-AFK: da fermo il gioco non produce piu' nulla intorno a lui. Basta "
-                                + "muoversi. Se c'e' un altro giocatore sveglio nel raggio, gli spawn "
+                .issue("«Non mi nascono più i mostri nella mia farm»",
+                        "È l'anti-AFK: da fermo il gioco non produce più nulla intorno a lui. Basta "
+                                + "muoversi. Se c'è un altro giocatore sveglio nel raggio, gli spawn "
                                 + "riprendono comunque.")
                 .issue("Grim segnala ma non arriva nessuna violazione",
                         "Controlla che nel suo punishments.yml ci sia la riga con mgviolation, e che il "
                                 + "comando non sia stato preso da un altro plugin: /mgviolation da "
                                 + "console deve rispondere.")
-                .issue("«Ho segnalato uno e non e' successo niente»",
+                .issue("«Ho segnalato uno e non è successo niente»",
                         "Una segnalazione apre un caso, non applica una pena: la trovi in coda nel "
-                                + "gestionale finche' qualcuno non la chiude. Se ne arrivano molte e "
-                                + "restano ferme, il problema non e' il comando.")
+                                + "gestionale finché qualcuno non la chiude. Se ne arrivano molte e "
+                                + "restano ferme, il problema non è il comando.")
                 .issue("Due fratelli risultano collegati",
                         "Guarda le sessioni sovrapposte nel dossier: se hanno giocato insieme il "
                                 + "punteggio scende già da solo. Con /mg unlink si chiude il caso.")

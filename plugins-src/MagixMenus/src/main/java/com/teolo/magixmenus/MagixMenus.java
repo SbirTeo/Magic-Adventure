@@ -105,8 +105,8 @@ public final class MagixMenus extends JavaPlugin {
 
     private void registerPlaceholder() {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") == null) {
-            getLogger().warning("PlaceholderAPI non e' installato: i menu funzionano, ma tutto quello "
-                    + "che sta fra %...% restera' scritto per esteso.");
+            getLogger().warning("PlaceholderAPI non è installato: i menu funzionano, ma tutto quello "
+                    + "che sta fra %...% resterà scritto per esteso.");
             return;
         }
         try {
@@ -138,24 +138,24 @@ public final class MagixMenus extends JavaPlugin {
     private void writeStaffGuide() {
         StaffGuide.create(this, "MagixMenus — i menu del server", 75)
                 .values(new ConfigValues(this))
-                .intro("Ogni menu del server e' un file in plugins/MagixMenus/menus/. Dentro c'e' che "
+                .intro("Ogni menu del server è un file in plugins/MagixMenus/menus/. Dentro c'è che "
                         + "finestra si apre, quali item ci stanno, chi li vede e cosa succede quando si "
                         + "clicca. Per aggiungere un menu si aggiunge un file; per toglierlo si cancella.")
 
                 .section("Un file, un menu",
-                        "Il nome del menu e' il nome del file senza .yml. Non c'e' nessun elenco da tenere "
-                                + "aggiornato: quello che c'e' nella cartella e' quello che esiste.",
+                        "Il nome del menu è il nome del file senza .yml. Non c'è nessun elenco da tenere "
+                                + "aggiornato: quello che c'è nella cartella è quello che esiste.",
                         "Se nel file si scrivono dei comandi, quei comandi vengono creati all'avvio e a ogni "
                                 + "reload. Per questo non li trovi nel plugin.yml: nascono dal file del menu.")
 
                 .section("Gli oggetti di MagixPack (magixpack: <id>)",
-                        "Un item del menu puo' essere un oggetto del catalogo di MagixPack (items.yml): "
-                                + "si scrive magixpack: avatar al posto di id:, e l'oggetto arriva gia' fatto, "
-                                + "texture e nome compresi. display_name del menu, se c'e', ne cambia il nome; "
+                        "Un item del menu può essere un oggetto del catalogo di MagixPack (items.yml): "
+                                + "si scrive magixpack: avatar al posto di id:, e l'oggetto arriva già fatto, "
+                                + "texture e nome compresi. display_name del menu, se c'è, ne cambia il nome; "
                                 + "le righe di lore del menu vanno sopra la sua descrizione.",
                         "L'oggetto viene costruito per CHI GUARDA il menu: l'avatar (type: player-avatar in "
                                 + "items.yml) mostra la testa di quel giocatore e, passandoci sopra, il suo avatar "
-                                + "(la faccia della skin). Se MagixPack non c'e' o l'id non esiste al suo posto compare la "
+                                + "(la faccia della skin). Se MagixPack non c'è o l'id non esiste al suo posto compare la "
                                 + "barriera rossa con il motivo.")
 
                 .section("Le chiavi si scrivono in inglese",
@@ -164,7 +164,7 @@ public final class MagixMenus extends JavaPlugin {
                                 + "I testi che si leggono restano in italiano — cambiano solo i nomi delle "
                                 + "chiavi.",
                         "I vecchi nomi italiani (nome, descrizione, mostra_se, azioni, prezzo...) restano "
-                                + "accettati per sempre come sinonimi: i menu gia' scritti continuano a "
+                                + "accettati per sempre come sinonimi: i menu già scritti continuano a "
                                 + "funzionare senza toccarli. Ma i file nuovi, e tutto quello che scrive "
                                 + "l'editor del sito, usano l'inglese.",
                         "Il vantaggio pratico: un menu copiato da una guida di un altro plugin si apre "
@@ -172,21 +172,21 @@ public final class MagixMenus extends JavaPlugin {
 
                 .section("Gli errori non spengono i menu",
                         "Un file scritto male non impedisce l'avvio e non chiude il menu: quello che non si "
-                                + "capisce finisce nel log all'avvio, e al posto dell'item che non si e' potuto "
+                                + "capisce finisce nel log all'avvio, e al posto dell'item che non si è potuto "
                                 + "costruire compare una barriera rossa con scritto sopra cosa non va.",
                         "/menus lista dice al volo quali menu hanno problemi; /menus info <menu> li elenca uno "
-                                + "per uno. E' il primo posto da guardare quando qualcuno segnala che un menu "
-                                + "\"e' strano\".")
+                                + "per uno. È il primo posto da guardare quando qualcuno segnala che un menu "
+                                + "\"è strano\".")
 
                 .section("Mostrare o negare",
                         "Un item ha due gruppi di condizioni e non vanno confusi. show_requirements decide se "
-                                + "l'item si VEDE: se non e' soddisfatto, la casella resta vuota. "
+                                + "l'item si VEDE: se non è soddisfatto, la casella resta vuota. "
                                 + "click_requirements decide se il "
                                 + "clic ha EFFETTO: l'item si vede lo stesso e chi clicca riceve la spiegazione "
                                 + "scritta in deny_actions.",
                         "Quasi sempre si vuole il secondo. Un bottone che sparisce non insegna niente; un "
-                                + "bottone che dice \"ti servono ancora 500 monete\" si', ed evita anche la "
-                                + "segnalazione \"il menu e' rotto\".")
+                                + "bottone che dice \"ti servono ancora 500 monete\" sì, ed evita anche la "
+                                + "segnalazione \"il menu è rotto\".")
 
                 .section("Quanto costa un menu",
                         "Il campo update dice ogni quanti tick il menu si ridisegna. Non ridisegna "
@@ -209,21 +209,21 @@ public final class MagixMenus extends JavaPlugin {
                                 + "price o un sell con la virgola verrebbe arrotondato per difetto (10.5 pagato "
                                 + "10) e la descrizione direbbe un numero diverso da quello che si paga, quindi "
                                 + "dalla v0.1.4 il caricamento del menu lo SEGNALA nel log dicendo a quanto "
-                                + "verrebbe arrotondato. Il menu si apre lo stesso: e' un avviso, non un errore. "
-                                + "I valori con un %placeholder% dentro non vengono controllati, perche' il loro "
+                                + "verrebbe arrotondato. Il menu si apre lo stesso: è un avviso, non un errore. "
+                                + "I valori con un %placeholder% dentro non vengono controllati, perché il loro "
                                 + "numero si conosce solo in gioco.",
-                        "L'ordine dei controlli e' voluto: prima il posto in inventario, poi i soldi. Al "
+                        "L'ordine dei controlli è voluto: prima il posto in inventario, poi i soldi. Al "
                                 + "contrario, chi ha l'inventario pieno pagherebbe senza ricevere niente.",
                         "Se all'articolo servono anche delle azioni (dare un permesso, annunciare in chat), "
-                                + "si scrivono normalmente: partono DOPO che il pagamento e' riuscito, e non "
+                                + "si scrivono normalmente: partono DOPO che il pagamento è riuscito, e non "
                                 + "partono affatto se il giocatore non poteva permetterselo.",
                         "Serve Vault e un plugin che fornisca l'economia. Senza, gli articoli lo dicono "
                                 + "invece di regalare la merce.")
 
                 .section("I comandi da console",
-                        "L'azione console: esegue il comando come se lo scrivesse il server, ed e' quella "
-                                + "giusta per tutto cio' che il giocatore non potrebbe fare da solo.",
-                        "Esiste anche op_command:, che da' l'op al giocatore per la durata di un comando. E' "
+                        "L'azione console: esegue il comando come se lo scrivesse il server, ed è quella "
+                                + "giusta per tutto ciò che il giocatore non potrebbe fare da solo.",
+                        "Esiste anche op_command:, che dà l'op al giocatore per la durata di un comando. È "
                                 + "spenta nel config e va lasciata spenta: quasi sempre console: fa la stessa "
                                 + "cosa senza dare niente a nessuno.")
 
@@ -232,8 +232,8 @@ public final class MagixMenus extends JavaPlugin {
                                 + "di dialogo, e il testo scritto dentro message:/broadcast:/title:/actionbar: "
                                 + "(comprese le versioni negate di show_requirements/click_requirements/"
                                 + "open_requirements) vengono tradotti in automatico per chi gioca in un'altra "
-                                + "lingua — senza scrivere niente in piu' nel file del menu.",
-                        "A differenza di messages.yml qui non c'e' una chiave: la ricerca avviene sulla "
+                                + "lingua — senza scrivere niente in più nel file del menu.",
+                        "A differenza di messages.yml qui non c'è una chiave: la ricerca avviene sulla "
                                 + "FRASE italiana esatta (placeholder %tipo_questo% compresi). Per correggere "
                                 + "una traduzione, o per tradurre a mano una frase che l'automatismo non trova da "
                                 + "solo (es. dentro un blocco if/then/else di un'azione), si aggiunge la frase "
@@ -249,32 +249,32 @@ public final class MagixMenus extends JavaPlugin {
                 .settings(
                         "actions.allow-op-commands", "Consente l'azione op_command. Da tenere spenta.",
                         "min-update-ticks", "Il minimo intervallo fra due ridisegni di un menu: "
-                                + "un menu che chiedesse di aggiornarsi piu' spesso viene riportato qui.",
+                                + "un menu che chiedesse di aggiornarsi più spesso viene riportato qui.",
                         "price-in-lore", "Il prezzo di un articolo si scrive da solo nella sua "
                                 + "descrizione. Spegnendolo, le righe le scrivi a mano.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
-                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed e' quello che il plugin legge. Il valore nel jar vale solo per le chiavi che li' MANCANO. Quindi un valore gia' presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge piu' dai file a schema fisso, cioe' tutti tranne i cataloghi (i menu e le sanzioni no: li' le voci in piu' sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                        "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
                 .issue("Un menu non si apre",
                         "Controlla il permesso del menu e le sue condizioni di apertura con /menus info <menu>. "
-                                + "Se il file ha errori, sono elencati li'.")
+                                + "Se il file ha errori, sono elencati lì.")
                 .issue("Il comando del menu non esiste",
                         "I comandi nascono dal file: dopo averlo modificato serve /menus reload. Se due menu "
                                 + "chiedono lo stesso comando, lo prende il primo caricato.")
                 .issue("Ho tolto un comando da un menu ma risponde ancora",
-                        "I comandi, una volta registrati, non si possono togliere mentre il server gira: e' un "
-                                + "limite del server, non del plugin. Il comando resta li' fino al riavvio, ma "
-                                + "dice che non apre piu' niente. Stessa cosa per le SCORCIATOIE di un comando "
-                                + "che esiste gia': cambiarle richiede un riavvio. Aggiungere comandi nuovi, "
+                        "I comandi, una volta registrati, non si possono togliere mentre il server gira: è un "
+                                + "limite del server, non del plugin. Il comando resta lì fino al riavvio, ma "
+                                + "dice che non apre più niente. Stessa cosa per le SCORCIATOIE di un comando "
+                                + "che esiste già: cambiarle richiede un riavvio. Aggiungere comandi nuovi, "
                                 + "invece, funziona subito con /menus reload.")
-                .issue("Al posto di un item c'e' una barriera rossa",
-                        "E' voluto: la barriera dice nella sua descrizione cosa non ha funzionato. Correggi il "
+                .issue("Al posto di un item c'è una barriera rossa",
+                        "È voluto: la barriera dice nella sua descrizione cosa non ha funzionato. Correggi il "
                                 + "file e ricarica.")
                 .issue("Nel menu si legge %qualcosa% invece di un valore",
                         "Quel placeholder non esiste o PlaceholderAPI non ha l'espansione che lo fornisce. "
                                 + "Verifica con /papi parse me %quel_placeholder%.")
                 .issue("Un giocatore straniero vede ancora il menu in italiano",
-                        "MagixLanguage deve essere installato e quel testo gia' tradotto: la prima volta puo' "
+                        "MagixLanguage deve essere installato e quel testo già tradotto: la prima volta può "
                                 + "volerci fino al prossimo /language sync o riavvio. Con /language status si vede "
                                 + "quante frasi di questo plugin sono ancora mancanti.")
                 .issue("Una traduzione di un menu non convince",
@@ -283,20 +283,20 @@ public final class MagixMenus extends JavaPlugin {
                                 + "menu-phrases-<lingua>-overrides.yml. Vince sempre lei, anche se il testo "
                                 + "italiano del menu cambia di nuovo in seguito.")
                 .issue("Un articolo del negozio non fa niente quando lo clicco",
-                        "Guarda in chat: il plugin dice sempre perche' (soldi insufficienti, inventario "
+                        "Guarda in chat: il plugin dice sempre perché (soldi insufficienti, inventario "
                                 + "pieno, niente economia sul server). Se non dice niente, l'item non ha "
-                                + "ne' price ne' azioni.")
+                                + "né price né azioni.")
                 .issue("Ho comprato ma l'oggetto ha scritto sopra il prezzo",
                         "Succede con \"give: self\", che consegna una copia dell'item del menu con la "
                                 + "sua descrizione. Per un oggetto vero conviene scrivere per esteso cosa si "
-                                + "da' (give: DIAMOND_SWORD 1).")
-                .issue("Un giocatore e' riuscito a prendere un item dal menu",
+                                + "dà (give: DIAMOND_SWORD 1).")
+                .issue("Un giocatore è riuscito a prendere un item dal menu",
                         "Non dovrebbe poter succedere: ogni clic viene annullato. Se capita, segnalalo con il "
-                                + "nome del menu: e' un difetto del plugin, non della configurazione.")
+                                + "nome del menu: è un difetto del plugin, non della configurazione.")
 
-                .never("Non modificare i file dei menu mentre il server e' spento pensando che si ricarichino "
+                .never("Non modificare i file dei menu mentre il server è spento pensando che si ricarichino "
                         + "da soli: si leggono all'avvio e a /menus reload.")
-                .never("Non usare op_command per comodita': se serve un permesso in piu', si da' il permesso.")
+                .never("Non usare op_command per comodità: se serve un permesso in più, si dà il permesso.")
                 .write();
     }
 }

@@ -2,7 +2,7 @@
 #  MagixScoreboard - configurazione
 #  Scoreboard laterale con placeholder PlaceholderAPI (compresi quelli degli
 #  altri plugin Magix) e condizioni di permesso/mondo/regione WorldGuard, con
-#  un peso a decidere quale mostrare quando piu' di una corrisponde.
+#  un peso a decidere quale mostrare quando più di una corrisponde.
 #  Documentazione completa: plugins/MagixScoreboard/README.md
 # ============================================================================
 
@@ -12,22 +12,22 @@ enabled: true
 
 # Ogni quanti tick (20 = 1 secondo) il plugin ricalcola la scoreboard giusta per
 # ogni giocatore online (condizioni e placeholder). Le animazioni NON dipendono
-# da questo valore: gli "interval-ticks" di titolo e righe (piu' sotto) possono
-# essere qualunque numero, anche piu' basso (es. 5 con questo a 10), e ogni
-# frame cambia esattamente al suo tempo. Un valore piu' basso qui aggiorna i
-# placeholder piu' spesso ma ricalcola le condizioni (permesso/mondo/regione)
-# piu' spesso.
+# da questo valore: gli "interval-ticks" di titolo e righe (più sotto) possono
+# essere qualunque numero, anche più basso (es. 5 con questo a 10), e ogni
+# frame cambia esattamente al suo tempo. Un valore più basso qui aggiorna i
+# placeholder più spesso ma ricalcola le condizioni (permesso/mondo/regione)
+# più spesso.
 update-interval-ticks: 10
 
 # Sfondo della sidebar (il riquadro semitrasparente dietro titolo e righe). Lo disegna il client,
 # non il plugin: lo si cambia con uno shader nel pacchetto risorse di MagixPack (serve MagixPack
 # installato; senza, resta quello vanilla). Titolo e righe hanno lo STESSO colore e la stessa
-# opacita' (in vanilla il titolo e' un po' piu' scuro). Si applica con /mscoreboard reload; i
-# giocatori gia' connessi lo vedono dal prossimo ingresso (quando riscaricano il pacchetto).
+# opacità (in vanilla il titolo è un po' più scuro). Si applica con /mscoreboard reload; i
+# giocatori già connessi lo vedono dal prossimo ingresso (quando riscaricano il pacchetto).
 sidebar-background:
   enabled: true           # false = nessuno sfondo: restano solo le scritte (e il bordo, se acceso)
   color: "#000000"        # colore dello sfondo, "#RRGGBB"
-  opacity: 30             # opacita' dello sfondo in percentuale, 0-100 (vanilla: 30 le righe, 40 il titolo)
+  opacity: 30             # opacità dello sfondo in percentuale, 0-100 (vanilla: 30 le righe, 40 il titolo)
   # Bordo sui lati sopra, sinistra e sotto (quello destro no), sfumato da sinistra a destra come i
   # bordi del sito.
   border:
@@ -35,29 +35,29 @@ sidebar-background:
     width: 1              # spessore in pixel dell'interfaccia (1-8)
     color-start: "#A3E635"  # colore a sinistra (verde del sito)
     color-end: "#C04FF0"    # colore a destra (magenta del sito)
-    opacity: 100          # opacita' del bordo in percentuale, 0-100
+    opacity: 100          # opacità del bordo in percentuale, 0-100
 
-# Posizione verticale della sidebar. Il client la mette sempre un po' sopra la meta' dello schermo
-# e non si puo' cambiare da server: la si SPOSTA con gli shader del pacchetto risorse (sfondo da
+# Posizione verticale della sidebar. Il client la mette sempre un po' sopra la metà dello schermo
+# e non si può cambiare da server: la si SPOSTA con gli shader del pacchetto risorse (sfondo da
 # MagixScoreboard, scritte e icone dallo shader del testo di MagixFactions, che serve installato).
 # Si spostano solo le scritte della sidebar, riconosciute da un marchio invisibile nel colore:
 # tooltip degli oggetti, menu e chat restano fermi anche nella fascia destra. Si applica con
-# /mscoreboard reload; i giocatori gia' connessi lo vedono dal prossimo ingresso.
+# /mscoreboard reload; i giocatori già connessi lo vedono dal prossimo ingresso.
 sidebar-position:
   offset-y: 0             # pixel dell'interfaccia verso il BASSO (negativo = in alto), -200..200. 0 = vanilla
   zone-width: 200         # larghezza della fascia destra (pixel dell'interfaccia) in cui le scritte si spostano
 
-# In caso di PARITA' di peso fra piu' scoreboard che corrispondono allo stesso
-# giocatore, decide quale vince: l'elenco va dal piu' specifico al meno
-# specifico. Valori ammessi (uno o piu', in qualunque ordine):
+# In caso di PARITÀ di peso fra più scoreboard che corrispondono allo stesso
+# giocatore, decide quale vince: l'elenco va dal più specifico al meno
+# specifico. Valori ammessi (uno o più, in qualunque ordine):
 #   region      -> ha una condizione "regions" (si trova in una di quelle regioni WorldGuard)
 #   permission  -> ha una condizione "permission" (ha quel permesso)
 #   world       -> ha una condizione "worlds" (si trova in uno di quei mondi)
 #   placeholder -> ha una condizione "placeholders" (vedi sotto)
 # Di serie una regione batte un permesso, che batte un mondo, che batte una
-# condizione sui placeholder. Una scoreboard che unisce piu' condizioni somma i
-# punti di ciascuna, quindi vince comunque su chi ne ha una sola piu' in basso
-# in questo elenco. A parita' anche di questo, vince la prima scoreboard
+# condizione sui placeholder. Una scoreboard che unisce più condizioni somma i
+# punti di ciascuna, quindi vince comunque su chi ne ha una sola più in basso
+# in questo elenco. A parità anche di questo, vince la prima scoreboard
 # definita qui sotto.
 priority-order:
   - region
@@ -71,8 +71,8 @@ priority-order:
 # Una voce per scoreboard, con una chiave libera (qui "default", "vip", "spawn"):
 #
 #   enabled    : true/false, per disattivarne una senza cancellarla
-#   weight     : il peso; a parita' di condizioni soddisfatte vince quella col
-#                valore PIU' ALTO. Una scoreboard senza nessuna condizione
+#   weight     : il peso; a parità di condizioni soddisfatte vince quella col
+#                valore PIÙ ALTO. Una scoreboard senza nessuna condizione
 #                (permission/worlds/regions tutti vuoti) fa da riserva per chi
 #                non rientra in nessun'altra: dalle un peso basso.
 #   permission : nodo di permesso richiesto ("" = nessuno)
@@ -87,20 +87,20 @@ priority-order:
 #                si confrontano come numeri, il resto come testo (senza
 #                distinguere maiuscole/minuscole). Copre qualunque placeholder,
 #                non solo quelli dei plugin Magix.
-#   placeholders-mode : con PIU' di una condizione in "placeholders", decide se
+#   placeholders-mode : con PIÙ di una condizione in "placeholders", decide se
 #                servono TUTTE (all, il default) o ne basta UNA (any). Con una
 #                sola condizione (o nessuna) non cambia niente.
 #   title      : il titolo, con interval-ticks + frames (vedi sotto)
 #   lines      : le righe, dall'alto verso il basso (max 15, il limite di
 #                Minecraft), ognuna con interval-ticks + frames
 #
-# "frames" e' l'elenco dei testi che si alternano in quello slot (titolo o riga):
-# con un solo elemento lo slot e' fisso (i placeholder si aggiornano comunque a
-# ogni update-interval-ticks), con piu' elementi il plugin li alterna IN ORDINE
+# "frames" è l'elenco dei testi che si alternano in quello slot (titolo o riga):
+# con un solo elemento lo slot è fisso (i placeholder si aggiornano comunque a
+# ogni update-interval-ticks), con più elementi il plugin li alterna IN ORDINE
 # ogni "interval-ticks" tick, tornando al primo dopo l'ultimo — sia per una
 # scritta che "respira" (frame quasi identici, es. un puntino che si sposta) sia
 # per righe del tutto diverse che si alternano nello stesso posto (es. saldo e
-# ping a turno). Il conteggio dei tick e' lo stesso per tutti i giocatori: due
+# ping a turno). Il conteggio dei tick è lo stesso per tutti i giocatori: due
 # che vedono la stessa animazione la vedono sincronizzata, non ognuno per conto
 # suo. I placeholder sono quelli di PlaceholderAPI: sia quelli standard
 # (%player_name%, %server_online%...) sia quelli degli altri plugin Magix, che
@@ -109,7 +109,7 @@ priority-order:
 #
 # "scroll" (facoltativo, su titolo o riga): il testo SCORRE da destra verso
 # sinistra come un'insegna luminosa, in una finestra di caratteri fissa. Si
-# applica al testo gia' risolto e colorato, placeholder compresi, e ogni
+# applica al testo già risolto e colorato, placeholder compresi, e ogni
 # carattere tiene il suo colore. Esempio, lo stato della fazione che scorre:
 #   - interval-ticks: 20
 #     frames:
@@ -147,7 +147,7 @@ scoreboards:
 
   vip:
     enabled: true
-    # Peso piu' alto del default: chi ha il permesso vede questa al posto della
+    # Peso più alto del default: chi ha il permesso vede questa al posto della
     # scoreboard di riserva.
     weight: 10
     permission: "magixscoreboard.board.vip"
@@ -171,8 +171,8 @@ scoreboards:
 
   spawn:
     enabled: true
-    # Stesso peso di "vip": a parita' di peso decide priority-order, e "region"
-    # viene prima di "permission", quindi chi e' allo spawn vede questa anche se
+    # Stesso peso di "vip": a parità di peso decide priority-order, e "region"
+    # viene prima di "permission", quindi chi è allo spawn vede questa anche se
     # ha anche il permesso della VIP.
     weight: 10
     permission: ""
@@ -206,7 +206,7 @@ scoreboards:
     placeholders:
       - "%magixfactions_faction% != "
     # Una sola condizione qui: "all" o "any" darebbero lo stesso risultato.
-    # Con piu' di una condizione, "any" vorrebbe dire "basta una delle due",
+    # Con più di una condizione, "any" vorrebbe dire "basta una delle due",
     # es. ["%magixfactions_faction% != ", "%vault_eco_balance% >= 1000"].
     placeholders-mode: all
     title:

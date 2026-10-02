@@ -170,7 +170,7 @@ public final class TranslationPacing {
 
     private void save(Properties p) {
         try (Writer w = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
-            p.store(w, "MagixLanguage: quando si puo' richiamare MyMemory (vedi TranslationPacing). Cancellarlo = /language sync force.");
+            p.store(w, "MagixLanguage: quando si può richiamare MyMemory (vedi TranslationPacing). Cancellarlo = /language sync force.");
         } catch (IOException e) {
             log.warning("MagixLanguage: impossibile salvare " + FILE + " (" + e + ").");
         }

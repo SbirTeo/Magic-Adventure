@@ -185,7 +185,7 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
                     Component.text("File: ", TEXT).append(Component.text(result.file().toString(), HIGHLIGHT)),
                     Component.text("Impronta: ", TEXT).append(Component.text(result.hash().substring(0, 16) + "...", HIGHLIGHT)),
                     Component.text(publicVersion
-                                    ? "Versione pubblica: IP mascherati, si puo' allegare al ricorso sul forum."
+                                    ? "Versione pubblica: IP mascherati, si può allegare al ricorso sul forum."
                                     : "Versione interna: contiene IP completi, non pubblicarla. Aggiungi 'pubblico' per la versione da allegare.",
                             TEXT)));
         });
@@ -285,7 +285,7 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             dao.addWhitelist(a.id(), b.id(), sender.getName(), reason, now);
             dao.appendAudit(sender.getName(), "WHITELIST", a.name() + " <-> " + b.name(), reason, now);
             reply(sender, Text.msg("&#A8DC2C&f" + a.name() + " &7e &f" + b.name()
-                    + " &7sono ora dichiarati legittimi: niente piu' segnalazioni per questa coppia."));
+                    + " &7sono ora dichiarati legittimi: niente più segnalazioni per questa coppia."));
         });
     }
 
@@ -341,7 +341,7 @@ public final class GuardCommand implements CommandExecutor, TabCompleter {
             dao.appendAudit(sender.getName(), on ? "ESCLUSO" : "REINCLUSO", target.get().name(),
                     "profilazione " + (on ? "disattivata" : "riattivata"), System.currentTimeMillis());
             reply(sender, Text.msg("&#A8DC2C&f" + target.get().name() + (on
-                    ? " &7non verra' piu' analizzato."
+                    ? " &7non verrà più analizzato."
                     : " &7torna sotto analisi.")));
         });
     }
