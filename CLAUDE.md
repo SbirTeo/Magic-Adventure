@@ -317,7 +317,8 @@ render grafico, un suono, un timing visivo) dillo chiaramente invece di inventar
 la diagnostica prova quello che è nei log e nei file, non quello che un giocatore vede a schermo.
 
 Si lancia con `workflow_dispatch` passando:
-- `plugin` — cartella del plugin (es. `MagixFactions`), oppure `tutti` per l'elenco delle
+- `plugin` — `database` per lo stato di MariaDB (connessioni, chi le tiene, riavvii nel suo diario).
+  Altrimenti cartella del plugin (es. `MagixFactions`), oppure `tutti` per l'elenco delle
   chiavi di config di TUTTI i Magix (utile per confrontare col repo dopo una rinomina).
 - `file` (opzionale) — un file della cartella dati del plugin da stampare per intero.
 - `grep` (opzionale, default = nome del plugin) — regex estesa case-insensitive da cercare nel
