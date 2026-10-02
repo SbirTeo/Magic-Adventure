@@ -43,22 +43,28 @@ public final class Rulebook {
         b.append("</tbody></table>\n");
 
         // --- cosa succede a quanti punti ---
-        b.append("<p>Al raggiungimento di questi punti scatta il provvedimento:</p>\n");
+        b.append("<p>Al raggiungimento di questi punti scatta il provvedimento. Ban e mute permanenti "
+                + "però non li dà mai il server da solo: a quella soglia il caso viene segnalato "
+                + "allo staff, che decide.</p>\n");
         b.append("<table><thead><tr><th>Punti</th><th>Provvedimento</th><th>Durata</th></tr></thead><tbody>\n");
         // Le soglie sono tenute dalla piu' alta perche' e' cosi' che si applicano;
         // per leggerle, pero', si va dalla piu' bassa: e' il percorso che fa una persona.
         for (int i = cfg.thresholds.size() - 1; i >= 0; i--) {
             SanctionsConfig.Threshold s = cfg.thresholds.get(i);
+            boolean staffDecides = s.type() == Type.BAN
+                    || (s.type() == Type.MUTE && s.duration() == Duration.PERMANENTE);
+            String measure = staffDecides
+                    ? s.type().label() + " (su decisione dello staff)" : s.type().label();
             b.append("<tr><td>").append(s.points()).append("</td><td>")
-             .append(escapeHtml(s.type().label())).append("</td><td>")
+             .append(escapeHtml(measure)).append("</td><td>")
              .append(escapeHtml(Duration.write(s.duration()))).append("</td></tr>\n");
         }
         b.append("</tbody></table>\n");
 
         b.append("<p class=\"regolamento-dettaglio\">Ogni provvedimento si può contestare "
                 + "<b>solo con il modulo di ricorso</b>, nella pagina del provvedimento: resta "
-                + "raggiungibile anche a chi è bloccato. Il ban permanente non è mai "
-                + "automatico: lo decide sempre una persona.</p>\n");
+                + "raggiungibile anche a chi è bloccato. Il ban non è mai automatico, e "
+                + "nemmeno il mute permanente: li decide sempre una persona dello staff.</p>\n");
 
         return b.toString();
     }

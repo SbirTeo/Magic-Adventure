@@ -72,13 +72,19 @@ public final class Policy {
     /**
      * Il plugin puo' applicare da solo questa sanzione?
      *
-     * <p>Il <b>ban permanente non e' mai automatico</b>, qualunque cosa dica la configurazione:
-     * e' la decisione piu' grave che esista e non la prende una macchina. Non e' un valore
-     * regolabile di proposito.</p>
+     * <p>Il <b>ban non e' mai automatico</b>, ne' a tempo ne' permanente, e nemmeno il
+     * <b>mute permanente</b>: qualunque cosa dica la configurazione, il plugin si limita a
+     * <i>segnalare</i> il caso allo staff (finisce in coda con le prove allegate) e decide una
+     * persona. Non sono valori regolabili di proposito: chi puo' tenere fuori qualcuno dal
+     * server, o zittirlo per sempre, e' sempre una persona. Il plugin applica da solo solo
+     * mute a tempo (entro il tetto di durata) e avvisi.</p>
      */
     public Outcome checkAutomation(SanctionsConfig.Category category, Type type, long duration) {
-        if (type == Type.BAN && duration == Duration.PERMANENTE) {
-            return Outcome.proponi("un ban permanente lo decide sempre una persona");
+        if (type == Type.BAN) {
+            return Outcome.proponi("il plugin non banna mai: segnala il caso e decide lo staff");
+        }
+        if (type == Type.MUTE && duration == Duration.PERMANENTE) {
+            return Outcome.proponi("un mute permanente lo decide sempre lo staff");
         }
         if (cfg.mode.equals("proposta")) {
             return Outcome.proponi("il plugin è impostato per non applicare nulla da solo");

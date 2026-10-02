@@ -465,9 +465,13 @@ public final class MagixGuard extends JavaPlugin {
                                 + "è ragionevolmente certo e che sta entro un tetto di durata; tutto il "
                                 + "resto diventa una **proposta** nella coda del gestionale, con le prove "
                                 + "già allegate.",
-                        "Il **ban permanente non è mai automatico**, qualunque cosa dica la "
-                                + "configurazione: è la decisione più grave che esista e la prende sempre "
-                                + "una persona. Non è un valore regolabile, è una scelta.",
+                        "Il **ban non è mai automatico**, né a tempo né permanente, e nemmeno il "
+                                + "**mute permanente**: qualunque cosa dica la configurazione, quando una "
+                                + "soglia di punti porterebbe a un ban il plugin si limita a **segnalare** "
+                                + "il caso — avviso in chat allo staff e proposta nella coda del "
+                                + "gestionale, con le prove allegate — e **decide una persona**. Il plugin "
+                                + "applica da solo solo i **mute a tempo** (entro il tetto di durata) e gli "
+                                + "avvisi. Non è un valore regolabile, è una scelta.",
                         "Anche i **dati personali** non sanzionano mai da soli: il messaggio viene "
                                 + "bloccato e parte l'avviso allo staff, ma decide un umano. Il pubblico "
                                 + "è in larga parte minorenne, e qui un falso positivo pesa molto meno di "
@@ -594,8 +598,8 @@ public final class MagixGuard extends JavaPlugin {
                                 + "deve restare comunque agli atti: senza, il terzo spam di un giocatore "
                                 + "sarebbe identico al primo.",
                         "Il provvedimento scatta solo quando una soglia viene **appena superata**: chi "
-                                + "resta sopra una soglia non si becca un ban a ogni sciocchezza "
-                                + "successiva. E se un ricorso viene accolto, le violazioni che avevano "
+                                + "resta sopra una soglia non si becca un provvedimento a ogni "
+                                + "sciocchezza successiva. E se un ricorso viene accolto, le violazioni che avevano "
                                 + "fatto scattare quel provvedimento **smettono di contare** — altrimenti "
                                 + "il giocatore resterebbe a un passo dalla soglia dopo, cioè punito lo "
                                 + "stesso, a metà.")
@@ -685,7 +689,7 @@ public final class MagixGuard extends JavaPlugin {
                 .commands()
                 .permissions()
                 .settingsFrom(sanz, "Impostazioni delle sanzioni",
-                        "applicazione/modo", "misto, automatico o proposta: quanto può decidere il plugin da solo.",
+                        "applicazione/modo", "misto, automatico o proposta: quanto può decidere il plugin da solo (mai un ban, né un mute permanente).",
                         "applicazione/durata-massima-automatica", "Oltre questa durata nessun automatismo procede: si passa dalla coda.",
                         "punti/dimezzamento-giorni", "Ogni quanti giorni i punti valgono la metà.",
                         "sito/controllo-secondi", "Ogni quanto si rileggono le decisioni prese sul sito.",
@@ -725,8 +729,9 @@ public final class MagixGuard extends JavaPlugin {
                                 + "sanctions.yml — e la violazione si annulla revocando il provvedimento.")
                 .issue("L'anti-xray segnala un minatore che sembra onesto",
                         "Può succedere: è una statistica, non una prova. Per questo di serie il modulo "
-                                + "è in sola osservazione e il provvedimento automatico scatta solo oltre "
-                                + "la soglia estrema. Guarda i numeri nelle prove prima di decidere.")
+                                + "è in sola osservazione e il caso arriva allo staff solo oltre "
+                                + "la soglia estrema (il ban lo decidete sempre voi). Guarda i numeri "
+                                + "nelle prove prima di decidere.")
                 .issue("«Non mi nascono più i mostri nella mia farm»",
                         "È l'anti-AFK: da fermo il gioco non produce più nulla intorno a lui. Basta "
                                 + "muoversi. Se c'è un altro giocatore sveglio nel raggio, gli spawn "
