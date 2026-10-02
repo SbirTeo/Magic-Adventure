@@ -402,123 +402,128 @@ a.who-link {
   .auth-box .cambia-tema, .auth-box .cambia-lingua > summary { padding: 0; }
 }
 
-@media (max-width: 960px) {
-  /* Il bottone resta sopra al menu a schermo intero (z-index piu' alto, vedi .nav-collapse
-     sotto): e' lui che, girando in una X, fa anche da tasto per richiuderlo. */
-  .nav-toggle { display: flex; position: relative; z-index: 60; }
+/* Barra stretta: il menu ad hamburger. NON e' piu' legato a una larghezza fissa (prima 960px):
+   lo accende la classe nav-stretta su <html>, che uno script in header.php mette quando lo
+   schermo e' stretto OPPURE quando le voci della barra non ci stanno in una riga (in inglese
+   "Leaderboards", "How to Guide", "Management" sono piu' lunghe e a ~980px la barra andava a
+   capo). Cosi' vale per qualsiasi lingua e qualsiasi numero di voci. */
+/* Il bottone resta sopra al menu a schermo intero (z-index piu' alto, vedi .nav-collapse
+   sotto): e' lui che, girando in una X, fa anche da tasto per richiuderlo. */
+html.nav-stretta .nav-toggle { display: flex; position: relative; z-index: 60; }
 
-  /* Il menu ad hamburger copre tutto lo schermo invece di una tendina stretta sotto la
-     barra: c'era spazio SOLO per un elenco in colonna, che con tante voci iniziava a essere
-     fitto e spento. Scorre da sinistra con
-     un'animazione, e le voci sono una griglia di riquadri invece di righe una sotto l'altra. */
-  .nav-collapse {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    background:
-      radial-gradient(circle at 12% 0%, rgba(192, 79, 240, .22), transparent 45%),
-      radial-gradient(circle at 100% 18%, rgba(163, 230, 53, .14), transparent 42%),
-      var(--bg-panel);
-    padding: 84px 20px 28px;
-    border-bottom: none;
-    box-shadow: none;
-    overflow-y: auto;
-    align-items: stretch;
-    gap: 0;
-    visibility: hidden;
-    opacity: 0;
-    transform: translateX(-100%);
-    transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease, visibility 0s linear .38s;
-  }
-  .nav-collapse.open {
-    visibility: visible;
-    opacity: 1;
-    transform: translateX(0);
-    transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease;
-  }
-
-  /* Griglia a due colonne, riquadri tutti uguali e piu' bassi (erano 68px, con molto vuoto
-     sotto); lo Store e "Gestione" occupano la riga intera, stessa altezza fra loro. Niente
-     logo in cima: c'e' gia' nella pagina, e spingeva tutte le voci in basso. */
-  .main-nav {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    flex: none;
-  }
-  .main-nav .nav-logo { display: none; }
-  .main-nav a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    min-height: 56px;
-    border-radius: var(--radius);
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: var(--fs-base);
-  }
-  /* Lo Store (.btn-gold) tiene il SUO oro: qui si tocca solo misura/posizione, mai i
-     colori, altrimenti sparisce il motivo per cui e' colorato diverso da tutti gli altri. */
-  .main-nav a:not(.btn-nav) {
-    padding: 12px 10px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-  }
-  .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
-  .main-nav a:active { transform: scale(.95); }
-  /* Stesso testo delle altre voci: come pulsante (.btn) avrebbe la grandezza dei pulsanti,
-     13px, e nel menu sembrava scritto diverso. */
-  .main-nav .btn-nav {
-    grid-column: 1 / -1;
-    margin: 0;
-    min-height: 56px;
-    font-size: var(--fs-base);
-    font-weight: 600;
-    letter-spacing: 0;
-  }
-  /* Ultima voce, a tutta larghezza: e' il pulsante dello staff, non una pagina del sito. */
-  .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; border-style: dashed; }
-
-  /* Le voci compaiono una dopo l'altra invece che tutte insieme: e' quel poco di movimento
-     che fa sentire il menu vivo invece che un pannello che si accende di colpo. */
-  .nav-collapse.open .main-nav a {
-    animation: voce-menu-entra .38s cubic-bezier(.22, 1, .36, 1) backwards;
-  }
-  .nav-collapse:not(.open) .main-nav a { animation: none; }
-  .main-nav a:nth-child(1) { animation-delay: .04s; }
-  .main-nav a:nth-child(2) { animation-delay: .08s; }
-  .main-nav a:nth-child(3) { animation-delay: .12s; }
-  .main-nav a:nth-child(4) { animation-delay: .16s; }
-  .main-nav a:nth-child(5) { animation-delay: .20s; }
-  .main-nav a:nth-child(6) { animation-delay: .24s; }
-  .main-nav a:nth-child(7) { animation-delay: .28s; }
-  .main-nav a:nth-child(8) { animation-delay: .32s; }
-  @keyframes voce-menu-entra {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .auth-box { margin-left: auto; gap: 8px; font-size: var(--fs-sm); }
-  .auth-box .btn { padding: 7px 12px; font-size: var(--fs-sm); }
-  /* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
-  .auth-box .who-link { padding: 3px 12px 3px 3px; }
-  /* Idem per i due pulsanti quadrati (tema e lingua): col padding di .auth-box .btn restavano
-     8px di spazio utile in 34px e l'icona, piu' larga, finiva spinta fuori centro. */
-  .auth-box .cambia-tema, .auth-box .cambia-lingua > summary { padding: 0; }
-  .who-avatar { width: 24px; height: 24px; }
-  /* Da telefono "Gestione" lascia la barra e passa nel menu ad hamburger (.nav-gestione): il
-     suo posto lo prende la bandiera della lingua, un quadrato piu' stretto di lui. */
-  .auth-box .gestione-barra { display: none; }
-  /* Un nome lungo (16 caratteri) spingeva comunque la barra oltre il bordo dello schermo:
-     da telefono si accorcia coi puntini, avatar e altri pulsanti restano interi. */
-  .auth-box { min-width: 0; }
-  .auth-box .who-link { min-width: 0; }
-  .auth-box .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Il menu ad hamburger copre tutto lo schermo invece di una tendina stretta sotto la
+   barra: c'era spazio SOLO per un elenco in colonna, che con tante voci iniziava a essere
+   fitto e spento. Scorre da sinistra con
+   un'animazione, e le voci sono una griglia di riquadri invece di righe una sotto l'altra. */
+html.nav-stretta .nav-collapse {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(192, 79, 240, .22), transparent 45%),
+    radial-gradient(circle at 100% 18%, rgba(163, 230, 53, .14), transparent 42%),
+    var(--bg-panel);
+  padding: 84px 20px 28px;
+  border-bottom: none;
+  box-shadow: none;
+  overflow-y: auto;
+  align-items: stretch;
+  gap: 0;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease, visibility 0s linear .38s;
 }
+html.nav-stretta .nav-collapse.open {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(0);
+  transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease;
+}
+
+/* Griglia a due colonne, riquadri tutti uguali e piu' bassi (erano 68px, con molto vuoto
+   sotto); lo Store e "Gestione" occupano la riga intera, stessa altezza fra loro. Niente
+   logo in cima: c'e' gia' nella pagina, e spingeva tutte le voci in basso. */
+html.nav-stretta .main-nav {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  flex: none;
+}
+html.nav-stretta .main-nav .nav-logo { display: none; }
+html.nav-stretta .main-nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 56px;
+  border-radius: var(--radius);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--fs-base);
+}
+/* Lo Store (.btn-gold) tiene il SUO oro: qui si tocca solo misura/posizione, mai i
+   colori, altrimenti sparisce il motivo per cui e' colorato diverso da tutti gli altri. */
+html.nav-stretta .main-nav a:not(.btn-nav) {
+  padding: 12px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+html.nav-stretta .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
+html.nav-stretta .main-nav a:active { transform: scale(.95); }
+/* Stesso testo delle altre voci: come pulsante (.btn) avrebbe la grandezza dei pulsanti,
+   13px, e nel menu sembrava scritto diverso. */
+html.nav-stretta .main-nav .btn-nav {
+  grid-column: 1 / -1;
+  margin: 0;
+  min-height: 56px;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+/* Ultima voce, a tutta larghezza: e' il pulsante dello staff, non una pagina del sito. */
+html.nav-stretta .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; border-style: dashed; }
+
+/* Le voci compaiono una dopo l'altra invece che tutte insieme: e' quel poco di movimento
+   che fa sentire il menu vivo invece che un pannello che si accende di colpo. */
+html.nav-stretta .nav-collapse.open .main-nav a {
+  animation: voce-menu-entra .38s cubic-bezier(.22, 1, .36, 1) backwards;
+}
+html.nav-stretta .nav-collapse:not(.open) .main-nav a { animation: none; }
+html.nav-stretta .main-nav a:nth-child(1) { animation-delay: .04s; }
+html.nav-stretta .main-nav a:nth-child(2) { animation-delay: .08s; }
+html.nav-stretta .main-nav a:nth-child(3) { animation-delay: .12s; }
+html.nav-stretta .main-nav a:nth-child(4) { animation-delay: .16s; }
+html.nav-stretta .main-nav a:nth-child(5) { animation-delay: .20s; }
+html.nav-stretta .main-nav a:nth-child(6) { animation-delay: .24s; }
+html.nav-stretta .main-nav a:nth-child(7) { animation-delay: .28s; }
+html.nav-stretta .main-nav a:nth-child(8) { animation-delay: .32s; }
+
+
+html.nav-stretta .auth-box { margin-left: auto; gap: 8px; font-size: var(--fs-sm); }
+html.nav-stretta .auth-box .btn { padding: 7px 12px; font-size: var(--fs-sm); }
+/* Dopo .auth-box .btn, se no vince quello e il pulsante col volto cresce di altezza */
+html.nav-stretta .auth-box .who-link { padding: 3px 12px 3px 3px; }
+/* Idem per i due pulsanti quadrati (tema e lingua): col padding di .auth-box .btn restavano
+   8px di spazio utile in 34px e l'icona, piu' larga, finiva spinta fuori centro. */
+html.nav-stretta .auth-box .cambia-tema, html.nav-stretta .auth-box .cambia-lingua > summary { padding: 0; }
+html.nav-stretta .who-avatar { width: 24px; height: 24px; }
+/* Da telefono "Gestione" lascia la barra e passa nel menu ad hamburger (.nav-gestione): il
+   suo posto lo prende la bandiera della lingua, un quadrato piu' stretto di lui. */
+html.nav-stretta .auth-box .gestione-barra { display: none; }
+/* Un nome lungo (16 caratteri) spingeva comunque la barra oltre il bordo dello schermo:
+   da telefono si accorcia coi puntini, avatar e altri pulsanti restano interi. */
+html.nav-stretta .auth-box { min-width: 0; }
+html.nav-stretta .auth-box .who-link { min-width: 0; }
+html.nav-stretta .auth-box .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@keyframes voce-menu-entra {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Il body non scorre sotto al menu a schermo intero (site.js aggiunge/toglie la classe). */
 body.menu-aperto { overflow: hidden; }
 /* backdrop-filter sull'header crea un "containing block" per i figli position:fixed (bug

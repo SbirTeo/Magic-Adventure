@@ -178,6 +178,10 @@ $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 ?><!DOCTYPE html>
 <html lang="<?= h($GLOBALS['__siteLang']) ?>" data-tema="<?= h(tema_scelto()) ?>">
 <head>
+<?php /* Menu ad hamburger su schermo stretto: la classe va messa PRIMA che la barra si disegni,
+         altrimenti da telefono si vedrebbe un attimo la barra larga. Il controllo vero (le voci
+         ci stanno in una riga?) lo fa lo script subito dopo la barra, vedi sotto. */ ?>
+<script>if (window.innerWidth <= 960) document.documentElement.classList.add('nav-stretta');</script>
 <meta charset="UTF-8">
 <script>
 // Tema "auto": qui si traduce nella preferenza vera del sistema, PRIMA che la pagina venga
@@ -623,6 +627,36 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
     </div>
   </div>
 </header>
+<script>
+// La barra passa al menu ad hamburger quando le voci NON ci stanno in una riga, non a una
+// larghezza fissa: in inglese le voci sono piu' lunghe e a ~980px la barra andava a capo.
+// Si misura la barra larga (senza la classe) e, se va a capo o deborda, si accende nav-stretta.
+(function () {
+  var html = document.documentElement;
+  var inner = document.querySelector('.site-header .header-inner');
+  var nav = document.querySelector('.site-header .main-nav');
+  if (!inner || !nav) return;
+  function check() {
+    if (window.innerWidth <= 960) { html.classList.add('nav-stretta'); return; }
+    if (document.querySelector('.nav-collapse.open')) return;   // menu aperto: non lo si tocca
+    html.classList.remove('nav-stretta');
+    // Si confronta il CENTRO delle voci (il logo e' piu' alto e resta fuori dal conto): su una
+    // riga sola i centri coincidono, se l'ultima voce e' andata a capo sta piu' in basso.
+    var voci = Array.prototype.filter.call(nav.children, function (el) {
+      return el.offsetParent !== null && !el.classList.contains('nav-logo');
+    });
+    function centro(el) { var r = el.getBoundingClientRect(); return r.top + r.height / 2; }
+    var aCapo = voci.length > 1 && centro(voci[voci.length - 1]) - centro(voci[0]) > 8;
+    var deborda = inner.scrollWidth > inner.clientWidth + 1;
+    if (aCapo || deborda) html.classList.add('nav-stretta');
+  }
+  check();
+  var t;
+  window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(check, 80); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(check);
+  window.addEventListener('load', check);
+})();
+</script>
 <main class="wrap main-content">
 <?php
 // Colonna di destra automatica: la pagina scrive il suo contenuto e basta, l'impalcatura
