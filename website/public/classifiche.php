@@ -357,7 +357,11 @@ function format_playtime(int $seconds): string {
      la colonna (segnalato da telefono in modalita' desktop). Le stesse regole del telefono
      scattano quindi anche quando e' stretto il pannello, con una container query. */
   .rank-tab-panel { container: rankpanel / inline-size; }
-  @container rankpanel (max-width: 760px) { .rank-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; } }
+  @container rankpanel (max-width: 900px) { .rank-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; } }
+  /* Nove colonne: padding stretto e intestazioni che vanno a capo (le celle restano su una riga), così
+     la tabella sta nel riquadro anche a 1000-1200px senza ricorrere allo scorrimento (che taglierebbe i popup). */
+  .rank-wrap table.rank th, .rank-wrap table.rank td { padding: 10px 8px; }
+  .rank-wrap table.rank th { white-space: normal; vertical-align: bottom; }
   .score-cell { position: relative; }
   .score-trigger { cursor: pointer; font-weight: 700; }
   .score-cell .score-pop {
