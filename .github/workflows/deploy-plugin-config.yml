@@ -367,7 +367,10 @@ jobs:
           PY
 
           scp -i "$KEY" -o StrictHostKeyChecking=yes /tmp/patch_key.py "$DEST:/tmp/patch_key.py"
-          $SSH "REMOTE_PATH='$REMOTE_PATH' KEY_B64='$KEY_B64' VAL_B64='$VAL_B64' MARKER_B64='$MARKER_B64' MODE='$MODE' python3 /tmp/patch_key.py; rm -f /tmp/patch_key.py"
+          # L'esito e' quello di python3, non del rm che segue: prima un errore (file o chiave
+          # inesistente) finiva in un run verde, con il reload mandato lo stesso.
+          $SSH "REMOTE_PATH='$REMOTE_PATH' KEY_B64='$KEY_B64' VAL_B64='$VAL_B64' MARKER_B64='$MARKER_B64' MODE='$MODE' python3 /tmp/patch_key.py; rc=\$?; rm -f /tmp/patch_key.py; exit \$rc" \
+            || { echo "::error::modifica non applicata (vedi sopra): niente reload"; exit 1; }
 
           # Reload opzionale, senza riavviare, se il server e' su (screen `factions`/`hub`).
           # Il comando di reload viaggia in base64 fino al VPS per evitare problemi di quoting.
