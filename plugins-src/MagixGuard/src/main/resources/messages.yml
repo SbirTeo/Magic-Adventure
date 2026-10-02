@@ -50,19 +50,19 @@ commands:
   duration-required: "&#FF6B6BQui la durata serve davvero. &7Per il permanente usa &f/{comando}&7."
   duration-invalid: "&#FF6B6BDurata non riconosciuta. &7Scrivila come 30m, 6h, 3d, 2w."
   # {comando} il comando permanente digitato, {comando-tempo} il suo equivalente a tempo
-  permanent-no-duration: "&#FFD166&f/{comando} &#FFD166e' permanente e non vuole una durata. &7Per una sanzione a tempo usa &f/{comando-tempo} <giocatore> <durata> <motivo>&7."
-  reason-required: "&#FF6B6BIl motivo non e' facoltativo: &7lo legge il giocatore, e finisce nell'elenco pubblico."
+  permanent-no-duration: "&#FFD166&f/{comando} &#FFD166è permanente e non vuole una durata. &7Per una sanzione a tempo usa &f/{comando-tempo} <giocatore> <durata> <motivo>&7."
+  reason-required: "&#FF6B6BIl motivo non è facoltativo: &7lo legge il giocatore, e finisce nell'elenco pubblico."
   unknown-player: "&#FF6B6BNon conosco nessuno con quel nome. &7Deve essere entrato almeno una volta, o avere un account sul sito."
   # {nome}, {tipo}, {durata} ("immediata" o una durata scritta), {id} numero del provvedimento
   applied: "&#A8DC2CFatto. &f{nome} &7— {tipo}, {durata}. &7Provvedimento n. {id}."
   duration-immediate: "immediata"
   # {motivo} la proposta gia' pronta da leggere
-  proposed: "&#FFD166Proposta inviata: &7{motivo}. &7La trovi nel gestionale, con le prove gia' allegate."
+  proposed: "&#FFD166Proposta inviata: &7{motivo}. &7La trovi nel gestionale, con le prove già allegate."
 
   remove-usage: "&#FFD166Uso: &f/{comando} <giocatore> [motivo]"
   remove-unknown-player: "&#FF6B6BNon conosco nessuno con quel nome."
   # {tipo}, {nome}
-  remove-nothing-active: "&7Non c'e' nessun {tipo} attivo per &f{nome}&7."
+  remove-nothing-active: "&7Non c'è nessun {tipo} attivo per &f{nome}&7."
   # {id} numero del provvedimento revocato
   revoked: "&#A8DC2CRevocato. &7Provvedimento n. {id}."
   revoke-failed: "&#FF6B6BRevoca non riuscita: il database del sito non risponde."
@@ -101,7 +101,7 @@ report:
   disabled: "&7Le segnalazioni sono disattivate su questo server."
   console-only: "&7Le segnalazioni le mandano i giocatori. &7I casi aperti si leggono nel gestionale del sito, in Sanzioni."
   usage: "&#FFD166Uso: &f/report <giocatore> <motivo>"
-  usage-hint: "&7Scrivi cosa e' successo, non solo l'accusa: chi controllera' non era li'."
+  usage-hint: "&7Scrivi cosa è successo, non solo l'accusa: chi controllerà non era lì."
   self: "&#FF6B6BNon puoi segnalare te stesso."
   # {minimo} caratteri minimi richiesti
   reason-too-short: "&#FF6B6BSpiega meglio: &7servono almeno {minimo} caratteri. Cosa ha fatto, dove, quando."
@@ -109,7 +109,7 @@ report:
   cooldown: "&7Aspetta ancora &f{secondi} secondi&7 prima di segnalare di nuovo."
   unknown-player: "&#FF6B6BNon conosco nessuno con quel nome. &7Controlla come si scrive."
   # {numero} segnalazioni gia' aperte
-  too-many-open: "&7Hai gia' &f{numero}&7 segnalazioni in attesa di risposta. Aspetta che lo staff le guardi."
+  too-many-open: "&7Hai già &f{numero}&7 segnalazioni in attesa di risposta. Aspetta che lo staff le guardi."
   sent: "&#A8DC2CSegnalazione inviata. &7Lo staff la trova nel gestionale con la tua posizione e l'ora. Grazie."
   # per lo staff: {mittente}, {target}, {motivo}
   staff-broadcast: "&#FFD166Segnalazione&f {mittente} &7ha segnalato &f{target} &7— {motivo}"
@@ -128,7 +128,7 @@ chat:
 # ---------------------------------------------------------------- anti-afk
 afk:
   returned: "&#A8DC2CBentornato. &7Da adesso il gioco riprende a contare."
-  idle: "&7Sei fermo da un po': &fda ora il gioco non produce piu' nulla intorno a te&7. Muoviti per riprendere."
+  idle: "&7Sei fermo da un po': &fda ora il gioco non produce più nulla intorno a te&7. Muoviti per riprendere."
 
 # -------------------------------------------------------------------- help
 # L'aiuto lo impagina la classe Help (la stessa in tutti i plugin Magix): una

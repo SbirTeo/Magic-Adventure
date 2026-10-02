@@ -74,6 +74,7 @@ public final class MagixGuard extends JavaPlugin {
         // compaiono da sole, al loro posto e col loro commento, senza toccare i valori
         // gia' scelti. Il deploy porta solo il jar, quindi senza questo il file del server
         // resterebbe indietro in silenzio (vedi util/ConfigAlign).
+        applyValueFixes();
         ConfigAlign.alignAll(this);
         reloadConfig();
         getDataFolder().mkdirs();
@@ -189,7 +190,6 @@ public final class MagixGuard extends JavaPlugin {
         if (!file.exists()) {
             saveResource("sanctions.yml", false);
         }
-        fixOldDefaults(file);
         SanctionsConfig cfg = new SanctionsConfig(SanctionsConfig.load(file));
 
         siteDb = new SiteDb(cfg);
@@ -302,40 +302,56 @@ public final class MagixGuard extends JavaPlugin {
     }
 
     /**
-     * Testi di serie di sanctions.yml che erano scritti con l'apostrofo al posto dell'accento
-     * ("Pubblicita'", "piu'") e finiscono nel regolamento pubblico. sanctions.yml e' un catalogo dello
-     * staff, quindi ConfigAlign non ne tocca i valori: qui si corregge SOLO il testo di serie identico
-     * a quello vecchio (un testo cambiato a mano resta com'e'), con la copia in .bak/ prima.
+     * Testi DI SERIE cambiati nel jar che vanno aggiornati anche nei file del server (es. gli accenti
+     * scritti con l'apostrofo: "piu'", "e'"). ConfigAlign non tocca i valori gia' presenti, quindi le
+     * coppie vecchio -> nuovo stanno in value-fixes.yml dentro il jar: si sostituisce SOLO un valore
+     * identico a quello vecchio (uno cambiato a mano dallo staff resta com'e'), con la copia in .bak/.
      */
-    private static final String[][] OLD_DEFAULTS = {
-            {"\"Pubblicita' di altri server\"", "\"Pubblicità di altri server\""},
-            {"\"Volo, velocita' e movimenti impossibili.\"", "\"Volo, velocità e movimenti impossibili.\""},
-            {"chi insiste paga di piu'.\"", "chi insiste paga di più.\""},
-    };
-
-    private void fixOldDefaults(java.io.File file) {
-        try {
-            java.nio.file.Path path = file.toPath();
-            String text = java.nio.file.Files.readString(path, java.nio.charset.StandardCharsets.UTF_8);
-            String fixed = text;
-            for (String[] pair : OLD_DEFAULTS) {
-                fixed = fixed.replace(pair[0], pair[1]);
-            }
-            if (fixed.equals(text)) {
+    private void applyValueFixes() {
+        org.bukkit.configuration.file.YamlConfiguration fixes;
+        try (java.io.InputStream in = getResource("value-fixes.yml")) {
+            if (in == null) {
                 return;
             }
-            java.io.File dataFolder = getDataFolder().getAbsoluteFile();
-            java.io.File serverRoot = dataFolder.getParentFile() == null ? null : dataFolder.getParentFile().getParentFile();
-            java.io.File bak = serverRoot == null ? dataFolder : new java.io.File(new java.io.File(serverRoot, ".bak"), dataFolder.getName());
-            java.nio.file.Files.createDirectories(bak.toPath());
-            String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
-            java.nio.file.Files.copy(path, new java.io.File(bak, file.getName() + ".bak-" + stamp).toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            java.nio.file.Files.writeString(path, fixed, java.nio.charset.StandardCharsets.UTF_8);
-            getLogger().info("sanctions.yml: corretti gli accenti dei testi di serie (Pubblicità, velocità, più).");
+            fixes = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(
+                    new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
         } catch (Exception e) {
-            getLogger().warning("sanctions.yml: correzione degli accenti non riuscita (" + e.getClass().getSimpleName()
-                    + "): il file non e' stato toccato.");
+            return;
+        }
+        for (String fileName : fixes.getKeys(false)) {
+            java.io.File file = new java.io.File(getDataFolder(), fileName);
+            if (!file.isFile()) {
+                continue;
+            }
+            try {
+                java.nio.file.Path path = file.toPath();
+                String text = java.nio.file.Files.readString(path, java.nio.charset.StandardCharsets.UTF_8);
+                String fixed = text;
+                int count = 0;
+                for (java.util.Map<?, ?> pair : fixes.getMapList(fileName)) {
+                    String from = "\"" + pair.get("old") + "\"";
+                    String to = "\"" + pair.get("new") + "\"";
+                    if (fixed.contains(from)) {
+                        fixed = fixed.replace(from, to);
+                        count++;
+                    }
+                }
+                if (count == 0) {
+                    continue;
+                }
+                java.io.File dataFolder = getDataFolder().getAbsoluteFile();
+                java.io.File serverRoot = dataFolder.getParentFile() == null ? null : dataFolder.getParentFile().getParentFile();
+                java.io.File bak = serverRoot == null ? dataFolder : new java.io.File(new java.io.File(serverRoot, ".bak"), dataFolder.getName());
+                java.nio.file.Files.createDirectories(bak.toPath());
+                String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date());
+                java.nio.file.Files.copy(path, new java.io.File(bak, fileName + ".bak-" + stamp).toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                java.nio.file.Files.writeString(path, fixed, java.nio.charset.StandardCharsets.UTF_8);
+                getLogger().info(fileName + ": aggiornati " + count + " testi di serie (value-fixes.yml).");
+            } catch (Exception e) {
+                getLogger().warning(fileName + ": aggiornamento dei testi di serie non riuscito ("
+                        + e.getClass().getSimpleName() + "): il file non e' stato toccato.");
+            }
         }
     }
 
@@ -343,6 +359,7 @@ public final class MagixGuard extends JavaPlugin {
     public void reloadGuard() {
         // Come all'avvio: prima si allineano i file del server a quelli del jar, poi si
         // rilegge. Cosi' un reload dopo un deploy vede anche le chiavi nuove.
+        applyValueFixes();
         ConfigAlign.alignAll(this);
         reloadConfig();
         messages.reload();
