@@ -1,6 +1,7 @@
 package com.teolo.magixproxy;
 
 import com.google.inject.Inject;
+import com.teolo.magixproxy.command.HubCommand;
 import com.teolo.magixproxy.db.AccountDao;
 import com.teolo.magixproxy.db.Database;
 import com.teolo.magixproxy.motd.MotdListener;
@@ -30,7 +31,7 @@ import java.nio.file.Path;
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.5.3",
+        version = "0.6.0",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
         authors = {"teolo"}
@@ -80,6 +81,7 @@ public final class MagixProxy {
         proxy.getEventManager().register(this, new ServerGuard(proxy, config, database, log));
         // Cookie requests of a server being switched to stay on the proxy (see SwitchCookies).
         proxy.getEventManager().register(this, new SwitchCookies());
+        HubCommand.register(this, proxy, config);
         if (config.motdEnabled && !config.motdFile.isEmpty()) {
             proxy.getEventManager().register(this, new MotdListener(proxy, log,
                     Path.of(config.motdFile).toAbsolutePath().normalize(),

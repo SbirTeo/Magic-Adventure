@@ -108,3 +108,10 @@ comparire nel file.
 
 `predisponi-velocity.yml` (con `prova=si`) accende il proxy solo in locale e simula due ingressi:
 `SbirTeo` (deve entrare con l'UUID del database del sito) e un nome inventato (UUID offline).
+
+## /hub e /lobby (0.6.0)
+
+`/hub` (alias `/lobby`) porta il giocatore sul server `network.hub_server` (di serie `hub`) da
+qualunque server della rete; vale per tutti, senza permesso. Passa dal normale cambio di server,
+quindi `ServerGuard` applica la solita regola: prima del login il giocatore resta dov'e'. Testi in
+`network.hub.*` di `messages.yml`.

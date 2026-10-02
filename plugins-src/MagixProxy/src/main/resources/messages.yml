@@ -16,3 +16,9 @@ network:
   main-missing: "&cIl server non è raggiungibile in questo momento.\n&7Riprova tra qualche minuto."
   # Il server {server} (non il principale) si è chiuso o l'ha fatto uscire: è stato portato sul principale.
   moved-to-main: "&eIl server &f{server}&e non è più disponibile: ti ho riportato nel server principale."
+  # /hub (alias /lobby): porta nell'hub da qualunque server.
+  hub:
+    sent: "&aSei stato portato nell'&fhub&a."
+    already-here: "&eSei già nell'hub."
+    unavailable: "&cL'hub non è raggiungibile in questo momento.\n&7Riprova tra qualche minuto."
+    players-only: "&cQuesto comando si usa solo da giocatore."

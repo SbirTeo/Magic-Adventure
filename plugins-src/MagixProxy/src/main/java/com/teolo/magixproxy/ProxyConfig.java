@@ -31,6 +31,7 @@ public final class ProxyConfig {
     public final int skinCacheMinutes;
 
     public final String mainServer;
+    public final String hubServer;
     public final boolean othersRequireLogin;
     public final boolean fallbackToMain;
 
@@ -52,6 +53,7 @@ public final class ProxyConfig {
         this.premiumTimeoutMillis = number(cfg, defCfg, "premium.timeout_ms");
         this.skinCacheMinutes = number(cfg, defCfg, "premium.skin_cache_minutes");
         this.mainServer = string(cfg, defCfg, "network.main_server").trim();
+        this.hubServer = string(cfg, defCfg, "network.hub_server").trim();
         this.othersRequireLogin = Boolean.parseBoolean(string(cfg, defCfg, "network.others_require_login"));
         this.fallbackToMain = Boolean.parseBoolean(string(cfg, defCfg, "network.fallback_to_main"));
         this.motdEnabled = Boolean.parseBoolean(string(cfg, defCfg, "motd.enabled"));

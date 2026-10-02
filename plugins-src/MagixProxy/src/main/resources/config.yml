@@ -36,6 +36,9 @@ network:
   # Il server principale: chi entra nella rete finisce SEMPRE qui (qualunque cosa chieda il
   # client), ed è qui che si fa il login. Dev'essere uno dei [servers] di velocity.toml.
   main_server: factions
+  # Il server a cui porta /hub (alias /lobby) da qualunque server della rete. Dev'essere uno dei
+  # [servers] di velocity.toml.
+  hub_server: hub
   # true = gli altri server (hub, modalità future) si aprono solo a chi ha già fatto il login
   # con MagixAuth (sessione valida nel database, stesso indirizzo). Prima, "/server" e i menu
   # lo lasciano dov'e'. MagixAuth c'è comunque su ogni server: questo lo tiene sul principale.
