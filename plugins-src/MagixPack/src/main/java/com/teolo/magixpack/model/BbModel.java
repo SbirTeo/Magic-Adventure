@@ -329,6 +329,10 @@ public final class BbModel {
         m.translate((float) p.center().x, (float) p.center().y, (float) p.center().z);
         m.mul(rot4(p.rotation()));
         m.scale((float) p.size().x, (float) p.size().y, (float) p.size().z);
+        // the client draws the item of an item display turned by 180 degrees around Y: turn it back,
+        // or a merged piece (many boxes in one item model) comes out facing backwards and every
+        // single box shows its front texture on its back
+        m.rotateY((float) Math.PI);
         return m;
     }
 

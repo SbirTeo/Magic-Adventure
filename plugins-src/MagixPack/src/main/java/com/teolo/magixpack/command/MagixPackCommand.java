@@ -392,9 +392,9 @@ public final class MagixPackCommand implements CommandExecutor, TabCompleter {
                 }
             }
         }
-        // in front of the player's feet, facing the player
+        // at the player's feet, its front (Blockbench north, -Z) towards the player: the display
+        // looks where the player looks, so the model's -Z points back at the player
         org.bukkit.Location at = player.getLocation();
-        at.setYaw(at.getYaw() + 180);
         int pieces = plugin.modelDisplays().spawn(id, at, scale, animation);
         player.sendMessage(messages.get(player, "model-spawned").replace("{model}", id)
                 .replace("{pieces}", String.valueOf(pieces)).replace("{animation}", animation == null ? "-" : animation));
