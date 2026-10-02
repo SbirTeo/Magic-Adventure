@@ -1369,7 +1369,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * Forme brevi: "0"/vuoto = gratis; "100" = costo fisso; "10,10" = incremento senza blocchi.
      * Spec malformata = gratis (non blocca mai il gioco per un refuso nel config).
      */
-    static double nextClaimCost(String spec, int owned) {
+    public static double nextClaimCost(String spec, int owned) {
         if (spec == null || spec.isBlank()) return 0;
         String[] parts = spec.split(",");
         double base, inc = 0, mult = 0;

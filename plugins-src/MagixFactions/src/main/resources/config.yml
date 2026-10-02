@@ -1,8 +1,12 @@
 # ============================================================
 #  MagixFactions - Configurazione
 # ============================================================
+# Ogni chiave che tocca i giocatori la racconta da sola il tutorial del sito (/tutorial), col valore
+# scelto qui. Le regolazioni tecniche o solo estetiche hanno [solo staff] nel commento (sulla chiave o
+# sulla sezione che la contiene): il tutorial non ne parla. check_config.py [10] blocca il commit di
+# una chiave nuova che non sia ne' raccontata ne' marcata.
 
-# ---------------------------- STORAGE -----------------------------
+# ---------------------------- STORAGE ----------------------------- [solo staff]
 storage:
   type: sqlite            # sqlite | mariadb
   sqlite:
@@ -120,7 +124,7 @@ forbidden-words:
 # sito) dalla 0.59 la scrive MagixEssentials, su ogni server della rete: si regola nel suo chat.yml.
 # MagixFactions gli da' solo i pezzi di fazione della riga ({faction}, {relcolor}, {rank}).
 # Chi ha il permesso magixfactions.chat.hidefactions (default: op) appare nella chat pubblica SENZA
-# fazione (usa il format di MagixEssentials invece di faction-format).
+# fazione (usa il format di MagixEssentials invece di faction-format). [solo staff]
 chat:
   # Suggerimento che compare passando il mouse su un messaggio dei canali fazione e alleati: ora e
   # provenienza. Metti false per toglierlo. Quello della chat pubblica sta nel chat.yml di MagixEssentials.
@@ -187,12 +191,12 @@ score:
   # Potenza nel punteggio: "average" = potenza MEDIA nel tempo (default), "current" = potenza attuale.
   power-value: average
   # Ogni quanti secondi si campiona banca/potenza per costruirne la media nel tempo (min 5). Piu' basso =
-  # media piu' precisa ma piu' scritture su DB; 300 (5 min) e' un buon compromesso.
+  # media piu' precisa ma piu' scritture su DB; 300 (5 min) e' un buon compromesso. [solo staff]
   sample-interval-seconds: 30
   # Quante fazioni mostrare in /f top (le prime N). La tua fazione, se e' fuori dai primi, viene comunque
   # aggiunta in coda con la sua posizione.
   top-size: 10
-  # Cifre decimali del punteggio mostrato (0-4). Coi punteggi piccoli (0..somma pesi) meglio 2.
+  # Cifre decimali del punteggio mostrato (0-4). Coi punteggi piccoli (0..somma pesi) meglio 2. [solo staff]
   decimals: 2
 
 # ------------------- COSTO/CONDIZIONI CREAZIONE -------------------
@@ -203,16 +207,16 @@ create-cost:
   # Si legge dalle statistiche di Minecraft, senza bisogno di PlaceholderAPI; il tutorial lo racconta da solo.
   min-playtime-seconds: 0
   items: []              # es: ["DIAMOND:10", "GOLD_INGOT:5"]
-  placeholders: []       # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI)
-  permission: ""         # es: "magixfactions.create"
+  placeholders: []       # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI) [solo staff]
+  permission: ""         # es: "magixfactions.create" [solo staff]
 
 # ----------------- COSTO/CONDIZIONI /f sethome -------------------
 # Stesso motore di create-cost: costo per impostare la home della fazione. Default: gratis.
 sethome-cost:
   money: 0
   items: []
-  placeholders: []
-  permission: ""
+  placeholders: []  # [solo staff]
+  permission: ""  # [solo staff]
 
 # ----------------------- WARMUP /f home ---------------------------
 # Prima del teletrasporto con /f home il giocatore deve restare fermo per questi secondi:
@@ -234,8 +238,8 @@ rename:
   cost:
     money: 0              # richiede Vault + plugin economia
     items: []             # es: ["DIAMOND:10", "GOLD_INGOT:5"]
-    placeholders: []      # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI)
-    permission: ""        # es: "magixfactions.rename"
+    placeholders: []      # es: ["%player_level% >= 10"]  (richiede PlaceholderAPI) [solo staff]
+    permission: ""        # es: "magixfactions.rename" [solo staff]
 
 # ---------------------- POTENZA (Power) ---------------------------
 # Ogni giocatore ha una Potenza intera, da -max a +max.
@@ -292,15 +296,15 @@ power:
   # il tempo non dipende piu' da quando si e' collegato, e l'avanzamento a meta' strada e' salvato sul
   # database (colonna players.power_progress): chi esce a 7 minuti dai 10 riprende da li', non da zero.
   # Chi vuole controllare le proprie velocita' scrive /f power: le righe extra compaiono solo a chi ha
-  # valori diversi dal normale.
+  # valori diversi dal normale. [solo staff]
   tick-seconds: 20
   death-loss: 4           # potenza persa a ogni morte
-  death-message: true     # avvisa il giocatore (solo lui) di quanta Potenza ha perso e quanta gliene resta
+  death-message: true     # avvisa il giocatore (solo lui) di quanta Potenza ha perso e quanta gliene resta [solo staff]
   # Ogni quanti minuti il plugin ripassa i giocatori OFFLINE per riallineare il loro tetto ai permessi
   # e applicare il decadimento qui sotto. Serve perche' il maxpower di FAZIONE e' la somma dei tetti di
   # TUTTI i membri, anche assenti: senza questo giro un VIP scaduto su un account che non rientra piu'
   # regalerebbe tetto alla sua fazione per sempre. Legge i permessi via LuckPerms (gli unici leggibili
-  # per chi e' scollegato); senza LuckPerms resta il valore gia' noto e la perdita va a velocita' normale.
+  # per chi e' scollegato); senza LuckPerms resta il valore gia' noto e la perdita va a velocita' normale. [solo staff]
   offline-refresh-minutes: 10
   offline-decay:
     amount: 1            # potenza persa da offline per periodo (0 = disattivato/fermo)
@@ -350,8 +354,8 @@ claims:
   cost:
     money: "10,10,5,5"
     items: []
-    placeholders: []
-    permission: ""
+    placeholders: []  # [solo staff]
+    permission: ""  # [solo staff]
   # Rimborso alla BANCA quando un territorio viene rilasciato o perso: questa % di QUANTO FU PAGATO
   # al momento del claim (il prezzo speso e' salvato nel DB, perche' i costi incrementali cambiano
   # nel tempo). Vale per /f unclaim, /f unclaimall E per la perdita da SOVRACCARICO. 0 = niente
@@ -360,19 +364,19 @@ claims:
   # /f unclaimall e' irreversibile: il primo utilizzo mostra solo un avviso a schermo, bisogna
   # rieseguire il comando entro questi secondi per confermare davvero.
   unclaim-all-confirm-seconds: 10
-  unclaim-all-confirm-sound: "entity.wither.spawn" # suono di pericolo mostrato con l'avviso (vuoto = nessun suono)
-  unclaim-all-confirm-sound-volume: 1.0
-  unclaim-all-confirm-sound-pitch: 1.0
+  unclaim-all-confirm-sound: "entity.wither.spawn" # suono di pericolo mostrato con l'avviso (vuoto = nessun suono) [solo staff]
+  unclaim-all-confirm-sound-volume: 1.0  # [solo staff]
+  unclaim-all-confirm-sound-pitch: 1.0  # [solo staff]
   # Allerta a TUTTO il server quando una fazione conquista (overclaim) un territorio nemico: titolo a
   # schermo + suono forte per ogni giocatore online. Non riguarda i claim su terreno neutrale.
   overclaim-alert:
     enabled: true
-    sound: "entity.wither.spawn"  # suono forte/"strano" (chiave risorsa; vuoto = nessun suono)
-    sound-volume: 1.0
-    sound-pitch: 0.8              # piu' basso = piu' cupo/minaccioso
-    fade-in: 10
-    stay: 60
-    fade-out: 20
+    sound: "entity.wither.spawn"  # suono forte/"strano" (chiave risorsa; vuoto = nessun suono) [solo staff]
+    sound-volume: 1.0  # [solo staff]
+    sound-pitch: 0.8              # piu' basso = piu' cupo/minaccioso [solo staff]
+    fade-in: 10  # [solo staff]
+    stay: 60  # [solo staff]
+    fade-out: 20  # [solo staff]
 
 # ---------- DECADIMENTO TERRITORI PER SOVRACCARICO (decay) --------
 # NB: e' un concetto DIVERSO dall'"overclaim di guerra" (la conquista di un chunk nemico, sopra in
@@ -385,9 +389,9 @@ decay:
   warn-interval-seconds: 600     # ogni quanto avvisare i membri (600 = 10 minuti)
   grace-hours: 48                # ore prima di iniziare a perdere territori (tempo per reagire)
   loss-interval-hours: 24        # ore tra una perdita di territorio e l'altra
-  sound: "entity.wither.spawn"   # suono di pericolo (chiave risorsa; vuoto = nessun suono)
-  sound-volume: 1.0
-  sound-pitch: 1.0
+  sound: "entity.wither.spawn"   # suono di pericolo (chiave risorsa; vuoto = nessun suono) [solo staff]
+  sound-volume: 1.0  # [solo staff]
+  sound-pitch: 1.0  # [solo staff]
 
 # --------------------------- MAPPA --------------------------------
 # /f map (aperto a tutti) consegna un ITEM mappa dinamico: tienilo in mano e mostra, sopra il
@@ -422,20 +426,20 @@ map:
   #  - "vanilla": resa fedele alla mappa vanilla PURA — fogliame tutto dello stesso verde scuro
   #    classico, niente tinte per specie, NESSUNA levigatura (pixel nudi).
   # I COLORI cambiano a caldo (/mf reload + qualche secondo); la LEVIGATURA e' nello shader del
-  # resource pack -> quella parte richiede un RIAVVIO del server e il ri-download del pack.
+  # resource pack -> quella parte richiede un RIAVVIO del server e il ri-download del pack. [solo staff]
   style: "magix"
   # DITHERING dei colori. Diffonde l'errore di quantizzazione sui pixel vicini per simulare piu' tinte.
   # DEFAULT FALSE: alla prova dei fatti riempiva le aree uniformi (foreste, oceano, carta) di un
   # "puntinato" rumoroso che rendeva la mappa molto piu' sporca della vanilla (che non ditherizza:
-  # aree piatte pulite + rilievo). Metti true solo se preferisci le sfumature al pulito. /mf reload.
+  # aree piatte pulite + rilievo). Metti true solo se preferisci le sfumature al pulito. /mf reload. [solo staff]
   dither: false
-  # Opacita' % della tinta della fazione sopra il terreno (0 = invisibile, 100 = pieno). CONDIVISA.
+  # Opacita' % della tinta della fazione sopra il terreno (0 = invisibile, 100 = pieno). CONDIVISA. [solo staff]
   opacity: 30
-  # Opacita' % del bordo dei territori (di solito piu' marcato dell'interno). CONDIVISA.
+  # Opacita' % del bordo dei territori (di solito piu' marcato dell'interno). CONDIVISA. [solo staff]
   opacity-borders: 100
   # Frequenza di refresh di ENTRAMBE le mappe: ogni quanti tick (1 tick = 1/20 s) si ricentrano e
   # ridisegnano. 1 = ogni tick (massima fluidita', il piu' carico); valori piu' alti alleggeriscono il
-  # carico a scapito della fluidita'. CONDIVISA (item e minimap usano lo stesso valore). /mf reload a caldo.
+  # carico a scapito della fluidita'. CONDIVISA (item e minimap usano lo stesso valore). /mf reload a caldo. [solo staff]
   render-interval-ticks: 1
 
   # --- Solo mappa in mano (ITEM) ---
@@ -445,9 +449,9 @@ map:
     # (voto di maggioranza, come vanilla — la media inventava colori intermedi che sporcavano la mappa).
     #   1 = OFF (pixel netti) | 2 = 2x2 (consigliato) | 3-4 = piu' liscia ma piu' carico (piu' campioni).
     # Sotto 1 blocco/pixel (zoom molto ravvicinato) e' disattivato in automatico (non serve).
-    # NB: vale SOLO per la mappa-item; la minimap HUD forza sempre 1 (ss ogni tick costerebbe troppo).
+    # NB: vale SOLO per la mappa-item; la minimap HUD forza sempre 1 (ss ogni tick costerebbe troppo). [solo staff]
     supersampling: 3
-    # Nome dell'item mappa: {zoom} viene sostituito col valore di zoom (blocchi/pixel, es. 0.25).
+    # Nome dell'item mappa: {zoom} viene sostituito col valore di zoom (blocchi/pixel, es. 0.25). [solo staff]
     name-format: "&6&lMappa Fazioni &7({zoom}x)"
 
   # --- Marcatore giocatore su mappa cartacea e minimap ---
@@ -463,13 +467,13 @@ map:
 
   # --- Simbolo HOME della propria fazione (item /f map e minimap) ---
   home-marker:
-    enabled: true
-    color: "&6"   # colore del simbolo (oro di default)
+    enabled: true  # [solo staff]
+    color: "&6"   # colore del simbolo (oro di default) [solo staff]
 
   # Rivela gradualmente sulla mappa anche i chunk lontani GIA' GENERATI ma non caricati in memoria
   # (le zone che altrimenti restano beige ai bordi). Usa il caricamento ASINCRONO di Paper: non genera
   # nuovi chunk (solo quelli gia' esistenti) e non blocca mai il thread principale. Utile se il mondo e'
-  # gia' pre-generato (es. con Chunky). Metti false per lasciare vuote le zone non caricate.
+  # gia' pre-generato (es. con Chunky). Metti false per lasciare vuote le zone non caricate. [solo staff]
   reveal-distant-chunks: true
   # Velocita' di rivelazione: chunk lontani caricati al secondo (async). E' il compromesso FLUIDITA'/TPS:
   # piu' alto = la mappa si riempie prima ma piu' I/O e carico; piu' basso = riempimento graduale ma TPS
@@ -477,7 +481,7 @@ map:
   # lontano (32-64), dove ci sono migliaia di chunk da caricare. Modificabile a caldo con /mf reload.
   # ATTENZIONE: 80 ha causato un CROLLO TPS reale (~12) durante il riempimento — ogni caricamento ha un
   # costo sul main thread (promozione chunk + eventi ChunkLoad degli altri plugin). 20 (= 1 per tick) e'
-  # il compromesso sano verificato. Alza con cautela solo se i TPS restano a 20 durante il riempimento.
+  # il compromesso sano verificato. Alza con cautela solo se i TPS restano a 20 durante il riempimento. [solo staff]
   reveal-chunks-per-second: 20
   # Distanza MASSIMA (in blocchi dal giocatore) entro cui rivelare i chunk lontani. E' un limite di
   # SICUREZZA per lo "sweep" iniziale: la rivelazione riempie l'area entro questo raggio dall'interno
@@ -486,7 +490,7 @@ map:
   # sola volta e mai piu' (niente spreco a zoom lontano su mondo non pre-generato). 4096 = a 64 blocchi/
   # pixel copre l'INTERA minimap; a zoom normali non incide (la mappa inquadra molto meno). Nota: si vede
   # solo terreno GIA' generato — le zone mai esplorate/generate restano vuote (non si puo' mostrare terreno
-  # che non esiste senza generarlo, e generarlo farebbe crollare i TPS).
+  # che non esiste senza generarlo, e generarlo farebbe crollare i TPS). [solo staff]
   reveal-max-distance: 4096
 
   # --- Minimap HUD (sperimentale, riservata a chi ha il permesso magixfactions.minimap) ---
@@ -497,7 +501,7 @@ map:
     # portata dei click anche in creativa): qualunque direzione guardi c'e' sempre un quadro gia' nel campo
     # visivo, quindi ruotare la visuale di scatto non fa "flashare" la minimap (le ancore si spostano solo
     # quando ti muovi). Richiede un pacchetto compatibile con la versione del server (verificato all'avvio:
-    # se non lo e', si resta automaticamente sui quadri montati). Metti false per il vecchio mount.
+    # se non lo e', si resta automaticamente sui quadri montati). Metti false per il vecchio mount. [solo staff]
     detach-frames: true
     # Forma della minimap: "round" (rotonda, default) o "square" (quadrata).
     # NB: e' nello shader del pack -> cambiare richiede un RIAVVIO del server (rigenera il pack).
@@ -511,13 +515,13 @@ map:
     #  - border-size: spessore in pixel (0 = nessuna cornice). Consigliato 2-4; sulla minimap ROTONDA oltre
     #    ~6 la cornice tocca il bordo del riquadro e viene tagliata.
     #  - border-color: colore in esadecimale "#RRGGBB" oppure codice colore Minecraft "&X" (es. &8 = grigio
-    #    scuro). Il bordo esterno viene reso automaticamente piu' scuro, per un effetto in rilievo.
+    #    scuro). Il bordo esterno viene reso automaticamente piu' scuro, per un effetto in rilievo. [solo staff]
     border-size: 3
-    border-color: "#5A5A5A"
+    border-color: "#5A5A5A"  # [solo staff]
     # Dimensione della minimap a schermo, come FRAZIONE dell'altezza dello schermo (0.22 = default).
     # Piu' grande = HUD piu' grande (e pixel piu' ingranditi). Intervallo utile ~0.10-0.40.
     # NB: e' impressa nello shader del resource pack, quindi cambiare valore richiede un RIAVVIO del
-    # server (rigenera il pack) e che i client riscarichino il pack; /mf reload da solo non basta.
+    # server (rigenera il pack) e che i client riscarichino il pack; /mf reload da solo non basta. [solo staff]
     screen-size: 0.3
     # (Il refresh del contenuto usa la chiave CONDIVISA map.render-interval-ticks, come la mappa-item.)
 
@@ -536,21 +540,21 @@ map:
       #    (&#RRGGBB, <#RRGGBB>, legacy &x&R&R&G&G&B&B);
       #  - formato: &l grassetto, &o corsivo, &n sottolineato, &m barrato (resi nei pixel; &k offuscato no).
       # Come in vanilla, un codice colore azzera i formati attivi. Es.: "&6&l%magixtime_mc_time%" oppure
-      # "&bX:&f%player_x% &bZ:&f%player_z%" oppure "&#FF8800Ciao".
+      # "&bX:&f%player_x% &bZ:&f%player_z%" oppure "&#FF8800Ciao". [solo staff]
       lines:
         - "%magixtime_mc_time%"
         - "X:%player_x% Z:%player_z%"
       # Colore di DEFAULT del testo (per le parti senza un codice colore), in esadecimale "#RRGGBB".
-      text-color: "#FFFFFF"
+      text-color: "#FFFFFF"  # [solo staff]
       # Ombra del testo (una copia spostata di 1px, tiene il testo leggibile sul mondo col fondo
       # trasparente): colore in "#RRGGBB", oppure "none"/"off" per spegnerla del tutto. Live con /mf reload.
-      shadow-color: "#000000"
+      shadow-color: "#000000"  # [solo staff]
       # Sfondo della striscia. "transparent" (o "none") = nessun riquadro, resta solo il testo (le mappe
       # non hanno trasparenza vera: lo shader SCARTA i pixel di sfondo). In alternativa un "#RRGGBB" per un
-      # riquadro pieno di quel colore. NB: e' inciso nello shader del pack -> cambiarlo richiede un RIAVVIO.
+      # riquadro pieno di quel colore. NB: e' inciso nello shader del pack -> cambiarlo richiede un RIAVVIO. [solo staff]
       background-color: "transparent"
       # Spazio tra il bordo basso della minimap e il pannello, come frazione di schermo (NDC). Impresso
-      # nello shader: cambiarlo richiede un RIAVVIO del server. Intervallo utile ~0.000-0.030.
+      # nello shader: cambiarlo richiede un RIAVVIO del server. Intervallo utile ~0.000-0.030. [solo staff]
       gap: 0.006
 
     # Quanta area si vede: SEMPRE la stessa dello zoom `/f map` del giocatore (i blocchi/pixel di
@@ -566,7 +570,7 @@ map:
   # Colori di BORDO e SFONDO (fill) dei territori, in base alla relazione con chi guarda la mappa.
   # own = tua fazione, ally = alleata, enemy = nemica (anche senza fazione propria: si e' nemici di
   # tutti per default, nessuno stato neutro). In modalita' chat viene usato il colore 'fill' per la
-  # lettera della fazione.
+  # lettera della fazione. [solo staff]
   colors:
     own:
       border: "&a"          # bordo (verde)
@@ -598,7 +602,7 @@ map:
 # info) si regola invece in plugins/CMI/Settings/TabList.yml.
 #
 # Questi due numeri decidono SOLO dimensione e posizione verticale del logo. Cambiarli
-# richiede un riavvio del server (il resource pack viene ricostruito e rimandato ai client).
+# richiede un riavvio del server (il resource pack viene ricostruito e rimandato ai client). [solo staff]
 tablist:
   logo:
     # Altezza del logo in pixel di gioco. Piu' alto = logo piu' grande (cresce anche in larghezza,
@@ -616,7 +620,7 @@ tablist:
 # Titolo mostrato quando si ENTRA in una zona (fade-in), distinto per relazione con la fazione
 # proprietaria: own = tua, ally = alleata, enemy = nemica, neutral = terreno di nessuno.
 # Cosi' uscendo dalla tua terra verso il nulla vedi "zona neutrale", non un addio alla tua fazione.
-# {faction} = nome della fazione proprietaria (non usato in neutral). Tempi in tick (20 tick = 1 s).
+# {faction} = nome della fazione proprietaria (non usato in neutral). Tempi in tick (20 tick = 1 s). [solo staff]
 territory-titles:
   enabled: true
   fade-in: 10
@@ -647,7 +651,7 @@ relations:
 
   # Colore restituito dal placeholder relazionale %rel_magixfactions_relation_color%
   # (il colore che un giocatore vede verso un altro in base alla relazione fra le loro fazioni).
-  # Usabile nei groupformat di CMI. Supporta &codici e &#RRGGBB.
+  # Usabile nei groupformat di CMI. Supporta &codici e &#RRGGBB. [solo staff]
   colors:
     member: "&a"          # stesso membro/stessa fazione
     ally: "&d"            # fazione alleata
@@ -655,7 +659,7 @@ relations:
     none: "&c"            # giocatore senza fazione: rosso, cioe' nemico per tutti (scelta voluta)
 
   # Testo restituito dal placeholder %magixfactions_relation_<nomefazione>%
-  # (la relazione del giocatore che legge verso quella fazione).
+  # (la relazione del giocatore che legge verso quella fazione). [solo staff]
   names:
     member: "&aStessa fazione"
     ally: "&dAlleata"
@@ -690,14 +694,14 @@ ranks:
 # Non si mette in "ranks": e' uno solo per fazione e non si puo' togliere.
 leader:
   name: "Leader"          # come lo chiama il gioco (in /f info, /f help, nei messaggi)
-  tag: "&6[L]"            # etichetta accanto al nome in chat, con i codici colore &
+  tag: "&6[L]"            # etichetta accanto al nome in chat, con i codici colore & [solo staff]
 
 # --- Autopilota pregen Chunky ---
 # Il pregen dei chunk (plugin Chunky) a piena velocita' SATURA il server: misurato TPS da 20 a ~2 con
 # un task attivo. Con questa opzione MagixFactions lo pilota da solo: "chunky pause" appena entra il
 # PRIMO giocatore, "chunky continue" ~1 minuto dopo che esce l'ULTIMO (e al riavvio se il server e'
 # vuoto). Il mondo si pre-genera cosi' nelle ore morte, e il lag da "primo accesso" (generazione dei
-# chunk al join) sparisce col tempo senza mai disturbare chi gioca. Inerte se Chunky non e' installato.
+# chunk al join) sparisce col tempo senza mai disturbare chi gioca. Inerte se Chunky non e' installato. [solo staff]
 chunky-autopilot: true
 
 # ----------------------- VALORE IN MINERALI -----------------------
@@ -728,10 +732,10 @@ value-blocks:
 borders:
   enabled: true            # interruttore GENERALE della feature (false = /f borders resta ma non disegna nulla)
   radius: 2                # raggio in CHUNK attorno al giocatore entro cui disegnare i bordi (piu' alto = piu' particelle)
-  interval-ticks: 10       # ogni quanti tick ridisegnare (10 = mezzo secondo). Piu' basso = piu' fluido ma piu' carico
-  point-spacing: 2.0       # distanza in blocchi tra un punto e l'altro lungo il bordo (piu' alto = piu' rado/leggero)
-  wall-height: 1           # blocchi di altezza del "muretto" di particelle sopra i piedi (0 = solo una riga a terra)
-  size: 1.0                # dimensione delle particelle di polvere
-  color-own: "#33FF33"     # colore #RRGGBB dei bordi della TUA fazione (verde)
-  color-ally: "#FF33FF"    # colore #RRGGBB dei bordi delle fazioni ALLEATE (magenta)
-  color-enemy: "#FF3333"   # colore #RRGGBB dei bordi delle fazioni NEMICHE (rosso)
+  interval-ticks: 10       # ogni quanti tick ridisegnare (10 = mezzo secondo). Piu' basso = piu' fluido ma piu' carico [solo staff]
+  point-spacing: 2.0       # distanza in blocchi tra un punto e l'altro lungo il bordo (piu' alto = piu' rado/leggero) [solo staff]
+  wall-height: 1           # blocchi di altezza del "muretto" di particelle sopra i piedi (0 = solo una riga a terra) [solo staff]
+  size: 1.0                # dimensione delle particelle di polvere [solo staff]
+  color-own: "#33FF33"     # colore #RRGGBB dei bordi della TUA fazione (verde) [solo staff]
+  color-ally: "#FF33FF"    # colore #RRGGBB dei bordi delle fazioni ALLEATE (magenta) [solo staff]
+  color-enemy: "#FF3333"   # colore #RRGGBB dei bordi delle fazioni NEMICHE (rosso) [solo staff]

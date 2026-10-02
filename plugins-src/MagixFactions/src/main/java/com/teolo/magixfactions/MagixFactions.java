@@ -23,6 +23,10 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 /**
  * MagixFactions - plugin tipo Factions.
  * Modulo 1: fazioni, gradi configurabili, leader/successione, promote, chat, limite membri,
@@ -834,7 +838,77 @@ public final class MagixFactions extends JavaPlugin {
         } else {
             v.extra("MONDI_CLAIM_FRASE", "solo in questi mondi: " + String.join(", ", claimWorlds));
         }
+
+        // Oggetti richiesti dai costi (liste "MATERIALE:quantita'"): un riquadro per ognuno, o niente.
+        v.extra("OGGETTI_CREATE", itemsWarning("Per fondare la fazione", c.getStringList("create-cost.items")));
+        v.extra("OGGETTI_SETHOME", itemsWarning("Per impostare la casa", c.getStringList("sethome-cost.items")));
+        v.extra("OGGETTI_RENAME", itemsWarning("Per cambiare nome alla fazione", c.getStringList("rename.cost.items")));
+        v.extra("OGGETTI_CLAIM", itemsWarning("Per ogni territorio conquistato", c.getStringList("claims.cost.items")));
+
+        // Prezzi dei territori: la sequenza vera, calcolata con la stessa formula di /f claim.
+        String spec = c.getString("claims.cost.money", "0");
+        StringBuilder prices = new StringBuilder();
+        boolean free = true;
+        for (int owned = 0; owned < 12; owned++) {
+            double cost = com.teolo.magixfactions.command.FCommand.nextClaimCost(spec, owned);
+            if (cost > 0) free = false;
+            if (owned > 0) prices.append(", ");
+            prices.append(DurationText.number(cost));
+        }
+        v.extra("PREZZI_CLAIM", free
+                ? "Conquistare territori è <b>gratis</b>: la banca serve ai progetti comuni della fazione."
+                : "Ogni <span class=\"cmd\">/f claim</span> costa denaro <b>dalla banca della fazione</b>, e il prezzo "
+                + "<b>cresce</b> a ogni territorio. I primi territori costano: <b>" + prices + "</b>… e così via. "
+                + "Tenete la banca piena!");
+
+        // Gradi, dal piu' basso al piu' alto, e chi puo' prelevare dalla banca (permessi ereditati).
+        List<String> rankNames = new ArrayList<>();
+        int firstWithdraw = -1;
+        for (Map<?, ?> rank : c.getMapList("ranks")) {
+            Object name = rank.get("name");
+            rankNames.add(name == null ? String.valueOf(rank.get("id")) : String.valueOf(name));
+            Object perms = rank.get("permissions");
+            if (firstWithdraw < 0 && perms instanceof List<?> list
+                    && (list.contains("withdraw") || list.contains("*"))) {
+                firstWithdraw = rankNames.size() - 1;
+            }
+        }
+        String leaderName = c.getString("leader.name", "Leader");
+        v.extra("GRADI_ELENCO", rankNames.isEmpty() ? "<b>" + leaderName + "</b>"
+                : "<b>" + String.join("</b>, <b>", rankNames) + "</b> e il <b>" + leaderName + "</b>");
+        List<String> withdraw = new ArrayList<>(firstWithdraw < 0 ? List.of() : rankNames.subList(firstWithdraw, rankNames.size()));
+        withdraw.add(leaderName);
+        v.extra("GRADI_PRELIEVO", "<b>" + String.join("</b>, <b>", withdraw) + "</b>");
+
+        // Blocchi che danno Valore alla fazione, dal piu' prezioso.
+        List<String> blocks = new ArrayList<>();
+        var valueBlocks = c.getConfigurationSection("value-blocks");
+        if (valueBlocks != null) {
+            valueBlocks.getKeys(false).stream()
+                    .sorted((a, b) -> Double.compare(valueBlocks.getDouble(b), valueBlocks.getDouble(a)))
+                    .forEach(k -> blocks.add("<li>" + materialName(k) + " — <b>"
+                            + DurationText.number(valueBlocks.getDouble(k)) + "</b></li>"));
+        }
+        v.extra("BLOCCHI_VALORE", blocks.isEmpty() ? "" : "<ul>" + String.join("", blocks) + "</ul>");
         return v;
+    }
+
+    /** Riquadro "servono questi oggetti" del tutorial; vuoto se la lista e' vuota. */
+    private static String itemsWarning(String what, List<String> items) {
+        List<String> parts = new ArrayList<>();
+        for (String entry : items) {
+            String[] p = entry.split(":");
+            String amount = p.length > 1 ? p[1].trim() : "1";
+            parts.add("<b>" + amount + " × " + materialName(p[0]) + "</b>");
+        }
+        if (parts.isEmpty()) return "";
+        return "<div class=\"warn\">" + what + " servono anche questi oggetti nell'inventario, che vengono consumati: "
+                + String.join(", ", parts) + ".</div>";
+    }
+
+    /** "DIAMOND_BLOCK" -> "diamond block": il nome del materiale come lo si legge. */
+    private static String materialName(String material) {
+        return material.trim().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
     }
 
     /**

@@ -31,6 +31,12 @@ What it reports, for each .yml config file:
       plugin passes to StaffGuide.placeholders(...). A literal the expansion answers to (case "x",
       equals("x"), startsWith("x_")...) that no DOCS entry contains, a class without DOCS, or a
       DOCS never passed to the guide -> the staff cannot know the placeholder exists.
+  [10] config.yml key that the player tutorial does not tell: every key of a plugin with a
+      docs/build_tutorial.py must be either USED by the tutorial ({{cfg:key}}, {{if:key=...}}... or read
+      by name inside the Java method that builds the derived guide texts, the one with .extra(...)) or
+      declared NOT for players by writing [solo staff] / [staff only] in its comment or in the comment
+      of a section above it. The tutorial tells only what touches the players; everything else is
+      declared, so a new key forces the choice instead of vanishing in silence.
 
 Exits with code 1 if it found anything: can be wired to a hook or to the build.
 """
@@ -254,6 +260,49 @@ def modes_not_told(folder, keys, code):
     return problems
 
 
+STAFF_ONLY = ("[staff only]", "[solo staff]")
+
+
+def keys_not_told(folder, keys, code):
+    """
+    [10] The tutorial tells players the rules that config.yml sets. A key it does not use, and that is
+    not declared staff-only, is a rule the players cannot read anywhere: it happened for real with the
+    price of /f create, changed in the config and missing from the tutorial for a day.
+
+    Told = the tutorial uses it in a placeholder or an {{if:}} block, or the method building the derived
+    texts reads it (or one of its parent sections) by name. Staff-only = [solo staff] in the comment of
+    the key or of any section above it.
+    """
+    tut = os.path.join(folder, "docs", "build_tutorial.py")
+    if not os.path.isfile(tut):
+        return []
+    with open(tut, encoding="utf-8") as f:
+        text = f.read()
+    used = set(re.findall(r"\{\{(?:cfg|secondi|ore|percento|simbolo|se|if):([A-Za-z0-9_./\-]+?)(?:!?=[^}]*)?(?:\|[^}]*)?\}\}", text))
+    derived = derived_methods(code)
+    sections = {c["key"]: c["comment"] for c in keys if c["section"]}
+    problems = []
+    for c in keys:
+        if c["section"]:
+            continue
+        k = c["key"]
+        parts = k.split(".")
+        chain = [".".join(parts[:i]) for i in range(1, len(parts) + 1)]
+        own = c["comment"] if not c["section"] else ""
+        if any(t in own for t in STAFF_ONLY) or \
+                any(t in sections.get(a, "") for a in chain[:-1] for t in STAFF_ONLY):
+            continue
+        # the key itself by name, or a parent section read WHOLE (getConfigurationSection("value-blocks"),
+        # getMapList("ranks")): a bare "chat" literal elsewhere in the method is not a reading of chat.*
+        if k in used or ('"' + k + '"') in derived or \
+                any(re.search(r'get(?:ConfigurationSection|MapList|StringList|List)\(\s*"' + re.escape(a) + '"', derived)
+                    for a in chain[:-1]):
+            continue
+        problems.append(("docs/build_tutorial.py", c["line"],
+                         "[10] config key neither told in the tutorial nor marked [solo staff]", k))
+    return problems
+
+
 def check(name):
     folder = os.path.join(HERE, name)
     resources = os.path.join(folder, "src", "main", "resources")
@@ -315,6 +364,8 @@ def check(name):
                     problems.append((f, c["line"], "[4] in the file but never read by the code", k))
             problems += hand_written_numbers(folder, keys)
             problems += modes_not_told(folder, keys, code)
+            if f == "config.yml":
+                problems += keys_not_told(folder, keys, code)
     problems += help_arguments_unknown(name)
     problems += placeholders_undocumented(name)
     return problems

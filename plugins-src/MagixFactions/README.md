@@ -418,6 +418,11 @@ tutorial si aggiornano **da soli** al riavvio successivo: non possono più racco
 - I testi *derivati* (frasi che cambiano forma — non un semplice «c'è / non c'è») si passano da
   `guideValues()` con `ConfigValues.extra(...)`, es. la perdita da offline con `amount: 0`.
 - Un segnaposto senza valore resta visibile come `{{...}}` **e viene segnalato nel log** all'avvio.
+- **Ogni chiave di `config.yml` o la racconta il tutorial, o ha `[solo staff]` nel commento** (della chiave
+  o di una sezione sopra): il tutorial cita solo quello che tocca i giocatori, e il resto e' dichiarato.
+  `check_config.py` [10] blocca il commit di una chiave che non e' ne' l'una ne' l'altra cosa. Le liste
+  (gradi, blocchi di valore, oggetti richiesti dai costi) e la sequenza dei prezzi dei claim le scrive
+  `guideValues()` in Java (`{{GRADI_ELENCO}}`, `{{BLOCCHI_VALORE}}`, `{{OGGETTI_CREATE}}`, `{{PREZZI_CLAIM}}`...).
 - **La tabella «Impostazioni» della guida per lo staff elenca TUTTE le chiavi del config**, non piu' un
   gruppetto scelto a mano: chiave, valore in uso adesso e spiegazione presa dal **commento della chiave
   nel config**. Una chiave nuova e' documentata dal momento in cui esiste, senza toccare il codice.

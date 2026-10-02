@@ -514,7 +514,9 @@ Le guide **non si scrivono a mano**: si aggiorna la fonte, e la guida si rigener
    *modalità* (chiave che vale una parola fra più possibili) che il tutorial non racconta con un
    blocco `{{se:...}}`, **[9]** segnala un placeholder PlaceholderAPI che il plugin risolve ma che
    la guida staff non elenca (costante `DOCS` della classe dei placeholder, passata a
-   `StaffGuide.placeholders(...)`). Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
+   `StaffGuide.placeholders(...)`), **[10]** segnala una chiave di `config.yml` che il tutorial non racconta e
+   che non e' marcata `[solo staff]` nel commento (della chiave o di una sezione sopra): il tutorial cita
+   **solo** quello che tocca i giocatori, e ogni chiave nuova obbliga a scegliere. Gira anche come **git pre-commit** (`.githooks/pre-commit`, attivo con
    `git config core.hooksPath .githooks`) e va lanciato prima di un rilascio.
 5. **Documentazione di progetto**: quando cambia una regola vanno aggiornati anche il README del
    plugin e i `docs/` relativi, nello stesso commit della modifica.
