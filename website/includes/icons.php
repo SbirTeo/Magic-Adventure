@@ -55,3 +55,29 @@ function ui_icon(string $name, string $class = ''): string {
     $classi = 'ico' . ($class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES) : '');
     return '<svg class="' . $classi . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' . $disegno . '</svg>';
 }
+
+/**
+ * L'icona di una voce della barra, riconosciuta dall'indirizzo (le voci stanno in nav_items e si
+ * cambiano dal gestionale: una pagina nuova senza icona sua prende un segnaposto neutro, cosi' il
+ * menu da telefono resta in colonna).
+ */
+function nav_item_icon(string $url): string {
+    $percorso = strtolower(rtrim((string) parse_url($url, PHP_URL_PATH), '/'));
+    $percorso = preg_replace('/\.php$/', '', $percorso);
+    $mappa = [
+        ''             => 'home',
+        '/index'       => 'home',
+        '/forum'       => 'message',
+        '/classifiche' => 'trophy',
+        '/tutorial'    => 'book',
+        '/guida'       => 'book',
+        '/utenti'      => 'users',
+        '/sanzioni'    => 'gavel',
+        '/store'       => 'bag',
+        '/mappa'       => 'map',
+        '/blog'        => 'scroll',
+        '/regolamento' => 'scroll',
+        '/staff'       => 'shield',
+    ];
+    return $mappa[$percorso] ?? 'pin';
+}
