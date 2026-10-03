@@ -988,6 +988,11 @@ function store_ha_inquadratura(): bool {
     return $ok;
 }
 
+/** Pacchetti per riga nello store sui telefoni (1-3, impostazione store_cols_mobile; di serie 1). */
+function store_cols_mobile(): int {
+    return max(1, min(3, (int) site_setting('store_cols_mobile', '1')));
+}
+
 /** Zoom minimo e massimo della copertina di un pacchetto, in percentuale (100 = nessuno). */
 const STORE_ZOOM_MIN = 100;
 const STORE_ZOOM_MAX = 300;

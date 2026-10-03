@@ -1408,6 +1408,10 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   text-align: center;
 }
 .player-avatar-wrap { margin-bottom: 14px; }
+/* Stessa cosa nella scheda del giocatore (faccia da 72px, 24px di padding del pannello sopra):
+   l'aureola sopra la corona arriva a ~59px sopra la testa e usciva dal riquadro. */
+.player-avatar-wrap:has(.avatar-halo) { padding-top: 10px; }
+.player-avatar-wrap:has(.avatar-top.con-corona .avatar-halo) { padding-top: 36px; }
 
 /* --- Corona del miglior sostenitore, ovunque compaia la sua faccia -------------------
    Il contenitore lo mette avatar_top() (includes/helpers.php) SOLO per lui: chi non e' il
@@ -3035,23 +3039,28 @@ body.store-una-categoria .store-card-cat { display: none; }
    ribbon and the "recommended" badge that now sit in the top corners. */
 .store-card .store-card-modifica { top: auto; bottom: 12px; right: 12px; }
 
-/* Phones: keep three cards per row but make them small and tidy — shorter covers, tighter
-   gap, and smaller name/price/ribbon/badge so nothing overflows the narrow cards. */
+/* Phones: cards per row come from their own setting in the manager (--store-cols-mobile on the
+   grid, 1-3). With 2 or 3 per row the cards are made small and tidy — shorter covers, tighter
+   gap, and smaller name/price/ribbon/badge so nothing overflows the narrow cards; with 1 per
+   row (.e-telefono-1) the card is full width and keeps its normal sizes. */
 @media (max-width: 560px) {
   .store-fila { gap: 8px; --store-fila-gap: 8px; }
-  /* Phones always show three tidy cards, whatever the per-row setting is for desktop. Reads
-     --store-fila-gap (not a hardcoded 16px) so this stays right even if another rule with equal
-     specificity — e.g. the max-width:900px one below — ends up deciding the real gap here. */
-  .store-fila > .store-card-cella { flex-basis: calc((100% - 2 * var(--store-fila-gap, 8px)) / 3); }
-  .store-card { min-height: 122px; border-left-width: 2px; }
-  .store-card-info { padding: 8px 2px 2px; }
-  .store-card-nome { font-size: var(--fs-xs); margin-bottom: 2px; }
-  .store-card-prezzo-est .store-prezzo { font-size: var(--fs-base); }
-  .store-card-prezzo-est .store-prezzo small { font-size: 9.5px; }
-  .store-card-prezzo-est .store-prezzo-pieno { font-size: var(--fs-2xs); margin-right: 4px; }
-  .store-card-sconto { width: 92px; right: -30px; top: 11px; padding: 3px 0; font-size: 9.5px; }
-  .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0; }
-  .store-card .store-card-modifica { bottom: 6px; right: 6px; }
+  /* Reads --store-fila-gap (not a hardcoded 16px) so this stays right even if another rule with
+     equal specificity — e.g. the max-width:900px one below — ends up deciding the real gap here. */
+  .store-fila > .store-card-cella {
+    flex-basis: calc((100% - (var(--store-cols-mobile, 3) - 1) * var(--store-fila-gap, 8px)) / var(--store-cols-mobile, 3));
+  }
+  .store-griglia:not(.e-telefono-1) .store-card { min-height: 122px; border-left-width: 2px; }
+  .store-griglia:not(.e-telefono-1) .store-card-info { padding: 8px 2px 2px; }
+  .store-griglia:not(.e-telefono-1) .store-card-nome { font-size: var(--fs-xs); margin-bottom: 2px; }
+  .store-griglia:not(.e-telefono-1) .store-card-prezzo-est .store-prezzo { font-size: var(--fs-base); }
+  .store-griglia:not(.e-telefono-1) .store-card-prezzo-est .store-prezzo small { font-size: 9.5px; }
+  .store-griglia:not(.e-telefono-1) .store-card-prezzo-est .store-prezzo-pieno { font-size: var(--fs-2xs); margin-right: 4px; }
+  .store-griglia:not(.e-telefono-1) .store-card-sconto { width: 92px; right: -30px; top: 11px; padding: 3px 0; font-size: 9.5px; }
+  .store-griglia:not(.e-telefono-1) .store-card-consigliato { top: 6px; left: 6px; padding: 3px 6px; font-size: 8px; letter-spacing: 0; }
+  .store-griglia:not(.e-telefono-1) .store-card .store-card-modifica { bottom: 6px; right: 6px; }
+  /* One per row: a little more air between the full-width cards. */
+  .store-griglia.e-telefono-1 .store-fila { gap: 16px; --store-fila-gap: 16px; }
   .store-cat-titolo { font-size: var(--fs-md); }
   .store-filtro { padding: 7px 12px; font-size: var(--fs-xs); }
 }
@@ -3174,6 +3183,16 @@ body.store-una-categoria .store-card-cat { display: none; }
 
 .store-acquisti { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .store-acquisti li { display: flex; align-items: center; gap: 10px; }
+/* Aureola (e corona) escono sopra la faccia: la riga si fa spazio in alto, cosi' restano dentro
+   il riquadro invece di finire sul titolo o sulla riga di sopra. Il padding sta sulla RIGA (non
+   sulla faccia), quindi faccia e scritte restano centrate fra loro. Misure dalle frazioni di
+   .avatar-halo con la faccia della riga (--av: 56px il miglior sostenitore, 32px gli acquisti):
+   aureola da sola ~0,45 della faccia sopra la testa, sopra la corona ~0,82 (alone e puntino
+   compresi); i 12px del margine sotto il titolo fanno gia' la loro parte. */
+.store-lato .store-top:has(.avatar-halo) { padding-top: 16px; }
+.store-lato .store-top:has(.avatar-top.con-corona .avatar-halo) { padding-top: 36px; }
+.store-acquisti li:has(.avatar-halo) { padding-top: 4px; }
+.store-acquisti li:has(.avatar-top.con-corona .avatar-halo) { padding-top: 16px; }
 .store-acquisto-dati { min-width: 0; flex: 1; }
 .store-acquisto-dati .store-lato-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .store-acquisto-cifra {

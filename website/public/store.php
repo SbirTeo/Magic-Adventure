@@ -209,8 +209,11 @@ require __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <?php $storeCols = max(2, min(6, (int) site_setting('store_cols', '3'))); ?>
-  <div class="store-griglia" id="storeGriglia" style="--store-cols:<?= $storeCols ?>">
+  <?php $storeCols = max(2, min(6, (int) site_setting('store_cols', '3')));
+        // Phones have their own per-row setting; the class tells the CSS whether the compact
+        // small-card look applies (2-3 per row) or the full-width card (1 per row).
+        $storeColsMobile = store_cols_mobile(); ?>
+  <div class="store-griglia e-telefono-<?= $storeColsMobile ?>" id="storeGriglia" style="--store-cols:<?= $storeCols ?>;--store-cols-mobile:<?= $storeColsMobile ?>">
     <?php foreach ($perCategoria as $catId => $items): ?>
       <?php /* Each category is its own section (heading + a wrapping 3-per-row grid). Only one
                is shown at a time: clicking a button swaps which category is visible (the others

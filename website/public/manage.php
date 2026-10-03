@@ -1145,10 +1145,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         case 'store_layout_save': {
-            // Quante card per riga nella vetrina (desktop/tablet); i telefoni restano compatti.
+            // Quante card per riga nella vetrina: computer/tablet (2-6) e, a parte, telefono (1-3).
             $colonne = max(2, min(6, (int) ($_POST['store_cols'] ?? 3)));
-            db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)')
-                ->execute(['store_cols', (string) $colonne]);
+            $colonneTelefono = max(1, min(3, (int) ($_POST['store_cols_mobile'] ?? 1)));
+            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
+            $upd->execute(['store_cols', (string) $colonne]);
+            $upd->execute(['store_cols_mobile', (string) $colonneTelefono]);
             redirect('/manage?section=store&ok=1#layout');
         }
 
@@ -3011,12 +3013,24 @@ if ($section === 'dashboard') {
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="store_layout_save">
         <div>
-          <label for="store_cols">Pacchetti per riga</label>
+          <label for="store_cols">Pacchetti per riga — computer e tablet</label>
           <input type="number" id="store_cols" name="store_cols" min="2" max="6" style="max-width:120px;"
                  value="<?= h($imp['store_cols'] ?? '3') ?>">
           <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Quante card affiancare su computer e tablet (da 2 a 6). Sui telefoni le card restano
-            piccole e ordinate a prescindere.
+            Quante card affiancare su computer e tablet (da 2 a 6).
+          </p>
+        </div>
+        <div>
+          <label for="store_cols_mobile">Pacchetti per riga — telefono</label>
+          <?php $colTel = store_cols_mobile(); ?>
+          <select id="store_cols_mobile" name="store_cols_mobile" style="max-width:120px;">
+            <?php foreach ([1, 2, 3] as $n): ?>
+              <option value="<?= $n ?>" <?= $colTel === $n ? 'selected' : '' ?>><?= $n ?></option>
+            <?php endforeach; ?>
+          </select>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
+            Quante card affiancare sui telefoni (schermi fino a 560px). Con 1 la card è larga
+            quanto lo schermo e ha testi a grandezza piena; con 2 o 3 le card diventano piccole e compatte.
           </p>
         </div>
         <button type="submit" class="btn btn-green btn-small">Salva</button>
