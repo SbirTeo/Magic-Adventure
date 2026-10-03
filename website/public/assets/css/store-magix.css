@@ -138,7 +138,10 @@
   transform-origin: left center;
   transition: opacity .3s, transform .3s;
 }
-.magix-pill.spento { opacity: 0; transform: scale(.6); }
+/* Senza sconto la targhetta non c'e' proprio (non solo invisibile): da telefono la riga e'
+   centrata, e uno spazio vuoto a destra spostava "1 Magix" fuori centro. Quando arriva lo
+   sconto entra con l'animazione .pop. */
+.magix-pill.spento { display: none; }
 .magix-pill.pop { animation: magix-pop .5s cubic-bezier(.34, 1.56, .64, 1); }
 @keyframes magix-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .magix-unitario { color: var(--text-dim); font-size: var(--fs-sm); margin-top: 6px; }
