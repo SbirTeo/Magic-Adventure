@@ -605,6 +605,7 @@ public final class PowerManager {
                 if (puo && !minimapManager.isActive(p)) reattachMinimap(p);
                 else if (!puo && minimapManager.isActive(p)) minimapManager.deactivate(p);
             }
+            if (AfkTracker.isAfk(p)) continue;  // chi e' fermo (MagixGuard) non guadagna Potenza
             PP pp = ensure(u);
             if (pp.power >= pp.maxPower) {          // al tetto: niente da recuperare, riparti da zero
                 if (pp.progress != 0) { pp.progress = 0; save(u); }
