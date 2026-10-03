@@ -176,9 +176,12 @@ align_mc_names();
 $__navItems = db()->query('SELECT * FROM nav_items WHERE enabled = 1 ORDER BY sort_order, id')->fetchAll();
 $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 ?><!DOCTYPE html>
-<html lang="<?= h($GLOBALS['__siteLang']) ?>" data-tema="<?= h(tema_scelto()) ?>">
+<html lang="<?= h($GLOBALS['__siteLang']) ?>" data-tema="<?= h(tema_scelto()) ?>" translate="no">
 <head>
 <meta charset="UTF-8">
+<?php /* Niente traduzione automatica di Google/Chrome: il sito ha le sue lingue (selettore in barra),
+         e quella del browser le sovrascriverebbe storpiando nomi e comandi. */ ?>
+<meta name="google" content="notranslate">
 <script>
 // Tema "auto": qui si traduce nella preferenza vera del sistema, PRIMA che la pagina venga
 // disegnata — cosi' non si vede il lampo scuro prima di diventare chiara. Senza JavaScript
