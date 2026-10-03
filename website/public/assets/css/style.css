@@ -243,6 +243,9 @@ body.pagina-store {
   border-bottom-width: 1px !important;
   border-bottom-style: solid !important;
 }
+/* ...e il colore glielo rimette questa: ".main-nav a" (piu' pesante di .btn-gold) gli dava la
+   riga trasparente, e lo Store restava senza bordo sotto. */
+.main-nav a.btn-nav { border-bottom-color: var(--gold-dark, var(--gold-border)); }
 .btn.btn-nav { padding: 7px 16px; font-size: var(--fs-sm); color: var(--testo-su-oro, #2a1c02) !important; }
 .btn.btn-nav:hover { color: var(--testo-su-oro, #2a1c02) !important; }
 .btn-nav.active { outline: 2px solid var(--gold-dark); outline-offset: 1px; }
@@ -706,7 +709,11 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(260px, 580px) 1fr;
+  /* Due colonne di larghezza limitata, centrate come gruppo: con "1fr" la colonna del testo
+     si allargava fino al bordo destro dello schermo, il testo restava a sinistra al suo
+     interno e su uno schermo largo logo e titolo sembravano spostati a sinistra. */
+  grid-template-columns: minmax(260px, 580px) minmax(0, 600px);
+  justify-content: center;
   gap: 44px;
   align-items: center;
 }
