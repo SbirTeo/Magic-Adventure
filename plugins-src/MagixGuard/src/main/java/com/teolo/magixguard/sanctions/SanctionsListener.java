@@ -80,8 +80,10 @@ public final class SanctionsListener implements Listener {
         }
         e.setCancelled(true);
         String scadenza = s.fine() == Duration.PERMANENTE
-                ? messages.get(e.getPlayer(), "service.mute-expiry-never") : Duration.mancante(s.fine());
+                ? messages.get(e.getPlayer(), "service.mute-expiry-never")
+                : Duration.mancante(s.fine(), messages.durationWords(e.getPlayer()));
         e.getPlayer().sendMessage(Text.msg(Text.replace(
-                cfg.muteMessage, "{motivo}", s.reason(), "{scadenza}", scadenza)));
+                com.teolo.magixguard.lang.Messages.phrase(e.getPlayer(), cfg.muteMessage),
+                "{motivo}", s.reason(), "{scadenza}", scadenza)));
     }
 }

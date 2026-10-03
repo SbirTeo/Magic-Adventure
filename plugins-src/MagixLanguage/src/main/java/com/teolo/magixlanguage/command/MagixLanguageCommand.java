@@ -62,7 +62,8 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         }
         PlayerLocales.Entry entry = plugin.locales().get(player.getUniqueId());
         String lang = entry != null ? entry.lang() : plugin.getConfig().getString("default-language", "it");
-        String source = entry != null && entry.source() == PlayerLocales.Source.MANUAL ? "manuale" : "auto";
+        String source = entry != null && entry.source() == PlayerLocales.Source.MANUAL
+                ? msg.forPlayer(sender, "source-manual") : msg.forPlayer(sender, "source-auto");
         String country = entry != null && entry.country() != null ? entry.country() : "-";
         msg.sendList(sender, "info",
                 "version", plugin.getPluginMeta().getVersion(),
@@ -135,7 +136,7 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
         msg.send(sender, "status-header");
         for (java.util.Map.Entry<String, TranslationSync.PluginStats> e : result.perPlugin().entrySet()) {
             TranslationSync.PluginStats s = e.getValue();
-            sender.sendMessage(msg.get("status-line",
+            sender.sendMessage(msg.forPlayer(sender, "status-line",
                     "plugin", e.getKey(),
                     "total", String.valueOf(s.totalKeys()),
                     "translated", String.valueOf(s.translated()),
@@ -165,7 +166,7 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
             msg.send(sender, "status-web-header");
             for (java.util.Map.Entry<String, int[]> e : web.entrySet()) {
                 int[] c = e.getValue(); // {pronte, in attesa, fallite}
-                sender.sendMessage(msg.get("status-web-line",
+                sender.sendMessage(msg.forPlayer(sender, "status-web-line",
                         "lang", e.getKey(),
                         "done", String.valueOf(c[0]),
                         "pending", String.valueOf(c[1]),
@@ -185,14 +186,14 @@ public final class MagixLanguageCommand implements CommandExecutor, TabCompleter
 
     /**
      * /language help [page]: the command list, laid out by {@link com.teolo.magixlanguage.util.Help}, the
-     * same class of every Magix plugin (sections, clickable lines, arrows; see STILE-MAGIX.md). This
-     * plugin is the translator itself, so its own texts stay as written in messages.yml.
+     * same class of every Magix plugin (sections, clickable lines, arrows; see STILE-MAGIX.md), in the
+     * reader's language like every other text of this plugin.
      */
     private void help(CommandSender sender, int page) {
         org.bukkit.configuration.ConfigurationSection h = msg.section("help");
         String title = h != null ? h.getString("title", "MagixLanguage") : "MagixLanguage";
-        com.teolo.magixlanguage.util.Help.Text text = (to, path, kv) -> msg.get(path, kv);
-        com.teolo.magixlanguage.util.Help.Lines lines = (to, path) -> msg.getList(path);
+        com.teolo.magixlanguage.util.Help.Text text = (to, path, kv) -> msg.forPlayer(to, path, kv);
+        com.teolo.magixlanguage.util.Help.Lines lines = (to, path) -> msg.listForPlayer(to, path);
         com.teolo.magixlanguage.util.Help.show(sender, text, title, "/language help",
                 com.teolo.magixlanguage.util.Help.fromConfig(msg.section("help.sections"), sender, text, lines),
                 page, sender.hasPermission(ADMIN));

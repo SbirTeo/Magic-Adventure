@@ -87,6 +87,11 @@ public final class Messages {
         return Colors.component(get(path, kv));
     }
 
+    /** Come {@link #component(String, String...)}, nella lingua del destinatario. */
+    public Component component(CommandSender to, String path, String... kv) {
+        return Colors.component(textFor(to, path, kv));
+    }
+
     /** Il testo di "path" per questo destinatario: per i pannelli come l'aiuto. */
     public String forPlayer(CommandSender to, String path, String... kv) {
         return textFor(to, path, kv);
@@ -150,6 +155,34 @@ public final class Messages {
         } catch (Throwable t) {
             return null;
         }
+    }
+
+    /**
+     * Un testo per i giocatori che sta FUORI da messages.yml (dichiarato in translatable.yml: righe
+     * di config, titoli, pannelli...), nella lingua del giocatore. Si passa il testo ITALIANO cosi'
+     * com'e' scritto nel file, prima di sostituire segnaposti o placeholder: MagixLanguage lo cerca
+     * per frase. Senza MagixLanguage, per chi parla italiano o se la frase non e' ancora tradotta,
+     * torna il testo stesso. Mai un'eccezione.
+     */
+    public static String phrase(Player player, String italian) {
+        if (player == null || italian == null || italian.isEmpty()) return italian;
+        MagixLanguageAPI api = magixLanguage();
+        if (api == null) return italian;
+        try {
+            if ("it".equals(api.language(player))) return italian;
+            String t = api.translatePhrase(PLUGIN_NAME, player, italian);
+            return t != null ? t : italian;
+        } catch (Throwable t) {
+            return italian;
+        }
+    }
+
+    /** Come {@link #phrase}, riga per riga. */
+    public static List<String> phrases(Player player, List<String> italian) {
+        if (player == null || italian == null) return italian;
+        List<String> out = new ArrayList<>(italian.size());
+        for (String line : italian) out.add(phrase(player, line));
+        return out;
     }
 
     /** Il servizio di MagixLanguage se il plugin e' installato e attivo, altrimenti null: mai un'eccezione. */

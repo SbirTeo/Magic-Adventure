@@ -107,29 +107,33 @@ public MenuPhraseSync(JavaPlugin plugin, Logger log) {
         static final Stats VUOTO = new Stats(0, 0, 0, 0);
     }
 
-    /** Scandisce plugins/&lt;pluginName&gt;/menus/*.yml (se esiste) e traduce le frasi trovate. */
+    /**
+     * Scandisce plugins/&lt;pluginName&gt;/menus/*.yml (se esiste) e i testi dichiarati nel
+     * {@code translatable.yml} del plugin (vedi {@link #extractDeclared}), e traduce le frasi trovate.
+     */
     public Stats sync(String pluginName, List<String> targetLanguages, Translator translator, int delayMs,
                boolean autoTranslateEnabled, Map<String, List<String>> failuresByLang) {
         File pluginsFolder = plugin.getDataFolder().getParentFile();
-        File menusFolder = new File(new File(pluginsFolder, pluginName), "menus");
+        File pluginFolder = new File(pluginsFolder, pluginName);
+        File menusFolder = new File(pluginFolder, "menus");
         File[] files = menusFolder.isDirectory()
                 ? menusFolder.listFiles((d, n) -> n.toLowerCase(Locale.ROOT).endsWith(".yml"))
                 : null;
-        if (files == null || files.length == 0) {
-            return Stats.VUOTO;
-        }
 
         Set<String> phrases = new LinkedHashSet<>();
-        for (File f : files) {
-            try {
-                YamlConfiguration yaml = new YamlConfiguration();
-                yaml.load(f);
-                extract(yaml, phrases);
-            } catch (Exception e) {
-                log.warning("MagixLanguage: impossibile leggere il menu " + pluginName + "/menus/"
-                        + f.getName() + " (" + e + ").");
+        if (files != null) {
+            for (File f : files) {
+                try {
+                    YamlConfiguration yaml = new YamlConfiguration();
+                    yaml.load(f);
+                    extract(yaml, phrases);
+                } catch (Exception e) {
+                    log.warning("MagixLanguage: impossibile leggere il menu " + pluginName + "/menus/"
+                            + f.getName() + " (" + e + ").");
+                }
             }
         }
+        extractDeclared(pluginName, pluginFolder, phrases);
         if (phrases.isEmpty()) {
             return Stats.VUOTO;
         }
@@ -191,8 +195,7 @@ public MenuPhraseSync(JavaPlugin plugin, Logger log) {
                 failuresForLang.add(pluginName + " (menu): " + phrase);
                 continue;
             }
-            String result = translator.translate(phrase, lang);
-            if (delayMs > 0) sleepQuietly(delayMs);
+            String result = translateLines(translator, phrase, lang, delayMs);
             if (result == null) {
                 missing++;
                 failuresForLang.add(pluginName + " (menu): " + phrase);
@@ -206,6 +209,26 @@ public MenuPhraseSync(JavaPlugin plugin, Logger log) {
         writeCatalog(catalogFile, catalogOut, pluginName, lang);
         saveCache(cacheFile, newCache);
         return new int[]{translated, reused, missing};
+    }
+
+    /** Un testo su piu' righe (un messaggio di kick) si traduce riga per riga: il servizio di
+     *  traduzione non garantisce di lasciare gli a-capo dove sono. Null se una riga fallisce. */
+    private static String translateLines(Translator translator, String phrase, String lang, int delayMs) {
+        String[] lines = phrase.split("\n", -1);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) out.append('\n');
+            String line = lines[i];
+            if (!hasWords(line)) {
+                out.append(line);
+                continue;
+            }
+            String t = translator.translate(line, lang);
+            if (delayMs > 0) sleepQuietly(delayMs);
+            if (t == null) return null;
+            out.append(t);
+        }
+        return out.toString();
     }
 
     private static Map<String, Object> entry(String source, String translated) {
@@ -225,6 +248,115 @@ public MenuPhraseSync(JavaPlugin plugin, Logger log) {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    // ------------------------------------------------------------------ testi dichiarati dal plugin
+
+    /** Il file, dentro il jar di ciascun plugin, che elenca dove stanno i suoi testi fuori da messages.yml. */
+    public static final String DECLARED_FILE = "translatable.yml";
+
+    /**
+     * I testi per i giocatori che un plugin tiene FUORI da messages.yml (righe della scoreboard,
+     * titoli dei territori, il pannello sotto la minimap, i {@code msg:} delle entita'...): ogni
+     * plugin li dichiara nel proprio {@code translatable.yml}, dentro il jar, cosi' MagixLanguage
+     * non deve sapere com'e' fatto il config di nessuno. Formato (file -> elenco di percorsi):
+     * <pre>
+     * config.yml:
+     *   - "scoreboards.*.lines.*.frames"          # '*' = ogni chiave di una sezione, o ogni voce di una lista
+     *   - path: "entities.*.commands"             # forma lunga: solo le righe che cominciano con prefix,
+     *     prefix: "msg:"                          # e la frase e' quello che segue il prefisso
+     * </pre>
+     * Il testo si legge dal file VERO del server (quello che lo staff ha scritto), non dal jar. Chi
+     * lo mostra chiede la stessa frase a {@code MagixLanguageAPI.translatePhrase}.
+     */
+    private void extractDeclared(String pluginName, File pluginFolder, Set<String> out) {
+        org.bukkit.plugin.Plugin owner = plugin.getServer().getPluginManager().getPlugin(pluginName);
+        if (owner == null) {
+            return;
+        }
+        Object spec;
+        try (java.io.InputStream in = owner.getResource(DECLARED_FILE)) {
+            if (in == null) {
+                return;
+            }
+            spec = new org.yaml.snakeyaml.Yaml().load(new java.io.InputStreamReader(in, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            log.warning("MagixLanguage: " + DECLARED_FILE + " di " + pluginName + " illeggibile (" + e + ").");
+            return;
+        }
+        if (!(spec instanceof Map<?, ?> files)) {
+            return;
+        }
+        for (Map.Entry<?, ?> fileEntry : files.entrySet()) {
+            File f = new File(pluginFolder, String.valueOf(fileEntry.getKey()));
+            if (!f.isFile() || !(fileEntry.getValue() instanceof List<?> paths)) {
+                continue;
+            }
+            Object data;
+            try (Reader r = Files.newBufferedReader(f.toPath(), StandardCharsets.UTF_8)) {
+                data = new org.yaml.snakeyaml.Yaml().load(r);
+            } catch (Exception e) {
+                log.warning("MagixLanguage: impossibile leggere " + pluginName + "/" + f.getName() + " (" + e + ").");
+                continue;
+            }
+            for (Object p : paths) {
+                String path;
+                String prefix = null;
+                if (p instanceof Map<?, ?> m) {
+                    path = m.get("path") != null ? String.valueOf(m.get("path")) : null;
+                    prefix = m.get("prefix") != null ? String.valueOf(m.get("prefix")) : null;
+                } else {
+                    path = p != null ? String.valueOf(p) : null;
+                }
+                if (path != null && !path.isBlank()) {
+                    collect(data, path.split("\\."), 0, prefix, out);
+                }
+            }
+        }
+    }
+
+    private static void collect(Object node, String[] segments, int i, String prefix, Set<String> out) {
+        if (node == null) {
+            return;
+        }
+        if (i == segments.length) {
+            if (node instanceof List<?> list) {
+                for (Object o : list) {
+                    if (o instanceof String s) addDeclared(s, prefix, out);
+                }
+            } else if (node instanceof String s) {
+                addDeclared(s, prefix, out);
+            }
+            return;
+        }
+        String seg = segments[i];
+        if (seg.equals("*")) {
+            if (node instanceof Map<?, ?> m) {
+                for (Object v : m.values()) collect(v, segments, i + 1, prefix, out);
+            } else if (node instanceof List<?> list) {
+                for (Object v : list) collect(v, segments, i + 1, prefix, out);
+            }
+        } else if (node instanceof Map<?, ?> m) {
+            collect(m.get(seg), segments, i + 1, prefix, out);
+        }
+    }
+
+    private static void addDeclared(String value, String prefix, Set<String> out) {
+        if (prefix != null) {
+            if (!value.regionMatches(true, 0, prefix, 0, prefix.length())) {
+                return;
+            }
+            value = value.substring(prefix.length()).trim();
+        }
+        if (hasWords(value)) {
+            out.add(value);
+        }
+    }
+
+    /** Solo il testo che ha delle parole: una riga fatta di soli placeholder, colori o trattini non si traduce. */
+    private static boolean hasWords(String s) {
+        String bare = s.replaceAll("&#[0-9A-Fa-f]{6}|<#[0-9A-Fa-f]{6}>|[&§][0-9a-fk-orxA-FK-ORX]|%[^%\\s]+%|\\{[^}]+}", "");
+        return bare.codePoints().filter(Character::isLetter).count() >= 2;
     }
 
     // ------------------------------------------------------------------ estrazione dal file YAML

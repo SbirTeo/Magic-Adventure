@@ -241,7 +241,7 @@ public final class ChatModule implements Listener {
         }
         Component row = Component.empty().append(TextFormat.component(before)).append(text);
         if (!after.isEmpty()) row = row.append(TextFormat.component(after));
-        return withHover(row, fromSite);
+        return withHover(row, fromSite, viewer);
     }
 
     /**
@@ -298,10 +298,11 @@ public final class ChatModule implements Listener {
     }
 
     /** Ora e provenienza nel suggerimento al passaggio del mouse (tooltip.* di chat.yml). */
-    private Component withHover(Component row, boolean fromSite) {
+    private Component withHover(Component row, boolean fromSite, Player viewer) {
         if (!cfg.getBoolean("tooltip.enabled", true)) return row;
         // Nessun testo scritto qui: i valori mancanti sul server li da' il chat.yml del jar (Modules).
-        String origin = cfg.getString(fromSite ? "tooltip.web" : "tooltip.game", "");
+        String origin = com.teolo.magixessentials.lang.Messages.phrase(viewer,
+                cfg.getString(fromSite ? "tooltip.web" : "tooltip.game", ""));
         String text = cfg.getString("tooltip.format", "{origine}")
                 .replace("{ora}", LocalTime.now().format(HH_MM))
                 .replace("{origine}", origin);

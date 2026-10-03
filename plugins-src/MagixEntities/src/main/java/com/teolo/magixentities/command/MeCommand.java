@@ -182,7 +182,7 @@ public final class MeCommand implements TabExecutor {
         }
         page = Math.max(1, Math.min(pages, page));
 
-        sender.sendMessage(M.get("list-header", "count", String.valueOf(all.size()),
+        sender.sendMessage(M.forPlayer(sender, "list-header", "count", String.valueOf(all.size()),
                 "page", String.valueOf(page), "pages", String.valueOf(pages)));
         for (int i = (page - 1) * PAGE_SIZE; i < Math.min(all.size(), page * PAGE_SIZE); i++) {
             NpcDef d = all.get(i);
@@ -194,25 +194,25 @@ public final class MeCommand implements TabExecutor {
                     "x", String.valueOf(Math.round(d.x)),
                     "y", String.valueOf(Math.round(d.y)),
                     "z", String.valueOf(Math.round(d.z)),
-                    "status", status(d)};
-            sender.sendMessage(M.component("list-entry", data)
+                    "status", status(sender, d)};
+            sender.sendMessage(M.component(sender, "list-entry", data)
                     .clickEvent(ClickEvent.runCommand("/mentities info " + d.name))
-                    .hoverEvent(HoverEvent.showText(M.component("list-entry-hover", data))));
+                    .hoverEvent(HoverEvent.showText(M.component(sender, "list-entry-hover", data))));
         }
-        sender.sendMessage(M.get("status-legend"));
-        if (pages > 1) sender.sendMessage(navBar(page, pages));
+        sender.sendMessage(M.forPlayer(sender, "status-legend"));
+        if (pages > 1) sender.sendMessage(navBar(sender, page, pages));
     }
 
     /** Frecce di pagina cliccabili, mostrate solo se c'e' piu' di una pagina. */
-    private Component navBar(int page, int pages) {
+    private Component navBar(CommandSender sender, int page, int pages) {
         Component bar = Component.text("   ");
         if (page > 1) {
-            bar = bar.append(M.component("list-nav-prev")
+            bar = bar.append(M.component(sender, "list-nav-prev")
                     .clickEvent(ClickEvent.runCommand("/mentities list " + (page - 1))));
         }
         if (page > 1 && page < pages) bar = bar.append(Colors.component("  &8·  "));
         if (page < pages) {
-            bar = bar.append(M.component("list-nav-next")
+            bar = bar.append(M.component(sender, "list-nav-next")
                     .clickEvent(ClickEvent.runCommand("/mentities list " + (page + 1))));
         }
         return bar;
@@ -222,16 +222,16 @@ public final class MeCommand implements TabExecutor {
         NpcDef d = require(sender, args, "usage-info");
         if (d == null) return;
         String clones = String.valueOf(mirror.cloneCount(d));
-        sender.sendMessage(M.get("info-header", "name", d.name, "type", typeLabel(d)));
+        sender.sendMessage(M.forPlayer(sender, "info-header", "name", d.name, "type", typeLabel(d)));
         if (d.isDisplayMirror()) {
-            line(sender, "displayname", M.get("info-mirror-display", "clones", clones));
+            line(sender, "displayname", M.forPlayer(sender, "info-mirror-display", "clones", clones));
         } else {
             line(sender, "displayname", Colors.translate(d.displayText())
-                    + (d.hasCustomDisplay() ? "" : " " + M.get("info-follows-name")));
+                    + (d.hasCustomDisplay() ? "" : " " + M.forPlayer(sender, "info-follows-name")));
         }
         if (d.isPlayerType()) {
-            line(sender, "skin", d.isSkinMirror() ? M.get("info-mirror-skin", "clones", clones) : d.skinNick());
-            line(sender, "posa", d.pose == null ? "standing" : d.pose.toLowerCase(Locale.ROOT));
+            line(sender, "skin", d.isSkinMirror() ? M.forPlayer(sender, "info-mirror-skin", "clones", clones) : d.skinNick());
+            line(sender, M.forPlayer(sender, "info-key-pose"), d.pose == null ? "standing" : d.pose.toLowerCase(Locale.ROOT));
         }
         if (d.scale != 1.0) line(sender, M.forPlayer(sender, "info-key-scale"), trim(d.scale));
         if (d.opt("follow", false) || d.followRadius != null) {
@@ -239,33 +239,33 @@ public final class MeCommand implements TabExecutor {
             line(sender, M.forPlayer(sender, "info-key-follow-radius"), trim(d.followRadiusOr(def))
                     + (d.followRadius == null ? " " + M.forPlayer(sender, "info-from-config") : ""));
         }
-        line(sender, "posizione", d.world + " &8· &f" + Math.round(d.x) + " " + Math.round(d.y) + " " + Math.round(d.z));
-        line(sender, "stato", status(d));
+        line(sender, M.forPlayer(sender, "info-key-position"), d.world + " &8· &f" + Math.round(d.x) + " " + Math.round(d.y) + " " + Math.round(d.z));
+        line(sender, M.forPlayer(sender, "info-key-status"), status(sender, d));
         StringBuilder opts = new StringBuilder();
         for (String o : NpcDef.OPTIONS) {
             if (o.equals("immovable") && !d.isPlayerType()) continue;
             opts.append(d.opt(o, false) ? "&#5BE37D" : "&8").append(o).append("&8 ");
         }
-        line(sender, "opzioni", Colors.translate(opts.toString()));
+        line(sender, M.forPlayer(sender, "info-key-options"), Colors.translate(opts.toString()));
         if (!d.commands.isEmpty()) {
-            line(sender, "al clic", M.get("info-commands", "count", String.valueOf(d.commands.size()),
+            line(sender, M.forPlayer(sender, "info-key-on-click"), M.forPlayer(sender, "info-commands", "count", String.valueOf(d.commands.size()),
                     "name", d.name));
         }
         line(sender, "uuid", "&8" + (d.uuid == null ? "-" : d.uuid.toString()));
         warnIfRefused(sender, d);
-        sender.sendMessage(infoActions(d));
+        sender.sendMessage(infoActions(sender, d));
     }
 
     /** Riga di pulsanti sotto /mentities info: vai, porta qui, rimuovi. */
-    private Component infoActions(NpcDef d) {
-        Component tp = M.component("info-actions-tp")
+    private Component infoActions(CommandSender sender, NpcDef d) {
+        Component tp = M.component(sender, "info-actions-tp")
                 .clickEvent(ClickEvent.runCommand("/mentities tp " + d.name));
-        Component here = M.component("info-actions-here")
+        Component here = M.component(sender, "info-actions-here")
                 .clickEvent(ClickEvent.suggestCommand("/mentities here " + d.name));
         // Rimozione: solo suggerita, cosi' serve un invio consapevole.
-        Component remove = M.component("info-actions-remove")
+        Component remove = M.component(sender, "info-actions-remove")
                 .clickEvent(ClickEvent.suggestCommand("/mentities remove " + d.name));
-        Component editor = M.component("info-actions-editor")
+        Component editor = M.component(sender, "info-actions-editor")
                 .clickEvent(ClickEvent.runCommand("/mentities editor " + d.name));
         Component sep = Colors.component(" &8· ");
         return Colors.component(" &8└ ").append(editor).append(sep).append(tp).append(sep)
@@ -273,7 +273,7 @@ public final class MeCommand implements TabExecutor {
     }
 
     private void line(CommandSender to, String key, String value) {
-        to.sendMessage(M.get("info-line", "key", key, "value", value));
+        to.sendMessage(M.forPlayer(to, "info-line", "key", key, "value", value));
     }
 
     private void tp(CommandSender sender, String[] args) {
@@ -706,12 +706,12 @@ public final class MeCommand implements TabExecutor {
             M.send(sender, "cmd-empty", "name", d.name);
             return;
         }
-        sender.sendMessage(M.get("cmd-header", "name", d.name, "count", String.valueOf(d.commands.size())));
+        sender.sendMessage(M.forPlayer(sender, "cmd-header", "name", d.name, "count", String.valueOf(d.commands.size())));
         for (int i = 0; i < d.commands.size(); i++) {
-            sender.sendMessage(M.component("cmd-entry",
+            sender.sendMessage(M.component(sender, "cmd-entry",
                             "index", String.valueOf(i + 1), "cmd", d.commands.get(i))
                     .clickEvent(ClickEvent.suggestCommand("/mentities cmd " + d.name + " remove " + (i + 1)))
-                    .hoverEvent(HoverEvent.showText(M.component("cmd-entry-hover"))));
+                    .hoverEvent(HoverEvent.showText(M.component(sender, "cmd-entry-hover"))));
         }
     }
 
@@ -791,12 +791,12 @@ public final class MeCommand implements TabExecutor {
         if (npcs.refused(d)) M.send(sender, "spawn-refused", "name", d.name, "world", d.world);
     }
 
-    private String status(NpcDef d) {
-        if (npcs.entityOf(d) != null) return M.get("status-ok");
+    private String status(CommandSender sender, NpcDef d) {
+        if (npcs.entityOf(d) != null) return M.forPlayer(sender, "status-ok");
         // Nascita rifiutata da un altro plugin: non e' un'entita' "sparita", e' una che non
         // riesce a nascere — il pallino diverso evita di mandare lo staff a cercare il perche'.
-        if (npcs.refused(d)) return M.get("status-refused");
-        return d.chunkLoaded() ? M.get("status-missing") : M.get("status-unloaded");
+        if (npcs.refused(d)) return M.forPlayer(sender, "status-refused");
+        return d.chunkLoaded() ? M.forPlayer(sender, "status-missing") : M.forPlayer(sender, "status-unloaded");
     }
 
     private String typeLabel(NpcDef d) {

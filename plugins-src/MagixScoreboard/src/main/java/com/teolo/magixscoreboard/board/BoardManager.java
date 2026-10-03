@@ -258,7 +258,9 @@ public final class BoardManager {
     }
 
     private Component renderFrame(BoardLine line, Player player) {
-        String raw = line.frameAt(tick);
+        // Prima la lingua del giocatore (MagixLanguage cerca la frase italiana cosi' com'e' nel
+        // config), poi i placeholder.
+        String raw = com.teolo.magixscoreboard.lang.Messages.phrase(player, line.frameAt(tick));
         String resolved = Papi.resolve(player, raw);
         BoardLine.Scroll scroll = line.scroll();
         if (scroll != null) {

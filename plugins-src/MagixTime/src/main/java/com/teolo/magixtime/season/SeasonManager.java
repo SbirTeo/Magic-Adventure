@@ -1,5 +1,6 @@
 package com.teolo.magixtime.season;
 
+import com.teolo.magixtime.lang.Messages;
 import com.teolo.magixtime.MagixTime;
 import com.teolo.magixtime.util.Colors;
 import net.kyori.adventure.title.Title;
@@ -141,9 +142,12 @@ public final class SeasonManager {
     private void announce(SeasonDef now, SeasonDef previous) {
         String prev = previous == null ? "" : previous.display();
         if (plugin.getConfig().getBoolean("seasons.announce", true)) {
-            Bukkit.broadcast(Colors.component(
-                    plugin.messages().get("season-change",
-                            "season", now.display(), "prev", prev)));
+            // a ciascuno nella sua lingua, nomi delle stagioni compresi
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                plugin.messages().send(p, "season-change", "season", Messages.phrase(p, now.display()),
+                        "prev", Messages.phrase(p, prev));
+            }
+            plugin.messages().send(Bukkit.getConsoleSender(), "season-change", "season", now.display(), "prev", prev);
         }
         boolean title = plugin.getConfig().getBoolean("seasons.announce-title", true);
         // Chiave del suono in forma namespaced ("block.note_block.chime"): l'overload a
@@ -154,8 +158,10 @@ public final class SeasonManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (title) {
                 p.showTitle(Title.title(
-                        plugin.messages().component("season-change-title", "season", now.display(), "prev", prev),
-                        plugin.messages().component("season-change-subtitle", "season", now.display(), "prev", prev),
+                        plugin.messages().component(p, "season-change-title",
+                                "season", Messages.phrase(p, now.display()), "prev", Messages.phrase(p, prev)),
+                        plugin.messages().component(p, "season-change-subtitle",
+                                "season", Messages.phrase(p, now.display()), "prev", Messages.phrase(p, prev)),
                         Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofSeconds(1))));
             }
             if (hasSound) p.playSound(p.getLocation(), sound.trim(), 1f, 1f);

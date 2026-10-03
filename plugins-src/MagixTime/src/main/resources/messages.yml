@@ -91,6 +91,14 @@ worlds-header:
 worlds-line:
   - "&7- &f{world} &8| &f{mctime} &8(tick {ticks}, g. {day}) &8| &f{weather} &8| {state}"
 
+# Il {gamerule} dell'intestazione e lo {state} di ogni mondo, qui sopra. {seconds} secondi rimasti.
+gamerule-off: "spenta"
+gamerule-on: "&cATTIVA"
+world-state-linked: "&8orologio condiviso"
+world-state-catchup: "&erecupero in corso"
+world-state-forced: "&eforzato ({seconds}s)"
+world-state-aligned: "&aallineato"
+
 # ---------------------------------------------------------------- stagioni
 # {season} nome stagione - {key} chiave - {rain} % pioggia - {thunder} % temporale
 # {next} prossima stagione - {days} giorni al cambio - {snow} si/no
@@ -112,6 +120,10 @@ season-change-title: "{season}"
 season-change-subtitle: "&7La stagione è cambiata"
 
 # ---------------------------------------------------------------- meteo
+# Il {snow} di season-details: la neve si accumula o no.
+snow-yes: "sì"
+snow-no: "no"
+
 weather-clear: "Sereno"
 weather-rain: "Pioggia"
 weather-storm: "Temporale"
