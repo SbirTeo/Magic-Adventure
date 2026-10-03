@@ -7966,3 +7966,23 @@ table.rank td:first-child { width: 1%; }
 .social-voce { width: 100%; }
 .social-campo, .social-campo span, .social-campo small { text-transform: none; letter-spacing: 0; }
 .social-campo-prefisso { font-weight: 400; }
+
+/* Barra della potenza con lo zero al centro: verde verso destra, rossa verso sinistra, ognuna
+   più accesa man mano che si allontana dallo zero. */
+.profilo-potenza-barra.is-centrata { position: relative; height: 12px; }
+.profilo-potenza-barra.is-centrata::after {
+  content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px;
+  transform: translateX(-50%); background: var(--text-dim); border-radius: 2px; z-index: 1;
+}
+.profilo-potenza-barra.is-centrata i { position: absolute; top: 0; bottom: 0; border-radius: 0; }
+.profilo-potenza-barra.is-centrata i.is-piu {
+  left: 50%; border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg, color-mix(in srgb, #4ade80 35%, transparent), #22c55e);
+}
+.profilo-potenza-barra.is-centrata i.is-meno {
+  right: 50%; border-radius: 999px 0 0 999px;
+  background: linear-gradient(270deg, color-mix(in srgb, #f87171 35%, transparent), #dc2626);
+}
+.profilo-potenza-scala { display: flex; justify-content: space-between; margin-top: 5px; color: var(--text-dimmer); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; }
+.profilo-potenza-scala + * { margin-top: 12px; }
+.profilo-potenza:not(.is-negativa) .profilo-potenza-riga strong { color: var(--text); }

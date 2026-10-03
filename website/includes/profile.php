@@ -308,16 +308,21 @@ function profile_faction_render(array $dati, bool $own): string {
       <?php
         $p = (int) $io['power'];
         $pm = (int) $io['max_power'];
-        $quota = max(0, min(100, (int) round($p / $pm * 100)));
+        // Scala da -massimo a +massimo con lo zero al centro, come nella guida: i valori
+        // positivi riempiono verso destra in verde, i negativi verso sinistra in rosso.
+        $quota = min(50, (int) round(abs($p) / $pm * 50));
       ?>
       <div class="profilo-potenza<?= $p < 0 ? ' is-negativa' : '' ?>">
         <div class="profilo-potenza-riga">
           <span><?= ui_icon('zap') ?> Potenza</span>
           <strong><?= $p ?> <span>/ <?= $pm ?></span></strong>
         </div>
-        <div class="profilo-potenza-barra" role="img" aria-label="Potenza <?= $p ?> su <?= $pm ?>">
-          <i style="width: <?= $quota ?>%"></i>
+        <div class="profilo-potenza-barra is-centrata" role="img" aria-label="Potenza <?= $p ?>, da <?= -$pm ?> a <?= $pm ?>">
+          <?php if ($p !== 0): ?>
+            <i class="<?= $p < 0 ? 'is-meno' : 'is-piu' ?>" style="width: <?= $quota ?>%"></i>
+          <?php endif; ?>
         </div>
+        <div class="profilo-potenza-scala" aria-hidden="true"><span>&minus;<?= $pm ?></span><span>0</span><span>+<?= $pm ?></span></div>
       </div>
       <?php
         $uccisioni = (int) ($io['kills'] ?? 0);
