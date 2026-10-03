@@ -119,6 +119,24 @@ halo:
   # giocatori offline. 0 = spento: sul sito nessuna aureola.
   sync-interval-minutes: 2
 
+# Chat vocale di prossimità del sito (magicadventure.it/voice), stanza near-<server-name>: chi è in
+# gioco qui sente solo i giocatori vicini. La voce la trasporta il server della voce (servizio
+# magix-voce sullo stesso VPS); questo plugin gli dice soltanto, per ogni giocatore, quanto forte e
+# da che lato sentire ciascun vicino. [solo staff]
+voice:
+  enabled: true
+  # Le API del server della voce: ascolta solo in locale.
+  api-url: "http://127.0.0.1:7880"
+  # Le chiavi del server della voce: il file suo, non una copia qui (il repository è pubblico).
+  # Lo rende leggibile a questo server il workflow predisponi-voce.yml.
+  keys-file: /etc/magix-voce/keys.yaml
+  # Oltre questa distanza (blocchi) una voce non si sente più.
+  hear-distance: 32
+  # Entro questa distanza (blocchi) una voce si sente a volume pieno; poi cala fino a hear-distance.
+  full-volume-distance: 4
+  # Quante volte al secondo si aggiornano volume e lato delle voci (1-10).
+  updates-per-second: 4
+
 # Guida per amministratori del sito (/manage?section=guida).
 # Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html;
 # MagixBridge li raccoglie e li porta sul sito. Le credenziali del sito restano solo qui.

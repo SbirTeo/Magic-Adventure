@@ -1,6 +1,6 @@
 <?php
 /**
- * Chat vocale del sito (/voce): chi può entrare in quale stanza, e il gettone per entrarci.
+ * Chat vocale del sito (/voice): chi può entrare in quale stanza, e il gettone per entrarci.
  *
  * La voce la trasporta il server LiveKit sul VPS (servizio magix-voce, vedi
  * server-voce/livekit.yaml e predisponi-voce.yml). Quel server non sa niente dei giocatori:
@@ -28,7 +28,7 @@ const VOICE_TOKEN_TTL = 600;
 /** Indirizzo a cui si collega il browser: la segnalazione passa da nginx (vedi nginx-magicadventure.conf). */
 function voice_url(): string {
     $base = defined('SITE_URL') ? SITE_URL : 'https://magicadventure.it';
-    return preg_replace('#^http#', 'ws', rtrim($base, '/')) . '/voce-rtc';
+    return preg_replace('#^http#', 'ws', rtrim($base, '/')) . '/voice-rtc';
 }
 
 /** True se il server della voce è configurato (chiavi scritte da predisponi-voce.yml). */
@@ -60,19 +60,52 @@ function voice_player_faction(string $uuid): ?array {
 }
 
 /**
+ * La modalità (faction, hub...) in cui il giocatore è in gioco adesso, o null se non è in gioco.
+ * La scrive MagixBridge di ogni server in network_presence: una riga per giocatore, rinfrescata
+ * ogni pochi secondi, quindi vale solo se recente.
+ */
+function voice_player_server(string $uuid): ?string {
+    try {
+        $q = db()->prepare(
+            'SELECT server FROM network_presence
+              WHERE mc_uuid = ? AND seen_at > NOW() - INTERVAL 60 SECOND
+              LIMIT 1'
+        );
+        $q->execute([$uuid]);
+        $server = $q->fetchColumn();
+        return is_string($server) && preg_match('/^[a-z0-9]{1,32}$/', $server) ? $server : null;
+    } catch (PDOException $e) {
+        return null;
+    }
+}
+
+/**
  * Le stanze in cui il giocatore può entrare, nell'ordine in cui la pagina le mostra.
  * Ogni stanza: id (il nome della stanza sul server della voce), name, desc.
  */
 function voice_rooms(array $utente): array {
-    $stanze = [[
-        'id'   => 'rete',
+    $stanze = [];
+    // Prossimità: solo per la modalità in cui il giocatore è in gioco adesso. La stanza si chiama
+    // near-<server> come la apre MagixBridge di quel server (voice/ProximityVoice), che manda a
+    // ognuno volume e lato dei vicini.
+    $server = voice_player_server((string) $utente['mc_uuid']);
+    if ($server !== null) {
+        $etichetta = defined('GAME_SERVERS') && isset(GAME_SERVERS[$server]) ? GAME_SERVERS[$server]['label'] : ucfirst($server);
+        $stanze[] = [
+            'id'   => 'near-' . $server,
+            'name' => 'Vicini in ' . $etichetta,
+            'desc' => 'Senti chi ti sta vicino in gioco: più è lontano, meno si sente, e dal lato in cui sta.',
+        ];
+    }
+    $stanze[] = [
+        'id'   => 'network',
         'name' => 'Tutta la rete',
         'desc' => 'La stanza di tutti: chiunque sia in gioco, su qualunque modalità.',
-    ]];
+    ];
     $fazione = voice_player_faction((string) $utente['mc_uuid']);
     if ($fazione !== null) {
         $stanze[] = [
-            'id'   => 'fazione-' . $fazione['id'],
+            'id'   => 'faction-' . $fazione['id'],
             'name' => 'Fazione ' . $fazione['name'],
             'desc' => 'Solo i membri della tua fazione.',
         ];
@@ -261,7 +294,7 @@ function voice_room_people(string $stanza): array {
 function voice_overview(?array $utente): array {
     $conti = voice_room_counts();
     $stanze = $utente ? voice_rooms($utente) : [[
-        'id' => 'rete', 'name' => 'Tutta la rete', 'desc' => '',
+        'id' => 'network', 'name' => 'Tutta la rete', 'desc' => '',
     ]];
     $mie = [];
     foreach ($stanze as $s) {
@@ -272,7 +305,7 @@ function voice_overview(?array $utente): array {
     $altreFazioni = 0;
     $altreStanze = 0;
     foreach ($conti as $id => $n) {
-        if (str_starts_with($id, 'fazione-') && !isset($mie[$id])) {
+        if (str_starts_with($id, 'faction-') && !isset($mie[$id])) {
             $altreFazioni += $n;
             $altreStanze++;
         }
@@ -283,4 +316,12 @@ function voice_overview(?array $utente): array {
         'other_people'  => $altreFazioni,
         'other_rooms'   => $altreStanze,
     ];
+}
+
+/** L'icona di una stanza: la mappa per i vicini, lo scudo per la fazione, le persone per la rete. */
+function voice_room_icon(string $stanza): string {
+    if (str_starts_with($stanza, 'near-')) {
+        return 'map';
+    }
+    return str_starts_with($stanza, 'faction-') ? 'shield' : 'users';
 }

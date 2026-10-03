@@ -15,10 +15,30 @@ alla 0.12 si chiamava **MagixWeb**: dalla 0.13.0 gira su **ogni modalita'** (`de
 | Aureola VIP di MagixCosmetics sul sito | dove c'e' MagixCosmetics |
 | Ponte dei placeholder (`%network_<server>_<placeholder>%`) | ogni server |
 | Consegna degli acquisti dello store (i comandi della sua modalita') | ogni server |
+| Chat vocale di prossimità del sito (stanza `near-<server>` di Voice) | ogni server |
 | Traduzione automatica del sito (via MagixLanguage) | solo `network.site-jobs: true` |
 | Elenco dei gruppi (`web_groups`), primo accesso dei vecchi giocatori | solo `network.site-jobs: true` |
 | Guida per amministratori (raccoglie i `guida-staff.html`) | solo `network.site-jobs: true` |
 | Pulizia dello storico della chat del sito | solo `network.site-jobs: true` |
+
+## La chat vocale di prossimità (dalla 0.16.0)
+
+Sul sito, in **Voice** (`/voice`), ogni modalità ha la stanza `near-<network.server-name>`: chi è in gioco
+qui ed entra nella stanza sente solo i giocatori vicini. La voce la trasporta il server della voce
+(LiveKit, servizio `magix-voce`, vedi `server-voce/` e `predisponi-voce.yml`); questo plugin
+(`voice/ProximityVoice`) fa solo i conti:
+
+- `voice.updates-per-second` volte al secondo prende le posizioni dei giocatori che sono anche nella
+  stanza (sul thread principale) e, fuori dal thread principale, manda a OGNUNO un pacchetto suo con,
+  per ogni vicino, volume (0-1, pieno entro `voice.full-volume-distance`, zero a `voice.hear-distance`)
+  e lato (-1 sinistra, 1 destra). Nessuna coordinata esce dal server e nessuno riceve i dati di un altro.
+- Lo stesso elenco dice al browser di ognuno a chi lasciar sentire il proprio microfono (i vicini, con
+  8 blocchi di margine): lo fa rispettare il server della voce, quindi nemmeno una pagina modificata
+  sente chi è lontano.
+- Le chiavi del server della voce le legge da `voice.keys-file` (il file del server della voce, mai una
+  copia nei config: il repository è pubblico). Le rende leggibili `predisponi-voce.yml` (azione
+  `installa`); se non può leggerle scrive «chat vocale di prossimità spenta», riprova da solo ogni minuto e
+  si accende appena ci riesce, senza riavvio.
 
 ## La rete
 

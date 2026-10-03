@@ -13,6 +13,8 @@ import com.teolo.magixbridge.language.SiteTranslationWorker;
 import com.teolo.magixbridge.rank.RankPlaceholders;
 import com.teolo.magixbridge.store.StoreDelivery;
 import com.teolo.magixbridge.rank.RankSync;
+import com.teolo.magixbridge.voice.ProximityVoice;
+import com.teolo.magixbridge.voice.VoiceApi;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -59,6 +61,7 @@ public class MagixBridge extends JavaPlugin {
         setupChatBridge();
         setupHaloSync();
         setupPlaceholderBridge();
+        setupProximityVoice();
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
         getLogger().info("MagixBridge abilitato.");
@@ -107,6 +110,53 @@ public class MagixBridge extends JavaPlugin {
         Bukkit.getScheduler().runTaskTimer(this, bridge::publishTick, 200L, publish * 20L);
         getLogger().info("MagixBridge: ponte dei placeholder attivo (%network_<server>_<placeholder>%, "
                 + "pubblica ogni " + publish + "s, legge ogni " + read + "s).");
+    }
+
+    /**
+     * Proximity voice on the site (voice/ProximityVoice): in the room near-<server> everybody hears
+     * the players close to them in game. Off when the voice server's key file is not readable here.
+     */
+    private void setupProximityVoice() {
+        if (!getConfig().getBoolean("voice.enabled", true)) {
+            return;
+        }
+        // The key file may become readable only later (predisponi-voce.yml run after this start):
+        // try now, then once a minute, and switch on as soon as it works. No restart needed.
+        final org.bukkit.scheduler.BukkitTask[] retry = new org.bukkit.scheduler.BukkitTask[1];
+        final boolean[] warned = {false};
+        retry[0] = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            if (startProximityVoice(!warned[0])) {
+                retry[0].cancel();
+            }
+            warned[0] = true;
+        }, 100L, 60L * 20L);
+    }
+
+    /** One attempt at starting proximity voice: true when it is running. */
+    private boolean startProximityVoice(boolean logFailure) {
+        String room = "near-" + serverName;
+        VoiceApi api;
+        try {
+            api = VoiceApi.open(getConfig().getString("voice.api-url", "http://127.0.0.1:7880"),
+                    java.nio.file.Path.of(getConfig().getString("voice.keys-file", "/etc/magix-voce/keys.yaml")),
+                    room);
+        } catch (java.io.IOException | RuntimeException e) {
+            if (logFailure) {
+                getLogger().warning("MagixBridge: chat vocale di prossimità spenta, chiavi del server della voce "
+                        + "non leggibili (" + e.getMessage() + "). Le rende leggibili predisponi-voce.yml "
+                        + "(installa); qui si riprova da solo ogni minuto.");
+            }
+            return false;
+        }
+        ProximityVoice voice = new ProximityVoice(this, api,
+                getConfig().getDouble("voice.hear-distance", 32),
+                getConfig().getDouble("voice.full-volume-distance", 4));
+        int perSecond = Math.max(1, Math.min(10, getConfig().getInt("voice.updates-per-second", 4)));
+        long period = Math.max(2L, 20L / perSecond);
+        Bukkit.getScheduler().runTaskTimer(this, voice::tick, 1L, period);
+        getLogger().info("MagixBridge: chat vocale di prossimità attiva (stanza " + room + ", "
+                + perSecond + " aggiornamenti al secondo).");
+        return true;
     }
 
     /** The VIP halo (MagixCosmetics) on the site's faces, like the top supporter's crown. */
@@ -220,6 +270,25 @@ public class MagixBridge extends JavaPlugin {
                                 + "e bridge.read-interval-seconds). Chi non è connesso a quel server tiene "
                                 + "l'ultimo valore che aveva, se il plugin che lo calcola non lo sa da offline.")
 
+                .section("La chat vocale di prossimità",
+                        "Sul sito, in Voice (/voice), ogni modalità ha la sua stanza di prossimità: chi è in "
+                                + "gioco su questo server ed entra nella stanza sente solo i giocatori vicini, più "
+                                + "forte quanto più sono vicini e dal lato in cui stanno. Oltre "
+                                + "{{cfg:voice.hear-distance}} blocchi non si sente niente; entro "
+                                + "{{cfg:voice.full-volume-distance}} blocchi si sente a volume pieno. Mondi diversi "
+                                + "non si sentono mai.",
+                        "Questo plugin non fa passare la voce: la trasporta il server della voce del sito "
+                                + "(servizio magix-voce). Il plugin, {{cfg:voice.updates-per-second}} volte al "
+                                + "secondo, manda a ogni giocatore nella stanza SOLO il volume e il lato di chi gli "
+                                + "è vicino: nessuna coordinata esce dal server, e nessuno riceve i dati di un "
+                                + "altro, quindi la pagina non diventa un radar. Lo stesso elenco dice al browser di "
+                                + "ognuno a chi far arrivare il proprio microfono: il server della voce lo fa "
+                                + "rispettare, quindi nemmeno una pagina modificata sente chi è lontano.",
+                        "Per parlare col server della voce il plugin legge le sue chiavi da "
+                                + "{{cfg:voice.keys-file}} (non stanno in nessun config nostro). Le rende leggibili il "
+                                + "workflow predisponi-voce.yml: se nel log all'avvio c'è «chat vocale di prossimità "
+                                + "spenta», va rilanciato quello (azione installa): il plugin riprova da solo ogni minuto e si accende senza riavvio.")
+
                 .section("La guida per amministratori",
                         "Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html; "
                                 + "MagixBridge passa a raccoglierli e li porta in questa pagina. Il primo giro parte "
@@ -242,7 +311,11 @@ public class MagixBridge extends JavaPlugin {
                         "network.site-jobs", "true su UN solo server: traduzione del sito, gruppi, guida, pulizia "
                                 + "della chat. La consegna degli acquisti non c'entra: ogni server fa la sua.",
                         "bridge.player-placeholders", "I placeholder di ogni giocatore che questo server pubblica per gli altri.",
-                        "bridge.global-placeholders", "I placeholder senza giocatore (classifiche, totali) che pubblica.")
+                        "bridge.global-placeholders", "I placeholder senza giocatore (classifiche, totali) che pubblica.",
+                        "voice.enabled", "Accende la chat vocale di prossimità di questa modalità.",
+                        "voice.hear-distance", "Oltre quanti blocchi una voce non si sente più.",
+                        "voice.full-volume-distance", "Entro quanti blocchi una voce si sente a volume pieno.",
+                        "voice.updates-per-second", "Quante volte al secondo si aggiornano volume e lato delle voci.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
@@ -286,6 +359,13 @@ public class MagixBridge extends JavaPlugin {
                                 + "Ogni server deve avere il suo nome: il log lo dice all'avvio (consegna acquisti "
                                 + "store attiva per i comandi di '...'). Oppure il comando è scritto sia nel "
                                 + "riquadro di Factions sia in quello di Hub, e fa la stessa cosa su tutti e due.")
+                .issue("Nella stanza di prossimità non si sente nessuno",
+                        "Si sente solo chi è nella stessa modalità, nello stesso mondo e entro "
+                                + "{{cfg:voice.hear-distance}} blocchi, e solo se è in gioco: chi ha la pagina aperta "
+                                + "ma è uscito dal server non riceve niente (la pagina lo dice). Se nessuno sente "
+                                + "nessuno, guarda il log all'avvio: «chat vocale di prossimità attiva» o «spenta», "
+                                + "con il motivo. Lo stato del server della voce lo dice predisponi-voce.yml "
+                                + "(azione controlla).")
                 .issue("La guida per amministratori è vuota",
                         "Nessun plugin ha ancora scritto il suo capitolo: succede finché il server non viene "
                                 + "riavviato con le versioni che lo generano.")

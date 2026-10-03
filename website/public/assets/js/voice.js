@@ -1,18 +1,18 @@
 /*
- * Chat vocale del sito (/voce). La pagina la disegna voce.php; qui:
- *  - "Entra" chiede al sito il gettone di quella stanza (api/voce.php) e si collega al server
- *    della voce (LiveKit, attraverso nginx su /voce-rtc);
+ * Chat vocale del sito (/voice). La pagina la disegna voice.php; qui:
+ *  - "Entra" chiede al sito il gettone di quella stanza (api/voice.php) e si collega al server
+ *    della voce (LiveKit, attraverso nginx su /voice-rtc);
  *  - accende il microfono (se il giocatore può parlare) e fa sentire gli altri;
  *  - tiene l'elenco di chi c'è, chi sta parlando, chi ha il microfono spento, con un volume
  *    per persona (ricordato in questo browser).
  *
- * I testi stanno nella pagina (#voceTesti), così li traduce il sito come tutto il resto.
+ * I testi stanno nella pagina (#voiceTexts), così li traduce il sito come tutto il resto.
  * Libreria: assets/js/vendor/livekit-client.umd.js (copia locale, globale LivekitClient).
  */
 (function () {
   'use strict';
 
-  var box = document.getElementById('voce');
+  var box = document.getElementById('voice');
   if (!box || !window.LivekitClient) {
     return;
   }
@@ -21,33 +21,34 @@
   var csrf = box.getAttribute('data-csrf') || '';
 
   var el = {
-    chiamata: document.getElementById('voceChiamata'),
-    nome: document.getElementById('voceNome'),
-    stato: document.getElementById('voceStato'),
-    mic: document.getElementById('voceMic'),
-    esci: document.getElementById('voceEsci'),
-    sblocca: document.getElementById('voceSblocca'),
-    sbloccaBtn: document.getElementById('voceSbloccaBtn'),
-    errore: document.getElementById('voceErrore'),
-    dispRiga: document.getElementById('voceDispositivoRiga'),
-    disp: document.getElementById('voceDispositivo'),
-    persone: document.getElementById('vocePersone'),
-    audio: document.getElementById('voceAudio'),
-    iconaMicOff: document.getElementById('voceIconaMicOff')
+    chiamata: document.getElementById('voiceChiamata'),
+    nome: document.getElementById('voiceNome'),
+    stato: document.getElementById('voiceStato'),
+    mic: document.getElementById('voiceMic'),
+    esci: document.getElementById('voiceEsci'),
+    sblocca: document.getElementById('voiceSblocca'),
+    sbloccaBtn: document.getElementById('voiceSbloccaBtn'),
+    errore: document.getElementById('voiceErrore'),
+    dispRiga: document.getElementById('voiceDispositivoRiga'),
+    disp: document.getElementById('voiceDispositivo'),
+    persone: document.getElementById('voicePersone'),
+    audio: document.getElementById('voiceAudio'),
+    iconaMicOff: document.getElementById('voiceIconaMicOff'),
+    avviso: document.getElementById('voiceAvviso')
   };
 
   var testi = {};
-  Array.prototype.forEach.call(document.querySelectorAll('#voceTesti [data-k]'), function (s) {
+  Array.prototype.forEach.call(document.querySelectorAll('#voiceTexts [data-k]'), function (s) {
     testi[s.getAttribute('data-k')] = s.textContent.trim();
   });
   function t(k) { return testi[k] || k; }
 
   // Preferenze di questo browser: microfono scelto e volume di ogni persona. Mai indispensabili.
   function readPref(chiave, ripiego) {
-    try { var v = localStorage.getItem('voce.' + chiave); return v === null ? ripiego : v; } catch (e) { return ripiego; }
+    try { var v = localStorage.getItem('voice.' + chiave); return v === null ? ripiego : v; } catch (e) { return ripiego; }
   }
   function writePref(chiave, valore) {
-    try { localStorage.setItem('voce.' + chiave, valore); } catch (e) { /* niente */ }
+    try { localStorage.setItem('voice.' + chiave, valore); } catch (e) { /* niente */ }
   }
 
   var room = null;          // la stanza collegata (o in collegamento)
@@ -55,6 +56,13 @@
   var puoParlare = false;
   var parlano = {};         // identita' -> true mentre parla
   var uscitaVoluta = false;
+  var micVoluto = true;     // false dopo che il giocatore ha spento il microfono col pulsante
+  // Stanza di prossimita' (near-<server>): volume e lato di ogni vicino li manda il server di
+  // gioco (MagixBridge) qualche volta al secondo, solo a noi. null nelle altre stanze.
+  var vicinanza = null;     // { gains: {id: 0-1}, pans: {id: -1..1}, permessi: 'id,id', ultimo: ms }
+  var panners = {};         // identita' -> StereoPannerNode (sinistra/destra)
+
+  function isProximityRoom(id) { return typeof id === 'string' && id.indexOf('near-') === 0; }
 
   // ------------------------------------------------------------------ stato e messaggi
 
@@ -66,10 +74,10 @@
   }
 
   function markButtons() {
-    Array.prototype.forEach.call(box.querySelectorAll('.voce-entra'), function (b) {
+    Array.prototype.forEach.call(box.querySelectorAll('.voice-entra'), function (b) {
       var qui = b.getAttribute('data-room') === stanzaId && room !== null;
       b.disabled = qui;
-      var card = b.closest('.voce-stanza');
+      var card = b.closest('.voice-stanza');
       card.classList.toggle('is-attiva', qui);
       if (qui) { card.classList.remove('is-evidenza'); }
     });
@@ -108,10 +116,10 @@
 
   function createRow(p, locale) {
     var li = document.createElement('li');
-    li.className = 'voce-persona' + (locale ? ' is-tu' : '');
+    li.className = 'voice-persona' + (locale ? ' is-tu' : '');
 
     var img = document.createElement('img');
-    img.className = 'voce-persona-faccia';
+    img.className = 'voice-persona-faccia';
     img.alt = '';
     img.width = 36;
     img.height = 36;
@@ -121,7 +129,7 @@
     li.appendChild(img);
 
     var nome = document.createElement('span');
-    nome.className = 'voce-persona-nome';
+    nome.className = 'voice-persona-nome';
     nome.textContent = p.name || p.identity;
     if (locale) {
       var tu = document.createElement('small');
@@ -131,7 +139,7 @@
     li.appendChild(nome);
 
     var muto = document.createElement('span');
-    muto.className = 'voce-persona-muto';
+    muto.className = 'voice-persona-muto';
     muto.title = t('muted');
     muto.appendChild(el.iconaMicOff.content.cloneNode(true));
     li.appendChild(muto);
@@ -142,13 +150,13 @@
       vol.min = '0';
       vol.max = '100';
       vol.step = '5';
-      vol.className = 'voce-persona-volume';
+      vol.className = 'voice-persona-volume';
       vol.title = t('volume');
       vol.setAttribute('aria-label', t('volume') + ' — ' + (p.name || p.identity));
       vol.value = readPref('vol.' + p.identity, '100');
       vol.addEventListener('input', function () {
-        p.setVolume(Number(vol.value) / 100);
         writePref('vol.' + p.identity, vol.value);
+        applyVolume(p);
       });
       li.appendChild(vol);
     }
@@ -159,6 +167,10 @@
     var p = r.persona;
     var parla = !!parlano[p.identity];
     r.li.classList.toggle('is-parla', parla);
+    // In prossimita' chi non e' vicino resta in elenco, ma spento: lo si sente solo avvicinandosi.
+    var lontano = !!vicinanza && !!room && p !== room.localParticipant && !(p.identity in vicinanza.gains);
+    r.li.classList.toggle('is-lontano', lontano);
+    r.li.title = lontano ? t('far') : '';
     r.muto.hidden = !isMicMuted(p);
     if (parla) {
       r.li.setAttribute('aria-label', (p.name || p.identity) + ', ' + t('speaking'));
@@ -191,7 +203,7 @@
     });
     if (remoti.length === 0) {
       var vuoto = document.createElement('li');
-      vuoto.className = 'voce-nota';
+      vuoto.className = 'voice-nota';
       vuoto.textContent = t('alone');
       el.persone.appendChild(vuoto);
     }
@@ -201,9 +213,56 @@
     }
   }
 
+  /** Volume scelto per quella persona, per il volume della distanza se siamo in prossimita'. */
   function applyVolume(p) {
     var v = Number(readPref('vol.' + p.identity, '100'));
-    if (!isNaN(v) && v !== 100) { p.setVolume(v / 100); }
+    if (isNaN(v)) { v = 100; }
+    var distanza = vicinanza ? (vicinanza.gains[p.identity] || 0) : 1;
+    p.setVolume((v / 100) * distanza);
+  }
+
+  /**
+   * Un pacchetto del server di gioco: [[identita', volume 0-1, lato -1..1], ...] per i vicini.
+   * Chi e' nell'elenco puo' anche sentire il NOSTRO microfono: il server della voce lo fa
+   * rispettare, quindi chi e' lontano non ci sente nemmeno con una pagina modificata.
+   */
+  function applyProximity(elenco) {
+    if (!vicinanza || !room) { return; }
+    var gains = {}, pans = {}, ids = [];
+    elenco.forEach(function (v) {
+      if (!Array.isArray(v) || typeof v[0] !== 'string') { return; }
+      ids.push(v[0]);
+      gains[v[0]] = Math.max(0, Math.min(1, Number(v[1]) || 0));
+      pans[v[0]] = Math.max(-1, Math.min(1, Number(v[2]) || 0));
+    });
+    vicinanza.gains = gains;
+    vicinanza.pans = pans;
+    vicinanza.ultimo = Date.now();
+    ids.sort();
+    var chiave = ids.join(',');
+    if (chiave !== vicinanza.permessi) {
+      vicinanza.permessi = chiave;
+      room.localParticipant.setTrackSubscriptionPermissions(false, ids.map(function (id) {
+        return { participantIdentity: id, allowAll: true };
+      }));
+    }
+    room.remoteParticipants.forEach(function (p) {
+      applyVolume(p);
+      var pn = panners[p.identity];
+      if (pn) { pn.pan.setTargetAtTime(pans[p.identity] || 0, pn.context.currentTime, 0.1); }
+    });
+    el.avviso.hidden = true;
+    updatePeople();
+  }
+
+  /** Il lato (sinistra/destra) di una voce appena arrivata, nella stanza di prossimita'. */
+  function attachPanner(track, identita) {
+    var ctx = track.audioContext;
+    if (!vicinanza || !ctx || typeof ctx.createStereoPanner !== 'function') { return; }
+    var pn = ctx.createStereoPanner();
+    pn.pan.value = vicinanza.pans[identita] || 0;
+    track.setWebAudioPlugins([pn]);
+    panners[identita] = pn;
   }
 
   // ------------------------------------------------------------------ microfoni del dispositivo
@@ -281,14 +340,20 @@
         // Lo stesso audio annunciato due volte (succede dopo una riconnessione): un secondo
         // elemento farebbe sentire quella voce doppia, con l'eco.
         if (track.attachedElements.length > 0) { return; }
+        // Una voce per persona: un elemento rimasto da un abbonamento precedente se ne va.
+        Array.prototype.forEach.call(el.audio.querySelectorAll('audio'), function (vecchio) {
+          if (vecchio.getAttribute('data-identita') === p.identity) { vecchio.remove(); }
+        });
         var a = track.attach();
         a.setAttribute('data-identita', p.identity);
         el.audio.appendChild(a);
+        attachPanner(track, p.identity);
         applyVolume(p);
         updatePeople();
       })
-      .on(E.TrackUnsubscribed, function (track) {
+      .on(E.TrackUnsubscribed, function (track, pub, p) {
         track.detach().forEach(function (a) { a.remove(); });
+        if (p) { delete panners[p.identity]; }
         updatePeople();
       })
       .on(E.TrackMuted, updatePeople)
@@ -304,6 +369,13 @@
       })
       .on(E.AudioPlaybackStatusChanged, function () { el.sblocca.hidden = r.canPlaybackAudio; })
       .on(E.MediaDevicesChanged, listMicrophones)
+      .on(E.DataReceived, function (dati, mittente, tipo, argomento) {
+        // Solo i pacchetti del server (nessun mittente): un altro browser non puo' mandarli.
+        if (mittente || argomento !== 'proximity' || r !== room) { return; }
+        try {
+          applyProximity(JSON.parse(new TextDecoder().decode(dati)).n || []);
+        } catch (e) { /* pacchetto rovinato: arriva il prossimo */ }
+      })
       .on(E.Reconnecting, function () { showStatus(t('reconnecting')); })
       .on(E.Reconnected, function () { showError(''); renderPeople(); })
       .on(E.Disconnected, function (motivo) {
@@ -326,6 +398,9 @@
     stanzaId = null;
     parlano = {};
     righe = {};
+    vicinanza = null;
+    panners = {};
+    el.avviso.hidden = true;
     detachAudio();
     el.persone.textContent = '';
     el.dispRiga.hidden = true;
@@ -370,9 +445,14 @@
       if (stanzaId !== id) { return; }   // nel frattempo ha cliccato altro
       puoParlare = !!g.canSpeak;
       el.nome.textContent = g.name || nomeStanza;
+      vicinanza = isProximityRoom(id) ? { gains: {}, pans: {}, permessi: '', ultimo: 0 } : null;
+      panners = {};
       var r = new LK.Room({
         adaptiveStream: false,
         dynacast: false,
+        // In prossimita' l'audio passa dal mixer del browser: serve per il lato sinistra/destra.
+        webAudioMix: !!vicinanza,
+        singlePeerConnection: false,
         audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         publishDefaults: { dtx: true, red: true }
       });
@@ -386,8 +466,29 @@
         markButtons();
         // Siamo ancora nel clic: e' il momento in cui il browser lascia partire l'audio.
         r.startAudio().catch(function () {}).then(function () { el.sblocca.hidden = r.canPlaybackAudio; });
+        var permessi = Promise.resolve();
+        if (vicinanza) {
+          // Prima di accendere il microfono: nessuno ci sente finche' il server di gioco non dice
+          // chi ci sta vicino.
+          // (Se un pacchetto e' gia' arrivato durante il collegamento, si tiene il suo elenco.)
+          permessi = r.localParticipant.setTrackSubscriptionPermissions(false,
+            vicinanza.permessi.split(',').filter(Boolean).map(function (id) {
+              return { participantIdentity: id, allowAll: true };
+            }));
+        }
         if (puoParlare) {
-          return enableMicrophone().then(function () { updateMicButton(); updatePeople(); listMicrophones(); });
+          return Promise.resolve(permessi).then(enableMicrophone)
+            .then(function () {
+              updateMicButton(); updatePeople(); listMicrophones();
+              // Raro, ma visto: la negoziazione WebRTC fallisce e il microfono non esce. Un
+              // secondo tentativo dopo qualche secondo, solo se nel frattempo non l'ha spento lui.
+              setTimeout(function () {
+                if (room === r && puoParlare && micVoluto
+                    && !r.localParticipant.getTrackPublication(LK.Track.Source.Microphone)) {
+                  enableMicrophone().then(function () { updateMicButton(); updatePeople(); });
+                }
+              }, 4000);
+            });
         }
       });
     }).catch(function (e) {
@@ -400,10 +501,10 @@
 
   // ------------------------------------------------------------------ pulsanti
 
-  Array.prototype.forEach.call(box.querySelectorAll('.voce-entra'), function (b) {
+  Array.prototype.forEach.call(box.querySelectorAll('.voice-entra'), function (b) {
     b.addEventListener('click', function () {
-      var card = b.closest('.voce-stanza');
-      var nome = card ? card.querySelector('.voce-stanza-nome').textContent.trim() : '';
+      var card = b.closest('.voice-stanza');
+      var nome = card ? card.querySelector('.voice-stanza-nome').textContent.trim() : '';
       joinRoom(b.getAttribute('data-room'), nome);
     });
   });
@@ -412,6 +513,7 @@
     if (!room || !puoParlare) { return; }
     var lp = room.localParticipant;
     var accendi = !lp.isMicrophoneEnabled;
+    micVoluto = accendi;
     (accendi ? enableMicrophone() : lp.setMicrophoneEnabled(false)).then(function () {
       updateMicButton();
       updatePeople();
@@ -426,15 +528,41 @@
     if (room) { room.startAudio().then(function () { el.sblocca.hidden = room.canPlaybackAudio; }); }
   });
 
-  // Arrivando da /voce#<stanza> (colonna laterale): la scheda di quella stanza si fa notare.
+  // Arrivando da /voice#<stanza> (colonna laterale): la scheda di quella stanza si fa notare.
   // Entrare resta un clic: il browser fa partire microfono e audio solo dopo un gesto.
   if (location.hash.length > 1) {
     var scelta = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-    if (scelta && scelta.classList.contains('voce-stanza')) {
+    if (scelta && scelta.classList.contains('voice-stanza')) {
       scelta.classList.add('is-evidenza');
       scelta.scrollIntoView({ block: 'center' });
     }
   }
+
+  // Prossimita': ogni pochi secondi si controlla che i pacchetti del server di gioco arrivino
+  // (se no il giocatore non e' in gioco) e, ogni tanto, in che modalita' e' adesso: se e' passato
+  // da faction a hub, la pagina lo sposta da sola nella stanza dei vicini della modalita' nuova.
+  var ultimoGiro = 0;
+  setInterval(function () {
+    if (!room || !vicinanza || room.state !== LK.ConnectionState.Connected) { return; }
+    var muto = Date.now() - Math.max(vicinanza.ultimo, vicinanza.inizio || 0) > 6000;
+    if (!vicinanza.inizio) { vicinanza.inizio = Date.now(); muto = false; }
+    el.avviso.hidden = !muto;
+    if (Date.now() - ultimoGiro < 15000) { return; }
+    ultimoGiro = Date.now();
+    var dati = new FormData();
+    dati.set('action', 'rooms');
+    dati.set('csrf', csrf);
+    fetch(api, { method: 'POST', body: dati, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (risposta) {
+        if (!risposta || !risposta.ok || !room || !isProximityRoom(stanzaId)) { return; }
+        var qui = (risposta.rooms || []).filter(function (s) { return isProximityRoom(s.id); })[0];
+        if (qui && qui.id !== stanzaId) {
+          joinRoom(qui.id, qui.name);
+        }
+      })
+      .catch(function () { /* riprova al prossimo giro */ });
+  }, 2000);
 
   // Chiudendo la scheda si esce subito dalla stanza (gli altri non aspettano il timeout).
   window.addEventListener('pagehide', function () {

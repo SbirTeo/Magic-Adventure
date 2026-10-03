@@ -1,9 +1,12 @@
 <?php
 /**
- * API della chat vocale (/voce): dà al browser il gettone per entrare in UNA stanza.
+ * API della chat vocale (/voice): dà al browser il gettone per entrare in UNA stanza.
  *
  *   POST action=token room=<id> csrf=<token>
  *     -> {ok:true, url, token, room, name, canSpeak}  oppure  {ok:false, error}
+ *   POST action=rooms csrf=<token>
+ *     -> {ok:true, rooms:[{id, name}]}: le stanze di adesso. La pagina la chiede ogni tanto per
+ *        seguire il giocatore quando cambia modalità (la stanza di prossimità è near-<server>).
  *
  * Le regole (chi entra dove, ban, mute) stanno in includes/voice.php. Qui solo: accesso fatto,
  * CSRF, stanza fra quelle permesse al giocatore adesso.
@@ -42,13 +45,21 @@ if ($csrfSessione === '' || !hash_equals($csrfSessione, (string) ($_POST['csrf']
 if (!voice_ready()) {
     voice_api_error('La chat vocale non è ancora attiva.', 503);
 }
-if (($_POST['action'] ?? '') !== 'token') {
+$azione = (string) ($_POST['action'] ?? '');
+if ($azione !== 'token' && $azione !== 'rooms') {
     voice_api_error('Richiesta non valida.');
 }
 
 $sanzioni = voice_sanctions((string) $me['mc_uuid']);
 if ($sanzioni['ban'] !== null) {
     voice_api_error('Hai un ban attivo: la chat vocale non è disponibile.', 403);
+}
+
+if ($azione === 'rooms') {
+    voice_api_reply([
+        'ok'    => true,
+        'rooms' => array_map(fn ($s) => ['id' => $s['id'], 'name' => $s['name']], voice_rooms($me)),
+    ]);
 }
 
 $richiesta = (string) ($_POST['room'] ?? '');

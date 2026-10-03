@@ -265,6 +265,23 @@ HTML = r"""<!DOCTYPE html>
   <p class="sub">Senza argomento, <span class="cmd">/f chat</span> cambia canale a rotazione; oppure
   <span class="cmd">/f chat faction</span>, ecc.</p>
 </section>
+<section id="voice" data-desc="Parlare a voce dal browser, senza mod: vicini, fazione e tutta la rete.">
+  <h2><span class="n">#</span>Chat vocale — Voice</h2>
+  <p>Sul sito c'è <a href="/voice"><b>Voice</b></a>: parli con gli altri giocatori <b>senza installare
+  niente</b>, dal browser. Tieni aperta la pagina mentre giochi (va bene anche il telefono, usato come
+  auricolare): entri con lo stesso account del gioco e scegli una stanza.</p>
+  <ul>
+    <li><b>Vicini</b> — la voce di prossimità: senti solo chi ti sta vicino in gioco, più forte quanto più è
+      vicino e dal lato in cui sta. La stanza compare quando sei in gioco, e se cambi modalità la pagina ti
+      sposta da sola in quella giusta. Chi è lontano non ti sente.</li>
+    <li><b>Fazione</b> — solo i membri della tua fazione, ovunque si trovino.</li>
+    <li><b>Tutta la rete</b> — la stanza di tutti.</li>
+  </ul>
+  <div class="tip">Meglio con le cuffie. Il microfono si accende solo quando entri in una stanza e lo spegni
+  quando vuoi; per ognuno puoi alzare o abbassare il volume. Niente viene registrato.</div>
+  <div class="warn">Valgono le stesse regole della chat: con un <b>mute</b> puoi solo ascoltare, con un
+  <b>ban</b> Voice non è disponibile.</div>
+</section>
 <section id="alleati" data-desc="Alleanze, nemici e quanti alleati puoi avere.">
   <h2><span class="n">#</span>Alleati e nemici</h2>
   <p>Esistono solo due relazioni: <b>alleato</b> e <b>nemico</b>. <b>Di default ogni fazione è nemica di tutte.</b></p>

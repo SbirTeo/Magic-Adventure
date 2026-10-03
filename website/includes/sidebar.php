@@ -216,34 +216,34 @@ function sidebar_colonna(bool $conContenitore = true): void {
     </aside>
 
     <?php if (voice_ready()): ?>
-      <?php /* Scorciatoia della chat vocale (/voce): le stanze in cui chi guarda può entrare,
+      <?php /* Scorciatoia della chat vocale (/voice): le stanze in cui chi guarda può entrare,
                con chi c'è dentro adesso, e il totale delle altre fazioni (senza nomi: quelle
                stanze sono private). I numeri li dà il server della voce, vedi voice_overview(). */
       $voce = voice_overview($me);
       $voceBan = $me ? voice_sanctions((string) $me['mc_uuid'])['ban'] !== null : false; ?>
-      <section class="panel modulo-voce">
+      <section class="panel modulo-voice">
         <div class="online-head">
-          <span class="voce-dot<?= $voce['total'] > 0 ? ' is-attivo' : '' ?>" aria-hidden="true"></span>
-          <h3>Chat vocale</h3>
+          <span class="voice-dot<?= $voce['total'] > 0 ? ' is-attivo' : '' ?>" aria-hidden="true"></span>
+          <h3>Voice</h3><span class="voice-side-sottotitolo">chat vocale</span>
           <span class="online-conta" title="Persone in chat vocale adesso"><?= (int) $voce['total'] ?></span>
         </div>
         <?php if (!$voceBan): ?>
-          <ul class="voce-side-stanze">
+          <ul class="voice-side-stanze">
             <?php foreach ($voce['rooms'] as $s): ?>
-              <li class="voce-side-stanza">
-                <a class="voce-side-link" href="/voce#<?= h($s['id']) ?>">
-                  <?= ui_icon(str_starts_with($s['id'], 'fazione-') ? 'shield' : 'users') ?>
-                  <span class="voce-side-nome"><?= h($s['name']) ?></span>
-                  <span class="voce-side-conta"><?= $s['count'] > 0 ? (int) $s['count'] : 'vuota' ?></span>
+              <li class="voice-side-stanza">
+                <a class="voice-side-link" href="/voice#<?= h($s['id']) ?>">
+                  <?= ui_icon(voice_room_icon($s['id'])) ?>
+                  <span class="voice-side-nome"><?= h($s['name']) ?></span>
+                  <span class="voice-side-conta"><?= $s['count'] > 0 ? (int) $s['count'] : 'vuota' ?></span>
                 </a>
                 <?php if ($s['people']): ?>
-                  <span class="voce-side-facce">
+                  <span class="voice-side-facce">
                     <?php foreach (array_slice($s['people'], 0, 8) as $p): ?>
                       <img src="<?= h($p['avatar']) ?>" alt="<?= h($p['name']) ?>" title="<?= h($p['name']) ?>"
                            width="22" height="22" loading="lazy">
                     <?php endforeach; ?>
                     <?php if (count($s['people']) > 8): ?>
-                      <span class="voce-side-altri">+<?= count($s['people']) - 8 ?></span>
+                      <span class="voice-side-altri">+<?= count($s['people']) - 8 ?></span>
                     <?php endif; ?>
                   </span>
                 <?php endif; ?>
@@ -251,17 +251,17 @@ function sidebar_colonna(bool $conContenitore = true): void {
             <?php endforeach; ?>
           </ul>
           <?php if ($voce['other_rooms'] > 0): ?>
-            <p class="voce-side-nota">
+            <p class="voice-side-nota">
               <?= $voce['other_people'] === 1 ? '1 persona' : (int) $voce['other_people'] . ' persone' ?>
               nelle stanze di <?= $voce['other_rooms'] === 1 ? 'un\'altra fazione' : (int) $voce['other_rooms'] . ' altre fazioni' ?>.
             </p>
           <?php endif; ?>
         <?php endif; ?>
-        <p class="voce-side-nota">Senza mod: si parla dal browser, anche dal telefono. Tieni aperta la scheda mentre giochi.</p>
+        <p class="voice-side-nota">Senza mod: si parla dal browser, anche dal telefono. Tieni aperta la scheda mentre giochi.</p>
         <?php if (!$me): ?>
-          <a href="/login" class="btn btn-ghost btn-small voce-side-btn">Accedi per parlare</a>
+          <a href="/login" class="btn btn-ghost btn-small voice-side-btn">Accedi per parlare</a>
         <?php elseif (!$voceBan): ?>
-          <a href="/voce" class="btn btn-accent btn-small voce-side-btn"><?= ui_icon('headphones') ?> Apri la chat vocale</a>
+          <a href="/voice" class="btn btn-accent btn-small voice-side-btn"><?= ui_icon('headphones') ?> Apri Voice</a>
         <?php endif; ?>
       </section>
     <?php endif; ?>

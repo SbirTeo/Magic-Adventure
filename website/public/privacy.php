@@ -72,6 +72,17 @@ legal_header('Informativa sulla privacy', 'privacy');
     data, account a cui è stato consegnato e il numero della transazione PayPal. I dati di pagamento
     (carta, conto, indirizzo email PayPal) li tratta <strong>PayPal</strong>: noi non li vediamo.
   </p>
+  <h3>Chat vocale (Voice)</h3>
+  <p>
+    Se entri in una stanza di <a href="/voice">Voice</a>, la tua voce passa dal nostro server (ospitato da
+    OVH, nell'Unione Europea) e arriva soltanto a chi è nella stessa stanza: nelle stanze di prossimità,
+    solo a chi ti è vicino in gioco. <strong>La voce non viene registrata né conservata</strong>, da
+    nessuna parte. Per farla viaggiare il server vede il tuo indirizzo IP e, mentre sei collegato, il
+    tuo nome di gioco e la stanza in cui sei. Nelle stanze di prossimità il server di gioco calcola,
+    dalla tua posizione in partita, quanto forte senti gli altri: la posizione resta sul server e non
+    arriva a nessun altro giocatore. Il microfono si accende solo quando entri in una stanza, e lo
+    spegni quando vuoi.
+  </p>
   <h3>Dati tecnici del sito</h3>
   <p>
     Come ogni sito, il server web registra per qualche giorno le richieste ricevute (indirizzo IP,
@@ -112,6 +123,8 @@ legal_header('Informativa sulla privacy', 'privacy');
       provvedimento conta per le soglie successive, e i suoi punti si dimezzano ogni 90 giorni).</li>
     <li><strong>Ordini</strong>: 10 anni, come richiesto dalla legge per i documenti contabili.</li>
     <li><strong>Registri del server web</strong>: pochi giorni, poi vengono cancellati in automatico.</li>
+    <li><strong>Chat vocale</strong>: la voce non si conserva; chi è in una stanza lo sa il server solo
+      finché sei collegato.</li>
   </ul>
 
   <h2>6. I tuoi diritti</h2>
