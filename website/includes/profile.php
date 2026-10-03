@@ -232,8 +232,6 @@ function profile_faction_render(array $dati, bool $own): string {
         $territori = (int) $f['claims'];
         $potenza = 0; $potenzaMax = 0;
         foreach ($membri as $m) { $potenza += (int) $m['power']; $potenzaMax += (int) $m['max_power']; }
-        $grado = profile_faction_rank((string) ($io['faction_rank'] ?? ''));
-        $dentroDal = profile_ms_date($io['joined_at'] ?? 0);
         $pos = (int) ($f['position'] ?? 0);
         $desc = trim((string) ($f['description'] ?? ''));
     ?>
@@ -241,9 +239,6 @@ function profile_faction_render(array $dati, bool $own): string {
         <img class="profilo-fazione-avatar" src="<?= h(faction_avatar_url($f)) ?>" alt="" width="64" height="64">
         <div class="profilo-fazione-testo">
           <strong><?= h($f['name']) ?></strong>
-          <small>
-            <?= h($grado !== '' ? $grado : 'Membro') ?><?= $dentroDal !== '' ? ' &middot; dentro dal ' . h($dentroDal) : '' ?>
-          </small>
           <?php if ($desc !== ''): ?>
             <p class="profilo-fazione-desc">&ldquo;<?= h($desc) ?>&rdquo;</p>
           <?php endif; ?>
