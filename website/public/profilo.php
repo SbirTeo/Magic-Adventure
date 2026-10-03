@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/profile.php';
 
 require_login();
 
@@ -62,28 +63,8 @@ if (($_GET['otp'] ?? '') === 'recupero') {
             . "Se hai cambiato telefono, azzera e riconfigura la verifica qui sotto.";
 }
 
-/**
- * Dati di gioco (MagixFactions, database a parte): se quel database non e' raggiungibile
- * il profilo deve comunque aprirsi, quindi si va avanti con i trattini al posto dei numeri.
- */
-$stats = null;
-try {
-    // `rank` fra apici inversi: e' una parola riservata di MariaDB/MySQL (funzione finestra).
-    $q = db()->prepare("
-        SELECT p.power, p.max_power, f.name AS faction_name, f.tag AS faction_tag,
-               fm.`rank` AS faction_rank,
-               (SELECT COUNT(*) FROM factions_magixfactions.claims c WHERE c.faction_id = f.id) AS territories
-        FROM users u
-        LEFT JOIN factions_magixfactions.players p ON p.uuid = u.mc_uuid COLLATE utf8mb4_unicode_ci
-        LEFT JOIN factions_magixfactions.faction_members fm ON fm.uuid = u.mc_uuid COLLATE utf8mb4_unicode_ci
-        LEFT JOIN factions_magixfactions.factions f ON f.id = fm.faction_id
-        WHERE u.id = ?
-    ");
-    $q->execute([$me['id']]);
-    $stats = $q->fetch() ?: null;
-} catch (PDOException $e) {
-    $stats = null;
-}
+// Dati di gioco (MagixFactions, database a parte): null se non risponde, e il profilo si apre lo stesso.
+$stats = profile_game_stats((int) $me['id']);
 
 // Attivita' sul sito
 $topics = db()->prepare('SELECT COUNT(*) FROM forum_topics WHERE user_id = ?');
@@ -139,6 +120,7 @@ try {
 
 $coloreNome = player_name_color($me);
 $dataIt = fn(?string $d) => $d ? date('d/m/Y H:i', strtotime($d)) : '—';
+$dataGiorno = fn(?string $d) => $d ? date('d/m/Y', strtotime($d)) : '—';
 
 require __DIR__ . '/../includes/header.php';
 ?>
@@ -158,84 +140,82 @@ require __DIR__ . '/../includes/header.php';
   <a href="/logout" class="btn btn-ghost btn-small">Esci</a>
 </nav>
 
-<h1 class="page-title">Il tuo profilo</h1>
-
 <?php if ($avviso): ?><div class="alert alert-success"><?= h($avviso) ?></div><?php endif; ?>
 
-<div class="profilo-testata panel">
-  <?php /* Il personaggio si gira trascinandolo: ci pensa assets/js/profilo-skin.js.
-           L'immagine ferma resta come ripiego se il 3D non parte. */ ?>
-  <div class="profilo-avatar" id="avatar3d"
-       data-skin="<?= h(mc_skin_url($me['mc_uuid'], $me['premium_uuid'] ?? null)) ?>">
-    <canvas hidden></canvas>
-    <img class="profilo-skin" src="<?= h(mc_body_url($me['mc_uuid'], 160, $me['premium_uuid'] ?? null)) ?>" alt=""
-         width="90" height="200" loading="lazy">
-    <span class="profilo-avatar-nota">Trascina per girarlo</span>
-  </div>
-
-  <div class="profilo-testata-testo">
-    <div class="profilo-intestazione">
-      <div class="profilo-nome colore-grado"<?= $coloreNome !== null ? ' style="' . rank_color_style($coloreNome) . '"' : '' ?>>
-        <?= h($me['mc_username']) ?>
-      </div>
-      <?php $tag = player_tag($me); ?>
-      <?php if ($tag !== ''): ?>
-        <div class="profilo-gradi"><?= $tag ?></div>
-      <?php endif; ?>
+<?php /* Stessa impaginazione della scheda pubblica (/utente): a sinistra la carta con skin,
+         nome, gradi e dati dell'account; a destra "In gioco" e "Sul sito" (con gli acquisti).
+         Sotto, a tutta larghezza, sicurezza e aspetto: sono impostazioni, non dati. */ ?>
+<div class="profilo-pagina">
+  <aside class="panel profilo-carta">
+    <?php /* Il personaggio si gira trascinandolo: ci pensa assets/js/profilo-skin.js.
+             L'immagine ferma resta come ripiego se il 3D non parte. */ ?>
+    <div class="profilo-avatar" id="avatar3d"
+         data-skin="<?= h(mc_skin_url($me['mc_uuid'], $me['premium_uuid'] ?? null)) ?>">
+      <canvas hidden></canvas>
+      <img class="profilo-skin" src="<?= h(mc_body_url($me['mc_uuid'], 160, $me['premium_uuid'] ?? null)) ?>" alt=""
+           width="90" height="200" loading="lazy">
+      <span class="profilo-avatar-nota">Trascina per girarlo</span>
     </div>
-    <?php if ($tag === ''): ?>
-      <p class="profilo-nota">Nessun grado in gioco: entra su <strong>mc.magicadventure.it</strong> per farlo comparire qui.</p>
+
+    <h1 class="profilo-nome colore-grado"<?= $coloreNome !== null ? ' style="' . rank_color_style($coloreNome) . '"' : '' ?>><?= h($me['mc_username']) ?></h1>
+    <?php $tag = player_tag($me); ?>
+    <?php if ($tag !== ''): ?>
+      <div class="profilo-gradi"><?= $tag ?></div>
+    <?php else: ?>
+      <p class="profilo-stato">Nessun grado in gioco: entra su <strong>mc.magicadventure.it</strong> per farlo comparire qui.</p>
     <?php endif; ?>
 
-    <?php /* Due colonne di coppie etichetta/valore, ognuna sulla sua riga con un filo di
-             separazione: prima erano quattro colonne sparse e sembravano buttate lì. */ ?>
-    <dl class="profilo-account">
+    <dl class="profilo-date">
       <div>
-        <dt>Account Minecraft</dt>
-        <dd><strong class="testo-verde"><?= h($me['mc_username']) ?></strong></dd>
+        <dt>In gioco dal</dt>
+        <dd><?= $primoAccessoServer ? h($dataGiorno($primoAccessoServer)) : 'mai entrato' ?></dd>
       </div>
       <div>
+        <dt>Sul sito dal</dt>
+        <dd><?= h($dataGiorno($me['created_at'])) ?></dd>
+      </div>
+      <div>
+        <dt>Ultimo accesso</dt>
+        <dd><?= h($dataIt($me['last_login'])) ?></dd>
+      </div>
+      <div class="profilo-date-uuid">
         <dt>UUID</dt>
-        <?php /* L'UUID e' piu' largo della colonna: invece di spezzarsi su due righe resta
-                 su una sola e si scorre trascinandolo (vedi .scorri-trascinando). */ ?>
+        <?php /* L'UUID e' piu' largo della carta: resta su una riga e si scorre trascinandolo
+                 (vedi .scorri-trascinando). */ ?>
         <dd><span class="code-box code-box-lungo scorri-trascinando"><?= h($me['mc_uuid']) ?></span></dd>
       </div>
-      <div>
-        <dt>Primo accesso al server</dt>
-        <dd><?= h($dataIt($primoAccessoServer)) ?></dd>
-      </div>
-      <div>
-        <dt>Primo accesso al sito</dt>
-        <dd><?= h($dataIt($me['created_at'])) ?></dd>
-      </div>
     </dl>
-  </div>
-</div>
+  </aside>
 
-<h2><?= ui_icon('swords') ?> In gioco</h2>
-<div class="profilo-griglia">
-  <div class="profilo-dato">
-    <span>Fazione</span>
-    <strong><?= $stats && $stats['faction_name'] ? h($stats['faction_name']) : '—' ?></strong>
-  </div>
-  <div class="profilo-dato">
-    <span>Grado nella fazione</span>
-    <strong><?php
-      // Nome del grado dallo specchio del config (faction_ranks_map); se manca, l'id capitalizzato.
-      $r = $stats['faction_rank'] ?? null;
-      $nomeGrado = $r ? (faction_ranks_map()[strtolower((string) $r)]['name'] ?? '') : '';
-      echo $stats && $stats['faction_name'] && $r
-          ? h($nomeGrado !== '' ? $nomeGrado : ucfirst((string) $r))
-          : '—';
-    ?></strong>
-  </div>
-  <div class="profilo-dato">
-    <span>Potenza</span>
-    <strong><?= $stats && $stats['power'] !== null ? (int) $stats['power'] . ' / ' . (int) $stats['max_power'] : '—' ?></strong>
-  </div>
-  <div class="profilo-dato">
-    <span>Territori della fazione</span>
-    <strong><?= $stats && $stats['territories'] !== null ? (int) $stats['territories'] : '0' ?></strong>
+  <div class="profilo-colonna">
+    <?= profile_game_panel($stats, true) ?>
+    <?php
+      // Gli acquisti (con le cifre) li vede solo il proprietario: stanno qui, nel blocco del sito.
+      ob_start();
+      if ($acquisti):
+    ?>
+      <h3 class="profilo-sottotitolo"><?= ui_icon('cart') ?> I tuoi acquisti</h3>
+      <div class="tabella-scorrevole">
+        <table class="rank profilo-acquisti">
+          <thead>
+            <tr><th>Acquisto</th><th>Prezzo</th><th>Data</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($acquisti as $a): ?>
+              <tr>
+                <td><?= h($a['package_name']) ?></td>
+                <td><?= h(number_format((float) $a['price'], 2, ',', '.')) ?> <?= h($a['currency']) ?></td>
+                <td><?= h($dataGiorno($a['paid_at'])) ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php
+      endif;
+      $__acquistiHtml = (string) ob_get_clean();
+    ?>
+    <?= profile_site_panel(['Discussioni' => $nTopics, 'Risposte' => $nRisposte, 'Mi piace ricevuti' => $nMiPiace], $__acquistiHtml) ?>
   </div>
 </div>
 
@@ -350,51 +330,8 @@ require __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<h2><?= ui_icon('message') ?> Attività sul sito</h2>
-<div class="profilo-griglia">
-  <div class="profilo-dato">
-    <span>Discussioni aperte</span>
-    <strong><?= $nTopics ?></strong>
-  </div>
-  <div class="profilo-dato">
-    <span>Risposte nel forum</span>
-    <strong><?= $nRisposte ?></strong>
-  </div>
-  <div class="profilo-dato">
-    <span>Mi piace ricevuti</span>
-    <strong><?= $nMiPiace ?></strong>
-  </div>
-  <?php /* "Iscritto dal" sta ora fra i dati dell'account, in cima. */ ?>
-  <div class="profilo-dato">
-    <span>Ultimo accesso</span>
-    <strong><?= h($dataIt($me['last_login'])) ?></strong>
-  </div>
-</div>
-
-<?php if ($acquisti): ?>
-  <h2><?= ui_icon('cart') ?> I tuoi acquisti</h2>
-  <div class="panel">
-    <div class="tabella-scorrevole">
-      <table class="rank">
-        <thead>
-          <tr><th>Acquisto</th><th>Prezzo</th><th>Data</th></tr>
-        </thead>
-        <tbody>
-          <?php foreach ($acquisti as $a): ?>
-            <tr>
-              <td><?= h($a['package_name']) ?></td>
-              <td><?= h(number_format((float) $a['price'], 2, ',', '.')) ?> <?= h($a['currency']) ?></td>
-              <td><?= h($dataIt($a['paid_at'])) ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-<?php endif; ?>
-
-<?php /* Il riquadro "Account" non c'e' piu': nome, UUID e primi accessi stanno in cima,
-         accanto alla skin. Resta solo la nota su come si cambia la password. */ ?>
+<?php /* Nome, UUID e primi accessi stanno nella carta in cima. Resta solo la nota su come si
+         cambia la password. */ ?>
 <p class="profilo-nota" style="margin-top:22px;">
   La password e' la stessa che usi per entrare sul server: cambiandola da
   <a href="/cambia-password">Cambia password</a> cambia in tutti e due i posti.

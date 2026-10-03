@@ -1588,13 +1588,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .player-stat strong { color: var(--text); font-family: var(--font-heading); }
 .player-sidebar-btn { display: block; width: 100%; text-align: center; }
 
-/* ---- Pagina profilo (/profilo) ------------------------------------------------------- */
-.profilo-testata {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 30px;
-}
+/* ---- Pagine del giocatore (/profilo e /utente) --------------------------------------- */
 /* Riquadro del personaggio: la tela 3D e l'immagine di ripiego stanno nello stesso posto */
 .profilo-avatar {
   position: relative;
@@ -1625,7 +1619,6 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 /* Il suggerimento compare solo se il 3D e' partito davvero */
 .profilo-avatar.e-girabile:hover .profilo-avatar-nota { opacity: 1; }
 
-.profilo-intestazione { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 .profilo-skin {
   width: 90px;
   height: auto;
@@ -1633,14 +1626,6 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.55));
   flex-shrink: 0;
 }
-.profilo-testata-testo { min-width: 0; }
-.profilo-nome {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 28px;
-  line-height: 1.2;
-}
-.profilo-gradi { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .profilo-nota { color: var(--text-dim); font-size: var(--fs-sm); margin: 10px 0 0; }
 /* Riga dei comandi sopra al titolo: UNA riga sola, e se i pulsanti non ci stanno si
    scorre di lato col dito (come le schede del gestionale), invece di andare a capo. */
@@ -1662,50 +1647,96 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
    come se fosse un fratello. */
 .profilo-barra form { display: contents; }
 
-/* Dati dell'account, accanto alla skin */
-/* Due colonne al massimo: con quattro voci affiancate le righe sembravano sparse */
-.profilo-account {
+/* Due colonne: la carta (chi e') e i blocchi (cosa fa). */
+.profilo-indietro { display: inline-block; margin: 28px 0 14px; color: var(--text-dim); font-size: var(--fs-sm); text-decoration: none; }
+.profilo-indietro:hover { color: var(--text); text-decoration: none; }
+.profilo-pagina {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
-  gap: 0 32px;
-  margin: 16px 0 0;
-  max-width: 720px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin: 0 0 28px;
 }
-.profilo-account > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--border);
+.profilo-barra + .alert, .profilo-barra + .profilo-pagina { margin-top: 0; }
+.profilo-carta { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 22px; margin: 0; min-width: 0; }
+.profilo-carta .profilo-avatar { width: 100%; min-height: 260px; }
+.profilo-nome {
+  margin: 18px 0 0;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
-.profilo-account dt { color: var(--text-dim); font-size: var(--fs-sm); flex: 0 0 auto; }
-.profilo-account dd { margin: 0; font-size: var(--fs-base); font-weight: 600; text-align: right; min-width: 0; }
-.profilo-griglia {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
+.profilo-gradi { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.profilo-stato { display: inline-flex; align-items: center; gap: 7px; margin: 10px 0 0; color: var(--text-dim); font-size: var(--fs-sm); }
+.profilo-date { width: 100%; margin: 18px 0 0; text-align: left; }
+.profilo-date > div {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-top: 1px solid var(--border); font-size: var(--fs-sm);
 }
-.profilo-dato {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
+.profilo-date dt { color: var(--text-dim); flex: 0 0 auto; }
+.profilo-date dd { margin: 0; font-weight: 600; text-align: right; min-width: 0; }
+.profilo-date .profilo-date-uuid { flex-direction: column; align-items: stretch; gap: 6px; }
+.profilo-date .profilo-date-uuid dd { text-align: left; font-weight: 400; }
+.profilo-date .profilo-date-uuid .code-box { display: block; max-width: 100%; font-size: var(--fs-xs); }
+.profilo-carta-azione.btn { margin-top: 16px; width: 100%; text-align: center; }
+
+.profilo-colonna { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.profilo-blocco { margin: 0; padding: 20px 22px; }
+.profilo-blocco-titolo { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; font-size: var(--fs-md); }
+.profilo-blocco-titolo .ico { color: var(--purple); }
+.profilo-vuoto { margin: 14px 0 0; color: var(--text-dim); font-size: var(--fs-sm); }
+.profilo-blocco-titolo + .profilo-vuoto { margin-top: 0; }
+
+/* Fazione: sigla in un tassello, nome grande, grado e territori sotto. */
+.profilo-fazione {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-panel-2);
 }
-.profilo-dato span { display: block; color: var(--text-dim); font-size: var(--fs-sm); margin-bottom: 6px; }
-.profilo-dato strong { font-family: var(--font-heading); font-size: var(--fs-md); }
-@media (max-width: 620px) {
-  /* Su telefono il personaggio va sopra, a tutta larghezza */
-  /* NIENTE justify-items:center qui: farebbe dimensionare la colonna sul contenuto
-     (520px di dati) invece di stringerla, e la pagina scorrerebbe di lato. Il
-     personaggio si centra col margine, il testo con text-align. */
-  .profilo-testata { grid-template-columns: minmax(0, 1fr); gap: 18px; text-align: center; }
-  .profilo-avatar { margin-inline: auto; }
-  .profilo-avatar { width: 100%; max-width: 220px; }
-  .profilo-intestazione { justify-content: center; }
-  .profilo-account { text-align: left; width: 100%; }
+.profilo-fazione-sigla {
+  display: grid; place-items: center; flex: 0 0 auto;
+  min-width: 50px; height: 50px; padding: 0 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--purple) 16%, transparent);
+  color: var(--purple);
+  font-family: var(--font-heading); font-weight: 800; font-size: var(--fs-sm); letter-spacing: .04em; text-transform: uppercase;
+}
+.profilo-fazione-sigla .ico { width: 22px; height: 22px; }
+.profilo-fazione.is-vuota .profilo-fazione-sigla { background: var(--bg-elevated); color: var(--text-dimmer); }
+.profilo-fazione-testo { min-width: 0; }
+.profilo-fazione-testo strong { display: block; font-family: var(--font-heading); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.profilo-fazione-testo small { display: block; margin-top: 2px; color: var(--text-dim); font-size: var(--fs-sm); }
+.profilo-fazione-testo code { font-size: .92em; }
+
+/* Potenza: numero e barra, come nella guida. */
+.profilo-potenza { margin-top: 18px; }
+.profilo-potenza-riga { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.profilo-potenza-riga > span { display: inline-flex; align-items: center; gap: 7px; color: var(--text-dim); font-size: var(--fs-sm); }
+.profilo-potenza-riga strong { font-family: var(--font-heading); font-size: var(--fs-md); }
+.profilo-potenza-riga strong span { color: var(--text-dim); font-weight: 600; font-size: var(--fs-sm); }
+.profilo-potenza-barra { height: 10px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); overflow: hidden; }
+.profilo-potenza-barra i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--purple), var(--green)); }
+.profilo-potenza.is-negativa strong { color: #f87171; }
+
+/* Sul sito: numeri affiancati, grandi, con l'etichetta sotto. */
+.profilo-numeri { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.profilo-numeri > div { padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-panel-2); }
+.profilo-numeri strong { display: block; font-family: var(--font-heading); font-size: 24px; line-height: 1.1; }
+.profilo-numeri span { display: block; margin-top: 4px; color: var(--text-dim); font-size: var(--fs-sm); }
+.profilo-sottotitolo { display: flex; align-items: center; gap: 8px; margin: 22px 0 10px; font-size: var(--fs-base); }
+
+@media (max-width: 860px) {
+  .profilo-pagina { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .profilo-colonna { gap: 12px; }
+  .profilo-carta .profilo-avatar { max-width: 220px; min-height: 240px; }
   .profilo-nome { font-size: var(--fs-xl); }
+  /* Tre numeri sempre su una riga sola, anche stretti: si leggono come una frase. */
+  .profilo-numeri { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; }
+  .profilo-numeri > div { padding: 12px 10px; }
+  .profilo-numeri strong { font-size: 20px; }
+  .profilo-numeri span { font-size: var(--fs-xs); }
 }
 
 /* ---- "Sul sito ora" (colonna della home) --------------------------------------------- */
