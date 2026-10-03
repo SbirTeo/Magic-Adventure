@@ -6891,3 +6891,5 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .pkg-termini { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.5; text-align: left; cursor: pointer; }
 .pkg-termini input { margin-top: 2px; flex-shrink: 0; }
 @media (max-width: 620px) { .pkg-compra { align-items: stretch; max-width: none; } }
+.legale a { color: var(--purple); text-decoration: underline; text-underline-offset: 2px; }
+.legale a:hover { text-decoration-thickness: 2px; }
