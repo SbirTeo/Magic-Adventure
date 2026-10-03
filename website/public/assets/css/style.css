@@ -1763,6 +1763,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 }
 .profilo-fazione-posto.ha-medaglia .posto-testo { align-self: center; text-align: right; padding-top: 14px; }
 .profilo-fazione-posto.ha-medaglia:hover { color: var(--text); }
+.posto-vai .corto { display: none; }
 .posto-vai { margin-top: 4px; font-style: normal; font-size: var(--fs-xs); font-weight: 600; color: var(--purple); }
 .profilo-fazione-posto:hover .posto-vai { text-decoration: underline; }
 .medaglia {
@@ -1876,9 +1877,16 @@ a.profilo-membro:hover { border-color: var(--border-strong); color: var(--text);
   .profilo-fazione { flex-wrap: wrap; }
   .profilo-fazione-posto { margin-left: 0; width: 100%; }
   .profilo-fazione-posto.ha-medaglia { width: auto; margin-left: auto; position: absolute; top: 0; right: 14px; margin-top: 0; margin-bottom: 0; }
-  .profilo-fazione-posto.ha-medaglia .posto-testo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  /* Su telefono: la medaglia in alto a destra e, sotto, solo il link; posto e totale restano per i lettori di schermo. */
+  .profilo-fazione-posto.ha-medaglia { flex-direction: column-reverse; align-items: center; gap: 2px; padding-left: 0; }
+  .profilo-fazione-posto.ha-medaglia .posto-testo { align-self: center; text-align: center; padding-top: 0; }
+  .profilo-fazione-posto.ha-medaglia .posto-testo strong,
+  .profilo-fazione-posto.ha-medaglia .posto-testo small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .posto-vai { margin-top: 0; white-space: nowrap; }
+  .posto-vai .lungo { display: none; }
+  .posto-vai .corto { display: inline; }
   .profilo-fazione:has(.ha-medaglia) { flex-wrap: nowrap; }
-  .profilo-fazione:has(.ha-medaglia) .profilo-fazione-testo { flex: 1 1 0; padding-right: 70px; }
+  .profilo-fazione:has(.ha-medaglia) .profilo-fazione-testo { flex: 1 1 0; padding-right: 84px; }
   .profilo-membri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .profilo-fazione-numeri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .profilo-fazione-numeri > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
