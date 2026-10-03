@@ -103,7 +103,13 @@ public final class Actions {
 
             case MESSAGE -> p.sendMessage(Colors.translate(arg));
 
-            case ANNUNCIO -> Bukkit.broadcast(Colors.component(arg));
+            case ANNUNCIO -> {
+                // a ciascuno nella sua lingua (i placeholder restano quelli di chi ha cliccato)
+                for (Player to : Bukkit.getOnlinePlayers()) {
+                    to.sendMessage(Colors.component(Text.raw(p, context.variabili(), Text.translated(to, a.argomento()))));
+                }
+                Bukkit.getConsoleSender().sendMessage(Colors.component(Text.raw(p, context.variabili(), a.argomento())));
+            }
 
             case TITLE -> {
                 String[] pieces = arg.split("\\|", 2);

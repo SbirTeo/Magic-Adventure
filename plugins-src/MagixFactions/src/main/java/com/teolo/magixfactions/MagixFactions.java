@@ -143,6 +143,7 @@ public final class MagixFactions extends JavaPlugin {
         com.teolo.magixfactions.manage.AfkTracker afkTracker = new com.teolo.magixfactions.manage.AfkTracker(
                 factionManager, scoreManager, playerStatsManager);
         Bukkit.getScheduler().runTaskTimer(this, afkTracker::tick, 20L, 20L);
+        getServer().getPluginManager().registerEvents(afkTracker, this);
         getServer().getPluginManager().registerEvents(new PowerListener(powerManager), this);
         com.teolo.magixfactions.listener.TerritoryListener territory =
                 new com.teolo.magixfactions.listener.TerritoryListener(this, factionManager, claimManager);

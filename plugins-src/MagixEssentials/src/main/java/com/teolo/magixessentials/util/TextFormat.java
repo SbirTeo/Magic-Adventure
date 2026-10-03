@@ -59,6 +59,28 @@ public final class TextFormat {
         return LEGACY.deserialize(text);
     }
 
+    /** Se nella riga c'è almeno un tag: è la stessa prova che sceglie fra tag e codici {@code &}. */
+    public static boolean hasTags(String line) {
+        return line != null && HAS_TAGS.matcher(line.replace('§', '&')).find();
+    }
+
+    /**
+     * Il valore di un placeholder pronto da mettere in una riga scritta coi TAG. Molti placeholder
+     * tornano i colori coi codici {@code §} — l'avatar di MagixPack ne ha uno per pixel, nel formato
+     * {@code §x§r§r§g§g§b§b} — e in una riga coi tag quei codici resterebbero scritti a schermo:
+     * qui diventano tag ({@code <#rrggbb>}) e il testo resta com'era.
+     */
+    public static String legacyToTags(String value) {
+        if (value == null || value.isEmpty() || (value.indexOf('§') < 0 && value.indexOf('&') < 0)) {
+            return value;
+        }
+        String text = value.replace('§', '&');
+        String tags = TAGS.serialize(LEGACY.deserialize(text));
+        // Un &r in fondo (l'avatar chiude così) non diventa niente: senza, il colore dell'ultimo
+        // pixel colerebbe sul testo che segue.
+        return text.endsWith("&r") ? tags + "<reset>" : tags;
+    }
+
     /** Il testo senza colori ne' tag: per il log, e per sapere se di una riga resta qualcosa da leggere. */
     public static String plain(String line) {
         if (line == null || line.isEmpty()) {

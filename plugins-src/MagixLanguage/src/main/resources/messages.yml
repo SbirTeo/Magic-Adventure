@@ -16,7 +16,7 @@ unknown-subcommand: "&cSottocomando sconosciuto. Usa &e/language help&c."
 player-not-found: "&cGiocatore &e{player}&c non trovato (deve essere online almeno una volta)."
 reloaded: "&aConfigurazione ricaricata."
 
-# {lang} lingua attuale - {source} auto (da GeoIP) o manuale - {country} paese rilevato (- se nessuno)
+# {lang} lingua attuale - {source} source-auto o source-manual (sotto) - {country} paese rilevato (- se nessuno)
 info:
   - "&8&m                                                  "
   - "&#C046E8&lMagixLanguage &7v{version}"
@@ -24,6 +24,10 @@ info:
   - "&7Paese rilevato: &f{country}"
   - "&7Cambiarla: &e/language set <it|en|es|de>"
   - "&8&m                                                  "
+
+# Il {source} del pannello qui sopra: lingua scelta a mano o rilevata dal paese.
+source-manual: "manuale"
+source-auto: "automatica"
 
 # {list} elenco delle lingue supportate, separate da virgola
 set-invalid: "&cLingua sconosciuta. Lingue supportate: &e{list}&c."

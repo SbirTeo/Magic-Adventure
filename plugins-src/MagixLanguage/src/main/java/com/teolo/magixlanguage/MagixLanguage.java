@@ -291,8 +291,12 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
         if (italianText == null || italianText.isBlank()) {
             return null;
         }
-        String lang = language(player);
-        if (lang.equals("it")) {
+        return translatePhrase(pluginName, language(player), italianText);
+    }
+
+    @Override
+    public String translatePhrase(String pluginName, String lang, String italianText) {
+        if (italianText == null || italianText.isBlank() || lang == null || lang.equals("it")) {
             return null; // niente da tradurre verso l'italiano stesso
         }
         Map<String, String> catalog = menuPhraseCatalog(pluginName, lang);
@@ -414,8 +418,10 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
                 .section("Come funziona la traduzione dei messaggi",
                         "Ad ogni avvio (se translations.sync-on-start è true) e con /language sync, il plugin "
-                                + "legge i file elencati in translations.files (di serie solo messages.yml) di ogni "
-                                + "plugin elencato in translations.plugins e ne copia il testo in "
+                                + "legge i file elencati in translations.files (di serie solo messages.yml) di OGNI "
+                                + "plugin Magix installato — trovati da soli, MagixLanguage compreso, che traduce "
+                                + "anche i propri messaggi — più quelli aggiunti in translations.plugins, e ne copia "
+                                + "il testo in "
                                 + "plugins/MagixLanguage/translations/&lt;Plugin&gt;/it.yml — uno SPECCHIO, non "
                                 + "un originale: si cambia nel messages.yml del plugin, mai qui.",
                         "Per ogni altra lingua supportata, ogni chiave NUOVA o il cui testo italiano è "
@@ -423,7 +429,9 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "di MyMemory (se translations.auto-translate.enabled è acceso), e scritta in "
                                 + "en.yml/es.yml/de.yml: non serve alcun intervento dello staff per avere subito "
                                 + "un testo in ogni lingua. Le chiavi rimaste invariate NON vengono ritradotte "
-                                + "(una cache interna se ne ricorda).",
+                                + "(una cache interna se ne ricorda). Si traduce una lingua alla volta su tutti i "
+                                + "plugin, dalla più scelta dai giocatori: quando la quota del giorno finisce, "
+                                + "restano indietro le lingue usate di meno.",
                         "Se una traduzione automatica non convince, si corregge mettendo la STESSA chiave in "
                                 + "translations/&lt;Plugin&gt;/&lt;lingua&gt;-overrides.yml (creato già vuoto, con le "
                                 + "istruzioni, al primo avvio): quel file non viene MAI letto né toccato dalla "
@@ -457,6 +465,17 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "non trova da sola, es. dentro un blocco if/then/else). Le azioni condizionali "
                                 + "non vengono scandite in automatico per non dover ricostruire qui la logica di "
                                 + "lettura di MagixMenus: si aggiunge la frase a mano nel file overrides se serve.")
+
+                .section("I testi fuori da messages.yml: translatable.yml",
+                        "Righe della scoreboard, pannello sotto la minimap, titoli dei territori, nomi di "
+                                + "relazioni e gradi, nomi delle stagioni, richiesta e kick del pacchetto risorse, "
+                                + "messaggi di ban/kick/mute, suggerimento della chat, oggetti fissi, i msg: delle "
+                                + "entità: stanno nei config, non in messages.yml. Ogni plugin elenca dove, nel "
+                                + "translatable.yml dentro il proprio jar; MagixLanguage li legge dal file VERO del "
+                                + "server (quello scritto dallo staff) e li traduce per FRASE, come i menu.",
+                        "Si correggono come le frasi dei menu: translations/<Plugin>/menu-phrases-<lingua>-overrides.yml, "
+                                + "con la frase italiana esatta come chiave. Cambiare il testo nel config fa "
+                                + "ritradurre da sola la frase nuova al giro successivo.")
 
                 .section("Il sito parla anche lui: MagixBridge ne condivide la quota",
                         "magicadventure.it traduce le proprie pagine (testo, guide comprese) con lo stesso "

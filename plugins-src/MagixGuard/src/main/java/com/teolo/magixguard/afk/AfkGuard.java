@@ -7,7 +7,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +15,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerExpChangeEvent;
@@ -78,7 +78,8 @@ public final class AfkGuard implements Listener {
             CreatureSpawnEvent.SpawnReason.REINFORCEMENTS,
             CreatureSpawnEvent.SpawnReason.JOCKEY,
             CreatureSpawnEvent.SpawnReason.BREEDING,
-            CreatureSpawnEvent.SpawnReason.EGG);
+            CreatureSpawnEvent.SpawnReason.EGG,
+            CreatureSpawnEvent.SpawnReason.DISPENSE_EGG);
 
     /** Quello che sappiamo di un giocatore in questo momento. */
     private static final class Stato {
@@ -170,11 +171,17 @@ public final class AfkGuard implements Listener {
         boolean spostato = da.getBlockX() != a.getBlockX() || da.getBlockY() != a.getBlockY()
                 || da.getBlockZ() != a.getBlockZ();
         boolean girato = Math.abs(da.getYaw() - a.getYaw()) > 5f || Math.abs(da.getPitch() - a.getPitch()) > 5f;
+        // Spostato dall'acqua o da un mezzo (correnti, barche, carrelli) non e' una mossa sua: li'
+        // conta solo girarsi, se no un flusso d'acqua terrebbe sveglio chi e' fermo.
+        Player p = e.getPlayer();
+        if (spostato && !girato && (p.isInWater() || p.isInsideVehicle())) {
+            return;
+        }
         if (!spostato && !girato) {
             return;
         }
-        Stato s = stato(e.getPlayer());
-        segnaAttivita(e.getPlayer(), s);
+        Stato s = stato(p);
+        segnaAttivita(p, s);
         if (spostato) {
             rememberPosition(s, a);
         }
@@ -182,7 +189,8 @@ public final class AfkGuard implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void suInterazione(PlayerInteractEvent e) {
-        if (active) {
+        // PHYSICAL = calpestare una pedana o un filo: succede anche da fermi, non e' una mossa.
+        if (active && e.getAction() != Action.PHYSICAL) {
             segnaAttivita(e.getPlayer(), stato(e.getPlayer()));
         }
     }
@@ -256,9 +264,10 @@ public final class AfkGuard implements Listener {
     /**
      * I mob non nascono attorno a chi e' fermo. Si guarda se nel raggio c'e' <b>almeno un</b>
      * giocatore sveglio: se c'e', lo spawn e' suo e non si tocca — altrimenti basterebbe un AFK
-     * di passaggio per rovinare la serata a chi sta giocando li' accanto. Il raggio e' quello in
-     * cui il gioco fa nascere i mob (128 blocchi): si scorrono i giocatori del mondo, che sono
-     * pochi, invece di cercare fra tutte le entita' vicine.
+     * di passaggio per rovinare la serata a chi sta giocando li' accanto. Il raggio (in pianta) e'
+     * il piu' largo fra quello in cui il gioco fa nascere i mob (128 blocchi) e la distanza di
+     * simulazione del mondo: portali, golem e allevamenti lavorano in tutti i chunk simulati, che
+     * possono arrivare piu' lontano. Si scorrono i giocatori del mondo, che sono pochi.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void suNascita(CreatureSpawnEvent e) {
@@ -269,10 +278,14 @@ public final class AfkGuard implements Listener {
             return;
         }
         Location at = e.getLocation();
-        double raggio2 = (double) raggioSpawn * raggioSpawn;
+        double raggio = Math.max(raggioSpawn, (at.getWorld().getSimulationDistance() + 1) * 16);
+        double raggio2 = raggio * raggio;
         boolean qualcunoAfk = false;
         for (Player p : at.getWorld().getPlayers()) {
-            if (p.getLocation().distanceSquared(at) > raggio2) {
+            Location l = p.getLocation();
+            double dx = l.getX() - at.getX();
+            double dz = l.getZ() - at.getZ();
+            if (dx * dx + dz * dz > raggio2) {
                 continue;
             }
             if (!eAfk(p)) {
