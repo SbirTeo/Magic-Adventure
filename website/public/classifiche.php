@@ -481,17 +481,8 @@ function format_playtime(int $seconds): string {
   .stats-refresh { color: var(--text-dimmer); font-size: var(--fs-sm); margin: -6px 0 14px; }
   .stats-refresh b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-  /* Navbar a schede: sceglie tra Top Fazioni e Top Giocatori (le due viste sono separate, una alla volta). */
-  .rank-tabs { display: flex; gap: 8px; margin: 4px 0 20px; flex-wrap: wrap; }
-  .rank-tab-btn {
-    padding: 10px 18px; background: var(--bg-elevated); color: var(--text-dim);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    font-family: var(--font-heading); font-size: var(--fs-base); font-weight: 600; cursor: pointer;
-    transition: border-color .12s ease, color .12s ease, background .12s ease;
-  }
-  .rank-tab-btn:hover { color: var(--text); border-color: var(--border-strong); }
-  .rank-tab-btn.is-active { color: #1a1a1a; background: #fff; border-color: #fff; cursor: default; }
-  .rank-tab-panel[hidden] { display: none; }
+  /* Le schede (Top Fazioni / Top Giocatori) usano le regole comuni di style.css (.rank-tabs,
+     .rank-tab-btn), le stesse della guida: qui ce n'era una copia, che restava indietro. */
   /* Le tre sotto-classifiche giocatori: ognuna nella sua card, ben staccata dalle altre. */
   .player-board { margin-top: 16px; }
   .player-board h3 { margin-top: 0; }
@@ -562,13 +553,13 @@ function format_playtime(int $seconds): string {
 <?php endif; ?>
 
 <div class="rank-tabs" role="tablist" aria-label="Classifiche">
-  <button type="button" class="rank-tab-btn is-active" data-tab="fazioni" role="tab" aria-selected="true">🏆 Top Fazioni</button>
-  <button type="button" class="rank-tab-btn" data-tab="giocatori" role="tab" aria-selected="false">👤 Top Giocatori</button>
+  <button type="button" class="rank-tab-btn is-active" data-tab="fazioni" role="tab" aria-selected="true"><?= ui_icon('trophy') ?> Top Fazioni</button>
+  <button type="button" class="rank-tab-btn" data-tab="giocatori" role="tab" aria-selected="false"><?= ui_icon('user') ?> Top Giocatori</button>
 </div>
 
 <section class="rank-tab-panel" id="tab-fazioni" role="tabpanel">
 <div class="panel">
-  <h3>🏆 Punteggio</h3>
+  <h3><?= ui_icon('trophy') ?> Punteggio</h3>
   <p class="board-note">
     Confronta le fazioni voce per voce (territori, membri, <b>giacenza media</b> della banca, longevità,
     potenza media): in ogni caratteristica la <b>migliore</b> vale il massimo e le altre in proporzione. La
@@ -584,7 +575,7 @@ function format_playtime(int $seconds): string {
     <div class="rank-wrap">
       <table class="rank" data-paginate>
         <thead>
-          <tr><th>#</th><th>🛡️ Fazione</th><th>🏆 Punteggio</th><th>🗺️ Territori</th><th>💰 Ricchezza media</th><th>⏳ Longevità</th><th>⚡ Potenza</th><th>⚔️ Uccisioni</th><th>💎 Valore</th></tr>
+          <tr><th>#</th><th><?= ui_icon('shield') ?> Fazione</th><th><?= ui_icon('trophy') ?> Punteggio</th><th><?= ui_icon('map') ?> Territori</th><th><?= ui_icon('coins') ?> Ricchezza media</th><th><?= ui_icon('hourglass') ?> Longevità</th><th><?= ui_icon('zap') ?> Potenza</th><th><?= ui_icon('swords') ?> Uccisioni</th><th><?= ui_icon('gem') ?> Valore</th></tr>
         </thead>
         <tbody>
           <?php foreach ($factions as $i => $f): ?>
@@ -682,11 +673,11 @@ try {
   </div>
 <?php else: ?>
   <div class="panel player-board">
-    <h3>🕒 Tempo di gioco</h3>
+    <h3><?= ui_icon('clock') ?> Tempo di gioco</h3>
     <p class="board-note">I secondi totali passati connessi al server.</p>
     <div class="rank-wrap">
       <table class="rank" data-paginate>
-        <thead><tr><th>#</th><th>👤 Giocatore</th><th>🕒 Tempo di gioco</th></tr></thead>
+        <thead><tr><th>#</th><th><?= ui_icon('user') ?> Giocatore</th><th><?= ui_icon('clock') ?> Tempo di gioco</th></tr></thead>
         <tbody>
           <?php if (!$top_time): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
@@ -700,11 +691,11 @@ try {
   </div>
 
   <div class="panel player-board">
-    <h3>💰 Ricchezza media</h3>
+    <h3><?= ui_icon('coins') ?> Ricchezza media</h3>
     <p class="board-note">La giacenza media sul solo tempo da connessi: parcheggiare soldi da disconnessi non la gonfia.</p>
     <div class="rank-wrap">
       <table class="rank" data-paginate>
-        <thead><tr><th>#</th><th>👤 Giocatore</th><th>💰 Ricchezza media</th></tr></thead>
+        <thead><tr><th>#</th><th><?= ui_icon('user') ?> Giocatore</th><th><?= ui_icon('coins') ?> Ricchezza media</th></tr></thead>
         <tbody>
           <?php if (!$top_money): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
@@ -718,11 +709,11 @@ try {
   </div>
 
   <div class="panel player-board">
-    <h3>⚔️ Uccisioni e K/D</h3>
+    <h3><?= ui_icon('swords') ?> Uccisioni e K/D</h3>
     <p class="board-note">Solo uccisioni PvP valide: il server scarta le «fake kill» tra amici, gli alt sullo stesso IP e le vittime uccise troppo in fretta. Passa il mouse (o tocca) il numero per morti e K/D.</p>
     <div class="rank-wrap">
       <table class="rank" data-paginate>
-        <thead><tr><th>#</th><th>👤 Giocatore</th><th>⚔️ Uccisioni</th></tr></thead>
+        <thead><tr><th>#</th><th><?= ui_icon('user') ?> Giocatore</th><th><?= ui_icon('swords') ?> Uccisioni</th></tr></thead>
         <tbody>
           <?php if (!$top_kills): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>

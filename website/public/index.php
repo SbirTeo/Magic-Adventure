@@ -147,8 +147,15 @@ require __DIR__ . '/../includes/header.php';
     <div class="hero-copy-col">
       <div class="status-pill <?= $status ? 'is-online' : 'is-unknown' ?>">
         <span class="dot"></span>
-        <?php if ($status): ?>
-          <?= (int) $status['players_online'] ?> / <?= (int) $status['players_max'] ?> giocatori connessi
+        <?php /* Il numero solo quando c'e' qualcuno: "0 / 100 giocatori connessi" in grande sulla
+                 prima schermata dice "qui non c'e' nessuno" a chi arriva per la prima volta. A server
+                 vuoto si dice che e' acceso e che si puo' entrare. Niente "/ 100": il massimo dei
+                 posti non interessa a chi legge, e accanto a numeri piccoli sottolinea il vuoto. */ ?>
+        <?php if ($status && (int) $status['players_online'] > 0): ?>
+          <?php $__online = (int) $status['players_online']; ?>
+          <?= $__online ?> <?= $__online === 1 ? 'giocatore online' : 'giocatori online' ?>
+        <?php elseif ($status): ?>
+          Server online · entra ora
         <?php else: ?>
           Stato server non disponibile
         <?php endif; ?>

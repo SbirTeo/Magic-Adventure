@@ -74,9 +74,9 @@ require __DIR__ . '/../includes/header.php';
          schede delle classifiche (stile in style.css), cambiano solo le icone. */ ?>
 <div class="rank-tabs" role="tablist" aria-label="Guida e regolamento">
   <button type="button" class="rank-tab-btn is-active" data-tab="guida" data-titolo="Guida del server"
-          role="tab" aria-selected="true" aria-controls="tab-guida">📖 Guida</button>
+          role="tab" aria-selected="true" aria-controls="tab-guida"><?= ui_icon('book') ?> Guida</button>
   <button type="button" class="rank-tab-btn" data-tab="regolamento" data-titolo="<?= h($titoloReg) ?>"
-          role="tab" aria-selected="false" aria-controls="tab-regolamento">📜 Regolamento</button>
+          role="tab" aria-selected="false" aria-controls="tab-regolamento"><?= ui_icon('scroll') ?> Regolamento</button>
 </div>
 
 <section class="rank-tab-panel" id="tab-guida" role="tabpanel" aria-label="Guida">

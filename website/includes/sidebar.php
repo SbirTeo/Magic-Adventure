@@ -173,7 +173,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
             <button type="submit" class="chat-send" aria-label="Invia">➤</button>
           </form>
         <?php else: ?>
-          <a href="/login" class="btn btn-accent btn-small chat-login">Accedi per scrivere</a>
+          <a href="/login" class="btn btn-ghost btn-small chat-login">Accedi per scrivere</a>
         <?php endif; ?>
         <p class="chat-stato" id="chatStato"></p>
       </section>
@@ -210,7 +210,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
     <?php else: ?>
       <div class="player-name">Non hai effettuato l'accesso</div>
       <p style="color:var(--text-dim); font-size: var(--fs-sm); margin:8px 0 16px;">Accedi per vedere il tuo profilo, la tua fazione e le tue statistiche.</p>
-      <a href="/login" class="btn btn-accent player-sidebar-btn">Accedi</a>
+      <a href="/login" class="btn btn-ghost player-sidebar-btn">Accedi</a>
     <?php endif; ?>
     </aside>
 

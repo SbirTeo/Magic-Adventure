@@ -156,8 +156,8 @@ require __DIR__ . '/../../includes/header.php';
 <div class="forum-testata">
   <div>
     <h1 class="page-title">
-      <?php if ($topic['is_pinned']): ?><span class="forum-segno is-fissata" title="In evidenza">📌</span><?php endif; ?>
-      <?php if ($topic['is_locked']): ?><span class="forum-segno is-chiusa" title="Chiusa">🔒</span><?php endif; ?>
+      <?php if ($topic['is_pinned']): ?><span class="forum-segno is-fissata" title="In evidenza"><?= ui_icon('pin') ?></span><?php endif; ?>
+      <?php if ($topic['is_locked']): ?><span class="forum-segno is-chiusa" title="Chiusa"><?= ui_icon('lock') ?></span><?php endif; ?>
       <?= h($topic['title']) ?>
     </h1>
     <p class="forum-sottotitolo">
@@ -225,14 +225,14 @@ require __DIR__ . '/../../includes/header.php';
               <button type="submit" class="forum-mipiace<?= $mio ? ' is-attivo' : '' ?>"
                       title="<?= $mio ? 'Togli il mi piace' : 'Mi piace' ?>"
                       aria-pressed="<?= $mio ? 'true' : 'false' ?>">
-                <span class="forum-mipiace-icona" aria-hidden="true">👍</span>
+                <span class="forum-mipiace-icona" aria-hidden="true"><?= ui_icon('thumbs-up') ?></span>
                 <span class="forum-mipiace-n"><?= $n ?></span>
               </button>
             </form>
           <?php else: ?>
             <span class="forum-mipiace is-fermo"
                   title="<?= $eSuo ? 'Sono gli altri a poter approvare i tuoi messaggi' : 'Accedi per approvare' ?>">
-              <span class="forum-mipiace-icona" aria-hidden="true">👍</span>
+              <span class="forum-mipiace-icona" aria-hidden="true"><?= ui_icon('thumbs-up') ?></span>
               <span class="forum-mipiace-n"><?= $n ?></span>
             </span>
           <?php endif; ?>

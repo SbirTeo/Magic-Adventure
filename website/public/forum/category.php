@@ -83,8 +83,8 @@ $rigaDiscussione = function (array $t, int $i): void { ?>
     <?= forum_faccia($t, 40) ?>
     <div class="forum-riga-testo">
       <div class="forum-riga-titolo">
-        <?php if ($t['is_pinned']): ?><span class="forum-segno is-fissata" title="In evidenza">📌</span><?php endif; ?>
-        <?php if ($t['is_locked']): ?><span class="forum-segno is-chiusa" title="Chiusa">🔒</span><?php endif; ?>
+        <?php if ($t['is_pinned']): ?><span class="forum-segno is-fissata" title="In evidenza"><?= ui_icon('pin') ?></span><?php endif; ?>
+        <?php if ($t['is_locked']): ?><span class="forum-segno is-chiusa" title="Chiusa"><?= ui_icon('lock') ?></span><?php endif; ?>
         <?= h($t['title']) ?>
       </div>
       <div class="forum-riga-meta">

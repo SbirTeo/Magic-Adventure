@@ -1810,7 +1810,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   transition: color .2s;
 }
 .chat-tab:hover { color: var(--text); }
-.chat-tab[aria-selected="true"] { color: var(--contrasto-testo); }
+.chat-tab[aria-selected="true"] { color: var(--text); }
 .chat-tab:focus-visible { outline: 2px solid var(--bordo-fuoco); outline-offset: 1px; }
 .chat-tab-slitta {
   position: absolute;
@@ -1819,11 +1819,13 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   left: 3px;
   width: 0;
   border-radius: calc(var(--radius-sm) - 3px);
-  background: var(--contrasto);
+  /* Come le schede delle classifiche: tinta leggera, non un blocco bianco pieno. */
+  background: color-mix(in srgb, var(--purple) 22%, var(--bg-elevated));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--purple) 55%, transparent);
   transition: transform .25s cubic-bezier(.2,.7,.3,1), width .25s cubic-bezier(.2,.7,.3,1);
 }
 /* Prima che chat.js la misuri, la scheda aperta si colora da se' (niente salto al caricamento). */
-.chat-tabs:not(.is-pronta) .chat-tab[aria-selected="true"] { background: var(--contrasto); }
+.chat-tabs:not(.is-pronta) .chat-tab[aria-selected="true"] { background: color-mix(in srgb, var(--purple) 22%, var(--bg-elevated)); }
 @media (prefers-reduced-motion: reduce) {
   .chat-tab-slitta { transition: none; }
 }
@@ -3310,9 +3312,7 @@ body.store-una-categoria .store-card-cat { display: none; }
    La guida del server e il regolamento stanno nella stessa pagina, sotto un'unica voce
    di menu: si passa dall'una all'altra con queste schede, senza ricaricare (vedi
    tutorial.php). Sono le STESSE schede delle classifiche (Top Fazioni / Top Giocatori):
-   qui le regole vivono nel foglio comune così le due pagine restano identiche; la pagina
-   delle classifiche ne tiene una copia inline per storia sua. Se si cambia l'aspetto, va
-   cambiato in tutte e due. */
+   qui le regole vivono nel foglio comune e le usano tutte e due le pagine. */
 .rank-tabs { display: flex; gap: 8px; margin: 4px 0 20px; flex-wrap: wrap; }
 .rank-tab-btn {
   padding: 10px 18px; background: var(--bg-elevated); color: var(--text-dim);
@@ -3321,7 +3321,14 @@ body.store-una-categoria .store-card-cat { display: none; }
   transition: border-color .12s ease, color .12s ease, background .12s ease;
 }
 .rank-tab-btn:hover { color: var(--text); border-color: var(--border-strong); }
-.rank-tab-btn.is-active { color: #1a1a1a; background: #fff; border-color: #fff; cursor: default; }
+/* Scheda aperta: tinta leggera e bordo nel colore del sito, non un blocco bianco pieno. Il
+   pulsante pieno resta per l'azione principale della pagina (uno solo per schermata). */
+.rank-tab-btn.is-active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--purple) 16%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--purple) 70%, transparent);
+  cursor: default;
+}
 .rank-tab-panel[hidden] { display: none; }
 
 /* Nessun bordo ne' sfondo: la guida porta gia' i suoi riquadri per ogni capitolo, e
@@ -6965,3 +6972,23 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 @media (max-width: 620px) { .pkg-compra { align-items: stretch; max-width: none; } }
 .legale a { color: var(--purple); text-decoration: underline; text-underline-offset: 2px; }
 .legale a:hover { text-decoration-thickness: 2px; }
+
+/* ---- Icone disegnate (includes/icons.php, ui_icon) ----------------------------------
+   Alte quanto il testo che accompagnano e del suo colore: nei titoli, nei pulsanti e nelle
+   intestazioni delle tabelle si allineano da sole, in tutti e due i temi. */
+.ico {
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.17em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+/* Nelle intestazioni delle tabelle e nei titoli l'icona e' un accento, non il contenuto. */
+th .ico, h2 .ico, h3 .ico { opacity: .75; margin-right: 2px; }
+/* La corona della promozione: grande, nell'oro del banner. */
+.vip-banner-icon .ico { width: 1em; height: 1em; vertical-align: middle; color: var(--gold); stroke-width: 1.6; }

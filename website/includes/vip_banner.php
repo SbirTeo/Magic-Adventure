@@ -62,7 +62,10 @@ function vip_banner(bool $compatto = false): void {
       <?php if (is_admin()): ?>
         <a href="/manage?section=theme#banner-vip" class="vip-banner-edit" title="Modifica" aria-label="Modifica">✎</a>
       <?php endif; ?>
-      <div class="vip-banner-icon" aria-hidden="true"><?= h(site_setting('vip_banner_icon', '👑')) ?></div>
+      <?php /* Icona di serie (la corona, o il vecchio valore di serie 👑): il disegno del sito.
+               Un'icona scelta a mano nel gestionale resta quella scritta. */
+            $__vipIcona = trim(site_setting('vip_banner_icon', '👑')); ?>
+      <div class="vip-banner-icon" aria-hidden="true"><?= in_array($__vipIcona, ['', '👑'], true) ? ui_icon('crown') : h($__vipIcona) ?></div>
       <div class="vip-banner-text">
         <span class="vip-banner-tag"><?= h(site_setting('vip_banner_tag', '')) ?></span>
         <h3><?= h(site_setting('vip_banner_title', '')) ?></h3>

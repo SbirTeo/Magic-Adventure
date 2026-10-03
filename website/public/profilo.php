@@ -206,7 +206,7 @@ require __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<h2>⚔ In gioco</h2>
+<h2><?= ui_icon('swords') ?> In gioco</h2>
 <div class="profilo-griglia">
   <div class="profilo-dato">
     <span>Fazione</span>
@@ -236,7 +236,7 @@ require __DIR__ . '/../includes/header.php';
 <?php /* La verifica in due passaggi si vede solo a chi riguarda: per gli altri sarebbe una
          voce in piu' che non possono ne' usare ne' capire. */ ?>
 <?php if (otp_serve_per($me) || otp_enabled($me)): ?>
-<h2>🔐 Verifica in due passaggi</h2>
+<h2><?= ui_icon('shield-check') ?> Verifica in due passaggi</h2>
 <div class="panel">
   <?php if ($erroreOtp): ?><div class="alert alert-error"><?= h($erroreOtp) ?></div><?php endif; ?>
 
@@ -331,7 +331,7 @@ require __DIR__ . '/../includes/header.php';
 
 <?php /* Il tema e' una scelta di CHI GUARDA, non del sito: sta qui, fra le sue cose, e
          vale solo per lui. Lo stesso interruttore e' anche nella barra in alto (☾). */ ?>
-<h2>🎨 Aspetto del sito</h2>
+<h2><?= ui_icon('palette') ?> Aspetto del sito</h2>
 <div class="panel">
   <p style="margin:0; color:var(--text-dim); font-size: var(--fs-base);">
     Vale solo per te, su questo browser, e <strong>non scade</strong>: resta finché non lo cambi tu.
@@ -344,7 +344,7 @@ require __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<h2>💬 Attività sul sito</h2>
+<h2><?= ui_icon('message') ?> Attività sul sito</h2>
 <div class="profilo-griglia">
   <div class="profilo-dato">
     <span>Discussioni aperte</span>
@@ -366,7 +366,7 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <?php if ($acquisti): ?>
-  <h2>🛒 I tuoi acquisti</h2>
+  <h2><?= ui_icon('cart') ?> I tuoi acquisti</h2>
   <div class="panel">
     <div class="tabella-scorrevole">
       <table class="rank">

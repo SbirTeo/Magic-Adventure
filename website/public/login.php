@@ -70,7 +70,7 @@ require __DIR__ . '/../includes/header.php';
 
 <p style="color:var(--text-dim);">
   Non hai ancora un account? Ti basta entrare su <strong>mc.magicadventure.it</strong>:
-  l'account nasce li', e queste stesse credenziali valgono qui.<br>
+  l'account nasce lì, e queste stesse credenziali valgono qui.<br>
   Hai dimenticato la password? <a href="/password-dimenticata">Reimpostala</a>.
 </p>
 

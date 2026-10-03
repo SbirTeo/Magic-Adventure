@@ -98,11 +98,11 @@ require __DIR__ . '/../includes/header.php';
 <div class="panel">
   <p style="color:var(--text-dim); font-size: var(--fs-base);">
     <strong>Non hai la verifica in due passaggi?</strong><br>
-    Allora non c'e' modo di dimostrare da qui che l'account e' tuo. Chiedi a un amministratore
-    in gioco: puo' azzerare la password, e al tuo prossimo ingresso ne sceglierai una nuova.
+    Allora non c'è modo di dimostrare da qui che l'account è tuo. Chiedi a un amministratore
+    in gioco: può azzerare la password, e al tuo prossimo ingresso ne sceglierai una nuova.
   </p>
 </div>
 
-<p style="margin-top:16px; color:var(--text-dim);">Ti e' tornata in mente? <a href="/login">Accedi qui</a>.</p>
+<p style="margin-top:16px; color:var(--text-dim);">Ti è tornata in mente? <a href="/login">Accedi qui</a>.</p>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>
