@@ -42,9 +42,13 @@
   const etichette = $('magixEtichette');
   LIVELLI.forEach((l, i) => {
     const p = posOf(l.from) * 100;
-    const t = document.createElement('span');
-    t.className = 'magix-tacca'; t.style.left = p + '%'; t.dataset.i = i;
-    binario.appendChild(t);
+    // Niente puntino alle due estremita' (1 e 1000): cadrebbe sul bordo arrotondato del
+    // binario, e li' c'e' comunque la maniglia quando ci si arriva.
+    if (i > 0 && i < LIVELLI.length - 1) {
+      const t = document.createElement('span');
+      t.className = 'magix-tacca'; t.style.left = p + '%'; t.dataset.i = i;
+      binario.appendChild(t);
+    }
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'magix-tacca-lbl' + (i === 0 ? ' primo' : '') + (i === LIVELLI.length - 1 ? ' ultimo' : '');

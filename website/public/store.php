@@ -238,7 +238,7 @@ require __DIR__ . '/../includes/header.php';
         <?php foreach (MAGIX_TIERS as $i => $livello): ?>
           <button type="button" class="magix-livello" data-i="<?= $i ?>" data-from="<?= $livello['from'] ?>">
             <span class="magix-gemme"><?= str_repeat('<img src="' . $gemma . '" alt="" width="22" height="22">', $i + 1) ?></span>
-            <span class="magix-da"><?= $livello['from'] ?><?= $i < count(MAGIX_TIERS) - 1 ? '+' : '' ?></span>
+            <span class="magix-da"><?= $livello['from'] ?></span>
             <span class="magix-pc"><?= $livello['pct'] ? '-' . $livello['pct'] . '%' : 'prezzo pieno' ?></span>
           </button>
         <?php endforeach; ?>
