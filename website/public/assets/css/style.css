@@ -497,7 +497,7 @@ a.who-link {
     gap: 10px;
     flex: none;
   }
-  .main-nav .nav-logo { display: none; }
+  .main-nav a.nav-logo { display: none; }
   .main-nav a {
     display: flex;
     align-items: center;
