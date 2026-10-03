@@ -54,6 +54,33 @@ if ($ordiniPagati !== null) {
     }
 }
 
+// Dati di gioco (MagixFactions, database a parte): fazione e tempo di gioco di ognuno. Se quel
+// database non risponde le tessere restano senza, e la pagina si apre lo stesso.
+$giocoPerUuid = [];
+try {
+    $righe = db()->query(
+        'SELECT p.uuid, p.play_seconds, f.name AS faction_name
+           FROM factions_magixfactions.players p
+           LEFT JOIN factions_magixfactions.faction_members m ON m.uuid = p.uuid
+           LEFT JOIN factions_magixfactions.factions f ON f.id = m.faction_id'
+    )->fetchAll();
+    foreach ($righe as $r) {
+        $giocoPerUuid[strtolower(str_replace('-', '', (string) $r['uuid']))] = $r;
+    }
+} catch (PDOException $e) {
+    $giocoPerUuid = [];
+}
+
+/** Secondi di gioco in breve: "3g 4h", "5h", "42m". */
+function users_playtime(int $secondi): string {
+    if ($secondi < 60) return '';
+    $g = intdiv($secondi, 86400);
+    $o = intdiv($secondi % 86400, 3600);
+    if ($g > 0) return $o > 0 ? "{$g}g {$o}h" : "{$g}g";
+    if ($o > 0) return "{$o}h";
+    return intdiv($secondi, 60) . 'm';
+}
+
 // Miglior sostenitore: la stessa regola della corona in tutto il sito.
 $topUuid = store_top_uuid();
 
@@ -65,6 +92,9 @@ foreach ($utenti as &$u) {
     $eStaff = (int) $u['is_admin'] === 1 || in_array($gruppo, $gruppiStaff, true);
     $eSostenitore = in_array($gruppo, $gruppiVip, true) || $acquisti > 0;
 
+    $g = $giocoPerUuid[strtolower(str_replace('-', '', (string) $u['mc_uuid']))] ?? null;
+    $u['fazione'] = $g['faction_name'] ?? null;
+    $u['secondi_gioco'] = (int) ($g['play_seconds'] ?? 0);
     $u['acquisti'] = $acquisti;
     $u['online'] = is_on_site($u);
     $u['gruppi'] = array_values(array_filter([
@@ -103,6 +133,9 @@ foreach ($utenti as $u) {
     }
 }
 
+$inFazione = count(array_filter($utenti, fn($u) => !empty($u['fazione'])));
+$oreTotali = intdiv(array_sum(array_column($utenti, 'secondi_gioco')), 3600);
+
 $filtri = [
     'tutti' => 'Tutti',
     'online' => 'Sul sito ora',
@@ -113,14 +146,28 @@ $filtri = [
 
 require __DIR__ . '/../includes/header.php';
 ?>
-<h1 class="page-title">Utenti</h1>
+<?php /* In testa i numeri della comunita': sono loro a dire che il server e' vivo. Sotto, una
+         barra sola con ricerca e filtri, e le tessere: faccia, nome, grado, fazione e tempo di
+         gioco, con un pallino verde per chi e' sul sito adesso. */ ?>
+<section class="utenti-hero">
+  <div class="utenti-hero-testo">
+    <h1 class="page-title">Giocatori</h1>
+    <p class="utenti-intro">Tutti quelli che giocano su MagicAdventure. Clicca un giocatore per aprire la sua scheda: fazione, statistiche e attività.</p>
+  </div>
+  <div class="utenti-numeri">
+    <div><strong><?= (int) $conteggi['tutti'] ?></strong><span><?= ui_icon('users') ?> giocatori</span></div>
+    <div class="is-online"><strong><?= (int) $conteggi['online'] ?></strong><span><i class="utenti-punto" aria-hidden="true"></i> sul sito ora</span></div>
+    <div><strong><?= (int) $conteggi['staff'] ?></strong><span><?= ui_icon('shield') ?> staff</span></div>
+    <?php if ($giocoPerUuid): ?>
+      <div><strong><?= $inFazione ?></strong><span><?= ui_icon('swords') ?> in una fazione</span></div>
+      <?php if ($oreTotali > 0): ?>
+        <div><strong><?= h(number_format($oreTotali, 0, ',', '.')) ?></strong><span><?= ui_icon('clock') ?> ore giocate</span></div>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+</section>
 
-<div class="utenti-testata panel">
-  <p class="utenti-intro">
-    <?= count($utenti) ?> account collegati al server, a partire da chi &egrave; sul sito adesso.
-    Clicca su un giocatore per aprire la sua scheda.
-  </p>
-
+<div class="utenti-barra">
   <?php /* La lente non e' un'icona decorativa: e' dentro al campo, come nelle app. */ ?>
   <div class="utenti-cerca">
     <span class="utenti-cerca-lente" aria-hidden="true">
@@ -144,46 +191,58 @@ require __DIR__ . '/../includes/header.php';
       </button>
     <?php endforeach; ?>
   </div>
-
-  <p class="utenti-esito" id="esitoCerca" hidden></p>
 </div>
+<p class="utenti-esito" id="esitoCerca" hidden></p>
 
 <div class="utenti-griglia" id="elencoUtenti" data-passo="<?= UTENTI_PER_VOLTA ?>">
   <?php foreach ($utenti as $u): ?>
     <?php
       $colore = player_name_color($u);
-      // Il baffo a sinistra prende il colore del grado piu' pesante (lo stesso del prefisso
-      // in chat); grigio "vanilla" per chi non ha prefisso. Due tinte, come per i nomi.
+      // Il colore del grado piu' pesante (lo stesso del prefisso in chat) tinge il filo a
+      // sinistra e un alone leggero in alto; grigio "vanilla" per chi non ha prefisso.
       $baffo = $colore !== null
           ? '--baffo:' . h($colore) . ';--baffo-chiaro:' . h(readable_color($colore, '#ffffff'))
           : '';
       $eIlTop = $topUuid !== null && $u['mc_uuid'] === $topUuid;
       $ultimaVolta = $u['last_seen'] ?: ($u['last_login'] ?: null);
+      $tag = player_tag($u);
+      $tempo = users_playtime((int) $u['secondi_gioco']);
     ?>
     <a class="utente-card<?= $u['online'] ? ' e-online' : '' ?><?= $colore !== null ? ' ha-grado' : '' ?><?= $eIlTop ? ' e-top' : '' ?>"
        href="/utente?nome=<?= h(rawurlencode($u['mc_username'])) ?>"
        data-nome="<?= h(mb_strtolower($u['mc_username'])) ?>"
        data-gruppi="<?= h(implode(' ', $u['gruppi'])) ?>"
        <?= $baffo !== '' ? 'style="' . $baffo . '"' : '' ?>>
-      <?= avatar_top(
-            '<img class="utente-card-faccia" src="' . h(mc_avatar_url($u['mc_uuid'], 64, $u['premium_uuid'] ?? null)) . '" alt="" loading="lazy">',
-            $u['mc_uuid'], 44) ?>
+      <span class="utente-card-volto">
+        <?= avatar_top(
+              '<img class="utente-card-faccia" src="' . h(mc_avatar_url($u['mc_uuid'], 96, $u['premium_uuid'] ?? null)) . '" alt="" loading="lazy">',
+              $u['mc_uuid'], 52) ?>
+        <?php if ($u['online']): ?><i class="utenti-punto utente-card-punto" title="Sul sito ora"></i><?php endif; ?>
+      </span>
 
       <span class="utente-card-testo">
         <span class="utente-card-nome colore-grado"<?= $colore !== null ? ' style="' . rank_color_style($colore) . '"' : '' ?>>
           <?= h($u['mc_username']) ?>
         </span>
-        <span class="utente-card-gradi">
-          <?= player_tag($u) ?: '<span class="utente-card-nograde">Nessun grado</span>' ?>
-          <?php if ($eIlTop): ?><span class="utente-card-top">Miglior sostenitore</span><?php endif; ?>
-        </span>
+        <?php if ($tag !== '' || $eIlTop): ?>
+          <span class="utente-card-gradi">
+            <?= $tag ?>
+            <?php if ($eIlTop): ?><span class="utente-card-top">Miglior sostenitore</span><?php endif; ?>
+          </span>
+        <?php endif; ?>
+        <?php if (!empty($u['fazione']) || $tempo !== ''): ?>
+          <span class="utente-card-info">
+            <?php if (!empty($u['fazione'])): ?><span class="utente-card-fazione"><?= ui_icon('swords') ?><?= h($u['fazione']) ?></span><?php endif; ?>
+            <?php if ($tempo !== ''): ?><span title="Tempo di gioco"><?= ui_icon('clock') ?><?= h($tempo) ?></span><?php endif; ?>
+          </span>
+        <?php endif; ?>
         <span class="utente-card-meta">
           <?php if ($u['online']): ?>
             <span class="utente-card-online">sul sito ora</span>
           <?php elseif ($ultimaVolta): ?>
-            sul sito <?= h(time_ago($ultimaVolta)) ?>
-          <?php else: ?>
-            mai entrato sul sito
+            visto sul sito <?= h(time_ago($ultimaVolta)) ?>
+          <?php elseif (!empty($u['first_join'])): ?>
+            in gioco dal <?= h(date('d/m/Y', strtotime((string) $u['first_join']))) ?>
           <?php endif; ?>
         </span>
       </span>

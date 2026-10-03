@@ -7696,3 +7696,213 @@ table.rank td:first-child { width: 1%; }
 @media (prefers-reduced-motion: reduce) { .stats-refresh-punto { animation: none; } }
 .profilo-sottotitolo + .profilo-potenza { margin-top: 0; }
 .profilo-sottotitolo .ico { color: var(--purple); }
+
+/* =========================================================================================
+   FORUM, VESTITO NUOVO: intestazione con il pulsante per scrivere, categorie con la loro
+   icona colorata, sezioni a riquadri, uno stato vuoto che invita invece di dire "0", e le
+   scorciatoie in fondo. La tinta di ogni categoria resta --accento (vedi forum_tinta()).
+   ========================================================================================= */
+.forum-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px 24px;
+  margin: 30px 0 26px;
+  padding: 24px 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, var(--accento, var(--purple)) 16%, transparent), transparent 60%),
+    radial-gradient(70% 120% at 100% 100%, color-mix(in srgb, var(--green) 9%, transparent), transparent 60%),
+    var(--bg-panel);
+}
+.forum-hero-testo { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.forum-hero-testo .page-title { margin: 0 0 4px; padding: 0; }
+.forum-hero-testo .page-title::before { display: none; }
+.forum-hero-icona {
+  display: grid; place-items: center; flex: 0 0 auto; width: 58px; height: 58px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accento, var(--purple)) 18%, transparent);
+  color: var(--accento, var(--purple));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accento, var(--purple)) 35%, transparent);
+}
+.forum-hero-icona .ico { width: 28px; height: 28px; }
+.forum-hero-azioni { display: flex; justify-content: flex-end; }
+.forum-hero-azioni .btn { display: inline-flex; align-items: center; gap: 8px; }
+.forum-hero-numeri {
+  grid-column: 1 / -1;
+  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  padding-top: 14px; border-top: 1px solid var(--border);
+  color: var(--text-dim); font-size: var(--fs-sm);
+}
+.forum-hero-numeri > span { display: inline-flex; align-items: center; gap: 7px; }
+.forum-hero-numeri > span .ico { color: var(--text-dimmer); }
+.forum-hero-numeri strong { color: var(--text); font-family: var(--font-heading); }
+.forum-hero-nuovo { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-dim); }
+.forum-hero-nuovo .ico { color: var(--gold, #f4c531); }
+.forum-hero-cat { margin-top: 6px; }
+
+/* "Nuova discussione": si sceglie subito dove scrivere. */
+.forum-nuova { position: relative; }
+.forum-nuova > summary { list-style: none; cursor: pointer; }
+.forum-nuova > summary::-webkit-details-marker { display: none; }
+.forum-nuova-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 40;
+  width: min(320px, 86vw); padding: 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius);
+  box-shadow: 0 18px 44px -14px rgba(0, 0, 0, .65);
+}
+.forum-nuova-menu .forum-etichetta { padding: 6px 8px 4px; }
+.forum-nuova-menu a {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm);
+  color: var(--text); text-decoration: none; font-weight: 600; font-size: var(--fs-sm);
+}
+.forum-nuova-menu a:hover { background: color-mix(in srgb, var(--purple) 14%, transparent); color: var(--text); text-decoration: none; }
+.forum-nuova-menu a .ico { color: var(--text-dimmer); width: 18px; height: 18px; flex: 0 0 auto; }
+.forum-nuova-menu a span { display: flex; flex-direction: column; }
+.forum-nuova-menu small { color: var(--text-dimmer); font-weight: 400; font-size: var(--fs-xs); }
+
+/* Categoria: icona colorata a sinistra. */
+.forum-cat { grid-template-columns: auto minmax(0, 1fr) minmax(0, 250px); padding: 18px 20px; }
+.forum-cat-icona {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accento, var(--purple)) 16%, transparent);
+  color: var(--accento, var(--purple));
+}
+.forum-cat-icona .ico { width: 22px; height: 22px; }
+.forum-cat-testo h2 { font-size: var(--fs-lg, 20px); }
+
+/* Sezioni: riquadri affiancati dentro la categoria, non righe rientrate. */
+.forum-sezioni {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+.forum-sezioni-sole { padding: 0; border: 0; background: none; }
+.forum-sezione-riga,
+.forum-sezioni-sole .forum-sezione-riga {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "icona testo freccia" "icona numeri freccia" "ultimo ultimo ultimo";
+  align-items: start;
+  gap: 4px 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  transition: border-color .14s, background-color .14s, transform .14s;
+}
+.forum-sezioni-sole .forum-sezione-riga:first-child { border-top: 1px solid var(--border); }
+.forum-sezione-riga:hover { background: var(--bg-elevated); border-color: color-mix(in srgb, var(--accento, var(--purple)) 45%, var(--border)); transform: translateY(-1px); }
+.forum-sezione-icona {
+  grid-area: icona; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accento, var(--purple)) 14%, transparent); color: var(--accento, var(--purple));
+}
+.forum-sezione-icona .ico { width: 18px; height: 18px; }
+.forum-sezione-testo { grid-area: testo; }
+.forum-sezione-nome::before, .forum-sezioni-sole .forum-sezione-nome::before { content: none; }
+.forum-sezione-numeri { grid-area: numeri; margin-top: 4px; }
+.forum-sezione-ultimo { grid-area: ultimo; margin-top: 8px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.forum-sezione-freccia { grid-area: freccia; align-self: center; }
+.forum-sezione-freccia .ico { width: 16px; height: 16px; }
+
+/* Stato vuoto di una categoria: un invito, non un "0". */
+.forum-vuota {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;
+  padding: 40px 24px; border: 1px dashed var(--border-strong); border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+.forum-vuota-icona {
+  display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%;
+  background: color-mix(in srgb, var(--gold, #f4c531) 14%, transparent); color: var(--gold, #f4c531);
+}
+.forum-vuota-icona .ico { width: 26px; height: 26px; }
+.forum-vuota h2 { margin: 4px 0 0; font-size: var(--fs-lg, 20px); }
+.forum-vuota p { margin: 0 0 6px; max-width: 52ch; color: var(--text-dim); }
+.forum-vuota .btn { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Scorciatoie in fondo alla pagina del forum. */
+.forum-scorciatoie { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px; margin-top: 26px; }
+.forum-scorciatoia {
+  display: flex; align-items: center; gap: 14px; padding: 16px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-panel);
+  color: var(--text); text-decoration: none; transition: border-color .14s, background-color .14s;
+}
+.forum-scorciatoia:hover { border-color: var(--border-strong); background: var(--bg-elevated); color: var(--text); text-decoration: none; }
+.forum-scorciatoia-icona { display: grid; place-items: center; flex: 0 0 auto; width: 42px; height: 42px; border-radius: var(--radius-sm); background: var(--bg-panel-2); color: var(--purple); }
+.forum-scorciatoia > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.forum-scorciatoia strong { font-family: var(--font-heading); }
+.forum-scorciatoia small { color: var(--text-dim); font-size: var(--fs-sm); }
+
+@media (max-width: 760px) {
+  .forum-hero { grid-template-columns: minmax(0, 1fr); padding: 20px var(--wrap-pad); }
+  .forum-hero-azioni { justify-content: stretch; }
+  .forum-hero-azioni .btn, .forum-nuova { width: 100%; justify-content: center; }
+  .forum-nuova-menu { left: 0; right: 0; width: auto; }
+  .forum-hero-icona { width: 48px; height: 48px; }
+  .forum-cat { grid-template-columns: auto minmax(0, 1fr); }
+  .forum-cat-ultimo { grid-column: 1 / -1; }
+}
+
+/* =========================================================================================
+   GIOCATORI (/utenti): in testa i numeri della comunità, una barra con ricerca e filtri,
+   tessere con faccia grande, pallino di chi è sul sito, fazione e tempo di gioco.
+   ========================================================================================= */
+.utenti-hero {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px;
+  margin: 30px 0 18px; padding: 24px 26px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background:
+    radial-gradient(80% 140% at 0% 0%, color-mix(in srgb, var(--purple) 15%, transparent), transparent 60%),
+    radial-gradient(60% 120% at 100% 100%, color-mix(in srgb, var(--green) 9%, transparent), transparent 60%),
+    var(--bg-panel);
+}
+.utenti-hero .page-title { margin: 0 0 6px; padding: 0; }
+.utenti-hero .page-title::before { display: none; }
+.utenti-hero .utenti-intro { max-width: 70ch; }
+.utenti-numeri { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.utenti-numeri > div { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--bg-panel-2) 80%, transparent); }
+.utenti-numeri strong { display: block; font-family: var(--font-heading); font-size: 26px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+.utenti-numeri span { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; color: var(--text-dim); font-size: var(--fs-sm); }
+.utenti-numeri span .ico { width: 14px; height: 14px; color: var(--text-dimmer); }
+.utenti-numeri .is-online strong { color: var(--green); }
+.utenti-punto {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 0 0 var(--green-glow); animation: punto-vivo 2s ease-out infinite;
+}
+
+.utenti-barra { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.utenti-barra .utenti-cerca { flex: 1 1 280px; }
+.utenti-barra + .utenti-esito { margin-top: 10px; }
+
+.utenti-griglia { grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr)); gap: 12px; }
+.utente-card {
+  align-items: flex-start; gap: 14px; padding: 14px 16px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--baffo, #aaaaaa) 10%, transparent), transparent 55%),
+    var(--bg-panel);
+}
+.utente-card-volto { position: relative; flex: 0 0 auto; line-height: 0; }
+.utente-card-faccia { width: 52px; height: 52px; border-radius: 9px; box-shadow: 0 6px 16px -8px rgba(0, 0, 0, .7); }
+.utente-card-punto { position: absolute; right: -3px; bottom: -3px; width: 13px; height: 13px; border: 2px solid var(--bg-panel); }
+.utente-card-testo { gap: 4px; padding-top: 1px; }
+.utente-card-nome { font-size: var(--fs-md); }
+.utente-card-info { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--text-dim); font-size: var(--fs-xs); }
+.utente-card-info > span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.utente-card-info .ico { width: 13px; height: 13px; color: var(--text-dimmer); flex: 0 0 auto; }
+.utente-card-fazione { color: var(--text); font-weight: 600; }
+.utente-card-fazione .ico { color: var(--purple); }
+.utente-card-meta { color: var(--text-dimmer); }
+.utente-card-meta:empty { display: none; }
+.utente-card.e-online { border-color: color-mix(in srgb, var(--green) 35%, var(--border)); }
+
+@media (max-width: 760px) {
+  .utenti-hero { padding: 20px var(--wrap-pad); margin-top: 18px; }
+  .utenti-numeri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .utenti-numeri > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .utenti-numeri strong { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .utenti-punto { animation: none; } }
+.utenti-ancora [hidden] { display: none; }

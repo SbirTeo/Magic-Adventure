@@ -109,16 +109,25 @@ $rigaDiscussione = function (array $t, int $i): void { ?>
   <strong><?= h($cat['name']) ?></strong>
 </nav>
 
-<div class="forum-testata">
-  <div>
-    <h1 class="page-title"><?= h($cat['name']) ?></h1>
-    <p class="forum-sottotitolo"><?= h($cat['description']) ?></p>
+<section class="forum-hero forum-hero-cat" style="<?= h(forum_tinta((int) $cat['id'], 0, $cat['color'] ?? null)) ?>">
+  <div class="forum-hero-testo">
+    <span class="forum-hero-icona" aria-hidden="true"><?= ui_icon(forum_category_icon($cat)) ?></span>
+    <div>
+      <h1 class="page-title"><?= h($cat['name']) ?></h1>
+      <p class="forum-sottotitolo"><?= h($cat['description']) ?></p>
+    </div>
   </div>
   <?php /* Con delle sezioni qui non si apre niente: si sceglie in quale sezione scrivere. */ ?>
-  <?php if (is_logged_in() && !$haSotto): ?>
-    <a href="/forum/new_topic?category=<?= urlencode($cat['slug']) ?>" class="btn btn-green">+ Nuova discussione</a>
+  <?php if (!$haSotto): ?>
+    <div class="forum-hero-azioni">
+      <?php if (is_logged_in()): ?>
+        <a href="/forum/new_topic?category=<?= urlencode($cat['slug']) ?>" class="btn btn-green"><?= ui_icon('plus') ?> Nuova discussione</a>
+      <?php else: ?>
+        <a href="/login" class="btn btn-green"><?= ui_icon('user') ?> Accedi per scrivere</a>
+      <?php endif; ?>
+    </div>
   <?php endif; ?>
-</div>
+</section>
 
 <?php if ($madre && count($sorelle) > 1): ?>
   <?php /* Da una sezione si salta a quella accanto: e' il movimento piu' frequente. */ ?>
@@ -152,14 +161,15 @@ $rigaDiscussione = function (array $t, int $i): void { ?>
   <?php endif; ?>
 
 <?php elseif (!$topics): ?>
-  <div class="panel">
-    <p>Nessuna discussione ancora in questa <?= $madre ? 'sezione' : 'categoria' ?>.
-      <?php if (is_logged_in()): ?>
-        Aprila tu: <a href="/forum/new_topic?category=<?= urlencode($cat['slug']) ?>">scrivi la prima</a>.
-      <?php else: ?>
-        <a href="/login">Accedi</a> per aprire la prima.
-      <?php endif; ?>
-    </p>
+  <div class="forum-vuota">
+    <span class="forum-vuota-icona" aria-hidden="true"><?= ui_icon('sparkles') ?></span>
+    <h2>Nessuna discussione, per ora</h2>
+    <p>Questa <?= $madre ? 'sezione' : 'categoria' ?> aspetta il primo messaggio: aprila tu e gli altri giocatori risponderanno qui.</p>
+    <?php if (is_logged_in()): ?>
+      <a class="btn btn-green" href="/forum/new_topic?category=<?= urlencode($cat['slug']) ?>"><?= ui_icon('plus') ?> Scrivi la prima discussione</a>
+    <?php else: ?>
+      <a class="btn btn-green" href="/login"><?= ui_icon('user') ?> Accedi per scrivere</a>
+    <?php endif; ?>
   </div>
 <?php else: ?>
   <div class="forum-discussioni">

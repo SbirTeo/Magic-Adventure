@@ -167,6 +167,7 @@ function forum_riga_sezione(array $sez, ?array $ultimo): void {
     ?>
     <a class="forum-sezione-riga" id="sotto-<?= h($sez['slug']) ?>"
        href="/forum/<?= urlencode($sez['slug']) ?>">
+      <span class="forum-sezione-icona" aria-hidden="true"><?= ui_icon(forum_category_icon($sez)) ?></span>
       <span class="forum-sezione-testo">
         <span class="forum-sezione-nome"><?= h($sez['name']) ?></span>
         <?php if ($sez['description']): ?>
@@ -185,12 +186,39 @@ function forum_riga_sezione(array $sez, ?array $ultimo): void {
             <span class="forum-ultimo-meta"><?= h(time_ago($ultimo['created_at'])) ?></span>
           </span>
         <?php else: ?>
-          <span class="forum-vuoto">Ancora vuota</span>
+          <span class="forum-vuoto">Ancora nessuna discussione</span>
         <?php endif; ?>
       </span>
-      <span class="forum-sezione-freccia" aria-hidden="true">&rsaquo;</span>
+      <span class="forum-sezione-freccia" aria-hidden="true"><?= ui_icon('arrow-right') ?></span>
     </a>
     <?php
+}
+
+/**
+ * L'icona di una categoria o sezione, riconosciuta da indirizzo e nome (le categorie si creano
+ * dal gestionale e non hanno un campo icona): una categoria nuova che non somiglia a nessuna
+ * prende il fumetto. L'ordine conta: "cerca alleanze" e' un'alleanza prima che una fazione.
+ */
+function forum_category_icon(array $cat): string {
+    $testo = mb_strtolower(($cat['slug'] ?? '') . ' ' . ($cat['name'] ?? ''));
+    $regole = [
+        'alleanz'               => 'shield-check',
+        'membri'                => 'users',
+        'cerca-fazione'         => 'search',
+        'fazion'                => 'swords',
+        'support|aiuto|bug'     => 'help',
+        'annunc|novit|news'     => 'scroll',
+        'costru|build'          => 'home',
+        'mercat|commerc|scamb'  => 'coins',
+        'event|torne'           => 'trophy',
+        'guid'                  => 'book',
+    ];
+    foreach ($regole as $parole => $icona) {
+        if (preg_match('/' . $parole . '/u', $testo)) {
+            return $icona;
+        }
+    }
+    return 'message';
 }
 
 /** Faccia del giocatore, con il posto gia' riservato: niente salti mentre carica. */
