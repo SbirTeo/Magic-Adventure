@@ -145,7 +145,10 @@
 .magix-unitario b { color: var(--text); }
 
 /* ---- Il cursore ------------------------------------------------------------------- */
-.magix-cursore-zona { margin: 34px 6px 8px; }
+/* Margine ai lati pari a mezza maniglia (62px): agli estremi (1 e 1000 Magix) la maniglia
+   resta tutta dentro il riquadro invece di uscire dal bordo, e le cifre sotto il cursore
+   hanno spazio per stare centrate sulla loro tacca. */
+.magix-cursore-zona { margin: 34px 34px 8px; }
 .magix-binario {
   position: relative;
   height: 18px;
@@ -254,8 +257,9 @@
 .magix-tacca-lbl small { display: block; color: var(--magix-oro-testo); opacity: .55; font-size: var(--fs-2xs); }
 .magix-tacca-lbl.presa { color: var(--text); }
 .magix-tacca-lbl.presa small { opacity: 1; }
-.magix-tacca-lbl.primo { transform: none; }
-.magix-tacca-lbl.ultimo { transform: translateX(-100%); }
+@media (max-width: 480px) {
+  .magix-tacca-lbl { font-size: var(--fs-2xs); padding: 2px 0; }
+}
 
 .magix-passi { display: flex; gap: 8px; margin-top: 4px; }
 .magix-tondo {
