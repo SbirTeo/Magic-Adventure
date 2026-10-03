@@ -24,7 +24,10 @@ define('LINK_CODE_TTL_MINUTES', 10);
 // illeggibili e TUTTI gli admin devono riconfigurare la verifica (il sito glielo chiede
 // da solo al primo accesso, quindi nessuno resta fuori). Va copiata identica nella
 // configurazione del plugin MagixBridge, che verifica gli stessi codici in gioco.
-define('OTP_CHIAVE', 'I4pMryhCrdnuKpNfmEN031ltc6pvSJK+VYT1arrNO2s=');
+// NB: questo file nel repository e' solo il MODELLO (il repository e' pubblico): quello vero sta
+// sul VPS e il deploy non lo tocca. La chiave vera non va MAI scritta qui: la genera, e la cambia
+// quando serve ricifrando i segreti gia' salvati, il workflow manuale ruota-segreti.yml.
+define('OTP_CHIAVE', 'CHANGE_ME_OTP_KEY_BASE64_32_BYTES');
 
 // Account il cui ruolo web-admin NON e' revocabile dal sito, da nessuno e in nessun modo:
 // nemmeno da un altro web-admin, nemmeno forzando la richiesta a mano. L'unico modo per

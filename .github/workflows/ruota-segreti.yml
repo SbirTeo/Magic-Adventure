@@ -1,0 +1,240 @@
+name: Ruota i segreti (pepper di MagixGuard, chiave OTP)
+
+# Cambia i due segreti che fino al 3/10/2026 stavano scritti nel repository, che e' PUBBLICO:
+#
+#   pepper   privacy.pepper di MagixGuard (faction + hub): il segreto degli hash degli IP. Con il
+#            valore pubblico e una copia del database chiunque poteva risalire agli indirizzi.
+#            Dopo il cambio, al riavvio, MagixGuard (>= 0.4.9, privacy/PepperGuard) ricalcola da
+#            solo gli hash delle sessioni: il riconoscimento degli account multipli non si azzera.
+#   otp      OTP_CHIAVE del sito (includes/config.php sul VPS) e database.otp_key_base64 di
+#            MagixAuth (faction + hub): la chiave che cifra nel database i segreti della verifica
+#            in due passaggi. Qui i segreti gia' salvati vengono RICIFRATI con la chiave nuova,
+#            quindi nessuno deve riconfigurare l'app.
+#
+# I segreti nuovi nascono SUL VPS (da /dev/urandom) e non passano mai da GitHub: nei log di questo
+# workflow (pubblici come il repository) compaiono solo le prime cifre della loro impronta SHA-256,
+# per capire se due file hanno lo stesso valore. Mai il valore.
+#
+#   applica=no  -> solo controllo: dove sta ogni segreto, se e' quello pubblico, se i file
+#                  coincidono fra loro. Non cambia niente.
+#   applica=si  -> backup di ogni file in ~/.bak/segreti/<data>/, scrittura dei valori nuovi,
+#                  poi riavvio di faction e hub con `stopserverfast` (regola di CLAUDE.md), che
+#                  rileggono i config. Il sito non va riavviato.
+#
+# Stessi secret degli altri workflow: VPS_HOST, VPS_USER, VPS_SSH_KEY. Serve sudo senza password
+# per scrivere includes/config.php (come deploy-nginx.yml).
+
+on:
+  workflow_dispatch:
+    inputs:
+      segreto:
+        description: "Quale segreto"
+        required: true
+        default: "entrambi"
+        type: choice
+        options: ["entrambi", "pepper", "otp"]
+      applica:
+        description: "no = solo controllo; si = cambia i segreti e riavvia faction e hub"
+        required: true
+        default: "no"
+        type: choice
+        options: ["no", "si"]
+
+concurrency:
+  group: ruota-segreti
+  cancel-in-progress: false
+
+jobs:
+  ruota:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla che i secret VPS ci siano
+        id: check
+        run: |
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_USER }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"
+            exit 1
+          fi
+
+      - name: Prepara la chiave SSH
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Controlla o ruota sul VPS
+        if: steps.check.outputs.ok == 'true'
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          IN_SEGRETO: ${{ inputs.segreto }}
+          IN_APPLICA: ${{ inputs.applica }}
+        run: |
+          set -euo pipefail
+          case "$IN_SEGRETO" in entrambi|pepper|otp) ;; *) echo "segreto non valido"; exit 1;; esac
+          case "$IN_APPLICA" in no|si) ;; *) echo "applica non valido"; exit 1;; esac
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" \
+            "SEGRETO='$IN_SEGRETO' APPLICA='$IN_APPLICA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          umask 077
+
+          BASE=/home/ubuntu/magicadventure
+          FACTION="$BASE/faction"; [ -d "$FACTION/plugins" ] || FACTION="$BASE"
+          HUB="$BASE/hub"
+          WEB=/var/www/magicadventure
+          CONFIG_PHP="$WEB/includes/config.php"
+          ORA="$(date -u +%Y%m%d-%H%M%S)"
+          BAK="$HOME/.bak/segreti/$ORA"
+
+          # Impronte dei valori che stavano nel repository pubblico (SHA-256 completo).
+          PEPPER_PUBBLICO=a4935b3c18ee41cdb4e0653dffb55d3712d39f663f550ce21e0006cb2542d241
+          OTP_PUBBLICA=$(printf '%s' 'I4pMryhCrdnuKpNfmEN031ltc6pvSJK+VYT1arrNO2s=' | sha256sum | cut -d' ' -f1)
+
+          sha() { printf '%s' "$1" | sha256sum | cut -d' ' -f1; }
+          # Il valore di una chiave YAML a una riga (pepper: "x" / otp_key_base64: x), senza virgolette.
+          yaml_val() { grep -m1 -E "^[[:space:]]*$2:" "$1" 2>/dev/null | sed -E "s/^[[:space:]]*$2:[[:space:]]*//; s/[[:space:]]+#.*$//; s/^\"(.*)\"$/\1/; s/^'(.*)'$/\1/" || true; }
+          descrivi() {  # $1 etichetta, $2 valore, $3 impronta pubblica
+            if [ -z "$2" ]; then echo "  $1: VUOTO"; return; fi
+            local h; h="$(sha "$2")"
+            if [ "$h" = "$3" ]; then echo "  $1: impronta ${h:0:12}  <-- E' QUELLO PUBBLICO"; else echo "  $1: impronta ${h:0:12}  (non pubblico)"; fi
+          }
+          # Riscrive la prima riga "<chiave>:" del file YAML con il valore nuovo (dalla variabile NUOVO),
+          # lasciando intatto il resto. Copia prima in $BAK.
+          scrivi_yaml() {  # $1 file, $2 chiave
+            mkdir -p "$BAK"; cp -p "$1" "$BAK/$(echo "$1" | tr '/' '_')"
+            NUOVO="$NUOVO" CHIAVE="$2" python3 - "$1" <<'PY'
+          import os, re, sys
+          p = sys.argv[1]; k = os.environ['CHIAVE']; v = os.environ['NUOVO']
+          righe = open(p, encoding='utf-8').read().split('\n')
+          for i, r in enumerate(righe):
+              m = re.match(r'^([ \t]*)' + re.escape(k) + r':', r)
+              if m:
+                  righe[i] = m.group(1) + k + ': "' + v + '"'
+                  break
+          else:
+              sys.exit('chiave ' + k + ' non trovata in ' + p)
+          open(p, 'w', encoding='utf-8').write('\n'.join(righe))
+          PY
+          }
+
+          GUARD_FILES=(); AUTH_FILES=()
+          for d in "$FACTION" "$HUB"; do
+            [ -f "$d/plugins/MagixGuard/config.yml" ] && GUARD_FILES+=("$d/plugins/MagixGuard/config.yml")
+            [ -f "$d/plugins/MagixAuth/config.yml" ] && AUTH_FILES+=("$d/plugins/MagixAuth/config.yml")
+          done
+
+          echo "=== STATO ATTUALE (solo impronte, mai i valori) ==="
+          echo "privacy.pepper di MagixGuard:"
+          for f in "${GUARD_FILES[@]}"; do descrivi "$f" "$(yaml_val "$f" pepper)" "$PEPPER_PUBBLICO"; done
+          echo "Chiave OTP:"
+          OTP_SITO="$(php -r 'require $argv[1]; echo defined("OTP_CHIAVE") ? OTP_CHIAVE : "";' "$CONFIG_PHP" 2>/dev/null || true)"
+          descrivi "$CONFIG_PHP (OTP_CHIAVE)" "$OTP_SITO" "$OTP_PUBBLICA"
+          for f in "${AUTH_FILES[@]}"; do descrivi "$f (otp_key_base64)" "$(yaml_val "$f" otp_key_base64)" "$OTP_PUBBLICA"; done
+          ATTIVI="$(php -r 'require $argv[1]; echo (int) db()->query("SELECT COUNT(*) FROM users WHERE totp_secret IS NOT NULL")->fetchColumn();' "$WEB/includes/db.php" 2>/dev/null || echo '?')"
+          echo "  account con la verifica in due passaggi salvata: $ATTIVI"
+
+          if [ "$APPLICA" != "si" ]; then
+            echo; echo "applica=no: nessuna modifica."
+            exit 0
+          fi
+
+          RIAVVIA=0
+
+          # ---------------------------------------------------------------- pepper
+          if [ "$SEGRETO" = "pepper" ] || [ "$SEGRETO" = "entrambi" ]; then
+            [ "${#GUARD_FILES[@]}" -gt 0 ] || { echo "ERRORE: nessun config.yml di MagixGuard trovato"; exit 3; }
+            NUOVO="$(head -c 48 /dev/urandom | base64 -w0 | tr '+/' '-_' | tr -d '=')"
+            for f in "${GUARD_FILES[@]}"; do scrivi_yaml "$f" pepper; done
+            echo; echo "pepper nuovo scritto in ${#GUARD_FILES[@]} file (impronta $(sha "$NUOVO" | cut -c1-12)). Al riavvio il faction ricalcola gli hash."
+            unset NUOVO
+            RIAVVIA=1
+          fi
+
+          # ---------------------------------------------------------------- otp
+          if [ "$SEGRETO" = "otp" ] || [ "$SEGRETO" = "entrambi" ]; then
+            [ -n "$OTP_SITO" ] || { echo "ERRORE: OTP_CHIAVE non leggibile da $CONFIG_PHP"; exit 3; }
+            NUOVO="$(head -c 32 /dev/urandom | base64 -w0)"
+            mkdir -p "$BAK"; sudo -n cp -p "$CONFIG_PHP" "$BAK/config.php"; sudo -n chown "$(id -u):$(id -g)" "$BAK/config.php"
+            # 1) config.php nuovo in un file temporaneo; 2) segreti ricifrati in UNA transazione;
+            # 3) solo se tutto va, config.php sostituito e transazione confermata. Se qualcosa non va
+            # dopo la sostituzione, si rimette il config.php di prima.
+            TMP="$(mktemp)"
+            NUOVO="$NUOVO" CONFIG_PHP="$CONFIG_PHP" TMP="$TMP" BAK="$BAK" php <<'PHP'
+          <?php
+          require dirname(getenv('CONFIG_PHP')) . '/db.php';   // carica anche config.php
+          $vecchia = base64_decode((string) OTP_CHIAVE, true);
+          $nuova = base64_decode((string) getenv('NUOVO'), true);
+          if ($vecchia === false || strlen($vecchia) !== 32 || $nuova === false || strlen($nuova) !== 32) {
+              fwrite(STDERR, "chiavi non valide\n"); exit(4);
+          }
+          $testo = file_get_contents(getenv('CONFIG_PHP'));
+          $nuovoTesto = preg_replace("/define\\('OTP_CHIAVE',\\s*'[^']*'\\);/", "define('OTP_CHIAVE', '" . getenv('NUOVO') . "');", $testo, 1, $quante);
+          if ($quante !== 1) { fwrite(STDERR, "riga OTP_CHIAVE non trovata in config.php\n"); exit(4); }
+          file_put_contents(getenv('TMP'), $nuovoTesto);
+
+          $pdo = db();
+          $pdo->beginTransaction();
+          $righe = $pdo->query('SELECT id, totp_secret FROM users WHERE totp_secret IS NOT NULL')->fetchAll();
+          $upd = $pdo->prepare('UPDATE users SET totp_secret = ? WHERE id = ?');
+          $fatti = 0; $illeggibili = 0;
+          foreach ($righe as $r) {
+              $grezzo = base64_decode((string) $r['totp_secret'], true);
+              $segreto = ($grezzo !== false && strlen($grezzo) >= 29)
+                  ? openssl_decrypt(substr($grezzo, 28), 'aes-256-gcm', $vecchia, OPENSSL_RAW_DATA, substr($grezzo, 0, 12), substr($grezzo, 12, 16))
+                  : false;
+              if ($segreto === false) { $illeggibili++; continue; }   // gia' rotto prima: resta com'e'
+              $iv = random_bytes(12); $tag = '';
+              $cifrato = openssl_encrypt($segreto, 'aes-256-gcm', $nuova, OPENSSL_RAW_DATA, $iv, $tag);
+              // Prova prima di scrivere: il dato nuovo si rilegge con la chiave nuova e da' lo stesso segreto?
+              if ($cifrato === false || openssl_decrypt($cifrato, 'aes-256-gcm', $nuova, OPENSSL_RAW_DATA, $iv, $tag) !== $segreto) {
+                  $pdo->rollBack(); fwrite(STDERR, "ricifratura non verificata: niente cambiato\n"); exit(5);
+              }
+              $upd->execute([base64_encode($iv . $tag . $cifrato), $r['id']]);
+              $fatti++;
+          }
+          // config.php nuovo al suo posto (sudo: e' di root); se non riesce, niente commit.
+          exec('sudo -n cp ' . escapeshellarg(getenv('TMP')) . ' ' . escapeshellarg(getenv('CONFIG_PHP')), $o, $rc);
+          if ($rc !== 0) { $pdo->rollBack(); fwrite(STDERR, "config.php non sostituito: niente cambiato\n"); exit(6); }
+          try {
+              $pdo->commit();
+          } catch (Throwable $e) {
+              exec('sudo -n cp ' . escapeshellarg(getenv('BAK') . '/config.php') . ' ' . escapeshellarg(getenv('CONFIG_PHP')));
+              fwrite(STDERR, "commit fallito, config.php rimesso com'era\n"); exit(7);
+          }
+          echo "segreti OTP ricifrati: $fatti" . ($illeggibili ? " (illeggibili gia' prima, lasciati com'erano: $illeggibili)" : '') . "\n";
+          PHP
+            rm -f "$TMP"
+            for f in "${AUTH_FILES[@]}"; do scrivi_yaml "$f" otp_key_base64; done
+            echo "chiave OTP nuova in config.php e in ${#AUTH_FILES[@]} config di MagixAuth (impronta $(sha "$NUOVO" | cut -c1-12))."
+            unset NUOVO
+            RIAVVIA=1
+          fi
+
+          # ---------------------------------------------------------------- riavvio
+          # REGOLA (CLAUDE.md): stop con `stopserverfast` di CMI (avvisi e countdown li fa CMI),
+          # start.sh rilancia il server da solo; systemd solo se il faction e' spento.
+          if [ "$RIAVVIA" = 1 ]; then
+            SCR="$(screen -list 2>/dev/null | grep -oE '[0-9]+\.(factions|faction|mc)[[:space:]]' | head -n1 | sed -E 's/^[0-9]+\.//; s/[[:space:]]+$//' || true)"
+            if [ -n "$SCR" ]; then
+              screen -S "$SCR" -p 0 -X stuff "$(printf 'stopserverfast\r')"
+              echo "Faction: inviato stopserverfast, start.sh lo rilancia con i segreti nuovi."
+            else
+              sudo -n systemctl restart magicadventure.service && echo "Faction spento: avviato via systemd."
+            fi
+            if screen -list 2>/dev/null | grep -qE '[0-9]+\.hub[[:space:]]'; then
+              CMD_HUB="$(ls "$HUB"/plugins/CMI-*.jar >/dev/null 2>&1 && echo stopserverfast || echo stop)"
+              screen -S hub -p 0 -X stuff "$(printf '%s\r' "$CMD_HUB")"
+              echo "Hub: inviato $CMD_HUB."
+            else
+              echo "Hub spento: i segreti nuovi valgono dal suo prossimo avvio."
+            fi
+          fi
+          echo; echo "Backup dei file di prima in $BAK"
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

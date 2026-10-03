@@ -46,12 +46,14 @@ network:
 
 # ------------------------------ PRIVACY ------------------------------
 privacy:
-  # Segreto usato per l'HMAC degli indirizzi IP e dei dati sensibili.
-  # DEVE essere cambiato al primo avvio e NON deve mai finire in un dossier
-  # pubblico: senza di esso gli hash nel database non sono riconducibili a un IP.
-  # Se lo cambi dopo, gli hash vecchi non combaciano più con i nuovi (i collegamenti
-  # già registrati restano, ma non se ne creano di nuovi con le stesse coppie).
-  pepper: "UU9yBzkI4COxdXHJyHFcU6799hQQph162OwRrv4DUIqeLTB1x7lmh6vOX9oTyPAU"
+  # Segreto usato per l'HMAC degli indirizzi IP e dei dati sensibili: senza di esso gli
+  # hash nel database non sono riconducibili a un IP. NON va mai scritto qui nel repository
+  # (è pubblico) né in un dossier. Vuoto = al primo avvio il plugin ne genera uno casuale e lo
+  # scrive in questo file sul server. Con più server (faction, hub...) deve essere IDENTICO su
+  # tutti: lo genera e lo copia ovunque il workflow ruota-segreti.yml, che serve anche a cambiarlo.
+  # Quando cambia, al riavvio gli hash delle sessioni si ricalcolano da soli col nuovo valore,
+  # dove il database ha ancora il dato grezzo (l'IP solo entro session-retention-days).
+  pepper: ""
   # Giorni di conservazione delle sessioni grezze (IP in chiaro compreso).
   # Scaduti, la sessione viene anonimizzata: restano gli hash e i collegamenti già
   # calcolati, sparisce l'IP leggibile. 0 = non anonimizzare mai (sconsigliato).

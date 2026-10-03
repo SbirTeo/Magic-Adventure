@@ -112,8 +112,15 @@ non e' stato ritoccato dopo. `/mg verify` controlla l'intera catena.
 
 - gli IP sono conservati in chiaro per il numero di giorni impostato in `privacy.session-retention-days`
   (180 di default), poi restano solo in forma cifrata (HMAC) per i confronti;
-- l'HMAC usa il segreto `privacy.pepper`, che **va cambiato al primo avvio** e non deve mai finire
-  in un dossier: senza di esso gli hash nel database non sono riconducibili a un indirizzo;
+- l'HMAC usa il segreto `privacy.pepper`, che non deve mai finire in un dossier ne' nel repository
+  (che e' pubblico): senza di esso gli hash nel database non sono riconducibili a un indirizzo.
+  Il jar non ne ha nessuno: se manca, al primo avvio il plugin ne genera uno casuale nel
+  `config.yml` del server. Su una rete va **identico** su tutti i server, e si cambia col workflow
+  manuale `ruota-segreti.yml` (lo genera sul VPS, lo scrive su faction e hub, riavvia). Quando cambia,
+  al riavvio il server con `network.site-jobs` **ricalcola gli hash** delle sessioni dove il database
+  ha ancora il dato grezzo (subnet, reverse DNS, canali e impronta sempre; l'IP solo entro la
+  retention), con un controllo in `mg_meta` (`privacy/PepperGuard`). Fino alla 0.4.8 nel jar c'era
+  un pepper vero, pubblico: se e' ancora quello, la console lo dice a ogni avvio;
 - il registro a catena traccia chi ha generato ogni dossier e quando.
 
 Il pubblico di un server Minecraft e' in larga parte minorenne: conviene indicare nella privacy
@@ -164,6 +171,6 @@ database condiviso ancora vuoto: prima deve importare il principale.
 1. `mvn -q clean package` (serve **JDK 25**, vedi `pom.xml`)
 2. copia `target/MagixGuard-0.1.0.jar` in `plugins/`
 3. avvia una volta, poi in `plugins/MagixGuard/config.yml`:
-   - cambia `privacy.pepper` con una stringa casuale lunga
+   - `privacy.pepper` lo genera il plugin da solo (su una rete: `ruota-segreti.yml`)
    - imposta le credenziali MariaDB (o lascia `type: sqlite` per iniziare)
 4. riavvia.

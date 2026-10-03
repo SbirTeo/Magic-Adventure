@@ -32,6 +32,7 @@ import com.teolo.magixguard.sanctions.SiteDb;
 import com.teolo.magixguard.util.StaffGuide;
 import com.teolo.magixguard.dossier.DossierBuilder;
 import com.teolo.magixguard.util.Hashing;
+import com.teolo.magixguard.privacy.PepperGuard;
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -84,10 +85,21 @@ public final class MagixGuard extends JavaPlugin {
         // Capitolo della guida per amministratori sul sito (vedi plugins-src/GUIDA-STAFF.md).
         Bukkit.getScheduler().runTaskAsynchronously(this, this::writeStaffGuide);
 
+        // Il jar non ha piu' un pepper (fino alla 0.4.8 ce n'era uno vero, pubblico sul repository):
+        // se il server non ne ha, se ne genera uno casuale e lo si scrive nel suo config.yml.
+        String generated = PepperGuard.generateIfMissing(this, getConfig().getString("privacy.pepper", ""));
+        if (generated != null) {
+            reloadConfig();
+            getLogger().warning("privacy.pepper mancante: generato e scritto in config.yml. Su una rete di più "
+                    + "server deve essere identico ovunque: allinealo con il workflow ruota-segreti.yml.");
+        }
         GuardConfig config = new GuardConfig(getConfig());
         if (config.pepperIsDefault()) {
             getLogger().warning("privacy.pepper è ancora quello di esempio: cambialo in config.yml e riavvia. "
                     + "Finché resta quello, chiunque ottenga una copia del database può risalire agli IP.");
+        } else if (PepperGuard.isPublished(config.pepper)) {
+            getLogger().severe("privacy.pepper è quello pubblicato nel repository fino alla 0.4.8: chiunque "
+                    + "lo conosce. Cambialo con il workflow ruota-segreti.yml (gli hash si ricalcolano da soli).");
         }
 
         try {
@@ -119,6 +131,10 @@ public final class MagixGuard extends JavaPlugin {
 
         dbExecutor = new DbExecutor(getLogger());
         wire(config);
+
+        // Pepper cambiato dall'ultimo avvio? Si ricalcolano gli hash delle sessioni (vedi PepperGuard).
+        dbExecutor.submit("controllo del pepper", () ->
+                PepperGuard.checkRotation(getLogger(), database, new Hashing(config.pepper), config.siteJobs));
 
         // Sessioni rimaste aperte da un arresto brusco: chiudile prima di aprirne di nuove.
         dbExecutor.submit("chiusura sessioni pendenti", () -> {
@@ -506,6 +522,11 @@ public final class MagixGuard extends JavaPlugin {
                                 + "database del sito) e lo stesso privacy.pepper: è così che un account visto "
                                 + "sull'hub e uno visto sul faction si incrociano. Ogni sessione dice su quale "
                                 + "server è avvenuta (network.server-name).",
+                        "Il privacy.pepper **non sta nel repository** (è pubblico): lo genera il workflow "
+                                + "ruota-segreti.yml direttamente sul VPS e lo scrive uguale su ogni server. Lo "
+                                + "stesso workflow serve a cambiarlo se si teme che sia uscito: al riavvio il "
+                                + "faction ricalcola da solo gli hash delle sessioni, quindi il riconoscimento "
+                                + "degli account multipli non riparte da zero.",
                         "**Le sanzioni valgono ovunque**: un ban dato sull'hub butta fuori il giocatore anche "
                                 + "se è sul faction, un mute lo zittisce su ogni server e una revoca lo libera "
                                 + "ovunque, entro pochi secondi (network.sanctions-sync-seconds).",
