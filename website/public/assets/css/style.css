@@ -1805,7 +1805,6 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .medaglia-altro .medaglia-disco span { color: #e8edf5; text-shadow: 0 -1px 0 rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 255, 255, .15); }
 @keyframes medaglia-dondola { from { transform: rotate(-3.5deg); } to { transform: rotate(3.5deg); } }
 @keyframes medaglia-riflesso { 0%, 55% { background-position: 130% 0; } 85%, 100% { background-position: -40% 0; } }
-.profilo-fazione-posto:hover .medaglia { animation-duration: 2.4s; }
 @media (prefers-reduced-motion: reduce) {
   .medaglia, .medaglia-disco::after { animation: none; }
 }
