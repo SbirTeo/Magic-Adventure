@@ -114,7 +114,7 @@ function sidebar_colonna(bool $conContenitore = true): void {
         $card = '<span class="online-card">' . $avatar
             . '<span class="online-card-name colore-grado"' . $style . '>' . h($p['mc_username']) . '</span></span>';
         return '<span class="online-nome-wrap">'
-            . '<a class="online-nome colore-grado" href="/utente?nome=' . h(rawurlencode($p['mc_username'])) . '"' . $style . '>'
+            . '<a class="online-nome colore-grado" href="/utente/' . h(rawurlencode($p['mc_username'])) . '"' . $style . '>'
             . h($p['mc_username']) . '</a>' . $card . '</span>';
     };
     ?>

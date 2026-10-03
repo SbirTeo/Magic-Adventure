@@ -1,7 +1,7 @@
 <?php
 /**
  * Pezzi comuni delle due pagine del giocatore: il profilo personale (/profilo) e la scheda
- * pubblica (/utente?nome=...). Stessa impaginazione: a sinistra la "carta" (skin, nome, gradi,
+ * pubblica (/utente/...). Stessa impaginazione: a sinistra la "carta" (skin, nome, gradi,
  * date), a destra i blocchi "In gioco" (una scheda per modalità) e "Sul sito". Qui stanno la
  * lettura dei dati di gioco e il disegno di quei blocchi, cosi' le due pagine non si
  * allontanano piu' l'una dall'altra.
@@ -274,7 +274,7 @@ function profile_faction_render(array $dati, bool $own): string {
               $gradoM = profile_faction_rank((string) $m['rank']);
               $capo = strtolower((string) $m['rank']) === 'leader';
               $tag = !empty($m['site_name']) ? 'a' : 'span';
-              $href = !empty($m['site_name']) ? ' href="/utente?nome=' . h(rawurlencode((string) $m['site_name'])) . '"' : '';
+              $href = !empty($m['site_name']) ? ' href="/utente/' . h(rawurlencode((string) $m['site_name'])) . '"' : '';
             ?>
             <<?= $tag ?> class="profilo-membro<?= $eLui ? ' is-lui' : '' ?>"<?= $href ?> title="<?= h($nome) ?> · Potenza <?= (int) $m['power'] ?>">
               <img src="<?= h(mc_avatar_url((string) $m['uuid'], 64, $m['premium_uuid'] ?? null)) ?>" alt="" width="32" height="32" loading="lazy">

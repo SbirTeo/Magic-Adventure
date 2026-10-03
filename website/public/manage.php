@@ -2514,8 +2514,8 @@ if ($section === 'dashboard') {
               <?php foreach ($ricariche as $r): ?>
                 <tr>
                   <td><?= (int) $r['id'] ?></td>
-                  <td><a href="/utente?nome=<?= h(rawurlencode((string) $r['mc_username'])) ?>"><?= h($r['mc_username']) ?></a></td>
-                  <td><?= $r['recipient_name'] ? '&#127873; <a href="/utente?nome=' . h(rawurlencode((string) $r['recipient_name'])) . '">' . h($r['recipient_name']) . '</a>' : 'per sé' ?></td>
+                  <td><a href="/utente/<?= h(rawurlencode((string) $r['mc_username'])) ?>"><?= h($r['mc_username']) ?></a></td>
+                  <td><?= $r['recipient_name'] ? '&#127873; <a href="/utente/' . h(rawurlencode((string) $r['recipient_name'])) . '">' . h($r['recipient_name']) . '</a>' : 'per sé' ?></td>
                   <td><?= number_format((int) $r['amount'], 0, ',', '.') ?><?= (int) $r['discount_pct'] ? ' <small>(-' . (int) $r['discount_pct'] . '%)</small>' : '' ?></td>
                   <td><?= h(number_format((float) $r['price'], 2, ',', '.')) ?> <?= h($r['currency']) ?></td>
                   <td><?= h($statoRicarica[$r['status']] ?? $r['status']) ?></td>

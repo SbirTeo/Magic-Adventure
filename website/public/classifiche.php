@@ -216,7 +216,7 @@ function faction_info_popup(array $f, array $members, array $alliesList, int $vi
             $img = avatar_top('<img src="' . h(mc_avatar_url((string) $m['mc_uuid'], 40, $m['premium_uuid'] ?? null)) . '" alt="' . h($mcName) . '" width="34" height="34" loading="lazy">', (string) $m['mc_uuid'], 34);
             $title = h($mcName) . ' · ' . h(rank_name((string) $rankId)) . ' · Potenza ' . (int) $m['power'];
             if ($siteName) {
-                $avatars .= '<a class="fi-av" href="' . h('utente?nome=' . rawurlencode((string) $siteName)) . '" title="' . $title . '">' . $img . '</a>';
+                $avatars .= '<a class="fi-av" href="' . h('/utente/' . rawurlencode((string) $siteName)) . '" title="' . $title . '">' . $img . '</a>';
             } else {
                 $avatars .= '<span class="fi-av fi-av-noacct" title="' . $title . ' (nessun profilo sul sito)">' . $img . '</span>';
             }
@@ -358,7 +358,7 @@ function player_name_cell(array $p, int $viewerFactionId, array $allies): string
     $testa = '<img class="pl-testa" src="' . h(mc_avatar_url((string) ($p['mc_uuid'] ?? ''), 32, $p['premium_uuid'] ?? null)) . '" alt="" width="24" height="24" loading="lazy">';
     $inner = $testa . '<span class="pl-name ' . $relCls . '">' . h($name) . '</span>' . $card;
     if ($site) {
-        $inner = '<a class="pl-link" href="' . h('utente?nome=' . rawurlencode((string) $site)) . '">' . $inner . '</a>';
+        $inner = '<a class="pl-link" href="' . h('/utente/' . rawurlencode((string) $site)) . '">' . $inner . '</a>';
     }
     return '<td class="player-cell">' . $inner . '</td>';
 }

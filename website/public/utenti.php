@@ -209,7 +209,7 @@ require __DIR__ . '/../includes/header.php';
       $tempo = users_playtime((int) $u['secondi_gioco']);
     ?>
     <a class="utente-card<?= $u['online'] ? ' e-online' : '' ?><?= $colore !== null ? ' ha-grado' : '' ?><?= $eIlTop ? ' e-top' : '' ?>"
-       href="/utente?nome=<?= h(rawurlencode($u['mc_username'])) ?>"
+       href="/utente/<?= h(rawurlencode($u['mc_username'])) ?>"
        data-nome="<?= h(mb_strtolower($u['mc_username'])) ?>"
        data-gruppi="<?= h(implode(' ', $u['gruppi'])) ?>"
        <?= $baffo !== '' ? 'style="' . $baffo . '"' : '' ?>>

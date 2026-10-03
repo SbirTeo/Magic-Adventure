@@ -1,6 +1,6 @@
 <?php
 /**
- * Scheda pubblica di un giocatore: /utente?nome=DorinoJ
+ * Scheda pubblica di un giocatore: /utente/DorinoJ
  *
  * E' la stessa pagina del profilo personale (/profilo) vista da fuori: skin, gradi, dati
  * di gioco e attivita' sul sito. Qui pero' non si tocca niente — nessun comando, nessun
@@ -13,6 +13,14 @@ require_once __DIR__ . '/../includes/profile.php';
 require_once __DIR__ . '/../includes/socials.php';
 
 $nome = trim((string) ($_GET['nome'] ?? ''));
+
+// Il vecchio indirizzo (/utente?nome=...) porta a quello nuovo (/utente/<nome>): i link gia' in
+// giro continuano a funzionare e la scheda ha un solo indirizzo.
+$percorso = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+if ($nome !== '' && !str_starts_with($percorso, '/utente/') && preg_match('/^[A-Za-z0-9._-]+$/', $nome)) {
+    header('Location: /utente/' . rawurlencode($nome), true, 301);
+    exit;
+}
 
 $utente = null;
 if ($nome !== '') {

@@ -55,7 +55,7 @@
             <?= avatar_top('<img class="forum-faccia" src="' . h(mc_avatar_url($g['uuid'], 40, $g['premium_uuid'] ?? null))
                   . '" alt="" width="34" height="34" loading="lazy">', $g['uuid'], 34) ?>
             <div>
-              <a href="/utente?nome=<?= h(rawurlencode($g['nome'])) ?>" target="_blank" rel="noopener"
+              <a href="/utente/<?= h(rawurlencode($g['nome'])) ?>" target="_blank" rel="noopener"
                  class="rischio-nome"><?= h($g['nome']) ?></a>
               <span class="rischio-fascia" style="color:<?= h($colore) ?>"><?= h($fascia) ?></span>
             </div>
