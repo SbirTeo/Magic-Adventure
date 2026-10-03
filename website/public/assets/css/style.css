@@ -5867,6 +5867,28 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-impronta code { color: var(--text); }
 .sanzione-rapporto { font-size: var(--fs-base); line-height: 1.65; }
 .sanzione-ricorso-stato { margin: 0 0 10px; font-size: var(--fs-base); font-weight: 600; }
+/* Storico delle modifiche (pagina del provvedimento) */
+.sanzione-modifiche { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.sanzione-modifiche h2 {
+  font-size: var(--fs-xs); letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  color: var(--text-dimmer); margin: 0 0 8px;
+}
+.sanzione-modifiche ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sanzione-modifiche li { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-base); }
+.sanzione-modifiche s { color: var(--text-dimmer); }
+.sanzione-modifica-nota { color: var(--text-dim); font-style: italic; }
+/* Riquadro dello staff: modifica e revoca affiancate, una sotto l'altra da telefono */
+.sanzione-gestione-moduli { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.sanzione-gestione-moduli h3 { margin: 0; font-size: var(--fs-md); }
+.sanzione-gestione-moduli label { display: flex; flex-direction: column; gap: 4px; }
+.sanzione-gestione-moduli label > span { font-size: var(--fs-sm); color: var(--text-dim); }
+.sanzione-gestione-moduli form { align-content: start; }
+/* "Gestisci" nell'elenco pubblico: sopra al collegamento che copre tutta la riga */
+.sanzione-gestisci {
+  position: relative; z-index: 2;
+  font-size: var(--fs-xs); font-weight: 600; color: var(--purple); text-decoration: none;
+}
+.sanzione-gestisci:hover { text-decoration: underline; }
 .sanzione-esito { margin: 0 0 12px; color: var(--text-dim); font-size: var(--fs-base); }
 .sanzione-ricorso-testo h3 { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-dimmer); margin: 16px 0 6px; }
 .sanzione-ricorso-testo p { margin: 0; font-size: var(--fs-base); line-height: 1.6; }

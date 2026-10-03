@@ -267,6 +267,111 @@ function sanction_appeal(int $sanzioneId): ?array {
     return $stmt->fetch() ?: null;
 }
 
+/**
+ * Revoca decisa dallo staff sul sito. revoke_applied = 0: in gioco il provvedimento c'e' ancora
+ * finche' MagixGuard non lo legge (SiteSync) e lo toglie. True se la riga e' cambiata (era in
+ * corso), false se era gia' revocata o non esiste.
+ */
+function sanction_revoke(int $id, string $staff, string $motivo): bool {
+    $stmt = db()->prepare(
+        "UPDATE punishments
+            SET status = 'revocata', revoked_by = ?, revoked_at = NOW(),
+                revoke_reason = ?, revoke_applied = 0
+          WHERE id = ? AND status = 'attiva'"
+    );
+    $stmt->execute([$staff, mb_substr($motivo, 0, 255), $id]);
+    return $stmt->rowCount() > 0;
+}
+
+/** True se esiste la tabella dello storico delle modifiche (migrazione 2026-10-03). */
+function sanction_edits_ready(): bool {
+    static $pronta = null;
+    if ($pronta === null) {
+        try {
+            db()->query('SELECT 1 FROM punishment_edits LIMIT 1');
+            $pronta = true;
+        } catch (PDOException $e) {
+            $pronta = false;
+        }
+    }
+    return $pronta;
+}
+
+/**
+ * Cambia motivo e/o durata di una sanzione IN CORSO, lasciando la traccia in punishment_edits.
+ *
+ * Basta scrivere sulla riga: MagixGuard legge le sanzioni dal database ogni volta che servono
+ * (il ban all'ingresso, i mute a ogni giro di NetworkSync), quindi la nuova durata vale in gioco
+ * da sola, su tutti i server, nel giro di pochi secondi.
+ *
+ * @param ?int $secondi durata nuova contata dall'INIZIO del provvedimento; null = permanente.
+ *                      Ignorata per richiami ed espulsioni, che non hanno durata.
+ * @param bool $cambiaDurata false = la durata resta com'e' (si cambia solo il motivo)
+ * @return string|null  null se fatto, altrimenti il motivo per cui non si e' fatto
+ */
+function sanction_edit(array $s, string $staff, string $motivo, bool $cambiaDurata, ?int $secondi, string $nota): ?string {
+    if (!sanction_edits_ready()) {
+        return 'Manca la tabella dello storico delle modifiche: va lanciata la migrazione 2026-10-03-sanzioni-modifiche.sql.';
+    }
+    if (!sanction_is_active($s)) {
+        return 'Si possono modificare solo i provvedimenti ancora in corso.';
+    }
+    $motivo = mb_substr(trim($motivo), 0, 255);
+    $nota = mb_substr(trim($nota), 0, 255);
+    if ($motivo === '' || $nota === '') {
+        return 'Servono il motivo del provvedimento e la nota che spiega la modifica.';
+    }
+    $haDurata = in_array($s['type'], ['ban', 'mute'], true);
+    $vecchiaFine = $s['ends_at'] ?: null;
+    $nuovaFine = $vecchiaFine;
+    if ($haDurata && $cambiaDurata) {
+        $nuovaFine = $secondi === null
+            ? null
+            : date('Y-m-d H:i:s', strtotime((string) $s['starts_at']) + $secondi);
+    }
+    $durataCambiata = $nuovaFine !== $vecchiaFine;
+    if (!$durataCambiata && $motivo === (string) $s['reason']) {
+        return 'Non hai cambiato niente: né la durata né il motivo.';
+    }
+
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $upd = $pdo->prepare("UPDATE punishments SET reason = ?, ends_at = ? WHERE id = ? AND status = 'attiva'");
+        $upd->execute([$motivo, $nuovaFine, (int) $s['id']]);
+        if ($upd->rowCount() === 0) {   // revocata da qualcun altro nel frattempo
+            $pdo->rollBack();
+            return 'Il provvedimento non è più in corso.';
+        }
+        $pdo->prepare(
+            'INSERT INTO punishment_edits
+                (punishment_id, staff_name, old_ends_at, new_ends_at, old_reason, new_reason, duration_changed, note)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([(int) $s['id'], $staff, $vecchiaFine, $nuovaFine, (string) $s['reason'], $motivo,
+                    $durataCambiata ? 1 : 0, $nota]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+    return null;
+}
+
+/** Lo storico delle modifiche di una sanzione, dalla piu' vecchia. [] se la tabella non c'e'. */
+function sanction_edits(int $id): array {
+    if (!sanction_edits_ready()) {
+        return [];
+    }
+    $stmt = db()->prepare('SELECT * FROM punishment_edits WHERE punishment_id = ? ORDER BY id ASC');
+    $stmt->execute([$id]);
+    return $stmt->fetchAll();
+}
+
+/** La durata che avrebbe una sanzione con quella fine, detta come sanction_duration(). */
+function sanction_duration_until(array $s, ?string $fine): string {
+    return sanction_duration(['ends_at' => $fine] + $s);
+}
+
 /** Come si racconta lo stato di un ricorso nell'elenco pubblico. */
 function ricorso_etichetta(?array $r): string {
     if (!$r) {

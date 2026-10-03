@@ -492,7 +492,14 @@ public final class MagixGuard extends JavaPlugin {
                                 + "partita entro pochi secondi.",
                         "Se nel gestionale una revoca resta ferma su «in attesa del server», vuol dire "
                                 + "che il server è spento o che il plugin non gira: in gioco quel ban c'è "
-                                + "ancora, ed è giusto che il gestionale lo dica invece di far finta.")
+                                + "ancora, ed è giusto che il gestionale lo dica invece di far finta.",
+                        "Revoca e **modifica** (durata e motivo) di un provvedimento in corso si fanno anche "
+                                + "dalla sua pagina sul sito (/sanzione/<numero>, riquadro «Gestione del "
+                                + "provvedimento», permessi sanzioni.revoca e sanzioni.modifica). La modifica "
+                                + "non passa dalla coda: cambia la riga nel database, che il plugin rilegge "
+                                + "a ogni ingresso e a ogni giro di sincronizzazione, quindi vale su tutti i "
+                                + "server entro pochi secondi. Ogni modifica resta nello storico pubblico "
+                                + "della pagina, con chi l'ha fatta e perché.")
 
                 .section("Su tutti i server della rete (faction, hub...)",
                         "MagixGuard gira su **ogni** server, con lo **stesso database** (le tabelle mg_* nel "

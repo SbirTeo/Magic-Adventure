@@ -31,7 +31,7 @@ $sectionPermissions = [
     'forum'     => ['forum.category.create', 'forum.category.edit', 'forum.category.delete',
                     'forum.topic.pin', 'forum.topic.lock', 'forum.topic.delete'],
     'users'     => ['users.view', 'users.manage'],
-    'sanzioni'  => ['sanzioni.view', 'sanzioni.coda', 'sanzioni.ricorsi', 'sanzioni.revoca'],
+    'sanzioni'  => ['sanzioni.view', 'sanzioni.coda', 'sanzioni.ricorsi', 'sanzioni.revoca', 'sanzioni.modifica'],
     'rischio'   => ['sanzioni.view'],
     // 'guida' non compare qui di proposito: la guida per amministratori la legge CHIUNQUE
     // entri nel gestionale. E' documentazione, non un potere.
@@ -1269,12 +1269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // revoke_applied = 0: in gioco il ban c'e' ancora finche' il plugin non
             // lo toglie. Il gestionale lo mostra come "da applicare", senza far finta.
-            db()->prepare(
-                "UPDATE punishments
-                    SET status = 'revocata', revoked_by = ?, revoked_at = NOW(),
-                        revoke_reason = ?, revoke_applied = 0
-                  WHERE id = ? AND status = 'attiva'"
-            )->execute([(string) $me['mc_username'], $motivo, $id]);
+            sanction_revoke($id, (string) $me['mc_username'], $motivo);
             redirect('/manage?section=sanzioni&ok=1');
         }
 
@@ -4098,6 +4093,11 @@ if ($section === 'dashboard') {
                     </div>
                     <p class="coda-motivo"><?= h($s['reason']) ?></p>
                   </div>
+                  <?php if ($st === 'attiva' && can('sanzioni.modifica')): ?>
+                    <?php /* La modifica (durata e motivo) sta nella pagina del provvedimento, che
+                             ha lo spazio per il modulo e mostra lo storico delle modifiche. */ ?>
+                    <a href="/sanzione/<?= (int) $s['id'] ?>#gestione" class="btn btn-ghost">Modifica</a>
+                  <?php endif; ?>
                   <?php if ($st === 'attiva' && can('sanzioni.revoca')): ?>
                     <form method="post" class="revoca-form">
                       <?= csrf_field() ?>

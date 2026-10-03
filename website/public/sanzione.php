@@ -5,7 +5,9 @@
  * Tre livelli di lettura, di proposito diversi:
  *   - chiunque      -> chi, cosa, quando, durata, stato, esito pubblico del ricorso
  *   - l'interessato -> in piu' il rapporto con le prove, e il pulsante per fare ricorso
- *   - lo staff      -> come l'interessato, piu' la parte riservata del ricorso
+ *   - lo staff      -> come l'interessato, piu' la parte riservata del ricorso; chi ha i
+ *                      permessi (sanzioni.revoca, sanzioni.modifica) qui revoca o cambia
+ *                      durata e motivo di un provvedimento in corso
  *
  * Il ricorso e' sempre raggiungibile, anche da chi e' bandito dal sito: una sanzione a cui
  * non si puo' rispondere non e' una sanzione, e' un muro.
@@ -76,6 +78,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'ricor
     }
 }
 
+// ---------------------------------------------------------------------
+// Revoca e modifica dello staff. Si decide qui, il server esegue: la revoca la toglie
+// MagixGuard appena la legge (SiteSync), la modifica vale da sola perche' il plugin legge
+// le sanzioni dal database ogni volta (vedi sanction_edit).
+// ---------------------------------------------------------------------
+$puoRevocare = can('sanzioni.revoca');
+$puoModificare = can('sanzioni.modifica');
+$erroreStaff = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['sanzione_revoca', 'sanzione_modifica'], true)) {
+    csrf_check();
+    $azione = (string) $_POST['action'];
+    if (($azione === 'sanzione_revoca' && !$puoRevocare) || ($azione === 'sanzione_modifica' && !$puoModificare)) {
+        http_response_code(403);
+        die('Non hai il permesso per questa azione.');
+    }
+    if ($azione === 'sanzione_revoca') {
+        $motivoRevoca = trim((string) ($_POST['motivo'] ?? ''));
+        if ($motivoRevoca === '') {
+            $erroreStaff = 'Scrivi perché la revochi: la motivazione compare nella pagina pubblica.';
+        } elseif (!sanction_revoke($id, (string) $me['mc_username'], $motivoRevoca)) {
+            $erroreStaff = 'Il provvedimento non è più in corso: niente da revocare.';
+        } else {
+            redirect('/sanzione/' . $id . '?staff=revocata#gestione');
+        }
+    } else {
+        $testoDurata = trim((string) ($_POST['durata'] ?? ''));
+        $cambiaDurata = $testoDurata !== '';
+        $secondi = $cambiaDurata ? duration_in_seconds($testoDurata) : null;
+        if ($cambiaDurata && $secondi === 0) {
+            $erroreStaff = 'Durata non valida: scrivi per esempio 30m, 6h, 3d, 2w oppure permanente.';
+        } else {
+            $erroreStaff = sanction_edit($s, (string) $me['mc_username'], (string) ($_POST['motivo'] ?? ''),
+                $cambiaDurata, $secondi, (string) ($_POST['nota'] ?? ''));
+            if ($erroreStaff === null) {
+                redirect('/sanzione/' . $id . '?staff=modificata#gestione');
+            }
+        }
+    }
+}
+
+$modifiche = sanction_edits($id);
 $statoVero = sanction_status($s);
 $page_title = sanction_type($s['type']) . ' — ' . $s['mc_username'];
 $page_description = 'Provvedimento su ' . $s['mc_username'] . ': ' . sanction_category((string) $s['category']) . '.';
@@ -127,6 +170,28 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
   </dl>
 
+  <?php if ($modifiche): ?>
+    <?php /* Lo storico e' pubblico come la revoca: un provvedimento cambiato dopo la decisione
+             deve dire da chi, quando e perche'. */ ?>
+    <div class="sanzione-modifiche">
+      <h2>Modifiche</h2>
+      <ol>
+        <?php foreach ($modifiche as $m): ?>
+          <li>
+            <span class="sanzione-nota"><?= h(date('d/m/Y H:i', strtotime((string) $m['created_at']))) ?> · <?= h($m['staff_name']) ?></span>
+            <?php if ((int) $m['duration_changed'] === 1): ?>
+              <span>Durata: <?= h(sanction_duration_until($s, $m['old_ends_at'])) ?> → <strong><?= h(sanction_duration_until($s, $m['new_ends_at'])) ?></strong></span>
+            <?php endif; ?>
+            <?php if ($m['old_reason'] !== $m['new_reason']): ?>
+              <span>Motivo: <s><?= h($m['old_reason']) ?></s> → <strong><?= h($m['new_reason']) ?></strong></span>
+            <?php endif; ?>
+            <span class="sanzione-modifica-nota"><?= h($m['note']) ?></span>
+          </li>
+        <?php endforeach; ?>
+      </ol>
+    </div>
+  <?php endif; ?>
+
   <?php if ($s['report_hash']): ?>
     <p class="sanzione-impronta" title="Impronta SHA-256 del rapporto firmato">
       Rapporto firmato · <code><?= h(substr((string) $s['report_hash'], 0, 16)) ?>…</code>
@@ -146,6 +211,64 @@ require __DIR__ . '/../includes/header.php';
     <p style="margin:0; color:var(--text-dim);">
       Per questo provvedimento non è stato allegato un rapporto: è una decisione presa a mano dallo staff.
     </p>
+  </div>
+<?php endif; ?>
+
+<?php /* ---------------- Gestione dello staff ---------------- */ ?>
+<?php if (($puoRevocare || $puoModificare) && ($statoVero === 'attiva' || isset($_GET['staff']))): ?>
+  <div class="panel sanzione-gestione" id="gestione">
+    <h2 class="forum-sezione-titolo">Gestione del provvedimento</h2>
+    <?php if (($_GET['staff'] ?? '') === 'revocata'): ?>
+      <div class="alert alert-success">
+        Revocata. In gioco vale finché MagixGuard non la legge: di solito pochi secondi, se il server è acceso.
+      </div>
+    <?php elseif (($_GET['staff'] ?? '') === 'modificata'): ?>
+      <div class="alert alert-success">Modifica salvata: vale anche in gioco, su tutti i server, nel giro di pochi secondi.</div>
+    <?php endif; ?>
+    <?php if ($erroreStaff): ?>
+      <div class="alert alert-error"><?= h($erroreStaff) ?></div>
+    <?php endif; ?>
+
+    <?php if ($statoVero === 'attiva'): ?>
+      <div class="sanzione-gestione-moduli">
+        <?php if ($puoModificare): ?>
+          <form method="post" class="stack">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="sanzione_modifica">
+            <h3>Modifica</h3>
+            <label>
+              <span>Motivo</span>
+              <input type="text" name="motivo" required maxlength="255" value="<?= h($s['reason']) ?>">
+            </label>
+            <?php if (in_array($s['type'], ['ban', 'mute'], true)): ?>
+              <label>
+                <span>Durata, contata dall'inizio (<?= h(date('d/m/Y H:i', strtotime((string) $s['starts_at']))) ?>)</span>
+                <input type="text" name="durata" placeholder="30m, 6h, 3d, 2w, permanente"
+                       value="<?= $s['ends_at'] ? h(duration_readable_short(strtotime((string) $s['ends_at']) - strtotime((string) $s['starts_at']))) : 'permanente' ?>">
+                <small class="sanzione-nota">Vuoto = non cambia. Se la nuova fine è già passata, il provvedimento finisce subito.</small>
+              </label>
+            <?php endif; ?>
+            <label>
+              <span>Perché la modifichi</span>
+              <input type="text" name="nota" required maxlength="255" placeholder="Compare nello storico pubblico">
+            </label>
+            <button type="submit" class="btn btn-accent">Salva la modifica</button>
+          </form>
+        <?php endif; ?>
+        <?php if ($puoRevocare): ?>
+          <form method="post" class="stack">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="sanzione_revoca">
+            <h3>Revoca</h3>
+            <label>
+              <span>Perché la revochi</span>
+              <input type="text" name="motivo" required maxlength="255" placeholder="Compare nella pagina pubblica">
+            </label>
+            <button type="submit" class="btn btn-ghost">Revoca il provvedimento</button>
+          </form>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
   </div>
 <?php endif; ?>
 
