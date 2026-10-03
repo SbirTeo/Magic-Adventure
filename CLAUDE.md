@@ -336,9 +336,9 @@ push del PHP che la usa.
 Niente mod e niente Discord: la voce passa dal browser, sulla pagina **magicadventure.it/voice**
 («Voice» nel menu; account del sito = account di gioco; `/voce` reindirizza). Stanze: **vicini**
 (`near-<server>`, prossimità della modalità in cui il giocatore è in gioco adesso, da
-`network_presence`), **fazione** (`faction-<id>`) e **tutta la rete** (`network`). Da fare (fase 3): chi
-parla mostrato in gioco, sanzioni dal vivo (oggi ban/mute valgono dal rientro in stanza), pannello nel
-gestionale, ripiego sulla 443 per le reti che chiudono tutto il resto.
+`network_presence`), **fazione** (`faction-<id>`) e **tutta la rete** (`network`). Fase 3 (fatta): note sopra la testa di chi parla nella stanza dei vicini, ban/mute applicati
+subito anche a chi è già in stanza, scheda **Voice** nel gestionale. Manca solo il ripiego sulla 443 per
+le reti che chiudono tutto il resto: serve un nome DNS nuovo (es. `voice.magicadventure.it`) da OVH.
 
 - **Server della voce**: LiveKit, servizio `magix-voce` (utente `magix-voce`, programma in
   `/opt/magix-voce/`, config in `/etc/magix-voce/`; i nomi "voce" dell'infrastruttura sono rimasti),
@@ -360,6 +360,12 @@ gestionale, ripiego sulla 443 per le reti che chiudono tutto il resto.
   su ogni server: manda a ogni giocatore della stanza `near-<server>` SOLO volume e lato dei vicini
   (mai coordinate) e il browser di ognuno lascia sentire il proprio microfono solo ai vicini (lo fa
   rispettare LiveKit). Le chiavi le legge da `voice.keys-file`, mai copiate nei config.
+- **Fase 3**: chi parla lo dice il browser (`api/voice.php` azione `speaking` -> tabella `voice_speaking`,
+  2 secondi di scadenza) e MagixBridge mostra le note (`voice/SpeakingIndicator`); ban/mute (MagixGuard e i
+  mute di sola voce di `voice_mutes`) li applica MagixBridge del faction in tutte le stanze ogni
+  `voice.moderation-interval-seconds` (`voice/VoiceModeration`). Scheda **Voice** del gestionale
+  (`includes/voice_panel.php`): chi è dove, Silenzia (a tempo, in `voice_mutes`) e Togli; permessi web
+  `voice.view` / `voice.moderate`. Migrazione `2026-10-03-voice-moderazione.sql`.
 - `Permissions-Policy` del sito: `microphone=(self)`.
 
 ## Diagnostica del VPS da sessione cloud (sola lettura, sempre disponibile)

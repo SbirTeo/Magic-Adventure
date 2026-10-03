@@ -167,6 +167,28 @@ public class Database {
                     "PRIMARY KEY (server, mc_uuid, placeholder)" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+            // Voice (the site's voice chat): who is speaking in a proximity room right now (the
+            // browser writes it through the site, with a short expiry; voice/SpeakingIndicator reads
+            // it), and the voice-only mutes given from the admin panel (voice/VoiceModeration).
+            st.execute("CREATE TABLE IF NOT EXISTS voice_speaking (" +
+                    "mc_uuid CHAR(36) NOT NULL PRIMARY KEY," +
+                    "room VARCHAR(64) NOT NULL," +
+                    "until_at DATETIME(3) NOT NULL," +
+                    "KEY idx_room_until (room, until_at)" +
+                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            st.execute("CREATE TABLE IF NOT EXISTS voice_mutes (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "mc_uuid CHAR(36) NOT NULL," +
+                    "mc_username VARCHAR(32) NOT NULL," +
+                    "ends_at DATETIME NOT NULL," +
+                    "staff VARCHAR(32) NOT NULL," +
+                    "reason VARCHAR(200) NULL," +
+                    "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                    "lifted_at DATETIME NULL," +
+                    "lifted_by VARCHAR(32) NULL," +
+                    "KEY idx_uuid_end (mc_uuid, ends_at)" +
+                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
             plugin.getLogger().info("MagixBridge: connesso a MariaDB (" + db + ").");
         } catch (SQLException e) {
             plugin.getLogger().severe("MagixBridge: impossibile connettersi al database! " + e.getMessage());

@@ -80,8 +80,10 @@ legal_header('Informativa sulla privacy', 'privacy');
     nessuna parte. Per farla viaggiare il server vede il tuo indirizzo IP e, mentre sei collegato, il
     tuo nome di gioco e la stanza in cui sei. Nelle stanze di prossimità il server di gioco calcola,
     dalla tua posizione in partita, quanto forte senti gli altri: la posizione resta sul server e non
-    arriva a nessun altro giocatore. Il microfono si accende solo quando entri in una stanza, e lo
-    spegni quando vuoi.
+    arriva a nessun altro giocatore. Quando parli nella stanza dei vicini, il sito annota per un paio di
+    secondi che stai parlando, e in gioco chi ti sta intorno vede delle note sopra la tua testa. Lo staff
+    vede chi è nelle stanze e può toglierti la parola o farti uscire. Il microfono si accende solo quando
+    entri in una stanza, e lo spegni quando vuoi.
   </p>
   <h3>Dati tecnici del sito</h3>
   <p>

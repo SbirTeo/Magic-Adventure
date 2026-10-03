@@ -8071,3 +8071,10 @@ table.rank td:first-child { width: 1%; }
 /* Stanza di prossimita': chi non e' vicino resta in elenco, spento. */
 .voice-persona.is-lontano { opacity: .45; }
 .voice-persona.is-lontano .voice-persona-volume { visibility: hidden; }
+/* Scheda Voice del gestionale (includes/voice_panel.php) */
+.voice-admin-stanza h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: var(--fs-md); }
+.voice-admin-stanza h3 .online-conta { margin-left: 0; }
+.voice-admin-mute { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.voice-admin-mute select, .voice-admin-mute input[type="text"] { width: auto; min-width: 0; padding: 5px 8px; font-size: var(--fs-xs); }
+.voice-admin-mute input[type="text"] { max-width: 180px; }
+.voice-admin-titolo { font-size: var(--fs-lg); margin: 26px 0 10px; }

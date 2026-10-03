@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/forum_ui.php';         // forum_tinta_hex()
 require_once __DIR__ . '/../includes/sanzioni.php';         // archivio sanzioni, coda e ricorsi
 require_once __DIR__ . '/../includes/rischio.php';           // classifica di chi controllare
 require_once __DIR__ . '/../includes/legal.php';             // dati del titolare (privacy, cookie, termini)
+require_once __DIR__ . '/../includes/voice_panel.php';       // scheda Voice: stanze vocali e moderazione
 
 // Non serve piu' essere web-admin: basta avere ALMENO un permesso web (assegnato al proprio
 // gruppo in gioco). Ogni sezione e ogni azione hanno poi il loro controllo puntuale.
@@ -34,6 +35,7 @@ $sectionPermissions = [
     'users'     => ['users.view', 'users.manage'],
     'sanzioni'  => ['sanzioni.view', 'sanzioni.coda', 'sanzioni.ricorsi', 'sanzioni.revoca', 'sanzioni.modifica'],
     'rischio'   => ['sanzioni.view'],
+    'voice'     => ['voice.view', 'voice.moderate'],
     // 'guida' non compare qui di proposito: la guida per amministratori la legge CHIUNQUE
     // entri nel gestionale. E' documentazione, non un potere.
 ];
@@ -93,6 +95,9 @@ $actionPermissions = [
     'coda_respingi'           => 'sanzioni.coda',
     'ricorso_decidi'          => 'sanzioni.ricorsi',
     'rischio_controllato'     => 'sanzioni.view',
+    'voice_mute'              => 'voice.moderate',
+    'voice_unmute'            => 'voice.moderate',
+    'voice_kick'              => 'voice.moderate',
 ];
 
 /** Azioni eseguibili solo dal web-admin, coerenti con $adminOnlySections. */
@@ -901,6 +906,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // SANZIONI — il sito non crea provvedimenti (li scrive MagixGuard):
         // qui si registrano le DECISIONI dello staff, che il server poi esegue.
         // -----------------------------------------------------------------
+        // -----------------------------------------------------------------
+        // VOICE — mute di sola voce e uscita forzata da una stanza (includes/voice_panel.php)
+        // -----------------------------------------------------------------
+        case 'voice_mute':
+        case 'voice_unmute':
+        case 'voice_kick':
+            redirect(voice_panel_action($action, $me));
+
         case 'sanzione_revoca': {
             $id = (int) ($_POST['id'] ?? 0);
             $motivo = mb_substr(trim((string) ($_POST['motivo'] ?? '')), 0, 255);
@@ -998,6 +1011,9 @@ if (isset($_GET['ok'])) {
         '5' => 'Proposta respinta: nessun provvedimento e\' stato preso.',
         '7' => 'Controllo registrato: quel giocatore esce dalla lista per una settimana.',
         '6' => 'Ricorso deciso. L\'esito e\' visibile all\'interessato, e nell\'elenco pubblico se hai scritto la motivazione breve.',
+        'voice_mute'   => 'Fatto: non può più parlare in nessuna stanza vocale fino alla scadenza (resta ad ascoltare).',
+        'voice_unmute' => 'Fatto: può di nuovo parlare nelle stanze vocali.',
+        'voice_kick'   => 'Fatto: è uscito dalla stanza. Può rientrare, a meno che non abbia un ban o un mute.',
         default => 'Fatto.',
     };
     $flashType = 'success';
@@ -1022,6 +1038,7 @@ if (isset($_GET['err'])) {
         'self' => 'Non puoi togliere i permessi di amministratore a te stesso da qui.',
         'core' => 'Questa pagina è protetta e non può essere eliminata.',
         'invalid' => 'Controlla i valori inseriti (i colori devono essere in formato esadecimale, es. #a3e635).',
+        'voice' => 'La chat vocale non risponde o il giocatore non è valido: riprova tra poco.',
         default => 'Si è verificato un errore.',
     };
 }
@@ -1060,6 +1077,9 @@ require __DIR__ . '/../includes/header.php';
   <?php endif; ?>
   <?php if (can_any($sectionPermissions['sanzioni'])): ?>
     <a href="/manage?section=sanzioni" class="<?= $section === 'sanzioni' ? 'active' : '' ?>">Sanzioni</a>
+  <?php endif; ?>
+  <?php if (can_any($sectionPermissions['voice'])): ?>
+    <a href="/manage?section=voice" class="<?= $section === 'voice' ? 'active' : '' ?>">Voice</a>
   <?php endif; ?>
   <?php /* La guida la legge chiunque entri qui dentro: e' il manuale del mestiere. */ ?>
   <a href="/manage?section=guida" class="<?= $section === 'guida' ? 'active' : '' ?>">Guida</a>
@@ -2593,6 +2613,9 @@ if ($section === 'dashboard') {
 // ---------------------------------------------------------------------
 // UTENTI
 // ---------------------------------------------------------------------
+} elseif ($section === 'voice') {
+    voice_panel_render($me);
+
 } elseif ($section === 'users') {
     // Il badge "admin" e' il ruolo SUL SITO; il tag colorato accanto e' il gruppo LuckPerms in gioco.
     // Ordinati per peso del grado in gioco (admin 100 in cima); chi non ha ancora un grado

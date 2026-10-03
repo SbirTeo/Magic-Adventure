@@ -279,8 +279,11 @@ HTML = r"""<!DOCTYPE html>
   </ul>
   <div class="tip">Meglio con le cuffie. Il microfono si accende solo quando entri in una stanza e lo spegni
   quando vuoi; per ognuno puoi alzare o abbassare il volume. Niente viene registrato.</div>
+  <p>Quando parli nella stanza dei <b>vicini</b>, in gioco ti compaiono delle <b>note musicali sopra la testa</b>:
+  chi ti sta intorno capisce chi sta parlando. Nelle stanze della fazione e della rete no: lì non si vede niente.</p>
   <div class="warn">Valgono le stesse regole della chat: con un <b>mute</b> puoi solo ascoltare, con un
-  <b>ban</b> Voice non è disponibile.</div>
+  <b>ban</b> Voice non è disponibile, e valgono <b>subito</b>, anche se sei già in una stanza. Lo staff può
+  anche toglierti la parola in voce per un po', o farti uscire da una stanza.</div>
 </section>
 <section id="alleati" data-desc="Alleanze, nemici e quanti alleati puoi avere.">
   <h2><span class="n">#</span>Alleati e nemici</h2>

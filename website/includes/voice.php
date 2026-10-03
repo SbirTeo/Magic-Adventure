@@ -135,7 +135,27 @@ function voice_sanctions(string $uuid): array {
             $esito[$riga['type']] = $riga;
         }
     }
+    // I mute di sola voce dati dal gestionale (scheda Voice): valgono come un mute, solo qui.
+    if ($esito['mute'] === null) {
+        $m = voice_active_mute($uuid);
+        if ($m !== null) {
+            $esito['mute'] = ['type' => 'mute', 'status' => 'attiva', 'ends_at' => $m['ends_at'],
+                              'reason' => $m['reason'], 'revoked_at' => null];
+        }
+    }
     return $esito;
+}
+
+/** Il mute di sola voce in corso per quel giocatore (dal gestionale), o null. */
+function voice_active_mute(string $uuid): ?array {
+    try {
+        $q = db()->prepare('SELECT * FROM voice_mutes WHERE mc_uuid = ? AND lifted_at IS NULL AND ends_at > NOW()
+                             ORDER BY ends_at DESC LIMIT 1');
+        $q->execute([$uuid]);
+        return $q->fetch() ?: null;
+    } catch (PDOException $e) {
+        return null;   // tabella non ancora creata: nessun mute di voce
+    }
 }
 
 function voice_base64url(string $dati): string {
@@ -324,4 +344,112 @@ function voice_room_icon(string $stanza): string {
         return 'map';
     }
     return str_starts_with($stanza, 'faction-') ? 'shield' : 'users';
+}
+
+// ---------------------------------------------------------------------------------------------
+// Fase 3: chi parla (per le note sopra la testa in gioco) e moderazione dal gestionale.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Il browser dice se il SUO microfono sta parlando, nella stanza dei vicini (near-<server>).
+ * Si scrive con una scadenza breve: la pagina la rinnova finché si parla, e se la pagina si
+ * chiude di colpo la riga scade da sola. MagixBridge la legge (voice/SpeakingIndicator).
+ */
+function voice_speaking_report(string $uuid, string $stanza, bool $parla): void {
+    if (!preg_match('/^near-[a-z0-9]{1,32}$/', $stanza)) {
+        return;
+    }
+    try {
+        if ($parla) {
+            db()->prepare('INSERT INTO voice_speaking (mc_uuid, room, until_at)
+                           VALUES (?, ?, NOW(3) + INTERVAL 2000000 MICROSECOND)
+                           ON DUPLICATE KEY UPDATE room = VALUES(room), until_at = VALUES(until_at)')
+                ->execute([$uuid, $stanza]);
+        } else {
+            db()->prepare('DELETE FROM voice_speaking WHERE mc_uuid = ?')->execute([$uuid]);
+        }
+    } catch (PDOException $e) {
+        // tabella non ancora creata: le note in gioco semplicemente non compaiono
+    }
+}
+
+/** Le stanze aperte adesso, con chi c'è dentro (per il gestionale: niente memoria). */
+function voice_admin_rooms(): array {
+    $r = voice_api_call('ListRooms', [], ['roomList' => true]);
+    $stanze = [];
+    foreach ($r['rooms'] ?? [] as $stanza) {
+        $nome = (string) ($stanza['name'] ?? '');
+        if ($nome === '') {
+            continue;
+        }
+        $p = voice_api_call('ListParticipants', ['room' => $nome], ['roomAdmin' => true, 'room' => $nome]);
+        $persone = [];
+        foreach ($p['participants'] ?? [] as $x) {
+            $microfono = false;
+            foreach ($x['tracks'] ?? [] as $t) {
+                if (($t['type'] ?? '') === 'AUDIO' && empty($t['muted'])) {
+                    $microfono = true;
+                }
+            }
+            $persone[] = [
+                'identity'    => (string) ($x['identity'] ?? ''),
+                'name'        => (string) ($x['name'] ?? ''),
+                'mic'         => $microfono,
+                'can_publish' => !empty($x['permission']['can_publish']),
+                'joined'      => (int) ($x['joined_at'] ?? 0),
+            ];
+        }
+        usort($persone, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+        $stanze[] = ['name' => $nome, 'people' => $persone];
+    }
+    usort($stanze, fn ($a, $b) => strcmp($a['name'], $b['name']));
+    return $stanze;
+}
+
+/** Le stanze in cui quel giocatore è adesso. */
+function voice_rooms_of(string $uuid): array {
+    $dove = [];
+    foreach (voice_admin_rooms() as $s) {
+        foreach ($s['people'] as $p) {
+            if ($p['identity'] === $uuid) {
+                $dove[] = $s['name'];
+            }
+        }
+    }
+    return $dove;
+}
+
+/** Microfono tolto (false) o ridato (true) subito, in ogni stanza in cui il giocatore è. */
+function voice_live_set_publish(string $uuid, bool $puoParlare): void {
+    foreach (voice_rooms_of($uuid) as $stanza) {
+        voice_api_call('UpdateParticipant', [
+            'room'       => $stanza,
+            'identity'   => $uuid,
+            'permission' => [
+                'can_subscribe'        => true,
+                'can_publish'          => $puoParlare,
+                'can_publish_data'     => false,
+                'can_update_metadata'  => false,
+                'can_publish_sources'  => $puoParlare ? ['MICROPHONE'] : [],
+            ],
+        ], ['roomAdmin' => true, 'room' => $stanza]);
+    }
+}
+
+/** Fuori da ogni stanza, subito. Per rientrare serve un gettone nuovo: le regole valgono di nuovo. */
+function voice_live_remove(string $uuid): void {
+    foreach (voice_rooms_of($uuid) as $stanza) {
+        voice_api_call('RemoveParticipant', ['room' => $stanza, 'identity' => $uuid],
+            ['roomAdmin' => true, 'room' => $stanza]);
+    }
+}
+
+/** I mute di sola voce ancora in corso (gestionale). */
+function voice_active_mutes(): array {
+    try {
+        return db()->query('SELECT * FROM voice_mutes WHERE lifted_at IS NULL AND ends_at > NOW()
+                            ORDER BY ends_at ASC')->fetchAll();
+    } catch (PDOException $e) {
+        return [];
+    }
 }

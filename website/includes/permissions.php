@@ -60,6 +60,15 @@ const WEB_PERMISSIONS = [
             'users.manage' => 'Assegnare o togliere il ruolo web-admin',
         ],
     ],
+    // Voice, la chat vocale del sito: chi vede le stanze e chi ci interviene. I mute di sola voce
+    // non sono sanzioni (niente archivio pubblico, niente ricorso): per quelle c'e' MagixGuard.
+    'voice' => [
+        'label' => 'Voice (chat vocale)',
+        'perms' => [
+            'voice.view'     => 'Vedere chi è nelle stanze vocali',
+            'voice.moderate' => 'Togliere la parola o togliere qualcuno da una stanza vocale',
+        ],
+    ],
     // Le sanzioni le decide il gioco (MagixGuard): qui si delega solo chi le CONTROLLA
     // dal sito. I tetti di durata per grado restano nel plugin, dove si sanziona davvero.
     'sanzioni' => [

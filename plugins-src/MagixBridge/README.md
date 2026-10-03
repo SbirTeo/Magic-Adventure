@@ -40,6 +40,20 @@ qui ed entra nella stanza sente solo i giocatori vicini. La voce la trasporta il
   `installa`); se non può leggerle scrive «chat vocale di prossimità spenta», riprova da solo ogni minuto e
   si accende appena ci riesce, senza riavvio.
 
+### Fase 3 (dalla 0.17.0): chi parla e sanzioni dal vivo
+
+- **Chi parla, in gioco** (`voice/SpeakingIndicator`, ogni server, `voice.speaking-indicator`): il browser di
+  chi parla nella stanza dei vicini lo dice al sito (`api/voice.php`, azione `speaking`, solo se è davvero in
+  gioco su quella modalità e senza mute), che lo scrive in `voice_speaking` con 2 secondi di scadenza. Il
+  plugin la legge 4 volte al secondo e mostra note musicali sopra la testa (mai su invisibili, vanish,
+  spettatori; mai per le stanze di fazione e di rete).
+- **Sanzioni dal vivo** (`voice/VoiceModeration`, solo `network.site-jobs: true`, ogni
+  `voice.moderation-interval-seconds`): ban e mute attivi di MagixGuard (`punishments`, qualunque ambito) e
+  mute di sola voce del gestionale (`voice_mutes`) applicati in tutte le stanze: ban = fuori, mute = senza
+  microfono, mute finito = microfono ridato senza uscire.
+- Le tabelle `voice_speaking` e `voice_mutes` le crea `db/Database` (e la migrazione
+  `2026-10-03-voice-moderazione.sql`).
+
 ## La rete
 
 - `network.server-name` — il nome del server (faction, hub...). Senza trattini bassi: e' il primo

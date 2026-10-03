@@ -128,6 +128,7 @@ require __DIR__ . '/../includes/header.php';
     <span data-k="people_many">{n} persone</span>
     <span data-k="mic_n">Microfono {n}</span>
     <span data-k="far">Lontano: lo senti quando ti avvicini</span>
+    <span data-k="silenced">Ti è stata tolta la parola (mute): puoi continuare ad ascoltare.</span>
   </div>
   <template id="voiceIconaMicOff"><?= ui_icon('mic-off') ?></template>
 </div>

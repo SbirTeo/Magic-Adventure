@@ -64,6 +64,40 @@
 
   function isProximityRoom(id) { return typeof id === 'string' && id.indexOf('near-') === 0; }
 
+  // Chi parla si vede anche in gioco (note sopra la testa, MagixBridge): la pagina dice al sito
+  // quando il NOSTRO microfono parla, nella stanza dei vicini, e lo ripete ogni secondo finche' dura
+  // (il sito lo tiene per pochi secondi: se la pagina si chiude di colpo, le note spariscono da sole).
+  var parloIo = false;
+  var ultimoAvviso = 0;
+  var avvisoParla = false;   // l'ultimo stato mandato al sito
+
+  function reportSpeaking(parla) {
+    if (!room || !isProximityRoom(stanzaId)) { return; }
+    ultimoAvviso = Date.now();
+    avvisoParla = parla;
+    var dati = new FormData();
+    dati.set('action', 'speaking');
+    dati.set('room', stanzaId);
+    dati.set('state', parla ? '1' : '0');
+    dati.set('csrf', csrf);
+    fetch(api, { method: 'POST', body: dati, credentials: 'same-origin', keepalive: !parla })
+      .catch(function () { /* il prossimo avviso rimette a posto */ });
+  }
+
+  /**
+   * Una pausa fra due frasi non manda niente: la riga del sito scade da sola dopo un paio di
+   * secondi (cosi' le note in gioco non lampeggiano a ogni respiro). Lo stop esplicito (smetti=true)
+   * parte solo quando si spegne il microfono, si esce o arriva un mute.
+   */
+  function setSpeaking(parla, smetti) {
+    parloIo = parla;
+    if (parla && (!avvisoParla || Date.now() - ultimoAvviso >= 1000)) {
+      reportSpeaking(true);
+    } else if (!parla && smetti && avvisoParla) {
+      reportSpeaking(false);
+    }
+  }
+
   // ------------------------------------------------------------------ stato e messaggi
 
   function showStatus(testo) { el.stato.textContent = testo || ''; }
@@ -365,7 +399,24 @@
       .on(E.ActiveSpeakersChanged, function (chi) {
         parlano = {};
         chi.forEach(function (p) { parlano[p.identity] = true; });
+        setSpeaking(!!parlano[r.localParticipant.identity] && r.localParticipant.isMicrophoneEnabled, false);
         updatePeople();
+      })
+      .on(E.ParticipantPermissionsChanged, function (prima, p) {
+        // Il permesso di parlare cambiato a stanza in corso: mute dato o tolto dallo staff, o
+        // scaduto. Tolto: il server ha gia' spento il microfono; ridato: si riaccende da solo se
+        // il giocatore non l'aveva spento lui.
+        if (p && p !== r.localParticipant) { return; }
+        var lp = r.localParticipant;
+        var ora = !!(lp.permissions && lp.permissions.canPublish);
+        if (ora === puoParlare) { return; }
+        puoParlare = ora;
+        showError(ora ? '' : t('silenced'));
+        if (!ora) { setSpeaking(false, true); }
+        updateMicButton();
+        if (ora && micVoluto) {
+          enableMicrophone().then(function () { updateMicButton(); updatePeople(); listMicrophones(); });
+        }
       })
       .on(E.AudioPlaybackStatusChanged, function () { el.sblocca.hidden = r.canPlaybackAudio; })
       .on(E.MediaDevicesChanged, listMicrophones)
@@ -394,6 +445,7 @@
 
   /** Torna allo stato "nessuna stanza", con un messaggio facoltativo nel riquadro. */
   function resetCall(messaggio) {
+    setSpeaking(false, true);
     room = null;
     stanzaId = null;
     parlano = {};
@@ -419,6 +471,7 @@
   function leaveRoom() {
     var r = room;
     if (!r) { return Promise.resolve(); }
+    setSpeaking(false, true);
     uscitaVoluta = true;
     room = null;
     detachAudio();   // le voci della stanza lasciata: non devono restare negli elementi audio
@@ -514,6 +567,7 @@
     var lp = room.localParticipant;
     var accendi = !lp.isMicrophoneEnabled;
     micVoluto = accendi;
+    if (!accendi) { setSpeaking(false, true); }
     (accendi ? enableMicrophone() : lp.setMicrophoneEnabled(false)).then(function () {
       updateMicButton();
       updatePeople();
@@ -563,6 +617,13 @@
       })
       .catch(function () { /* riprova al prossimo giro */ });
   }, 2000);
+
+  // Finche' si parla, l'avviso si rinnova ogni secondo (il sito lo tiene vivo 2 secondi).
+  setInterval(function () {
+    if (parloIo && Date.now() - ultimoAvviso >= 1000) { reportSpeaking(true); }
+    // Pausa lunga: lo stato mandato resta "parla" ma la riga del sito e' gia' scaduta da sola.
+    if (!parloIo && avvisoParla && Date.now() - ultimoAvviso >= 2000) { avvisoParla = false; }
+  }, 500);
 
   // Chiudendo la scheda si esce subito dalla stanza (gli altri non aspettano il timeout).
   window.addEventListener('pagehide', function () {

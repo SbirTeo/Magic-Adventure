@@ -42,6 +42,7 @@ public final class ProximityVoice {
 
     private final JavaPlugin plugin;
     private final VoiceApi api;
+    private final String room;
     private final double hearDistance;
     private final double fullVolumeDistance;
 
@@ -56,9 +57,10 @@ public final class ProximityVoice {
     private final AtomicBoolean sending = new AtomicBoolean();
     private long lastErrorLog;
 
-    public ProximityVoice(JavaPlugin plugin, VoiceApi api, double hearDistance, double fullVolumeDistance) {
+    public ProximityVoice(JavaPlugin plugin, VoiceApi api, String room, double hearDistance, double fullVolumeDistance) {
         this.plugin = plugin;
         this.api = api;
+        this.room = room;
         this.hearDistance = Math.max(4.0, hearDistance);
         this.fullVolumeDistance = Math.max(0.0, Math.min(fullVolumeDistance, this.hearDistance - 1.0));
     }
@@ -68,7 +70,7 @@ public final class ProximityVoice {
         long now = System.currentTimeMillis();
         if (now - lastListing > 2000 && listing.compareAndSet(false, true)) {
             lastListing = now;
-            api.listParticipants().whenComplete((list, err) -> {
+            api.listParticipants(room).whenComplete((list, err) -> {
                 if (err != null) {
                     logError("elenco della stanza", err);
                 } else {
@@ -82,14 +84,14 @@ public final class ProximityVoice {
             });
         }
 
-        Map<String, Boolean> room = inRoom;
-        if (room.isEmpty()) {
+        Map<String, Boolean> present = inRoom;
+        if (present.isEmpty()) {
             return;
         }
         List<Spot> spots = new ArrayList<>();
         for (Player p : Bukkit.getOnlinePlayers()) {
             String id = p.getUniqueId().toString();
-            if (room.containsKey(id)) {
+            if (present.containsKey(id)) {
                 Location l = p.getLocation();
                 spots.add(new Spot(id, l.getWorld().getName(), l.getX(), l.getY(), l.getZ(), l.getYaw()));
             }
@@ -99,25 +101,25 @@ public final class ProximityVoice {
         }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                send(spots, room, now);
+                send(spots, present, now);
             } finally {
                 sending.set(false);
             }
         });
     }
 
-    private void send(List<Spot> spots, Map<String, Boolean> room, long now) {
+    private void send(List<Spot> spots, Map<String, Boolean> present, long now) {
         Set<String> here = new HashSet<>();
         for (Spot listener : spots) {
             here.add(listener.identity());
-            String payload = payload(neighbours(listener, spots, room));
+            String payload = payload(neighbours(listener, spots, present));
             boolean changed = !payload.equals(lastPayload.get(listener.identity()));
             if (!changed && now - lastSent.getOrDefault(listener.identity(), 0L) < 1000) {
                 continue;
             }
             lastPayload.put(listener.identity(), payload);
             lastSent.put(listener.identity(), now);
-            api.sendTo(listener.identity(), payload).whenComplete((r, err) -> {
+            api.sendTo(room, listener.identity(), payload).whenComplete((r, err) -> {
                 if (err != null) {
                     logError("invio al browser", err);
                 }
@@ -128,7 +130,7 @@ public final class ProximityVoice {
     }
 
     /** The neighbours of one listener within reach, with volume and pan. Pure: easy to check. */
-    List<Heard> neighbours(Spot listener, List<Spot> spots, Map<String, Boolean> room) {
+    List<Heard> neighbours(Spot listener, List<Spot> spots, Map<String, Boolean> present) {
         List<Heard> out = new ArrayList<>();
         double yaw = Math.toRadians(listener.yaw());
         // Minecraft: yaw 0 looks towards +Z; the right hand then points to -X.
@@ -146,7 +148,7 @@ public final class ProximityVoice {
                 continue;
             }
             double gain = gain(distance);
-            if (!Boolean.TRUE.equals(room.get(s.identity()))) {
+            if (!Boolean.TRUE.equals(present.get(s.identity()))) {
                 gain = 0;   // microphone off: still allowed, nothing to hear
             }
             double flat = Math.sqrt(dx * dx + dz * dz);

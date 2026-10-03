@@ -136,6 +136,11 @@ voice:
   full-volume-distance: 4
   # Quante volte al secondo si aggiornano volume e lato delle voci (1-10).
   updates-per-second: 4
+  # Chi parla nella stanza dei vicini si vede in gioco: note musicali sopra la testa, per chi è intorno.
+  speaking-indicator: true
+  # Ogni quanti secondi ban e mute attivi si applicano nelle stanze vocali (solo sul server con
+  # network.site-jobs: true): ban = fuori dalla stanza, mute = senza microfono, finito = microfono ridato.
+  moderation-interval-seconds: 5
 
 # Guida per amministratori del sito (/manage?section=guida).
 # Ogni plugin nostro scrive il proprio capitolo in plugins/<Nome>/guida-staff.html;

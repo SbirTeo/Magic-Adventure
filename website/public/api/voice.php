@@ -4,6 +4,9 @@
  *
  *   POST action=token room=<id> csrf=<token>
  *     -> {ok:true, url, token, room, name, canSpeak}  oppure  {ok:false, error}
+ *   POST action=speaking room=near-<server> state=1|0 csrf=<token>
+ *     -> {ok:true}: il microfono di chi chiama sta parlando (1) o ha smesso (0), nella stanza dei
+ *        vicini. Serve alle note sopra la testa in gioco (MagixBridge, voice/SpeakingIndicator).
  *   POST action=rooms csrf=<token>
  *     -> {ok:true, rooms:[{id, name}]}: le stanze di adesso. La pagina la chiede ogni tanto per
  *        seguire il giocatore quando cambia modalità (la stanza di prossimità è near-<server>).
@@ -46,13 +49,25 @@ if (!voice_ready()) {
     voice_api_error('La chat vocale non è ancora attiva.', 503);
 }
 $azione = (string) ($_POST['action'] ?? '');
-if ($azione !== 'token' && $azione !== 'rooms') {
+if (!in_array($azione, ['token', 'rooms', 'speaking'], true)) {
     voice_api_error('Richiesta non valida.');
 }
 
 $sanzioni = voice_sanctions((string) $me['mc_uuid']);
 if ($sanzioni['ban'] !== null) {
     voice_api_error('Hai un ban attivo: la chat vocale non è disponibile.', 403);
+}
+
+if ($azione === 'speaking') {
+    // Solo per la stanza dei vicini della modalità in cui il giocatore è davvero in gioco, e mai
+    // con un mute (nessuna nota sopra la testa di chi non può parlare).
+    $stanza = (string) ($_POST['room'] ?? '');
+    $server = voice_player_server((string) $me['mc_uuid']);
+    $parla = ($_POST['state'] ?? '') === '1' && $sanzioni['mute'] === null;
+    if ($server !== null && $stanza === 'near-' . $server) {
+        voice_speaking_report((string) $me['mc_uuid'], $stanza, $parla);
+    }
+    voice_api_reply(['ok' => true]);
 }
 
 if ($azione === 'rooms') {

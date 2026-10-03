@@ -14,7 +14,9 @@ import com.teolo.magixbridge.rank.RankPlaceholders;
 import com.teolo.magixbridge.store.StoreDelivery;
 import com.teolo.magixbridge.rank.RankSync;
 import com.teolo.magixbridge.voice.ProximityVoice;
+import com.teolo.magixbridge.voice.SpeakingIndicator;
 import com.teolo.magixbridge.voice.VoiceApi;
+import com.teolo.magixbridge.voice.VoiceModeration;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -138,8 +140,7 @@ public class MagixBridge extends JavaPlugin {
         VoiceApi api;
         try {
             api = VoiceApi.open(getConfig().getString("voice.api-url", "http://127.0.0.1:7880"),
-                    java.nio.file.Path.of(getConfig().getString("voice.keys-file", "/etc/magix-voce/keys.yaml")),
-                    room);
+                    java.nio.file.Path.of(getConfig().getString("voice.keys-file", "/etc/magix-voce/keys.yaml")));
         } catch (java.io.IOException | RuntimeException e) {
             if (logFailure) {
                 getLogger().warning("MagixBridge: chat vocale di prossimità spenta, chiavi del server della voce "
@@ -148,7 +149,7 @@ public class MagixBridge extends JavaPlugin {
             }
             return false;
         }
-        ProximityVoice voice = new ProximityVoice(this, api,
+        ProximityVoice voice = new ProximityVoice(this, api, room,
                 getConfig().getDouble("voice.hear-distance", 32),
                 getConfig().getDouble("voice.full-volume-distance", 4));
         int perSecond = Math.max(1, Math.min(10, getConfig().getInt("voice.updates-per-second", 4)));
@@ -156,6 +157,20 @@ public class MagixBridge extends JavaPlugin {
         Bukkit.getScheduler().runTaskTimer(this, voice::tick, 1L, period);
         getLogger().info("MagixBridge: chat vocale di prossimità attiva (stanza " + room + ", "
                 + perSecond + " aggiornamenti al secondo).");
+
+        // Who is talking, in game: notes above the head (read 4 times a second, shown as often).
+        if (getConfig().getBoolean("voice.speaking-indicator", true)) {
+            SpeakingIndicator indicator = new SpeakingIndicator(getLogger(), database::getConnection, room);
+            Bukkit.getScheduler().runTaskTimerAsynchronously(this, indicator::read, 20L, 5L);
+            Bukkit.getScheduler().runTaskTimer(this, indicator::show, 25L, 5L);
+        }
+        // Bans and mutes that hold in the rooms at once: one server is enough, the rooms are shared.
+        if (siteJobs) {
+            int seconds = Math.max(2, getConfig().getInt("voice.moderation-interval-seconds", 5));
+            VoiceModeration moderation = new VoiceModeration(getLogger(), database::getConnection, api);
+            Bukkit.getScheduler().runTaskTimerAsynchronously(this, moderation::pass, 100L, seconds * 20L);
+            getLogger().info("MagixBridge: sanzioni nelle stanze vocali controllate ogni " + seconds + "s.");
+        }
         return true;
     }
 
@@ -284,6 +299,16 @@ public class MagixBridge extends JavaPlugin {
                                 + "altro, quindi la pagina non diventa un radar. Lo stesso elenco dice al browser di "
                                 + "ognuno a chi far arrivare il proprio microfono: il server della voce lo fa "
                                 + "rispettare, quindi nemmeno una pagina modificata sente chi è lontano.",
+                        "Chi parla nella stanza dei vicini si vede anche in gioco: qualche nota musicale sopra "
+                                + "la testa, che vedono i giocatori intorno (gli stessi che lo sentono). Mai sopra "
+                                + "un giocatore invisibile, in spettatore o in vanish, e mai per chi parla nella "
+                                + "stanza della fazione o in quella di tutta la rete.",
+                        "Le sanzioni valgono subito anche in voce: ogni "
+                                + "{{cfg:voice.moderation-interval-seconds}} secondi il server con "
+                                + "network.site-jobs: true guarda chi ha un ban o un mute attivo (di MagixGuard, "
+                                + "in qualunque ambito, e i mute di sola voce dati dal gestionale, scheda Voice) e "
+                                + "passa tutte le stanze: chi ha un ban esce, chi ha un mute perde il microfono, e "
+                                + "a mute finito o revocato il microfono torna da solo, senza uscire dalla stanza.",
                         "Per parlare col server della voce il plugin legge le sue chiavi da "
                                 + "{{cfg:voice.keys-file}} (non stanno in nessun config nostro). Le rende leggibili il "
                                 + "workflow predisponi-voce.yml: se nel log all'avvio c'è «chat vocale di prossimità "
@@ -315,7 +340,9 @@ public class MagixBridge extends JavaPlugin {
                         "voice.enabled", "Accende la chat vocale di prossimità di questa modalità.",
                         "voice.hear-distance", "Oltre quanti blocchi una voce non si sente più.",
                         "voice.full-volume-distance", "Entro quanti blocchi una voce si sente a volume pieno.",
-                        "voice.updates-per-second", "Quante volte al secondo si aggiornano volume e lato delle voci.")
+                        "voice.updates-per-second", "Quante volte al secondo si aggiornano volume e lato delle voci.",
+                        "voice.speaking-indicator", "Le note sopra la testa di chi parla nella stanza dei vicini.",
+                        "voice.moderation-interval-seconds", "Ogni quanti secondi ban e mute si applicano nelle stanze vocali.")
 
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
