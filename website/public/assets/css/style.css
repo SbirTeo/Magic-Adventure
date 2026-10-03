@@ -1764,8 +1764,9 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .profilo-fazione-posto.ha-medaglia .posto-testo { align-self: center; text-align: right; padding-top: 14px; }
 .profilo-fazione-posto.ha-medaglia:hover { color: var(--text); }
 .posto-vai .corto { display: none; }
-.posto-vai { margin-top: 4px; font-style: normal; font-size: var(--fs-xs); font-weight: 600; color: var(--purple); }
-.profilo-fazione-posto:hover .posto-vai { text-decoration: underline; }
+.posto-vai { margin-top: 4px; font-size: var(--fs-xs); font-weight: 600; color: var(--purple); text-decoration: none; }
+.posto-vai:hover { color: var(--purple); text-decoration: underline; }
+.profilo-fazione-posto.ha-medaglia { cursor: default; }
 .medaglia {
   --m-hi: #d8dee8; --m-mid: #98a3b5; --m-lo: #5d6778; --m-anello: rgba(255, 255, 255, .55); --m-ink: #2a303b;
   --m-nastro-a: #b3202f; --m-nastro-b: #7d1220;
@@ -1877,9 +1878,14 @@ a.profilo-membro:hover { border-color: var(--border-strong); color: var(--text);
   .profilo-fazione { flex-wrap: wrap; }
   .profilo-fazione-posto { margin-left: 0; width: 100%; }
   .profilo-fazione-posto.ha-medaglia { width: auto; margin-left: auto; position: absolute; top: 0; right: 14px; margin-top: 0; margin-bottom: 0; }
-  /* Su telefono: la medaglia in alto a destra e, sotto, solo il link; posto e totale restano per i lettori di schermo. */
-  .profilo-fazione-posto.ha-medaglia { flex-direction: column-reverse; align-items: center; gap: 2px; padding-left: 0; }
-  .profilo-fazione-posto.ha-medaglia .posto-testo { align-self: center; text-align: center; padding-top: 0; }
+  /* Su telefono: colonna a destra con la medaglia in alto e il link in basso; posto e totale restano per i lettori
+     di schermo. La riga e' abbastanza alta da tenerli lontani l'uno dall'altro. */
+  .profilo-fazione:has(.ha-medaglia) { min-height: 124px; }
+  .profilo-fazione-posto.ha-medaglia {
+    flex-direction: column-reverse; align-items: center; justify-content: space-between; gap: 0;
+    width: 84px; top: 0; bottom: 0; right: 14px; padding: 0 0 12px; margin: 0;
+  }
+  .profilo-fazione-posto.ha-medaglia .posto-testo { display: contents; }
   .profilo-fazione-posto.ha-medaglia .posto-testo strong,
   .profilo-fazione-posto.ha-medaglia .posto-testo small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .posto-vai { margin-top: 0; white-space: nowrap; }
