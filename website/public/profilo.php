@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/profile.php';
+require_once __DIR__ . '/../includes/socials.php';
 
 require_login();
 
@@ -24,6 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['azione'] ?? '') === 'otp-e
     csrf_check();
     otp_close_game_session($me['mc_uuid'], $me['mc_username']);
     redirect('/profilo?gioco=chiusa');
+}
+
+// Contatti social: si salvano tutti insieme. Quelli scritti male non si salvano e restano nel
+// modulo, segnati, cosi' si correggono senza riscrivere gli altri.
+$erroriSocial = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['azione'] ?? '') === 'social-salva') {
+    csrf_check();
+    $erroriSocial = social_save((int) $me['id'], (array) ($_POST['social'] ?? []));
+    if (!$erroriSocial) {
+        redirect('/profilo?social=1#social');
+    }
 }
 
 // Codici di recupero nuovi: si generano qui e si mostrano una volta sola, subito sotto.
@@ -57,6 +69,9 @@ if (($_GET['gioco'] ?? '') === 'chiusa') {
     $avviso = "Sessione di gioco chiusa: al prossimo ingresso su mc.magicadventure.it verra' "
             . "richiesto di nuovo il codice. Se in questo momento qualcuno e' collegato con il "
             . "tuo account, entro pochi secondi si ritrova bloccato e senza codice non prosegue.";
+}
+if (isset($_GET['social'])) {
+    $avviso = 'Contatti salvati: si vedono sulla tua scheda pubblica.';
 }
 if (($_GET['otp'] ?? '') === 'recupero') {
     $avviso = "Sei entrato con un codice di recupero: quel codice ora e' bruciato. "
@@ -183,6 +198,12 @@ require __DIR__ . '/../includes/header.php';
         <dd><span class="code-box code-box-lungo scorri-trascinando"><?= h($me['mc_uuid']) ?></span></dd>
       </div>
     </dl>
+    <?php $__social = social_list((int) $me['id']); ?>
+    <?php if ($__social): ?>
+      <?= social_links_html($__social) ?>
+    <?php else: ?>
+      <a class="profilo-social-aggiungi" href="#social"><?= ui_icon('plus') ?> Aggiungi i tuoi social</a>
+    <?php endif; ?>
   </aside>
 
   <div class="profilo-colonna">
@@ -215,6 +236,42 @@ require __DIR__ . '/../includes/header.php';
     ?>
     <?= profile_site_panel(['Discussioni' => $nTopics, 'Risposte' => $nRisposte, 'Mi piace ricevuti' => $nMiPiace], $__acquistiHtml) ?>
   </div>
+</div>
+
+<?php /* I contatti social: li sceglie il giocatore, li vede chiunque apra la sua scheda. Si scrive
+         il nome utente (o si incolla l'indirizzo del profilo): il resto lo fa il sito. */ ?>
+<h2 id="social"><?= ui_icon('users') ?> I tuoi social</h2>
+<div class="panel social-modulo">
+  <p class="social-modulo-nota">
+    Si vedono sulla tua scheda pubblica, accanto alla skin. Scrivi solo il nome utente, oppure incolla
+    l'indirizzo del tuo profilo. Lascia vuoto un campo per toglierlo.
+  </p>
+  <?php if ($erroriSocial): ?>
+    <div class="alert alert-error">Alcuni nomi non sono validi e non sono stati salvati: correggili qui sotto.</div>
+  <?php endif; ?>
+  <form method="post">
+    <?= csrf_field() ?>
+    <input type="hidden" name="azione" value="social-salva">
+    <div class="social-campi">
+      <?php $__mieiSocial = social_list((int) $me['id']); ?>
+      <?php foreach (SOCIAL_NETWORKS as $__id => $__rete): ?>
+        <?php
+          $__errato = array_key_exists($__id, $erroriSocial);
+          $__valore = $__errato ? $erroriSocial[$__id] : ($__mieiSocial[$__id] ?? '');
+        ?>
+        <label class="social-campo<?= $__errato ? ' is-errato' : '' ?>" style="--social:<?= h($__rete['color']) ?>">
+          <span class="social-campo-nome"><?= ui_icon($__rete['icon']) ?> <?= h($__rete['label']) ?></span>
+          <span class="social-campo-riga">
+            <span class="social-campo-prefisso"><?= h($__rete['prefix']) ?></span>
+            <input type="text" name="social[<?= h($__id) ?>]" value="<?= h($__valore) ?>" maxlength="200"
+                   autocomplete="off" spellcheck="false" placeholder="<?= $__id === 'discord' ? 'es. mario.rossi' : 'nome' ?>">
+          </span>
+          <?php if ($__errato): ?><small>Nome non valido per <?= h($__rete['label']) ?>.</small><?php endif; ?>
+        </label>
+      <?php endforeach; ?>
+    </div>
+    <button type="submit" class="btn btn-accent">Salva i contatti</button>
+  </form>
 </div>
 
 <?php /* La verifica in due passaggi si vede solo a chi riguarda: per gli altri sarebbe una

@@ -659,7 +659,7 @@ function chat_sender_html(array $riga, string $relazione): string {
     }
     // Il nome porta alla scheda del giocatore: e' il gesto che uno si aspetta leggendo una
     // chat ("chi e' questo?"), e la scheda esiste gia' (/utente).
-    $nome = '<a class="chat-nome colore-grado" href="/utente?nome='
+    $nome = '<a class="chat-nome colore-grado" href="/utente/'
         . h(rawurlencode((string) $riga['mc_username'])) . '" style="' . rank_color_style($coloreNome) . '">'
         . h((string) $riga['mc_username']) . '</a>';
 

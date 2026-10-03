@@ -51,6 +51,11 @@ legal_header('Informativa sulla privacy', 'privacy');
     sanzione. Chat e forum sono visibili a tutti; il testo di un ricorso lo leggono solo l'interessato
     e lo staff.
   </p>
+  <p>
+    Se lo scegli tu, i <strong>nomi dei tuoi profili social</strong> (Discord, YouTube, Twitch, TikTok,
+    Instagram, X, Telegram), che compaiono sulla tua scheda pubblica. Sono facoltativi: li aggiungi e
+    li togli quando vuoi dal tuo profilo, e togliendoli spariscono subito anche dal database.
+  </p>
   <h3>Sicurezza, anti-cheat e sanzioni</h3>
   <p>
     Per proteggere il server da cheat, account multipli usati per aggirare un ban e attacchi, il
