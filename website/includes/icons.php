@@ -88,6 +88,8 @@ function nav_item_icon(string $url): string {
         '/tutorial'    => 'book',
         '/guida'       => 'book',
         '/utenti'      => 'users',
+        '/voice'       => 'headphones',
+        '/voce'        => 'headphones',
         '/sanzioni'    => 'gavel',
         '/store'       => 'bag',
         '/mappa'       => 'map',
