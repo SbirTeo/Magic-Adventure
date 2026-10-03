@@ -863,12 +863,12 @@ body.menu-aperto .site-header { backdrop-filter: none; }
    fluttuazione (in una barra fissa sembrerebbe un tremolio); riflesso, alone e stella restano.
    Da schermo stretto solo la stella, quadrata come i tasti del tema e della lingua. */
 /* Colore proprio: il dorato e' dello Store (stessa tinta, stessa forma, si confondevano). Vota e'
-   verde smeraldo, lo Store resta oro. */
+   verde Minecraft (#55ff55 / #00aa00 dei codici §a / §2), lo Store resta oro. */
 .vote-btn.vote-btn-nav {
-  --vote-glow: rgba(52, 211, 153, .55);
-  background: linear-gradient(135deg, #6ee7b7, #10b981 55%, #047857);
-  border-color: #047857;
-  color: #04251a;
+  --vote-glow: rgba(85, 255, 85, .5);
+  background: linear-gradient(135deg, #8bff6e, #55ff55 35%, #00aa00);
+  border-color: #007a00;
+  color: #052a05;
   gap: 7px;
   padding: 7px 14px 7px 11px;
   font-size: var(--fs-sm);
@@ -876,7 +876,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   animation: vote-glow 2.4s ease-out infinite;
   white-space: nowrap;
 }
-.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { color: #04251a; transform: translateY(-1px) scale(1.04); }
+.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { color: #052a05; transform: translateY(-1px) scale(1.04); }
 @media (max-width: 1279px) {
   .vote-btn.vote-btn-nav { padding: 0; width: 34px; height: 34px; justify-content: center; flex-shrink: 0; }
   .vote-btn.vote-btn-nav .vote-btn-text { display: none; }
