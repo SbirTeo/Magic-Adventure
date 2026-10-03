@@ -119,12 +119,33 @@ function magix_ensure_tables(): void {
             ADD COLUMN IF NOT EXISTS recipient_name VARCHAR(32) NULL DEFAULT NULL AFTER recipient_uuid,
             ADD INDEX IF NOT EXISTS idx_magix_orders_recipient (recipient_uuid, status)');
     }
+    // Cosa si compra in gioco con i Magix: lo elenco lo scrive lo staff (Gestione -> Store) e lo
+    // store lo mostra sotto il cursore ("Cosa puoi comprare con N Magix").
+    db()->exec('CREATE TABLE IF NOT EXISTS magix_catalog (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(40) NOT NULL,
+        cost INT UNSIGNED NOT NULL,
+        note VARCHAR(80) NOT NULL DEFAULT \'\',
+        color CHAR(7) NOT NULL DEFAULT \'#c04ff0\',
+        sort_order INT NOT NULL DEFAULT 0,
+        enabled TINYINT(1) NOT NULL DEFAULT 1
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
     db()->exec('CREATE TABLE IF NOT EXISTS me_currency_balances (
         currency_id VARCHAR(32) NOT NULL,
         player_uuid VARCHAR(36) NOT NULL,
         balance BIGINT NOT NULL DEFAULT 0,
         PRIMARY KEY (currency_id, player_uuid)
     )');
+}
+
+/**
+ * Le voci del catalogo (cosa si compra in gioco con i Magix), dalla meno cara. Con $all anche
+ * quelle spente (per il gestionale).
+ */
+function magix_catalog(bool $all = false): array {
+    magix_ensure_tables();
+    return db()->query('SELECT id, name, cost, note, color, sort_order, enabled FROM magix_catalog'
+        . ($all ? '' : ' WHERE enabled = 1') . ' ORDER BY cost, sort_order, id')->fetchAll();
 }
 
 /** Saldo Magix di un giocatore (0 se non ne ha mai avuti). */

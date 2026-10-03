@@ -57,6 +57,22 @@
     b.addEventListener('click', () => setValue(l.from, true));
     etichette.appendChild(b);
   });
+  // Toccare un pacchetto del catalogo porta il cursore al suo costo (fino al massimo comprabile).
+  const voci = document.querySelectorAll('.magix-voce');
+  voci.forEach(c => c.addEventListener('click', () => setValue(Math.min(MAX, parseInt(c.dataset.cost, 10)), true)));
+
+  /** "Cosa puoi comprare con N Magix": per ogni pacchetto, basta o quanto manca. */
+  function renderCatalog(v) {
+    const n = $('magixCatalogoN');
+    if (n) n.textContent = numero(v);
+    voci.forEach(c => {
+      const costo = parseInt(c.dataset.cost, 10), basta = costo <= v;
+      c.classList.toggle('basta', basta);
+      c.querySelector('.magix-voce-barra i').style.width = Math.min(100, Math.round(v / Math.max(1, costo) * 100)) + '%';
+      c.querySelector('.magix-voce-stato').textContent = basta ? '\u2713 Ti bastano' : 'Ti mancano ' + numero(costo - v) + ' Magix';
+    });
+  }
+
   document.querySelectorAll('.magix-livello').forEach(c =>
     c.addEventListener('click', () => setValue(parseInt(c.dataset.from, 10), true)));
 
@@ -132,6 +148,7 @@
     });
 
     fillBag(pos);
+    renderCatalog(v);
 
     if (livelloPrima !== -1 && li > livelloPrima && !lento) {
       pill.classList.remove('pop'); void pill.offsetWidth; pill.classList.add('pop');

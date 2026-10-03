@@ -203,7 +203,9 @@ a CMI.
   `me_currency_balances` (stesso database del sito, stessa tabella che legge il plugin) e registra
   la ricarica in `magix_orders`. Una ricarica si puo' **regalare** a un altro giocatore (nome
   controllato dal vivo con `/api/magix?player=`, colonne `recipient_uuid`/`recipient_name`: paga
-  chi e' collegato, i Magix vanno al destinatario). I pacchetti VIP si comprano in gioco spendendo i Magix. Nel
+  chi e' collegato, i Magix vanno al destinatario). Sotto il cursore c'e' «Cosa puoi comprare con N
+  Magix»: le voci (nome, costo, nota, colore) le scrive lo staff in Gestione -> Store (tabella
+  `magix_catalog`), si mostrano soltanto: l'acquisto vero e' in gioco. I pacchetti VIP si comprano in gioco spendendo i Magix. Nel
   gestionale la scheda Store ha solo l'account PayPal e le ultime ricariche. Le vecchie tabelle
   (`store_packages`, `store_orders`...) restano nel database come storico: `store_orders` conta
   ancora per la corona del miglior sostenitore (`paid_orders_sql()` in `helpers.php`).

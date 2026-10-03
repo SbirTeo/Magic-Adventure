@@ -99,7 +99,7 @@ $actionPermissions = [
 $adminOnlyActions = ['blog_purge', 'blog_settings_save', 'page_save', 'page_delete', 'nav_save', 'nav_delete',
                      'nav_toggle_enabled', 'nav_toggle_sidebar', 'nav_reorder', 'settings_save', 'chat_settings_save',
                      'guida_intro_save', 'perms_save',
-                     'payments_save',
+                     'payments_save', 'magix_item_save',
                      'otp_staff_save', 'otp_azzera', 'otp_revoca_gioco', 'legal_save'];
 
 // ---------------------------------------------------------------------
@@ -789,6 +789,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)')
                 ->execute(['tutorial_intro', $intro]);
             redirect('/manage?section=pages&ok=1#guida');
+        }
+
+        case 'magix_item_save': {
+            // Una voce di "Cosa si compra con i Magix" (catalogo dello store): crea, modifica o
+            // toglie. Il catalogo si mostra soltanto: l'acquisto vero avviene in gioco.
+            require_once __DIR__ . '/../includes/magix.php';
+            magix_ensure_tables();
+            $id = (int) ($_POST['id'] ?? 0);
+            if (($_POST['op'] ?? 'save') === 'delete') {
+                db()->prepare('DELETE FROM magix_catalog WHERE id = ?')->execute([$id]);
+                redirect('/manage?section=store&ok=1#catalogo');
+            }
+            $nome = mb_substr(trim((string) ($_POST['name'] ?? '')), 0, 40);
+            $costo = max(1, min(1000000, (int) ($_POST['cost'] ?? 0)));
+            $nota = mb_substr(trim((string) ($_POST['note'] ?? '')), 0, 80);
+            $colore = trim((string) ($_POST['color'] ?? ''));
+            $colore = is_valid_hex_color($colore) ? $colore : '#c04ff0';
+            $attiva = isset($_POST['enabled']) ? 1 : 0;
+            if ($nome === '') {
+                redirect('/manage?section=store&err=empty#catalogo');
+            }
+            if ($id > 0) {
+                db()->prepare('UPDATE magix_catalog SET name = ?, cost = ?, note = ?, color = ?, enabled = ? WHERE id = ?')
+                    ->execute([$nome, $costo, $nota, $colore, $attiva, $id]);
+            } else {
+                db()->prepare('INSERT INTO magix_catalog (name, cost, note, color, enabled) VALUES (?, ?, ?, ?, ?)')
+                    ->execute([$nome, $costo, $nota, $colore, $attiva]);
+            }
+            redirect('/manage?section=store&ok=1#catalogo');
         }
 
         case 'payments_save': {
@@ -2399,6 +2428,47 @@ if ($section === 'dashboard') {
         </div>
         <button type="submit" class="btn btn-accent">Salva pagamenti</button>
       </form>
+    </div>
+
+    <?php
+    try {
+        $catalogo = magix_catalog(true);
+    } catch (Throwable $e) {
+        $catalogo = [];
+    }
+    // Una riga del modulo: vuota per la voce nuova. Stesse colonne per tutte, cosi' si leggono
+    // come una tabella.
+    $catalogRow = function (?array $v) { ?>
+      <form method="post" class="magix-cat-riga" style="display:grid; grid-template-columns: minmax(120px,1.2fr) 110px minmax(140px,1.6fr) 56px auto auto; gap:8px; align-items:center; margin-bottom:8px;">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="magix_item_save">
+        <input type="hidden" name="id" value="<?= (int) ($v['id'] ?? 0) ?>">
+        <input type="text" name="name" maxlength="40" placeholder="Nome (es. VIP)" value="<?= h((string) ($v['name'] ?? '')) ?>" required aria-label="Nome">
+        <input type="text" inputmode="numeric" pattern="[0-9]+" name="cost" placeholder="Magix" value="<?= h((string) ($v['cost'] ?? '')) ?>" required aria-label="Costo in Magix">
+        <input type="text" name="note" maxlength="80" placeholder="Nota (es. 30 giorni)" value="<?= h((string) ($v['note'] ?? '')) ?>" aria-label="Nota">
+        <input type="color" name="color" value="<?= h((string) ($v['color'] ?? '#c04ff0')) ?>" style="height:40px; padding:3px;" aria-label="Colore">
+        <label style="text-transform:none; display:flex; align-items:center; gap:6px; margin:0;">
+          <input type="checkbox" name="enabled" value="1" style="width:auto;" <?= $v === null || (int) $v['enabled'] === 1 ? 'checked' : '' ?>> Visibile
+        </label>
+        <span style="display:flex; gap:6px;">
+          <button type="submit" name="op" value="save" class="btn btn-accent btn-small"><?= $v ? 'Salva' : 'Aggiungi' ?></button>
+          <?php if ($v): ?>
+            <button type="submit" name="op" value="delete" class="btn btn-ghost btn-small" formnovalidate onclick="return confirm('Togliere questa voce?')">Togli</button>
+          <?php endif; ?>
+        </span>
+      </form>
+    <?php };
+    ?>
+    <h2 id="catalogo" style="margin-top:34px;">Cosa si compra con i Magix</h2>
+    <p class="sub" style="margin-bottom:14px;">
+      Le voci della sezione «Cosa puoi comprare con N Magix» dello <a href="/store">store</a>: nome, costo
+      in Magix, una nota (es. la durata) e il colore dell'etichetta. Si mostrano dalla meno cara e servono
+      solo a far vedere cosa si può prendere: l'acquisto vero si fa in gioco. Finché l'elenco è vuoto
+      la sezione la vede solo lo staff.
+    </p>
+    <div class="panel" style="overflow-x:auto;">
+      <?php foreach ($catalogo as $voce) { $catalogRow($voce); } ?>
+      <?php $catalogRow(null); ?>
     </div>
 
     <h2 id="ricariche" style="margin-top:34px;">Ultime ricariche</h2>

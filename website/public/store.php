@@ -58,6 +58,13 @@ $regaloFatto = $festa && trim((string) ($ricarica['recipient_uuid'] ?? '')) !== 
 $iniziale = max(MAGIX_MIN, min(MAGIX_MAX, (int) ($_GET['q'] ?? ($ricarica['amount'] ?? MAGIX_MIN))));
 $preventivo = magix_quote($iniziale);
 
+// Cosa si compra in gioco con i Magix (Gestione -> Store): la sezione sotto al cursore.
+try {
+    $catalogo = magix_catalog();
+} catch (Throwable $e) {
+    $catalogo = [];
+}
+
 // Regalo gia' impostato (rientro da un errore o da PayPal annullato): si riapre com'era.
 $perRegalo = isset($_GET['per']) ? mb_substr(trim((string) $_GET['per']), 0, 16) : '';
 
@@ -231,6 +238,41 @@ require __DIR__ . '/../includes/header.php';
         </div>
       </div>
     </section>
+
+    <?php if ($catalogo || is_admin()): ?>
+      <?php /* Cosa si compra con la quantita' scelta: si aggiorna mentre si sposta il cursore
+               (store-magix.js). Toccare una voce che non basta porta il cursore al suo costo. */ ?>
+      <section class="panel magix-catalogo-box">
+        <h2>Cosa puoi comprare con <span class="magix-catalogo-n" id="magixCatalogoN"><?= number_format($iniziale, 0, ',', '.') ?></span> Magix</h2>
+        <?php if ($catalogo): ?>
+          <p class="magix-catalogo-sub">I pacchetti si comprano in gioco, spendendo i Magix. Tocca un pacchetto per scegliere esattamente quello che costa.</p>
+          <div class="magix-catalogo" id="magixCatalogo">
+            <?php foreach ($catalogo as $voce):
+              $costo = (int) $voce['cost'];
+              $colore = is_valid_hex_color((string) $voce['color']) ? (string) $voce['color'] : '#c04ff0';
+              $basta = $costo <= $iniziale;
+            ?>
+              <button type="button" class="magix-voce<?= $basta ? ' basta' : '' ?>" data-cost="<?= $costo ?>">
+                <span class="magix-voce-testa">
+                  <span class="magix-voce-tag" style="background:<?= h($colore) ?>;color:<?= h(text_on_color($colore)) ?>"><?= h($voce['name']) ?></span>
+                  <span class="magix-voce-costo"><img src="<?= $gemma ?>" alt="" width="16" height="16"><?= number_format($costo, 0, ',', '.') ?></span>
+                </span>
+                <?php if (trim((string) $voce['note']) !== ''): ?>
+                  <span class="magix-voce-nota"><?= h($voce['note']) ?></span>
+                <?php endif; ?>
+                <span class="magix-voce-barra"><i style="width:<?= min(100, round($iniziale / max(1, $costo) * 100)) ?>%"></i></span>
+                <span class="magix-voce-stato"><?= $basta ? '✓ Ti bastano' : 'Ti mancano ' . number_format($costo - $iniziale, 0, ',', '.') . ' Magix' ?></span>
+              </button>
+            <?php endforeach; ?>
+          </div>
+        <?php else: ?>
+          <p class="magix-catalogo-sub">
+            <strong>Solo lo staff vede questo riquadro:</strong> l'elenco dei pacchetti è vuoto. Si compila in
+            <a href="/manage?section=store#catalogo">Gestione → Store → Cosa si compra con i Magix</a>.
+          </p>
+        <?php endif; ?>
+      </section>
+    <?php endif; ?>
 
     <section class="panel magix-livelli-box">
       <h2>Livelli di sconto</h2>
