@@ -34,6 +34,11 @@ const UI_ICONS = [
     'message'   => '<path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/>',
     'cart'      => '<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.5 12h11l2-8H6"/>',
     'image'     => '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/>',
+    'mic'       => '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8"/>',
+    'mic-off'   => '<path d="M2 2l20 20M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 5.1 2.1M19 10v1a7 7 0 0 1-1.1 3.8M5 10v1a7 7 0 0 0 11.3 5.5M12 18v4M8 22h8"/>',
+    'headphones' => '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/>',
+    'users'     => '<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.1a4 4 0 0 1 0 7.8M22 21a7 7 0 0 0-5-6.7"/>',
+    'phone-off' => '<path d="M10.7 13.3a16 16 0 0 1-3-4l1.5-1.5a1 1 0 0 0 .2-1.1L8 3.6A1 1 0 0 0 7 3H4a1 1 0 0 0-1 1.1A17 17 0 0 0 7.8 16M2 2l20 20M14 15.3l1.6-1.6a1 1 0 0 1 1.1-.2l3.1 1.4a1 1 0 0 1 .6.9V19a1 1 0 0 1-1.1 1 17 17 0 0 1-7.4-2.4"/>',
 ];
 
 /** Un'icona in linea col testo (1em, colore del testo). Decorativa: lo screen reader la salta. */

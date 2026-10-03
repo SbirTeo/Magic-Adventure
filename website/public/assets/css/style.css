@@ -7072,3 +7072,91 @@ th .ico, h2 .ico, h3 .ico { opacity: .75; margin-right: 2px; }
   background: var(--bg-panel-2); border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text);
 }
 @media (max-width: 520px) { .accesso { margin-top: 8px; } .accesso-riquadro { padding: 24px 18px; } }
+
+/* ---- Chat vocale (voce.php, assets/js/voce.js) ---------------------------------------- */
+.voce [hidden] { display: none !important; }
+.voce-intro p { margin: 0 0 8px; line-height: 1.6; }
+.voce-intro .ico { color: var(--purple); margin-right: 4px; }
+.voce-nota { color: var(--text-dim); font-size: var(--fs-sm); margin: 0; }
+.voce-mute { margin: 12px 0 0; }
+.voce-stanze { display: grid; gap: 12px; margin-bottom: 20px; }
+.voce-stanza {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 20px; transition: border-color .15s;
+}
+.voce-stanza.is-attiva { border-color: var(--green); box-shadow: 0 0 0 1px var(--green-glow); }
+.voce-stanza-testo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.voce-stanza-nome { font-size: var(--fs-md); }
+.voce-stanza-nome .ico { color: var(--text-dim); margin-right: 4px; }
+.voce-stanza-desc { color: var(--text-dim); font-size: var(--fs-sm); }
+.voce-entra { flex-shrink: 0; }
+.voce-entra:disabled { opacity: .5; cursor: default; }
+.voce-chiamata-testa {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.voce-chiamata-nome { margin: 0 0 4px; font-size: var(--fs-lg); }
+.voce-stato { color: var(--text-dim); font-size: var(--fs-sm); }
+.voce-comandi { display: flex; gap: 8px; flex-wrap: wrap; }
+.voce-comandi .btn { display: inline-flex; align-items: center; gap: 6px; }
+.voce-mic .voce-mic-acceso { display: none; }
+.voce-mic.is-acceso { border-color: var(--green); color: var(--green); }
+.voce-mic.is-acceso .voce-mic-acceso { display: inline-flex; align-items: center; gap: 6px; }
+.voce-mic.is-acceso .voce-mic-spento { display: none; }
+.voce-mic .voce-mic-spento { display: inline-flex; align-items: center; gap: 6px; }
+.voce-mic:disabled { opacity: .5; cursor: default; }
+.voce-audio-bloccato {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px; margin-bottom: 14px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm);
+}
+.voce-dispositivo { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: var(--fs-sm); color: var(--text-dim); }
+.voce-dispositivo select { max-width: 100%; min-width: 0; flex: 1; }
+.voce-persone { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.voce-persona {
+  display: flex; align-items: center; gap: 12px; padding: 8px 10px;
+  border-radius: var(--radius-sm); background: var(--bg-panel-2);
+}
+.voce-persona-faccia {
+  width: 36px; height: 36px; border-radius: var(--radius-xs); flex-shrink: 0;
+  image-rendering: pixelated; background: var(--bg-elevated);
+  outline: 2px solid transparent; outline-offset: 2px; transition: outline-color .12s;
+}
+.voce-persona.is-parla .voce-persona-faccia { outline-color: var(--green); }
+.voce-persona-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.voce-persona-nome small { color: var(--text-dim); font-weight: 400; }
+.voce-persona-muto { color: var(--text-dimmer); display: inline-flex; }
+.voce-persona-volume { width: 110px; flex-shrink: 0; accent-color: var(--purple); }
+@media (max-width: 520px) {
+  .voce-stanza { flex-direction: column; align-items: stretch; padding: 14px 16px; }
+  .voce-persona-volume { width: 80px; }
+}
+
+/* Riquadro "Chat vocale" della colonna laterale (includes/sidebar.php) */
+.modulo-voce { padding: 18px 20px 20px; }
+.voce-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--text-dimmer);
+}
+.voce-dot.is-attivo { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+.voce-side-stanze { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.voce-side-stanza { display: grid; gap: 6px; }
+.voce-side-link {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-panel-2);
+  color: var(--text); text-decoration: none; font-size: var(--fs-sm); font-weight: 600;
+  border: 1px solid transparent; transition: border-color .15s;
+}
+.voce-side-link:hover { border-color: var(--border-strong); text-decoration: none; }
+.voce-side-link .ico { color: var(--text-dim); flex-shrink: 0; }
+.voce-side-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voce-side-conta { font-size: var(--fs-xs); color: var(--text-dim); font-weight: 400; flex-shrink: 0; }
+.voce-side-facce { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 10px; align-items: center; }
+.voce-side-facce img { width: 22px; height: 22px; border-radius: 5px; image-rendering: pixelated; }
+.voce-side-altri { font-size: var(--fs-xs); color: var(--text-dim); }
+.voce-side-nota { color: var(--text-dim); font-size: var(--fs-xs); line-height: 1.5; margin: 0 0 10px; }
+.voce-side-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* /voce#<stanza> arrivando dalla colonna laterale: la scheda giusta si fa notare. */
+.voce-stanza.is-evidenza { border-color: var(--purple); box-shadow: 0 0 0 1px var(--purple-glow); }
+.voce-stanza-conta { color: var(--green); font-size: var(--fs-xs); font-weight: 600; }
