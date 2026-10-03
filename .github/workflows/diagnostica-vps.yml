@@ -242,8 +242,10 @@ jobs:
           # log di questa Action, leggibile da chiunque abbia accesso al repo: si vede che la
           # chiave c'e' ed e' valorizzata, mai il segreto vero. Il NOME della chiave resta
           # visibile apposta: e' quello che serve per capire cosa e' configurato.
+          # Anche pepper (MagixGuard) e chiavi (otp_key_base64 di MagixAuth, *_key, *key_base64...):
+          # fino al 3/10/2026 questa lista non li copriva e il pepper e' finito nel log di un run.
           oscura() {
-            sed -E 's/^([[:space:]]*[A-Za-z0-9_-]*(password|secret|token|webhook|api[_-]?key)[A-Za-z0-9_-]*:)[[:space:]]*.+$/\1 "[nascosto]"/I'
+            sed -E 's/^([[:space:]]*[A-Za-z0-9_-]*(password|secret|token|webhook|api[_-]?key|pepper|otp[_-]?key|[_-]key|key[_-]base64|privkey|private[_-]?key)[A-Za-z0-9_-]*:)[[:space:]]*.+$/\1 "[nascosto]"/I'
           }
 
           echo
