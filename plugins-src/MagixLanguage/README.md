@@ -81,6 +81,14 @@ toccano. Lo stesso glossario traduce ogni `<...>` negli altri messaggi (`Uso: /f
 il traduttore lo protegge per intero e al ritorno lo rimette tradotto. Un argomento nuovo va
 aggiunto al glossario: `check_config.py` [8] blocca il commit altrimenti.
 
+**Colori, placeholder e comandi.** Prima di mandare il testo a MyMemory, colori (`&7`, `&#RRGGBB`),
+placeholder (`%...%`, `{...}`), `« »`, `|` e i nomi dei comandi (`/missioni`, `/f`) diventano
+segnaposto che il servizio non tocca, e al ritorno si rimettono com'erano. Pezzi attaccati fra loro
+(`&e%magixfactions_claims%`) formano un segnaposto solo, e devono restare attaccati anche nella
+traduzione: una traduzione in cache che li ha separati o persi (quelle fatte fino al 3/10, con `?` o
+`and` in mezzo) si butta e si rifà da sola al giro successivo, sia per i messaggi sia per le frasi
+fuori da `messages.yml` (scoreboard, menu).
+
 **Quando si richiama MyMemory.** Due regole, condivise fra i plugin e il sito e salvate in
 `translation-pacing.properties` perche' un riavvio non le azzeri:
 1. dopo un **blocco** (tre richieste rifiutate di fila, di solito la quota del giorno finita) nessuno

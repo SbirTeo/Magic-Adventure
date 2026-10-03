@@ -465,9 +465,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         }
         chat.set(p.getUniqueId(), ch);
         String name = switch (ch) {
-            case PUBLIC -> M.get("chat.channel-public");
-            case FACTION -> M.get("chat.channel-faction");
-            case ALLY -> M.get("chat.channel-ally");
+            case PUBLIC -> M.get(p, "chat.channel-public");
+            case FACTION -> M.get(p, "chat.channel-faction");
+            case ALLY -> M.get(p, "chat.channel-ally");
         };
         msgKey(p, "chat.set", "channel", name);
         return true;
@@ -805,9 +805,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             if (hadHome) fm.unsetHome(f);
             // Avviso a centro schermo + suono ALLA CONFERMA (secondo comando): e' qui che l'azione
             // irreversibile avviene davvero, non al primo /f unclaimall (che chiede solo conferma).
-            String title = org.bukkit.ChatColor.translateAlternateColorCodes('&', M.get("unclaimall.done-title"));
+            String title = org.bukkit.ChatColor.translateAlternateColorCodes('&', M.get(p, "unclaimall.done-title"));
             String sub = org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                    M.get("unclaimall.done-subtitle", "count", String.valueOf(removed)));
+                    M.get(p, "unclaimall.done-subtitle", "count", String.valueOf(removed)));
             p.sendTitle(title, sub, 10, 70, 20);
             playUnclaimAllSound(p);
             msgKey(p, "unclaimall.success", "count", String.valueOf(removed));
@@ -1045,7 +1045,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             com.teolo.magixfactions.manage.ScoreManager.Entry e = rank.get(i);
             boolean isOwn = own != null && own.getId() == e.faction.getId();
             if (isOwn) ownShown = true;
-            sendScoreLine(s, e.faction, M.get(isOwn ? "top.entry-own" : "top.entry",
+            sendScoreLine(s, e.faction, M.get(s, isOwn ? "top.entry-own" : "top.entry",
                     "pos", String.valueOf(i + 1),
                     "relcolor", relColor(own, e.faction), "name", e.faction.getName(),
                     "score", score.formatScore(e.score)));
@@ -1055,7 +1055,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             for (int i = size; i < rank.size(); i++) {
                 if (rank.get(i).faction.getId() == own.getId()) {
                     panelKey(s, "top.separator");
-                    sendScoreLine(s, own, M.get("top.entry-own", "pos", String.valueOf(i + 1),
+                    sendScoreLine(s, own, M.get(s, "top.entry-own", "pos", String.valueOf(i + 1),
                             "relcolor", relColor(own, own), "name", own.getName(),
                             "score", score.formatScore(rank.get(i).score)));
                     break;
@@ -1063,7 +1063,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             }
         }
         // In fondo alla classifica: il link alla top completa sul sito (cliccabile in gioco).
-        sendLink(s, M.get("top.site"), "https://magicadventure.it/classifiche");
+        sendLink(s, M.get(s, "top.site"), "https://magicadventure.it/classifiche");
         return true;
     }
 
@@ -1087,7 +1087,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (!(s instanceof Player p)) { panel(s, legacyLine); return; }
         String line = Papi.resolve(p, legacyLine);
         BaseComponent[] comps = TextComponent.fromLegacyText(line);
-        HoverEvent he = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(scoreTooltip(f))));
+        HoverEvent he = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(TextComponent.fromLegacyText(scoreTooltip(s, f))));
         for (BaseComponent c : comps) c.setHoverEvent(he);
         p.spigot().sendMessage(comps);
     }
@@ -1097,18 +1097,18 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      * intestazione + introduzione, una riga per caratteristica (voce, valore, migliore, % del migliore,
      * punti/max) e il totale in fondo. Nessun grassetto, per rispecchiare lo stile del sito.
      */
-    private String scoreTooltip(Faction f) {
-        StringBuilder sb = new StringBuilder(M.get("score-tooltip.header"));
-        sb.append("\n").append(M.get("score-tooltip.intro"));
+    private String scoreTooltip(CommandSender s, Faction f) {
+        StringBuilder sb = new StringBuilder(M.get(s, "score-tooltip.header"));
+        sb.append("\n").append(M.get(s, "score-tooltip.intro"));
         for (com.teolo.magixfactions.manage.ScoreManager.Component c : score.breakdown(f)) {
             String best = c.bestSelf
-                    ? M.get("score-tooltip.best-self")
-                    : M.get("score-tooltip.best", "best", c.bestName, "bestval", c.bestValueText);
-            sb.append("\n").append(M.get("score-tooltip.line",
+                    ? M.get(s, "score-tooltip.best-self")
+                    : M.get(s, "score-tooltip.best", "best", c.bestName, "bestval", c.bestValueText);
+            sb.append("\n").append(M.get(s, "score-tooltip.line",
                     "label", c.label, "value", c.valueText, "best", best,
                     "pct", c.pctStr(), "points", c.pointsStr(), "max", c.maxStr()));
         }
-        sb.append("\n").append(M.get("score-tooltip.total",
+        sb.append("\n").append(M.get(s, "score-tooltip.total",
                 "score", score.formatScore(score.score(f)), "max", score.maxScoreStr()));
         return sb.toString();
     }
@@ -1135,24 +1135,24 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         java.util.List<Faction> pOut = ownView ? fm.pendingAllyRequestsOf(f) : java.util.Collections.emptyList();
 
         java.util.List<BaseComponent> parts = new java.util.ArrayList<>();
-        legacyInto(parts, M.get("info.allies-label"));
-        String sep = M.get("info.allies-separator");
+        legacyInto(parts, M.get(p, "info.allies-label"));
+        String sep = M.get(p, "info.allies-separator");
         boolean first = true;
         for (Faction a : allies) {
             if (!first) legacyInto(parts, sep); first = false;
-            legacyInto(parts, M.get("info.allies-ally", "relcolor", relColor(own, a), "name", a.getName()));
+            legacyInto(parts, M.get(p, "info.allies-ally", "relcolor", relColor(own, a), "name", a.getName()));
         }
         for (Faction o : pIn) {
             if (!first) legacyInto(parts, sep); first = false;
-            interactiveInto(parts, M.get("info.allies-pending", "name", o.getName()),
-                    M.get("info.allies-hover-in", "name", o.getName()), "/f ally " + o.getName());
+            interactiveInto(parts, M.get(p, "info.allies-pending", "name", o.getName()),
+                    M.get(p, "info.allies-hover-in", "name", o.getName()), "/f ally " + o.getName());
         }
         for (Faction o : pOut) {
             if (!first) legacyInto(parts, sep); first = false;
-            interactiveInto(parts, M.get("info.allies-pending", "name", o.getName()),
-                    M.get("info.allies-hover-out", "name", o.getName()), "/f ally " + o.getName());
+            interactiveInto(parts, M.get(p, "info.allies-pending", "name", o.getName()),
+                    M.get(p, "info.allies-hover-out", "name", o.getName()), "/f ally " + o.getName());
         }
-        if (first) legacyInto(parts, M.get("info.allies-none"));
+        if (first) legacyInto(parts, M.get(p, "info.allies-none"));
         p.spigot().sendMessage(parts.toArray(new BaseComponent[0]));
     }
 
@@ -1180,8 +1180,8 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         return relColor(readerFaction, f) + f.getName();
     }
 
-    private String relationName(RelationType rel) {
-        return rel == RelationType.ALLY ? M.get("relation.name-ally") : M.get("relation.name-enemy");
+    private String relationName(CommandSender to, RelationType rel) {
+        return rel == RelationType.ALLY ? M.get(to, "relation.name-ally") : M.get(to, "relation.name-enemy");
     }
 
     /** Colore (da config relations.colors) della relazione tra la fazione che guarda e un'altra. Senza
@@ -1202,19 +1202,27 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         Faction own = fm.getFaction(p.getUniqueId());
         panelKey(p, "info.line");
         panelKey(p, "info.name", "relcolor", relColor(own, f), "name", f.getName(), "tag", f.getTag());
-        if (!f.getDescription().isEmpty()) panelKey(p, "info.description", "desc", f.getDescription());
+        if (!f.getDescription().isEmpty()) {
+            // La descrizione di serie (quella che nessuno ha ancora cambiato) e' un testo del config:
+            // va nella lingua di chi legge. Una scritta dai giocatori resta com'e'.
+            String desc = f.getDescription();
+            if (desc.equals(plugin.getConfig().getString("faction-description.default", ""))) {
+                desc = com.teolo.magixfactions.lang.Messages.phrase(p, desc);
+            }
+            panelKey(p, "info.description", "desc", desc);
+        }
         panelKey(p, "info.members", "count", String.valueOf(f.size()), "max", String.valueOf(fm.effectiveMaxMembers(f)));
         // Elenco membri (tag di rank + nome) ordinati per rank decrescente, in grigio dopo il conteggio.
         java.util.List<Member> ms = new java.util.ArrayList<>(f.getMembers().values());
         ms.sort((x, y) -> Integer.compare(ranks.rankOrder(y.getRankId()), ranks.rankOrder(x.getRankId())));
-        String memSep = M.get("info.members-list-separator");
+        String memSep = M.get(p, "info.members-list-separator");
         StringBuilder memList = new StringBuilder();
         for (Member m : ms) {
             OfflinePlayer op = Bukkit.getOfflinePlayer(m.getUuid());
             String tag = org.bukkit.ChatColor.translateAlternateColorCodes('&', ranks.resolve(m.getRankId()).getTag());
             String nm = op.getName() != null ? op.getName() : m.getUuid().toString();
             if (memList.length() > 0) memList.append(memSep);
-            memList.append(M.get("info.members-list-entry", "tag", tag, "player", nm));
+            memList.append(M.get(p, "info.members-list-entry", "tag", tag, "player", nm));
         }
         if (memList.length() > 0) panelKey(p, "info.members-list", "list", memList.toString());
         int fPow = power.factionPower(f);
@@ -1227,14 +1235,14 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         boolean self = own != null && own.getId() == f.getId();
         String statusColor, statusDesc;
         if (owned == 0) {
-            statusColor = M.get("info.status-none-color");
-            statusDesc = M.get(self ? "info.status-none-self" : "info.status-none");
+            statusColor = M.get(p, "info.status-none-color");
+            statusDesc = M.get(p, self ? "info.status-none-self" : "info.status-none");
         } else if (fPow >= owned) {
-            statusColor = M.get("info.status-safe-color");
-            statusDesc = M.get(self ? "info.status-strong-self" : "info.status-strong");
+            statusColor = M.get(p, "info.status-safe-color");
+            statusDesc = M.get(p, self ? "info.status-strong-self" : "info.status-strong");
         } else {
-            statusColor = M.get("info.status-raid-color");
-            statusDesc = M.get(self ? "info.status-weak-self" : "info.status-weak");
+            statusColor = M.get(p, "info.status-raid-color");
+            statusDesc = M.get(p, self ? "info.status-weak-self" : "info.status-weak");
         }
         panelKey(p, "info.status", "statuscolor", statusColor,
                 "claims", String.valueOf(owned), "power", String.valueOf(fPow), "maxpower", String.valueOf(fMax));
@@ -1245,14 +1253,14 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         // Una fazione INATTIVA (tutti i membri assenti da troppo) e' oscurata: riga senza posizione + avviso.
         boolean active = score.isActive(f);
         String scoreLine = active
-                ? M.get("info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(score.position(f)))
-                : M.get("info.score-unranked", "score", score.formatScore(score.score(f)));
+                ? M.get(p, "info.score", "score", score.formatScore(score.score(f)), "pos", String.valueOf(score.position(f)))
+                : M.get(p, "info.score-unranked", "score", score.formatScore(score.score(f)));
         sendScoreLine(p, f, scoreLine);
         if (!active) panelKey(p, "info.inactive", "days", String.valueOf(score.inactiveDays()));
         sendAlliesLine(p, f, own, own != null && own.getId() == f.getId());
         if (own != null && own.getId() != f.getId()) {
             RelationType rel = fm.effectiveRelation(own.getId(), f.getId());
-            panelKey(p, "info.your-relation", "relation", relationName(rel));
+            panelKey(p, "info.your-relation", "relation", relationName(p, rel));
         }
         panelKey(p, "info.line");
         return true;
@@ -1298,9 +1306,6 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
      */
     private void announceOverclaim(Faction attacker, Faction victim, int x, int z) {
         if (!plugin.getConfig().getBoolean("claims.overclaim-alert.enabled", true)) return;
-        String title = M.get("claim.overclaim-alert-title", "attacker", attacker.getName(), "victim", victim.getName());
-        String sub = M.get("claim.overclaim-alert-subtitle", "attacker", attacker.getName(),
-                "victim", victim.getName(), "x", String.valueOf(x), "z", String.valueOf(z));
         int in = plugin.getConfig().getInt("claims.overclaim-alert.fade-in", 10);
         int stay = plugin.getConfig().getInt("claims.overclaim-alert.stay", 60);
         int out = plugin.getConfig().getInt("claims.overclaim-alert.fade-out", 20);
@@ -1309,6 +1314,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         float pitch = (float) plugin.getConfig().getDouble("claims.overclaim-alert.sound-pitch", 0.8);
         boolean playSound = sound != null && !sound.isEmpty();
         for (Player pl : Bukkit.getOnlinePlayers()) {
+            // Ognuno nella sua lingua.
+            String title = M.get(pl, "claim.overclaim-alert-title", "attacker", attacker.getName(), "victim", victim.getName());
+            String sub = M.get(pl, "claim.overclaim-alert-subtitle", "attacker", attacker.getName(),
+                    "victim", victim.getName(), "x", String.valueOf(x), "z", String.valueOf(z));
             pl.sendTitle(title, sub, in, stay, out);
             if (playSound) {
                 try { pl.playSound(pl.getLocation(), sound, vol, pitch); } catch (Exception ignored) {}
