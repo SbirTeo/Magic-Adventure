@@ -261,6 +261,11 @@ public final class PlayerStatsManager {
         save(u);
     }
 
+    private AfkTracker afkTracker;
+
+    /** Lo collega AfkTracker al suo avvio. */
+    void setAfkTracker(AfkTracker t) { this.afkTracker = t; }
+
     /** Diventa FERMO: accredita il tempo giocato fin qui, poi la giacenza media si ferma. */
     public void onAfk(Player p) {
         PS ps = ensure(p.getUniqueId());
@@ -294,8 +299,8 @@ public final class PlayerStatsManager {
         // Visibilita' in classifica dal permesso: segue i cambi di grado dello staff senza bisogno di rientrare.
         boolean hide = p.hasPermission(PERM_HIDE_LEADERBOARD);
         if (hide != ps.hidden) { ps.hidden = hide; changed = true; }
-        // Da fermo la finestra resta chiusa (la chiude AfkTracker.onAfk): non la si riapre qui.
-        if (AfkTracker.isAfk(p) && ps.lastSampledAt <= 0) return changed;
+        // Da fermo la finestra resta chiusa (la chiude onAfk): non la si riapre qui.
+        if (afkTracker != null && afkTracker.isTrackedAfk(p.getUniqueId())) return changed;
         return accumulateMoney(ps, p) || changed;
     }
 
