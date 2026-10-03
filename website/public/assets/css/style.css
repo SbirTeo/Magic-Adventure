@@ -1736,6 +1736,55 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .profilo-fazione-testo small { display: block; margin-top: 2px; color: var(--text-dim); font-size: var(--fs-sm); }
 .profilo-fazione-testo code { font-size: .92em; }
 
+/* Posto in classifica, a destra della fazione: porta alla classifica. */
+.profilo-fazione-testo { flex: 1 1 auto; }
+.profilo-fazione-posto {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto; margin-left: auto;
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-panel); color: var(--text); text-decoration: none;
+}
+.profilo-fazione-posto:hover { border-color: var(--border-strong); color: var(--text); text-decoration: none; }
+.profilo-fazione-posto.is-podio { border-color: color-mix(in srgb, #f4c531 40%, var(--border)); }
+.profilo-fazione-posto > .ico { width: 20px; height: 20px; color: var(--gold, #f4c531); }
+.profilo-fazione-posto > span:last-child { display: flex; flex-direction: column; line-height: 1.25; }
+.profilo-fazione-posto strong { font-family: var(--font-heading); font-size: var(--fs-sm); }
+.profilo-fazione-posto small { color: var(--text-dim); font-size: var(--fs-xs); }
+.profilo-fazione-desc { margin: 10px 2px 0; color: var(--text-dim); font-size: var(--fs-sm); font-style: italic; }
+
+/* Numeri della fazione: riquadri piccoli tutti uguali. */
+.profilo-fazione-numeri { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; margin-top: 12px; }
+.profilo-fazione-numeri > div { min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-panel-2); }
+.profilo-fazione-numeri span { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: var(--fs-xs); }
+.profilo-fazione-numeri span .ico { width: 13px; height: 13px; }
+.profilo-fazione-numeri strong { display: block; margin-top: 4px; font-family: var(--font-heading); font-size: var(--fs-md); white-space: nowrap; }
+.profilo-fazione-numeri strong.is-data { font-size: var(--fs-base); }
+.profilo-fazione-numeri strong small { color: var(--text-dim); font-size: var(--fs-xs); font-weight: 600; }
+.profilo-fazione-numeri em { display: block; margin-top: 2px; font-style: normal; font-size: var(--fs-xs); font-weight: 600; }
+.profilo-fazione-numeri em.is-sicura { color: var(--green); }
+.profilo-fazione-numeri em.is-conquistabile { color: #f87171; }
+
+/* Membri: avatar, nome e grado; chi apre la pagina (o il giocatore della scheda) evidenziato. */
+.profilo-membri { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.profilo-membro {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-panel-2); color: var(--text); text-decoration: none;
+}
+a.profilo-membro:hover { border-color: var(--border-strong); color: var(--text); text-decoration: none; }
+.profilo-membro.is-lui { border-color: color-mix(in srgb, var(--purple) 55%, var(--border)); background: color-mix(in srgb, var(--purple) 10%, var(--bg-panel-2)); }
+.profilo-membro img { width: 32px; height: 32px; flex: 0 0 auto; border-radius: 6px; image-rendering: pixelated; background: var(--bg-elevated); }
+.profilo-membro > span { display: flex; flex-direction: column; min-width: 0; }
+.profilo-membro strong { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profilo-membro small { display: flex; align-items: center; gap: 4px; color: var(--text-dim); font-size: var(--fs-xs); }
+.profilo-membro small .ico { width: 12px; height: 12px; color: var(--gold, #f4c531); }
+
+.profilo-alleati { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; font-size: var(--fs-sm); }
+.profilo-alleati > span { display: inline-flex; align-items: center; gap: 6px; margin-right: 4px; color: var(--text-dim); }
+.profilo-alleati em { font-style: normal; padding: 3px 9px; border-radius: 999px; color: #d876e0; background: color-mix(in srgb, #d876e0 12%, transparent); font-weight: 600; }
+
+.profilo-numeri-gioco { margin-top: 12px; }
+.profilo-link-classifica { display: inline-block; margin-top: 16px; font-size: var(--fs-sm); font-weight: 600; }
+
 /* Potenza: numero e barra, come nella guida. */
 .profilo-potenza { margin-top: 18px; }
 .profilo-potenza-riga { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
@@ -1763,6 +1812,12 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
   .profilo-numeri > div { padding: 12px 10px; }
   .profilo-numeri strong { font-size: 20px; }
   .profilo-numeri span { font-size: var(--fs-xs); }
+  .profilo-numeri-gioco { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profilo-fazione { flex-wrap: wrap; }
+  .profilo-fazione-posto { margin-left: 0; width: 100%; }
+  .profilo-membri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profilo-fazione-numeri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profilo-fazione-numeri > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 
 /* ---- "Sul sito ora" (colonna della home) --------------------------------------------- */
@@ -7639,3 +7694,5 @@ table.rank td:first-child { width: 1%; }
   .stats-refresh-punto { margin-top: 5px; flex: 0 0 auto; }
 }
 @media (prefers-reduced-motion: reduce) { .stats-refresh-punto { animation: none; } }
+.profilo-sottotitolo + .profilo-potenza { margin-top: 0; }
+.profilo-sottotitolo .ico { color: var(--purple); }

@@ -70,85 +70,271 @@ function profile_game_panel(int $userId, bool $own): string {
 
 /* ---- Modalità Factions (MagixFactions) ------------------------------------------------- */
 
-/** Fazione, grado nella fazione, potenza e territori (database di MagixFactions, a parte). */
+/**
+ * Tutto quello che il profilo mostra di Factions: le statistiche del giocatore e, se e' in una
+ * fazione, la fazione intera (dati, posizione in classifica, membri, alleati). Null solo se il
+ * database di MagixFactions non risponde; le letture di contorno, se falliscono, lasciano vuota
+ * solo la loro parte.
+ */
 function profile_faction_stats(int $userId): ?array {
+    $fdb = 'factions_magixfactions';
     try {
-        // `rank` fra apici inversi: e' una parola riservata di MariaDB/MySQL (funzione finestra).
         $q = db()->prepare("
-            SELECT p.power, p.max_power, f.name AS faction_name, f.tag AS faction_tag,
-                   fm.`rank` AS faction_rank,
-                   (SELECT COUNT(*) FROM factions_magixfactions.claims c WHERE c.faction_id = f.id) AS territories
+            SELECT u.mc_uuid, p.power, p.max_power, fm.faction_id, fm.`rank` AS faction_rank, fm.joined_at
             FROM users u
-            LEFT JOIN factions_magixfactions.players p ON p.uuid = u.mc_uuid COLLATE utf8mb4_unicode_ci
-            LEFT JOIN factions_magixfactions.faction_members fm ON fm.uuid = u.mc_uuid COLLATE utf8mb4_unicode_ci
-            LEFT JOIN factions_magixfactions.factions f ON f.id = fm.faction_id
+            LEFT JOIN {$fdb}.players p ON p.uuid = u.mc_uuid COLLATE utf8mb4_unicode_ci
+            LEFT JOIN {$fdb}.faction_members fm ON fm.uuid = u.mc_uuid COLLATE utf8mb4_unicode_ci
             WHERE u.id = ?
         ");
         $q->execute([$userId]);
-        return $q->fetch() ?: [];
+        $io = $q->fetch() ?: [];
     } catch (PDOException $e) {
         return null;
     }
+    $dati = ['player' => $io, 'faction' => null, 'members' => [], 'allies' => []];
+
+    // Statistiche personali (colonne aggiunte dal plugin in un secondo tempo: lettura a parte).
+    try {
+        $q = db()->prepare("SELECT kills, deaths, play_seconds FROM {$fdb}.players WHERE uuid = ? COLLATE utf8mb4_unicode_ci");
+        $q->execute([(string) ($io['mc_uuid'] ?? '')]);
+        $dati['player'] += $q->fetch() ?: [];
+    } catch (PDOException $e) {
+        // niente uccisioni e tempo di gioco: si mostra il resto
+    }
+
+    $fid = (int) ($io['faction_id'] ?? 0);
+    if ($fid <= 0) {
+        return $dati;
+    }
+    try {
+        $q = db()->prepare("
+            SELECT f.id, f.name, f.tag, f.description, f.bank, f.created_at, f.score, f.ranked,
+                   (SELECT COUNT(*) FROM {$fdb}.claims c WHERE c.faction_id = f.id) AS claims
+            FROM {$fdb}.factions f WHERE f.id = ?
+        ");
+        $q->execute([$fid]);
+        $dati['faction'] = $q->fetch() ?: null;
+    } catch (PDOException $e) {
+        $dati['faction'] = null;
+    }
+    if (!$dati['faction']) {
+        return $dati;
+    }
+
+    // Posizione in classifica: quante fazioni in classifica hanno un punteggio piu' alto.
+    try {
+        if ((int) $dati['faction']['ranked'] === 1) {
+            $q = db()->prepare("SELECT COUNT(*) FROM {$fdb}.factions WHERE ranked = 1 AND score > ?");
+            $q->execute([(float) $dati['faction']['score']]);
+            $dati['faction']['position'] = (int) $q->fetchColumn() + 1;
+            $dati['faction']['ranked_total'] = (int) db()->query("SELECT COUNT(*) FROM {$fdb}.factions WHERE ranked = 1")->fetchColumn();
+        }
+    } catch (PDOException $e) {
+        // senza posizione: il riquadro della classifica dice solo "vedi la classifica"
+    }
+
+    // Membri, dal grado piu' alto (ordine dei gradi: tabella faction_ranks, specchio del config).
+    try {
+        $ordine = [];
+        foreach (db()->query("SELECT rank_id, ord FROM {$fdb}.faction_ranks")->fetchAll() as $r) {
+            $ordine[strtolower((string) $r['rank_id'])] = (int) $r['ord'];
+        }
+        $q = db()->prepare("
+            SELECT m.uuid, m.`rank`, m.joined_at, p.name, p.power, p.max_power,
+                   u.mc_username AS site_name, u.premium_uuid
+            FROM {$fdb}.faction_members m
+            LEFT JOIN {$fdb}.players p ON p.uuid = m.uuid
+            LEFT JOIN users u ON u.mc_uuid = m.uuid COLLATE utf8mb4_unicode_ci
+            WHERE m.faction_id = ?
+        ");
+        $q->execute([$fid]);
+        $membri = $q->fetchAll();
+        usort($membri, static function ($a, $b) use ($ordine) {
+            $d = ($ordine[strtolower((string) $b['rank'])] ?? 0) <=> ($ordine[strtolower((string) $a['rank'])] ?? 0);
+            return $d !== 0 ? $d : strcasecmp((string) $a['name'], (string) $b['name']);
+        });
+        $dati['members'] = $membri;
+    } catch (PDOException $e) {
+        $dati['members'] = [];
+    }
+
+    // Alleati veri: alleanza dichiarata da entrambe le parti, come in gioco.
+    try {
+        $q = db()->prepare("
+            SELECT fo.name FROM {$fdb}.relations r1
+            JOIN {$fdb}.relations r2 ON r2.faction_id = r1.other_id AND r2.other_id = r1.faction_id AND r2.type = 'ALLY'
+            JOIN {$fdb}.factions fo ON fo.id = r1.other_id
+            WHERE r1.faction_id = ? AND r1.type = 'ALLY'
+            ORDER BY fo.name
+        ");
+        $q->execute([$fid]);
+        $dati['allies'] = $q->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        $dati['allies'] = [];
+    }
+    return $dati;
 }
 
-/** Il nome del grado nella fazione, dallo specchio del config; se manca, l'id con l'iniziale grande. */
-function profile_faction_rank(?array $stats): string {
-    $r = (string) ($stats['faction_rank'] ?? '');
-    if ($r === '') {
+/** Il nome di un grado di fazione, dallo specchio del config; se manca, l'id con l'iniziale grande. */
+function profile_faction_rank(string $rankId): string {
+    if ($rankId === '') {
         return '';
     }
-    $nome = faction_ranks_map()[strtolower($r)]['name'] ?? '';
-    return $nome !== '' ? $nome : ucfirst($r);
+    $nome = faction_ranks_map()[strtolower($rankId)]['name'] ?? '';
+    return $nome !== '' ? $nome : ucfirst($rankId);
 }
 
-/** Fazione (sigla, grado, territori) e potenza con la sua barra. */
-function profile_faction_render(array $stats, bool $own): string {
-    ob_start();
-    ?>
-        <?php if (!empty($stats['faction_name'])): ?>
-          <?php
-            $grado = profile_faction_rank($stats);
-            $territori = (int) ($stats['territories'] ?? 0);
-            $sigla = trim((string) ($stats['faction_tag'] ?? ''));
-          ?>
-          <div class="profilo-fazione">
-            <span class="profilo-fazione-sigla" aria-hidden="true"><?= h($sigla !== '' ? $sigla : mb_substr((string) $stats['faction_name'], 0, 3)) ?></span>
-            <div class="profilo-fazione-testo">
-              <strong><?= h($stats['faction_name']) ?></strong>
-              <small>
-                <?= $grado !== '' ? h($grado) . ' &middot; ' : '' ?>
-                <?= $territori === 1 ? '1 territorio' : $territori . ' territori' ?>
-              </small>
-            </div>
-          </div>
-        <?php else: ?>
-          <div class="profilo-fazione is-vuota">
-            <span class="profilo-fazione-sigla" aria-hidden="true"><?= ui_icon('users') ?></span>
-            <div class="profilo-fazione-testo">
-              <strong><?= $own ? 'Non sei in nessuna fazione' : 'Non è in nessuna fazione' ?></strong>
-              <small><?= $own ? 'Fondane una con <code>/f create</code> o fatti invitare.' : 'Gioca da solo, per ora.' ?></small>
-            </div>
-          </div>
-        <?php endif; ?>
+/** Una data salvata dal plugin in millisecondi, come giorno; vuota se manca. */
+function profile_ms_date($ms): string {
+    $ms = (int) $ms;
+    return $ms > 0 ? date('d/m/Y', intdiv($ms, 1000)) : '';
+}
 
-        <?php if (($stats['power'] ?? null) !== null && (int) $stats['max_power'] > 0): ?>
-          <?php
-            $potenza = (int) $stats['power'];
-            $massima = (int) $stats['max_power'];
-            $quota = max(0, min(100, (int) round($potenza / $massima * 100)));
-          ?>
-          <div class="profilo-potenza<?= $potenza < 0 ? ' is-negativa' : '' ?>">
-            <div class="profilo-potenza-riga">
-              <span><?= ui_icon('zap') ?> Potenza</span>
-              <strong><?= $potenza ?> <span>/ <?= $massima ?></span></strong>
-            </div>
-            <div class="profilo-potenza-barra" role="img" aria-label="Potenza <?= $potenza ?> su <?= $massima ?>">
-              <i style="width: <?= $quota ?>%"></i>
-            </div>
-          </div>
-        <?php else: ?>
-          <p class="profilo-vuoto"><?= $own ? 'Entra su <strong>mc.magicadventure.it</strong> per vedere qui la tua potenza.' : 'Non è ancora entrato in Factions.' ?></p>
+/** Secondi di gioco in forma leggibile: "3g 4h", "5h 12m", "42m". */
+function profile_playtime(int $seconds): string {
+    if ($seconds <= 0) {
+        return '—';
+    }
+    $g = intdiv($seconds, 86400);
+    $o = intdiv($seconds % 86400, 3600);
+    $m = intdiv($seconds % 3600, 60);
+    if ($g > 0) return $o > 0 ? "{$g}g {$o}h" : "{$g}g";
+    if ($o > 0) return $m > 0 ? "{$o}h {$m}m" : "{$o}h";
+    return "{$m}m";
+}
+
+/**
+ * La scheda Factions: la fazione (posizione in classifica, territori, potenza e se e' conquistabile,
+ * banca, fondazione, membri con avatar, alleati) e sotto le statistiche personali.
+ */
+function profile_faction_render(array $dati, bool $own): string {
+    $io = $dati['player'] ?? [];
+    $f = $dati['faction'] ?? null;
+    $membri = $dati['members'] ?? [];
+    $mioUuid = strtolower(str_replace('-', '', (string) ($io['mc_uuid'] ?? '')));
+    ob_start();
+    if ($f):
+        $sigla = trim((string) ($f['tag'] ?? ''));
+        if ($sigla === '' || mb_strlen($sigla) > 5) $sigla = mb_substr((string) $f['name'], 0, 3);
+        $territori = (int) $f['claims'];
+        $potenza = 0; $potenzaMax = 0;
+        foreach ($membri as $m) { $potenza += (int) $m['power']; $potenzaMax += (int) $m['max_power']; }
+        $grado = profile_faction_rank((string) ($io['faction_rank'] ?? ''));
+        $dentroDal = profile_ms_date($io['joined_at'] ?? 0);
+        $pos = (int) ($f['position'] ?? 0);
+        $desc = trim((string) ($f['description'] ?? ''));
+    ?>
+      <div class="profilo-fazione">
+        <span class="profilo-fazione-sigla" aria-hidden="true"><?= h($sigla) ?></span>
+        <div class="profilo-fazione-testo">
+          <strong><?= h($f['name']) ?></strong>
+          <small>
+            <?= h($grado !== '' ? $grado : 'Membro') ?><?= $dentroDal !== '' ? ' &middot; dentro dal ' . h($dentroDal) : '' ?>
+          </small>
+        </div>
+        <a class="profilo-fazione-posto<?= $pos >= 1 && $pos <= 3 ? ' is-podio' : '' ?>" href="/classifiche" title="Apri la classifica delle fazioni">
+          <?php if ($pos > 0): ?>
+            <span class="pos<?= $pos <= 3 ? ' pos-medaglia pos-' . $pos : '' ?>"><?= $pos ?></span>
+            <span><strong><?= $pos ?>&ordm; posto</strong><small>su <?= (int) ($f['ranked_total'] ?? $pos) ?> in classifica</small></span>
+          <?php elseif ((int) $f['ranked'] !== 1): ?>
+            <?= ui_icon('trophy') ?><span><strong>Fuori classifica</strong><small>vedi la classifica</small></span>
+          <?php else: ?>
+            <?= ui_icon('trophy') ?><span><strong>Classifica</strong><small>vedi le posizioni</small></span>
+          <?php endif; ?>
+        </a>
+      </div>
+      <?php if ($desc !== ''): ?>
+        <p class="profilo-fazione-desc">&ldquo;<?= h($desc) ?>&rdquo;</p>
+      <?php endif; ?>
+
+      <div class="profilo-fazione-numeri">
+        <div><span><?= ui_icon('map') ?> Territori</span><strong><?= $territori ?></strong></div>
+        <div>
+          <span><?= ui_icon('zap') ?> Potenza</span>
+          <strong><?= $potenza ?> <small>/ <?= $potenzaMax ?></small></strong>
+          <?php if ($territori > 0): ?>
+            <em class="<?= $potenza >= $territori ? 'is-sicura' : 'is-conquistabile' ?>"><?= $potenza >= $territori ? 'Al sicuro' : 'Conquistabile' ?></em>
+          <?php endif; ?>
+        </div>
+        <div><span><?= ui_icon('users') ?> Membri</span><strong><?= count($membri) ?></strong></div>
+        <div><span><?= ui_icon('coins') ?> Banca</span><strong><?= h(number_format((float) $f['bank'], 0, ',', '.')) ?></strong></div>
+        <?php if (profile_ms_date($f['created_at'] ?? 0) !== ''): ?>
+          <div><span><?= ui_icon('hourglass') ?> Fondata</span><strong class="is-data"><?= h(profile_ms_date($f['created_at'])) ?></strong></div>
         <?php endif; ?>
+      </div>
+
+      <?php if ($membri): ?>
+        <h3 class="profilo-sottotitolo"><?= ui_icon('users') ?> Membri</h3>
+        <div class="profilo-membri">
+          <?php foreach ($membri as $m): ?>
+            <?php
+              $nome = (string) ($m['name'] ?? '');
+              if ($nome === '') continue;
+              $eLui = strtolower(str_replace('-', '', (string) $m['uuid'])) === $mioUuid;
+              $gradoM = profile_faction_rank((string) $m['rank']);
+              $capo = strtolower((string) $m['rank']) === 'leader';
+              $tag = !empty($m['site_name']) ? 'a' : 'span';
+              $href = !empty($m['site_name']) ? ' href="/utente?nome=' . h(rawurlencode((string) $m['site_name'])) . '"' : '';
+            ?>
+            <<?= $tag ?> class="profilo-membro<?= $eLui ? ' is-lui' : '' ?>"<?= $href ?> title="<?= h($nome) ?> · Potenza <?= (int) $m['power'] ?>">
+              <img src="<?= h(mc_avatar_url((string) $m['uuid'], 64, $m['premium_uuid'] ?? null)) ?>" alt="" width="32" height="32" loading="lazy">
+              <span>
+                <strong><?= h($nome) ?></strong>
+                <small><?= $capo ? ui_icon('crown') . ' ' : '' ?><?= h($gradoM) ?></small>
+              </span>
+            </<?= $tag ?>>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <?php if (!empty($dati['allies'])): ?>
+        <p class="profilo-alleati"><span><?= ui_icon('shield-check') ?> Alleati</span>
+          <?php foreach ($dati['allies'] as $alleato): ?><em><?= h($alleato) ?></em><?php endforeach; ?>
+        </p>
+      <?php endif; ?>
+    <?php else: ?>
+      <div class="profilo-fazione is-vuota">
+        <span class="profilo-fazione-sigla" aria-hidden="true"><?= ui_icon('users') ?></span>
+        <div class="profilo-fazione-testo">
+          <strong><?= $own ? 'Non sei in nessuna fazione' : 'Non è in nessuna fazione' ?></strong>
+          <small><?= $own ? 'Fondane una con <code>/f create</code> o fatti invitare.' : 'Gioca da solo, per ora.' ?></small>
+        </div>
+        <a class="profilo-fazione-posto" href="/classifiche"><?= ui_icon('trophy') ?><span><strong>Classifica</strong><small>le fazioni più forti</small></span></a>
+      </div>
+    <?php endif; ?>
+
+    <h3 class="profilo-sottotitolo"><?= ui_icon('user') ?> <?= $own ? 'Le tue statistiche' : 'Statistiche personali' ?></h3>
+    <?php if (($io['power'] ?? null) !== null && (int) $io['max_power'] > 0): ?>
+      <?php
+        $p = (int) $io['power'];
+        $pm = (int) $io['max_power'];
+        $quota = max(0, min(100, (int) round($p / $pm * 100)));
+      ?>
+      <div class="profilo-potenza<?= $p < 0 ? ' is-negativa' : '' ?>">
+        <div class="profilo-potenza-riga">
+          <span><?= ui_icon('zap') ?> Potenza</span>
+          <strong><?= $p ?> <span>/ <?= $pm ?></span></strong>
+        </div>
+        <div class="profilo-potenza-barra" role="img" aria-label="Potenza <?= $p ?> su <?= $pm ?>">
+          <i style="width: <?= $quota ?>%"></i>
+        </div>
+      </div>
+      <?php
+        $uccisioni = (int) ($io['kills'] ?? 0);
+        $morti = (int) ($io['deaths'] ?? 0);
+        $kd = $morti > 0 ? $uccisioni / $morti : $uccisioni;
+      ?>
+      <div class="profilo-numeri profilo-numeri-gioco">
+        <div><strong><?= $uccisioni ?></strong><span>Uccisioni</span></div>
+        <div><strong><?= $morti ?></strong><span>Morti</span></div>
+        <div><strong><?= h(number_format($kd, 2, ',', '.')) ?></strong><span>K/D</span></div>
+        <div><strong><?= h(profile_playtime((int) ($io['play_seconds'] ?? 0))) ?></strong><span>Tempo di gioco</span></div>
+      </div>
+    <?php else: ?>
+      <p class="profilo-vuoto"><?= $own ? 'Entra su <strong>mc.magicadventure.it</strong> per vedere qui le tue statistiche.' : 'Non è ancora entrato in Factions.' ?></p>
+    <?php endif; ?>
+
+    <a class="profilo-link-classifica" href="/classifiche">Vedi le classifiche di Factions &rarr;</a>
     <?php
     return (string) ob_get_clean();
 }
