@@ -243,18 +243,27 @@ function profile_faction_render(array $dati, bool $own): string {
             <p class="profilo-fazione-desc">&ldquo;<?= h($desc) ?>&rdquo;</p>
           <?php endif; ?>
         </div>
-        <a class="profilo-fazione-posto<?= $pos > 0 ? ' ha-medaglia' : '' ?>" href="/classifiche" title="Apri la classifica delle fazioni">
-          <?php if ($pos > 0): ?>
-            <span class="posto-testo"><strong><?= $pos ?>&ordm; posto</strong><small>su <?= (int) ($f['ranked_total'] ?? $pos) ?> in classifica</small><em class="posto-vai"><span class="lungo">Vai alle classifiche</span><span class="corto">Classifiche</span> &rarr;</em></span>
+        <?php if ($pos > 0): ?>
+          <?php /* La medaglia e' solo da guardare: l'unico punto cliccabile e' il piccolo link. */ ?>
+          <div class="profilo-fazione-posto ha-medaglia">
+            <span class="posto-testo">
+              <strong><?= $pos ?>&ordm; posto</strong>
+              <small>su <?= (int) ($f['ranked_total'] ?? $pos) ?> in classifica</small>
+              <a class="posto-vai" href="/classifiche" title="Apri la classifica delle fazioni"><span class="lungo">Vai alle classifiche</span><span class="corto">Classifiche</span> &rarr;</a>
+            </span>
             <span class="medaglia medaglia-<?= $pos <= 3 ? $pos : 'altro' ?>" aria-hidden="true">
               <i class="medaglia-nastro"></i><b class="medaglia-disco"><span><?= $pos ?></span></b>
             </span>
-          <?php elseif ((int) $f['ranked'] !== 1): ?>
-            <?= ui_icon('trophy') ?><span class="posto-testo"><strong>Fuori classifica</strong><small>vedi la classifica</small></span>
-          <?php else: ?>
-            <?= ui_icon('trophy') ?><span class="posto-testo"><strong>Classifica</strong><small>vedi le posizioni</small></span>
-          <?php endif; ?>
-        </a>
+          </div>
+        <?php else: ?>
+          <a class="profilo-fazione-posto" href="/classifiche" title="Apri la classifica delle fazioni">
+            <?php if ((int) $f['ranked'] !== 1): ?>
+              <?= ui_icon('trophy') ?><span class="posto-testo"><strong>Fuori classifica</strong><small>vedi la classifica</small></span>
+            <?php else: ?>
+              <?= ui_icon('trophy') ?><span class="posto-testo"><strong>Classifica</strong><small>vedi le posizioni</small></span>
+            <?php endif; ?>
+          </a>
+        <?php endif; ?>
       </div>
 
       <div class="profilo-fazione-numeri">
