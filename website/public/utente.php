@@ -46,8 +46,6 @@ $page_title = $utente['mc_username'];
 $page_description = 'Scheda di ' . $utente['mc_username'] . ' su MAGICADVENTURE: gradi, fazione e attivita\'.';
 $active = 'utenti';
 
-// Dati di gioco (MagixFactions): se quel database non risponde la scheda si apre lo stesso.
-$stats = profile_game_stats((int) $utente['id']);
 
 $conta = function (string $sql, int $id): int {
     try {
@@ -123,7 +121,7 @@ require __DIR__ . '/../includes/header.php';
   </aside>
 
   <div class="profilo-colonna">
-    <?= profile_game_panel($stats, false) ?>
+    <?= profile_game_panel((int) $utente['id'], false) ?>
     <?php
       // Quanti acquisti, non quanto ha speso: la cifra e' un fatto suo. Si conta solo se c'e'.
       $numeri = ['Discussioni' => $nTopics, 'Risposte' => $nRisposte, 'Mi piace ricevuti' => $nMiPiace];

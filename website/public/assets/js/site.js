@@ -494,3 +494,29 @@ document.querySelectorAll('.scorri-trascinando').forEach(function (box) {
   }
   if (copiaBtn) copiaBtn.addEventListener('click', function () { clone(copiaBtn); });
 })();
+
+/* Profilo del giocatore: le schede delle modalità di gioco (Factions, e quelle che verranno). Le
+   statistiche di tutte le modalità sono già nella pagina, qui si sceglie solo quale si vede.
+   Frecce sinistra/destra per spostarsi da tastiera, come in ogni fila di schede. */
+document.querySelectorAll('[data-profilo-schede]').forEach(function (blocco) {
+  var schede = Array.prototype.slice.call(blocco.querySelectorAll('[role="tab"]'));
+  function selectTab(scheda) {
+    schede.forEach(function (s) {
+      var on = s === scheda;
+      s.setAttribute('aria-selected', on ? 'true' : 'false');
+      s.tabIndex = on ? 0 : -1;
+      var pannello = document.getElementById(s.getAttribute('aria-controls'));
+      if (pannello) pannello.hidden = !on;
+    });
+  }
+  schede.forEach(function (s, i) {
+    s.addEventListener('click', function () { selectTab(s); });
+    s.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      var dopo = schede[(i + (e.key === 'ArrowRight' ? 1 : schede.length - 1)) % schede.length];
+      selectTab(dopo);
+      dopo.focus();
+    });
+  });
+});

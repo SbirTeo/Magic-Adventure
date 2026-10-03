@@ -2,15 +2,76 @@
 /**
  * Pezzi comuni delle due pagine del giocatore: il profilo personale (/profilo) e la scheda
  * pubblica (/utente?nome=...). Stessa impaginazione: a sinistra la "carta" (skin, nome, gradi,
- * date), a destra i blocchi "In gioco" e "Sul sito". Qui stanno la lettura dei dati di gioco e
- * il disegno di quei blocchi, cosi' le due pagine non si allontanano piu' l'una dall'altra.
+ * date), a destra i blocchi "In gioco" (una scheda per modalità) e "Sul sito". Qui stanno la
+ * lettura dei dati di gioco e il disegno di quei blocchi, cosi' le due pagine non si
+ * allontanano piu' l'una dall'altra.
  */
 
 /**
- * Fazione, grado nella fazione, potenza e territori (database di MagixFactions, a parte).
- * Null se quel database non risponde: la pagina si apre lo stesso, con un avviso al posto dei dati.
+ * Le modalita' di gioco che hanno statistiche da mostrare nel profilo, nell'ordine delle schede.
+ *
+ * Ogni modalita' porta due funzioni sue: `stats` legge i dati del giocatore dal database di quella
+ * modalita' (null se il database non risponde: la scheda lo dice e la pagina si apre lo stesso), e
+ * `render` li disegna. Una modalita' nuova si aggiunge QUI, con le sue due funzioni piu' sotto:
+ * le pagine /profilo e /utente non vanno toccate, e con due o piu' voci compaiono da sole le
+ * schede per passare dall'una all'altra. La chiave e' la stessa di GAME_SERVERS (helpers.php).
+ * L'hub non c'e': e' una sala d'ingresso, non ha statistiche.
  */
-function profile_game_stats(int $userId): ?array {
+const PROFILE_GAME_MODES = [
+    'faction' => [
+        'label'  => 'Factions',
+        'icon'   => 'swords',
+        'stats'  => 'profile_faction_stats',
+        'render' => 'profile_faction_render',
+    ],
+];
+
+/**
+ * Blocco "In gioco": una scheda per ogni modalita' di PROFILE_GAME_MODES. Con una modalita' sola
+ * il nome sta accanto al titolo; con piu' modalita' diventa una fila di schede (site.js).
+ * $own cambia solo le parole ("Non sei in nessuna fazione" / "Non è in nessuna fazione").
+ */
+function profile_game_panel(int $userId, bool $own): string {
+    $modi = PROFILE_GAME_MODES;
+    $molte = count($modi) > 1;
+    ob_start();
+    ?>
+    <section class="panel profilo-blocco profilo-modalita" aria-labelledby="profiloInGioco"<?= $molte ? ' data-profilo-schede' : '' ?>>
+      <div class="profilo-blocco-testa">
+        <h2 class="profilo-blocco-titolo" id="profiloInGioco"><?= ui_icon('gamepad') ?> In gioco</h2>
+        <?php if ($molte): ?>
+          <div class="profilo-schede" role="tablist" aria-label="Modalità">
+            <?php $primo = true; foreach ($modi as $id => $modo): ?>
+              <button type="button" role="tab" id="profiloScheda-<?= h($id) ?>" aria-controls="profiloModo-<?= h($id) ?>"
+                      aria-selected="<?= $primo ? 'true' : 'false' ?>"<?= $primo ? '' : ' tabindex="-1"' ?>>
+                <?= ui_icon($modo['icon']) ?><?= h($modo['label']) ?>
+              </button>
+            <?php $primo = false; endforeach; ?>
+          </div>
+        <?php else: ?>
+          <?php $solo = reset($modi); ?>
+          <span class="profilo-modalita-nome"><?= ui_icon($solo['icon']) ?><?= h($solo['label']) ?></span>
+        <?php endif; ?>
+      </div>
+      <?php $primo = true; foreach ($modi as $id => $modo): ?>
+        <?php $dati = is_callable($modo['stats']) ? $modo['stats']($userId) : null; ?>
+        <div class="profilo-modo" id="profiloModo-<?= h($id) ?>"<?= $molte ? ' role="tabpanel" aria-labelledby="profiloScheda-' . h($id) . '"' : '' ?><?= $primo ? '' : ' hidden' ?>>
+          <?php if ($dati === null || !is_callable($modo['render'])): ?>
+            <p class="profilo-vuoto">I dati di <?= h($modo['label']) ?> non sono raggiungibili in questo momento: riprova fra poco.</p>
+          <?php else: ?>
+            <?= $modo['render']($dati, $own) ?>
+          <?php endif; ?>
+        </div>
+      <?php $primo = false; endforeach; ?>
+    </section>
+    <?php
+    return (string) ob_get_clean();
+}
+
+/* ---- Modalità Factions (MagixFactions) ------------------------------------------------- */
+
+/** Fazione, grado nella fazione, potenza e territori (database di MagixFactions, a parte). */
+function profile_faction_stats(int $userId): ?array {
     try {
         // `rank` fra apici inversi: e' una parola riservata di MariaDB/MySQL (funzione finestra).
         $q = db()->prepare("
@@ -24,7 +85,7 @@ function profile_game_stats(int $userId): ?array {
             WHERE u.id = ?
         ");
         $q->execute([$userId]);
-        return $q->fetch() ?: null;
+        return $q->fetch() ?: [];
     } catch (PDOException $e) {
         return null;
     }
@@ -40,18 +101,10 @@ function profile_faction_rank(?array $stats): string {
     return $nome !== '' ? $nome : ucfirst($r);
 }
 
-/**
- * Blocco "In gioco": fazione (con sigla, grado e territori) e potenza con la sua barra.
- * $own cambia solo le parole ("Non sei in nessuna fazione" / "Non è in nessuna fazione").
- */
-function profile_game_panel(?array $stats, bool $own): string {
+/** Fazione (sigla, grado, territori) e potenza con la sua barra. */
+function profile_faction_render(array $stats, bool $own): string {
     ob_start();
     ?>
-    <section class="panel profilo-blocco" aria-labelledby="profiloInGioco">
-      <h2 class="profilo-blocco-titolo" id="profiloInGioco"><?= ui_icon('swords') ?> In gioco</h2>
-      <?php if ($stats === null): ?>
-        <p class="profilo-vuoto">I dati di gioco non sono raggiungibili in questo momento: riprova fra poco.</p>
-      <?php else: ?>
         <?php if (!empty($stats['faction_name'])): ?>
           <?php
             $grado = profile_faction_rank($stats);
@@ -78,7 +131,7 @@ function profile_game_panel(?array $stats, bool $own): string {
           </div>
         <?php endif; ?>
 
-        <?php if ($stats['power'] !== null && (int) $stats['max_power'] > 0): ?>
+        <?php if (($stats['power'] ?? null) !== null && (int) $stats['max_power'] > 0): ?>
           <?php
             $potenza = (int) $stats['power'];
             $massima = (int) $stats['max_power'];
@@ -94,10 +147,8 @@ function profile_game_panel(?array $stats, bool $own): string {
             </div>
           </div>
         <?php else: ?>
-          <p class="profilo-vuoto"><?= $own ? 'Entra su <strong>mc.magicadventure.it</strong> per vedere qui la tua potenza.' : 'Non è ancora entrato in gioco.' ?></p>
+          <p class="profilo-vuoto"><?= $own ? 'Entra su <strong>mc.magicadventure.it</strong> per vedere qui la tua potenza.' : 'Non è ancora entrato in Factions.' ?></p>
         <?php endif; ?>
-      <?php endif; ?>
-    </section>
     <?php
     return (string) ob_get_clean();
 }

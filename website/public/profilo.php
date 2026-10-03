@@ -63,8 +63,6 @@ if (($_GET['otp'] ?? '') === 'recupero') {
             . "Se hai cambiato telefono, azzera e riconfigura la verifica qui sotto.";
 }
 
-// Dati di gioco (MagixFactions, database a parte): null se non risponde, e il profilo si apre lo stesso.
-$stats = profile_game_stats((int) $me['id']);
 
 // Attivita' sul sito
 $topics = db()->prepare('SELECT COUNT(*) FROM forum_topics WHERE user_id = ?');
@@ -188,7 +186,7 @@ require __DIR__ . '/../includes/header.php';
   </aside>
 
   <div class="profilo-colonna">
-    <?= profile_game_panel($stats, true) ?>
+    <?= profile_game_panel((int) $me['id'], true) ?>
     <?php
       // Gli acquisti (con le cifre) li vede solo il proprietario: stanno qui, nel blocco del sito.
       ob_start();
