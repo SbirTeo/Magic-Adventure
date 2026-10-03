@@ -1,0 +1,51 @@
+# Le TUE correzioni per la lingua "de": una chiave messa qui vince sempre sulla traduzione automatica in de.yml (nella stessa cartella), e questo file non viene MAI toccato dalla sincronizzazione.
+# Sorgente nel repo: plugins-src/MagixLanguage/overrides-vps/translations/MagixFactions/ (si cambia lì e si porta sul VPS con deploy-plugin-override.yml).
+# /f info, /f top, canali della chat e allerta di conquista in tedesco, scritti a mano. ATTENZIONE: se cambia il testo italiano di una di queste chiavi in messages.yml, va aggiornata anche qui (vince sempre questa).
+
+"chat":
+  "channel-public": "&fÖFFENTLICH"
+  "channel-faction": "&aFRAKTION"
+  "channel-ally": "&bVERBÜNDETE"
+"claim":
+  "overclaim-alert-title": "&4&l⚔ GEBIET EROBERT ⚔"
+  "overclaim-alert-subtitle": "&e{attacker} &7hat &c{victim} &7ein Gebiet entrissen (&f{x}, {z}&7)"
+"info":
+  "not-found": "&cFraktion nicht gefunden / du bist in keiner Fraktion."
+  "name": "&6Fraktion: {relcolor}{name}"
+  "description": "&6Beschreibung: &f{desc}"
+  "members": "&6Mitglieder: &f{count}&7/&f{max}"
+  "status": "&6Status: {statuscolor}{claims}/{power}/{maxpower} &7(Gebiete/Macht/max. Macht)"
+  "bank": "&6Bank: &e{bank}"
+  "score": "&6Punkte: &b{score} &7(#{pos} in der Rangliste)"
+  "score-unranked": "&6Punkte: &b{score} &7(nicht in der Rangliste - inaktiv)"
+  "inactive": "&c⚠ Inaktive Fraktion: alle Mitglieder sind seit über {days} Tagen abwesend. Nicht in der Rangliste, bis jemand zurückkommt."
+  "status-weak": "&cDiese Fraktion ist schwach: du kannst sie erobern."
+  "status-strong": "&aDiese Fraktion ist stark: du kannst sie nicht erobern."
+  "status-none": "&fDiese Fraktion hat noch kein Gebiet."
+  "status-weak-self": "&cDeine Fraktion ist schwach: sie kann erobert werden."
+  "status-strong-self": "&aDeine Fraktion ist stark: sie kann nicht erobert werden."
+  "status-none-self": "&fDeine Fraktion hat noch kein Gebiet."
+  "status-placeholder-safe": "&aDie Fraktion ist sicher"
+  "status-placeholder-unsafe": "&cDie Fraktion ist nicht sicher"
+  "allies-label": "&6Verbündete: "
+  "allies-none": "&7keine"
+  "allies-pending": "&e{name} &7(ausstehend)"
+  "allies-hover-in": "&e{name}&7 hat dir eine Bündnisanfrage geschickt.\n&eMöchtest du annehmen? &8(klicken)"
+  "allies-hover-out": "&e{name}&7 hat deine Bündnisanfrage noch nicht angenommen.\n&eMöchtest du die Anfrage zurückziehen? &8(klicken)"
+  "your-relation": "&6Eure Beziehung: {relation}"
+"relation":
+  "none": "&7keine"
+  "name-ally": "&dVerbündet"
+  "name-enemy": "&cFeindlich"
+"top":
+  "empty": "&7Es gibt noch keine Fraktion für die Rangliste."
+  "header": "&8&m---&r &6Fraktions-Rangliste &7({count}) &8&m---"
+  "entry-own": "  &e#{pos} &r{relcolor}{name} &8- &b{score} &7(du)"
+  "site": "  &8&m---&r &7Vollständige Rangliste: &bmagicadventure.it/classifiche"
+"score-tooltip":
+  "header": "&bSo werden die Punkte berechnet"
+  "intro": "&7In jeder Kategorie ist die beste Fraktion das Maximum wert; du bekommst deinen Prozentsatz davon. Die Punkte sind die Summe der Kategorien."
+  "line": "&7{label} &8(&f{value}&8) &7{best} &8· &7{pct} des Besten &8· &f{points}&7/{max}"
+  "best": "&7Beste: &f{best} &8(&7{bestval}&8)"
+  "best-self": "&a★ du bist die Beste"
+  "total": "&7Gesamt: &f{score}&7/{max}"

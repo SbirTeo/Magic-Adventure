@@ -33,6 +33,16 @@ const UI_ICONS = [
     'palette'   => '<path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-.6-.4-1-.4-1.6 0-.8.7-1.4 1.5-1.4H17a4 4 0 0 0 4-4c0-5-4-8.5-9-8.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="14.5" cy="7" r="1"/>',
     'message'   => '<path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/>',
     'cart'      => '<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.5 12h11l2-8H6"/>',
+    'search'    => '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    'menu'      => '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    'x'         => '<path d="M18 6L6 18M6 6l12 12"/>',
+    'home'      => '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+    'users'     => '<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 8M22 21a7 7 0 0 0-5-6.7"/>',
+    'gavel'     => '<path d="M14 4l6 6M12 6l6 6M4 20l8-8M10 8l6 6-2 2-6-6z"/>',
+    'bag'       => '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+    'settings'  => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    'logout'    => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+    'chart'     => '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
     'image'     => '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/>',
     'mic'       => '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8"/>',
     'mic-off'   => '<path d="M2 2l20 20M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 5.1 2.1M19 10v1a7 7 0 0 1-1.1 3.8M5 10v1a7 7 0 0 0 11.3 5.5M12 18v4M8 22h8"/>',
@@ -49,4 +59,30 @@ function ui_icon(string $name, string $class = ''): string {
     }
     $classi = 'ico' . ($class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES) : '');
     return '<svg class="' . $classi . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' . $disegno . '</svg>';
+}
+
+/**
+ * L'icona di una voce della barra, riconosciuta dall'indirizzo (le voci stanno in nav_items e si
+ * cambiano dal gestionale: una pagina nuova senza icona sua prende un segnaposto neutro, cosi' il
+ * menu da telefono resta in colonna).
+ */
+function nav_item_icon(string $url): string {
+    $percorso = strtolower(rtrim((string) parse_url($url, PHP_URL_PATH), '/'));
+    $percorso = preg_replace('/\.php$/', '', $percorso);
+    $mappa = [
+        ''             => 'home',
+        '/index'       => 'home',
+        '/forum'       => 'message',
+        '/classifiche' => 'trophy',
+        '/tutorial'    => 'book',
+        '/guida'       => 'book',
+        '/utenti'      => 'users',
+        '/sanzioni'    => 'gavel',
+        '/store'       => 'bag',
+        '/mappa'       => 'map',
+        '/blog'        => 'scroll',
+        '/regolamento' => 'scroll',
+        '/staff'       => 'shield',
+    ];
+    return $mappa[$percorso] ?? 'pin';
 }

@@ -518,99 +518,168 @@ a.who-link {
      sotto): e' lui che, girando in una X, fa anche da tasto per richiuderlo. */
   .nav-toggle { display: flex; position: relative; z-index: 60; }
 
-  /* Il menu ad hamburger copre tutto lo schermo invece di una tendina stretta sotto la
-     barra: c'era spazio SOLO per un elenco in colonna, che con tante voci iniziava a essere
-     fitto e spento. Scorre da sinistra con
-     un'animazione, e le voci sono una griglia di riquadri invece di righe una sotto l'altra. */
+  /* Il menu da telefono e' un pannello che entra da sinistra (dal lato del pulsante) e copre
+     meta' abbondante dello schermo: a destra resta un velo scuro sulla pagina, che lo chiude
+     al tocco. Le voci sono un elenco con icona, come nelle app: si leggono d'un colpo e la
+     pagina in cui si e' si riconosce dal viola. In fondo l'IP da copiare e l'account. */
   .nav-collapse {
     display: flex;
     flex-direction: column;
     position: fixed;
-    inset: 0;
+    inset: 0 auto 0 0;
+    width: min(330px, 86vw);
     z-index: 50;
     background:
-      radial-gradient(circle at 12% 0%, rgba(192, 79, 240, .22), transparent 45%),
-      radial-gradient(circle at 100% 18%, rgba(163, 230, 53, .14), transparent 42%),
+      radial-gradient(circle at 0% 0%, rgba(192, 79, 240, .16), transparent 55%),
       var(--bg-panel);
-    padding: 84px 20px 28px;
-    border-bottom: none;
-    box-shadow: none;
+    border-right: 1px solid var(--border);
+    box-shadow: 24px 0 60px -20px rgba(0, 0, 0, .6);
+    padding: 0 14px calc(18px + env(safe-area-inset-bottom));
     overflow-y: auto;
+    overscroll-behavior: contain;
     align-items: stretch;
     gap: 0;
     visibility: hidden;
-    opacity: 0;
-    transform: translateX(-100%);
-    transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease, visibility 0s linear .38s;
+    transform: translateX(-102%);
+    transition: transform .34s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .34s;
   }
   .nav-collapse.open {
     visibility: visible;
-    opacity: 1;
     transform: translateX(0);
-    transition: transform .38s cubic-bezier(.22, 1, .36, 1), opacity .28s ease;
+    transition: transform .34s cubic-bezier(.22, 1, .36, 1);
   }
+  .nav-velo {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    background: rgba(0, 0, 0, .55);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s ease, visibility 0s linear .3s;
+  }
+  body.menu-aperto .nav-velo { opacity: 1; visibility: visible; transition: opacity .3s ease; }
 
-  /* Griglia a due colonne, riquadri tutti uguali e piu' bassi (erano 68px, con molto vuoto
-     sotto); lo Store e "Gestione" occupano la riga intera, stessa altezza fra loro. Niente
-     logo in cima: c'e' gia' nella pagina, e spingeva tutte le voci in basso. */
-  .main-nav {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+  /* Testa: logo e nome sulla stessa riga della X (che sta sopra al pannello, a sinistra). */
+  .nav-pannello-testa {
+    display: flex;
+    align-items: center;
     gap: 10px;
+    min-height: var(--h-testata, 64px);
+    padding-left: 48px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: var(--fs-sm);
+    letter-spacing: .04em;
+    text-decoration: none;
+  }
+  .nav-pannello-testa img { width: 30px; height: 30px; border-radius: var(--radius-xs); object-fit: cover; }
+  .nav-pannello-testa:hover { color: var(--text); text-decoration: none; }
+
+  .main-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
     flex: none;
   }
-  .main-nav a.nav-logo { display: none; }
   .main-nav a {
     display: flex;
     align-items: center;
-    justify-content: center;
-    text-align: center;
-    min-height: 56px;
-    border-radius: var(--radius);
+    gap: 14px;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
     font-family: var(--font-heading);
     font-weight: 600;
     font-size: var(--fs-base);
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
   }
-  /* Lo Store (.btn-gold) tiene il SUO oro: qui si tocca solo misura/posizione, mai i
-     colori, altrimenti sparisce il motivo per cui e' colorato diverso da tutti gli altri. */
-  .main-nav a:not(.btn-nav) {
-    padding: 12px 10px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
+  .main-nav a:not(.btn-nav) { border: 0; background: transparent; color: var(--text-dim); }
+  /* Dopo le due regole sopra, se no il logo della barra ricompare in mezzo alle voci. */
+  .main-nav a.nav-logo:not(.btn-nav) { display: none; }
+  .main-nav .nav-ico { display: block; width: 20px; height: 20px; flex: 0 0 20px; color: var(--text-dimmer); }
+  .main-nav a:not(.btn-nav):hover { color: var(--text); background: var(--bg-panel-2); }
+  .main-nav a:not(.btn-nav):active { background: var(--bg-elevated); }
+  .main-nav a.active:not(.btn-nav) {
+    color: var(--text);
+    background: color-mix(in srgb, var(--purple) 16%, transparent);
+    box-shadow: inset 3px 0 0 var(--purple);
   }
-  .main-nav a.active:not(.btn-nav) { border-color: var(--purple); color: var(--text); }
-  .main-nav a:active { transform: scale(.95); }
-  /* Stesso testo delle altre voci: come pulsante (.btn) avrebbe la grandezza dei pulsanti,
-     13px, e nel menu sembrava scritto diverso. */
-  .main-nav .btn-nav {
-    grid-column: 1 / -1;
-    margin: 0;
-    min-height: 56px;
+  .main-nav a.active:not(.btn-nav) .nav-ico { color: var(--purple); }
+  /* Il Negozio resta oro, ma alto come le altre voci: e' una voce del menu, non un cartellone. */
+  .main-nav a.btn-nav {
+    margin: 8px 0 0;
+    min-height: 48px;
+    justify-content: flex-start;
+    padding: 0 12px;
     font-size: var(--fs-base);
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0;
+    box-shadow: none;
   }
-  /* Ultima voce, a tutta larghezza: e' il pulsante dello staff, non una pagina del sito. */
-  .main-nav a.nav-gestione { display: flex; grid-column: 1 / -1; min-height: 56px; border-style: dashed; }
+  .main-nav a.btn-nav .nav-ico { color: currentColor; }
+  .main-nav a.btn-nav.has-border-anim::before { display: none; }
+  /* "Gestione": strumento dello staff, separato dalle pagine del sito. */
+  .main-nav a.nav-gestione { display: flex; margin-top: 8px; border-top: 1px solid var(--border); border-radius: 0; padding-top: 4px; }
 
-  /* Le voci compaiono una dopo l'altra invece che tutte insieme: e' quel poco di movimento
-     che fa sentire il menu vivo invece che un pannello che si accende di colpo. */
+  /* Piede: IP e account, spinti in fondo al pannello. */
+  .nav-pannello-piede {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 18px;
+  }
+  .nav-pannello-ip.ip-copy { width: 100%; max-width: none; justify-content: center; }
+  .nav-pannello-account {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
+  }
+  .nav-pannello-chi { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; color: var(--text); text-decoration: none; }
+  .nav-pannello-chi:hover { color: var(--text); text-decoration: none; }
+  .nav-pannello-chi img { width: 32px; height: 32px; border-radius: var(--radius-xs); image-rendering: pixelated; }
+  .nav-pannello-chi span { display: flex; flex-direction: column; min-width: 0; }
+  .nav-pannello-chi strong { font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-pannello-chi small { font-size: var(--fs-xs); color: var(--text-dim); }
+  .nav-pannello-esci {
+    display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px;
+    border-radius: var(--radius-sm); color: var(--text-dim);
+  }
+  .nav-pannello-esci:hover { color: #f87171; background: var(--bg-panel-2); }
+  .nav-pannello-esci .ico { width: 18px; height: 18px; }
+  .nav-pannello-accedi.btn { width: 100%; text-align: center; padding: 12px; font-size: var(--fs-base); }
+
+  /* Le voci entrano una dopo l'altra, appena spostate: il pannello non si accende di colpo. */
   .nav-collapse.open .main-nav a {
-    animation: voce-menu-entra .38s cubic-bezier(.22, 1, .36, 1) backwards;
+    animation: voce-menu-entra .32s cubic-bezier(.22, 1, .36, 1) backwards;
   }
   .nav-collapse:not(.open) .main-nav a { animation: none; }
-  .main-nav a:nth-child(1) { animation-delay: .04s; }
-  .main-nav a:nth-child(2) { animation-delay: .08s; }
-  .main-nav a:nth-child(3) { animation-delay: .12s; }
-  .main-nav a:nth-child(4) { animation-delay: .16s; }
-  .main-nav a:nth-child(5) { animation-delay: .20s; }
-  .main-nav a:nth-child(6) { animation-delay: .24s; }
-  .main-nav a:nth-child(7) { animation-delay: .28s; }
-  .main-nav a:nth-child(8) { animation-delay: .32s; }
+  .main-nav a:nth-child(2) { animation-delay: .03s; }
+  .main-nav a:nth-child(3) { animation-delay: .06s; }
+  .main-nav a:nth-child(4) { animation-delay: .09s; }
+  .main-nav a:nth-child(5) { animation-delay: .12s; }
+  .main-nav a:nth-child(6) { animation-delay: .15s; }
+  .main-nav a:nth-child(7) { animation-delay: .18s; }
+  .main-nav a:nth-child(8) { animation-delay: .21s; }
+  .main-nav a:nth-child(9) { animation-delay: .24s; }
   @keyframes voce-menu-entra {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-collapse, .nav-velo { transition: none; }
+    .nav-collapse.open .main-nav a { animation: none; }
   }
 
   .auth-box { margin-left: auto; gap: 8px; font-size: var(--fs-sm); }
@@ -629,6 +698,10 @@ a.who-link {
   .auth-box { min-width: 0; }
   .auth-box .who-link { min-width: 0; }
   .auth-box .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+/* Pezzi che esistono solo nel pannello da telefono. */
+@media (min-width: 961px) {
+  .nav-pannello-testa, .nav-pannello-piede, .nav-velo, .main-nav .nav-ico { display: none; }
 }
 /* Il body non scorre sotto al menu a schermo intero (site.js aggiunge/toglie la classe). */
 body.menu-aperto { overflow: hidden; }
@@ -7160,3 +7233,211 @@ th .ico, h2 .ico, h3 .ico { opacity: .75; margin-right: 2px; }
 /* /voce#<stanza> arrivando dalla colonna laterale: la scheda giusta si fa notare. */
 .voce-stanza.is-evidenza { border-color: var(--purple); box-shadow: 0 0 0 1px var(--purple-glow); }
 .voce-stanza-conta { color: var(--green); font-size: var(--fs-xs); font-weight: 600; }
+
+/* ======================================================================================
+   GUIDA DEI GIOCATORI (/tutorial, scheda Guida) — contenuto del file del server dentro la
+   pagina (includes/guide_page.php), vestito come il resto del sito. A sinistra la colonna
+   fissa con ricerca e indice; da telefono una barra in cima con ricerca e "Capitoli".
+   ====================================================================================== */
+.guida-lead { margin: -4px 0 22px; max-width: 76ch; color: var(--text-dim); font-size: var(--fs-base); line-height: 1.6; }
+.guida-lead-modifica { margin-left: 6px; color: var(--text-dimmer); }
+.guida-layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.guida-lato {
+  position: sticky;
+  top: calc(var(--testata-h, 120px) + 16px);
+  max-height: calc(100vh - var(--testata-h, 120px) - 32px);
+  z-index: 5; /* i risultati della ricerca escono sopra il testo, non sotto */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* Ricerca */
+.guida-cerca { position: relative; flex: 0 0 auto; }
+.guida-cerca-lente.ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dimmer); pointer-events: none; }
+.guida-cerca input {
+  width: 100%; box-sizing: border-box; padding: 11px 12px 11px 38px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-size: var(--fs-sm);
+}
+.guida-cerca input:focus { outline: none; border-color: color-mix(in srgb, var(--purple) 70%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 18%, transparent); }
+.guida-risultati {
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
+  width: min(460px, calc(100vw - 32px));
+  max-height: 60vh; overflow-y: auto;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .7);
+  padding: 6px;
+}
+.guida-risultati[hidden] { display: none; }
+.guida-risultato { display: block; padding: 10px 12px; border-radius: var(--radius-sm); color: var(--text); text-decoration: none; }
+.guida-risultato + .guida-risultato { margin-top: 2px; }
+.guida-risultato:hover, .guida-risultato.is-attivo { background: color-mix(in srgb, var(--purple) 14%, transparent); color: var(--text); }
+.guida-risultato-t { display: block; font-weight: 700; font-size: var(--fs-sm); }
+.guida-risultato-sotto { font-weight: 600; color: var(--text-dim); }
+.guida-risultato-s { display: block; margin-top: 3px; font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.5; }
+.guida-risultato-s strong { color: var(--text); font-weight: 700; }
+.guida-risultati-vuoto { margin: 0; padding: 12px; font-size: var(--fs-sm); color: var(--text-dim); }
+/* Indice */
+.guida-capitoli-btn { display: none; }
+.guida-indice { overflow-y: auto; min-height: 0; padding-right: 4px; scrollbar-width: thin; }
+.guida-indice-parte {
+  margin: 14px 0 6px; padding-left: 10px;
+  font-size: var(--fs-2xs); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  color: var(--text-dimmer);
+}
+.guida-indice-parte:first-child { margin-top: 0; }
+.guida-indice ol { list-style: none; margin: 0; padding: 0; }
+.guida-indice a {
+  display: flex; gap: 8px; align-items: baseline;
+  padding: 6px 10px; border-radius: var(--radius-sm); border-left: 2px solid transparent;
+  color: var(--text-dim); font-size: var(--fs-sm); line-height: 1.35; text-decoration: none;
+}
+.guida-indice a:hover { color: var(--text); background: var(--bg-panel); }
+.guida-indice a.is-attivo {
+  color: var(--text); font-weight: 600;
+  background: color-mix(in srgb, var(--purple) 12%, transparent);
+  border-left-color: var(--purple); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.guida-indice-n { flex: 0 0 18px; font-size: var(--fs-xs); color: var(--text-dimmer); font-variant-numeric: tabular-nums; }
+.guida-indice a.is-attivo .guida-indice-n { color: var(--purple); }
+
+/* Contenuto della guida (markup del server: section, .part, .tip, .warn, .cmd...) */
+.guida-doc { min-width: 0; max-width: 820px; font-size: var(--fs-base); line-height: 1.7; color: var(--text-dim); }
+.guida-doc :is(section, .part, h3, .start) { scroll-margin-top: calc(var(--testata-h, 120px) + 16px); }
+.guida-doc > .warn:first-child { margin-top: 0; }
+.guida-doc b, .guida-doc strong { color: var(--text); }
+.guida-doc p { margin: .55rem 0; }
+.guida-doc ul { margin: .4rem 0; padding-left: 22px; }
+.guida-doc li { margin: .3rem 0; }
+.guida-doc a { color: var(--purple); }
+.guida-doc a:hover { text-decoration: underline; }
+.guida-doc .sub { color: var(--text-dim); }
+/* Riquadro "Inizia da qui" */
+.guida-doc .start {
+  margin: 18px 0; padding: 20px 22px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--purple) 10%, var(--bg-panel)), var(--bg-panel));
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.guida-doc .start-t { font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg); color: var(--text); margin-bottom: 6px; }
+.guida-doc .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.guida-doc .steps li { position: relative; padding: 10px 0 10px 42px; border-bottom: 1px solid var(--border); }
+.guida-doc .steps li:last-child { border-bottom: 0; }
+.guida-doc .steps li::before {
+  counter-increment: s; content: counter(s);
+  position: absolute; left: 0; top: 9px; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-heading); font-weight: 800; font-size: var(--fs-xs); color: #fff;
+  background: linear-gradient(135deg, var(--purple), color-mix(in srgb, var(--purple) 45%, var(--green)));
+}
+.guida-doc .start a { white-space: nowrap; font-size: var(--fs-sm); }
+/* Parti e capitoli */
+.guida-doc .part { margin: 40px 0 10px; }
+.guida-doc .part-n { display: block; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--purple); }
+.guida-doc .part-t { display: block; font-family: var(--font-heading); font-size: var(--fs-xl); font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+.guida-doc .part-d { display: block; color: var(--text-dim); font-size: var(--fs-sm); }
+.guida-doc section {
+  margin: 14px 0; padding: 24px 26px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
+  transition: box-shadow .3s ease;
+}
+.guida-doc h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; font-size: var(--fs-lg); }
+.guida-doc h2 .n {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--fs-sm); font-weight: 800; color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 14%, transparent);
+}
+.guida-doc h3 { margin: 1.4rem 0 .4rem; font-size: var(--fs-md); color: var(--text); }
+/* "In questo capitolo" */
+.guida-doc .chips { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 0 0 14px; }
+.guida-doc .chips span { color: var(--text-dimmer); font-size: var(--fs-xs); }
+.guida-doc .chips a {
+  font-size: var(--fs-xs); padding: 3px 10px; border-radius: var(--radius-sm);
+  background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.guida-doc .chips a:hover { color: var(--text); border-color: var(--border-strong); text-decoration: none; }
+/* Comandi, consigli, avvisi */
+.guida-doc .cmd, .guida-doc code {
+  font-family: var(--font-mono); font-size: .88em; white-space: nowrap;
+  padding: 1px 7px; border-radius: var(--radius-xs);
+  background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--green);
+}
+.guida-doc .tip, .guida-doc .warn { margin: 14px 0; padding: 12px 16px; border-radius: var(--radius-sm); font-size: var(--fs-sm); line-height: 1.65; }
+.guida-doc .tip { background: color-mix(in srgb, var(--green) 9%, transparent); border-left: 3px solid var(--green); }
+.guida-doc .warn { background: color-mix(in srgb, #e05a5a 10%, transparent); border-left: 3px solid #e05a5a; }
+/* Tabelle (elenco comandi) */
+.guida-doc table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: var(--fs-sm); }
+.guida-doc th, .guida-doc td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.guida-doc th { color: var(--text-dimmer); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
+/* Disegni: mappa a quadretti, legenda, barra della potenza, finta chat di gioco */
+.guida-doc .grid { display: grid; grid-template-columns: repeat(auto-fill, 26px); gap: 5px; margin: 10px 0; }
+.guida-doc .c { width: 26px; height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.guida-doc .own { background: #4bbd5a; } .guida-doc .ally { background: #d876e0; } .guida-doc .enemy { background: #e05a5a; }
+.guida-doc .neu { background: var(--bg-panel-2); color: var(--text-dimmer); } .guida-doc .home { background: #f4c531; color: #5a4300; }
+.guida-doc .me { background: #eaeaea; color: #111; font-weight: 800; }
+.guida-doc .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0 4px; font-size: var(--fs-sm); }
+.guida-doc .legend span { display: flex; align-items: center; gap: 7px; }
+.guida-doc .sw { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.guida-doc .powerbar {
+  position: relative; height: 22px; border-radius: 11px; margin: 14px 0 30px;
+  background: linear-gradient(90deg, #e05a5a 0%, var(--bg-panel-2) 50%, #4bbd5a 100%); border: 1px solid var(--border);
+}
+.guida-doc .powerbar .mk { position: absolute; top: -5px; width: 3px; height: 32px; background: var(--text); border-radius: 2px; }
+.guida-doc .powerbar .lab { position: absolute; top: 28px; transform: translateX(-50%); font-size: var(--fs-2xs); color: var(--text-dim); }
+.guida-doc .chat {
+  margin: 10px 0; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: #0e0f14; border: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.7; color: #e8e9ee; overflow-x: auto;
+}
+.guida-doc .chat .g { color: #f4c531; } .guida-doc .chat .w { color: #e8e9ee; } .guida-doc .chat .gr { color: #8b8f9e; }
+.guida-doc .chat .rd { color: #e05a5a; } .guida-doc .chat .gn { color: #4bbd5a; } .guida-doc .chat .mg { color: #d876e0; }
+.guida-doc .chat .cy { color: #7ec8ff; }
+.guida-doc figure { margin: 16px 0; text-align: center; }
+.guida-doc figure img { max-width: 100%; height: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.guida-doc figcaption { color: var(--text-dimmer); font-size: var(--fs-xs); margin-top: 8px; }
+/* Lampo sul punto raggiunto da indice o ricerca */
+.guida-doc .guida-evidenzia { box-shadow: 0 0 0 2px var(--purple); }
+.guida-doc h3.guida-evidenzia { box-shadow: none; color: var(--purple); }
+
+/* Telefono e tablet: niente colonna; in cima una barra fissa con ricerca e "Capitoli". */
+@media (max-width: 1000px) {
+  .guida-layout { grid-template-columns: 1fr; gap: 0; }
+  .guida-lato {
+    top: var(--testata-h, 60px); z-index: 8; max-height: none;
+    flex-direction: row; gap: 8px; flex-wrap: wrap;
+    margin: 0 calc(var(--wrap-pad, 20px) * -1) 6px; padding: 10px var(--wrap-pad, 20px);
+    background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .guida-cerca { flex: 1 1 auto; min-width: 0; }
+  .guida-capitoli-btn {
+    display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+    padding: 0 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg-panel); color: var(--text); font-weight: 600; font-size: var(--fs-sm); cursor: pointer;
+  }
+  .guida-lato.is-aperto .guida-capitoli-btn { border-color: var(--purple); }
+  .guida-indice { display: none; flex: 1 1 100%; max-height: calc(100vh - var(--testata-h, 60px) - 90px); padding: 6px 0 4px; overscroll-behavior: contain; }
+  .guida-lato.is-aperto { background: var(--bg); }
+  .guida-lato.is-aperto .guida-indice { display: block; }
+  /* Sotto la testata c'e' anche la barra di ricerca: il titolo raggiunto deve restare visibile. */
+  .guida-doc :is(section, .part, h3, .start) { scroll-margin-top: calc(var(--testata-h, 60px) + 84px); }
+  .guida-doc { max-width: none; }
+}
+@media (max-width: 900px) {
+  /* Le stesse fasce del resto del sito (vedi IL SITO A FASCE). */
+  .guida-doc section, .guida-doc .start, .home-inizia-passi, .home-inizia-punti {
+    margin-left: calc(var(--wrap-pad) * -1); margin-right: calc(var(--wrap-pad) * -1);
+    border-radius: 0; border-width: 1px 0 0; border-style: solid; border-image: var(--filo-fascia) 1;
+    padding-left: var(--wrap-pad); padding-right: var(--wrap-pad);
+  }
+  .guida-doc section { padding-top: 20px; padding-bottom: 20px; margin: 12px calc(var(--wrap-pad) * -1); }
+  .guida-doc .part { margin-top: 28px; }
+  .guida-doc table { display: block; overflow-x: auto; }
+  .guida-doc .cmd { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) { .guida-doc section { transition: none; } }

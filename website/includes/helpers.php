@@ -104,9 +104,8 @@ function site_setting(string $key, string $default = ''): string {
 
 /**
  * Spiegazione dei due cursori del velo (intensita' e altezza della sfumatura).
- * Sta qui, in un posto solo, perche' il velo del blog e quello delle card dello store
- * funzionano allo stesso modo: con il testo copiato in quattro moduli diversi tornerebbe
- * a divergere alla prima modifica, ed e' gia' successo.
+ * Sta qui, in un posto solo, perche' i moduli del velo del blog sono piu' d'uno: con il
+ * testo copiato in ognuno tornerebbe a divergere alla prima modifica, ed e' gia' successo.
  */
 function help_overlay(string $quale): string {
     if ($quale === 'intensita') {
@@ -129,15 +128,13 @@ function help_overlay(string $quale): string {
  * sito non si vede, ed e' il primo posto in cui si va a cercare un guasto che non c'e'.
  * Con il velo acceso non restituisce niente: la casella spuntata parla gia' da sola.
  *
- * $dove: 'blog' (tessere degli articoli in home) oppure 'store' (card dei pacchetti).
+ * $dove: 'blog' (tessere degli articoli in home), l'unico velo rimasto.
  */
 function nota_interruttore_veli(string $dove): string {
-    $chiave = $dove === 'store' ? 'card_overlay_store' : 'card_overlay_blog';
-    if (site_setting($chiave, '1') === '1') {
+    if (site_setting('card_overlay_blog', '1') === '1') {
         return '';
     }
-    $cosa = $dove === 'store' ? 'delle card dello store' : 'delle tessere degli articoli';
-    return '<div class="alert alert-error" style="margin:0 0 14px;"><strong>Il velo ' . $cosa
+    return '<div class="alert alert-error" style="margin:0 0 14px;"><strong>Il velo delle tessere degli articoli'
          . ' &egrave; spento.</strong> La casella qui sopra &egrave; disattivata: le copertine si vedono '
          . 'pulite e ai testi arriva un&rsquo;ombra al posto della sfumatura, quindi <strong>colori, '
          . 'intensit&agrave; e altezza qui sotto non hanno effetto</strong> finch&eacute; non la rimetti.</div>';
@@ -798,7 +795,7 @@ function corpo_e_html(?string $body): bool {
 }
 
 function unique_slug(string $table, string $base): string {
-    $consentite = ['store_categories', 'store_packages', 'blog_posts', 'site_pages', 'forum_categories'];
+    $consentite = ['blog_posts', 'site_pages', 'forum_categories'];
     if (!in_array($table, $consentite, true)) {
         throw new InvalidArgumentException('Tabella non ammessa per unique_slug: ' . $table);
     }
@@ -814,44 +811,6 @@ function unique_slug(string $table, string $base): string {
         }
         $slug = $base . '-' . $i++;
     }
-}
-
-/**
- * Lo store ha qualcosa da vendere? (almeno un pacchetto attivo)
- *
- * Finche' e' vuoto, promozione VIP e obiettivo del mese non si mostrano: portavano a una
- * pagina "in preparazione" con una barra ferma allo 0%, cioe' a una promessa non mantenuta.
- */
-function store_has_packages(): bool {
-    static $risposta = null;
-    if ($risposta === null) {
-        try {
-            $risposta = (int) db()->query('SELECT COUNT(*) FROM store_packages WHERE enabled = 1')->fetchColumn() > 0;
-        } catch (PDOException $e) {
-            $risposta = false;
-        }
-    }
-    return $risposta;
-}
-
-/**
- * Il pacchetto in evidenza dello store: uno solo in tutto il negozio, categorie comprese.
- * Conta solo se e' anche visibile, altrimenti il banner della home punterebbe a una card
- * che nel negozio non c'e'. Il risultato si calcola una volta sola per richiesta.
- */
-function store_pacchetto_evidenza(): ?array {
-    static $pacchetto = false; // false = non ancora cercato
-    if ($pacchetto === false) {
-        $q = db()->query('SELECT * FROM store_packages WHERE featured = 1 AND enabled = 1 LIMIT 1');
-        $pacchetto = $q->fetch() ?: null;
-    }
-    return $pacchetto;
-}
-
-/** Indirizzo della pagina del pacchetto in evidenza, o null se non ce n'e' uno. */
-function store_link_evidenza(): ?string {
-    $p = store_pacchetto_evidenza();
-    return $p ? '/pacchetto/' . rawurlencode($p['slug']) : null;
 }
 
 function time_ago(string $datetime): string {
@@ -971,229 +930,52 @@ function align_mc_names(): void {
 }
 
 /**
- * Se il database ha le colonne dell'inquadratura dei pacchetti (image_position). Serve a non
- * rompere il salvataggio dello store finche' la migrazione 2026-09-14-store-inquadratura.sql
- * non e' stata lanciata: il rendering usa gia' i valori di default, e il gestionale scrive/
- * mostra l'inquadratura solo quando le colonne ci sono davvero.
+ * Gli acquisti pagati sul sito, come sottoquery (colonne: user_id, mc_uuid, price, paid_at):
+ * le ricariche di Magix (magix_orders) piu' lo storico del vecchio store a pacchetti
+ * (store_orders, se la tabella c'e' ancora), senza le consegne manuali del vecchio gestionale,
+ * che non erano soldi incassati. La usano la corona del miglior sostenitore, il profilo e
+ * l'elenco utenti. Null se non c'e' nessuna delle due tabelle.
  */
-function store_ha_inquadratura(): bool {
-    static $ok = null;
-    if ($ok !== null) {
-        return $ok;
+function paid_orders_sql(): ?string {
+    static $sql = false;
+    if ($sql !== false) {
+        return $sql;
     }
+    $parti = [];
     try {
-        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'image_position'")->fetch();
-    } catch (Throwable $e) {
-        $ok = false;
-    }
-    return $ok;
-}
-
-/** Pacchetti per riga nello store sui telefoni (1-3, impostazione store_cols_mobile; di serie 1). */
-function store_cols_mobile(): int {
-    return max(1, min(3, (int) site_setting('store_cols_mobile', '1')));
-}
-
-/**
- * Zoom minimo e massimo della copertina di un pacchetto, in percentuale. 100 = l'immagine riempie
- * la card (nessuno zoom); sotto 100 si RIMPICCIOLISCE per vederne di piu' (sul telefono il
- * ritaglio a 100 era troppo stretto). I bordi che restano scoperti li riempie una copia sfocata
- * della stessa copertina (.store-card-sfondo).
- */
-const STORE_ZOOM_MIN = 25;
-const STORE_ZOOM_MAX = 100;
-
-/** Zoom della copertina riportato fra STORE_ZOOM_MIN e STORE_ZOOM_MAX (100 se non e' un numero). */
-function store_zoom_value($v): int {
-    $z = is_numeric($v) ? (int) round((float) $v) : 100;
-    return max(STORE_ZOOM_MIN, min(STORE_ZOOM_MAX, $z));
-}
-
-/**
- * Se il database ha le colonne dello zoom della copertina (image_zoom). Come per
- * store_ha_inquadratura(): finche' la migrazione 2026-10-03-store-zoom.sql non e' stata
- * lanciata il gestionale non mostra i cursori e il salvataggio non li scrive.
- */
-function store_has_zoom(): bool {
-    static $ok = null;
-    if ($ok !== null) {
-        return $ok;
-    }
-    try {
-        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'image_zoom'")->fetch();
-    } catch (Throwable $e) {
-        $ok = false;
-    }
-    return $ok;
-}
-
-/**
- * Se il database ha la colonna della copertina per il tema chiaro (image_url_light). Come per
- * store_ha_inquadratura(): finche' la migrazione 2026-10-03-store-copertina-chiara.sql non e'
- * stata lanciata il gestionale non mostra il secondo campo e il salvataggio non lo scrive.
- */
-function store_has_light_cover(): bool {
-    static $ok = null;
-    if ($ok !== null) {
-        return $ok;
-    }
-    try {
-        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'image_url_light'")->fetch();
-    } catch (Throwable $e) {
-        $ok = false;
-    }
-    return $ok;
-}
-
-/**
- * Il server che eseguiva i comandi dei pacchetti prima che si dividessero per server (la colonna
- * `commands` di sempre, e le righe vecchie della coda): il faction, l'unico che li consegnava.
- */
-const STORE_LEGACY_SERVER = 'faction';
-
-/**
- * Se il database ha i comandi divisi per server (store_packages.server_commands). Come per
- * store_ha_inquadratura(): finche' la migrazione 2026-10-03-store-comandi-per-server.sql non e'
- * stata lanciata il gestionale mostra un solo riquadro (quello del faction) e salva come prima.
- */
-function store_has_server_commands(): bool {
-    static $ok = null;
-    if ($ok !== null) {
-        return $ok;
-    }
-    try {
-        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'server_commands'")->fetch();
-    } catch (Throwable $e) {
-        $ok = false;
-    }
-    return $ok;
-}
-
-/**
- * Se la coda dello store sa per quale server e' ogni comando (store_command_queue.server). La
- * aggiungono la stessa migrazione e MagixBridge 0.15.0 all'avvio, chi arriva prima.
- */
-function store_queue_has_server(): bool {
-    static $ok = null;
-    if ($ok !== null) {
-        return $ok;
-    }
-    try {
-        $ok = (bool) db()->query("SHOW COLUMNS FROM store_command_queue LIKE 'server'")->fetch();
-    } catch (Throwable $e) {
-        $ok = false;
-    }
-    return $ok;
-}
-
-/**
- * I comandi di un pacchetto divisi per server: ['faction' => "riga\nriga", 'hub' => ...], solo i
- * server che ne hanno. Da server_commands (JSON) se c'e'; altrimenti la colonna `commands` di
- * sempre, che erano i comandi del faction.
- */
-function store_package_commands(array $pkg): array {
-    $out = [];
-    $json = $pkg['server_commands'] ?? null;
-    $perServer = is_string($json) && $json !== '' ? json_decode($json, true) : null;
-    if (is_array($perServer)) {
-        foreach ($perServer as $server => $text) {
-            $text = trim((string) $text);
-            if (is_string($server) && $text !== '') {
-                $out[$server] = $text;
-            }
+        if (db()->query("SHOW TABLES LIKE 'magix_orders'")->fetch()) {
+            $parti[] = "SELECT user_id, mc_uuid, price, paid_at FROM magix_orders WHERE status = 'paid'";
         }
-        return $out;
-    }
-    $legacy = trim((string) ($pkg['commands'] ?? ''));
-    return $legacy !== '' ? [STORE_LEGACY_SERVER => $legacy] : [];
-}
-
-/** Le righe di comando vere (non vuote) di un testo del pacchetto, una per riga. */
-function store_command_lines(string $text): array {
-    return array_values(array_filter(array_map('trim', explode("\n", $text)), static fn($r) => $r !== ''));
-}
-
-/**
- * Le due copertine di un pacchetto: ['scura' => ..., 'chiara' => ...], stringa vuota se non c'e'
- * nessuna immagine. Se ne e' stata caricata una sola vale in tutti e due i temi, cosi' un
- * pacchetto con la sola copertina di sempre si vede come prima anche col tema chiaro.
- */
-function store_covers(array $pkg): array {
-    $scura = trim((string) ($pkg['image_url'] ?? ''));
-    $chiara = trim((string) ($pkg['image_url_light'] ?? ''));
-    return ['scura' => $scura !== '' ? $scura : $chiara, 'chiara' => $chiara !== '' ? $chiara : $scura];
-}
-
-/**
- * Larghezza diviso altezza di un'immagine caricata sul sito (indirizzo che inizia con "/", file
- * dentro public/), oppure null: immagine esterna, file mancante o non leggibile. Legge solo
- * l'intestazione del file, e una volta per richiesta.
- */
-function site_image_ratio(string $url): ?float {
-    static $cache = [];
-    if (array_key_exists($url, $cache)) {
-        return $cache[$url];
-    }
-    $percorso = (string) parse_url($url, PHP_URL_PATH);
-    $ratio = null;
-    if ($percorso !== '' && $percorso[0] === '/' && !str_starts_with($url, '//') && !str_contains($percorso, '..')) {
-        $misure = @getimagesize(__DIR__ . '/../public' . rawurldecode($percorso));
-        if ($misure && $misure[0] > 0 && $misure[1] > 0) {
-            $ratio = $misure[0] / $misure[1];
+        if (db()->query("SHOW TABLES LIKE 'store_orders'")->fetch()) {
+            $parti[] = "SELECT user_id, mc_uuid, price, paid_at FROM store_orders WHERE status = 'paid'"
+                . " AND (paypal_capture_id IS NULL OR paypal_capture_id NOT LIKE 'MANUALE-%')";
         }
+    } catch (PDOException $e) {
+        $parti = [];
     }
-    return $cache[$url] = $ratio;
+    return $sql = $parti ? '(' . implode(' UNION ALL ', $parti) . ')' : null;
 }
 
 /**
- * Le variabili CSS delle copertine (--copertina e, se diversa, --copertina-chiaro) da mettere
- * nello style della card o della pagina del pacchetto; '' se il pacchetto non ha immagini.
- * Il CSS usa --copertina-chiaro col tema chiaro e ripiega su --copertina quando manca.
- * Con le copertine caricate sul sito aggiunge anche le loro proporzioni (--rapporto e
- * --rapporto-chiaro): da telefono la card prende la forma dell'immagine.
- */
-function store_cover_style(array $pkg): string {
-    $c = store_covers($pkg);
-    if ($c['scura'] === '') {
-        return '';
-    }
-    $stile = "--copertina:url('" . h($c['scura']) . "')";
-    if ($c['chiara'] !== $c['scura']) {
-        $stile .= ";--copertina-chiaro:url('" . h($c['chiara']) . "')";
-    }
-    foreach (['scura' => '--rapporto', 'chiara' => '--rapporto-chiaro'] as $tema => $var) {
-        if ($tema === 'chiara' && $c['chiara'] === $c['scura']) {
-            continue;
-        }
-        $r = site_image_ratio($c[$tema]);
-        if ($r !== null) {
-            $stile .= ';' . $var . ':' . round($r, 4);
-        }
-    }
-    return $stile;
-}
-
-/**
- * UUID del miglior sostenitore dello store (chi ha speso di piu'), o null.
+ * UUID del miglior sostenitore (chi ha speso di piu' sul sito), o null.
  *
- * Stessa regola della colonna dello store — le consegne manuali contano solo se lo dice
- * l'impostazione — cosi' i posti dove compare la corona non si contraddicono fra loro.
- * Si calcola una volta per richiesta: lo chiedono la colonna, la barra in alto, il forum,
- * l'elenco utenti...
+ * Si calcola una volta per richiesta: lo chiedono la barra in alto, il forum, l'elenco
+ * utenti...
  */
 function store_top_uuid(): ?string {
     static $uuid = false;   // false = non ancora calcolato (null e' una risposta valida)
     if ($uuid !== false) {
         return $uuid;
     }
+    $ordini = paid_orders_sql();
+    if ($ordini === null) {
+        return $uuid = null;
+    }
     try {
-        $manuali = site_setting('store_sidebar_include_manual', '0') === '1';
-        $soloVeri = $manuali ? '' : " AND (paypal_capture_id IS NULL OR paypal_capture_id NOT LIKE 'MANUALE-%') ";
-        $q = db()->query("SELECT mc_uuid FROM store_orders WHERE status = 'paid' {$soloVeri}
-                          GROUP BY mc_uuid ORDER BY SUM(price) DESC LIMIT 1");
+        $q = db()->query("SELECT mc_uuid FROM {$ordini} o GROUP BY mc_uuid ORDER BY SUM(price) DESC LIMIT 1");
         $uuid = $q->fetchColumn() ?: null;
     } catch (PDOException $e) {
-        $uuid = null;   // store non installato
+        $uuid = null;
     }
     return $uuid;
 }

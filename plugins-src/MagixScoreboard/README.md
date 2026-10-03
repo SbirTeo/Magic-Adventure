@@ -101,5 +101,33 @@ oggetti, menu e chat non si spostano piu' (prima scivolavano giu' fuori dal loro
 devono cadere nella fascia destra larga `zone-width` all'altezza della sidebar. `/mscoreboard reload` ricostruisce sia il pezzo di MagixScoreboard sia quello di
 MagixFactions.
 
+### Grandezza della sidebar uguale per tutti
+
+Il client disegna la sidebar alla Scala GUI di ogni giocatore (con 4 e' grande il doppio che con 2).
+`sidebar-scale` la sgancia: lo shader ricava la Scala GUI del giocatore (`ScreenSize` del blocco
+`Globals` ÷ larghezza dell'interfaccia, verificato nel client 26.2: le pipeline `gui` e `text`
+ereditano `GLOBALS_SNIPPET`) e moltiplica le distanze dal punto a cui il client aggancia la sidebar
+(bordo destro, meta' altezza) per scala voluta ÷ scala del giocatore. Il risultato e' la sidebar che
+vanilla disegnerebbe alla scala voluta, `offset-y` compreso. Sfondo in `gui.vsh` di MagixScoreboard,
+scritte e icone nel `text.vsh` di MagixFactions (stesso marchio nel colore e stessa fascia dello
+spostamento): la funzione `sbScaleFactor` e' copiata identica nei due file.
+
+- `mode: minimap` (di serie) — le lettere grandi esattamente come quelle del pannello info sotto la
+  minimap di MagixFactions: quel testo e' disegnato col font della mappa (1 pixel del font = 1 pixel
+  della mappa) su una minimap larga `screen-size` × (16/9) / 2 dell'altezza per 128 pixel, quindi il
+  fattore e' `screen-size` × 16 / 9 / 256 per pixel di altezza (2,25 a 1080p con `screen-size` 0.3).
+  Per rimpicciolire o ingrandire entrambe si cambia `map.minimap.screen-size`; `size` non conta.
+  Il fattore lo calcolano i due plugin con la stessa regola (`SidebarPack.scaleFactor` qui,
+  `ResourcePackContent` in MagixFactions) e lo passano agli shader come `SB_SCALE_FACTOR`.
+- `mode: screen` — in proporzione all'altezza dello schermo: `size` 3 = la Scala GUI 3 a 1080
+  pixel, 2 a 720, 4 a 1440. Alle risoluzioni che non sono multiple di 360 la scala non e' intera e
+  qualche pixel delle lettere esce un filo piu' largo.
+- `mode: integer` — la scala intera piu' vicina alla stessa proporzione: lettere sempre nitide, grandezza
+  a scatti fra una risoluzione e l'altra.
+- `mode: off` — vanilla.
+
+La minimap di MagixFactions e' gia' indipendente dalla Scala GUI (e dalla 0.63 e' riferita all'altezza
+dello schermo), quindi con `sidebar-scale` acceso le due restano nelle stesse proporzioni per tutti.
+
 La guida generata dal plugin (`plugins/MagixScoreboard/guida-staff.html`, anche nel gestionale
 del sito) elenca TUTTE le chiavi in uso col valore reale: e' la fonte piu' aggiornata.

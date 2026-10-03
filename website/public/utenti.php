@@ -43,26 +43,19 @@ $utenti = db()->query(
 )->fetchAll();
 
 $acquistiPerUtente = [];
-try {
-    foreach (db()->query("SELECT user_id, COUNT(*) n FROM store_orders WHERE status = 'paid' GROUP BY user_id") as $riga) {
-        $acquistiPerUtente[(int) $riga['user_id']] = (int) $riga['n'];
+$ordiniPagati = paid_orders_sql();   // ricariche di Magix + storico del vecchio store
+if ($ordiniPagati !== null) {
+    try {
+        foreach (db()->query("SELECT user_id, COUNT(*) n FROM {$ordiniPagati} o GROUP BY user_id") as $riga) {
+            $acquistiPerUtente[(int) $riga['user_id']] = (int) $riga['n'];
+        }
+    } catch (PDOException $e) {
+        $acquistiPerUtente = [];
     }
-} catch (PDOException $e) {
-    $acquistiPerUtente = [];   // store non installato: nessuno risulta sostenitore per acquisti
 }
 
-// Miglior sostenitore: stessa regola della colonna dello store (le consegne manuali contano
-// solo se lo dice l'impostazione, cosi' i due punti del sito non si contraddicono).
-$topUuid = null;
-try {
-    $contaManuali = site_setting('store_sidebar_include_manual', '0') === '1';
-    $soloVeri = $contaManuali ? '' : " AND (paypal_capture_id IS NULL OR paypal_capture_id NOT LIKE 'MANUALE-%') ";
-    $q = db()->query("SELECT mc_uuid FROM store_orders WHERE status = 'paid' {$soloVeri}
-                      GROUP BY mc_uuid ORDER BY SUM(price) DESC LIMIT 1");
-    $topUuid = $q->fetchColumn() ?: null;
-} catch (PDOException $e) {
-    $topUuid = null;
-}
+// Miglior sostenitore: la stessa regola della corona in tutto il sito.
+$topUuid = store_top_uuid();
 
 // A ogni riga si attaccano i gruppi di appartenenza: sono quelli su cui lavorano i filtri.
 foreach ($utenti as &$u) {

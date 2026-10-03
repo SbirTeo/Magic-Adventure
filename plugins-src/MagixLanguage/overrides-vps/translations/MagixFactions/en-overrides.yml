@@ -1,0 +1,51 @@
+# Le TUE correzioni per la lingua "en": una chiave messa qui vince sempre sulla traduzione automatica in en.yml (nella stessa cartella), e questo file non viene MAI toccato dalla sincronizzazione.
+# Sorgente nel repo: plugins-src/MagixLanguage/overrides-vps/translations/MagixFactions/ (si cambia lì e si porta sul VPS con deploy-plugin-override.yml).
+# /f info, /f top, canali della chat e allerta di conquista in inglese, scritti a mano. ATTENZIONE: se cambia il testo italiano di una di queste chiavi in messages.yml, va aggiornata anche qui (vince sempre questa).
+
+"chat":
+  "channel-public": "&fPUBLIC"
+  "channel-faction": "&aFACTION"
+  "channel-ally": "&bALLIES"
+"claim":
+  "overclaim-alert-title": "&4&l⚔ TERRITORY CONQUERED ⚔"
+  "overclaim-alert-subtitle": "&e{attacker} &7seized a territory from &c{victim} &7(&f{x}, {z}&7)"
+"info":
+  "not-found": "&cFaction not found / you are not in a faction."
+  "name": "&6Faction: {relcolor}{name}"
+  "description": "&6Description: &f{desc}"
+  "members": "&6Members: &f{count}&7/&f{max}"
+  "status": "&6Status: {statuscolor}{claims}/{power}/{maxpower} &7(claims/power/max power)"
+  "bank": "&6Bank: &e{bank}"
+  "score": "&6Score: &b{score} &7(#{pos} in the ranking)"
+  "score-unranked": "&6Score: &b{score} &7(unranked - inactive)"
+  "inactive": "&c⚠ Inactive faction: all members have been away for more than {days} days. Out of the ranking until someone comes back."
+  "status-weak": "&cThis faction is weak: you can conquer it."
+  "status-strong": "&aThis faction is strong: you can't conquer it."
+  "status-none": "&fThis faction has no territory yet."
+  "status-weak-self": "&cYour faction is weak: it can be conquered."
+  "status-strong-self": "&aYour faction is strong: it can't be conquered."
+  "status-none-self": "&fYour faction has no territory yet."
+  "status-placeholder-safe": "&aThe faction is safe"
+  "status-placeholder-unsafe": "&cThe faction is not safe"
+  "allies-label": "&6Allies: "
+  "allies-none": "&7none"
+  "allies-pending": "&e{name} &7(pending)"
+  "allies-hover-in": "&e{name}&7 sent you an alliance request.\n&eDo you want to accept? &8(click)"
+  "allies-hover-out": "&e{name}&7 hasn't accepted your alliance request yet.\n&eDo you want to cancel the request? &8(click)"
+  "your-relation": "&6Your relation: {relation}"
+"relation":
+  "none": "&7none"
+  "name-ally": "&dAlly"
+  "name-enemy": "&cEnemy"
+"top":
+  "empty": "&7There are no factions to rank yet."
+  "header": "&8&m---&r &6Faction ranking &7({count}) &8&m---"
+  "entry-own": "  &e#{pos} &r{relcolor}{name} &8- &b{score} &7(you)"
+  "site": "  &8&m---&r &7Full ranking: &bmagicadventure.it/classifiche"
+"score-tooltip":
+  "header": "&bHow the score is calculated"
+  "intro": "&7In each category the best faction is worth the maximum; you get your percentage of it. The score is the sum of the categories."
+  "line": "&7{label} &8(&f{value}&8) &7{best} &8· &7{pct} of the best &8· &f{points}&7/{max}"
+  "best": "&7best: &f{best} &8(&7{bestval}&8)"
+  "best-self": "&a★ you are the best"
+  "total": "&7Total: &f{score}&7/{max}"

@@ -1,0 +1,51 @@
+# Le TUE correzioni per la lingua "es": una chiave messa qui vince sempre sulla traduzione automatica in es.yml (nella stessa cartella), e questo file non viene MAI toccato dalla sincronizzazione.
+# Sorgente nel repo: plugins-src/MagixLanguage/overrides-vps/translations/MagixFactions/ (si cambia lì e si porta sul VPS con deploy-plugin-override.yml).
+# /f info, /f top, canali della chat e allerta di conquista in spagnolo, scritti a mano. ATTENZIONE: se cambia il testo italiano di una di queste chiavi in messages.yml, va aggiornata anche qui (vince sempre questa).
+
+"chat":
+  "channel-public": "&fPÚBLICO"
+  "channel-faction": "&aFACCIÓN"
+  "channel-ally": "&bALIADOS"
+"claim":
+  "overclaim-alert-title": "&4&l⚔ TERRITORIO CONQUISTADO ⚔"
+  "overclaim-alert-subtitle": "&e{attacker} &7le arrebató un territorio a &c{victim} &7(&f{x}, {z}&7)"
+"info":
+  "not-found": "&cFacción no encontrada / no estás en ninguna facción."
+  "name": "&6Facción: {relcolor}{name}"
+  "description": "&6Descripción: &f{desc}"
+  "members": "&6Miembros: &f{count}&7/&f{max}"
+  "status": "&6Estado: {statuscolor}{claims}/{power}/{maxpower} &7(territorios/poder/poder máx.)"
+  "bank": "&6Banco: &e{bank}"
+  "score": "&6Puntuación: &b{score} &7(#{pos} en la clasificación)"
+  "score-unranked": "&6Puntuación: &b{score} &7(fuera de la clasificación - inactiva)"
+  "inactive": "&c⚠ Facción inactiva: todos los miembros llevan más de {days} días ausentes. Fuera de la clasificación hasta que vuelva alguien."
+  "status-weak": "&cEsta facción es débil: puedes conquistarla."
+  "status-strong": "&aEsta facción es fuerte: no puedes conquistarla."
+  "status-none": "&fEsta facción aún no tiene territorio."
+  "status-weak-self": "&cTu facción es débil: puede ser conquistada."
+  "status-strong-self": "&aTu facción es fuerte: no puede ser conquistada."
+  "status-none-self": "&fTu facción aún no tiene territorio."
+  "status-placeholder-safe": "&aLa facción está a salvo"
+  "status-placeholder-unsafe": "&cLa facción no está a salvo"
+  "allies-label": "&6Aliados: "
+  "allies-none": "&7ninguno"
+  "allies-pending": "&e{name} &7(pendiente)"
+  "allies-hover-in": "&e{name}&7 te ha enviado una solicitud de alianza.\n&e¿Quieres aceptarla? &8(haz clic)"
+  "allies-hover-out": "&e{name}&7 aún no ha aceptado tu solicitud de alianza.\n&e¿Quieres cancelar la solicitud? &8(haz clic)"
+  "your-relation": "&6Vuestra relación: {relation}"
+"relation":
+  "none": "&7ninguna"
+  "name-ally": "&dAliada"
+  "name-enemy": "&cEnemiga"
+"top":
+  "empty": "&7Todavía no hay ninguna facción en la clasificación."
+  "header": "&8&m---&r &6Clasificación de facciones &7({count}) &8&m---"
+  "entry-own": "  &e#{pos} &r{relcolor}{name} &8- &b{score} &7(tú)"
+  "site": "  &8&m---&r &7Clasificación completa: &bmagicadventure.it/classifiche"
+"score-tooltip":
+  "header": "&bCómo se calcula la puntuación"
+  "intro": "&7En cada categoría la mejor facción vale el máximo; tú obtienes tu porcentaje respecto a ella. La puntuación es la suma de las categorías."
+  "line": "&7{label} &8(&f{value}&8) &7{best} &8· &7{pct} del mejor &8· &f{points}&7/{max}"
+  "best": "&7mejor: &f{best} &8(&7{bestval}&8)"
+  "best-self": "&a★ eres la mejor"
+  "total": "&7Total: &f{score}&7/{max}"

@@ -189,14 +189,26 @@ a CMI.
 - **MagixBridge** (fino alla 0.12 si chiamava **MagixWeb**; dalla 0.13.0, `deploy.target` =
   `faction hub`) e' il ponte fra i server e il sito, su ogni modalita'. Stessa coppia di chiavi di
   MagixGuard: `network.server-name` e `network.site-jobs` (true SOLO sul faction: traduzione del
-  sito, gruppi, guida staff, pulizia della chat). La **consegna degli acquisti** la fa invece ogni
-  server, per la sua parte (dalla 0.15.0): nel gestionale ogni pacchetto ha i comandi divisi per
-  server (un riquadro per ogni voce di `GAME_SERVERS`, colonna `store_packages.server_commands`),
-  il sito li accoda con `store_command_queue.server` e ogni MagixBridge esegue solo quelli col suo
-  `network.server-name`. La chat in home del sito ha una **scheda per server** (Hub,
+  sito, gruppi, guida staff, pulizia della chat). La coda dei comandi dello store
+  (`store_command_queue`, ogni MagixBridge esegue le righe col suo `network.server-name`) resta, ma
+  dal 3/10 il sito non ci accoda piu' niente: vedi **Store dei Magix** qui sotto. La chat in home del sito ha una **scheda per server** (Hub,
   Factions: `GAME_SERVERS` in `website/includes/helpers.php`, colonna `web_chat.server`): un
   messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
   in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).
+- **Store dei Magix** (dal 3/10, sostituisce il vecchio store a pacchetti): il sito vende SOLO
+  Magix, la valuta di rete di MagixEssentials (`shared: true`). `/store` ha il cursore (10-1000
+  Magix, 0,10 € l'uno, sconti a livelli) e il portafoglio del giocatore, che si aggiorna da solo
+  (`/api/magix`). Prezzi, livelli e limiti stanno SOLO in `website/includes/magix.php` (la pagina
+  li riceve da li', la cassa li ricalcola). Pagato su PayPal, il sito accredita da solo i Magix in
+  `me_currency_balances` (stesso database del sito, stessa tabella che legge il plugin) e registra
+  la ricarica in `magix_orders`. Una ricarica si puo' **regalare** a un altro giocatore (nome
+  controllato dal vivo con `/api/magix?player=`, colonne `recipient_uuid`/`recipient_name`: paga
+  chi e' collegato, i Magix vanno al destinatario). Sotto il cursore c'e' «Cosa puoi comprare con N
+  Magix»: le voci (nome, costo, nota, colore) le scrive lo staff in Gestione -> Store (tabella
+  `magix_catalog`), si mostrano soltanto: l'acquisto vero e' in gioco. I pacchetti VIP si comprano in gioco spendendo i Magix. Nel
+  gestionale la scheda Store ha solo l'account PayPal e le ultime ricariche. Le vecchie tabelle
+  (`store_packages`, `store_orders`...) restano nel database come storico: `store_orders` conta
+  ancora per la corona del miglior sostenitore (`paid_orders_sql()` in `helpers.php`).
 - **MagixLanguage e' su tutta la rete** (`deploy.target` = `faction hub velocity`, stesso jar: su
   Velocity parte `velocity/MagixLanguageVelocity`): su ogni server traduce da solo i plugin Magix
   installati li', e la lingua di ogni giocatore sta nel database del

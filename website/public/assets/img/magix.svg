@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Il Magix: l'icona ufficiale della valuta di rete. Una gemma singola, tagliata in stile
+       Clash of Clans, in magenta. Vettoriale: resta nitida a qualunque grandezza. -->
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd2fb"/><stop offset="1" stop-color="#ff6af0"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f45ce9"/><stop offset="1" stop-color="#c81fd0"/></linearGradient>
+    <linearGradient id="c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ff9ff4"/></linearGradient>
+    <linearGradient id="d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e83be3"/><stop offset="1" stop-color="#a5129f"/></linearGradient>
+    <linearGradient id="e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c41fc4"/><stop offset="1" stop-color="#7e0b86"/></linearGradient>
+    <linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9c0fa2"/><stop offset="1" stop-color="#5c0466"/></linearGradient>
+  </defs>
+  <g stroke-linejoin="round">
+    <path d="M30 12 H70 Q74 12 77 15 L93 33 Q96 37 93 41 L55 89 Q50 95 45 89 L7 41 Q4 37 7 33 L23 15 Q26 12 30 12Z" fill="#43054e" stroke="#43054e" stroke-width="6"/>
+    <path d="M30 12 L50 12 L33 37 L6 37 Q5 35 7 33 L23 15 Q26 12 30 12Z" fill="url(#a)"/>
+    <path d="M50 12 L70 12 Q74 12 77 15 L93 33 Q95 35 94 37 L67 37Z" fill="url(#b)"/>
+    <path d="M50 12 L67 37 L33 37Z" fill="url(#c)"/>
+    <path d="M6 37 L33 37 L50 92 Q47 92 45 89 L7 41 Q5 39 6 37Z" fill="url(#d)"/>
+    <path d="M33 37 L67 37 L50 92Z" fill="url(#e)"/>
+    <path d="M67 37 L94 37 Q95 39 93 41 L55 89 Q53 92 50 92Z" fill="url(#f)"/>
+    <path d="M50 12 L33 37 L50 92 L67 37 Z M6 37 H94" fill="none" stroke="#5a0a66" stroke-opacity=".35" stroke-width="1.5"/>
+    <path d="M30 12 H70 Q74 12 77 15 L93 33 Q96 37 93 41 L55 89 Q50 95 45 89 L7 41 Q4 37 7 33 L23 15 Q26 12 30 12Z" fill="none" stroke="#43054e" stroke-width="5"/>
+    <path d="M17 31 L28 18 Q30 16 33 16 L39 16" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" opacity=".9"/>
+    <path d="M74 20 l2 -6 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2z" fill="#fff"/>
+  </g>
+</svg>

@@ -66,6 +66,12 @@
   collapse.querySelectorAll('a').forEach(function (a) {
     a.addEventListener('click', close);
   });
+  // Il velo scuro accanto al pannello lo chiude al tocco, Esc da tastiera.
+  var velo = document.getElementById('navVelo');
+  if (velo) velo.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && collapse.classList.contains('open')) { close(); toggle.focus(); }
+  });
 })();
 
 // Selettore di lingua (<details> nativo): da solo un <details> resta aperto finche' non si

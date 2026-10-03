@@ -495,6 +495,12 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
       <span></span><span></span><span></span>
     </button>
     <div class="nav-collapse" id="navCollapse">
+      <?php /* Testa del pannello da telefono: logo e nome accanto alla X (il pulsante del menu,
+               che resta sopra al pannello). Su schermo largo non si vede. */ ?>
+      <a href="/" class="nav-pannello-testa" aria-hidden="true" tabindex="-1">
+        <img src="<?= h(image_variant($__logoPiccolo, 96)) ?>" alt="" width="30" height="30" decoding="async">
+        <span><?= h($__siteName) ?></span>
+      </a>
       <nav class="main-nav">
         <?php /* Il logo in piccolo apre la home: e' il segnaposto del sito, sta prima di
                  tutte le voci ed e' cliccabile come un normale collegamento. Si accende e
@@ -532,16 +538,39 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           }
           if ($__currentPath === $item['url']) $__classi[] = 'active';
           ?>
-          <a href="<?= h($item['url']) ?>" class="<?= h(implode(' ', $__classi)) ?>"><?= h($item['label']) ?></a>
+          <?php /* L'icona si vede solo nel menu da telefono (vedi .nav-ico in style.css). */ ?>
+          <a href="<?= h($item['url']) ?>" class="<?= h(implode(' ', $__classi)) ?>"<?= in_array('active', $__classi, true) ? ' aria-current="page"' : '' ?>><?= ui_icon(nav_item_icon((string) $item['url']), 'nav-ico') ?><span class="nav-testo"><?= h($item['label']) ?></span></a>
         <?php endforeach; ?>
         <?php /* Da telefono "Gestione" sta qui, nel menu ad hamburger, invece che nella barra:
                  cosi' in barra resta posto per la bandiera della lingua. Su schermo largo si vede
                  quella in .auth-box e questa resta nascosta (vedi CSS, .nav-gestione). */ ?>
         <?php if ($__u && can_manage()): ?>
-          <a href="/manage" class="nav-gestione">Gestione</a>
+          <a href="/manage" class="nav-gestione"><?= ui_icon('settings', 'nav-ico') ?><span class="nav-testo">Gestione</span></a>
         <?php endif; ?>
       </nav>
+      <?php /* Piede del pannello da telefono: l'indirizzo del server da copiare e l'account. */ ?>
+      <div class="nav-pannello-piede">
+        <button type="button" class="ip-copy nav-pannello-ip" data-ip="mc.magicadventure.it">
+          <span class="ip-copy-label">IP</span>
+          <span class="ip-copy-value">mc.magicadventure.it</span>
+        </button>
+        <?php if ($__u): ?>
+          <div class="nav-pannello-account">
+            <a href="/profilo" class="nav-pannello-chi">
+              <img src="<?= h(mc_avatar_url($__u['mc_uuid'], 64, $__u['premium_uuid'] ?? null)) ?>" alt="" width="32" height="32">
+              <span>
+                <strong><?= h($__u['mc_username']) ?></strong>
+                <small>Il tuo profilo</small>
+              </span>
+            </a>
+            <a href="/logout" class="nav-pannello-esci" title="Esci" aria-label="Esci"><?= ui_icon('logout') ?></a>
+          </div>
+        <?php else: ?>
+          <a href="/login" class="btn btn-accent nav-pannello-accedi">Accedi</a>
+        <?php endif; ?>
+      </div>
     </div>
+    <div class="nav-velo" id="navVelo" aria-hidden="true"></div>
     <div class="auth-box">
       <?php
         // "Vota il server" su minecraft-italia.net, in barra su ogni pagina (in home c'e' anche
