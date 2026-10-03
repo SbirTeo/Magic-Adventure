@@ -177,19 +177,30 @@ function store_completa_ordine(array $order, string $capturaId): bool {
         return false; // gia' completato da una richiesta precedente
     }
 
-    $q = db()->prepare('SELECT commands FROM store_packages WHERE id = ?');
+    $q = db()->prepare('SELECT * FROM store_packages WHERE id = ?');
     $q->execute([$order['package_id']]);
-    $comandi = (string) $q->fetchColumn();
+    $pkg = $q->fetch() ?: [];
 
-    $ins = db()->prepare('INSERT INTO store_command_queue (order_id, mc_uuid, mc_username, command) VALUES (?, ?, ?, ?)');
-    foreach (explode("\n", $comandi) as $riga) {
-        $riga = trim($riga);
-        if ($riga === '') {
+    // Ogni riga va in coda col server che la esegue: MagixBridge di quel server prende solo le
+    // sue (store_command_queue.server = network.server-name). Senza la colonna (migrazione non
+    // ancora lanciata e plugin vecchio) la coda la legge solo il faction: si accodano i suoi.
+    $perServer = store_queue_has_server();
+    $ins = db()->prepare($perServer
+        ? 'INSERT INTO store_command_queue (order_id, mc_uuid, mc_username, server, command) VALUES (?, ?, ?, ?, ?)'
+        : 'INSERT INTO store_command_queue (order_id, mc_uuid, mc_username, command) VALUES (?, ?, ?, ?)');
+    foreach (store_package_commands($pkg) as $server => $testo) {
+        if (!$perServer && $server !== STORE_LEGACY_SERVER) {
+            error_log('Store: ordine ' . $order['id'] . ', comandi per "' . $server . '" non accodati: manca la colonna server della coda');
             continue;
         }
-        $riga = ltrim($riga, '/');
-        $riga = str_replace(['{player}', '{PLAYER}'], $order['mc_username'], $riga);
-        $ins->execute([$order['id'], $order['mc_uuid'], $order['mc_username'], mb_substr($riga, 0, 500)]);
+        foreach (store_command_lines($testo) as $riga) {
+            $riga = ltrim($riga, '/');
+            $riga = str_replace(['{player}', '{PLAYER}'], $order['mc_username'], $riga);
+            $riga = mb_substr($riga, 0, 500);
+            $ins->execute($perServer
+                ? [$order['id'], $order['mc_uuid'], $order['mc_username'], $server, $riga]
+                : [$order['id'], $order['mc_uuid'], $order['mc_username'], $riga]);
+        }
     }
     return true;
 }

@@ -50,9 +50,10 @@ public class MagixBridge extends JavaPlugin {
         // someone else's name was enough to take over their account on the site.
         setupRankSync();
         setupLanguageSync();
+        // Every server delivers its own share of a purchase (the commands of its game mode).
+        setupStoreDelivery();
         if (siteJobs) {
             setupSiteTranslation();
-            setupStoreDelivery();
             setupGuideSync();
         }
         setupChatBridge();
@@ -187,6 +188,13 @@ public class MagixBridge extends JavaPlugin {
                         "Quando PayPal conferma un pagamento, il sito accoda i comandi da eseguire e il server li "
                                 + "esegue dalla console entro pochi secondi. Funziona anche se il giocatore è "
                                 + "offline: i comandi partono lo stesso.",
+                        "Ogni pacchetto ha i comandi divisi per server: nel gestionale, in Store, c'è un riquadro "
+                                + "per ogni modalità (Factions, Hub...). Ogni server esegue solo i suoi, cioè quelli "
+                                + "della modalità che ha come network.server-name ({{cfg:network.server-name}} su "
+                                + "questo): un pacchetto dell'hub non tocca il faction, e viceversa. I comandi di un "
+                                + "server spento aspettano in coda e partono quando riaccende. Se un comando ha "
+                                + "bisogno del giocatore connesso (give, effetti...), mettilo nel server dove si trova "
+                                + "di solito: i gradi di LuckPerms e le valute funzionano anche da offline.",
                         "Se un comando fallisce, la coda ritenta alcune volte e poi si arrende, per non restare "
                                 + "in un ciclo infinito. Lo stato di ogni consegna si vede nel gestionale, nella "
                                 + "scheda Store.")
@@ -194,11 +202,12 @@ public class MagixBridge extends JavaPlugin {
                 .section("Su tutti i server della rete",
                         "MagixBridge (fino alla 0.12 si chiamava MagixWeb) gira su ogni modalità: faction, hub e "
                                 + "quelle che verranno. Ognuna ha il suo network.server-name. I lavori che vanno "
-                                + "fatti una volta sola (consegna degli acquisti, traduzione del sito, elenco dei "
+                                + "fatti una volta sola (traduzione del sito, elenco dei "
                                 + "gruppi, guida per amministratori, pulizia della chat) li fa solo il server con "
                                 + "network.site-jobs: true, che è {{cfg:network.server-name}} su questo. Tutti gli altri "
                                 + "fanno il resto: gradi e lingua di chi è lì, la propria chat pubblica verso il "
-                                + "sito e i messaggi scritti nella propria scheda della chat del sito.",
+                                + "sito, i messaggi scritti nella propria scheda della chat del sito e i comandi "
+                                + "dello store della propria modalità.",
                         "Il ponte dei placeholder porta i valori di una modalità sulle altre, passando dal "
                                 + "database del sito: ogni server scrive chi ha online e calcola i placeholder "
                                 + "elencati in bridge.player-placeholders (per i suoi giocatori e per quelli "
@@ -230,8 +239,8 @@ public class MagixBridge extends JavaPlugin {
                         "guide.check-interval-minutes", "Ogni quanto si rileggono i capitoli della guida.",
                         "network.server-name", "Il nome di questo server nella rete (faction, hub...): è quello "
                                 + "che gli altri scrivono in %network_<server>_...%. Senza trattini bassi.",
-                        "network.site-jobs", "true su UN solo server: consegna acquisti, traduzione del sito, "
-                                + "gruppi, guida, pulizia della chat. Su due server un acquisto arriverebbe due volte.",
+                        "network.site-jobs", "true su UN solo server: traduzione del sito, gruppi, guida, pulizia "
+                                + "della chat. La consegna degli acquisti non c'entra: ogni server fa la sua.",
                         "bridge.player-placeholders", "I placeholder di ogni giocatore che questo server pubblica per gli altri.",
                         "bridge.global-placeholders", "I placeholder senza giocatore (classifiche, totali) che pubblica.")
 
@@ -259,7 +268,9 @@ public class MagixBridge extends JavaPlugin {
                                 + "raggiungibile: il log lo dice all'avvio.")
                 .issue("Un acquisto pagato non è arrivato",
                         "Nel gestionale, in Store, si vede lo stato di ogni consegna e la si può rilanciare. Se "
-                                + "il comando è sbagliato, correggilo nel pacchetto prima di ritentare.")
+                                + "il comando è sbagliato, correggilo nel pacchetto prima di ritentare. Controlla "
+                                + "anche di averlo messo nel riquadro del server giusto: ogni server esegue solo i "
+                                + "comandi della sua modalità, e quelli di un server spento aspettano che riaccenda.")
                 .issue("La chat del sito non arriva in gioco (o viceversa)",
                         "Controlla che il modulo chat sia acceso. Se il server è appena ripartito, i messaggi "
                                 + "vecchi vengono scartati apposta.")
@@ -271,8 +282,10 @@ public class MagixBridge extends JavaPlugin {
                                 + "{{cfg:bridge.publish-interval-seconds}} secondi se il giocatore è connesso da "
                                 + "qualche parte.")
                 .issue("Un acquisto è arrivato due volte",
-                        "Due server hanno network.site-jobs: true. Deve essere true su uno solo: il log di ogni "
-                                + "server lo dice all'avvio (lavori del sito QUI / su un altro server).")
+                        "Due server hanno lo stesso network.server-name, e prendono gli stessi comandi dalla coda. "
+                                + "Ogni server deve avere il suo nome: il log lo dice all'avvio (consegna acquisti "
+                                + "store attiva per i comandi di '...'). Oppure il comando è scritto sia nel "
+                                + "riquadro di Factions sia in quello di Hub, e fa la stessa cosa su tutti e due.")
                 .issue("La guida per amministratori è vuota",
                         "Nessun plugin ha ancora scritto il suo capitolo: succede finché il server non viene "
                                 + "riavviato con le versioni che lo generano.")
@@ -313,15 +326,16 @@ public class MagixBridge extends JavaPlugin {
         getLogger().info("MagixBridge: chat live del sito attiva (controllo ogni " + seconds + "s).");
     }
 
-    /** Store delivery: runs the commands the site queues up after a confirmed payment. */
+    /** Store delivery: runs the commands the site queues up for THIS server after a confirmed payment. */
     private void setupStoreDelivery() {
         int seconds = Math.max(3, getConfig().getInt("store.check-interval-seconds", 10));
         int batchSize = getConfig().getInt("store.batch-size", 20);
-        StoreDelivery delivery = new StoreDelivery(this, database, batchSize);
+        StoreDelivery delivery = new StoreDelivery(this, database, batchSize, serverName);
 
         long ticks = seconds * 20L;
         Bukkit.getScheduler().runTaskTimer(this, delivery::processQueue, 200L, ticks);
-        getLogger().info("MagixBridge: consegna acquisti store attiva (ogni " + seconds + "s).");
+        getLogger().info("MagixBridge: consegna acquisti store attiva per i comandi di '" + serverName
+                + "' (ogni " + seconds + "s).");
     }
 
     /** Group tags on the site: syncs LuckPerms into the mc_ranks table, on join and on a timer. */

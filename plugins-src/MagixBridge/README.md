@@ -14,7 +14,7 @@ alla 0.12 si chiamava **MagixWeb**: dalla 0.13.0 gira su **ogni modalita'** (`de
 | Messaggi scritti sul sito, in chat | il server della scheda in cui sono stati scritti |
 | Aureola VIP di MagixCosmetics sul sito | dove c'e' MagixCosmetics |
 | Ponte dei placeholder (`%network_<server>_<placeholder>%`) | ogni server |
-| Consegna degli acquisti dello store | solo `network.site-jobs: true` |
+| Consegna degli acquisti dello store (i comandi della sua modalita') | ogni server |
 | Traduzione automatica del sito (via MagixLanguage) | solo `network.site-jobs: true` |
 | Elenco dei gruppi (`web_groups`), primo accesso dei vecchi giocatori | solo `network.site-jobs: true` |
 | Guida per amministratori (raccoglie i `guida-staff.html`) | solo `network.site-jobs: true` |
@@ -24,8 +24,18 @@ alla 0.12 si chiamava **MagixWeb**: dalla 0.13.0 gira su **ogni modalita'** (`de
 
 - `network.server-name` — il nome del server (faction, hub...). Senza trattini bassi: e' il primo
   pezzo di `%network_<server>_...%`.
-- `network.site-jobs` — `true` su **un solo** server (oggi il faction). Su due server un acquisto
-  verrebbe consegnato due volte. All'avvio il log dice "lavori del sito QUI" o "su un altro server".
+- `network.site-jobs` — `true` su **un solo** server (oggi il faction): i lavori da fare una volta
+  sola. All'avvio il log dice "lavori del sito QUI" o "su un altro server".
+
+**I comandi dello store sono divisi per server** (dalla 0.15.0): nel gestionale ogni pacchetto ha
+un riquadro di comandi per ogni modalita' di `GAME_SERVERS` (Factions, Hub...). Il sito li salva in
+`store_packages.server_commands` (JSON `{"faction": "...", "hub": "..."}`; la vecchia colonna
+`commands` resta con quelli del faction) e, a pagamento confermato, li accoda in
+`store_command_queue` con la colonna `server`. Ogni server esegue solo le righe col suo
+`network.server-name`: un pacchetto dell'hub non tocca il faction. I comandi di un server spento
+restano in coda e partono quando riaccende. Due server con lo stesso `server-name` consegnerebbero
+due volte. Migrazione: `website/migrazioni/2026-10-03-store-comandi-per-server.sql` (la colonna
+`server` della coda la aggiunge anche il plugin all'avvio).
 
 **La chat del sito ha una scheda per server** (dalla 0.14.0, colonna `web_chat.server` =
 `network.server-name`): quello che si scrive in gioco finisce nella scheda del server su cui lo

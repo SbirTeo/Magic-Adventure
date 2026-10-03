@@ -109,6 +109,19 @@ public class Database {
                     "ADD INDEX IF NOT EXISTS idx_server_consegna (server, delivered, source, id), " +
                     "ADD INDEX IF NOT EXISTS idx_server_id (server, id)");
 
+            // Store delivery split by game mode (0.15.0): every queued command names the server
+            // that runs it. The table is the site's (it writes the orders); it gets the column
+            // here too, like web_chat above, so the delivery works before the site's migration
+            // 2026-10-03-store-comandi-per-server.sql is run. Older rows were all the faction's.
+            // Its own try: a database without the store yet must not stop the rest.
+            try {
+                st.execute("ALTER TABLE store_command_queue " +
+                        "ADD COLUMN IF NOT EXISTS server VARCHAR(32) NOT NULL DEFAULT 'faction' AFTER mc_username, " +
+                        "ADD INDEX IF NOT EXISTS idx_server_pending (server, executed_at, id)");
+            } catch (SQLException e) {
+                plugin.getLogger().warning("MagixBridge: coda dello store non aggiornata (" + e.getMessage() + ")");
+            }
+
             // The administrators' guide: one chapter per plugin, rewritten at every startup.
             // The site's migration creates it too; having it here means the server can publish
             // the guide without waiting for someone to run a migration by hand.

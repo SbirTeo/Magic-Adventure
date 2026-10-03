@@ -188,9 +188,12 @@ a CMI.
   faction). Passaggio: `magixguard-shared-db.yml` (faction) poi `hub-network-plugins.yml` (hub).
 - **MagixBridge** (fino alla 0.12 si chiamava **MagixWeb**; dalla 0.13.0, `deploy.target` =
   `faction hub`) e' il ponte fra i server e il sito, su ogni modalita'. Stessa coppia di chiavi di
-  MagixGuard: `network.server-name` e `network.site-jobs` (true SOLO sul faction: consegna degli
-  acquisti, traduzione del sito, gruppi, guida staff, pulizia della chat — su due server un
-  acquisto arriverebbe due volte). La chat in home del sito ha una **scheda per server** (Hub,
+  MagixGuard: `network.server-name` e `network.site-jobs` (true SOLO sul faction: traduzione del
+  sito, gruppi, guida staff, pulizia della chat). La **consegna degli acquisti** la fa invece ogni
+  server, per la sua parte (dalla 0.15.0): nel gestionale ogni pacchetto ha i comandi divisi per
+  server (un riquadro per ogni voce di `GAME_SERVERS`, colonna `store_packages.server_commands`),
+  il sito li accoda con `store_command_queue.server` e ogni MagixBridge esegue solo quelli col suo
+  `network.server-name`. La chat in home del sito ha una **scheda per server** (Hub,
   Factions: `GAME_SERVERS` in `website/includes/helpers.php`, colonna `web_chat.server`): un
   messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
   in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).

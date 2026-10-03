@@ -16,6 +16,10 @@ import java.util.List;
  * commands into store_command_queue, and this reads them, runs them from the console and marks
  * them done.
  *
+ * Every server of the network runs its own share: a package has separate commands for each game
+ * mode (store_command_queue.server = network.server-name), so the faction runs the faction's
+ * lines and the hub the hub's. No line is ever read by two servers.
+ *
  * Reading happens off the main thread so it never holds up a tick; running happens on the main
  * thread, because Bukkit commands are not thread-safe.
  */
@@ -27,11 +31,13 @@ public class StoreDelivery {
     private final MagixBridge plugin;
     private final Database database;
     private final int batchSize;
+    private final String serverName;
 
-    public StoreDelivery(MagixBridge plugin, Database database, int batchSize) {
+    public StoreDelivery(MagixBridge plugin, Database database, int batchSize, String serverName) {
         this.plugin = plugin;
         this.database = database;
         this.batchSize = Math.max(1, batchSize);
+        this.serverName = serverName;
     }
 
     /** Call this on a timer: reads the queue off-thread, then runs it on the main thread. */
@@ -50,9 +56,10 @@ public class StoreDelivery {
         try (Connection c = database.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT id, mc_username, command FROM store_command_queue "
-                             + "WHERE executed_at IS NULL AND attempts < ? ORDER BY id LIMIT ?")) {
-            ps.setInt(1, MAX_ATTEMPTS);
-            ps.setInt(2, batchSize);
+                             + "WHERE server = ? AND executed_at IS NULL AND attempts < ? ORDER BY id LIMIT ?")) {
+            ps.setString(1, serverName);
+            ps.setInt(2, MAX_ATTEMPTS);
+            ps.setInt(3, batchSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     out.add(new QueuedCommand(rs.getInt("id"), rs.getString("mc_username"), rs.getString("command")));
