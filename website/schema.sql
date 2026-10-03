@@ -94,7 +94,8 @@ CREATE TABLE IF NOT EXISTS store_packages (
     category_id INT NULL,
     name VARCHAR(120) NOT NULL,
     slug VARCHAR(140) NOT NULL UNIQUE,
-    image_url VARCHAR(500) NULL,
+    image_url VARCHAR(500) NULL,         -- copertina per il tema scuro (quello di casa)
+    image_url_light VARCHAR(500) NULL,   -- copertina per il tema chiaro; vuota = vale image_url
     -- Punto dell'immagine da tenere in vista quando la card la ritaglia (background-position),
     -- scelto a mano per telefono e computer. 50% 50% = centro.
     image_position VARCHAR(20) NOT NULL DEFAULT '50% 50%',      -- telefono

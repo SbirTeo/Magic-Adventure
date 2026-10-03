@@ -36,8 +36,14 @@ function vip_banner(bool $compatto = false): void {
 
     // Se il banner non ha una sua immagine, prende la copertina del pacchetto promosso:
     // cosi' la promozione mostra davvero cio' che sta promuovendo.
-    if ($vipImage === '' && $vipPkg && !empty($vipPkg['image_url'])) {
-        $vipImage = $vipPkg['image_url'];
+    // Il pacchetto puo' avere una copertina diversa per il tema chiaro: la si porta dietro.
+    $vipImageLight = '';
+    if ($vipImage === '' && $vipPkg) {
+        $copertine = store_covers($vipPkg);
+        $vipImage = $copertine['scura'];
+        if ($copertine['chiara'] !== $copertine['scura']) {
+            $vipImageLight = $copertine['chiara'];
+        }
     }
 
     // Su telefono cornice luccicante e alone dorato si spengono a parte: sul grande sono
@@ -50,7 +56,8 @@ function vip_banner(bool $compatto = false): void {
         . (site_setting('vip_banner_glow_mobile', '0') === '1' ? '' : ' senza-alone-mobile')
         . ($compatto ? ' is-compatto' : '');
     ?>
-    <div class="<?= $classi ?>"<?= $vipImage !== '' ? ' style="--vip-banner-image:url(\'' . h($vipImage) . '\')"' : '' ?>>
+    <div class="<?= $classi ?>"<?= $vipImage !== '' ? ' style="--vip-banner-image:url(\'' . h($vipImage) . '\')'
+        . ($vipImageLight !== '' ? ';--vip-banner-image-chiaro:url(\'' . h($vipImageLight) . '\')' : '') . '"' : '' ?>>
       <div class="vip-banner-shine" aria-hidden="true"></div>
       <?php if (is_admin()): ?>
         <a href="/manage?section=theme#banner-vip" class="vip-banner-edit" title="Modifica" aria-label="Modifica">✎</a>

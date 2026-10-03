@@ -2827,6 +2827,11 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
 @media (max-width: 620px) {
   .store-card-media { background-position: var(--fuoco-telefono, 50% 50%); }
 }
+/* Tema chiaro: la copertina caricata apposta (--copertina-chiaro), se il pacchetto ne ha una;
+   altrimenti la stessa del tema scuro. Vale anche per la pagina del pacchetto. */
+[data-tema="chiaro"] :is(.store-card-media, .pkg-copertina) {
+  background-image: var(--copertina-chiaro, var(--copertina));
+}
 .store-card:hover .store-card-media { transform: scale(1.07); }
 .store-card-media::after {
   content: "";
@@ -4011,7 +4016,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
 [data-tema="chiaro"] .vip-banner.has-image {
   background-image:
     linear-gradient(135deg, var(--gold-overlay-chiaro-1) 0%, var(--gold-overlay-chiaro-2) 100%),
-    var(--vip-banner-image);
+    var(--vip-banner-image-chiaro, var(--vip-banner-image));
 }
 [data-tema="chiaro"] .vip-banner p { color: var(--text-dim); }
 /* Lo slogan sotto al logo e' oro acceso con l'alone dorato: nato per il fondo nero, sul

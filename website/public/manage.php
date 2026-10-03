@@ -929,6 +929,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim($_POST['name'] ?? '');
             $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
             $imageUrl = trim($_POST['image_url'] ?? '') ?: null;
+            $imageUrlLight = trim($_POST['image_url_light'] ?? '') ?: null;   // copertina per il tema chiaro
             $description = trim($_POST['description'] ?? '');
             $longDescription = trim($_POST['long_description'] ?? '');
             $price = round((float) str_replace(',', '.', (string) ($_POST['price'] ?? '0')), 2);
@@ -970,6 +971,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare('UPDATE store_packages SET image_position = ?, image_position_pc = ? WHERE id = ?')
                     ->execute([$imagePosition, $imagePositionPc, $id]);
             }
+            // Stessa cosa per la copertina del tema chiaro (migrazione 2026-10-03-store-copertina-chiara.sql).
+            if (store_has_light_cover()) {
+                db()->prepare('UPDATE store_packages SET image_url_light = ? WHERE id = ?')
+                    ->execute([$imageUrlLight, $id]);
+            }
             if ($featured) {
                 db()->prepare('UPDATE store_packages SET featured = 0 WHERE id <> ?')->execute([$id]);
             }
@@ -993,7 +999,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ins = db()->prepare('INSERT INTO store_packages (category_id, name, slug, image_url, description, long_description, price, commands, sort_order, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)');
             $ins->execute([$pkg['category_id'], $nome, $slug, $pkg['image_url'], $pkg['description'], $pkg['long_description'],
                            $pkg['price'], $pkg['commands'], (int) $pkg['sort_order'] + 1]);
-            redirect('/manage?section=store_pkg_edit&id=' . (int) db()->lastInsertId() . '&ok=1');
+            $nuovoId = (int) db()->lastInsertId();
+            // La copia si porta dietro anche la copertina del tema chiaro.
+            if (store_has_light_cover()) {
+                db()->prepare('UPDATE store_packages c JOIN store_packages o ON o.id = ? SET c.image_url_light = o.image_url_light WHERE c.id = ?')
+                    ->execute([$id, $nuovoId]);
+            }
+            redirect('/manage?section=store_pkg_edit&id=' . $nuovoId . '&ok=1');
         }
 
         case 'store_pkg_deliver': {
@@ -3608,7 +3620,7 @@ if ($section === 'dashboard') {
 // ---------------------------------------------------------------------
 } elseif ($section === 'store_pkg_edit') {
     $id = (int) ($_GET['id'] ?? 0);
-    $pkg = ['category_id' => null, 'name' => '', 'image_url' => '', 'image_position' => '50% 50%', 'image_position_pc' => '50% 50%',
+    $pkg = ['category_id' => null, 'name' => '', 'image_url' => '', 'image_url_light' => '', 'image_position' => '50% 50%', 'image_position_pc' => '50% 50%',
             'description' => '', 'long_description' => '',
             'price' => '0.00', 'commands' => '', 'sort_order' => 0, 'enabled' => 1, 'featured' => 0];
     if ($id > 0) {
@@ -3652,9 +3664,24 @@ if ($section === 'dashboard') {
           <label for="pkg_price">Prezzo (<?= h(site_setting('store_currency', 'EUR')) ?>)</label>
           <input type="text" id="pkg_price" name="price" value="<?= h(number_format((float) $pkg['price'], 2, '.', '')) ?>" style="max-width:140px;">
         </div>
-        <?php campo_immagine('pkg_image', 'image_url', (string) $pkg['image_url'],
-            'Copertina del pacchetto',
-            'Fa da sfondo alla card nello store e alla pagina del pacchetto. Incolla un indirizzo oppure carica un file con <strong>Scegli</strong>.'); ?>
+        <?php if (store_has_light_cover()): ?>
+          <?php /* Due copertine: una per il tema scuro (quella di sempre) e una per il chiaro.
+                   Se ne manca una vale l'altra, quindi la seconda e' facoltativa. */ ?>
+          <?php campo_immagine('pkg_image', 'image_url', (string) $pkg['image_url'],
+              'Copertina del pacchetto — tema scuro',
+              'Fa da sfondo alla card nello store e alla pagina del pacchetto quando il sito è col tema scuro. Incolla un indirizzo oppure carica un file con <strong>Scegli</strong>.'); ?>
+          <?php campo_immagine('pkg_image_light', 'image_url_light', (string) ($pkg['image_url_light'] ?? ''),
+              'Copertina del pacchetto — tema chiaro',
+              'La stessa cosa, per chi usa il tema chiaro. Facoltativa: se la lasci vuota, col tema chiaro si vede la copertina del tema scuro (e viceversa). L&rsquo;inquadratura qui sotto vale per tutte e due.'); ?>
+        <?php else: ?>
+          <?php campo_immagine('pkg_image', 'image_url', (string) $pkg['image_url'],
+              'Copertina del pacchetto',
+              'Fa da sfondo alla card nello store e alla pagina del pacchetto. Incolla un indirizzo oppure carica un file con <strong>Scegli</strong>.'); ?>
+          <p class="sub" style="margin:-6px 0 4px; color:var(--text-dim); font-size: var(--fs-xs);">
+            Per caricare una seconda copertina per il tema chiaro lancia la migrazione
+            <code>2026-10-03-store-copertina-chiara.sql</code> e ricarica.
+          </p>
+        <?php endif; ?>
         <?php if (store_ha_inquadratura()): ?>
           <?php /* Inquadratura della copertina (telefono e computer), come per gli articoli:
                    si trascina l'immagine per scegliere quale parte resta in vista sulla card. */ ?>

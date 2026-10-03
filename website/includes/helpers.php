@@ -989,6 +989,52 @@ function store_ha_inquadratura(): bool {
 }
 
 /**
+ * Se il database ha la colonna della copertina per il tema chiaro (image_url_light). Come per
+ * store_ha_inquadratura(): finche' la migrazione 2026-10-03-store-copertina-chiara.sql non e'
+ * stata lanciata il gestionale non mostra il secondo campo e il salvataggio non lo scrive.
+ */
+function store_has_light_cover(): bool {
+    static $ok = null;
+    if ($ok !== null) {
+        return $ok;
+    }
+    try {
+        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'image_url_light'")->fetch();
+    } catch (Throwable $e) {
+        $ok = false;
+    }
+    return $ok;
+}
+
+/**
+ * Le due copertine di un pacchetto: ['scura' => ..., 'chiara' => ...], stringa vuota se non c'e'
+ * nessuna immagine. Se ne e' stata caricata una sola vale in tutti e due i temi, cosi' un
+ * pacchetto con la sola copertina di sempre si vede come prima anche col tema chiaro.
+ */
+function store_covers(array $pkg): array {
+    $scura = trim((string) ($pkg['image_url'] ?? ''));
+    $chiara = trim((string) ($pkg['image_url_light'] ?? ''));
+    return ['scura' => $scura !== '' ? $scura : $chiara, 'chiara' => $chiara !== '' ? $chiara : $scura];
+}
+
+/**
+ * Le variabili CSS delle copertine (--copertina e, se diversa, --copertina-chiaro) da mettere
+ * nello style della card o della pagina del pacchetto; '' se il pacchetto non ha immagini.
+ * Il CSS usa --copertina-chiaro col tema chiaro e ripiega su --copertina quando manca.
+ */
+function store_cover_style(array $pkg): string {
+    $c = store_covers($pkg);
+    if ($c['scura'] === '') {
+        return '';
+    }
+    $stile = "--copertina:url('" . h($c['scura']) . "')";
+    if ($c['chiara'] !== $c['scura']) {
+        $stile .= ";--copertina-chiaro:url('" . h($c['chiara']) . "')";
+    }
+    return $stile;
+}
+
+/**
  * UUID del miglior sostenitore dello store (chi ha speso di piu'), o null.
  *
  * Stessa regola della colonna dello store — le consegne manuali contano solo se lo dice

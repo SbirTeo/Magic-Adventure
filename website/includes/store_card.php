@@ -214,8 +214,10 @@ function store_card(array $item): void {
             $stile .= ';' . $stili[$parte][$catId];
         }
     }
-    if (!empty($item['image_url'])) {
-        $stile .= ";--copertina:url('" . h($item['image_url']) . "')";
+    // Cover for the dark theme and, if the package has one, a different one for the light theme.
+    $copertina = store_cover_style($item);
+    if ($copertina !== '') {
+        $stile .= ';' . $copertina;
         // Framing point chosen in the manager, one for phone and one for desktop (like the
         // article covers). Validated to two percentages so it is safe inline; falls back to
         // centre — also when the DB has no image_position column yet (migration not applied).
@@ -225,7 +227,7 @@ function store_card(array $item): void {
     }
 
     $classi = 'store-card'
-        . (empty($item['image_url']) ? ' senza-immagine' : '')
+        . ($copertina === '' ? ' senza-immagine' : '')
         . ($featured ? ' is-featured' : '');
     // The cell wraps the card AND the price below it: it is the flex item of the row, so
     // filtering hides card + price as one unit and the price stays out of the card.

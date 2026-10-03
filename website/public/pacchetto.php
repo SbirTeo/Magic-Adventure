@@ -43,7 +43,9 @@ $active = 'store';
 // pacchetto sono una promessa che poi la cassa non mantiene.
 require_once __DIR__ . '/../includes/seo.php';
 $__prezzo = store_prezzo($pkg);
-if (!empty($pkg['image_url'])) $page_image = $pkg['image_url'];
+// Anteprima per i social e per Google: la copertina del tema scuro (quello di casa).
+$__copertina = store_covers($pkg)['scura'];
+if ($__copertina !== '') $page_image = $__copertina;
 $page_type = 'product';
 $page_jsonld = [
     [
@@ -61,7 +63,7 @@ $page_jsonld = [
             'availability' => 'https://schema.org/InStock',
             'url' => seo_url('/pacchetto/' . $pkg['slug']),
         ],
-    ] + (!empty($pkg['image_url']) ? ['image' => seo_url($pkg['image_url'])] : []),
+    ] + ($__copertina !== '' ? ['image' => seo_url($__copertina)] : []),
     seo_briciole(['Home' => '/', 'Store' => '/store', $pkg['name'] => '/pacchetto/' . $pkg['slug']]),
 ];
 
@@ -72,14 +74,15 @@ require __DIR__ . '/../includes/header.php';
   <div class="alert alert-error">Per acquistare devi spuntare la casella dei termini di vendita, accanto al pulsante.</div>
 <?php endif; ?>
 
-<article class="pkg-scheda<?= empty($pkg['image_url']) ? ' senza-immagine' : '' ?>"
+<article class="pkg-scheda<?= $__copertina === '' ? ' senza-immagine' : '' ?>"
          <?php
            $stile = [];
            if (!empty($pkg['cat_border']) && is_valid_hex_color($pkg['cat_border'])) {
                $stile[] = '--store-bordo:' . $pkg['cat_border'];
            }
-           if (!empty($pkg['image_url'])) {
-               $stile[] = "--copertina:url('" . h($pkg['image_url']) . "')";
+           // Copertina del tema scuro e, se diversa, quella del tema chiaro (--copertina-chiaro).
+           if ($__copertina !== '') {
+               $stile[] = store_cover_style($pkg);
            }
            echo $stile ? ' style="' . implode(';', $stile) . '"' : '';
          ?>>
