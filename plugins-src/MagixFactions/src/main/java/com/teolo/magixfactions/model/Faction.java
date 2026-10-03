@@ -62,11 +62,16 @@ public final class Faction {
     // solo il tempo in cui si gioca (a server vuoto il tempo si ferma per la banca). La potenza invece si
     // media sul tempo reale (scoreSince): deve calare anche da offline.
     private double bankActiveSeconds = 0;
+    // Secondi in cui i membri collegati erano TUTTI fermi (AFK per MagixGuard): si tolgono dalla finestra
+    // della potenza media, cosi' da fermi la media non si muove (ne' in su ne' in giu').
+    private double powerPausedSeconds = 0;
 
     public double getBankAvgAccum() { return bankAvgAccum; }
     public void setBankAvgAccum(double v) { this.bankAvgAccum = v; }
     public double getBankActiveSeconds() { return bankActiveSeconds; }
     public void setBankActiveSeconds(double v) { this.bankActiveSeconds = v; }
+    public double getPowerPausedSeconds() { return powerPausedSeconds; }
+    public void setPowerPausedSeconds(double v) { this.powerPausedSeconds = v; }
     public double getPowerAvgAccum() { return powerAvgAccum; }
     public void setPowerAvgAccum(double v) { this.powerAvgAccum = v; }
     public long getScoreSampledAt() { return scoreSampledAt; }
