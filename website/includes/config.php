@@ -37,3 +37,9 @@ define('OTP_CHIAVE', 'CHANGE_ME_OTP_KEY_BASE64_32_BYTES');
 define('PROTECTED_ADMIN_UUIDS', [
     'ace7e765-2fe1-4cd4-99b9-56564964fc03', // DorinoJ (proprietario)
 ]);
+
+// Chat vocale del sito (/voce): chiave e segreto del server della voce (LiveKit). Qui, nel
+// repository pubblico, restano vuoti: quelli veri li genera sul VPS predisponi-voce.yml (gli stessi
+// di /etc/magix-voce/keys.yaml) e li scrive nel config.php del VPS. Vuoti = pagina /voce spenta.
+define('VOICE_API_KEY', '');
+define('VOICE_API_SECRET', '');

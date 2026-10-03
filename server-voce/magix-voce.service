@@ -1,0 +1,26 @@
+# Chat vocale del sito (LiveKit). Va in /etc/systemd/system/magix-voce.service e lo installa
+# predisponi-voce.yml. Parte con la macchina e si rialza da solo se cade.
+[Unit]
+Description=MagicAdventure - chat vocale del sito (LiveKit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=magix-voce
+Group=magix-voce
+ExecStart=/opt/magix-voce/livekit-server --config /etc/magix-voce/livekit.yaml
+Restart=always
+RestartSec=5
+# Un tetto, perche' sullo stesso VPS girano il faction e l'hub: la voce non mescola l'audio,
+# quindi le servono poche centinaia di MB anche con molte persone collegate.
+MemoryMax=768M
+LimitNOFILE=65536
+# Il programma non ha bisogno di scrivere da nessuna parte ne' di diventare un altro utente.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
