@@ -1877,25 +1877,22 @@ a.profilo-membro:hover { border-color: var(--border-strong); color: var(--text);
   .profilo-numeri-gioco { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .profilo-fazione { flex-wrap: wrap; }
   .profilo-fazione-posto { margin-left: 0; width: 100%; }
-  .profilo-fazione-posto.ha-medaglia { width: auto; margin-left: auto; position: absolute; top: 0; right: 14px; margin-top: 0; margin-bottom: 0; }
-  /* Su telefono: colonna a destra con la medaglia in alto e il link in basso; posto e totale restano per i lettori
-     di schermo. La riga e' abbastanza alta da tenerli lontani l'uno dall'altro. */
+  /* Su telefono, tre righe: in alto lo stemma e, a destra, il link con accanto la medaglia appesa al bordo; sotto il
+     nome; sotto ancora la descrizione. Posto e totale restano per i lettori di schermo. */
   .profilo-fazione:has(.ha-medaglia) {
-    display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: minmax(86px, auto) auto;
-    column-gap: 14px; align-items: start;
+    display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 14px; align-items: start;
   }
   .profilo-fazione:has(.ha-medaglia) .profilo-fazione-testo { display: contents; }
-  .profilo-fazione:has(.ha-medaglia) .profilo-fazione-testo strong { padding-right: 84px; }
-  /* La descrizione va su una riga a parte, a tutta larghezza, sotto stemma e nome. */
-  .profilo-fazione:has(.ha-medaglia) .profilo-fazione-desc { grid-column: 1 / -1; margin: 6px 0 0; }
+  .profilo-fazione:has(.ha-medaglia) .profilo-fazione-testo strong { grid-column: 1 / -1; margin-top: 10px; }
+  .profilo-fazione:has(.ha-medaglia) .profilo-fazione-desc { grid-column: 1 / -1; margin: 4px 0 0; }
   .profilo-fazione-posto.ha-medaglia {
-    flex-direction: column-reverse; align-items: center; justify-content: space-between; gap: 0;
-    width: 84px; top: 0; height: 100px; right: 14px; padding: 0 0 12px; margin: 0;
+    grid-column: 2; grid-row: 1; justify-self: end; align-self: start;
+    flex-direction: row; align-items: flex-start; gap: 8px; width: auto; margin: -14px 2px 0 0; padding: 0;
   }
   .profilo-fazione-posto.ha-medaglia .posto-testo { display: contents; }
   .profilo-fazione-posto.ha-medaglia .posto-testo strong,
   .profilo-fazione-posto.ha-medaglia .posto-testo small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .posto-vai { margin-top: 0; white-space: nowrap; }
+  .posto-vai { margin-top: 43px; white-space: nowrap; }   /* all'altezza del disco della medaglia */
   .posto-vai .lungo { display: none; }
   .posto-vai .corto { display: inline; }
   .profilo-membri { grid-template-columns: repeat(2, minmax(0, 1fr)); }
