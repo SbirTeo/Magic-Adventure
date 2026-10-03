@@ -6,7 +6,7 @@
 
     <groupId>com.teolo</groupId>
     <artifactId>MagixGuard</artifactId>
-    <version>0.4.5</version>
+    <version>0.4.6</version>
     <packaging>jar</packaging>
 
     <name>MagixGuard</name>
@@ -64,6 +64,14 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Per mettere in pausa la chat di chi e' fermo (afk/AfkChatBlock): plugin gia' installato
+             su faction e hub, softdepend, non va shadato. -->
+        <dependency>
+            <groupId>net.dmulloy2</groupId>
+            <artifactId>ProtocolLib</artifactId>
+            <version>5.4.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- Solo per compilare contro MagixLanguageAPI (softdepend, mai imbustato nel jar): il

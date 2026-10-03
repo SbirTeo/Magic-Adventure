@@ -128,7 +128,7 @@ chat:
 # ---------------------------------------------------------------- anti-afk
 afk:
   returned: "&#A8DC2CBentornato. &7Da adesso il gioco riprende a contare."
-  idle: "&7Sei fermo da un po': &fda ora il gioco non produce più nulla intorno a te&7. Muoviti per riprendere."
+  idle: "&7Sei fermo da un po': &fda ora il gioco non produce più nulla intorno a te e la chat è in pausa&7. Muoviti per riprendere."
 
 # -------------------------------------------------------------------- help
 # L'aiuto lo impagina la classe Help (la stessa in tutti i plugin Magix): una
