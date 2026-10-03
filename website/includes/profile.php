@@ -124,8 +124,15 @@ function profile_faction_stats(int $userId): ?array {
     // Posizione in classifica: quante fazioni in classifica hanno un punteggio piu' alto.
     try {
         if ((int) $dati['faction']['ranked'] === 1) {
-            $q = db()->prepare("SELECT COUNT(*) FROM {$fdb}.factions WHERE ranked = 1 AND score > ?");
-            $q->execute([(float) $dati['faction']['score']]);
+            // Stesso ordine della classifica (score DESC, nome ASC) e il punteggio confrontato SENZA passare da
+            // PHP: un DOUBLE riscritto come testo si arrotonda, e la fazione finiva per contare se' stessa
+            // (un posto in meno di quello vero).
+            $q = db()->prepare(
+                "SELECT COUNT(*) FROM {$fdb}.factions o, {$fdb}.factions me
+                  WHERE me.id = ? AND o.ranked = 1 AND o.id <> me.id
+                    AND (o.score > me.score OR (o.score = me.score AND o.name < me.name))"
+            );
+            $q->execute([(int) $dati['faction']['id']]);
             $dati['faction']['position'] = (int) $q->fetchColumn() + 1;
             $dati['faction']['ranked_total'] = (int) db()->query("SELECT COUNT(*) FROM {$fdb}.factions WHERE ranked = 1")->fetchColumn();
         }
