@@ -778,9 +778,12 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   gap: 10px;
   padding: 10px 20px 10px 16px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--gold-light), var(--gold) 55%, var(--gold-dark));
-  border: 1px solid var(--gold-dark);
-  color: #1a1206;
+  /* Verde Minecraft (#55ff55 / #00aa00, i codici §a / §2): il dorato e' dello Store, e con la
+     stessa tinta e la stessa forma i due tasti si confondevano. */
+  --vote-glow: rgba(85, 255, 85, .5);
+  background: linear-gradient(135deg, #8bff6e, #55ff55 35%, #00aa00);
+  border: 1px solid #007a00;
+  color: #052a05;
   font-family: var(--font-heading);
   font-weight: 800;
   font-size: var(--fs-base);
@@ -797,7 +800,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   /* Senza la fluttuazione, che altrimenti terrebbe lei il transform. */
   animation: vote-glow 2.4s ease-out infinite;
   transform: translateY(-3px) scale(1.03);
-  color: #1a1206;
+  color: #052a05;
 }
 .vote-btn:active { transform: translateY(0) scale(.98); }
 /* Il riflesso: una banda chiara in diagonale che attraversa il tasto ogni 3,5 secondi. */
@@ -816,8 +819,9 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   display: inline-block;
   font-size: 1.25em;
   line-height: 1;
-  color: #fff8dc;
-  text-shadow: 0 0 6px #fff, 0 0 12px var(--gold-glow);
+  /* Gialla come il §e di Minecraft, col contorno scuro per staccarla dal verde chiaro. */
+  color: #ffff55;
+  text-shadow: 0 0 1px #3a3000, 0 0 2px #3a3000, 0 0 8px rgba(255, 255, 85, .9);
   animation: vote-star 2.4s ease-in-out infinite;
 }
 .vote-btn-text { position: relative; }
@@ -862,13 +866,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
 /* Versione compatta nella barra in alto: alta come gli altri pulsanti della barra, senza la
    fluttuazione (in una barra fissa sembrerebbe un tremolio); riflesso, alone e stella restano.
    Da schermo stretto solo la stella, quadrata come i tasti del tema e della lingua. */
-/* Colore proprio: il dorato e' dello Store (stessa tinta, stessa forma, si confondevano). Vota e'
-   verde Minecraft (#55ff55 / #00aa00 dei codici §a / §2), lo Store resta oro. */
 .vote-btn.vote-btn-nav {
-  --vote-glow: rgba(85, 255, 85, .5);
-  background: linear-gradient(135deg, #8bff6e, #55ff55 35%, #00aa00);
-  border-color: #007a00;
-  color: #052a05;
   gap: 7px;
   padding: 7px 14px 7px 11px;
   font-size: var(--fs-sm);
@@ -876,12 +874,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   animation: vote-glow 2.4s ease-out infinite;
   white-space: nowrap;
 }
-/* Stella gialla (come il §e di Minecraft) sul verde, con il contorno scuro per staccarla dallo sfondo chiaro. */
-.vote-btn.vote-btn-nav .vote-btn-star {
-  color: #ffff55;
-  text-shadow: 0 0 1px #3a3000, 0 0 2px #3a3000, 0 0 8px rgba(255, 255, 85, .9);
-}
-.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { color: #052a05; transform: translateY(-1px) scale(1.04); }
+.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { transform: translateY(-1px) scale(1.04); }
 @media (max-width: 1279px) {
   .vote-btn.vote-btn-nav { padding: 0; width: 34px; height: 34px; justify-content: center; flex-shrink: 0; }
   .vote-btn.vote-btn-nav .vote-btn-text { display: none; }
