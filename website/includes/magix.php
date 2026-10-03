@@ -24,13 +24,13 @@ require_once __DIR__ . '/helpers.php';
 const MAGIX_CURRENCY_ID = 'magix';
 /** Valuta dei pagamenti: i prezzi qui sotto sono in euro. */
 const MAGIX_PAY_CURRENCY = 'EUR';
-const MAGIX_MIN = 1;
+const MAGIX_MIN = 10;
 const MAGIX_MAX = 1000;
 /** Prezzo pieno di un Magix, in euro. */
 const MAGIX_PRICE = 0.10;
 /** Livelli di sconto: da quanti Magix scatta (from) e quanto vale in percentuale (pct). */
 const MAGIX_TIERS = [
-    ['from' => 1,    'pct' => 0],
+    ['from' => MAGIX_MIN, 'pct' => 0],
     ['from' => 100,  'pct' => 5],
     ['from' => 250,  'pct' => 10],
     ['from' => 500,  'pct' => 15],
@@ -139,13 +139,14 @@ function magix_ensure_tables(): void {
 }
 
 /**
- * Le voci del catalogo (cosa si compra in gioco con i Magix), dalla meno cara. Con $all anche
+ * Le voci del catalogo (cosa si compra in gioco con i Magix), nell'ordine scelto dallo staff
+ * (frecce in Gestione -> Store; a parita', dalla meno cara). Con $all anche
  * quelle spente (per il gestionale).
  */
 function magix_catalog(bool $all = false): array {
     magix_ensure_tables();
     return db()->query('SELECT id, name, cost, note, color, sort_order, enabled FROM magix_catalog'
-        . ($all ? '' : ' WHERE enabled = 1') . ' ORDER BY cost, sort_order, id')->fetchAll();
+        . ($all ? '' : ' WHERE enabled = 1') . ' ORDER BY sort_order, cost, id')->fetchAll();
 }
 
 /** Saldo Magix di un giocatore (0 se non ne ha mai avuti). */

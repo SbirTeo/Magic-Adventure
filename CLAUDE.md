@@ -196,7 +196,7 @@ a CMI.
   messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
   in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).
 - **Store dei Magix** (dal 3/10, sostituisce il vecchio store a pacchetti): il sito vende SOLO
-  Magix, la valuta di rete di MagixEssentials (`shared: true`). `/store` ha il cursore (1-1000
+  Magix, la valuta di rete di MagixEssentials (`shared: true`). `/store` ha il cursore (10-1000
   Magix, 0,10 € l'uno, sconti a livelli) e il portafoglio del giocatore, che si aggiorna da solo
   (`/api/magix`). Prezzi, livelli e limiti stanno SOLO in `website/includes/magix.php` (la pagina
   li riceve da li', la cassa li ricalcola). Pagato su PayPal, il sito accredita da solo i Magix in

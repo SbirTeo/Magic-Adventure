@@ -150,7 +150,7 @@
 .magix-unitario b { color: var(--text); }
 
 /* ---- Il cursore ------------------------------------------------------------------- */
-/* Margine ai lati pari a mezza maniglia (42px): agli estremi (1 e 1000 Magix) la maniglia
+/* Margine ai lati pari a mezza maniglia (42px): agli estremi (minimo e massimo) la maniglia
    resta tutta dentro il riquadro invece di uscire dal bordo, e le cifre sotto il cursore
    hanno spazio per stare centrate sulla loro tacca. */
 .magix-cursore-zona { margin: 34px 22px 8px; }

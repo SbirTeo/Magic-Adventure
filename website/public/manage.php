@@ -797,8 +797,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../includes/magix.php';
             magix_ensure_tables();
             $id = (int) ($_POST['id'] ?? 0);
-            if (($_POST['op'] ?? 'save') === 'delete') {
+            $op = (string) ($_POST['op'] ?? 'save');
+            if ($op === 'delete') {
                 db()->prepare('DELETE FROM magix_catalog WHERE id = ?')->execute([$id]);
+                redirect('/manage?section=store&ok=1#catalogo');
+            }
+            // Frecce su/giu': si rinumera tutto l'elenco nell'ordine attuale e la voce si scambia
+            // con la vicina. Rinumerare ogni volta tiene l'ordine pulito anche con voci vecchie
+            // che hanno tutte lo stesso numero.
+            if ($op === 'up' || $op === 'down') {
+                $ids = array_map('intval', array_column(magix_catalog(true), 'id'));
+                $pos = array_search($id, $ids, true);
+                $altro = $pos === false ? false : $pos + ($op === 'up' ? -1 : 1);
+                if ($altro !== false && isset($ids[$altro])) {
+                    [$ids[$pos], $ids[$altro]] = [$ids[$altro], $ids[$pos]];
+                }
+                $ordina = db()->prepare('UPDATE magix_catalog SET sort_order = ? WHERE id = ?');
+                foreach ($ids as $i => $voceId) {
+                    $ordina->execute([$i + 1, $voceId]);
+                }
                 redirect('/manage?section=store&ok=1#catalogo');
             }
             $nome = mb_substr(trim((string) ($_POST['name'] ?? '')), 0, 40);
@@ -814,8 +831,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare('UPDATE magix_catalog SET name = ?, cost = ?, note = ?, color = ?, enabled = ? WHERE id = ?')
                     ->execute([$nome, $costo, $nota, $colore, $attiva, $id]);
             } else {
-                db()->prepare('INSERT INTO magix_catalog (name, cost, note, color, enabled) VALUES (?, ?, ?, ?, ?)')
-                    ->execute([$nome, $costo, $nota, $colore, $attiva]);
+                // Una voce nuova va in fondo all'elenco.
+                $ultimo = (int) db()->query('SELECT COALESCE(MAX(sort_order), 0) FROM magix_catalog')->fetchColumn();
+                db()->prepare('INSERT INTO magix_catalog (name, cost, note, color, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+                    ->execute([$nome, $costo, $nota, $colore, $attiva, $ultimo + 1]);
             }
             redirect('/manage?section=store&ok=1#catalogo');
         }
@@ -2438,11 +2457,17 @@ if ($section === 'dashboard') {
     }
     // Una riga del modulo: vuota per la voce nuova. Stesse colonne per tutte, cosi' si leggono
     // come una tabella.
-    $catalogRow = function (?array $v) { ?>
-      <form method="post" class="magix-cat-riga" style="display:grid; grid-template-columns: minmax(120px,1.2fr) 110px minmax(140px,1.6fr) 56px auto auto; gap:8px; align-items:center; margin-bottom:8px;">
+    $catalogRow = function (?array $v, bool $primo = false, bool $ultimo = false) { ?>
+      <form method="post" class="magix-cat-riga" style="display:grid; grid-template-columns: 72px minmax(120px,1.2fr) 110px minmax(140px,1.6fr) 56px 90px 150px; gap:8px; align-items:center; margin-bottom:8px;">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="magix_item_save">
         <input type="hidden" name="id" value="<?= (int) ($v['id'] ?? 0) ?>">
+        <span style="display:flex; gap:4px;">
+          <?php if ($v): ?>
+            <button type="submit" name="op" value="up" class="btn btn-ghost btn-small" formnovalidate title="Sposta su" aria-label="Sposta su"<?= $primo ? ' disabled style="opacity:.3; cursor:default;"' : '' ?>>&#8593;</button>
+            <button type="submit" name="op" value="down" class="btn btn-ghost btn-small" formnovalidate title="Sposta giù" aria-label="Sposta giù"<?= $ultimo ? ' disabled style="opacity:.3; cursor:default;"' : '' ?>>&#8595;</button>
+          <?php endif; ?>
+        </span>
         <input type="text" name="name" maxlength="40" placeholder="Nome (es. VIP)" value="<?= h((string) ($v['name'] ?? '')) ?>" required aria-label="Nome">
         <input type="text" inputmode="numeric" pattern="[0-9]+" name="cost" placeholder="Magix" value="<?= h((string) ($v['cost'] ?? '')) ?>" required aria-label="Costo in Magix">
         <input type="text" name="note" maxlength="80" placeholder="Nota (es. 30 giorni)" value="<?= h((string) ($v['note'] ?? '')) ?>" aria-label="Nota">
@@ -2462,12 +2487,13 @@ if ($section === 'dashboard') {
     <h2 id="catalogo" style="margin-top:34px;">Cosa si compra con i Magix</h2>
     <p class="sub" style="margin-bottom:14px;">
       Le voci della sezione «Cosa puoi comprare con N Magix» dello <a href="/store">store</a>: nome, costo
-      in Magix, una nota (es. la durata) e il colore dell'etichetta. Si mostrano dalla meno cara e servono
+      in Magix, una nota (es. la durata) e il colore dell'etichetta. Si mostrano nell'ordine di questo
+      elenco (le frecce le spostano) e servono
       solo a far vedere cosa si può prendere: l'acquisto vero si fa in gioco. Finché l'elenco è vuoto
       la sezione la vede solo lo staff.
     </p>
     <div class="panel" style="overflow-x:auto;">
-      <?php foreach ($catalogo as $voce) { $catalogRow($voce); } ?>
+      <?php foreach ($catalogo as $i => $voce) { $catalogRow($voce, $i === 0, $i === count($catalogo) - 1); } ?>
       <?php $catalogRow(null); ?>
     </div>
 

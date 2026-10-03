@@ -42,7 +42,7 @@
   const etichette = $('magixEtichette');
   LIVELLI.forEach((l, i) => {
     const p = posOf(l.from) * 100;
-    // Niente puntino alle due estremita' (1 e 1000): cadrebbe sul bordo arrotondato del
+    // Niente puntino alle due estremita' (minimo e massimo): cadrebbe sul bordo arrotondato del
     // binario, e li' c'e' comunque la maniglia quando ci si arriva.
     if (i > 0 && i < LIVELLI.length - 1) {
       const t = document.createElement('span');
