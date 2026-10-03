@@ -119,6 +119,11 @@ public final class ScoreManager {
         return false;
     }
 
+    private AfkTracker afkTracker;
+
+    /** Lo collega AfkTracker al suo avvio: senza, nessuno risulta fermo. */
+    void setAfkTracker(AfkTracker t) { this.afkTracker = t; }
+
     /** Com'e' la fazione in un intervallo: qualcuno gioca, i collegati sono tutti fermi (AFK), nessuno c'e'. */
     private enum Presence { PLAYING, IDLE, OFFLINE }
 
@@ -129,7 +134,7 @@ public final class ScoreManager {
             if (u.equals(except)) continue;
             org.bukkit.entity.Player p = Bukkit.getPlayer(u);
             if (p == null) continue;
-            if (!AfkTracker.isAfk(p)) return Presence.PLAYING;
+            if (afkTracker == null || !afkTracker.isTrackedAfk(u)) return Presence.PLAYING;
             idle = true;
         }
         return idle ? Presence.IDLE : Presence.OFFLINE;
@@ -170,7 +175,7 @@ public final class ScoreManager {
     }
 
     /** Flush con lo stato online ATTUALE della fazione (per i campioni periodici e i cambi saldo). */
-    public void flush(Faction f) { flush(f, presence(f, null)); }
+    public void flush(Faction f) { if (f != null) flush(f, presence(f, null)); }
 
     /** Un membro ENTRA: chiude l'intervallo appena trascorso attribuendolo allo stato di PRIMA (online solo
      *  se c'erano gia' altri membri collegati), cosi' il tempo da offline non viene contato per la banca. */
@@ -182,18 +187,6 @@ public final class ScoreManager {
      *  giocatore risulta ancora collegato), cosi' il tempo giocato viene accreditato prima che se ne vada. */
     public void onMemberQuit(Faction f) {
         if (f != null) flush(f, presence(f, null));
-    }
-
-    /** Un membro diventa FERMO: fino a ora c'era almeno lui a giocare, quindi l'intervallo conta. */
-    public void onMemberAfk(Faction f) {
-        if (f != null) flush(f, Presence.PLAYING);
-    }
-
-    /** Un membro torna a giocare: l'intervallo appena trascorso conta solo se giocava qualcun altro. */
-    public void onMemberBack(Faction f, UUID back) {
-        if (f == null) return;
-        Presence before = presence(f, back);
-        flush(f, before == Presence.OFFLINE ? Presence.IDLE : before);   // c'era almeno lui, fermo
     }
 
     public int sampleIntervalSeconds() {
