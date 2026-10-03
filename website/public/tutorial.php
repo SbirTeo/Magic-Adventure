@@ -36,7 +36,7 @@ $versione = $esiste ? filemtime($percorso) : 0;
 // La guida passa da guida-embed.php (non dal percorso statico sopra) cosi' viene tradotta
 // come il resto del sito: nginx continua a servire anche l'originale, sempre in italiano,
 // per chi ci arriva con un indirizzo diretto.
-$guidaEmbedUrl = '/guida-embed.php?file=magixfactions&v=' . $versione;
+$guidaEmbedUrl = '/guida-embed?file=magixfactions&v=' . $versione;
 
 // --- Regolamento (testo dal gestionale + tabella sanzioni dal server) ----------------
 $stmtReg = db()->prepare('SELECT title, body FROM site_pages WHERE slug = ?');

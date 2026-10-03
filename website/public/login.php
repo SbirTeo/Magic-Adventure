@@ -40,38 +40,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $page_title = 'Accedi';
 require __DIR__ . '/../includes/header.php';
 ?>
-<h1 class="page-title">Accedi</h1>
+<?php /* Un riquadro stretto e centrato: due campi e un pulsante non hanno bisogno di tutta la
+         larghezza della pagina (prima il modulo ne occupava meta' e l'altra meta' restava vuota).
+         Sotto, le due domande che chi non riesce ad entrare si fa davvero. */ ?>
+<div class="accesso">
+  <div class="panel accesso-riquadro">
+    <h1 class="accesso-titolo">Accedi</h1>
+    <p class="accesso-sottotitolo">Con lo stesso nome e la stessa password che usi in gioco.</p>
 
-<?php if ($error): ?><div class="alert alert-error"><?= h($error) ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert alert-error"><?= h($error) ?></div><?php endif; ?>
 
-<div class="panel">
-  <form method="post" class="stack">
-    <?= csrf_field() ?>
-    <div>
-      <label for="username">Nome utente Minecraft</label>
-      <input type="text" id="username" name="username" autocomplete="username" value="<?= h($_POST['username'] ?? '') ?>">
-    </div>
-    <div>
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" autocomplete="current-password">
-    </div>
-    <?php
-    // Spuntato di serie, e alla prima apertura della pagina (nessun POST ancora) resta
-    // spuntato: e' il comportamento chiesto — non doversi ricollegare a ogni riavvio.
-    $__ricordami = $_SERVER['REQUEST_METHOD'] !== 'POST' || !empty($_POST['ricordami']);
-    ?>
-    <label class="campo-check">
-      <input type="checkbox" name="ricordami" value="1"<?= $__ricordami ? ' checked' : '' ?>>
-      <span>Resta collegato su questo dispositivo</span>
-    </label>
-    <button type="submit" class="btn btn-accent">Accedi</button>
-  </form>
+    <form method="post" class="stack accesso-modulo">
+      <?= csrf_field() ?>
+      <div>
+        <label for="username">Nome utente Minecraft</label>
+        <input type="text" id="username" name="username" autocomplete="username" required autofocus
+               value="<?= h($_POST['username'] ?? '') ?>">
+      </div>
+      <div>
+        <div class="accesso-etichetta-riga">
+          <label for="password">Password</label>
+          <a href="/password-dimenticata" class="accesso-link-piccolo">Password dimenticata?</a>
+        </div>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+      <?php
+      // Spuntato di serie, e alla prima apertura della pagina (nessun POST ancora) resta
+      // spuntato: e' il comportamento chiesto — non doversi ricollegare a ogni riavvio.
+      $__ricordami = $_SERVER['REQUEST_METHOD'] !== 'POST' || !empty($_POST['ricordami']);
+      ?>
+      <label class="campo-check">
+        <input type="checkbox" name="ricordami" value="1"<?= $__ricordami ? ' checked' : '' ?>>
+        <span>Resta collegato su questo dispositivo</span>
+      </label>
+      <button type="submit" class="btn btn-accent accesso-invia">Accedi</button>
+    </form>
+  </div>
+
+  <div class="accesso-aiuto">
+    <strong>Non hai ancora un account?</strong>
+    <p>
+      Entra su <strong>mc.magicadventure.it</strong> e al primo ingresso scrivi
+      <code>/register password password</code>: l'account nasce lì, e le stesse credenziali valgono qui.
+    </p>
+  </div>
 </div>
-
-<p style="color:var(--text-dim);">
-  Non hai ancora un account? Ti basta entrare su <strong>mc.magicadventure.it</strong>:
-  l'account nasce lì, e queste stesse credenziali valgono qui.<br>
-  Hai dimenticato la password? <a href="/password-dimenticata">Reimpostala</a>.
-</p>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

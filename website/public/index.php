@@ -190,6 +190,70 @@ require __DIR__ . '/../includes/header.php';
 <div class="section-divider" aria-hidden="true"></div>
 </div>
 
+<?php /* Come si entra + perche' venire: la hero dice cos'e' il server, qui si dice come si
+         comincia (tre passi, con l'IP da copiare) e cosa lo distingue. Chi arriva per la prima
+         volta non deve cercarlo nella guida. I punti di forza sono quelli raccontati
+         nell'articolo "Magic Adventure rinasce": se cambia il server, si cambiano qui. */ ?>
+<section class="home-inizia" aria-labelledby="home-inizia-titolo">
+  <div class="home-inizia-passi">
+    <h2 id="home-inizia-titolo" class="home-sezione-titolo">Come si entra</h2>
+    <ol class="home-passi">
+      <li>
+        <span class="home-passo-numero" aria-hidden="true">1</span>
+        <div>
+          <h3>Apri Minecraft Java</h3>
+          <p>Va bene anche senza account premium: l'accesso lo gestisce il server.</p>
+        </div>
+      </li>
+      <li>
+        <span class="home-passo-numero" aria-hidden="true">2</span>
+        <div>
+          <h3>Aggiungi il server</h3>
+          <p>Multigiocatore → Aggiungi server, e come indirizzo:</p>
+          <button type="button" class="ip-copy ip-copy-piccolo" data-ip="mc.magicadventure.it">
+            <span class="ip-copy-label">IP</span>
+            <span class="ip-copy-value">mc.magicadventure.it</span>
+          </button>
+        </div>
+      </li>
+      <li>
+        <span class="home-passo-numero" aria-hidden="true">3</span>
+        <div>
+          <h3>Registrati al primo ingresso</h3>
+          <p>Scrivi <code>/register password password</code>: le stesse credenziali valgono anche qui sul sito.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+  <div class="home-inizia-punti">
+    <h2 class="home-sezione-titolo">Perché Magic Adventure</h2>
+    <ul class="home-punti">
+      <li>
+        <?= ui_icon('swords', 'home-punto-icona') ?>
+        <div>
+          <h3>Fazioni hardcore</h3>
+          <p>Il territorio si prende e si perde: ogni caduta toglie Potenza alla fazione, e una fazione debole diventa conquistabile.</p>
+        </div>
+      </li>
+      <li>
+        <?= ui_icon('shield-check', 'home-punto-icona') ?>
+        <div>
+          <h3>Fatto su misura</h3>
+          <p>I plugin del server sono scritti per Magic Adventure, riga per riga: niente pacchetti comprati e adattati.</p>
+        </div>
+      </li>
+      <li>
+        <?= ui_icon('clock', 'home-punto-icona') ?>
+        <div>
+          <h3>Un mondo che segue il nostro</h3>
+          <p>Il sole sorge e tramonta all'ora vera, e le stagioni cambiano con il calendario.</p>
+        </div>
+      </li>
+    </ul>
+    <a href="/blog/magicadventure-rinasce" class="home-punti-link">Leggi la storia del server →</a>
+  </div>
+</section>
+
 <div class="content-with-sidebar">
   <?php /* Posto dove la chat va a stare quando la si ingrandisce: e' una riga a tutta
            larghezza SOPRA articoli e colonna di destra, quindi aprendola il resto della
