@@ -10,19 +10,29 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * /hub (alias /lobby): sends the player to the hub server from any server of the network.
  *
- * The connection goes through the normal pre-connect event, so ServerGuard still applies the
- * login rule (before /login the player stays where he is).
+ * The player reads network.hub.teleporting and is moved network.hub_delay_seconds later (a
+ * second /hub in the meantime does not start another one). The connection goes through the
+ * normal pre-connect event, so ServerGuard still applies the login rule (before /login the
+ * player stays where he is).
  */
 public final class HubCommand implements SimpleCommand {
 
+    private final Object plugin;
     private final ProxyServer proxy;
     private final ProxyConfig config;
+    /** Players with a teleport already counting down. */
+    private final Set<UUID> pending = ConcurrentHashMap.newKeySet();
 
-    public HubCommand(ProxyServer proxy, ProxyConfig config) {
+    public HubCommand(Object plugin, ProxyServer proxy, ProxyConfig config) {
+        this.plugin = plugin;
         this.proxy = proxy;
         this.config = config;
     }
@@ -33,7 +43,7 @@ public final class HubCommand implements SimpleCommand {
                 .aliases("lobby")
                 .plugin(plugin)
                 .build();
-        proxy.getCommandManager().register(meta, new HubCommand(proxy, config));
+        proxy.getCommandManager().register(meta, new HubCommand(plugin, proxy, config));
     }
 
     @Override
@@ -54,10 +64,27 @@ public final class HubCommand implements SimpleCommand {
             player.sendMessage(text(player, "hub.already-here", hub));
             return;
         }
-        player.createConnectionRequest(target.get()).connect().thenAccept(result -> {
+        if (!pending.add(player.getUniqueId())) {
+            return; // already on its way
+        }
+        player.sendMessage(text(player, "hub.teleporting", hub));
+        proxy.getScheduler().buildTask(plugin, () -> {
+            pending.remove(player.getUniqueId());
+            if (player.isActive()) {
+                connect(player, target.get(), hub);
+            }
+        }).delay(Math.max(0, config.hubDelaySeconds), TimeUnit.SECONDS).schedule();
+    }
+
+    private void connect(Player player, RegisteredServer target, String hub) {
+        if (player.getCurrentServer().map(s -> s.getServerInfo().getName().equalsIgnoreCase(hub)).orElse(false)) {
+            return; // got there another way in the meantime
+        }
+        player.createConnectionRequest(target).connect().thenAccept(result -> {
             if (result.isSuccessful()) {
-                player.sendMessage(text(player, "hub.sent", hub));
-            } else if (result.getStatus() == com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status.SERVER_DISCONNECTED) {
+                return;
+            }
+            if (result.getStatus() == com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status.SERVER_DISCONNECTED) {
                 player.sendMessage(text(player, "hub.unavailable", hub));
             }
             // CONNECTION_CANCELLED: ServerGuard already told the player why (login first).
