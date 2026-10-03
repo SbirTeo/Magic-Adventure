@@ -945,7 +945,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $puntoValido = static fn($v) => preg_match('/^\d{1,3}% \d{1,3}%$/', (string) $v) ? $v : '50% 50%';
             $imagePosition = $puntoValido($_POST['image_position'] ?? '');
             $imagePositionPc = $puntoValido($_POST['image_position_pc'] ?? '');
-            // Zoom della copertina, in percentuale, sempre fra STORE_ZOOM_MIN e STORE_ZOOM_MAX.
+            // Zoom della copertina, in percentuale, sempre fra STORE_ZOOM_MIN e STORE_ZOOM_MAX
+            // (100 = riempie la card, sotto 100 si rimpicciolisce per vederne di piu').
             $imageZoom = store_zoom_value($_POST['image_zoom'] ?? 100);
             $imageZoomPc = store_zoom_value($_POST['image_zoom_pc'] ?? 100);
 
@@ -3714,7 +3715,7 @@ if ($section === 'dashboard') {
                data-src="<?= h((string) $pkg['image_url']) ?>"
                <?= empty($pkg['image_url']) ? 'hidden' : '' ?>>
             <label>Inquadratura della copertina</label>
-            <p class="sub" style="margin:-2px 0 10px;">Sulla card l&rsquo;immagine viene ritagliata, e telefono e computer tagliano in modo diverso: <strong>trascinale una per una</strong> per scegliere cosa tenere in vista<?= $conZoom ? ', e col <strong>cursore</strong> sotto ognuna scegli quanto ingrandirla (lo zoom resta centrato sul punto scelto)' : '' ?>. Sono indipendenti.</p>
+            <p class="sub" style="margin:-2px 0 10px;">Sulla card l&rsquo;immagine viene ritagliata, e telefono e computer tagliano in modo diverso: <strong>trascinale una per una</strong> per scegliere cosa tenere in vista<?= $conZoom ? ', e col <strong>cursore</strong> sotto ognuna scegli quanto rimpicciolirla per vederne di più (100% = riempie la card; i bordi che restano scoperti li riempie la stessa immagine sfocata)' : '' ?>. Sono indipendenti.</p>
             <div class="inquadratura-riquadri">
               <figure class="inquadratura-box e-telefono">
                 <div class="inquadratura-tela" data-tela="telefono" data-campo="image_position"></div>

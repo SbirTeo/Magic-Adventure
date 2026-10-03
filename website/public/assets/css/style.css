@@ -2819,8 +2819,10 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
 /* copertina come sfondo, che si avvicina appena al passaggio del mouse */
 .store-card-media {
   /* Framing point and zoom chosen in the manager: the desktop values here, the phone ones
-     under 620px. Centre and 100% when nothing is set. The zoom is centred on the framing
-     point (transform-origin), so the part chosen in the manager stays in view. */
+     under 620px. Centre and 100% when nothing is set. The zoom (25-100%: below 100 the cover
+     shrinks to show more of the image) is NOT applied here: "cover" can't be scaled in CSS
+     without the image's size, so store.js reads --zoom and writes background-size in px from
+     the real image size (same maths as the manager preview). Without JS the cover stays at 100%. */
   --fuoco: var(--fuoco-pc, 50% 50%);
   --zoom: var(--zoom-pc, 1);
   position: absolute;
@@ -2828,8 +2830,8 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
   background-image: var(--copertina);
   background-size: cover;
   background-position: var(--fuoco);
-  transform-origin: var(--fuoco);
-  transform: scale(calc(var(--zoom) * 1.02));
+  background-repeat: no-repeat;
+  transform: scale(1.02);
   transition: transform .5s ease;
 }
 @media (max-width: 620px) {
@@ -2838,21 +2840,33 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
     --zoom: var(--zoom-telefono, 1);
   }
 }
+/* Copertina rimpicciolita (zoom sotto il 100%): i bordi della card che restano scoperti li
+   riempie la stessa immagine, ingrandita, sfocata e scurita, sotto la copertina vera. C'e' solo
+   sulle card che hanno uno zoom (la mette store_card()). Il bordo in piu' (inset negativo)
+   nasconde l'alone chiaro che la sfocatura lascerebbe ai lati. */
+.store-card-sfondo {
+  position: absolute;
+  inset: -24px;
+  background-image: var(--copertina);
+  background-size: cover;
+  background-position: center;
+  filter: blur(18px) brightness(0.55);
+}
+[data-tema="chiaro"] .store-card-sfondo {
+  background-image: var(--copertina-chiaro, var(--copertina));
+  filter: blur(18px) brightness(0.9);
+}
 /* Tema chiaro: la copertina caricata apposta (--copertina-chiaro), se il pacchetto ne ha una;
    altrimenti la stessa del tema scuro. Vale anche per la pagina del pacchetto. */
 [data-tema="chiaro"] :is(.store-card-media, .pkg-copertina) {
   background-image: var(--copertina-chiaro, var(--copertina));
 }
-.store-card:hover .store-card-media { transform: scale(calc(var(--zoom) * 1.07)); }
+.store-card:hover .store-card-media { transform: scale(1.07); }
 .store-card-media::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(var(--store-overlay-dir, 180deg), transparent 0%, var(--store-overlay) var(--store-overlay-stop, 55%));
-  /* The veil lives inside the zoomed layer: scaled back by the same factor around the same
-     point, so it keeps covering the card as before and the price stays readable. */
-  transform-origin: var(--fuoco);
-  transform: scale(calc(1 / var(--zoom)));
 }
 /* Senza copertina resta uno sfondo di cortesia, ma il velo si applica lo stesso:
    altrimenti il colore configurato non avrebbe effetto su queste card. */
@@ -5743,6 +5757,7 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   text-align: center;
 }
 .inquadratura-tela {
+  background-color: var(--bg);   /* what shows around a shrunk cover */
   background-size: cover;
   background-repeat: no-repeat;
   border: 1px solid var(--border-strong);

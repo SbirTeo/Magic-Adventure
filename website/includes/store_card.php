@@ -224,11 +224,14 @@ function store_card(array $item): void {
         $puntoOk = static fn($v): string => preg_match('/^\d{1,3}% \d{1,3}%$/', (string) $v) ? (string) $v : '50% 50%';
         $stile .= ';--fuoco-telefono:' . $puntoOk($item['image_position'] ?? '')
             . ';--fuoco-pc:' . $puntoOk($item['image_position_pc'] ?? '');
-        // Zoom around that point, also one per device; written only when it is not 100%.
+        // Zoom around that point (25-100%: below 100 the cover shrinks to show more of the
+        // image), also one per device; written only when it is not 100%.
+        $rimpicciolita = false;
         foreach (['image_zoom' => '--zoom-telefono', 'image_zoom_pc' => '--zoom-pc'] as $colonna => $var) {
             $zoom = store_zoom_value($item[$colonna] ?? 100);
             if ($zoom !== 100) {
                 $stile .= ';' . $var . ':' . ($zoom / 100);
+                $rimpicciolita = true;
             }
         }
     }
@@ -244,6 +247,10 @@ function store_card(array $item): void {
                id="<?= h($item['slug']) ?>"
                data-cat="<?= $catId ?>"
                <?= $stile !== '' ? ' style="' . ltrim($stile, ';') . '"' : '' ?>>
+        <?php if (!empty($rimpicciolita)): /* A shrunk cover leaves the card edges uncovered:
+                 a blurred copy of the same image fills them (only on cards that need it). */ ?>
+          <div class="store-card-sfondo" aria-hidden="true"></div>
+        <?php endif; ?>
         <div class="store-card-media" aria-hidden="true"></div>
         <?php if ($featured): /* Gold border comes from the CSS; here goes the badge. */ ?>
           <span class="store-card-consigliato">Consigliato</span>

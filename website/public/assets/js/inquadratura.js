@@ -12,8 +12,9 @@
  * foglio di stile: background-position.
  *
  * Se il pannello ha anche i cursori dello zoom (store: input[data-zoom="telefono"|"computer"])
- * l'anteprima ingrandisce l'immagine attorno al punto scelto, come fa la card (transform con
- * origine nel punto dell'inquadratura). Senza cursori lo zoom resta al 100%.
+ * l'anteprima ridimensiona l'immagine attorno al punto scelto, come fa la card (transform con
+ * origine nel punto dell'inquadratura): sotto il 100% la rimpicciolisce per mostrarne di piu'.
+ * Senza cursori lo zoom resta al 100%.
  */
 (function () {
   var pannello = document.querySelector('[data-inquadratura]');
@@ -61,7 +62,7 @@
     var valore = Math.round(pos.x) + '% ' + Math.round(pos.y) + '%';
     if (campo) campo.value = valore;
     tela.style.backgroundPosition = valore;
-    // Immagine "cover" ingrandita dello zoom, con la stessa posizione in percentuale: il punto
+    // Immagine "cover" moltiplicata per lo zoom, con la stessa posizione in percentuale: il punto
     // scelto resta fermo, esattamente come lo scale() con transform-origin della card.
     var sc = zoomDi(tela) !== 1 ? scalaDi(tela) : null;
     tela.style.backgroundSize = sc
@@ -111,9 +112,12 @@
     var r = sc.r;
     var eccessoX = misureImmagine.w * sc.s - r.width;
     var eccessoY = misureImmagine.h * sc.s - r.height;
+    // Eccesso NEGATIVO = immagine rimpicciolita, piu' piccola del riquadro su quel lato: la
+    // percentuale la sposta dentro il riquadro, e il segno del conto torna giusto da solo
+    // (trascinando a destra l'immagine va a destra).
     return {
-      x: eccessoX > 1 ? (dx / eccessoX) * 100 : 0,
-      y: eccessoY > 1 ? (dy / eccessoY) * 100 : 0
+      x: Math.abs(eccessoX) > 1 ? (dx / eccessoX) * 100 : 0,
+      y: Math.abs(eccessoY) > 1 ? (dy / eccessoY) * 100 : 0
     };
   }
 

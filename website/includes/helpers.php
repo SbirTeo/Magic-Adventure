@@ -993,9 +993,14 @@ function store_cols_mobile(): int {
     return max(1, min(3, (int) site_setting('store_cols_mobile', '1')));
 }
 
-/** Zoom minimo e massimo della copertina di un pacchetto, in percentuale (100 = nessuno). */
-const STORE_ZOOM_MIN = 100;
-const STORE_ZOOM_MAX = 300;
+/**
+ * Zoom minimo e massimo della copertina di un pacchetto, in percentuale. 100 = l'immagine riempie
+ * la card (nessuno zoom); sotto 100 si RIMPICCIOLISCE per vederne di piu' (sul telefono il
+ * ritaglio a 100 era troppo stretto). I bordi che restano scoperti li riempie una copia sfocata
+ * della stessa copertina (.store-card-sfondo).
+ */
+const STORE_ZOOM_MIN = 25;
+const STORE_ZOOM_MAX = 100;
 
 /** Zoom della copertina riportato fra STORE_ZOOM_MIN e STORE_ZOOM_MAX (100 se non e' un numero). */
 function store_zoom_value($v): int {
