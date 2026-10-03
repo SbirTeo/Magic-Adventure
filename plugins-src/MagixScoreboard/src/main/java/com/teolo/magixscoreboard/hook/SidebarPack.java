@@ -50,6 +50,8 @@ public final class SidebarPack {
         values.put("__SB_C2_B__", f(end[2]));
         values.put("__SB_BORDER_A__", f(borderAlpha));
         values.put("__SB_SHIFT__", f(Math.max(-200, Math.min(200, c.getDouble("sidebar-position.offset-y", 0)))));
+        values.put("__SB_SCALE_MODE__", String.valueOf(scaleMode(c)));
+        values.put("__SB_SCALE_SIZE__", f(scaleSize(c)));
 
         Map<String, byte[]> out = new LinkedHashMap<>();
         for (String path : FILES) {
@@ -61,6 +63,23 @@ public final class SidebarPack {
             }
         }
         return out;
+    }
+
+    /**
+     * sidebar-scale.mode -> codice dello shader (SB_SCALE_MODE in gui.vsh e nel text.vsh di MagixFactions):
+     * 0 = off, 1 = screen, 2 = integer. Un valore sconosciuto vale "screen", quello di serie.
+     * MagixFactions legge la stessa chiave con la stessa regola (ResourcePackContent).
+     */
+    public static int scaleMode(FileConfiguration c) {
+        String mode = c.getString("sidebar-scale.mode", "screen");
+        if ("off".equalsIgnoreCase(mode)) return 0;
+        if ("integer".equalsIgnoreCase(mode)) return 2;
+        return 1;
+    }
+
+    /** sidebar-scale.size: la Scala GUI equivalente su uno schermo alto 1080 pixel, fra 1 e 6. */
+    public static double scaleSize(FileConfiguration c) {
+        return Math.max(1, Math.min(6, c.getDouble("sidebar-scale.size", 3)));
     }
 
     /** Percentuale 0-100 del config -> 0..1 per lo shader. */

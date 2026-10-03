@@ -158,6 +158,18 @@ public final class MagixScoreboard extends JavaPlugin implements Listener {
                                 + "sfumature su 255): tooltip degli oggetti, menu e chat restano al loro posto anche "
                                 + "se passano nella fascia destra. Per sicurezza sposta solo le scritte marchiate "
                                 + "che cadono in quella fascia (larga zone-width) all'altezza della sidebar.")
+                .section("Grandezza della sidebar uguale per tutti",
+                        "Di serie il client disegna la sidebar alla Scala GUI scelta da ogni giocatore nelle "
+                                + "impostazioni video, quindi chi gioca con una scala alta la vede molto più grande "
+                                + "(e sopra la minimap). sidebar-scale la sgancia dalla Scala GUI con gli stessi "
+                                + "shader dello spostamento: lo sfondo lo ridimensiona MagixScoreboard, le scritte e "
+                                + "le icone lo shader del testo di MagixFactions, che legge gli stessi valori.",
+                        "mode: \"screen\" (adesso: {{cfg:sidebar-scale.mode}}) la tiene in proporzione all'altezza "
+                                + "dello schermo, così occupa la stessa parte di schermo per tutti; \"integer\" usa la "
+                                + "scala intera più vicina (lettere sempre nitide, grandezza a scatti fra risoluzioni); "
+                                + "\"off\" torna a vanilla. size (adesso: {{cfg:sidebar-scale.size}}) è la Scala GUI "
+                                + "equivalente su uno schermo alto 1080 pixel. Il resto dell'interfaccia (barra degli "
+                                + "oggetti, chat, menu) segue ancora la Scala GUI di ognuno.")
                 .detailedCommands()
                 .commands()
                 .permissions()

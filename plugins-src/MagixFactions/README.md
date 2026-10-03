@@ -501,6 +501,11 @@ default **8443**) raggiungibile dai client — va aperta sul firewall del server
 - **Nitidezza:** il contenuto della minimap e' campionato **nearest** (pixel netti), come la mappa-item —
   la versione precedente usava un filtro bilineare che la faceva sembrare "annebbiata"/sfocata.
 - **Punti cardinali:** N/S/O/E disegnati ai bordi (la minimap non ruota, il nord e' sempre in alto).
+- **Grandezza uguale per tutti:** `map.minimap.screen-size` e' in proporzione all'**altezza** dello schermo
+  (lato = screen-size × 0.89 dell'altezza): non dipende dalla Scala GUI del giocatore (lo shader disegna nel
+  mondo, non nella GUI) ne' dalla larghezza, quindi 16:10 e ultrawide vedono la stessa parte di schermo di un
+  16:9 (fino alla 0.62 era riferita alla larghezza: su 16:9 la grandezza e' rimasta identica). La sidebar fa
+  lo stesso con `sidebar-scale` di MagixScoreboard: le sue scritte le ridimensiona questo `text.vsh`.
 - **Area visibile / zoom:** SEMPRE identica allo zoom `/f map` del giocatore (`closer/closest/close/normal/far/farthest`,
   `/mf admin setmap`) — non è un valore indipendente, si aggiorna da sola se lo zoom della mappa cartacea cambia
   mentre la minimap è già attiva.

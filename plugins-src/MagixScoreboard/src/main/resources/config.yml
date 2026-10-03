@@ -47,6 +47,23 @@ sidebar-position:
   offset-y: 0             # pixel dell'interfaccia verso il BASSO (negativo = in alto), -200..200. 0 = vanilla
   zone-width: 200         # larghezza della fascia destra (pixel dell'interfaccia) in cui le scritte si spostano
 
+# Grandezza della sidebar UGUALE PER TUTTI. Di serie il client disegna la sidebar alla "Scala GUI"
+# che ogni giocatore sceglie nelle impostazioni video: con 4 è grande il doppio che con 2, e cambia
+# anche rispetto alla minimap di MagixFactions, che non segue la Scala GUI. Qui la si sgancia dalla
+# Scala GUI con gli stessi shader dello spostamento qui sopra (servono MagixPack e MagixFactions):
+# la sidebar ha per tutti la grandezza scelta qui (offset-y compreso), mentre il resto
+# dell'interfaccia (barra degli oggetti, chat, menu) segue ancora la Scala GUI di ognuno. Si applica
+# con /mscoreboard reload; i giocatori già connessi lo vedono dal prossimo ingresso.
+sidebar-scale:
+  # screen  = in proporzione all'altezza dello schermo: occupa sempre la stessa parte di schermo, a
+  #           ogni risoluzione. Con size 3 le lettere restano nitide a 720, 1080, 1440 e 2160 pixel di
+  #           altezza; alle altre risoluzioni qualche pixel delle lettere può uscire un filo più largo.
+  # integer = la Scala GUI intera più vicina a quella proporzione: lettere sempre nitide, ma fra una
+  #           risoluzione e l'altra la grandezza cambia a scatti.
+  # off     = come vanilla: segue la Scala GUI di ogni giocatore.
+  mode: screen
+  size: 3                 # la grandezza della Scala GUI <size> su uno schermo alto 1080 pixel (1-6, anche con la virgola)
+
 # In caso di PARITÀ di peso fra più scoreboard che corrispondono allo stesso
 # giocatore, decide quale vince: l'elenco va dal più specifico al meno
 # specifico. Valori ammessi (uno o più, in qualunque ordine):
