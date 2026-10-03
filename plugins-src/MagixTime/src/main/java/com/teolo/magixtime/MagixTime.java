@@ -256,6 +256,9 @@ public final class MagixTime extends JavaPlugin {
                         "Pioggia, temporali e durata delle fasi dipendono dalla stagione in corso. La neve segue "
                                 + "la stagione E il bioma: in un bioma caldo non nevica nemmeno a gennaio, ed è "
                                 + "corretto così.",
+                        "Il meteo è uno solo per tutto il server: se piove, piove in tutti i mondi gestiti e "
+                                + "smette in tutti insieme. Un /weather dato a mano cambia solo il mondo in cui lo "
+                                + "dai, e solo per {{cfg:weather.override-seconds}} secondi.",
                         "Lo stato del meteo viene salvato allo spegnimento, quindi un riavvio non azzera la fase "
                                 + "in corso.")
 

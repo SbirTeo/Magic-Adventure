@@ -3,7 +3,7 @@
 Plugin per **MAGICADVENTURE** (Paper 26.x) che allinea **l'ora di Minecraft all'orologio reale** e
 **la stagione al calendario reale**, con piogge, temporali e nevicate che cambiano di conseguenza.
 
-Versione: **0.3.2** — questo file viene riscritto in `plugins/MagixTime/README.md` ad ogni avvio del server.
+Versione: **0.4.15** — questo file viene riscritto in `plugins/MagixTime/README.md` ad ogni avvio del server.
 
 ---
 
@@ -137,6 +137,11 @@ autunno 60%, inverno 50% con accumulo di neve attivo.
 Con `weather.enabled: true` il plugin spegne `doWeatherCycle` e gestisce lui le fasi: alla fine di
 ogni fase tira i dadi con le probabilita' della stagione ed estrae la durata della successiva.
 Dopo la pioggia si torna sempre al sereno — e' il sereno a decidere se e quando ripiovera'.
+
+**Il meteo e' uno solo per tutto il server**: se piove, piove in tutti i mondi gestiti, e smette
+in tutti nello stesso momento (dalla 0.4.15; prima ogni mondo tirava i dadi per conto suo).
+Un `/weather` esterno cambia invece il mondo in cui e' dato, e solo per `override-seconds`.
+Faction e hub sono server diversi e hanno ciascuno il proprio meteo.
 
 - `weather.override-seconds: 120` — se qualcuno cambia il meteo dall'esterno, il cambio **vale** per
   due minuti e poi torna la fase della stagione. `0` = il plugin riprende il controllo subito.
