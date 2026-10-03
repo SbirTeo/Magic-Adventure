@@ -30,7 +30,9 @@
 .magix-intro { color: var(--text-dim); font-size: var(--fs-md); margin: 0 0 22px; max-width: 640px; }
 
 /* ---- Scelta della quantita' ---------------------------------------------------------- */
-.magix-scelta { padding: 28px 30px 30px; position: relative; overflow: hidden; }
+/* container-type: le colonne interne si decidono sulla larghezza del riquadro, non dello schermo
+   (con la colonna di destra accanto il riquadro e' stretto anche su uno schermo largo). */
+.magix-scelta { padding: 28px 30px 30px; position: relative; overflow: hidden; container-type: inline-size; }
 @media (max-width: 560px) { .magix-scelta { padding: 22px 18px 24px; } }
 .magix-scelta::before {
   content: "";
@@ -339,7 +341,7 @@
   gap: 22px;
   align-items: end;
 }
-@media (max-width: 640px) { .magix-riepilogo { grid-template-columns: 1fr; } }
+@container (max-width: 640px) { .magix-riepilogo { grid-template-columns: 1fr; } }
 .magix-righe > div { display: flex; justify-content: space-between; gap: 20px; font-size: var(--fs-sm); color: var(--text-dim); padding: 3px 0; max-width: 340px; }
 .magix-righe b { color: var(--text); font-variant-numeric: tabular-nums; }
 .magix-risparmio b { color: var(--green); }
@@ -347,7 +349,7 @@
 .magix-prossimo { font-size: var(--fs-sm); color: var(--text-dim); margin: 8px 0 0; }
 .magix-prossimo b { color: var(--magix-oro-testo); }
 .magix-cassa { text-align: right; max-width: 380px; }
-@media (max-width: 640px) { .magix-cassa { text-align: left; max-width: none; } }
+@container (max-width: 640px) { .magix-cassa { text-align: left; max-width: none; } }
 .magix-totale-lbl { font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-dim); }
 .magix-totale { font-size: 46px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
 .magix-compra { display: flex; flex-direction: column; gap: 10px; }
@@ -424,22 +426,6 @@
   border-color: var(--magix);
   background: linear-gradient(180deg, rgba(213, 76, 255, 0.16), rgba(213, 76, 255, 0.04));
   box-shadow: 0 0 0 1px var(--magix), 0 10px 30px -10px var(--magix-alone);
-}
-.magix-livello.attuale::before {
-  content: "Il tuo livello";
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--fs-2xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
-  background: var(--magix);
-  color: #fff;
-  padding: 1px 8px;
-  border-radius: var(--radius-xs);
-  white-space: nowrap;
 }
 .magix-livello.attuale .magix-gemme img { animation: magix-luccica 2.4s ease-in-out infinite; }
 .magix-livello.attuale .magix-gemme img:nth-child(2n) { animation-delay: .3s; }
