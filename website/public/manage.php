@@ -3031,7 +3031,9 @@ if ($section === 'dashboard') {
           </select>
           <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
             Quante card affiancare sui telefoni (schermi fino a 560px). Con 1 la card è larga
-            quanto lo schermo e ha testi a grandezza piena; con 2 o 3 le card diventano piccole e compatte.
+            quanto lo schermo, ha testi a grandezza piena e <strong>prende la forma della copertina</strong>,
+            che si vede intera (si allunga solo se il testo non ci sta); con 2 o 3 le card diventano
+            piccole e compatte.
           </p>
         </div>
         <button type="submit" class="btn btn-green btn-small">Salva</button>

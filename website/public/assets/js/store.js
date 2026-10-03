@@ -22,6 +22,8 @@
   });
 })();
 
+// Copertine delle card: forma della card da telefono (vedi sotto) e zoom.
+//
 // Zoom della copertina (gestionale, 25-100%, uno per telefono e uno per computer): sotto il
 // 100% l'immagine si rimpicciolisce per mostrarne di piu'. "cover" non si puo' moltiplicare in
 // CSS senza conoscere le misure del file, quindi qui: scala "cover" della card per lo zoom, in
@@ -30,10 +32,28 @@
 // computer, categoria che compare) e quando cambia il tema (la copertina chiara puo' essere un
 // altro file). I bordi scoperti li riempie .store-card-sfondo. Senza JavaScript resta al 100%.
 (function () {
+  var misure = {};   // indirizzo -> { w, h } (o la lista di chi aspetta che arrivi)
+
+  // Proporzioni delle copertine ospitate altrove: per quelle caricate sul sito --rapporto lo
+  // scrive gia' il server (store_cover_style); qui si completano le altre, cosi' anche loro da
+  // telefono danno la forma alla card. Va fatto per tema: la copertina chiara puo' essere diversa.
+  function shape(card) {
+    var strato = card.querySelector('.store-card-media');
+    if (!strato) return;
+    var chiaro = document.documentElement.getAttribute('data-tema') === 'chiaro';
+    var nome = chiaro && card.style.getPropertyValue('--copertina-chiaro') ? '--rapporto-chiaro' : '--rapporto';
+    if (card.style.getPropertyValue(nome)) return;
+    size(strato, function (img) {
+      if (img.w && img.h) card.style.setProperty(nome, String(img.w / img.h));
+    });
+  }
+  var conCopertina = [].slice.call(document.querySelectorAll('.store-card:not(.senza-immagine)'));
+  conCopertina.forEach(shape);
+  new MutationObserver(function () { conCopertina.forEach(shape); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema'] });
+
   var strati = [].slice.call(document.querySelectorAll('.store-card-sfondo + .store-card-media'));
   if (!strati.length) return;
-
-  var misure = {};   // indirizzo -> { w, h } (o la lista di chi aspetta che arrivi)
 
   function size(strato, cb) {
     var m = /url\(["']?(.*?)["']?\)/.exec(getComputedStyle(strato).backgroundImage || '');

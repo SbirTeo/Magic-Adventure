@@ -3075,6 +3075,16 @@ body.store-una-categoria .store-card-cat { display: none; }
   .store-griglia:not(.e-telefono-1) .store-card .store-card-modifica { bottom: 6px; right: 6px; }
   /* One per row: a little more air between the full-width cards. */
   .store-griglia.e-telefono-1 .store-fila { gap: 16px; --store-fila-gap: 16px; }
+  /* One per row: the card takes the shape of its cover (--rapporto = width / height of the
+     image, written by store_cover_style() or, for images hosted elsewhere, by store.js), so the
+     whole image shows instead of a crop. min-height: auto lets the card still grow if its text
+     needs more room than the image gives. In the light theme the light cover's own shape. */
+  .store-griglia.e-telefono-1 .store-card[style*="--rapporto"] { min-height: auto; aspect-ratio: var(--rapporto); }
+  [data-tema="chiaro"] .store-griglia.e-telefono-1 .store-card[style*="--rapporto"] {
+    aspect-ratio: var(--rapporto-chiaro, var(--rapporto));
+  }
+  /* No 2% hover margin here (no mouse on a phone): the image shows edge to edge. */
+  .store-griglia.e-telefono-1 .store-card[style*="--rapporto"] .store-card-media { transform: none; }
   .store-cat-titolo { font-size: var(--fs-md); }
   .store-filtro { padding: 7px 12px; font-size: var(--fs-xs); }
 }

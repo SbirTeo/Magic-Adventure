@@ -1056,9 +1056,32 @@ function store_covers(array $pkg): array {
 }
 
 /**
+ * Larghezza diviso altezza di un'immagine caricata sul sito (indirizzo che inizia con "/", file
+ * dentro public/), oppure null: immagine esterna, file mancante o non leggibile. Legge solo
+ * l'intestazione del file, e una volta per richiesta.
+ */
+function site_image_ratio(string $url): ?float {
+    static $cache = [];
+    if (array_key_exists($url, $cache)) {
+        return $cache[$url];
+    }
+    $percorso = (string) parse_url($url, PHP_URL_PATH);
+    $ratio = null;
+    if ($percorso !== '' && $percorso[0] === '/' && !str_starts_with($url, '//') && !str_contains($percorso, '..')) {
+        $misure = @getimagesize(__DIR__ . '/../public' . rawurldecode($percorso));
+        if ($misure && $misure[0] > 0 && $misure[1] > 0) {
+            $ratio = $misure[0] / $misure[1];
+        }
+    }
+    return $cache[$url] = $ratio;
+}
+
+/**
  * Le variabili CSS delle copertine (--copertina e, se diversa, --copertina-chiaro) da mettere
  * nello style della card o della pagina del pacchetto; '' se il pacchetto non ha immagini.
  * Il CSS usa --copertina-chiaro col tema chiaro e ripiega su --copertina quando manca.
+ * Con le copertine caricate sul sito aggiunge anche le loro proporzioni (--rapporto e
+ * --rapporto-chiaro): da telefono la card prende la forma dell'immagine.
  */
 function store_cover_style(array $pkg): string {
     $c = store_covers($pkg);
@@ -1068,6 +1091,15 @@ function store_cover_style(array $pkg): string {
     $stile = "--copertina:url('" . h($c['scura']) . "')";
     if ($c['chiara'] !== $c['scura']) {
         $stile .= ";--copertina-chiaro:url('" . h($c['chiara']) . "')";
+    }
+    foreach (['scura' => '--rapporto', 'chiara' => '--rapporto-chiaro'] as $tema => $var) {
+        if ($tema === 'chiara' && $c['chiara'] === $c['scura']) {
+            continue;
+        }
+        $r = site_image_ratio($c[$tema]);
+        if ($r !== null) {
+            $stile .= ';' . $var . ':' . round($r, 4);
+        }
     }
     return $stile;
 }
