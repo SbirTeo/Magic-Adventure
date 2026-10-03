@@ -6766,6 +6766,17 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 /* La bandiera: sempre un quadrato, col disegno al centro e aria tutto intorno. */
 .auth-box > .cambia-lingua > summary.btn { width: var(--barra-h); padding: 0; }
 .auth-box > a.who-link { padding: 0 14px 0 5px; }
+/* Gestione: solo l'ingranaggio, quadrato come la bandiera. */
+.auth-box > .btn.gestione-barra { width: var(--barra-h); padding: 0; }
+.gestione-barra svg {
+  display: block; width: 17px; height: 17px;
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+/* Su schermo largo il tasto Vota sta tutto a sinistra della riga dei tasti; gli altri restano
+   a destra. */
+@media (min-width: 961px) {
+  .auth-box > .vote-btn.vote-btn-nav { margin-right: auto; }
+}
 @media (max-width: 1279px) {
   /* Da qui in giu' stella e tema sono solo icona: quadrati come la bandiera. */
   .auth-box > .btn.cambia-tema,

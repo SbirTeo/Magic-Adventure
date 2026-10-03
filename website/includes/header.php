@@ -619,7 +619,12 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <span class="who colore-grado"<?= $__coloreNome !== null ? ' style="' . rank_color_style($__coloreNome) . '"' : '' ?>><?= h($__u['mc_username']) ?></span>
         </a>
         <?php if (can_manage()): ?>
-          <a href="/manage" class="btn btn-ghost gestione-barra">Gestione</a>
+          <?php /* Solo icona (un ingranaggio), quadrata come tema e lingua: il nome resta nel
+                   title e nell'aria-label, per chi passa col mouse e per lo schermo vocale. */ ?>
+          <a href="/manage" class="btn btn-ghost gestione-barra<?= str_starts_with((string) $__currentPath, '/manage') ? ' active' : '' ?>"
+             title="Gestione" aria-label="Gestione">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </a>
         <?php endif; ?>
         <a href="/logout" class="btn btn-ghost">Esci</a>
       <?php else: ?>
