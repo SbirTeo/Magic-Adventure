@@ -821,7 +821,7 @@ function unique_slug(string $table, string $base): string {
  * Finche' e' vuoto, promozione VIP e obiettivo del mese non si mostrano: portavano a una
  * pagina "in preparazione" con una barra ferma allo 0%, cioe' a una promessa non mantenuta.
  */
-function store_ha_pacchetti(): bool {
+function store_has_packages(): bool {
     static $risposta = null;
     if ($risposta === null) {
         try {

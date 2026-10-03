@@ -89,7 +89,7 @@ function obiettivo_dati(): array {
 function obiettivo_sezione(): void {
     $o = obiettivo_dati();
     // Con lo store vuoto non c'e' modo di contribuire: la barra resterebbe ferma allo 0%.
-    if (!$o['attivo'] || !store_ha_pacchetti()) {
+    if (!$o['attivo'] || !store_has_packages()) {
         return;
     }
     $cifra = fn(float $v): string => number_format($v, 2, ',', '.');
