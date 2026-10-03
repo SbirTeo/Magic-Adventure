@@ -429,3 +429,14 @@ CREATE TABLE IF NOT EXISTS project_boards (
     created_by INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Contatti social scelti dal giocatore nel suo profilo (vedi includes/socials.php e
+-- migrazioni/2026-10-03-social-profilo.sql): solo il nome utente, il link lo costruisce il sito.
+CREATE TABLE IF NOT EXISTS user_socials (
+    user_id INT NOT NULL,
+    network VARCHAR(20) NOT NULL,
+    handle VARCHAR(100) NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, network),
+    CONSTRAINT fk_user_socials_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

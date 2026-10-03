@@ -7926,3 +7926,43 @@ table.rank td:first-child { width: 1%; }
 .classifica-fuori-motivo .ico { width: 12px; height: 12px; }
 .classifica-fuori-motivo.is-staff { color: var(--purple); background: color-mix(in srgb, var(--purple) 14%, transparent); }
 .classifica-fuori-motivo.is-ferma { color: var(--text-dim); background: var(--bg-elevated); }
+
+/* =========================================================================================
+   CONTATTI SOCIAL del giocatore (includes/socials.php): pulsanti nella carta del profilo e
+   modulo nel profilo personale. Ogni social ha il suo colore (--social) solo come accento.
+   ========================================================================================= */
+.social-elenco { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; margin-top: 16px; }
+.social-voce {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-width: 0;
+  padding: 7px 12px 7px 9px; border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--social) 40%, var(--border));
+  background: color-mix(in srgb, var(--social) 10%, var(--bg-panel-2));
+  color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 600; text-align: left;
+  text-decoration: none; cursor: pointer; transition: background-color .14s, transform .14s;
+}
+.social-voce:hover { background: color-mix(in srgb, var(--social) 20%, var(--bg-panel-2)); color: var(--text); text-decoration: none; transform: translateY(-1px); }
+.social-voce .ico { width: 18px; height: 18px; flex: 0 0 auto; color: var(--social); }
+.social-voce > span { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.social-voce small { color: var(--text-dim); font-size: var(--fs-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.social-voce.is-copiato .ico { color: var(--green); }
+.profilo-social-aggiungi { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-size: var(--fs-sm); font-weight: 600; }
+
+.social-modulo-nota { margin: 0 0 16px; color: var(--text-dim); font-size: var(--fs-sm); max-width: 75ch; }
+.social-campi { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 12px 16px; margin-bottom: 18px; }
+.social-campo { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.social-campo-nome { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: var(--fs-sm); color: var(--text); }
+.social-campo-nome .ico { width: 16px; height: 16px; color: var(--social); }
+.social-campo-riga {
+  display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-panel-2); overflow: hidden;
+}
+.social-campo-riga:focus-within { border-color: color-mix(in srgb, var(--social) 70%, var(--border)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--social) 18%, transparent); }
+.social-campo-prefisso { display: flex; align-items: center; padding: 0 4px 0 10px; color: var(--text-dimmer); font-size: var(--fs-sm); white-space: nowrap; }
+.social-campo-riga input { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; box-shadow: none; padding: 9px 10px 9px 2px; }
+.social-campo-riga input:focus { outline: none; box-shadow: none; }
+.social-campo.is-errato .social-campo-riga { border-color: #e05a5a; }
+.social-campo.is-errato small { color: #f87171; font-size: var(--fs-xs); }
+.social-elenco { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(124px, 100%), 1fr)); }
+.social-voce { width: 100%; }
+.social-campo, .social-campo span, .social-campo small { text-transform: none; letter-spacing: 0; }
+.social-campo-prefisso { font-weight: 400; }

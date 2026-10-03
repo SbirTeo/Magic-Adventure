@@ -520,3 +520,20 @@ document.querySelectorAll('[data-profilo-schede]').forEach(function (blocco) {
     });
   });
 });
+
+/* Contatti social: Discord non ha una pagina pubblica per nome, quindi il pulsante copia il nome
+   (data-copia) e per un attimo lo dice, al posto del nome stesso. */
+document.querySelectorAll('[data-copia]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var testo = btn.getAttribute('data-copia');
+    var riga = btn.querySelector('span');
+    var prima = riga ? riga.innerHTML : '';
+    function fatto() {
+      btn.classList.add('is-copiato');
+      if (riga) riga.innerHTML = '<small>Copiato</small>' + testo.replace(/[<>&"]/g, '');
+      setTimeout(function () { btn.classList.remove('is-copiato'); if (riga) riga.innerHTML = prima; }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(testo).then(fatto).catch(fatto);
+    else fatto();
+  });
+});

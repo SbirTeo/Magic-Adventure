@@ -10,6 +10,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/profile.php';
+require_once __DIR__ . '/../includes/socials.php';
 
 $nome = trim((string) ($_GET['nome'] ?? ''));
 
@@ -114,6 +115,8 @@ require __DIR__ . '/../includes/header.php';
         <dd><?= h($dataIt($utente['created_at'])) ?></dd>
       </div>
     </dl>
+
+    <?= social_links_html(social_list((int) $utente['id'])) ?>
 
     <?php if ($sonoIo): ?>
       <a href="/profilo" class="btn btn-ghost btn-small profilo-carta-azione">Questo sei tu: apri il tuo profilo</a>
