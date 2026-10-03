@@ -327,7 +327,9 @@ body.pagina-store {
   .main-nav > * { flex-shrink: 0; white-space: nowrap; }
   /* Le voci occupano tutta l'altezza della riga, col testo al centro: l'indicatore della
      pagina attiva sta cosi' sul bordo basso della testata, non appeso sotto la parola. */
-  .main-nav a:not(.btn-nav):not(.nav-logo) {
+  /* :not(.nav-gestione): quella voce esiste solo nel menu da telefono, qui resta nascosta
+     (senza l'esclusione questa regola, piu' pesante, la rimetteva in barra). */
+  .main-nav a:not(.btn-nav):not(.nav-logo):not(.nav-gestione) {
     position: relative;
     align-self: stretch;
     display: flex;
