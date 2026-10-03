@@ -117,8 +117,9 @@ $rigaDiscussione = function (array $t, int $i): void { ?>
       <p class="forum-sottotitolo"><?= h($cat['description']) ?></p>
     </div>
   </div>
-  <?php /* Con delle sezioni qui non si apre niente: si sceglie in quale sezione scrivere. */ ?>
-  <?php if (!$haSotto): ?>
+  <?php /* Con delle sezioni qui non si apre niente: si sceglie in quale sezione scrivere. A
+           categoria vuota il pulsante sta solo nell'invito al centro, non due volte. */ ?>
+  <?php if (!$haSotto && $topics): ?>
     <div class="forum-hero-azioni">
       <?php if (is_logged_in()): ?>
         <a href="/forum/new_topic?category=<?= urlencode($cat['slug']) ?>" class="btn btn-green"><?= ui_icon('plus') ?> Nuova discussione</a>
