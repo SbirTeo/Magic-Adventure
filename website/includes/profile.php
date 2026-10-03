@@ -214,6 +214,14 @@ function profile_playtime(int $seconds): string {
  * La scheda Factions: la fazione (posizione in classifica, territori, potenza e se e' conquistabile,
  * banca, fondazione, membri con avatar, alleati) e sotto le statistiche personali.
  */
+/**
+ * L'avatar di una fazione. Per ora e' per tutte lo stemma di serie; quando le fazioni potranno
+ * scegliersi il proprio basta restituire qui il loro (es. $f['avatar']) e le schede lo mostrano.
+ */
+function faction_avatar_url(array $f): string {
+    return '/assets/img/fazione-default.svg';
+}
+
 function profile_faction_render(array $dati, bool $own): string {
     $io = $dati['player'] ?? [];
     $f = $dati['faction'] ?? null;
@@ -221,8 +229,6 @@ function profile_faction_render(array $dati, bool $own): string {
     $mioUuid = strtolower(str_replace('-', '', (string) ($io['mc_uuid'] ?? '')));
     ob_start();
     if ($f):
-        $sigla = trim((string) ($f['tag'] ?? ''));
-        if ($sigla === '' || mb_strlen($sigla) > 5) $sigla = mb_substr((string) $f['name'], 0, 3);
         $territori = (int) $f['claims'];
         $potenza = 0; $potenzaMax = 0;
         foreach ($membri as $m) { $potenza += (int) $m['power']; $potenzaMax += (int) $m['max_power']; }
@@ -232,27 +238,29 @@ function profile_faction_render(array $dati, bool $own): string {
         $desc = trim((string) ($f['description'] ?? ''));
     ?>
       <div class="profilo-fazione">
-        <span class="profilo-fazione-sigla" aria-hidden="true"><?= h($sigla) ?></span>
+        <img class="profilo-fazione-avatar" src="<?= h(faction_avatar_url($f)) ?>" alt="" width="64" height="64">
         <div class="profilo-fazione-testo">
           <strong><?= h($f['name']) ?></strong>
           <small>
             <?= h($grado !== '' ? $grado : 'Membro') ?><?= $dentroDal !== '' ? ' &middot; dentro dal ' . h($dentroDal) : '' ?>
           </small>
+          <?php if ($desc !== ''): ?>
+            <p class="profilo-fazione-desc">&ldquo;<?= h($desc) ?>&rdquo;</p>
+          <?php endif; ?>
         </div>
-        <a class="profilo-fazione-posto<?= $pos >= 1 && $pos <= 3 ? ' is-podio' : '' ?>" href="/classifiche" title="Apri la classifica delle fazioni">
+        <a class="profilo-fazione-posto<?= $pos > 0 ? ' ha-medaglia' : '' ?>" href="/classifiche" title="Apri la classifica delle fazioni">
           <?php if ($pos > 0): ?>
-            <span class="pos<?= $pos <= 3 ? ' pos-medaglia pos-' . $pos : '' ?>"><?= $pos ?></span>
-            <span><strong><?= $pos ?>&ordm; posto</strong><small>su <?= (int) ($f['ranked_total'] ?? $pos) ?> in classifica</small></span>
+            <span class="posto-testo"><strong><?= $pos ?>&ordm; posto</strong><small>su <?= (int) ($f['ranked_total'] ?? $pos) ?> in classifica</small></span>
+            <span class="medaglia medaglia-<?= $pos <= 3 ? $pos : 'altro' ?>" aria-hidden="true">
+              <i class="medaglia-nastro"></i><b class="medaglia-disco"><span><?= $pos ?></span></b>
+            </span>
           <?php elseif ((int) $f['ranked'] !== 1): ?>
-            <?= ui_icon('trophy') ?><span><strong>Fuori classifica</strong><small>vedi la classifica</small></span>
+            <?= ui_icon('trophy') ?><span class="posto-testo"><strong>Fuori classifica</strong><small>vedi la classifica</small></span>
           <?php else: ?>
-            <?= ui_icon('trophy') ?><span><strong>Classifica</strong><small>vedi le posizioni</small></span>
+            <?= ui_icon('trophy') ?><span class="posto-testo"><strong>Classifica</strong><small>vedi le posizioni</small></span>
           <?php endif; ?>
         </a>
       </div>
-      <?php if ($desc !== ''): ?>
-        <p class="profilo-fazione-desc">&ldquo;<?= h($desc) ?>&rdquo;</p>
-      <?php endif; ?>
 
       <div class="profilo-fazione-numeri">
         <div><span><?= ui_icon('map') ?> Territori</span><strong><?= $territori ?></strong></div>
@@ -306,7 +314,7 @@ function profile_faction_render(array $dati, bool $own): string {
           <strong><?= $own ? 'Non sei in nessuna fazione' : 'Non è in nessuna fazione' ?></strong>
           <small><?= $own ? 'Fondane una con <code>/f create</code> o fatti invitare.' : 'Gioca da solo, per ora.' ?></small>
         </div>
-        <a class="profilo-fazione-posto" href="/classifiche"><?= ui_icon('trophy') ?><span><strong>Classifica</strong><small>le fazioni più forti</small></span></a>
+        <a class="profilo-fazione-posto" href="/classifiche"><?= ui_icon('trophy') ?><span class="posto-testo"><strong>Classifica</strong><small>le fazioni più forti</small></span></a>
       </div>
     <?php endif; ?>
 
