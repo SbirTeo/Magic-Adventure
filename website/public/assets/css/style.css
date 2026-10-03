@@ -267,45 +267,91 @@ body.pagina-store {
    capo: se le voci non ci stanno (in inglese sono piu' lunghe) scorre di lato. Sotto i 960px
    resta il menu ad hamburger di sempre. */
 @media (min-width: 961px) {
-  /* row-gap 9: la fascia scura sporge 3px sotto i tasti, quindi alla barra delle voci restano
-     6px sopra, gli stessi 6 che ha sotto (2 della barra + 4 qui): riga centrata. */
-  .header-inner { flex-wrap: wrap; row-gap: 9px; padding-top: 10px; padding-bottom: 4px; }
-  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative; min-height: 50px; }
-  /* Riga dei tasti piu' alta: tutti i tasti (vota, tema, lingua, profilo, gestione, esci) si
-     allungano fino all'altezza della riga. */
-  .header-inner > .auth-box > * { align-self: stretch; }
+  /* Due righe ALTE UGUALI (--nav-riga): sopra i tasti, sotto le voci. Niente spazi fra le due
+     e niente padding nella testata: ogni riga e' alta esattamente --nav-riga e il contenuto ci
+     sta centrato da se', quindi non ci sono piu' millimetri da compensare a mano. */
+  .site-header {
+    --nav-riga: 56px;
+    overflow-x: clip;
+    /* Ombra a due strati: un filo scuro netto che stacca la testata dalla pagina e una
+       sfumatura morbida e corta sotto, invece di un unico alone largo. */
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 14px 28px -18px rgba(0, 0, 0, .85);
+  }
+  .header-inner { flex-wrap: wrap; row-gap: 0; padding-top: 0; padding-bottom: 0; }
+  .header-inner > .auth-box {
+    order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative;
+    height: var(--nav-riga);
+  }
   /* La riga dei tasti ha una fascia piu' scura, a tutta larghezza dello schermo (non solo del
      contenuto centrato): la fa uno sfondo dietro, largo quanto la finestra, tagliato dalla testata
      con overflow-x: clip (clip e non hidden: non crea un'area di scorrimento, la barra resta
-     appiccicata in alto). Il colore viene da quello della testata, quindi segue i temi. */
-  .site-header { overflow-x: clip; }
+     appiccicata in alto). Il colore viene da quello della testata, quindi segue i temi: una
+     sfumatura leggera dall'alto verso il basso e, a dividere le due righe, una riga sottile
+     chiara con sotto un'ombra corta, come un'incisione. */
   .header-inner > .auth-box::before {
     content: "";
     position: absolute;
     z-index: -1;
-    top: -10px; bottom: -3px;
+    top: 0; bottom: 0;
     left: -100vw; right: -100vw;
-    background: color-mix(in srgb, var(--bg-testata) 55%, #000);
-    /* bordo un filo piu' marcato di quelli normali, piu' un'ombra appena accennata: sulla fascia
-       scura la riga di --border quasi spariva e le due righe sembravano incollate */
-    border-bottom: 1px solid var(--border-strong);
-    box-shadow: 0 1px 6px -2px rgba(0, 0, 0, .55);
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-testata) 48%, #000),
+      color-mix(in srgb, var(--bg-testata) 60%, #000));
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 4px 10px -6px rgba(0, 0, 0, .6);
+  }
+  /* Tema chiaro: la stessa fascia mescolata col nero al 50% diventava un grigio scuro pesante.
+     Qui basta un velo leggero, e anche le ombre si alleggeriscono. */
+  [data-tema="chiaro"] .header-inner > .auth-box::before {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-testata) 93%, #000),
+      color-mix(in srgb, var(--bg-testata) 96%, #000));
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .7), 0 4px 10px -8px rgba(0, 0, 0, .25);
+  }
+  [data-tema="chiaro"] .site-header {
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .06), 0 12px 24px -18px rgba(0, 0, 0, .35);
   }
   .nav-collapse { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
   .main-nav {
     flex-wrap: nowrap; min-width: 0;
+    height: var(--nav-riga);
+    gap: 26px;
     overflow-x: auto; overflow-y: hidden;
-    /* un po' d'aria sopra e sotto: il bagliore dello Store non deve restare tagliato */
-    padding: 6px 4px 2px; margin: -6px -4px 0;
+    /* un filo d'aria ai lati: il bagliore dello Store non deve restare tagliato */
+    padding: 0 4px; margin: 0 -4px;
     scrollbar-width: thin;
   }
   .main-nav > * { flex-shrink: 0; white-space: nowrap; }
-  /* Tutto centrato sulla riga, misurato nel browser: prima i link avevano 6px sopra e 12px
-     sotto (10 + la riga dell'attivo), il testo stava 4-5px sopra il centro e lo Store, che li
-     inseguiva col margine, pure. Ora sopra 8, sotto 6 + 2 della riga: il testo e' al centro,
-     e lo Store non ha piu' niente da recuperare. */
-  .main-nav a:not(.btn-nav):not(.nav-logo) { padding: 8px 1px 6px; }
+  /* Le voci occupano tutta l'altezza della riga, col testo al centro: l'indicatore della
+     pagina attiva sta cosi' sul bordo basso della testata, non appeso sotto la parola. */
+  .main-nav a:not(.btn-nav):not(.nav-logo) {
+    position: relative;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    border-bottom: 0;
+    transition: color .15s;
+  }
+  .main-nav a:not(.btn-nav):not(.nav-logo)::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--purple);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--purple) 70%, transparent);
+    transform: scaleX(0);
+    opacity: 0;
+    transition: transform .2s ease, opacity .2s ease;
+  }
+  .main-nav a:not(.btn-nav):not(.nav-logo):hover::after { transform: scaleX(.6); opacity: .45; }
+  .main-nav a.active:not(.btn-nav):not(.nav-logo)::after { transform: scaleX(1); opacity: 1; }
   .main-nav .btn-nav { margin: 0; }
+  .main-nav a.nav-logo img { max-height: calc(var(--nav-riga) - 12px); }
+}
+@media (min-width: 961px) and (prefers-reduced-motion: reduce) {
+  .main-nav a:not(.btn-nav):not(.nav-logo)::after { transition: none; }
 }
 /* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata.
    ".btn.cambia-tema" e non solo ".cambia-tema": .btn e' definito piu' sotto nel file e a pari
