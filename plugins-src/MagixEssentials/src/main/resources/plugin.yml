@@ -14,7 +14,7 @@ description: "Utilita' del server (tablist, MOTD, nametag, chat, valute, oggetti
 softdepend: [PlaceholderAPI, ProtocolLib, LuckPerms, MagixLanguage]
 commands:
   magixessentials:
-    description: "Comandi di MagixEssentials (reload, joinitems)."
+    description: "Comandi di MagixEssentials (reload, joinitems, lobby)."
     aliases: [mess, magixess]
     permission: magixessentials.admin
 permissions:

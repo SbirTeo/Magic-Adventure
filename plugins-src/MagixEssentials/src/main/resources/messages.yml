@@ -41,6 +41,14 @@ customjoinitems:
   given: "&7Oggetti dati a &f{count}&7 giocatori."
   removed: "&7Oggetti tolti a &f{count}&7 giocatori."
 
+# La lobby dell'hub (modulo hub-lobby), /mess lobby setspawn. {world} il mondo, {x} {y} {z} le
+# coordinate arrotondate del punto salvato.
+lobby:
+  spawn-set: "&7Spawn della lobby fissato in &f{world} {x}/{y}/{z}&7, sguardo compreso."
+  module-off: "&7Il modulo hub-lobby è spento: lo spawn vale quando lo accendi in modules.yml."
+  players-only: "&cQuesto comando si usa in gioco: lo spawn è il punto in cui ti trovi."
+  save-failed: "&cNon sono riuscito a salvare lo spawn in hub-lobby.yml: guarda il log."
+
 # Il comando /magixessentials (alias /mess): risposta al reload e sottocomando sconosciuto.
 # {modules} = i moduli accesi dopo il reload.
 reloaded: "&#A8DC2CConfigurazione ricaricata &8· &#9A8CA8moduli: &f{modules}"
@@ -66,4 +74,5 @@ help:
         - "/mess help :: questo elenco"
         - "/mess joinitems give [giocatore|all] :: rimette gli oggetti fissi dell'inventario (modulo customjoinitems)"
         - "/mess joinitems remove [giocatore|all] :: toglie gli oggetti fissi dell'inventario"
+        - "/mess lobby setspawn :: lo spawn della lobby diventa il punto in cui ti trovi (modulo hub-lobby)"
         - "/mess reload :: rilegge i file di config e riaccende i moduli scelti in modules.yml"

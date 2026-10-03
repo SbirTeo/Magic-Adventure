@@ -95,6 +95,7 @@ public final class MagixEssentials extends JavaPlugin {
             case "help", "?" -> help(sender, args.length >= 2 ? page(args[1]) : 1);
             case "reload" -> reload(sender);
             case "joinitems" -> joinItems(sender, args);
+            case "lobby" -> lobby(sender, args);
             default -> messages.send(sender, "unknown-subcommand");
         }
         return true;
@@ -105,7 +106,7 @@ public final class MagixEssentials extends JavaPlugin {
                                                 @NotNull String alias, @NotNull String[] args) {
         String prefix = args[args.length - 1].toLowerCase(java.util.Locale.ROOT);
         if (args.length == 1) {
-            return java.util.List.of("help", "reload", "joinitems").stream().filter(s -> s.startsWith(prefix)).toList();
+            return java.util.List.of("help", "reload", "joinitems", "lobby").stream().filter(s -> s.startsWith(prefix)).toList();
         }
         if (args[0].equalsIgnoreCase("joinitems")) {
             if (args.length == 2) {
@@ -117,7 +118,42 @@ public final class MagixEssentials extends JavaPlugin {
                 return names;
             }
         }
+        if (args[0].equalsIgnoreCase("lobby") && args.length == 2) {
+            return java.util.List.of("setspawn").stream().filter(s -> s.startsWith(prefix)).toList();
+        }
         return java.util.List.of();
+    }
+
+    /**
+     * /mess lobby setspawn: lo spawn della lobby (modulo hub-lobby) diventa il punto in cui sta chi
+     * scrive, sguardo compreso. Il file si aggiorna e il modulo, se acceso, riparte con lo spawn nuovo.
+     */
+    private void lobby(CommandSender sender, String[] args) {
+        if (args.length < 2 || !args[1].equalsIgnoreCase("setspawn")) {
+            messages.send(sender, "unknown-subcommand");
+            return;
+        }
+        if (!(sender instanceof org.bukkit.entity.Player p)) {
+            messages.send(sender, "lobby.players-only");
+            return;
+        }
+        org.bukkit.Location at = p.getLocation();
+        if (!HubLobby.saveSpawn(this, at)) {
+            messages.send(sender, "lobby.save-failed");
+            return;
+        }
+        modules.ricarica();
+        if (hubLobby != null) {
+            hubLobby.stop();
+            hubLobby = new HubLobby(this, modules.configurazioneDi(Modules.HUB_LOBBY));
+            hubLobby.start();
+        }
+        messages.send(sender, "lobby.spawn-set",
+                "world", at.getWorld().getName(),
+                "x", String.valueOf(Math.round(at.getX())),
+                "y", String.valueOf(Math.round(at.getY())),
+                "z", String.valueOf(Math.round(at.getZ())));
+        if (hubLobby == null) messages.send(sender, "lobby.module-off");
     }
 
     /** /mess joinitems give|remove [giocatore|all]: senza nome vale per chi scrive. */
@@ -631,7 +667,10 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "arrivando da un'altra modalità. Adesso lo spawn è {{LOBBY_SPAWN}}. Con "
                                 + "use-world-spawn: true è lo spawn del mondo, che si sposta in gioco con "
                                 + "/setworldspawn (anche lo sguardo); con false vale il punto scritto nel file "
-                                + "(x, y, z, yaw, pitch). Dopo una modifica al file basta /mess reload.",
+                                + "(x, y, z, yaw, pitch). Il modo più comodo: mettiti nel punto giusto, "
+                                + "guarda dove deve guardare chi arriva e scrivi **/mess lobby setspawn**: "
+                                + "scrive tutto nel file da solo (e mette use-world-spawn a false). Dopo una "
+                                + "modifica a mano del file basta /mess reload.",
                         "**Con MagixAuth:** il cancello del login resta dov'è; finito il login il giocatore "
                                 + "viene portato allo spawn della lobby invece che alla sua vecchia posizione. "
                                 + "Anche chi entra per la prima volta, dopo la registrazione, finisce allo spawn.")

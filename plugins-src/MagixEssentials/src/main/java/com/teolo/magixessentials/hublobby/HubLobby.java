@@ -14,6 +14,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 
 /**
@@ -34,6 +36,9 @@ import java.lang.reflect.Method;
  * </ol>
  */
 public final class HubLobby implements Listener {
+
+    /** Il file delle impostazioni, come si chiama nel jar e nella cartella dati. */
+    public static final String FILE = "hub-lobby.yml";
 
     /** Ogni quanto si ricontrolla se il login di MagixAuth e' fatto (20 tick = 1 secondo). */
     private static final int LOGIN_POLL_TICKS = 20;
@@ -111,6 +116,39 @@ public final class HubLobby implements Listener {
         l.setX(l.getBlockX() + 0.5);
         l.setZ(l.getBlockZ() + 0.5);
         return l;
+    }
+
+    /**
+     * /mess lobby setspawn: scrive in hub-lobby.yml il punto in cui sta chi da' il comando, sguardo
+     * compreso, e passa al punto fisso (use-world-spawn: false). Si scrive anche a modulo spento:
+     * il punto e' pronto per quando lo si accende. I commenti del file restano (li conserva il
+     * parser YAML, e comunque ConfigAlign li riallinea al sorgente al prossimo reload).
+     *
+     * @return false se il file non si e' potuto scrivere (il motivo finisce nel log)
+     */
+    public static boolean saveSpawn(JavaPlugin plugin, Location where) {
+        File f = new File(plugin.getDataFolder(), FILE);
+        if (!f.isFile()) plugin.saveResource(FILE, false);
+        YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
+        y.set("spawn-on-join.world", where.getWorld().getName());
+        y.set("spawn-on-join.use-world-spawn", false);
+        y.set("spawn-on-join.x", round(where.getX()));
+        y.set("spawn-on-join.y", round(where.getY()));
+        y.set("spawn-on-join.z", round(where.getZ()));
+        y.set("spawn-on-join.yaw", round(where.getYaw()));
+        y.set("spawn-on-join.pitch", round(where.getPitch()));
+        try {
+            y.save(f);
+            return true;
+        } catch (IOException e) {
+            plugin.getLogger().warning("[HubLobby] spawn non salvato in " + FILE + " (" + e.getMessage() + ").");
+            return false;
+        }
+    }
+
+    /** Due decimali bastano (un centesimo di blocco, di grado) e il file resta leggibile. */
+    private static double round(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 
     // ------------------------------------------------------------- spawn a ogni ingresso

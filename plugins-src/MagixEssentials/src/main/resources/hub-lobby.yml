@@ -18,6 +18,8 @@ spawn-on-join:
   world: ""
   # true = lo spawn del mondo, quello che si fissa in gioco con /setworldspawn (centrato nel
   # blocco, con lo sguardo salvato). false = il punto esatto scritto qui sotto.
+  # /mess lobby setspawn, dato in gioco, scrive qui world e il punto in cui ti trovi (sguardo
+  # compreso) e mette use-world-spawn a false: non serve copiare le coordinate a mano.
   use-world-spawn: true
   # Il punto esatto, usato solo con use-world-spawn: false. yaw = dove guarda (0 sud, 90 ovest,
   # 180 nord, -90 est), pitch = su/giù (0 dritto davanti).

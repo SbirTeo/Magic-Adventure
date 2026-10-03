@@ -8,7 +8,7 @@ a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 Il server sta dietro **Velocity**, con piu' backend (hub, factions...): questo jar gira su ognuno,
 con la propria cartella dati e il proprio `modules.yml`.
 
-Versione: **0.12.0**
+Versione: **0.12.1**
 
 ---
 
@@ -526,6 +526,9 @@ entrando nella rete o arrivando da un'altra modalita' (`/server hub`, ritorno da
 | `spawn-on-join.world` | Il mondo dello spawn. Vuoto = il mondo principale. |
 | `spawn-on-join.use-world-spawn` | `true` = lo spawn del mondo (`/setworldspawn`, centrato nel blocco, sguardo compreso); `false` = il punto fisso `x`/`y`/`z`/`yaw`/`pitch`. |
 
+`/mess lobby setspawn` (in gioco) scrive in `hub-lobby.yml` il mondo e il punto in cui ti trovi,
+sguardo compreso, mette `use-world-spawn: false` e fa ripartire il modulo: niente coordinate a mano.
+
 Come convive con **MagixAuth**: il punto di comparsa si cambia su `AsyncPlayerSpawnLocationEvent` a
 priorita' LOW, prima di MagixAuth (HIGH), che quindi lo prende come "posizione vera" e dopo il login
 riporta il giocatore li' invece che alla vecchia posizione. Dopo il login un controllo porta allo
@@ -539,6 +542,7 @@ spawn chi non c'e' (primo ingresso, rimasto al cancello; altri plugin che lo spo
 |---|---|---|
 | `/magixessentials reload` (alias `/mess`, `/magixess`) | Riallinea i file, li rilegge e fa ripartire i moduli accesi | `magixessentials.admin` |
 | `/mess joinitems give\|remove [giocatore\|all]` | Rimette o toglie gli oggetti fissi dell'inventario (modulo `customjoinitems`) | `magixessentials.admin` |
+| `/mess lobby setspawn` | Lo spawn della lobby diventa il punto in cui ti trovi (modulo `hub-lobby`) | `magixessentials.admin` |
 | `/<id valuta>` | I comandi delle valute (`/magix`, `/gems`...), vedi sopra | dinamico, per valuta |
 
 Il reload risponde in chat con l'elenco dei moduli e il loro stato, e lo stesso elenco finisce nel
