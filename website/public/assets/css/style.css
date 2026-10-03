@@ -210,6 +210,18 @@ body.pagina-store {
   border-bottom: 2px solid transparent;
 }
 .main-nav a:hover { color: var(--text); }
+/* Logo in testa alla barra: senza questa regola prendeva il padding asimmetrico dei link
+   (6px sopra, 10px + la riga dell'attivo sotto) e l'immagine, in linea col testo, si portava
+   dietro lo spazio sotto la riga di base: risultava piu' in alto del centro della barra. */
+.main-nav a.nav-logo {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  padding: 0;
+  border-bottom: 0;
+  line-height: 0;
+}
+.main-nav a.nav-logo img { display: block; height: var(--nav-logo-h, 44px); width: auto; }
 .main-nav a.active {
   color: var(--text);
   border-bottom-color: var(--purple);
