@@ -56,19 +56,20 @@ out float sbOk;
 // Sidebar size the same for everyone (config sidebar-scale): the client draws the sidebar at each
 // player's GUI scale; here the distances from the point the sidebar hangs on (right edge, half height)
 // are multiplied by wanted scale / player scale, which gives the sidebar vanilla would draw at the
-// wanted scale. SB_SCALE_MODE: 0 = off (vanilla), 1 = screen (proportional to the screen height),
-// 2 = integer (the nearest whole scale to the same proportion). SB_SCALE_SIZE = the equivalent GUI scale
-// on a 1080 pixel tall screen. Both replaced by the plugin from config.yml.
+// wanted scale. SB_SCALE_MODE: 0 = off (vanilla), 1 = proportional to the screen height, 2 = the
+// nearest whole scale to that proportion. SB_SCALE_FACTOR = sidebar pixel size per screen pixel of
+// height, worked out by the plugin (SidebarPack.scaleFactor): with mode "minimap" it is the pixel size
+// of the text in the minimap info panel of MagixFactions, so the two texts match exactly.
 // THIS FUNCTION IS COPIED UNCHANGED in text.vsh of MagixFactions (sidebar text): change both together.
 const int SB_SCALE_MODE = __SB_SCALE_MODE__;
-const float SB_SCALE_SIZE = __SB_SCALE_SIZE__;
+const float SB_SCALE_FACTOR = __SB_SCALE_FACTOR__;
 
 float sbScaleFactor(float guiW, float guiH) {
     if (SB_SCALE_MODE == 0 || ScreenSize.y < 1.0 || guiH < 1.0) return 1.0;
     // Player's GUI scale: the client sets guiW = ceil(pixels / scale), so pixels / guiW is the scale
     // (just below it when the division is not exact: hence round).
     float player = max(round(max(ScreenSize.x / guiW, ScreenSize.y / guiH)), 1.0);
-    float wanted = ScreenSize.y / 1080.0 * SB_SCALE_SIZE;
+    float wanted = ScreenSize.y * SB_SCALE_FACTOR;
     if (SB_SCALE_MODE == 2) wanted = max(round(wanted), 1.0);
     return wanted / player;
 }

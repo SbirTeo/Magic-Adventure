@@ -112,7 +112,14 @@ vanilla disegnerebbe alla scala voluta, `offset-y` compreso. Sfondo in `gui.vsh`
 scritte e icone nel `text.vsh` di MagixFactions (stesso marchio nel colore e stessa fascia dello
 spostamento): la funzione `sbScaleFactor` e' copiata identica nei due file.
 
-- `mode: screen` (di serie) — in proporzione all'altezza dello schermo: `size` 3 = la Scala GUI 3 a 1080
+- `mode: minimap` (di serie) — le lettere grandi esattamente come quelle del pannello info sotto la
+  minimap di MagixFactions: quel testo e' disegnato col font della mappa (1 pixel del font = 1 pixel
+  della mappa) su una minimap larga `screen-size` × (16/9) / 2 dell'altezza per 128 pixel, quindi il
+  fattore e' `screen-size` × 16 / 9 / 256 per pixel di altezza (2,25 a 1080p con `screen-size` 0.3).
+  Per rimpicciolire o ingrandire entrambe si cambia `map.minimap.screen-size`; `size` non conta.
+  Il fattore lo calcolano i due plugin con la stessa regola (`SidebarPack.scaleFactor` qui,
+  `ResourcePackContent` in MagixFactions) e lo passano agli shader come `SB_SCALE_FACTOR`.
+- `mode: screen` — in proporzione all'altezza dello schermo: `size` 3 = la Scala GUI 3 a 1080
   pixel, 2 a 720, 4 a 1440. Alle risoluzioni che non sono multiple di 360 la scala non e' intera e
   qualche pixel delle lettere esce un filo piu' largo.
 - `mode: integer` — la scala intera piu' vicina alla stessa proporzione: lettere sempre nitide, grandezza

@@ -123,23 +123,28 @@ public final class ResourcePackContent {
         // shader del testo nel pacchetto unico e' di MagixFactions (MagixPack tiene un solo text.vsh),
         // quindi si legge dal config di MagixScoreboard. Senza MagixScoreboard: nessuno spostamento.
         // Lo stesso vale per la grandezza della sidebar uguale per tutti (sidebar-scale di MagixScoreboard):
-        // mode 0 = off, 1 = screen, 2 = integer, con la stessa regola di SidebarPack.scaleMode/scaleSize
-        // di MagixScoreboard (gli shader dei due plugin devono ridimensionare scritte e sfondo insieme).
-        double sbShift = 0, sbZone = 200, sbScaleSize = 3;
+        // mode 0 = off, 1 = in proporzione all'altezza dello schermo (minimap/screen), 2 = integer, e il
+        // fattore (pixel della sidebar per pixel di altezza dello schermo) con la stessa regola di
+        // SidebarPack.scaleMode/scaleFactor di MagixScoreboard: gli shader dei due plugin devono
+        // ridimensionare scritte e sfondo insieme. Col mode "minimap" (di serie) e' il pixel del testo del
+        // pannello info: font mappa 1:1 sui 128 pixel di una minimap larga size * (16/9) / 2 dell'altezza.
+        double sbShift = 0, sbZone = 200, sbScaleFactor = 3 / 1080.0;
         int sbScaleMode = 0;
         org.bukkit.plugin.Plugin sb = org.bukkit.Bukkit.getPluginManager().getPlugin("MagixScoreboard");
         if (sb instanceof JavaPlugin sbPlugin) {
             org.bukkit.configuration.file.FileConfiguration sc = sbPlugin.getConfig();
             sbShift = Math.max(-200, Math.min(200, sc.getDouble("sidebar-position.offset-y", 0)));
             sbZone = Math.max(20, Math.min(400, sc.getDouble("sidebar-position.zone-width", 200)));
-            String mode = sc.getString("sidebar-scale.mode", "screen");
+            String mode = sc.getString("sidebar-scale.mode", "minimap");
             sbScaleMode = "off".equalsIgnoreCase(mode) ? 0 : "integer".equalsIgnoreCase(mode) ? 2 : 1;
-            sbScaleSize = Math.max(1, Math.min(6, sc.getDouble("sidebar-scale.size", 3)));
+            boolean byMinimap = !"screen".equalsIgnoreCase(mode) && !"integer".equalsIgnoreCase(mode);
+            sbScaleFactor = byMinimap ? size * 16.0 / 9.0 / 256.0
+                    : Math.max(1, Math.min(6, sc.getDouble("sidebar-scale.size", 3))) / 1080.0;
         }
         String sbShiftStr = String.format(java.util.Locale.ROOT, "%.1f", sbShift);
         String sbZoneStr = String.format(java.util.Locale.ROOT, "%.1f", sbZone);
         String sbScaleModeStr = String.valueOf(sbScaleMode);
-        String sbScaleSizeStr = String.format(java.util.Locale.ROOT, "%.4f", sbScaleSize);
+        String sbScaleFactorStr = String.format(java.util.Locale.ROOT, "%.8f", sbScaleFactor);
 
         Map<String, byte[]> out = new LinkedHashMap<>();
         for (String path : BUNDLED_FILES) {
@@ -156,7 +161,7 @@ public final class ResourcePackContent {
                             .replace("__SB_SHIFT__", sbShiftStr)
                             .replace("__SB_ZONE__", sbZoneStr)
                             .replace("__SB_SCALE_MODE__", sbScaleModeStr)
-                            .replace("__SB_SCALE_SIZE__", sbScaleSizeStr)
+                            .replace("__SB_SCALE_FACTOR__", sbScaleFactorStr)
                             .getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 } else if (path.endsWith(".fsh")) { // il fragment shader ha i placeholder di forma, cornice e pannello
                     data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
