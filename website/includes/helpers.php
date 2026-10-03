@@ -988,6 +988,34 @@ function store_ha_inquadratura(): bool {
     return $ok;
 }
 
+/** Zoom minimo e massimo della copertina di un pacchetto, in percentuale (100 = nessuno). */
+const STORE_ZOOM_MIN = 100;
+const STORE_ZOOM_MAX = 300;
+
+/** Zoom della copertina riportato fra STORE_ZOOM_MIN e STORE_ZOOM_MAX (100 se non e' un numero). */
+function store_zoom_value($v): int {
+    $z = is_numeric($v) ? (int) round((float) $v) : 100;
+    return max(STORE_ZOOM_MIN, min(STORE_ZOOM_MAX, $z));
+}
+
+/**
+ * Se il database ha le colonne dello zoom della copertina (image_zoom). Come per
+ * store_ha_inquadratura(): finche' la migrazione 2026-10-03-store-zoom.sql non e' stata
+ * lanciata il gestionale non mostra i cursori e il salvataggio non li scrive.
+ */
+function store_has_zoom(): bool {
+    static $ok = null;
+    if ($ok !== null) {
+        return $ok;
+    }
+    try {
+        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'image_zoom'")->fetch();
+    } catch (Throwable $e) {
+        $ok = false;
+    }
+    return $ok;
+}
+
 /**
  * Se il database ha la colonna della copertina per il tema chiaro (image_url_light). Come per
  * store_ha_inquadratura(): finche' la migrazione 2026-10-03-store-copertina-chiara.sql non e'

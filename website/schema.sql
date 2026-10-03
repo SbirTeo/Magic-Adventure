@@ -100,6 +100,10 @@ CREATE TABLE IF NOT EXISTS store_packages (
     -- scelto a mano per telefono e computer. 50% 50% = centro.
     image_position VARCHAR(20) NOT NULL DEFAULT '50% 50%',      -- telefono
     image_position_pc VARCHAR(20) NOT NULL DEFAULT '50% 50%',   -- computer
+    -- Zoom della copertina sulla card, in percentuale (100 = riempie la card e basta),
+    -- centrato sul punto dell'inquadratura. Anche questo per telefono e computer.
+    image_zoom SMALLINT UNSIGNED NOT NULL DEFAULT 100,          -- telefono
+    image_zoom_pc SMALLINT UNSIGNED NOT NULL DEFAULT 100,       -- computer
     description TEXT NULL,          -- una riga per voce: l'elenco "cosa ottieni" delle card
     long_description TEXT NULL,     -- testo esteso della pagina dedicata /pacchetto/<slug>
     price DECIMAL(8,2) NOT NULL DEFAULT 0,

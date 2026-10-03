@@ -945,6 +945,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $puntoValido = static fn($v) => preg_match('/^\d{1,3}% \d{1,3}%$/', (string) $v) ? $v : '50% 50%';
             $imagePosition = $puntoValido($_POST['image_position'] ?? '');
             $imagePositionPc = $puntoValido($_POST['image_position_pc'] ?? '');
+            // Zoom della copertina, in percentuale, sempre fra STORE_ZOOM_MIN e STORE_ZOOM_MAX.
+            $imageZoom = store_zoom_value($_POST['image_zoom'] ?? 100);
+            $imageZoomPc = store_zoom_value($_POST['image_zoom_pc'] ?? 100);
 
             if ($name === '' || $price < 0) {
                 redirect('/manage?section=store_pkg_edit&id=' . $id . '&err=empty');
@@ -971,7 +974,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare('UPDATE store_packages SET image_position = ?, image_position_pc = ? WHERE id = ?')
                     ->execute([$imagePosition, $imagePositionPc, $id]);
             }
-            // Stessa cosa per la copertina del tema chiaro (migrazione 2026-10-03-store-copertina-chiara.sql).
+            // Stessa cosa per lo zoom (migrazione 2026-10-03-store-zoom.sql)...
+            if (store_has_zoom()) {
+                db()->prepare('UPDATE store_packages SET image_zoom = ?, image_zoom_pc = ? WHERE id = ?')
+                    ->execute([$imageZoom, $imageZoomPc, $id]);
+            }
+            // ...e per la copertina del tema chiaro (migrazione 2026-10-03-store-copertina-chiara.sql).
             if (store_has_light_cover()) {
                 db()->prepare('UPDATE store_packages SET image_url_light = ? WHERE id = ?')
                     ->execute([$imageUrlLight, $id]);
@@ -3621,6 +3629,7 @@ if ($section === 'dashboard') {
 } elseif ($section === 'store_pkg_edit') {
     $id = (int) ($_GET['id'] ?? 0);
     $pkg = ['category_id' => null, 'name' => '', 'image_url' => '', 'image_url_light' => '', 'image_position' => '50% 50%', 'image_position_pc' => '50% 50%',
+            'image_zoom' => 100, 'image_zoom_pc' => 100,
             'description' => '', 'long_description' => '',
             'price' => '0.00', 'commands' => '', 'sort_order' => 0, 'enabled' => 1, 'featured' => 0];
     if ($id > 0) {
@@ -3684,23 +3693,45 @@ if ($section === 'dashboard') {
         <?php endif; ?>
         <?php if (store_ha_inquadratura()): ?>
           <?php /* Inquadratura della copertina (telefono e computer), come per gli articoli:
-                   si trascina l'immagine per scegliere quale parte resta in vista sulla card. */ ?>
+                   si trascina l'immagine per scegliere quale parte resta in vista sulla card,
+                   e col cursore sotto ogni anteprima si sceglie lo zoom (se c'e' la migrazione). */
+                $conZoom = store_has_zoom(); ?>
           <div class="inquadratura" data-inquadratura data-src-campo="#pkg_image"
                data-src="<?= h((string) $pkg['image_url']) ?>"
                <?= empty($pkg['image_url']) ? 'hidden' : '' ?>>
             <label>Inquadratura della copertina</label>
-            <p class="sub" style="margin:-2px 0 10px;">Sulla card l&rsquo;immagine viene ritagliata, e telefono e computer tagliano in modo diverso: <strong>trascinale una per una</strong> per scegliere cosa tenere in vista. Sono indipendenti.</p>
+            <p class="sub" style="margin:-2px 0 10px;">Sulla card l&rsquo;immagine viene ritagliata, e telefono e computer tagliano in modo diverso: <strong>trascinale una per una</strong> per scegliere cosa tenere in vista<?= $conZoom ? ', e col <strong>cursore</strong> sotto ognuna scegli quanto ingrandirla (lo zoom resta centrato sul punto scelto)' : '' ?>. Sono indipendenti.</p>
             <div class="inquadratura-riquadri">
               <figure class="inquadratura-box e-telefono">
                 <div class="inquadratura-tela" data-tela="telefono" data-campo="image_position"></div>
+                <?php if ($conZoom): $z = store_zoom_value($pkg['image_zoom'] ?? 100); ?>
+                  <div class="inquadratura-zoom">
+                    <input type="range" name="image_zoom" min="<?= STORE_ZOOM_MIN ?>" max="<?= STORE_ZOOM_MAX ?>" step="5"
+                           value="<?= $z ?>" data-zoom="telefono" aria-label="Zoom sul telefono">
+                    <output data-zoom-valore="telefono"><?= $z ?>%</output>
+                  </div>
+                <?php endif; ?>
                 <figcaption>Telefono</figcaption>
               </figure>
               <figure class="inquadratura-box e-computer">
                 <div class="inquadratura-tela" data-tela="computer" data-campo="image_position_pc"></div>
+                <?php if ($conZoom): $z = store_zoom_value($pkg['image_zoom_pc'] ?? 100); ?>
+                  <div class="inquadratura-zoom">
+                    <input type="range" name="image_zoom_pc" min="<?= STORE_ZOOM_MIN ?>" max="<?= STORE_ZOOM_MAX ?>" step="5"
+                           value="<?= $z ?>" data-zoom="computer" aria-label="Zoom sul computer">
+                    <output data-zoom-valore="computer"><?= $z ?>%</output>
+                  </div>
+                <?php endif; ?>
                 <figcaption>Computer</figcaption>
               </figure>
-              <button type="button" class="btn btn-ghost btn-small" data-centra>Rimetti al centro</button>
+              <button type="button" class="btn btn-ghost btn-small" data-centra><?= $conZoom ? 'Rimetti al centro, senza zoom' : 'Rimetti al centro' ?></button>
             </div>
+            <?php if (!$conZoom): ?>
+              <p class="sub" style="margin:8px 0 0; color:var(--text-dim); font-size: var(--fs-xs);">
+                Per scegliere anche lo zoom (telefono e computer) lancia la migrazione
+                <code>2026-10-03-store-zoom.sql</code> e ricarica.
+              </p>
+            <?php endif; ?>
             <input type="hidden" name="image_position" value="<?= h($pkg['image_position'] ?? '50% 50%') ?>">
             <input type="hidden" name="image_position_pc" value="<?= h($pkg['image_position_pc'] ?? '50% 50%') ?>">
           </div>

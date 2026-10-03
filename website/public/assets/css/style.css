@@ -2814,30 +2814,41 @@ table.rank tr:hover td { background: var(--bg-panel-2); }
 
 /* copertina come sfondo, che si avvicina appena al passaggio del mouse */
 .store-card-media {
+  /* Framing point and zoom chosen in the manager: the desktop values here, the phone ones
+     under 620px. Centre and 100% when nothing is set. The zoom is centred on the framing
+     point (transform-origin), so the part chosen in the manager stays in view. */
+  --fuoco: var(--fuoco-pc, 50% 50%);
+  --zoom: var(--zoom-pc, 1);
   position: absolute;
   inset: 0;
   background-image: var(--copertina);
   background-size: cover;
-  /* Framing point chosen in the manager (like the article covers): the desktop value here,
-     the phone one under 620px. Both default to centre when nothing is set. */
-  background-position: var(--fuoco-pc, 50% 50%);
-  transform: scale(1.02);
+  background-position: var(--fuoco);
+  transform-origin: var(--fuoco);
+  transform: scale(calc(var(--zoom) * 1.02));
   transition: transform .5s ease;
 }
 @media (max-width: 620px) {
-  .store-card-media { background-position: var(--fuoco-telefono, 50% 50%); }
+  .store-card-media {
+    --fuoco: var(--fuoco-telefono, 50% 50%);
+    --zoom: var(--zoom-telefono, 1);
+  }
 }
 /* Tema chiaro: la copertina caricata apposta (--copertina-chiaro), se il pacchetto ne ha una;
    altrimenti la stessa del tema scuro. Vale anche per la pagina del pacchetto. */
 [data-tema="chiaro"] :is(.store-card-media, .pkg-copertina) {
   background-image: var(--copertina-chiaro, var(--copertina));
 }
-.store-card:hover .store-card-media { transform: scale(1.07); }
+.store-card:hover .store-card-media { transform: scale(calc(var(--zoom) * 1.07)); }
 .store-card-media::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(var(--store-overlay-dir, 180deg), transparent 0%, var(--store-overlay) var(--store-overlay-stop, 55%));
+  /* The veil lives inside the zoomed layer: scaled back by the same factor around the same
+     point, so it keeps covering the card as before and the price stays readable. */
+  transform-origin: var(--fuoco);
+  transform: scale(calc(1 / var(--zoom)));
 }
 /* Senza copertina resta uno sfondo di cortesia, ma il velo si applica lo stesso:
    altrimenti il colore configurato non avrebbe effetto su queste card. */
@@ -5732,6 +5743,18 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
    rapporto 3,1). Il JS mette .e-orizzontale in base alle misure vere del file. */
 .inquadratura-articolo .e-computer .inquadratura-tela { width: 300px; height: 190px; }
 .inquadratura-articolo.e-orizzontale .e-computer .inquadratura-tela { width: 300px; height: 95px; }
+/* Cursore dello zoom sotto ogni anteprima (store): largo quanto l'anteprima. */
+.inquadratura-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+/* width 0 + flex 1: the slider takes the room left, without widening the preview's figure. */
+.inquadratura-zoom input[type="range"] { flex: 1; min-width: 0; width: 0; }
+.inquadratura-zoom output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) {
   .inquadratura-articolo .e-computer .inquadratura-tela,
   .inquadratura-articolo.e-orizzontale .e-computer .inquadratura-tela { width: 100%; max-width: 300px; }
