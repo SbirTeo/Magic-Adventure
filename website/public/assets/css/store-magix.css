@@ -91,7 +91,7 @@
 .magix-sacco.salto { animation: magix-salto .5s cubic-bezier(.34, 1.56, .64, 1), magix-galleggia 4s ease-in-out .5s infinite; }
 @keyframes magix-salto { 30% { translate: 0 -22px; rotate: -6deg; } 60% { rotate: 4deg; } }
 .magix-sacco img { position: absolute; inset: 0; width: 100%; height: 100%; }
-.magix-sacco-vuoto { filter: grayscale(1) brightness(.85); opacity: .75; }
+.magix-sacco-vuoto { filter: grayscale(1) brightness(1.15); opacity: .85; }
 [data-tema="chiaro"] .magix-sacco-vuoto { filter: grayscale(1) brightness(.75); opacity: .55; }
 .magix-sacco-pieno { clip-path: inset(var(--vuoto) 0 0 0); }
 .magix-sacco-linea {
