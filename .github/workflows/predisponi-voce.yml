@@ -102,6 +102,9 @@ jobs:
           # le chiavi direttamente da keys.yaml, quindi gli serve il permesso di lettura (ACL).
           MCDIR=/home/ubuntu/magicadventure/faction; [ -d "$MCDIR" ] || MCDIR=/home/ubuntu/magicadventure
           MCUSER="$(stat -c %U "$MCDIR" 2>/dev/null || echo ubuntu)"
+          # Un comando come quell'utente: se e' lo stesso del workflow, direttamente (sudo -u verso
+          # se stessi non e' detto che sia permesso).
+          come_mc() { if [ "$MCUSER" = "$(id -un)" ]; then "$@"; else sudo -n -u "$MCUSER" "$@"; fi; }
 
           sha() { printf '%s' "$1" | sha256sum | cut -c1-12; }
 
@@ -127,7 +130,7 @@ jobs:
             kk="$(sudo php -r 'require $argv[1]; echo defined("VOICE_API_KEY") ? VOICE_API_KEY : "";' "$CONFIG_PHP" 2>/dev/null || true)"
             ks="$(sudo php -r 'require $argv[1]; echo defined("VOICE_API_SECRET") ? VOICE_API_SECRET : "";' "$CONFIG_PHP" 2>/dev/null || true)"
             if [ -n "$ks" ]; then echo "config.php del sito: chiave $kk, segreto impronta $(sha "$ks")"; else echo "config.php del sito: VOICE_API_SECRET assente o vuoto"; fi
-            if sudo -u "$MCUSER" test -r "$ETC/keys.yaml" 2>/dev/null; then
+            if come_mc test -r "$ETC/keys.yaml" 2>/dev/null; then
               echo "server Minecraft ($MCUSER): legge keys.yaml (chat vocale di prossimità possibile)"
             else
               echo "server Minecraft ($MCUSER): NON legge keys.yaml (prossimità spenta: lancia installa)"
@@ -221,7 +224,7 @@ jobs:
           command -v setfacl >/dev/null 2>&1 || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q acl >/dev/null
           sudo setfacl -m "u:$MCUSER:x" "$ETC"
           sudo setfacl -m "u:$MCUSER:r" "$ETC/keys.yaml"
-          sudo -u "$MCUSER" test -r "$ETC/keys.yaml" && echo "Chiavi leggibili per $MCUSER (MagixBridge, prossimità)" \
+          come_mc test -r "$ETC/keys.yaml" && echo "Chiavi leggibili per $MCUSER (MagixBridge, prossimità)" \
             || { echo "::error::$MCUSER non riesce a leggere keys.yaml"; exit 1; }
 
           # La stessa coppia nel config.php del sito (il deploy del sito non tocca quel file).
