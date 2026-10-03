@@ -245,7 +245,7 @@ function profile_faction_render(array $dati, bool $own): string {
         </div>
         <a class="profilo-fazione-posto<?= $pos > 0 ? ' ha-medaglia' : '' ?>" href="/classifiche" title="Apri la classifica delle fazioni">
           <?php if ($pos > 0): ?>
-            <span class="posto-testo"><strong><?= $pos ?>&ordm; posto</strong><small>su <?= (int) ($f['ranked_total'] ?? $pos) ?> in classifica</small></span>
+            <span class="posto-testo"><strong><?= $pos ?>&ordm; posto</strong><small>su <?= (int) ($f['ranked_total'] ?? $pos) ?> in classifica</small><em class="posto-vai">Vai alle classifiche &rarr;</em></span>
             <span class="medaglia medaglia-<?= $pos <= 3 ? $pos : 'altro' ?>" aria-hidden="true">
               <i class="medaglia-nastro"></i><b class="medaglia-disco"><span><?= $pos ?></span></b>
             </span>
