@@ -1,14 +1,14 @@
 # MagixEssentials
 
 Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base** del server: quelle
-cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa cinque —
-la **MOTD**, il **nametag**, la **chat**, il **filtro dell'autocompletamento** e le **valute** — e
+cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa sette —
+il **tablist**, la **MOTD**, il **nametag**, la **chat**, il **filtro dell'autocompletamento**, le **valute** e gli **oggetti fissi dell'inventario** — e
 a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
 Il server sta dietro **Velocity**, con piu' backend (hub, factions...): questo jar gira su ognuno,
 con la propria cartella dati e il proprio `modules.yml`.
 
-Versione: **0.9.2**
+Versione: **0.11.0**
 
 ---
 
@@ -20,10 +20,13 @@ file diversi:
 | File | A cosa serve |
 |---|---|
 | `modules.yml` | L'elenco delle funzioni, una riga ciascuna: **acceso o spento**. Si apre questo per sapere che cosa sta facendo il plugin. |
+| `tablist.yml` | Come e' fatto il tablist: intervallo, intestazione, fondo, nomi, caselle fisse. |
 | `motd.yml` | Come e' fatta la MOTD: le varianti e come ruotano, la tendina, il conto dei giocatori, le icone. |
 | `nametag.yml` | Com'e' fatta la targhetta sopra la testa: le righe, chi la disegna, altezze, quando sparisce. |
 | `chat.yml` | Il formato della chat pubblica (grado, nome, fazione) e dei messaggi che arrivano dal sito. |
 | `currencies.yml` | Le valute create dallo staff: un catalogo, non uno schema fisso — una voce per valuta. |
+| `customjoinitems.yml` | Quando e come si danno gli oggetti fissi dell'inventario e le regole generali (buttare, raccogliere, rompere...). |
+| `items.yml` | Gli oggetti fissi veri: un catalogo, una voce per oggetto. |
 | `config.yml` | Solo cio' che vale per il **plugin intero**: oggi il database delle valute condivise. |
 
 Il filtro dell'autocompletamento non ha un file suo: l'interruttore `tabcomplete` in `modules.yml`
@@ -42,6 +45,125 @@ prima di ogni scrittura.
 **Per aggiungere una funzione**: una riga in `modules.yml`, un `<funzione>.yml` accanto, e la classe
 che la gestisce riceve quel file nel costruttore. Non c'e' nessun elenco da aggiornare a mano: i
 file nuovi il plugin li crea e li allinea da solo.
+
+---
+
+## Tablist
+
+La lista giocatori del tasto Tab: intestazione, fondo e nome dei giocatori, riscritti a intervalli
+regolari e a ogni ingresso. Supporta i colori `&` e `&#RRGGBB`, i tag di MiniMessage (`<bold>`,
+`<gradient:#C046E8:#A8DC2C>`, `<rainbow>` — stesso motore di MOTD e nametag, `util/TextFormat`), i
+placeholder di PlaceholderAPI (ricalcolati per ogni giocatore: ping, fazione, coordinate) e il
+segnaposto `{logo}`, che diventa il carattere del logo nel resource pack di MagixFactions.
+
+**Sfumature animate.** `<gradient:...>` e `<rainbow>` accettano un ultimo numero, la fase: cambiarlo
+nel tempo la fa scorrere. Il plugin lo calcola da solo — un giro ogni `animation-period-seconds`
+(default 4s) — e lo sostituisce a due segnaposto, uno per tag perche' i due numeri non sono
+compatibili: `{gradient-phase}` (decimale, un dente di sega da -1.0 a 1.0 che poi ricomincia da
+-1.0: verificato facendo disegnare a MiniMessage la sfumatura a fase -1.0 e a fase 1.0, il colore
+che esce e' IDENTICO, quindi il punto di ripartenza e' gia' continuo da solo, un giro sempre nello
+stesso verso) e `{rainbow-phase}` (intero 0..9, qui basta contare perche' l'arcobaleno e'
+gia' ciclico). Funzionano solo dentro quei due tag: `<gradient:#C046E8:#A8DC2C:{gradient-phase}>`,
+`<rainbow:{rainbow-phase}>`. Le caselle finte (`fixed-slots.empty-text`) non animano: sono profili
+costruiti una volta sola all'avvio, non righe ricalcolate a ogni giro.
+
+**Banda piu' stretta: `<rainbow-xN>`/`<gradient-xN:colori>`.** Un tag solo fa un giro di colori
+largo quanto tutto il testo dentro; per farlo ripetere (bande piu' strette) servirebbe spezzare il
+testo a mano in piu' tag identici. Scorciatoia: `<rainbow-x3>Testo</rainbow-x3>` o
+`<gradient-x3:#C046E8:#A8DC2C>Testo</gradient-x3>` — il plugin spezza "Testo" in altrettanti pezzi
+(il piu' possibile uguali, i caratteri in avanzo vanno ai primi) e genera da solo i tag veri, gia'
+con la fase dentro. Non serve scrivere `{gradient-phase}`/`{rainbow-phase}` a mano in questo caso:
+ci pensa il plugin. Un numero piu' alto di quante lettere ha il testo si accorcia da solo (non ha
+senso fare pezzi piu' piccoli di un carattere).
+
+**Un `update-interval-ticks` basso (per un'animazione fluida) NON rimanda anche le 80 slot finte.**
+Sono due cadenze separate: intestazione/fondo/nome seguono `update-interval-ticks`, le slot finte
+si rimandano al massimo una volta al secondo per conto loro, fisso. Prima erano la stessa cosa:
+abbassare `update-interval-ticks` per un'animazione faceva rimandare anche il pacchetto ProtocolLib
+da 80 voci alla stessa velocita' (10-20 volte al secondo per giocatore online) — la cosa piu' pesante
+di questo modulo, ed era quello a far scattare e bloccare il tablist, non l'animazione in se'
+(segnalato dall'utente). Le slot finte non hanno bisogno di piu' di un rinvio al secondo: il loro
+contenuto non cambia da solo.
+
+**Il logo non e' testo, e' un'immagine**: la sua altezza non spinge giu' da sola le righe che
+vengono dopo, quindi servono delle righe VUOTE sotto `{logo}` per non farci scrivere sopra le
+informazioni. Quante: `(height - ascent) / 9`, arrotondato per eccesso — `height`/`ascent` sono in
+MagixFactions (`config.yml -> tablist.logo`, in pixel), 9 e' l'altezza di una riga di testo normale.
+Con `height: 78, ascent: -8` (i valori di ora) servono almeno 10 righe; l'header qui ne tiene 11. Se
+quei due numeri cambiano, il conto va rifatto — altrimenti il logo torna a coprire le informazioni.
+
+**L'ordine dei giocatori.** Da solo il gioco mette avanti chi non ha una squadra (scoreboard team)
+e ordina per nome, non per grado. Con `sort-by-rank-weight` acceso i giocatori VERI vanno sempre
+davanti a tutto — caselle finte comprese, sempre in fondo — ordinati fra loro dal **peso piu' alto
+al piu' basso** del gruppo LuckPerms, lo stesso che decide `%magixweb_namecolor%`. E' il campo
+**Priority** del protocollo (Paper lo chiama `player list order`): vince prima di squadra e nome.
+Softdepend: senza LuckPerms la chiave non fa niente, e lo dice nel log una volta sola.
+
+**Le 80 slot fisse.** Il gioco decide da solo quante colonne disegnare in base a quante voci ci
+sono: con pochi giocatori il tab e' una colonna sottile, con tanti si allarga. Con `fixed-slots`
+acceso il tab mostra sempre lo stesso numero di caselle, riempiendo con voci decorative **senza
+testa** (skin trasparente, verificata pixel per pixel — non solo scritta) e **senza icona di
+connessione**: latenza `-1` (negativa apposta — nel protocollo vuol dire "non ancora nota", ed e'
+semanticamente quello che una casella finta e': una connessione che non esiste), che il client
+disegna con l'icona "connessione sconosciuta" (`ping_unknown.png`). Quell'icona e' l'unica delle
+sei del protocollo che un giocatore VERO non puo' mai avere davvero, quindi l'unica che si puo'
+rendere trasparente nel resource pack di MagixFactions senza spegnere anche la barra di qualcun
+altro — le 5 barre vere (giocatori veri) non si toccano. Richiede ProtocolLib; se manca, la
+funzione si spegne da sola e resta il tablist dinamico. Richiede anche che il client abbia
+scaricato il resource pack di MagixFactions: chi ha il permesso di bypassarlo vede ancora l'icona.
+
+**Le colonne sono larghe quanto un nickname vanilla puo' esserlo, non strette e non a tutto
+schermo.** Verificato decompilando `PlayerTabOverlay.extractRenderState` nel client vanilla reale
+di questa versione: il gioco sceglie UNA sola larghezza per tutte le colonne, quella del nome PIU'
+LARGO fra le 80 voci (vere e finte insieme). Un nome finto corto (una casella vuota e' quasi sempre
+solo uno spazio) tiene quindi le colonne strette quanto il nome vero piu' corto in lista — non
+quanto un nome vero potrebbe davvero essere. Un nickname di Minecraft e' lungo al massimo 16
+caratteri, e nel font di gioco nessuna lettera/cifra/underscore valida in un nickname avanza piu' di
+6 pixel (verificato decompilando `BitmapProvider` e rifacendo lo stesso calcolo sul vero
+`ascii.png`): il nickname vanilla piu' largo possibile e' quindi 16 × 6 = 96 pixel, mai di piu'. Il
+plugin aggiunge da solo 24 spazi invisibili in coda al testo di ogni casella vuota
+(`FixedSlots.WIDTH_PADDING`, 4 pixel di avanzamento l'uno = 96 in tutto, verificato nel vero
+`assets/minecraft/font/include/space.json` del client): non si vedono, ma pareggiano esattamente il
+nickname vanilla piu' lungo possibile — ne' uno stretto quanto un nome corto, ne' uno che sfonda lo
+schermo.
+
+**Cosa NON si puo' nascondere.** Dietro ogni voce del tablist — vera o finta — il client disegna
+sempre un rettangolo semitrasparente largo quanto la colonna: non e' una texture del resource pack,
+e' un `fill()` scritto nel codice del client (stesso `PlayerTabOverlay`), quindi non dipende da
+niente che il plugin manda nel pacchetto e non si puo' spegnere per le sole caselle finte senza
+spegnerlo anche per i giocatori veri. Il colore lo decide un'opzione **del client di chi guarda**
+(la stessa usata per lo sfondo del testo in chat), non il server: chi lo vuole invisibile lo spegne
+da solo (Opzioni → Chat → Trasparenza sfondo chat a 0) — sparisce per tutte le voci, non solo per
+quelle finte.
+
+Sia la testa che l'icona possono marcire **senza un errore nel log**: un link a una skin che smette
+di rispondere non lancia un'eccezione, fa solo riapparire la skin di serie (Steve/Alex) — e' successo
+per davvero, l'hash di prima era morto da chissa' quanto. Il sintomo e' silenzioso: se le teste
+tornano visibili, si verifica scaricando l'URL dentro `TRANSPARENT_TEXTURE` (un base64 di una riga)
+invece di controllare il log, che li' non dira' niente. Se torna visibile l'icona di connessione
+sconosciuta, il sospetto e' il resource pack di MagixFactions (file mancante o non ricaricato dai
+client — serve un riavvio, non basta un reload).
+
+Il campo del pacchetto in cui finiscono le voci **non e' un indice scritto a mano**: si scrive
+nell'ultimo campo che accetta l'elenco, partendo dal fondo. L'indice fisso (era `1`) ha smesso di
+esistere a un aggiornamento del gioco — `Field index 1 is out of bounds for length 1` — e la funzione
+si spegneva da sola a ogni avvio. Nel log le righe sono due: **pronte** quando i profili esistono,
+**attive** al primo invio riuscito; se c'e' solo la prima, il pacchetto non e' partito e accanto c'e'
+il motivo.
+
+**Il tablist ce l'ha chi scrive per ultimo.** Se anche CMI lo gestisce, i due si sovrascrivono a
+vicenda: `priority` ci fa riscrivere poco dopo di lui, ma le sue caselle finte non si tolgono da
+qui. La via pulita resta spegnere il suo modulo (`plugins/CMI/Settings/Modules.yml` →
+`tablist: false`): con `cmi.disable-module: true` (di serie) lo fa il plugin da solo all'avvio, con
+la copia di scorta in `.bak/`, e vale dal riavvio dopo.
+
+**L'avatar nel nome.** Di serie `player-name` comincia con `%magixpack_glyph_avatar%` (la faccia
+della skin, da MagixPack) e `%magixpack_shift_2%` (2 pixel d'aria prima del nome). L'avatar arriva
+coi colori `§x...`, uno per pixel: in una riga coi codici `&` va bene così, in una riga coi tag
+MiniMessage ogni placeholder si risolve da solo e i suoi colori diventano tag
+(`TextFormat.legacyToTags`), altrimenti resterebbero scritti a schermo. Nome e intestazione si
+rimandano solo quando cambiano (più un ripasso forzato al secondo contro chi li riscrive): con
+`update-interval-ticks` basso non si manda a tutti lo stesso avatar a ogni tick.
 
 ---
 
@@ -228,7 +350,7 @@ marchio nostro: allo spegnimento del modulo si tolgono, e a ogni avvio si fa una
 quelle marchiate rimaste in piedi (un `/reload` a caldo, un crash) e si buttano, scrivendo nel log
 quante erano.
 
-**CMI.** Anche la targhetta ce l'ha chi scrive per ultimo. Qui non ci
+**CMI.** Anche la targhetta ce l'ha chi scrive per ultimo. Qui, a differenza del tablist, non ci
 limitiamo ad avvisare: con `cmi.disable-module` acceso spegniamo noi il suo modulo dei nametag nel suo
 `Settings/Modules.yml`, cambiando quella riga sola e lasciando una copia di scorta del file in
 `.bak/CMI/Settings/` (fuori da `plugins/` sul server).
@@ -363,11 +485,37 @@ aggiunto a `bridge.player-placeholders` nel config di MagixBridge: li' si legge 
 
 ---
 
+## Oggetti fissi nell'inventario (customjoinitems)
+
+Mette negli inventari dei giocatori gli oggetti decisi dallo staff — la bussola dei server sull'hub,
+un oggetto fisso nella barra rapida sul faction — e dice cosa i giocatori possono farci. **Di serie
+e' spento**: si accende con `customjoinitems: true` in `modules.yml`, server per server.
+
+Due file: `customjoinitems.yml` (quando e come si danno, regole generali) e `items.yml` (il catalogo
+degli oggetti: slot, materiale, nome, descrizione, texture, permesso, comandi al clic; ogni chiave
+e' spiegata nel file). Gli oggetti si riconoscono da un marchio con l'id della voce nei dati
+dell'oggetto, non dal nome.
+
+| Chiave | Cosa fa |
+|---|---|
+| `give-on.join` / `respawn` / `world-change` | Quando si danno. Al login si aspetta MagixAuth (`wait-for-login`). |
+| `clear-inventory` | Svuota tutto prima di dare: per l'hub, mai per il faction. |
+| `if-slot-occupied` | `move` (sposta la cosa del giocatore, se non c'e' posto non da l'oggetto), `replace`, `keep`. |
+| `rules.allow-*` | Regole generali: spostare, buttare, raccogliere, rompere e piazzare blocchi, scambiare le mani, durabilita'. `false` = vietato, per tutto e non solo per gli oggetti del modulo. |
+| `movable` / `droppable` / `vanilla-use` (per oggetto) | Spostarlo, buttarlo, usarlo come l'oggetto vero. Di serie tutti `false`. |
+
+Gli oggetti del modulo non cadono mai a terra alla morte e tornano alla rinascita. Il permesso
+`magixessentials.customjoinitems.bypass` (di serie op) salta le regole, non la consegna.
+Comandi: `/mess joinitems give [giocatore|all]` e `/mess joinitems remove [giocatore|all]`.
+
+---
+
 ## Comandi
 
 | Comando | Cosa fa | Permesso |
 |---|---|---|
 | `/magixessentials reload` (alias `/mess`, `/magixess`) | Riallinea i file, li rilegge e fa ripartire i moduli accesi | `magixessentials.admin` |
+| `/mess joinitems give\|remove [giocatore\|all]` | Rimette o toglie gli oggetti fissi dell'inventario (modulo `customjoinitems`) | `magixessentials.admin` |
 | `/<id valuta>` | I comandi delle valute (`/magix`, `/gems`...), vedi sopra | dinamico, per valuta |
 
 Il reload risponde in chat con l'elenco dei moduli e il loro stato, e lo stesso elenco finisce nel

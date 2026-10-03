@@ -196,11 +196,10 @@ a CMI.
   in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).
 - **MagixLanguage e' su tutta la rete** (`deploy.target` = `faction hub velocity`, stesso jar: su
   Velocity parte `velocity/MagixLanguageVelocity`): su ogni server traduce da solo i plugin Magix
-  installati li' (`translations.auto-discover`), e la lingua di ogni giocatore sta nel database del
+  installati li', e la lingua di ogni giocatore sta nel database del
   sito (tabella `language_players`, credenziali dal config di MagixAuth), quindi vale ovunque. I
-  plugin del proxy (MagixProxy) chiedono i testi tradotti a MagixLanguage di Velocity. Il jar resta
-  alla **0.4.14**: gli altri plugin compilano contro quella versione (cambiarla vuol dire cambiare
-  tutti i pom). Dopo un MagixLanguage nuovo il proxy va riavviato con `velocity-restart.yml`.
+  plugin del proxy (MagixProxy) chiedono i testi tradotti a MagixLanguage di Velocity. La versione
+  in `@Plugin` di `MagixLanguageVelocity` va tenuta uguale a quella del pom. Dopo un MagixLanguage nuovo il proxy va riavviato con `velocity-restart.yml`.
 - **La chat pubblica in gioco la scrive MagixEssentials** (modulo `chat`, dalla 0.9.0, su faction e
   hub): formato in `chat.yml`, scelto da solo come gli stili del nametag (`style: auto`: il primo
   stile di `styles` i cui plugin `requires` ci sono tutti; `factions` sul faction, `plain` sull'hub;
@@ -446,6 +445,15 @@ chiave in `messages.yml` la sincronizza da sola `TranslationSync` verso `en.yml`
 (vedi il capitolo di MagixLanguage); una stringa dentro `sender.sendMessage("...")` non la vede
 nessuno, e resta un buco silenzioso finché qualcuno non lo nota giocando in un'altra lingua (è
 successo davvero con l'elenco comandi di MagixAuth: sembrava tradotto, non lo era per niente).
+
+**Testi per i giocatori nei config** (righe della scoreboard, pannello della minimappa, titoli,
+nomi di gradi/stagioni, kick, `msg:` delle entità...): non hanno una chiave in `messages.yml`, ma
+vanno tradotti lo stesso. Ogni plugin li dichiara nel suo **`translatable.yml`** (risorsa del jar:
+file -> percorsi, `*` per ogni voce) e chi li mostra li passa da `Messages.phrase(giocatore, testo)`
+**prima** di sostituire segnaposti/placeholder; MagixLanguage li legge dal file vero del server e li
+traduce per frase (vedi `MagixLanguage/README.md`). Un testo nuovo di questo tipo si dichiara lì
+nello stesso commit. MagixLanguage scandisce da solo **tutti** i plugin Magix installati (se stesso
+compreso), su faction e hub: non c'è più un elenco da tenere aggiornato.
 
 **Cosa NON è testo del giocatore** (resta pure nel codice): nodi di permesso, nomi di comando,
 chiavi di config, log di console, nomi tecnici (materiali, suoni, permessi) — tutto quello che la

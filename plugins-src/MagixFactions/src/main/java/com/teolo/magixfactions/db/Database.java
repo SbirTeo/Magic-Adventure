@@ -92,6 +92,8 @@ public final class Database {
             addIfMissing(c, st, "factions", "power_avg_accum", "DOUBLE DEFAULT 0");
             // Secondi ATTIVI su cui si media la banca (la giacenza media si congela da inattivi): vedi ScoreManager.
             addIfMissing(c, st, "factions", "bank_active_seconds", "DOUBLE DEFAULT 0");
+            // Secondi tolti dalla finestra della potenza media: quelli con tutti i collegati AFK.
+            addIfMissing(c, st, "factions", "power_paused_seconds", "DOUBLE DEFAULT 0");
             addIfMissing(c, st, "factions", "score_sampled_at", "BIGINT DEFAULT 0");
             addIfMissing(c, st, "factions", "score_since", "BIGINT DEFAULT 0");
             // Punteggio composito calcolato: snapshot letto dal sito per la classifica (vedi ScoreManager).
@@ -197,7 +199,7 @@ public final class Database {
                 "bank_avg_accum DOUBLE DEFAULT 0, power_avg_accum DOUBLE DEFAULT 0, " +
                 "score_sampled_at BIGINT DEFAULT 0, score_since BIGINT DEFAULT 0, score DOUBLE DEFAULT 0, " +
                 "score_detail TEXT, ranked INT DEFAULT 1, bank_active_seconds DOUBLE DEFAULT 0, " +
-                "renamed_at BIGINT DEFAULT 0)");
+                "power_paused_seconds DOUBLE DEFAULT 0, renamed_at BIGINT DEFAULT 0)");
         l.add("CREATE TABLE IF NOT EXISTS faction_members (" +
                 "uuid VARCHAR(36) PRIMARY KEY, faction_id BIGINT, rank VARCHAR(32), " +
                 "rank_since BIGINT DEFAULT 0, joined_at BIGINT DEFAULT 0)");

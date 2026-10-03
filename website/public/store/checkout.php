@@ -26,9 +26,16 @@ if (!$pkg || !paypal_ready() || $prezzo <= 0) {
     redirect('/store?err=indisponibile');
 }
 
+// Senza la richiesta espressa di consegna immediata (e la rinuncia al recesso) l'acquisto non
+// parte: il browser la chiede gia' (required), qui la si ricontrolla.
+if (empty($_POST['terms'])) {
+    redirect('/pacchetto/' . rawurlencode((string) $pkg['slug']) . '?err=termini');
+}
+
 $valuta = site_setting('store_currency', 'EUR');
 
-$ins = db()->prepare('INSERT INTO store_orders (user_id, package_id, package_name, mc_uuid, mc_username, price, currency) VALUES (?, ?, ?, ?, ?, ?, ?)');
+// terms_accepted_at: quando ha spuntato la casella dei termini (prova della rinuncia al recesso).
+$ins = db()->prepare('INSERT INTO store_orders (user_id, package_id, package_name, mc_uuid, mc_username, price, currency, terms_accepted_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())');
 $ins->execute([$me['id'], $pkg['id'], $pkg['name'], $me['mc_uuid'], $me['mc_username'], $prezzo, $valuta]);
 $orderId = (int) db()->lastInsertId();
 

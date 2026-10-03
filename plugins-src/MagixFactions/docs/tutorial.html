@@ -312,7 +312,7 @@
     <div class="lab" style="left:98%">{{POWER_MAX_POS}}</div>
   </div>
   <ul>
-    <li>parti da <b>{{cfg:power.start}}</b> e <b>sali di {{cfg:power.gain-amount}}</b> ogni {{secondi:power.gain-interval-seconds}} passati <b>online</b>;</li>
+    <li>parti da <b>{{cfg:power.start}}</b> e <b>sali di {{cfg:power.gain-amount}}</b> ogni {{secondi:power.gain-interval-seconds}} passati <b>online</b> (da fermo, cioè AFK, non sale);</li>
     <li>ad ogni <b>morte perdi {{cfg:power.death-loss}}</b> (puoi andare in negativo);</li>
     {{PERDITA_OFFLINE_LI}}
     <li>la <b>Potenza della fazione</b> è la somma di quella dei membri.</li>
@@ -562,14 +562,14 @@
     <li><b>Banca</b> (fino a {{cfg:score.weights.bank}}) — {{se:score.bank-value=average}}la <b>giacenza media</b>, cioè quanti soldi tenete <b>nel tempo</b>.
       Sul sito la stessa voce si chiama <b>Ricchezza media</b>: è lo stesso numero, cambia solo il nome.{{/se}}{{se:score.bank-value!=average}}i soldi che ci sono <b>adesso</b> nella banca.{{/se}}</li>{{/se}}{{se:score.weights.longevity!=0}}
     <li><b>Longevità</b> (fino a {{cfg:score.weights.longevity}}) — da quanti giorni esiste la fazione.</li>{{/se}}{{se:score.weights.power!=0}}
-    <li><b>Potenza</b> (fino a {{cfg:score.weights.power}}) — {{se:score.power-value=average}}la potenza <b>media nel tempo</b> della fazione.{{/se}}{{se:score.power-value!=average}}la potenza <b>attuale</b> della fazione.{{/se}}</li>{{/se}}{{se:score.weights.kills!=0}}
+    <li><b>Potenza</b> (fino a {{cfg:score.weights.power}}) — {{se:score.power-value=average}}la potenza <b>media nel tempo</b> della fazione (il tempo in cui i membri collegati sono tutti fermi AFK non conta).{{/se}}{{se:score.power-value!=average}}la potenza <b>attuale</b> della fazione.{{/se}}</li>{{/se}}{{se:score.weights.kills!=0}}
     <li><b>Combattimento</b> (fino a {{cfg:score.weights.kills}}) — {{se:score.combat-metric=kd}}il rapporto <b>uccisioni/morti</b> (K/D) dei membri{{/se}}{{se:score.combat-metric!=kd}}quanti nemici ha abbattuto la fazione{{/se}} (solo uccisioni <b>valide</b>, vedi il capitolo sul PvP).</li>{{/se}}{{se:score.weights.value!=0}}
     <li><b>Valore</b> (fino a {{cfg:score.weights.value}}) — i <b>blocchi preziosi</b> piazzati dentro le vostre land
       (romperli toglie valore, e il valore passa a chi conquista il territorio). Ogni blocco vale:
       {{BLOCCHI_VALORE}}</li>{{/se}}
   </ul>
   <p class="sub">{{se:score.bank-value=average}}La <b>banca</b> conta la <b>media nel tempo</b> (solo il tempo in
-  cui qualcuno della fazione è online): mettere un milione un attimo prima di guardare la classifica <b>non
+  cui qualcuno della fazione è online e non è fermo AFK): mettere un milione un attimo prima di guardare la classifica <b>non
   serve</b> — contano i soldi che tieni davvero. {{/se}}Il punteggio è <b>relativo</b>: può scendere anche senza che tu faccia nulla, se un'altra fazione batte un
   record. Per salire, <b>cresci su tutto</b> e prova a essere il migliore in qualche voce.</p>
   <p class="sub"><span class="cmd">/f top</span> mostra le prime <b>{{cfg:score.top-size}}</b> fazioni; se la tua
@@ -579,7 +579,8 @@
   chi <b>gioca davvero</b>.</p>{{/se}}
   <p class="sub">Il tuo Punteggio e la tua posizione li vedi anche in <span class="cmd">/f info</span> e sul
   <b>sito</b>. Sul sito, oltre alla classifica delle fazioni, c'è anche quella dei <b>giocatori</b>: per
-  <b>tempo di gioco</b>, <b>ricchezza media</b> e <b>uccisioni/K-D</b>.</p>
+  <b>tempo di gioco</b>, <b>ricchezza media</b> e <b>uccisioni/K-D</b>. Il tempo passato fermo (AFK) non conta
+  né per il tempo di gioco né per la ricchezza media.</p>
   <p class="sub">Il <b>tempo di gioco</b> è quello <b>vero</b>: te lo conta Minecraft da sempre, quindi ci sono
   dentro anche le ore che hai giocato qui prima che arrivassero le classifiche. <b>Uccisioni</b> e
   <b>ricchezza media</b> no: quelle partono da quando è arrivato il sistema di punteggio, e crescono da lì.</p>

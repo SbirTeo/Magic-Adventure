@@ -94,7 +94,7 @@ public final class SanctionsService {
 
             notifyStaff("service.applied", to -> new String[] {
                     "tipo", messages.typeLabel(to, s.type()), "nome", s.name(), "motivo", s.reason(),
-                    "durata", applicata.readableDuration(), "autore", s.autore() });
+                    "durata", applicata.readableDuration(messages.durationWords(to)), "autore", s.autore() });
             return id;
         } catch (SQLException e) {
             plugin.getLogger().severe("Sanzione non registrata (" + s.name() + "): " + e.getMessage());
@@ -118,14 +118,15 @@ public final class SanctionsService {
             }
             case KICK -> {
                 if (p != null) {
-                    p.kick(Text.c(Text.replace(cfg.kickMessage, "{motivo}", s.reason())));
+                    p.kick(Text.c(Text.replace(com.teolo.magixguard.lang.Messages.phrase(p, cfg.kickMessage),
+                            "{motivo}", s.reason())));
                 }
             }
             case MUTE -> {
                 muti.put(s.uuid(), s);
                 if (p != null) {
                     p.sendMessage(Text.msg(messages.get(p, "service.muted",
-                            "motivo", s.reason(), "durata", s.readableDuration())));
+                            "motivo", s.reason(), "durata", s.readableDuration(messages.durationWords(p)))));
                 }
             }
             case WARN -> {
@@ -189,12 +190,14 @@ public final class SanctionsService {
         }
     }
 
-    /** Il messaggio di espulsione di un ban, coi segnaposto gia' sostituiti. */
+    /** Il messaggio di espulsione di un ban, coi segnaposto gia' sostituiti, nella lingua di chi
+     *  viene bandito (se ne conosce solo l'UUID: puo' non essere ancora entrato). */
     public String banMessage(Sanction s) {
-        return Text.replace(cfg.banMessage,
+        java.util.function.Function<String, String> words = messages.durationWords(s.uuid());
+        return Text.replace(com.teolo.magixguard.lang.Messages.phrase(s.uuid(), cfg.banMessage),
                 "{motivo}", s.reason(),
-                "{durata}", s.readableDuration(),
-                "{scadenza}", s.fine() == Duration.PERMANENTE ? "mai" : Duration.mancante(s.fine()),
+                "{durata}", s.readableDuration(words),
+                "{scadenza}", s.fine() == Duration.PERMANENTE ? words.apply("never") : Duration.mancante(s.fine(), words),
                 "{id}", String.valueOf(s.id()));
     }
 

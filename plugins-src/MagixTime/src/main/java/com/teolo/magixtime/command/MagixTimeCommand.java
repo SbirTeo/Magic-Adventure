@@ -96,10 +96,10 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
                 "mctime", TimeSync.formatTicks(ticks),
                 "mcticks", String.valueOf(ticks),
                 "mcday", w != null ? String.valueOf(w.getFullTime() / 24000L) : "-",
-                "season", season != null ? season.display() : "-",
-                "nextseason", next != null ? next.display() : "-",
+                "season", season != null ? season(sender, season.display()) : "-",
+                "nextseason", next != null ? season(sender, next.display()) : "-",
                 "days", String.valueOf(plugin.seasons().daysToNext()),
-                "weather", plugin.weather().describe(w),
+                "weather", plugin.weather().describe(w, sender),
                 "weathernext", String.valueOf(plugin.weather().minutesLeft(w)));
         if (time.isPaused()) msg.send(sender, "info-paused");
         if (!time.isDaylightCycleOff()) msg.send(sender, "info-gamerule-warning");
@@ -122,26 +122,26 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
             if (args.length < 3) { msg.send(sender, "season-unknown", "list", String.join(", ", plugin.seasons().keys())); return; }
             if (args[2].equalsIgnoreCase("auto")) {
                 plugin.seasons().force(null);
-                msg.send(sender, "season-auto", "season", plugin.seasons().current().display());
+                msg.send(sender, "season-auto", "season", season(sender, plugin.seasons().current().display()));
                 return;
             }
             if (!plugin.seasons().force(args[2])) {
                 msg.send(sender, "season-unknown", "list", String.join(", ", plugin.seasons().keys()));
                 return;
             }
-            msg.send(sender, "season-forced", "season", plugin.seasons().current().display());
+            msg.send(sender, "season-forced", "season", season(sender, plugin.seasons().current().display()));
             return;
         }
 
         SeasonDef s = plugin.seasons().current();
         SeasonDef next = plugin.seasons().next();
         msg.sendList(sender, "season-details",
-                "season", s.display(),
+                "season", season(sender, s.display()),
                 "key", s.key(),
                 "rain", String.valueOf(s.rainChance()),
                 "thunder", String.valueOf(s.thunderChance()),
-                "snow", s.snowAccumulate() ? "si" : "no",
-                "next", next != null ? next.display() : "-",
+                "snow", msg.forPlayer(sender, s.snowAccumulate() ? "snow-yes" : "snow-no"),
+                "next", next != null ? season(sender, next.display()) : "-",
                 "days", String.valueOf(plugin.seasons().daysToNext()));
     }
 
@@ -168,7 +168,7 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
         }
         plugin.weather().force(type, minutes);
         msg.send(sender, "weather-set",
-                "weather", plugin.weather().describe(referenceWorld(sender)),
+                "weather", plugin.weather().describe(referenceWorld(sender), sender),
                 "minutes", String.valueOf(minutes));
     }
 
@@ -178,19 +178,20 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
         TimeSync time = plugin.time();
         msg.sendList(sender, "worlds-header",
                 "count", String.valueOf(plugin.managedWorlds().size()),
-                "gamerule", time.isDaylightCycleOff() ? "spenta" : "&cATTIVA");
+                "gamerule", msg.forPlayer(sender, time.isDaylightCycleOff() ? "gamerule-off" : "gamerule-on"));
         for (World w : plugin.managedWorlds()) {
             String state;
-            if (time.isLinked(w)) state = "&8orologio condiviso";
-            else if (time.isCatchingUp(w)) state = "&erecupero in corso";
-            else if (time.overrideLeft(w) > 0) state = "&eforzato (" + time.overrideLeft(w) + "s)";
-            else state = "&aallineato";
+            if (time.isLinked(w)) state = msg.forPlayer(sender, "world-state-linked");
+            else if (time.isCatchingUp(w)) state = msg.forPlayer(sender, "world-state-catchup");
+            else if (time.overrideLeft(w) > 0) state = msg.forPlayer(sender, "world-state-forced",
+                    "seconds", String.valueOf(time.overrideLeft(w)));
+            else state = msg.forPlayer(sender, "world-state-aligned");
             msg.sendList(sender, "worlds-line",
                     "world", w.getName(),
                     "mctime", TimeSync.formatTicks(w.getTime()),
                     "ticks", String.valueOf(w.getTime()),
                     "day", String.valueOf(w.getFullTime() / 24000L),
-                    "weather", plugin.weather().describe(w),
+                    "weather", plugin.weather().describe(w, sender),
                     "state", state);
         }
     }
@@ -259,5 +260,10 @@ public final class MagixTimeCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         for (String o : options) if (o.toLowerCase(Locale.ROOT).startsWith(p)) out.add(o);
         return out;
+    }
+
+    /** Il nome di una stagione (season.list.*.display del config) nella lingua di chi legge. */
+    private static String season(CommandSender sender, String display) {
+        return sender instanceof org.bukkit.entity.Player p ? Messages.phrase(p, display) : display;
     }
 }

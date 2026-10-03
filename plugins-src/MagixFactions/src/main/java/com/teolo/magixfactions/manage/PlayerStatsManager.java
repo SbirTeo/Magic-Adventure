@@ -261,6 +261,24 @@ public final class PlayerStatsManager {
         save(u);
     }
 
+    private AfkTracker afkTracker;
+
+    /** Lo collega AfkTracker al suo avvio. */
+    void setAfkTracker(AfkTracker t) { this.afkTracker = t; }
+
+    /** Diventa FERMO: accredita il tempo giocato fin qui, poi la giacenza media si ferma. */
+    public void onAfk(Player p) {
+        PS ps = ensure(p.getUniqueId());
+        accumulateMoney(ps, p);
+        ps.lastSampledAt = 0;
+        save(p.getUniqueId());
+    }
+
+    /** Torna a giocare: la giacenza media riparte da adesso (il tempo da fermo non conta). */
+    public void onBack(Player p) {
+        ensure(p.getUniqueId()).lastSampledAt = System.currentTimeMillis();
+    }
+
     /**
      * Campiona TUTTI i giocatori online: aggiorna il tempo totale (vanilla) e l'integrale della giacenza
      * media. Lo chiama il task periodico (stesso passo del campionatore del punteggio) e onDisable.
@@ -281,6 +299,14 @@ public final class PlayerStatsManager {
         // Visibilita' in classifica dal permesso: segue i cambi di grado dello staff senza bisogno di rientrare.
         boolean hide = p.hasPermission(PERM_HIDE_LEADERBOARD);
         if (hide != ps.hidden) { ps.hidden = hide; changed = true; }
+        // Da fermo la finestra resta chiusa (la chiude onAfk): non la si riapre qui.
+        if (afkTracker != null && afkTracker.isTrackedAfk(p.getUniqueId())) return changed;
+        return accumulateMoney(ps, p) || changed;
+    }
+
+    /** Integrale della giacenza media fino a ora. @return true se e' cambiato. */
+    private boolean accumulateMoney(PS ps, Player p) {
+        boolean changed = false;
         long now = System.currentTimeMillis();
         if (ps.lastSampledAt <= 0) {
             ps.lastSampledAt = now;   // prima volta: apri la finestra e basta

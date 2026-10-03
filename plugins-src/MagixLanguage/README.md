@@ -5,7 +5,7 @@ provenienza (GeoIP sull'IP di ingresso) e tiene sincronizzata una traduzione dei
 altri plugin Magix, cosi' chi lo desidera puo' rispondere gia' nella lingua giusta invece di
 sempre e solo in italiano.
 
-Versione: **0.3.0** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
+Versione: **0.5.0** — questo file viene riscritto in `plugins/MagixLanguage/README.md` ad ogni
 avvio del server.
 
 ---
@@ -18,9 +18,8 @@ future. È lo stesso jar dappertutto (`deploy.target` = `faction hub velocity`):
 `velocity/MagixLanguageVelocity`. Il nucleo (traduttore, pacing, glossario, database) non usa né
 Bukkit né Velocity.
 
-- **Traduce da solo i plugin Magix installati dove gira** (`translations.auto-discover`): ogni plugin
-  `Magix*` caricato su quel server, più quelli di `translations.plugins`. Un plugin nuovo non va
-  aggiunto a mano; le cartelle rimaste da un plugin tolto non contano.
+- **Traduce da solo i plugin Magix installati dove gira**: ogni plugin `Magix*` caricato su quel
+  server, più quelli di `translations.plugins`. Un plugin nuovo non va aggiunto a mano.
 - **La lingua del giocatore vale su tutta la rete**: tabella `language_players` del database del sito
   (credenziali dal config di MagixAuth, `database.shared_with`, primo file che esiste). Si scrive a
   ogni scelta (GeoIP o `/language set`) e si rilegge a ogni ingresso; `players.yml` resta la copia
@@ -46,7 +45,9 @@ piu' da solo. Si corregge con `/language set <it|en|es|de>` (per se stessi) o, c
 staff, per un altro giocatore.
 
 **Traduzione automatica dei messaggi degli altri plugin.** Ad ogni avvio (e a comando) il plugin
-legge `messages.yml` di ogni plugin Magix elencato nel config e ne copia il testo in
+legge `messages.yml` di **ogni plugin Magix installato** — trovati da soli, MagixLanguage compreso
+(anche i suoi messaggi passano dai cataloghi); `translations.plugins` serve solo ad aggiungere
+plugin di altri — e ne copia il testo in
 `plugins/MagixLanguage/translations/<Plugin>/it.yml` — uno **specchio** di quello che il plugin sta
 davvero usando, non una traduzione. Per ciascuna delle altre lingue, ogni chiave nuova o il cui
 testo italiano e' cambiato (un colore, una formattazione...) viene tradotta **da sola**, tramite
@@ -106,6 +107,31 @@ chiave e' la frase italiana esatta, non un percorso — funziona anche per una f
 automatica non ha trovato da sola, es. dentro un blocco `if/then/else` di un'azione). Le chiavi
 tradotte/mancanti dei menu sono gia' incluse nei numeri di `/language status` e nel log di
 sincronizzazione, insieme a quelle di `messages.yml`.
+
+**Una lingua alla volta, dalla più usata.** Si traduce una lingua su tutti i plugin prima di
+passare alla successiva, in ordine di quanti giocatori l'hanno scelta: quando la quota giornaliera
+di MyMemory finisce a metà giro, restano indietro le lingue usate di meno, non metà dei plugin.
+
+**I testi fuori da `messages.yml` (`translatable.yml`).** Righe della scoreboard, pannello sotto la
+minimap, titoli dei territori, nomi di relazioni/gradi/stagioni, richiesta e kick del pacchetto
+risorse, messaggi di ban/kick/mute, suggerimento della chat, oggetti fissi, i `msg:` delle entità
+stanno nei config dei plugin. Ogni plugin li dichiara nel `translatable.yml` dentro il proprio jar:
+
+```yaml
+config.yml:
+  - "scoreboards.*.lines.*.frames"     # '*' = ogni chiave di una sezione o ogni voce di una lista
+entities.yml:
+  - path: "entities.*.commands"        # solo le righe che cominciano con prefix,
+    prefix: "msg:"                     # e la frase è quello che segue
+```
+
+MagixLanguage legge quei percorsi nel file **vero** del server (quello scritto dallo staff) e li
+traduce per frase, negli stessi file `menu-phrases-<lingua>.yml` dei menu (correzioni in
+`menu-phrases-<lingua>-overrides.yml`). Chi mostra il testo lo passa da `Messages.phrase(giocatore,
+testo)` prima di sostituire segnaposti e placeholder. Un testo nuovo per i giocatori fuori da
+`messages.yml` va dichiarato lì nello stesso commit. Un testo su più righe (i kick) si traduce riga
+per riga. `MagixLanguageAPI.translatePhrase(plugin, lingua, testo)` serve per chi non è ancora in
+gioco (il messaggio di un ban, prima dell'ingresso).
 
 **Nessuna traduzione automatica dei messaggi in gioco.** MagixLanguage non intercetta i messaggi
 degli altri plugin da solo: mette a disposizione i cataloghi tradotti tramite `MagixLanguageAPI`

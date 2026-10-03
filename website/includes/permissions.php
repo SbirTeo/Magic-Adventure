@@ -69,6 +69,7 @@ const WEB_PERMISSIONS = [
             'sanzioni.coda'    => 'Confermare o respingere le sanzioni proposte',
             'sanzioni.ricorsi' => 'Rispondere ai ricorsi e deciderli',
             'sanzioni.revoca'  => 'Revocare una sanzione gia\' applicata',
+            'sanzioni.modifica' => 'Cambiare durata e motivo di una sanzione in corso',
         ],
     ],
 ];

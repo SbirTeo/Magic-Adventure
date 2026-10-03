@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -72,6 +73,52 @@ public final class Messages {
         return text;
     }
 
+    /**
+     * Come {@link #get(CommandSender, String, String...)}, per chi non e' ancora in gioco e di cui si
+     * ha solo l'UUID (il messaggio di un ban, mostrato prima dell'ingresso): la lingua la sa
+     * MagixLanguage dall'UUID.
+     */
+    public String get(java.util.UUID id, String path, String... kv) {
+        MagixLanguageAPI api = magixLanguage();
+        if (api != null && id != null) {
+            try {
+                String lang = api.language(id);
+                if (!"it".equals(lang)) {
+                    String t = api.translate(PLUGIN_NAME, lang, path, toMap(kv));
+                    if (t != null) return t;
+                }
+            } catch (Throwable ignored) {
+                // si ricade sull'italiano
+            }
+        }
+        return get(path, kv);
+    }
+
+    /** Le parole delle durate ("{n} giorni", "permanente"...) nella lingua di questo destinatario. */
+    public java.util.function.Function<String, String> durationWords(CommandSender to) {
+        return key -> get(to, "duration." + key);
+    }
+
+    /** Come {@link #durationWords(CommandSender)}, per chi si conosce solo per UUID. */
+    public java.util.function.Function<String, String> durationWords(java.util.UUID id) {
+        return key -> get(id, "duration." + key);
+    }
+
+    /** Come {@link #phrase(Player, String)}, per chi si conosce solo per UUID. */
+    public static String phrase(java.util.UUID id, String italian) {
+        if (id == null || italian == null || italian.isEmpty()) return italian;
+        MagixLanguageAPI api = magixLanguage();
+        if (api == null) return italian;
+        try {
+            String lang = api.language(id);
+            if ("it".equals(lang)) return italian;
+            String t = api.translatePhrase(PLUGIN_NAME, lang, italian);
+            return t != null ? t : italian;
+        } catch (Throwable t) {
+            return italian;
+        }
+    }
+
     /** Come si dice un provvedimento a questo destinatario ("Bandito", "Silenziato"...). */
     public String typeLabel(CommandSender to, Type type) {
         return get(to, "types." + type.code());
@@ -124,6 +171,34 @@ public final class Messages {
         } catch (Throwable t) {
             return null;
         }
+    }
+
+    /**
+     * Un testo per i giocatori che sta FUORI da messages.yml (dichiarato in translatable.yml: righe
+     * di config, titoli, pannelli...), nella lingua del giocatore. Si passa il testo ITALIANO cosi'
+     * com'e' scritto nel file, prima di sostituire segnaposti o placeholder: MagixLanguage lo cerca
+     * per frase. Senza MagixLanguage, per chi parla italiano o se la frase non e' ancora tradotta,
+     * torna il testo stesso. Mai un'eccezione.
+     */
+    public static String phrase(Player player, String italian) {
+        if (player == null || italian == null || italian.isEmpty()) return italian;
+        MagixLanguageAPI api = magixLanguage();
+        if (api == null) return italian;
+        try {
+            if ("it".equals(api.language(player))) return italian;
+            String t = api.translatePhrase(PLUGIN_NAME, player, italian);
+            return t != null ? t : italian;
+        } catch (Throwable t) {
+            return italian;
+        }
+    }
+
+    /** Come {@link #phrase}, riga per riga. */
+    public static List<String> phrases(Player player, List<String> italian) {
+        if (player == null || italian == null) return italian;
+        List<String> out = new ArrayList<>(italian.size());
+        for (String line : italian) out.add(phrase(player, line));
+        return out;
     }
 
     /** Il servizio di MagixLanguage se il plugin e' installato e attivo, altrimenti null: mai un'eccezione. */

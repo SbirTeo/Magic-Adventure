@@ -129,7 +129,8 @@ require __DIR__ . '/../includes/header.php';
         ?>
         <picture>
           <?php if ($__logoHomePiccolo !== ''): ?>
-            <source media="(max-width: 720px)" srcset="<?= h($__logoHomePiccolo) ?>"
+            <?php /* A 400 px: da telefono il logo piccolo si vede largo ~140 px. */ ?>
+            <source media="(max-width: 720px)" srcset="<?= h(image_variant($__logoHomePiccolo, 400)) ?>"
                     <?= $__misureLogoPiccolo ? 'width="' . $__misureLogoPiccolo[0] . '" height="' . $__misureLogoPiccolo[1] . '"' : '' ?>>
           <?php endif; ?>
           <img src="<?= h($__logoHome) ?>"

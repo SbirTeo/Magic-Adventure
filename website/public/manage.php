@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/campo_immagine.php';   // campi immagine co
 require_once __DIR__ . '/../includes/forum_ui.php';         // forum_tinta_hex(): colore delle categorie
 require_once __DIR__ . '/../includes/sanzioni.php';         // archivio sanzioni, coda e ricorsi
 require_once __DIR__ . '/../includes/rischio.php';           // classifica di chi controllare
+require_once __DIR__ . '/../includes/legal.php';             // dati del titolare (privacy, cookie, termini)
 
 // Non serve piu' essere web-admin: basta avere ALMENO un permesso web (assegnato al proprio
 // gruppo in gioco). Ogni sezione e ogni azione hanno poi il loro controllo puntuale.
@@ -31,7 +32,7 @@ $sectionPermissions = [
     'forum'     => ['forum.category.create', 'forum.category.edit', 'forum.category.delete',
                     'forum.topic.pin', 'forum.topic.lock', 'forum.topic.delete'],
     'users'     => ['users.view', 'users.manage'],
-    'sanzioni'  => ['sanzioni.view', 'sanzioni.coda', 'sanzioni.ricorsi', 'sanzioni.revoca'],
+    'sanzioni'  => ['sanzioni.view', 'sanzioni.coda', 'sanzioni.ricorsi', 'sanzioni.revoca', 'sanzioni.modifica'],
     'rischio'   => ['sanzioni.view'],
     // 'guida' non compare qui di proposito: la guida per amministratori la legge CHIUNQUE
     // entri nel gestionale. E' documentazione, non un potere.
@@ -102,7 +103,7 @@ $adminOnlyActions = ['blog_purge', 'blog_settings_save', 'page_save', 'page_dele
                      'store_pkg_toggle', 'store_pkg_clone', 'store_pkg_deliver', 'store_reorder',
                      'store_settings_save', 'store_sidebar_save', 'store_sconto_save', 'goal_save',
                      'store_filters_save', 'store_layout_save', 'payments_save',
-                     'otp_staff_save', 'otp_azzera', 'otp_revoca_gioco'];
+                     'otp_staff_save', 'otp_azzera', 'otp_revoca_gioco', 'legal_save'];
 
 /**
  * Sconto letto dal form (pacchetto o categoria): tipo + valore, gia' ripuliti.
@@ -400,6 +401,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id > 0) {
                 $upd = db()->prepare('UPDATE forum_categories SET name = ?, description = ?, sort_order = ?, color = ?, parent_id = ? WHERE id = ?');
                 $upd->execute([$name, $description, $sortOrder, $colore, $padre, $id]);
+                // Una categoria nata con "Duplica" ha l'indirizzo della copia (…-copia): al primo
+                // salvataggio col nome vero l'indirizzo si rifà dal nome, se no restava
+                // /forum/cerca-fazione-copia per una categoria che si chiama "Cerca membri".
+                $q = db()->prepare('SELECT slug FROM forum_categories WHERE id = ?');
+                $q->execute([$id]);
+                $slugAttuale = (string) $q->fetchColumn();
+                if (preg_match('/-copia(-\d+)?$/', $slugAttuale) && !str_contains(mb_strtolower($name), 'copia')) {
+                    db()->prepare('UPDATE forum_categories SET slug = ? WHERE id = ?')
+                        ->execute([unique_slug('forum_categories', slugify($name)), $id]);
+                }
             } else {
                 $slug = slugify($name);
                 $base = $slug;
@@ -683,6 +694,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db()->prepare('DELETE FROM auth_sessions WHERE mc_uuid = (SELECT mc_uuid FROM users WHERE id = ?)')
                 ->execute([$id]);
             redirect('/manage?section=sicurezza&ok=2');
+        }
+
+        // Dati del titolare per privacy, cookie e termini di vendita (includes/legal.php).
+        case 'legal_save': {
+            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
+            foreach (array_keys(LEGAL_FIELDS) as $chiave) {
+                $upd->execute([$chiave, mb_substr(trim((string) ($_POST[$chiave] ?? '')), 0, 255)]);
+            }
+            redirect('/manage?section=theme&ok=1#dati-legali');
         }
 
         case 'settings_save': {
@@ -1269,12 +1289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // revoke_applied = 0: in gioco il ban c'e' ancora finche' il plugin non
             // lo toglie. Il gestionale lo mostra come "da applicare", senza far finta.
-            db()->prepare(
-                "UPDATE punishments
-                    SET status = 'revocata', revoked_by = ?, revoked_at = NOW(),
-                        revoke_reason = ?, revoke_applied = 0
-                  WHERE id = ? AND status = 'attiva'"
-            )->execute([(string) $me['mc_username'], $motivo, $id]);
+            sanction_revoke($id, (string) $me['mc_username'], $motivo);
             redirect('/manage?section=sanzioni&ok=1');
         }
 
@@ -2536,6 +2551,31 @@ if ($section === 'dashboard') {
 } elseif ($section === 'theme') {
     $s = site_settings();
     ?>
+    <?php /* Dati legali: chi gestisce il sito. Finiscono nelle pagine Privacy, Cookie e Termini
+             di vendita (includes/legal.php); finche' mancano, li' compare un segnaposto. */ ?>
+    <div class="panel" id="dati-legali" style="scroll-margin-top:96px;">
+      <h3 style="margin-top:0;">Dati legali</h3>
+      <p style="margin:0 0 14px; color:var(--text-dim); font-size: var(--fs-base);">
+        Chi gestisce il sito e incassa dallo store. Compaiono nelle pagine
+        <a href="/privacy" target="_blank" rel="noopener">Privacy</a>,
+        <a href="/cookie" target="_blank" rel="noopener">Cookie</a> e
+        <a href="/termini" target="_blank" rel="noopener">Termini di vendita</a>:
+        senza titolare, indirizzo e contatto quei testi non valgono.
+        <?php if (!legal_ready()): ?><strong style="color:var(--red, #e05a5a);">Mancano ancora.</strong><?php endif; ?>
+      </p>
+      <form method="post" class="stack">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="legal_save">
+        <?php foreach (LEGAL_FIELDS as $chiave => $etichetta): ?>
+          <div>
+            <label for="<?= h($chiave) ?>"><?= h($etichetta) ?></label>
+            <input type="<?= $chiave === 'legal_email' ? 'email' : 'text' ?>" id="<?= h($chiave) ?>" name="<?= h($chiave) ?>"
+                   maxlength="255" value="<?= h($s[$chiave] ?? '') ?>">
+          </div>
+        <?php endforeach; ?>
+        <button type="submit" class="btn btn-accent">Salva i dati legali</button>
+      </form>
+    </div>
     <div class="panel">
       <form method="post" class="stack">
         <?= csrf_field() ?>
@@ -4098,13 +4138,18 @@ if ($section === 'dashboard') {
                     </div>
                     <p class="coda-motivo"><?= h($s['reason']) ?></p>
                   </div>
+                  <?php if ($st === 'attiva' && can('sanzioni.modifica')): ?>
+                    <?php /* La modifica (durata e motivo) sta nella pagina del provvedimento, che
+                             ha lo spazio per il modulo e mostra lo storico delle modifiche. */ ?>
+                    <a href="/sanzione/<?= (int) $s['id'] ?>#gestione" class="btn btn-ghost">Modifica</a>
+                  <?php endif; ?>
                   <?php if ($st === 'attiva' && can('sanzioni.revoca')): ?>
                     <form method="post" class="revoca-form">
                       <?= csrf_field() ?>
                       <input type="hidden" name="action" value="sanzione_revoca">
                       <input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
                       <input type="text" name="motivo" required maxlength="255" placeholder="Perché la revochi">
-                      <button type="submit" class="btn btn-ghost">Revoca</button>
+                      <button type="submit" class="btn btn-revoca">Revoca</button>
                     </form>
                   <?php endif; ?>
                 </div>

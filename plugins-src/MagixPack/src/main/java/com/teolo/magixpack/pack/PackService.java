@@ -246,7 +246,8 @@ public final class PackService {
         String prompt = plugin.getConfig().getString("prompt",
                 "&eQuesto server richiede il pacchetto risorse di MAGICADVENTURE.");
         p.setResourcePack(UUID.randomUUID(), publicUrl, sha1,
-                com.teolo.magixpack.util.Colors.translate(prompt), isRequired());
+                com.teolo.magixpack.util.Colors.translate(com.teolo.magixpack.lang.Messages.phrase(p, prompt)),
+                isRequired());
     }
 
     /** true = il pacchetto e' OBBLIGATORIO: inviato a tutti al join e chi non lo carica viene

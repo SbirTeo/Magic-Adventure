@@ -33,6 +33,9 @@ $add('/store', null, '0.8');
 $add('/tutorial', null, '0.7');
 $add('/classifiche', null, '0.6');
 $add('/utenti', null, '0.5');
+$add('/privacy', null, '0.2');
+$add('/cookie', null, '0.2');
+$add('/termini', null, '0.2');
 
 // Le voci del menu possono puntare a pagine create dal gestionale: quelle interne entrano.
 try {

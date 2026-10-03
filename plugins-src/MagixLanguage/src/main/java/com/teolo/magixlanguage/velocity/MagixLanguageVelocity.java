@@ -45,8 +45,8 @@ import java.util.logging.Logger;
 @Plugin(
         id = "magixlanguage",
         name = "MagixLanguage",
-        // Same as the pom (the annotation cannot read it): the other plugins compile against 0.4.14.
-        version = "0.4.14",
+        // Same as the pom (the annotation cannot read it).
+        version = "0.5.0",
         description = "La lingua di ogni giocatore e la traduzione dei messaggi dei plugin Magix, su tutta la rete",
         url = "https://magicadventure.it",
         authors = {"teolo"}
@@ -204,7 +204,7 @@ public final class MagixLanguageVelocity {
             List<String> installed = proxy.getPluginManager().getPlugins().stream()
                     .map(c -> c.getDescription().getId()).toList();
             List<String> plugins = PluginScope.toTranslate(installed, strings("translations.plugins"),
-                    bool("translations.auto-discover", true), "magixlanguage");
+                    true, "magixlanguage");
             Path pluginsFolder = dataDirectory.toAbsolutePath().getParent();
             ProxyTranslationSync.Settings settings = new ProxyTranslationSync.Settings(
                     plugins, strings("translations.files"), strings("supported-languages"),

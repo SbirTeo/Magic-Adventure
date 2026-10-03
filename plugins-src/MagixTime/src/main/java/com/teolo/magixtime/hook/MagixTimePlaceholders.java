@@ -75,9 +75,9 @@ public final class MagixTimePlaceholders extends PlaceholderExpansion {
         TimeSync time = plugin.time();
 
         return switch (params.toLowerCase(Locale.ROOT)) {
-            case "season" -> season != null ? season.display() : "";
+            case "season" -> season != null ? phrase(player, season.display()) : "";
             case "season_key" -> season != null ? season.key() : "";
-            case "next_season" -> next != null ? next.display() : "";
+            case "next_season" -> next != null ? phrase(player, next.display()) : "";
             case "days_to_next" -> String.valueOf(plugin.seasons().daysToNext());
             case "time" -> time.realTimeShort();
             case "time_seconds" -> time.realTime();
@@ -85,7 +85,7 @@ public final class MagixTimePlaceholders extends PlaceholderExpansion {
             case "timezone" -> plugin.zone().getId();
             case "mc_time" -> TimeSync.formatTicks(w != null ? w.getTime() : time.currentMinecraftTicks());
             case "mc_ticks" -> String.valueOf(w != null ? w.getTime() : time.currentMinecraftTicks());
-            case "weather" -> plugin.weather().describe(w);
+            case "weather" -> plugin.weather().describe(w, player != null ? player.getPlayer() : null);
             case "weather_next" -> String.valueOf(plugin.weather().minutesLeft(w));
             case "snow" -> season != null && season.snowAccumulate() ? "si" : "no";
             default -> null; // placeholder sconosciuto
@@ -97,5 +97,11 @@ public final class MagixTimePlaceholders extends PlaceholderExpansion {
         if (player instanceof Player p && plugin.isManaged(p.getWorld())) return p.getWorld();
         List<World> managed = plugin.managedWorlds();
         return managed.isEmpty() ? null : managed.get(0);
+    }
+
+    /** Un testo del config (il nome di una stagione) nella lingua del giocatore, se e' online. */
+    private static String phrase(OfflinePlayer player, String text) {
+        return player != null && player.getPlayer() != null
+                ? com.teolo.magixtime.lang.Messages.phrase(player.getPlayer(), text) : text;
     }
 }

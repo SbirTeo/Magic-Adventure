@@ -210,6 +210,18 @@ body.pagina-store {
   border-bottom: 2px solid transparent;
 }
 .main-nav a:hover { color: var(--text); }
+/* Logo in testa alla barra: senza questa regola prendeva il padding asimmetrico dei link
+   (6px sopra, 10px + la riga dell'attivo sotto) e l'immagine, in linea col testo, si portava
+   dietro lo spazio sotto la riga di base: risultava piu' in alto del centro della barra. */
+.main-nav a.nav-logo {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  padding: 0;
+  border-bottom: 0;
+  line-height: 0;
+}
+.main-nav a.nav-logo img { display: block; height: var(--nav-logo-h, 44px); width: auto; }
 .main-nav a.active {
   color: var(--text);
   border-bottom-color: var(--purple);
@@ -231,6 +243,9 @@ body.pagina-store {
   border-bottom-width: 1px !important;
   border-bottom-style: solid !important;
 }
+/* ...e il colore glielo rimette questa: ".main-nav a" (piu' pesante di .btn-gold) gli dava la
+   riga trasparente, e lo Store restava senza bordo sotto. */
+.main-nav a.btn-nav { border-bottom-color: var(--gold-dark, var(--gold-border)); }
 .btn.btn-nav { padding: 7px 16px; font-size: var(--fs-sm); color: var(--testo-su-oro, #2a1c02) !important; }
 .btn.btn-nav:hover { color: var(--testo-su-oro, #2a1c02) !important; }
 .btn-nav.active { outline: 2px solid var(--gold-dark); outline-offset: 1px; }
@@ -255,34 +270,93 @@ body.pagina-store {
    capo: se le voci non ci stanno (in inglese sono piu' lunghe) scorre di lato. Sotto i 960px
    resta il menu ad hamburger di sempre. */
 @media (min-width: 961px) {
-  .header-inner { flex-wrap: wrap; row-gap: 6px; padding-top: 10px; padding-bottom: 4px; }
-  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative; }
+  /* Due righe ALTE UGUALI (--nav-riga): sopra i tasti, sotto le voci. Niente spazi fra le due
+     e niente padding nella testata: ogni riga e' alta esattamente --nav-riga e il contenuto ci
+     sta centrato da se', quindi non ci sono piu' millimetri da compensare a mano. */
+  .site-header {
+    --nav-riga: 56px;
+    overflow-x: clip;
+    /* Ombra a due strati: un filo scuro netto che stacca la testata dalla pagina e una
+       sfumatura morbida e corta sotto, invece di un unico alone largo. */
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 14px 28px -18px rgba(0, 0, 0, .85);
+  }
+  .header-inner { flex-wrap: wrap; row-gap: 0; padding-top: 0; padding-bottom: 0; }
+  .header-inner > .auth-box {
+    order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative;
+    height: var(--nav-riga);
+  }
   /* La riga dei tasti ha una fascia piu' scura, a tutta larghezza dello schermo (non solo del
      contenuto centrato): la fa uno sfondo dietro, largo quanto la finestra, tagliato dalla testata
      con overflow-x: clip (clip e non hidden: non crea un'area di scorrimento, la barra resta
-     appiccicata in alto). Il colore viene da quello della testata, quindi segue i temi. */
-  .site-header { overflow-x: clip; }
+     appiccicata in alto). Il colore viene da quello della testata, quindi segue i temi: una
+     sfumatura leggera dall'alto verso il basso e, a dividere le due righe, una riga sottile
+     chiara con sotto un'ombra corta, come un'incisione. */
   .header-inner > .auth-box::before {
     content: "";
     position: absolute;
     z-index: -1;
-    top: -10px; bottom: -3px;
+    top: 0; bottom: 0;
     left: -100vw; right: -100vw;
-    background: color-mix(in srgb, var(--bg-testata) 55%, #000);
-    /* bordo un filo piu' marcato di quelli normali, piu' un'ombra appena accennata: sulla fascia
-       scura la riga di --border quasi spariva e le due righe sembravano incollate */
-    border-bottom: 1px solid var(--border-strong);
-    box-shadow: 0 1px 6px -2px rgba(0, 0, 0, .55);
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-testata) 48%, #000),
+      color-mix(in srgb, var(--bg-testata) 60%, #000));
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 4px 10px -6px rgba(0, 0, 0, .6);
+  }
+  /* Tema chiaro: la stessa fascia mescolata col nero al 50% diventava un grigio scuro pesante.
+     Qui basta un velo leggero, e anche le ombre si alleggeriscono. */
+  [data-tema="chiaro"] .header-inner > .auth-box::before {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-testata) 93%, #000),
+      color-mix(in srgb, var(--bg-testata) 96%, #000));
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .7), 0 4px 10px -8px rgba(0, 0, 0, .25);
+  }
+  [data-tema="chiaro"] .site-header {
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .06), 0 12px 24px -18px rgba(0, 0, 0, .35);
   }
   .nav-collapse { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
   .main-nav {
     flex-wrap: nowrap; min-width: 0;
+    height: var(--nav-riga);
+    gap: 26px;
     overflow-x: auto; overflow-y: hidden;
-    /* un po' d'aria sopra e sotto: il bagliore dello Store non deve restare tagliato */
-    padding: 6px 4px 2px; margin: -6px -4px 0;
+    /* un filo d'aria ai lati: il bagliore dello Store non deve restare tagliato */
+    padding: 0 4px; margin: 0 -4px;
     scrollbar-width: thin;
   }
   .main-nav > * { flex-shrink: 0; white-space: nowrap; }
+  /* Le voci occupano tutta l'altezza della riga, col testo al centro: l'indicatore della
+     pagina attiva sta cosi' sul bordo basso della testata, non appeso sotto la parola. */
+  /* :not(.nav-gestione): quella voce esiste solo nel menu da telefono, qui resta nascosta
+     (senza l'esclusione questa regola, piu' pesante, la rimetteva in barra). */
+  .main-nav a:not(.btn-nav):not(.nav-logo):not(.nav-gestione) {
+    position: relative;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    border-bottom: 0;
+    transition: color .15s;
+  }
+  .main-nav a:not(.btn-nav):not(.nav-logo)::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--purple);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--purple) 70%, transparent);
+    transform: scaleX(0);
+    opacity: 0;
+    transition: transform .2s ease, opacity .2s ease;
+  }
+  .main-nav a:not(.btn-nav):not(.nav-logo):hover::after { transform: scaleX(.6); opacity: .45; }
+  .main-nav a.active:not(.btn-nav):not(.nav-logo)::after { transform: scaleX(1); opacity: 1; }
+  .main-nav .btn-nav { margin: 0; }
+  .main-nav a.nav-logo img { max-height: calc(var(--nav-riga) - 12px); }
+}
+@media (min-width: 961px) and (prefers-reduced-motion: reduce) {
+  .main-nav a:not(.btn-nav):not(.nav-logo)::after { transition: none; }
 }
 /* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata.
    ".btn.cambia-tema" e non solo ".cambia-tema": .btn e' definito piu' sotto nel file e a pari
@@ -482,7 +556,7 @@ a.who-link {
     gap: 10px;
     flex: none;
   }
-  .main-nav .nav-logo { display: none; }
+  .main-nav a.nav-logo { display: none; }
   .main-nav a {
     display: flex;
     align-items: center;
@@ -637,7 +711,11 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(260px, 580px) 1fr;
+  /* Due colonne di larghezza limitata, centrate come gruppo: con "1fr" la colonna del testo
+     si allargava fino al bordo destro dello schermo, il testo restava a sinistra al suo
+     interno e su uno schermo largo logo e titolo sembravano spostati a sinistra. */
+  grid-template-columns: minmax(260px, 580px) minmax(0, 600px);
+  justify-content: center;
   gap: 44px;
   align-items: center;
 }
@@ -775,9 +853,12 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   gap: 10px;
   padding: 10px 20px 10px 16px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--gold-light), var(--gold) 55%, var(--gold-dark));
-  border: 1px solid var(--gold-dark);
-  color: #1a1206;
+  /* Verde Minecraft (#55ff55 / #00aa00, i codici §a / §2): il dorato e' dello Store, e con la
+     stessa tinta e la stessa forma i due tasti si confondevano. */
+  --vote-glow: rgba(85, 255, 85, .5);
+  background: linear-gradient(135deg, #8bff6e, #55ff55 35%, #00aa00);
+  border: 1px solid #007a00;
+  color: #052a05;
   font-family: var(--font-heading);
   font-weight: 800;
   font-size: var(--fs-base);
@@ -794,7 +875,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   /* Senza la fluttuazione, che altrimenti terrebbe lei il transform. */
   animation: vote-glow 2.4s ease-out infinite;
   transform: translateY(-3px) scale(1.03);
-  color: #1a1206;
+  color: #052a05;
 }
 .vote-btn:active { transform: translateY(0) scale(.98); }
 /* Il riflesso: una banda chiara in diagonale che attraversa il tasto ogni 3,5 secondi. */
@@ -813,8 +894,9 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   display: inline-block;
   font-size: 1.25em;
   line-height: 1;
-  color: #fff8dc;
-  text-shadow: 0 0 6px #fff, 0 0 12px var(--gold-glow);
+  /* Gialla come il §e di Minecraft, col contorno scuro per staccarla dal verde chiaro. */
+  color: #ffff55;
+  text-shadow: 0 0 1px #3a3000, 0 0 2px #3a3000, 0 0 8px rgba(255, 255, 85, .9);
   animation: vote-star 2.4s ease-in-out infinite;
 }
 .vote-btn-text { position: relative; }
@@ -837,9 +919,9 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   50% { transform: translateY(-3px); }
 }
 @keyframes vote-glow {
-  0% { box-shadow: 0 0 0 0 var(--gold-glow), 0 6px 18px -8px var(--gold-glow); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
+  0% { box-shadow: 0 0 0 0 var(--vote-glow, var(--gold-glow)), 0 6px 18px -8px var(--vote-glow, var(--gold-glow)); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0), 0 6px 18px -8px var(--vote-glow, var(--gold-glow)); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0), 0 6px 18px -8px var(--vote-glow, var(--gold-glow)); }
 }
 @keyframes vote-shine {
   0%, 55% { left: -60%; }
@@ -1792,8 +1874,10 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
      se c'e' la prima, Chrome ignora le seconde. */
   scrollbar-width: none;
   -ms-overflow-style: none;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
+  /* Alta quanto un messaggio (40px): con 10px il messaggio a meta' sembrava tagliato per
+     sbaglio; cosi' sfuma tutto e si legge come "sopra ce ne sono altri". */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 40px, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 40px, #000 100%);
 }
 .chat-messages::-webkit-scrollbar { width: 0; height: 0; }
 
@@ -1862,10 +1946,13 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 /* La riga sotto la faccia: provenienza, ora e descrizione, tutte in fila. */
 .chat-msg-info-riga { display: flex; align-items: center; gap: 6px; }
 .chat-msg-info .chat-msg-icona { width: 12px; height: 12px; margin: 0; align-self: center; }
-/* La corona del miglior sostenitore esce sopra la faccia: la targhetta le lascia il posto,
-   se no verrebbe tagliata dal suo stesso bordo. */
+/* Corona e aureola escono sopra la faccia: la targhetta le lascia il posto, cosi' restano
+   DENTRO il riquadro scuro invece di sporgere dal bordo. Lo spazio dipende da cosa c'e' sopra
+   la testa (misure di .avatar-top/.avatar-halo con la faccia da 34px): corona o aureola da
+   sole arrivano a ~14px sopra la faccia, l'aureola sopra la corona a ~28px (alone compreso). */
 .chat-msg-faccia-box { display: inline-flex; line-height: 0; }
-.chat-msg-info:has(.avatar-top) { padding-top: 16px; }
+.chat-msg-info:has(.avatar-top) { padding-top: 22px; }
+.chat-msg-info:has(.avatar-top.con-corona .avatar-halo) { padding-top: 36px; }
 
 /* Faccia del mittente nella targhetta: quadrata, senza sfocatura (8x8 originali). */
 .chat-msg-faccia {
@@ -1890,6 +1977,13 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 /* Per l'admin in alto a destra c'e' gia' la crocetta di eliminazione: la targhetta si sposta
    a sinistra invece di finirci sotto. */
 .chat-msg:has(.chat-msg-del) .chat-msg-info { right: 30px; }
+/* Il PRIMO messaggio: la targhetta si apre verso il BASSO. Centrata sulla riga, la parte
+   sopra (alta con corona e aureola) cadeva sul bordo superiore dell'elenco, che la ritaglia.
+   Se il messaggio e' anche l'ultimo (uno solo) vince la regola qui sotto, verso l'alto. */
+.chat-msg:first-child .chat-msg-info {
+  top: 6px;
+  transform: none;
+}
 /* L'ULTIMO messaggio: la targhetta si apre verso l'ALTO invece che centrata sulla riga.
    Centrata sporge sotto la riga e, trattandosi dell'ultima, quella sporgenza cade sul bordo
    inferiore dell'elenco (che ritaglia quello che esce): finiva ritagliata a filo del pulsante
@@ -3094,6 +3188,11 @@ body.store-una-categoria .store-card-cat { display: none; }
   color: var(--text-dimmer);
   font-size: var(--fs-sm);
 }
+.site-footer p { margin: 0; }
+.footer-link { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 22px; margin-bottom: 14px; }
+.footer-link a { color: var(--text-dim); text-decoration: none; font-weight: 600; }
+.footer-link a:hover { color: var(--text); text-decoration: underline; }
+.footer-nota { margin-top: 6px !important; font-size: var(--fs-xs); opacity: .8; }
 
 .rules-section { margin-bottom: 26px; }
 .rules-section h2 { font-size: var(--fs-md); }
@@ -5470,6 +5569,13 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   /* Spazio riservato alla colonna dell'immagine: il testo non ci finisce mai sotto. */
   padding-right: calc(var(--poster-larghezza) + 20px);
 }
+/* Con l'immagine di lato il testo sta su un fondo pieno, quindi non c'e' motivo di
+   ammassarlo in basso come sulle copertine a tutto sfondo: si centra in altezza, e
+   riassunto e firma tornano pieni (l'opacita' ridotta serviva sopra le fotografie, qui
+   li rendeva solo sbiaditi). */
+:is(.bento-feature, .post-tile).copertina-intera { justify-content: center; }
+.copertina-intera :is(.bento-excerpt, .post-tile-excerpt) { opacity: 1; color: var(--text-dim); }
+.copertina-intera .meta { opacity: 1; color: var(--text-dim); }
 /* Il velo che sale dal basso qui non serve: il fondo del testo e' gia' quello del pannello. */
 .bento-feature.copertina-intera::before,
 .post-tile.copertina-intera::before { display: none; }
@@ -5493,11 +5599,13 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--bg-panel) 0%, transparent 72%);
+  /* Stacco corto: prima la sfumatura copriva quasi tre quarti dell'immagine e la lavava
+     tutta; ora serve solo a non avere un taglio netto contro il fondo del testo. */
+  background: linear-gradient(90deg, var(--bg-panel) 0%, transparent 22%);
   background: linear-gradient(90deg,
       var(--bg-panel) 0%,
-      color-mix(in srgb, var(--bg-panel) 55%, transparent) 32%,
-      color-mix(in srgb, var(--bg-panel) 0%, transparent) 72%);
+      color-mix(in srgb, var(--bg-panel) 40%, transparent) 9%,
+      color-mix(in srgb, var(--bg-panel) 0%, transparent) 22%);
 }
 
 /* La locandina RIEMPIE la colonna e viene tagliata sul punto scelto nel gestionale
@@ -5720,7 +5828,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-pallino {
   display: inline-block;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm); /* squadrata come pulsanti ed etichette del sito, non a pillola */
   font-size: var(--fs-xs);
   font-weight: 600;
   border: 1px solid var(--border-strong);
@@ -5768,6 +5876,26 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-impronta code { color: var(--text); }
 .sanzione-rapporto { font-size: var(--fs-base); line-height: 1.65; }
 .sanzione-ricorso-stato { margin: 0 0 10px; font-size: var(--fs-base); font-weight: 600; }
+/* Storico delle modifiche (pagina del provvedimento) */
+.sanzione-modifiche { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.sanzione-modifiche h2 {
+  font-size: var(--fs-xs); letter-spacing: var(--tracking-caps); text-transform: uppercase;
+  color: var(--text-dimmer); margin: 0 0 8px;
+}
+.sanzione-modifiche ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sanzione-modifiche li { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-base); }
+.sanzione-modifiche s { color: var(--text-dimmer); }
+.sanzione-modifica-nota { color: var(--text-dim); font-style: italic; }
+/* Riquadro dello staff: modifica e revoca affiancate, una sotto l'altra da telefono */
+.sanzione-gestione-moduli { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.sanzione-gestione-moduli h3 { margin: 0; font-size: var(--fs-md); }
+.sanzione-gestione-moduli label { display: flex; flex-direction: column; gap: 4px; }
+.sanzione-gestione-moduli label > span { font-size: var(--fs-sm); color: var(--text-dim); }
+.sanzione-gestione-moduli form { align-content: start; }
+/* Revoca: rosso pieno, si distingue dagli altri pulsanti (pagina del provvedimento e archivio
+   del gestionale). */
+.btn.btn-revoca { background: #d64545; border-color: #b83232; color: #fff; }
+.btn.btn-revoca:hover { background: #e05252; border-color: #c43a3a; color: #fff; }
 .sanzione-esito { margin: 0 0 12px; color: var(--text-dim); font-size: var(--fs-base); }
 .sanzione-ricorso-testo h3 { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-dimmer); margin: 16px 0 6px; }
 .sanzione-ricorso-testo p { margin: 0; font-size: var(--fs-base); line-height: 1.6; }
@@ -6667,6 +6795,17 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 /* La bandiera: sempre un quadrato, col disegno al centro e aria tutto intorno. */
 .auth-box > .cambia-lingua > summary.btn { width: var(--barra-h); padding: 0; }
 .auth-box > a.who-link { padding: 0 14px 0 5px; }
+/* Gestione: solo l'ingranaggio, quadrato come la bandiera. */
+.auth-box > .btn.gestione-barra { width: var(--barra-h); padding: 0; }
+.gestione-barra svg {
+  display: block; width: 17px; height: 17px;
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+/* Su schermo largo il tasto Vota sta tutto a sinistra della riga dei tasti; gli altri restano
+   a destra. */
+@media (min-width: 961px) {
+  .auth-box > .vote-btn.vote-btn-nav { margin-right: auto; }
+}
 @media (max-width: 1279px) {
   /* Da qui in giu' stella e tema sono solo icona: quadrati come la bandiera. */
   .auth-box > .btn.cambia-tema,
@@ -6698,3 +6837,59 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--purple); color: #fff;
   font-size: 11px; font-weight: 700; vertical-align: middle;
 }
+
+/* ---- Pagina non trovata (404.php) ---------------------------------------------------- */
+.pagina-errore { max-width: 560px; margin: 48px auto 64px; text-align: center; }
+.pagina-errore-codice {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(72px, 16vw, 128px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: linear-gradient(90deg, var(--purple), var(--green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pagina-errore-titolo { margin: 12px 0 10px; font-size: var(--fs-xl); }
+.pagina-errore-testo { margin: 0 0 26px; color: var(--text-dim); font-size: var(--fs-base); line-height: 1.6; }
+.pagina-errore-azioni { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ---- Pagine legali (privacy.php, cookie.php, termini.php) ----------------------------
+   Testo lungo da leggere davvero: riga non piu' larga di ~75 caratteri, titoli che si
+   vedono scorrendo, interlinea comoda. */
+.legale-data { margin: -6px 0 14px; color: var(--text-dimmer); font-size: var(--fs-sm); }
+.legale-indice { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.legale-indice a {
+  padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-dim); text-decoration: none; font-size: var(--fs-sm); font-weight: 600;
+}
+.legale-indice a:hover { color: var(--text); border-color: var(--border-strong); }
+.legale-indice a.is-attiva { color: var(--text); border-color: var(--purple); }
+.legale { max-width: 820px; font-size: var(--fs-base); line-height: 1.7; }
+.legale > :first-child { margin-top: 0; }
+.legale h2 { font-size: var(--fs-lg); margin: 30px 0 10px; }
+.legale h3 { font-size: var(--fs-md); margin: 18px 0 6px; }
+.legale p, .legale li { color: var(--text-dim); }
+.legale strong { color: var(--text); }
+.legale ul { padding-left: 22px; }
+.legale li { margin-bottom: 8px; }
+.legale-mancante {
+  background: rgba(224, 90, 90, .14); color: #e05a5a; border-radius: 4px; padding: 0 5px;
+  font-weight: 600;
+}
+.legale-nota { margin-top: 26px; font-size: var(--fs-sm); color: var(--text-dimmer) !important; }
+.legale-tabella { overflow-x: auto; margin: 10px 0 16px; }
+.legale-tabella table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.legale-tabella th, .legale-tabella td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.legale-tabella th { color: var(--text-dimmer); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
+.legale-tabella td:first-child { white-space: nowrap; }
+
+/* Casella dei termini accanto al pulsante Acquista (pacchetto.php) */
+.pkg-compra { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; max-width: 360px; }
+.pkg-termini { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.5; text-align: left; cursor: pointer; }
+.pkg-termini input { margin-top: 2px; flex-shrink: 0; }
+@media (max-width: 620px) { .pkg-compra { align-items: stretch; max-width: none; } }
+.legale a { color: var(--purple); text-decoration: underline; text-underline-offset: 2px; }
+.legale a:hover { text-decoration-thickness: 2px; }

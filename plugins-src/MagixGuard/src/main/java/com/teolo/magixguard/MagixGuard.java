@@ -353,7 +353,7 @@ public final class MagixGuard extends JavaPlugin {
             AfkGuard afk = new AfkGuard(this, detector, sezAfk, messages);
             getServer().getPluginManager().registerEvents(afk, this);
             afk.start();
-            getLogger().info("Anti-AFK attivo (niente guadagni da fermo + caccia ai dispositivi).");
+            getLogger().info("Anti-AFK attivo (niente guadagni da fermo + chat in pausa + caccia ai dispositivi).");
         }
 
         org.bukkit.command.PluginCommand cmd = getCommand("mgviolation");
@@ -492,7 +492,14 @@ public final class MagixGuard extends JavaPlugin {
                                 + "partita entro pochi secondi.",
                         "Se nel gestionale una revoca resta ferma su «in attesa del server», vuol dire "
                                 + "che il server è spento o che il plugin non gira: in gioco quel ban c'è "
-                                + "ancora, ed è giusto che il gestionale lo dica invece di far finta.")
+                                + "ancora, ed è giusto che il gestionale lo dica invece di far finta.",
+                        "Revoca e **modifica** (durata e motivo) di un provvedimento in corso si fanno anche "
+                                + "dalla sua pagina sul sito (/sanzione/<numero>, riquadro «Gestione del "
+                                + "provvedimento», permessi sanzioni.revoca e sanzioni.modifica). La modifica "
+                                + "non passa dalla coda: cambia la riga nel database, che il plugin rilegge "
+                                + "a ogni ingresso e a ogni giro di sincronizzazione, quindi vale su tutti i "
+                                + "server entro pochi secondi. Ogni modifica resta nello storico pubblico "
+                                + "della pagina, con chi l'ha fatta e perché.")
 
                 .section("Su tutti i server della rete (faction, hub...)",
                         "MagixGuard gira su **ogni** server, con lo **stesso database** (le tabelle mg_* nel "
@@ -544,12 +551,21 @@ public final class MagixGuard extends JavaPlugin {
                                 + "`modo: attivo` prima di aver guardato i numeri vuol dire accusare "
                                 + "qualcuno con una soglia inventata.")
 
-                .section("Anti-AFK: due misure che rispondono a due problemi",
+                .section("Anti-AFK: cosa succede a chi è fermo",
                         "**Niente guadagni da fermo.** Dopo i minuti indicati nel config, attorno a chi "
-                                + "è immobile i mostri non nascono più, e oggetti ed esperienza non gli "
-                                + "arrivano addosso. Non viene espulso e non viene punito: semplicemente il "
+                                + "è immobile non nascono più mob (naturali, spawner, golem, portali, "
+                                + "allevamenti), oggetti ed esperienza non gli arrivano addosso, il tempo di "
+                                + "gioco non sale, la Potenza non cresce e le giacenze medie (sua e della "
+                                + "banca di fazione) non avanzano: le ultime due le ferma MagixFactions, che "
+                                + "legge il segno «magix_afk» messo sul giocatore. Non viene espulso e non viene punito: semplicemente il "
                                 + "gioco smette di premiare il fatto di essere collegato invece che di "
                                 + "giocare. Chi resta per chiacchierare non se ne accorge nemmeno.",
+                        "**Chat in pausa.** Nello stesso momento a chi è fermo smette di arrivare "
+                                + "qualunque messaggio in chat: giocatori, automessaggi, annunci, chat "
+                                + "del sito. Riparte appena si muove, oppure appena scrive lui un "
+                                + "messaggio o un comando (vuol dire che è davanti allo schermo). Serve "
+                                + "ProtocolLib: senza, si ferma solo la chat dei giocatori. L'action bar "
+                                + "resta.",
                         "Lo spawn si blocca solo se nel raggio **non c'è nessun giocatore sveglio**: "
                                 + "altrimenti basterebbe un AFK di passaggio per rovinare la serata a chi "
                                 + "sta giocando lì accanto.",
@@ -732,7 +748,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "è in sola osservazione e il caso arriva allo staff solo oltre "
                                 + "la soglia estrema (il ban lo decidete sempre voi). Guarda i numeri "
                                 + "nelle prove prima di decidere.")
-                .issue("«Non mi nascono più i mostri nella mia farm»",
+                .issue("«Non mi nascono più i mob nella mia farm»",
                         "È l'anti-AFK: da fermo il gioco non produce più nulla intorno a lui. Basta "
                                 + "muoversi. Se c'è un altro giocatore sveglio nel raggio, gli spawn "
                                 + "riprendono comunque.")

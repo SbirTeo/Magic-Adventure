@@ -110,6 +110,13 @@ public final class PlayerLocales {
         return new LanguageStore.Row(e.lang(), e.source() == Source.MANUAL ? "manual" : "geoip", e.country());
     }
 
+    /** Quanti giocatori hanno ciascuna lingua: decide quale lingua tradurre per prima. */
+    public Map<String, Integer> countByLanguage() {
+        Map<String, Integer> out = new java.util.HashMap<>();
+        for (Entry e : byPlayer.values()) out.merge(e.lang(), 1, Integer::sum);
+        return out;
+    }
+
     /** Impostata da GeoIP al primo ingresso: un ingresso successivo puo' ancora correggerla da sola. */
     public void setDetected(UUID playerId, String lang, String country) {
         Entry entry = new Entry(lang, Source.GEOIP, country);

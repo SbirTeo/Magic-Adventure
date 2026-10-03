@@ -99,6 +99,41 @@ public final class Duration {
         return s + (s == 1 ? " secondo" : " secondi");
     }
 
+    /**
+     * Come {@link #write(long)}, con le parole prese da {@code words} (chiave -> testo, es. "days" ->
+     * "{n} giorni"): le chiavi {@code duration.*} di messages.yml, nella lingua di chi legge.
+     */
+    public static String write(long millis, java.util.function.Function<String, String> words) {
+        if (millis == PERMANENTE) {
+            return words.apply("permanent");
+        }
+        if (millis <= 0) {
+            return words.apply("instant");
+        }
+        long n;
+        String unit;
+        if (millis >= GIORNO) {
+            n = millis / GIORNO;
+            unit = n == 1 ? "day" : "days";
+        } else if (millis >= ORA) {
+            n = millis / ORA;
+            unit = n == 1 ? "hour" : "hours";
+        } else if (millis >= MINUTO) {
+            n = millis / MINUTO;
+            unit = n == 1 ? "minute" : "minutes";
+        } else {
+            n = Math.max(1, millis / SECONDO);
+            unit = n == 1 ? "second" : "seconds";
+        }
+        return words.apply(unit).replace("{n}", String.valueOf(n));
+    }
+
+    /** Come {@link #mancante(long)}, con le parole di {@link #write(long, java.util.function.Function)}. */
+    public static String mancante(long fineMillis, java.util.function.Function<String, String> words) {
+        long resta = fineMillis - System.currentTimeMillis();
+        return resta <= 0 ? words.apply("soon") : write(resta, words);
+    }
+
     /** Quanto manca da adesso a quel momento, detto in italiano. */
     public static String mancante(long fineMillis) {
         long resta = fineMillis - System.currentTimeMillis();

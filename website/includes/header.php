@@ -158,7 +158,9 @@ $__alternate = language_alternates($__canonical);
 $__canonical = $__alternate[$GLOBALS['__siteLang']] ?? $__canonical;
 $__noindex = seo_da_nascondere(!empty($page_noindex));
 $__ogType = $page_type ?? 'website';
-$__ogImage = seo_url($page_image ?? (trim(site_setting('og_image', '')) ?: $__logoPiccolo));
+// Anteprima sui social: se la pagina non ne ha una sua, il logo ridotto a 600 px (i social non
+// chiedono il WebP e scaricavano il PNG originale da 1,8 MB).
+$__ogImage = seo_url($page_image ?? image_variant(trim(site_setting('og_image', '')) ?: $__logoPiccolo, 600));
 $__descrizioneSito = site_setting('meta_description', '');
 $__u = current_user();
 // Stile dei pulsanti principali (.btn-accent, quelli "pieni" di tutto il sito):
@@ -176,9 +178,14 @@ align_mc_names();
 $__navItems = db()->query('SELECT * FROM nav_items WHERE enabled = 1 ORDER BY sort_order, id')->fetchAll();
 $__currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 ?><!DOCTYPE html>
-<html lang="<?= h($GLOBALS['__siteLang']) ?>" data-tema="<?= h(tema_scelto()) ?>">
+<html lang="<?= h($GLOBALS['__siteLang']) ?>" data-tema="<?= h(tema_scelto()) ?>" class="notranslate">
 <head>
 <meta charset="UTF-8">
+<?php /* Niente traduzione automatica di Google/Chrome: il sito ha le sue lingue (selettore in barra),
+         e quella del browser le sovrascriverebbe storpiando nomi e comandi. Si fa col meta e con la
+         classe "notranslate" su <html>, MAI con l'attributo translate="no": quello lo rispetta anche
+         il traduttore del sito (includes/translate.php) e su <html> spegneva tutte le lingue. */ ?>
+<meta name="google" content="notranslate">
 <script>
 // Tema "auto": qui si traduce nella preferenza vera del sistema, PRIMA che la pagina venga
 // disegnata — cosi' non si vede il lampo scuro prima di diventare chiara. Senza JavaScript
@@ -278,9 +285,11 @@ $__caratteri = __DIR__ . '/../public/assets/css/caratteri.css';
 $__cssVer = @filemtime(__DIR__ . '/../public/assets/css/style.css') ?: time();
 ?>
 <link rel="stylesheet" href="/assets/css/style.css?v=<?= $__cssVer ?>">
-<link rel="icon" href="<?= h($__favicon) ?>">
-<?php /* Icona per "aggiungi a schermata Home" su iPhone e iPad: usa la stessa immagine. */ ?>
-<link rel="apple-touch-icon" href="<?= h($__favicon) ?>">
+<?php /* Copie piccole della stessa immagine (image_variant): la favicon era il file del logo
+         intero, 1254 px, per un'icona che si vede a 16-32. */ ?>
+<link rel="icon" type="image/png" sizes="64x64" href="<?= h(image_variant($__favicon, 64)) ?>">
+<?php /* Icona per "aggiungi a schermata Home" su iPhone e iPad: la stessa immagine, a 180 px. */ ?>
+<link rel="apple-touch-icon" sizes="180x180" href="<?= h(image_variant($__favicon, 180)) ?>">
 <style>
 :root {
   --purple: <?= h($__colorPurple) ?>;
@@ -505,7 +514,9 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           ?>
           <a href="/" class="nav-logo" aria-label="<?= h($__siteName) ?> — vai alla home"
              style="--nav-logo-h:<?= $__hLogoNav ?>px">
-            <img src="<?= h($__logoPiccolo) ?>" alt=""
+            <?php /* Copia a 192 px (il triplo dei 64 massimi, per gli schermi ad alta densita'):
+                     il file intero e' 1254 px per un'icona alta 44. */ ?>
+            <img src="<?= h(image_variant($__logoPiccolo, 192)) ?>" alt=""
                  width="<?= $__wLogoNav ?>" height="<?= $__hLogoNav ?>" decoding="async">
           </a>
         <?php endif; ?>
@@ -614,7 +625,12 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           <span class="who colore-grado"<?= $__coloreNome !== null ? ' style="' . rank_color_style($__coloreNome) . '"' : '' ?>><?= h($__u['mc_username']) ?></span>
         </a>
         <?php if (can_manage()): ?>
-          <a href="/manage" class="btn btn-ghost gestione-barra">Gestione</a>
+          <?php /* Solo icona (un ingranaggio), quadrata come tema e lingua: il nome resta nel
+                   title e nell'aria-label, per chi passa col mouse e per lo schermo vocale. */ ?>
+          <a href="/manage" class="btn btn-ghost gestione-barra<?= str_starts_with((string) $__currentPath, '/manage') ? ' active' : '' ?>"
+             title="Gestione" aria-label="Gestione">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </a>
         <?php endif; ?>
         <a href="/logout" class="btn btn-ghost">Esci</a>
       <?php else: ?>

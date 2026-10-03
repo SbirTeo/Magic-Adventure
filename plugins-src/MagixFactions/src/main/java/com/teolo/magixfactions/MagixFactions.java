@@ -139,6 +139,11 @@ public final class MagixFactions extends JavaPlugin {
         final com.teolo.magixfactions.manage.PlayerStatsManager statsForTask = playerStatsManager;
         Bukkit.getScheduler().runTaskTimer(this, () -> { statsForTask.sampleAll(); scoreManager.sampleAll(); },
                 scoreInterval, scoreInterval);
+        // Chi e' fermo (segno di MagixGuard) non fa avanzare le giacenze medie: chiuse a ogni cambio di stato.
+        com.teolo.magixfactions.manage.AfkTracker afkTracker = new com.teolo.magixfactions.manage.AfkTracker(
+                factionManager, scoreManager, playerStatsManager);
+        Bukkit.getScheduler().runTaskTimer(this, afkTracker::tick, 20L, 20L);
+        getServer().getPluginManager().registerEvents(afkTracker, this);
         getServer().getPluginManager().registerEvents(new PowerListener(powerManager), this);
         com.teolo.magixfactions.listener.TerritoryListener territory =
                 new com.teolo.magixfactions.listener.TerritoryListener(this, factionManager, claimManager);
@@ -583,10 +588,11 @@ public final class MagixFactions extends JavaPlugin {
                                 + "informative. Ogni voce ha il suo peso in score.weights (0 la esclude): rimetti members a "
                                 + "1, o azzera kills/value, quando vuoi.",
                         "Una differenza importante fra le due medie: la **GIACENZA MEDIA** della banca conta solo il "
-                                + "tempo in cui almeno un membro è **ONLINE** (il tempo scorre quando si gioca, si ferma a "
-                                + "server vuoto), così non si può gonfiare la media parcheggiando soldi da offline. La "
+                                + "tempo in cui almeno un membro è **ONLINE** e non fermo (il tempo scorre quando si gioca, si "
+                                + "ferma a server vuoto e quando tutti i collegati sono AFK per MagixGuard; lo stesso vale "
+                                + "per la giacenza personale e per la Potenza, che da fermi non sale), così non si può gonfiare la media parcheggiando soldi da offline. La "
                                 + "**POTENZA** media invece scorre sul tempo reale, perché deve calare anche mentre i "
-                                + "giocatori sono via. La media si campiona ogni {{secondi:score.sample-interval-seconds}} e "
+                                + "giocatori sono via; si ferma solo quando i membri collegati sono tutti AFK. La media si campiona ogni {{secondi:score.sample-interval-seconds}} e "
                                 + "si salva sul database; per le fazioni **già esistenti** parte dall'aggiornamento del "
                                 + "plugin (niente storico passato), quindi all'inizio riflette il presente e si assesta col "
                                 + "tempo. Il punteggio compare anche in /f info e sul sito, dagli stessi numeri.")

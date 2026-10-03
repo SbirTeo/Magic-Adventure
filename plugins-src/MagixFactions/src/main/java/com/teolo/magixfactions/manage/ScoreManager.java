@@ -119,19 +119,31 @@ public final class ScoreManager {
         return false;
     }
 
-    /** Almeno un membro e' collegato ADESSO. La giacenza media della banca avanza solo in questi momenti
-     *  (conta i soldi tenuti MENTRE si gioca); la potenza invece si media sul tempo reale. */
-    private boolean anyMemberOnline(Faction f) {
-        for (UUID u : f.getMembers().keySet()) if (Bukkit.getPlayer(u) != null) return true;
-        return false;
+    private AfkTracker afkTracker;
+
+    /** Lo collega AfkTracker al suo avvio: senza, nessuno risulta fermo. */
+    void setAfkTracker(AfkTracker t) { this.afkTracker = t; }
+
+    /** Com'e' la fazione in un intervallo: qualcuno gioca, i collegati sono tutti fermi (AFK), nessuno c'e'. */
+    private enum Presence { PLAYING, IDLE, OFFLINE }
+
+    /** La presenza ADESSO, ignorando {@code except} (chi sta entrando o tornando; null = nessuno). */
+    private Presence presence(Faction f, UUID except) {
+        boolean idle = false;
+        for (UUID u : f.getMembers().keySet()) {
+            if (u.equals(except)) continue;
+            org.bukkit.entity.Player p = Bukkit.getPlayer(u);
+            if (p == null) continue;
+            if (afkTracker == null || !afkTracker.isTrackedAfk(u)) return Presence.PLAYING;
+            idle = true;
+        }
+        return idle ? Presence.IDLE : Presence.OFFLINE;
     }
 
-    /** Come {@link #anyMemberOnline} ma IGNORANDO un membro (quello che sta entrando/uscendo): serve a
-     *  sapere se la fazione era gia' online PRIMA di quel giocatore, per attribuire correttamente
-     *  l'intervallo appena trascorso. */
-    private boolean anyMemberOnlineExcept(Faction f, UUID except) {
-        for (UUID u : f.getMembers().keySet()) if (!u.equals(except) && Bukkit.getPlayer(u) != null) return true;
-        return false;
+    /** Almeno un membro gioca ADESSO (collegato e non fermo). La giacenza media della banca avanza solo
+     *  in questi momenti; la potenza invece si media sul tempo reale, tolto quello con tutti fermi. */
+    private boolean anyMemberOnline(Faction f) {
+        return presence(f, null) == Presence.PLAYING;
     }
 
     // --------------------------- INTEGRALE ESATTO ----------------------
@@ -141,16 +153,21 @@ public final class ScoreManager {
      * stato (cambio saldo, ingresso/uscita di un membro) invece che solo ai campioni periodici, la media
      * diventa un integrale ESATTO: ogni saldo pesa esattamente per il tempo in cui e' stato tenuto (niente
      * approssimazione all'"estremo destro" che poteva far muovere la media nel verso sbagliato).
-     * <p>La banca accredita solo se {@code online} (i soldi tenuti a server vuoto non contano); la potenza
-     * sempre (deve calare anche da offline). {@code online} lo decide il chiamante in base allo stato che
+     * <p>La banca accredita solo se qualcuno GIOCA (i soldi tenuti a server vuoto o da fermi non contano);
+     * la potenza sempre (deve calare anche da offline), tranne quando i collegati sono tutti FERMI: quel
+     * tempo esce dalla finestra della media. La presenza la decide il chiamante in base allo stato che
      * valeva DURANTE l'intervallo appena chiuso.
      */
-    public void flush(Faction f, boolean online) {
+    private void flush(Faction f, Presence presence) {
         long now = System.currentTimeMillis();
         double dt = Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
         if (dt <= 0) return;
-        f.setPowerAvgAccum(f.getPowerAvgAccum() + power.factionPower(f) * dt);
-        if (online) {
+        if (presence == Presence.IDLE) {
+            f.setPowerPausedSeconds(f.getPowerPausedSeconds() + dt);
+        } else {
+            f.setPowerAvgAccum(f.getPowerAvgAccum() + power.factionPower(f) * dt);
+        }
+        if (presence == Presence.PLAYING) {
             f.setBankAvgAccum(f.getBankAvgAccum() + f.getBank() * dt);
             f.setBankActiveSeconds(f.getBankActiveSeconds() + dt);
         }
@@ -158,18 +175,18 @@ public final class ScoreManager {
     }
 
     /** Flush con lo stato online ATTUALE della fazione (per i campioni periodici e i cambi saldo). */
-    public void flush(Faction f) { flush(f, anyMemberOnline(f)); }
+    public void flush(Faction f) { if (f != null) flush(f, presence(f, null)); }
 
     /** Un membro ENTRA: chiude l'intervallo appena trascorso attribuendolo allo stato di PRIMA (online solo
      *  se c'erano gia' altri membri collegati), cosi' il tempo da offline non viene contato per la banca. */
     public void onMemberJoin(Faction f, UUID joining) {
-        if (f != null) flush(f, anyMemberOnlineExcept(f, joining));
+        if (f != null) flush(f, presence(f, joining));
     }
 
     /** Un membro ESCE: chiude l'intervallo appena trascorso come ONLINE (durante l'evento di quit il
      *  giocatore risulta ancora collegato), cosi' il tempo giocato viene accreditato prima che se ne vada. */
     public void onMemberQuit(Faction f) {
-        if (f != null) flush(f, anyMemberOnline(f));
+        if (f != null) flush(f, presence(f, null));
     }
 
     public int sampleIntervalSeconds() {
@@ -227,12 +244,19 @@ public final class ScoreManager {
         return accum / activeSec;
     }
 
-    /** Potenza MEDIA (totale di fazione) nel tempo dalla creazione. */
+    /** Potenza MEDIA (totale di fazione) nel tempo dalla creazione, tolto il tempo con tutti i collegati fermi. */
     public double averagePower(Faction f) {
         long now = System.currentTimeMillis();
-        double windowSec = (now - f.getScoreSince()) / 1000.0;
+        double windowSec = (now - f.getScoreSince()) / 1000.0 - f.getPowerPausedSeconds();
+        double accum;
+        if (presence(f, null) == Presence.IDLE) {   // intervallo aperto da fermi: non conta
+            windowSec -= Math.max(0, now - f.getScoreSampledAt()) / 1000.0;
+            accum = f.getPowerAvgAccum();
+        } else {
+            accum = openPowerAccum(f, now);
+        }
         if (windowSec < sampleIntervalSeconds()) return power.factionPower(f);
-        return openPowerAccum(f, now) / windowSec;
+        return accum / windowSec;
     }
 
     /** Eta' della fazione in giorni (dalla data di creazione reale). */

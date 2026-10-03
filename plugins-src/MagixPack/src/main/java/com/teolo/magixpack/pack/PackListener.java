@@ -153,7 +153,8 @@ public final class PackListener implements Listener {
             raw = plugin.getConfig().getString("kick-messages.declined",
                     "&cIl pacchetto risorse è OBBLIGATORIO su questo server.");
         }
-        var message = LegacyComponentSerializer.legacySection().deserialize(Colors.translate(raw));
+        var message = LegacyComponentSerializer.legacySection().deserialize(
+                Colors.translate(com.teolo.magixpack.lang.Messages.phrase(p, raw)));
         Runnable doKick = () -> {
             if (!p.isOnline()) return;
             plugin.getLogger().info("[ResourcePack] " + p.getName() + " espulso: pacchetto non caricato ("

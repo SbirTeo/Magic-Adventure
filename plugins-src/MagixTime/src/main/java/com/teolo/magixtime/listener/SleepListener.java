@@ -31,7 +31,7 @@ public final class SleepListener implements Listener {
         if (!plugin.getConfig().getBoolean("time.enabled", true)) return;
         if (e.getBedEnterResult() != PlayerBedEnterEvent.BedEnterResult.OK) return;
         if (!plugin.isManaged(e.getPlayer().getWorld())) return;
-        e.getPlayer().sendActionBar(plugin.messages().component("sleep-notice",
+        e.getPlayer().sendActionBar(plugin.messages().component(e.getPlayer(), "sleep-notice",
                 "mctime", com.teolo.magixtime.time.TimeSync.formatTicks(e.getPlayer().getWorld().getTime())));
     }
 

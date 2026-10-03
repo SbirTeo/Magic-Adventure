@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Torniamo subito — Magic Adventure</title>
+<!--
+  Pagina statica per quando PHP non risponde (nginx: error_page 502 503 504). Non puo' usare
+  header.php ne' il database, quindi e' tutta qui dentro: niente file esterni, nemmeno il CSS.
+-->
+<style>
+  :root { --bg: #0b0c0e; --pannello: #15161a; --bordo: #26272d; --testo: #e8e8ea; --tenue: #9a9ba3; --viola: #c04ff0; --verde: #a3e635; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f3f4f6; --pannello: #ffffff; --bordo: #e2e3e8; --testo: #15161a; --tenue: #5b5c64; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+    background: var(--bg); color: var(--testo);
+    font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  main {
+    max-width: 480px; width: 100%; text-align: center; padding: 36px 28px;
+    background: var(--pannello); border: 1px solid var(--bordo); border-radius: 14px;
+    border-top: 3px solid var(--viola);
+  }
+  h1 { margin: 0 0 10px; font-size: 24px; }
+  p { margin: 0 0 8px; color: var(--tenue); line-height: 1.6; font-size: 15px; }
+  .ip { margin-top: 18px; color: var(--testo); font-family: ui-monospace, Consolas, monospace; }
+  .ip span { color: var(--verde); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Il sito torna tra poco</h1>
+  <p>Stiamo sistemando qualcosa dietro le quinte. Riprova fra qualche minuto.</p>
+  <p>Il server di gioco non c'entra: se è acceso, puoi entrare lo stesso.</p>
+  <p class="ip"><span>IP</span> mc.magicadventure.it</p>
+</main>
+</body>
+</html>

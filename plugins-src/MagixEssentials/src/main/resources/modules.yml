@@ -12,6 +12,11 @@
 # Ogni funzione nuova che verrà aggiunta al plugin avrà la sua riga qui, e il suo file accanto.
 # Le modifiche si applicano con /magixessentials reload (o al riavvio del server).
 
+# Tablist: la lista giocatori che si apre col tasto Tab — intestazione, fondo, nome dei giocatori
+# e le caselle fisse. Spento, il tablist torna quello di CMI (o, se anche il suo modulo è spento,
+# quello del gioco). Si regola in tablist.yml.
+tablist: true
+
 # MOTD: le due righe che si leggono nella lista server, col numero dei giocatori e la tendina che
 # esce col mouse. Spento, vale la riga 'motd' di server.properties. Si regola in motd.yml.
 motd: true
@@ -36,3 +41,10 @@ chat: true
 # coi permessi che gli servono. Spento, quei comandi vengono tolti (anche dal TAB, senza
 # riavviare). Si regola in currencies.yml.
 currencies: true
+
+# Oggetti fissi nell'inventario: li si danno al login (o alla rinascita, o al cambio di mondo) e si
+# decide se i giocatori possono spostarli, buttarli, raccoglierne altri, rompere blocchi... Serve
+# sia all'hub (inventario pulito con la bussola dei server) sia al faction (un oggetto fisso nella
+# barra rapida). DI SERIE SPENTO: va acceso dove serve. Quando e come si danno e le regole generali
+# stanno in customjoinitems.yml, gli oggetti veri in items.yml.
+customjoinitems: false

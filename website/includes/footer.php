@@ -6,7 +6,15 @@
 </main>
 <footer class="site-footer">
   <div class="wrap footer-inner">
+    <?php /* Le pagine legali devono essere raggiungibili da ogni pagina: qui in fondo, dove le si cerca. */ ?>
+    <nav class="footer-link" aria-label="Informazioni">
+      <a href="/tutorial#regolamento">Regolamento</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/cookie">Cookie</a>
+      <a href="/termini">Termini di vendita</a>
+    </nav>
     <p>&copy; <?= date('Y') ?> <?= h(site_setting('site_name', 'MAGICADVENTURE')) ?> — server Minecraft. Gioca su <strong>mc.magicadventure.it</strong></p>
+    <p class="footer-nota">Non affiliato a Mojang Studios né a Microsoft. Minecraft è un marchio di Mojang AB.</p>
   </div>
 </footer>
 <?php

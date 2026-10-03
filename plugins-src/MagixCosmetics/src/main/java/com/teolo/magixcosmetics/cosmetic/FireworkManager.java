@@ -6,10 +6,13 @@ import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,13 +59,21 @@ public final class FireworkManager {
         SHAPES.put("creeper", FireworkEffect.Type.CREEPER);
     }
 
+    /** Il firework scoppia almeno a questa altezza sopra i piedi del giocatore, qualunque sia il config. */
+    public static final int MIN_BURST_HEIGHT = 10;
+    /** Se non arriva all'altezza (un soffitto), scoppia comunque dopo questi tick. */
+    private static final int MAX_FLIGHT_TICKS = 100;
+
     private static final Pattern HEX = Pattern.compile("#[0-9a-fA-F]{6}");
 
     private final MagixCosmetics plugin;
     private final FireworkStore store;
+    /** Il segno sui nostri firework, per annullarne il danno. */
+    private final NamespacedKey tag;
 
     private boolean enabled;
     private long delayTicks;
+    private double burstHeight;
     private int maxColors;
     private long previewCooldownMs;
     private boolean hideWhenVanished;
@@ -76,6 +87,7 @@ public final class FireworkManager {
     public FireworkManager(MagixCosmetics plugin) {
         this.plugin = plugin;
         this.store = new FireworkStore(plugin);
+        this.tag = new NamespacedKey(plugin, "cosmetic_firework");
     }
 
     public static String colorPermission(String name) { return "magixcosmetics.firework.color." + name; }
@@ -92,6 +104,7 @@ public final class FireworkManager {
         if (c == null) { enabled = false; return; }
         enabled = c.getBoolean("enabled", false);
         delayTicks = Math.max(0, c.getLong("delay-ticks", 20));
+        burstHeight = Math.max(MIN_BURST_HEIGHT, c.getDouble("burst-height", 12));
         maxColors = Math.max(1, Math.min(8, c.getInt("max-colors", 4)));
         previewCooldownMs = Math.max(0, c.getLong("preview-cooldown-seconds", 15)) * 1000L;
         hideWhenVanished = c.getBoolean("hide-when-vanished", true);
@@ -220,7 +233,7 @@ public final class FireworkManager {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!p.isOnline() || p.getGameMode() == GameMode.SPECTATOR) return;
             if (hideWhenVanished && isVanished(p)) return;
-            explode(p.getLocation().add(0, 1, 0), effective(p));
+            explode(p.getLocation(), effective(p));
         }, delayTicks);
     }
 
@@ -233,12 +246,19 @@ public final class FireworkManager {
         Long last = lastPreview.get(p.getUniqueId());
         if (last != null && now - last < previewCooldownMs) return (previewCooldownMs - (now - last) + 999) / 1000;
         lastPreview.put(p.getUniqueId(), now);
-        explode(p.getLocation().add(0, 1, 0), effective(p));
+        explode(p.getLocation(), effective(p));
         return 0;
     }
 
-    private void explode(Location at, FireworkLook look) {
-        if (at.getWorld() == null) return;
+    /**
+     * Lancia il firework dai piedi del giocatore: sale dritto e scoppia appena e' salito di
+     * {@code burstHeight} blocchi (mai meno di {@link #MIN_BURST_HEIGHT}), lontano dalla testa di
+     * chiunque. Se qualcosa lo ferma prima (un soffitto), scoppia comunque dopo
+     * {@link #MAX_FLIGHT_TICKS}. Il danno dell'esplosione lo annulla {@link FireworkListener}.
+     */
+    private void explode(Location from, FireworkLook look) {
+        World world = from.getWorld();
+        if (world == null) return;
         FireworkEffect.Builder b = FireworkEffect.builder()
                 .with(SHAPES.getOrDefault(look.shape, FireworkEffect.Type.BALL))
                 .flicker(Boolean.TRUE.equals(look.flicker))
@@ -251,13 +271,29 @@ public final class FireworkManager {
         } catch (IllegalStateException noColor) {
             return;   // nessun colore valido: niente da disegnare
         }
-        Firework fw = at.getWorld().spawn(at, Firework.class, f -> {
+        double targetY = from.getY() + burstHeight;
+        Firework fw = world.spawn(from, Firework.class, f -> {
             FireworkMeta meta = f.getFireworkMeta();
             meta.clearEffects();
             meta.addEffect(effect);
+            meta.setPower(3);
             f.setFireworkMeta(meta);
+            // Dopo setFireworkMeta, che ricalcola la durata del volo a caso.
+            f.setTicksToDetonate(MAX_FLIGHT_TICKS);
+            f.getPersistentDataContainer().set(tag, PersistentDataType.BYTE, (byte) 1);
         });
-        fw.detonate();
+        Bukkit.getScheduler().runTaskTimer(plugin, task -> {
+            if (!fw.isValid()) { task.cancel(); return; }
+            if (fw.getLocation().getY() >= targetY) {
+                fw.detonate();
+                task.cancel();
+            }
+        }, 1L, 1L);
+    }
+
+    /** Il firework e' uno dei nostri (d'ingresso o anteprima)? Serve ad annullarne il danno. */
+    public boolean isOurs(Firework fw) {
+        return fw.getPersistentDataContainer().has(tag, PersistentDataType.BYTE);
     }
 
     /** Vanish alla maniera degli altri plugin Magix: metadata "vanished" a true (lo mette CMI). */
