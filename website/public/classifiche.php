@@ -353,8 +353,10 @@ function podium_card(array $f, int $pos, float $leaderScore, array $members, arr
     $score = (float) $f['score'];
     $quota = $leaderScore > 0 ? max(4, min(100, (int) round($score / $leaderScore * 100))) : 0;
     $rel = faction_rel_class((int) $f['id'], $viewerFactionId, $viewerAllies);
+    // La sigla si mostra solo se dice qualcosa in piu' del nome: molte fazioni hanno come sigla
+    // il nome stesso, e accanto al nome sarebbe un doppione.
     $sigla = trim((string) ($f['tag'] ?? ''));
-    if ($sigla === '') $sigla = mb_substr((string) $f['name'], 0, 3);
+    if (mb_strtolower($sigla) === mb_strtolower(trim((string) $f['name']))) $sigla = '';
     $pop = score_popup($f['score_detail'] ?? null, $score);
     $facPop = faction_info_popup($f, $members, $alliesList, $viewerFactionId, $viewerAllies);
 
@@ -383,7 +385,7 @@ function podium_card(array $f, int $pos, float $leaderScore, array $members, arr
     return '<article class="podio-carta podio-' . $pos . ($rel === 'fac-own' ? ' is-tua' : '') . '">'
         . '<div class="podio-testa">'
         .   '<span class="pos pos-medaglia pos-' . $pos . '">' . $pos . '</span>'
-        .   '<span class="podio-sigla">' . h($sigla) . '</span>'
+        .   ($sigla !== '' ? '<span class="podio-sigla">' . h($sigla) . '</span>' : '')
         .   '<div class="fac-cell podio-nome" tabindex="0"><span class="fac-name fac-trigger ' . $rel . '">' . h((string) $f['name']) . '</span>' . $facPop . '</div>'
         . '</div>'
         . '<div class="podio-punti' . ($pop ? ' score-cell" tabindex="0' : '') . '">'
