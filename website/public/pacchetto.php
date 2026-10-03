@@ -68,6 +68,9 @@ $page_jsonld = [
 require __DIR__ . '/../includes/header.php';
 ?>
 <p class="pkg-torna"><a href="/store">← Tutti i pacchetti</a></p>
+<?php if (($_GET['err'] ?? '') === 'termini'): ?>
+  <div class="alert alert-error">Per acquistare devi spuntare la casella dei termini di vendita, accanto al pulsante.</div>
+<?php endif; ?>
 
 <article class="pkg-scheda<?= empty($pkg['image_url']) ? ' senza-immagine' : '' ?>"
          <?php
@@ -133,9 +136,17 @@ require __DIR__ . '/../includes/header.php';
       <?php elseif (!is_logged_in()): ?>
         <a href="/login" class="btn btn-gold">Accedi</a>
       <?php else: ?>
-        <form method="post" action="/store/checkout">
+        <?php /* La casella e' obbligatoria per legge: per un contenuto digitale consegnato subito il
+                 recesso si perde solo con una richiesta ESPRESSA fatta prima di pagare (art. 59,
+                 lett. o, Codice del Consumo). store/checkout.php la ricontrolla e la registra. */ ?>
+        <form method="post" action="/store/checkout" class="pkg-compra">
           <?= csrf_field() ?>
           <input type="hidden" name="package" value="<?= h($pkg['slug']) ?>">
+          <label class="pkg-termini">
+            <input type="checkbox" name="terms" value="1" required>
+            <span>Accetto i <a href="/termini" target="_blank">termini di vendita</a> e chiedo la consegna
+            immediata: so che, una volta consegnato, perdo il diritto di recesso.</span>
+          </label>
           <button type="submit" class="btn btn-gold">Acquista</button>
         </form>
       <?php endif; ?>

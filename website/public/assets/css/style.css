@@ -3188,6 +3188,11 @@ body.store-una-categoria .store-card-cat { display: none; }
   color: var(--text-dimmer);
   font-size: var(--fs-sm);
 }
+.site-footer p { margin: 0; }
+.footer-link { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 22px; margin-bottom: 14px; }
+.footer-link a { color: var(--text-dim); text-decoration: none; font-weight: 600; }
+.footer-link a:hover { color: var(--text); text-decoration: underline; }
+.footer-nota { margin-top: 6px !important; font-size: var(--fs-xs); opacity: .8; }
 
 .rules-section { margin-bottom: 26px; }
 .rules-section h2 { font-size: var(--fs-md); }
@@ -6850,3 +6855,39 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
 .pagina-errore-titolo { margin: 12px 0 10px; font-size: var(--fs-xl); }
 .pagina-errore-testo { margin: 0 0 26px; color: var(--text-dim); font-size: var(--fs-base); line-height: 1.6; }
 .pagina-errore-azioni { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ---- Pagine legali (privacy.php, cookie.php, termini.php) ----------------------------
+   Testo lungo da leggere davvero: riga non piu' larga di ~75 caratteri, titoli che si
+   vedono scorrendo, interlinea comoda. */
+.legale-data { margin: -6px 0 14px; color: var(--text-dimmer); font-size: var(--fs-sm); }
+.legale-indice { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.legale-indice a {
+  padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-dim); text-decoration: none; font-size: var(--fs-sm); font-weight: 600;
+}
+.legale-indice a:hover { color: var(--text); border-color: var(--border-strong); }
+.legale-indice a.is-attiva { color: var(--text); border-color: var(--purple); }
+.legale { max-width: 820px; font-size: var(--fs-base); line-height: 1.7; }
+.legale > :first-child { margin-top: 0; }
+.legale h2 { font-size: var(--fs-lg); margin: 30px 0 10px; }
+.legale h3 { font-size: var(--fs-md); margin: 18px 0 6px; }
+.legale p, .legale li { color: var(--text-dim); }
+.legale strong { color: var(--text); }
+.legale ul { padding-left: 22px; }
+.legale li { margin-bottom: 8px; }
+.legale-mancante {
+  background: rgba(224, 90, 90, .14); color: #e05a5a; border-radius: 4px; padding: 0 5px;
+  font-weight: 600;
+}
+.legale-nota { margin-top: 26px; font-size: var(--fs-sm); color: var(--text-dimmer) !important; }
+.legale-tabella { overflow-x: auto; margin: 10px 0 16px; }
+.legale-tabella table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.legale-tabella th, .legale-tabella td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.legale-tabella th { color: var(--text-dimmer); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-caps); }
+.legale-tabella td:first-child { white-space: nowrap; }
+
+/* Casella dei termini accanto al pulsante Acquista (pacchetto.php) */
+.pkg-compra { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; max-width: 360px; }
+.pkg-termini { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.5; text-align: left; cursor: pointer; }
+.pkg-termini input { margin-top: 2px; flex-shrink: 0; }
+@media (max-width: 620px) { .pkg-compra { align-items: stretch; max-width: none; } }
