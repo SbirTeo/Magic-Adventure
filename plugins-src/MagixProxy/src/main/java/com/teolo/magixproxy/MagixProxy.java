@@ -33,7 +33,7 @@ import java.nio.file.Path;
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.7.0",
+        version = "0.7.1",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
         authors = {"teolo"},

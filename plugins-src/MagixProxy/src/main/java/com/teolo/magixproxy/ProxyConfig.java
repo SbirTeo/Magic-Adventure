@@ -15,8 +15,9 @@ import java.util.Map;
  * config.yml and messages.yml of the proxy.
  *
  * Velocity has no Bukkit YamlConfiguration and no ConfigAlign: the files are copied from the
- * jar the first time, and every key missing on the server falls back to the jar's value (read
- * from the jar copy, never hardcoded here), so a new key works even before anyone adds it.
+ * jar the first time and then kept aligned to it by FileAlign (every key of the jar, the server's
+ * values kept); a key still missing falls back to the jar's value (read from the jar copy, never
+ * hardcoded here).
  */
 public final class ProxyConfig {
 
@@ -65,9 +66,15 @@ public final class ProxyConfig {
 
     public static ProxyConfig load(Path dataDirectory, Logger log) throws IOException {
         Files.createDirectories(dataDirectory);
-        Map<String, Object> cfg = read(copyDefault(dataDirectory, "config.yml", log));
+        copyDefault(dataDirectory, "config.yml", log);
+        copyDefault(dataDirectory, "messages.yml", log);
         applyValueFixes(dataDirectory, log);
-        Map<String, Object> msg = read(copyDefault(dataDirectory, "messages.yml", log));
+        // Every key of the jar on the server too (see FileAlign): the staff sees all the settings,
+        // and MagixLanguage translates every text, new ones included.
+        FileAlign.align(dataDirectory, "config.yml", log);
+        FileAlign.align(dataDirectory, "messages.yml", log);
+        Map<String, Object> cfg = read(dataDirectory.resolve("config.yml"));
+        Map<String, Object> msg = read(dataDirectory.resolve("messages.yml"));
         Map<String, Object> def = readResource("config.yml");
         return new ProxyConfig(cfg, def, databaseSource(cfg, def, log), msg, readResource("messages.yml"));
     }

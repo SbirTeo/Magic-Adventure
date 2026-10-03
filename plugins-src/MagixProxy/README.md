@@ -123,3 +123,12 @@ MagixLanguage gira anche sul proxy (stesso jar dei server di gioco) e traduce da
 (`lang/LanguageBridge`, senza dipendenza in compilazione): la lingua e' quella della rete (tabella
 `language_players` del database del sito), una traduzione mancante resta in italiano. Le correzioni
 vanno in `velocity/plugins/magixlanguage/translations/magixproxy/<lingua>-overrides.yml`.
+
+## File allineati al jar (0.7.1)
+
+Velocity non ha ConfigAlign: `FileAlign` fa lo stesso lavoro per `config.yml` e `messages.yml`. Se al
+file del proxy manca una chiave del jar, il file viene riscritto dal testo del jar (ordine e commenti
+del jar) tenendo ogni valore scelto sul server; le chiavi che il jar non ha piu' si tolgono. Prima di
+scrivere il risultato viene riletto: se un valore del server cambierebbe, il file non si tocca. La
+copia del vecchio file resta accanto (`.bak-<data>`). Serve anche a MagixLanguage: traduce solo le
+chiavi che trova nel file del server.
