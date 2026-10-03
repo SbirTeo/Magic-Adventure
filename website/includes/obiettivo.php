@@ -88,7 +88,8 @@ function obiettivo_dati(): array {
 /** Disegna la sezione. Non stampa nulla se l'obiettivo e' spento o senza cifra. */
 function obiettivo_sezione(): void {
     $o = obiettivo_dati();
-    if (!$o['attivo']) {
+    // Con lo store vuoto non c'e' modo di contribuire: la barra resterebbe ferma allo 0%.
+    if (!$o['attivo'] || !store_ha_pacchetti()) {
         return;
     }
     $cifra = fn(float $v): string => number_format($v, 2, ',', '.');

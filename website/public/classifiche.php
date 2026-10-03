@@ -362,6 +362,17 @@ function format_playtime(int $seconds): string {
      la tabella sta nel riquadro anche a 1000-1200px senza ricorrere allo scorrimento (che taglierebbe i popup). */
   .rank-wrap table.rank th, .rank-wrap table.rank td { padding: 10px 8px; }
   .rank-wrap table.rank th { white-space: normal; vertical-align: bottom; }
+  /* Quando la tabella scorre di lato (telefono, riquadro stretto) senza un segnale sembrava
+     tagliata: una sfumatura sul bordo destro dice "c'e' altro", e le prime due colonne
+     (posizione e nome) restano ferme, cosi' scorrendo non si perde di vista di chi e' la riga.
+     La sfumatura sparisce quando si arriva in fondo (classe .a-fine, la mette lo script qui sotto). */
+  @container rankpanel (max-width: 900px) {
+    .rank-wrap { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+    .rank-wrap.a-fine { -webkit-mask-image: none; mask-image: none; }
+    .rank-wrap table.rank th:nth-child(-n+2), .rank-wrap table.rank td:nth-child(-n+2) { position: sticky; z-index: 1; background: var(--bg-panel); }
+    .rank-wrap table.rank th:first-child, .rank-wrap table.rank td:first-child { left: 0; min-width: 22px; }
+    .rank-wrap table.rank th:nth-child(2), .rank-wrap table.rank td:nth-child(2) { left: 22px; box-shadow: 6px 0 8px -6px rgba(0, 0, 0, .5); }
+  }
   .score-cell { position: relative; }
   .score-trigger { cursor: pointer; font-weight: 700; }
   .score-cell .score-pop {
@@ -857,6 +868,20 @@ try {
 
     go(1); // imposta gli stili inline (pagina 1 visibile, resto nascosto)
     table.setAttribute('data-ready', ''); // ora comandano gli inline: disattiva la regola anti-lampo
+  });
+})();
+
+// Sfumatura "c'e' altro a destra" sulle tabelle che scorrono: via quando si e' in fondo (o
+// quando la tabella sta tutta nel riquadro e non scorre affatto).
+(function () {
+  document.querySelectorAll('.rank-wrap').forEach(function (wrap) {
+    function aggiorna() {
+      wrap.classList.toggle('a-fine', wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 2);
+    }
+    wrap.addEventListener('scroll', aggiorna, { passive: true });
+    window.addEventListener('resize', aggiorna);
+    document.addEventListener('click', function (e) { if (e.target.closest('.rank-tab-btn')) setTimeout(aggiorna, 0); });
+    aggiorna();
   });
 })();
 </script>

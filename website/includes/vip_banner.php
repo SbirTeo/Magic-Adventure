@@ -18,7 +18,7 @@ require_once __DIR__ . '/store_card.php';   // store_prezzo(): stesso calcolo de
  * @param bool $compatto versione bassa, per la cima dello store (dove fa da intestazione)
  */
 function vip_banner(bool $compatto = false): void {
-    if (site_setting('vip_banner_enabled', '1') !== '1') {
+    if (site_setting('vip_banner_enabled', '1') !== '1' || !store_ha_pacchetti()) {
         return;
     }
 

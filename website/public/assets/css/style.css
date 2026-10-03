@@ -1874,8 +1874,10 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
      se c'e' la prima, Chrome ignora le seconde. */
   scrollbar-width: none;
   -ms-overflow-style: none;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
+  /* Alta quanto un messaggio (40px): con 10px il messaggio a meta' sembrava tagliato per
+     sbaglio; cosi' sfuma tutto e si legge come "sopra ce ne sono altri". */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 40px, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 40px, #000 100%);
 }
 .chat-messages::-webkit-scrollbar { width: 0; height: 0; }
 

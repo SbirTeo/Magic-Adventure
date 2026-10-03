@@ -816,6 +816,24 @@ function unique_slug(string $table, string $base): string {
 }
 
 /**
+ * Lo store ha qualcosa da vendere? (almeno un pacchetto attivo)
+ *
+ * Finche' e' vuoto, promozione VIP e obiettivo del mese non si mostrano: portavano a una
+ * pagina "in preparazione" con una barra ferma allo 0%, cioe' a una promessa non mantenuta.
+ */
+function store_ha_pacchetti(): bool {
+    static $risposta = null;
+    if ($risposta === null) {
+        try {
+            $risposta = (int) db()->query('SELECT COUNT(*) FROM store_packages WHERE enabled = 1')->fetchColumn() > 0;
+        } catch (PDOException $e) {
+            $risposta = false;
+        }
+    }
+    return $risposta;
+}
+
+/**
  * Il pacchetto in evidenza dello store: uno solo in tutto il negozio, categorie comprese.
  * Conta solo se e' anche visibile, altrimenti il banner della home punterebbe a una card
  * che nel negozio non c'e'. Il risultato si calcola una volta sola per richiesta.
