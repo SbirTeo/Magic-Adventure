@@ -148,19 +148,21 @@ int readBits(ivec2 base, int start, int n) {
 // scelta dal server, solo per la sidebar. Le distanze dal punto a cui il client aggancia la sidebar (bordo
 // destro, meta' altezza: vedi gui.vsh di MagixScoreboard) si moltiplicano per scala voluta / scala del
 // giocatore: il risultato e' la sidebar che vanilla disegnerebbe alla scala voluta.
-// SB_SCALE_MODE: 0 = off (vanilla), 1 = screen (in proporzione all'altezza dello schermo), 2 = integer
-// (la scala intera piu' vicina alla stessa proporzione). SB_SCALE_SIZE = la Scala GUI equivalente su uno
-// schermo alto 1080 pixel. Sostituiti dal plugin dal config di MagixScoreboard.
+// SB_SCALE_MODE: 0 = off (vanilla), 1 = in proporzione all'altezza dello schermo, 2 = la scala intera
+// piu' vicina a quella proporzione. SB_SCALE_FACTOR = grandezza di un pixel della sidebar per pixel di
+// altezza dello schermo, calcolata dal plugin (ResourcePackContent, stessa regola di SidebarPack.scaleFactor
+// di MagixScoreboard): col mode "minimap" e' il pixel del testo del pannello info (1 pixel del font mappa =
+// 1 pixel della mappa = lato della minimap / 128), cosi' i due testi sono grandi uguali.
 // QUESTA FUNZIONE E' COPIATA IDENTICA in gui.vsh di MagixScoreboard: se si cambia, si cambiano entrambe.
 const int SB_SCALE_MODE = __SB_SCALE_MODE__;
-const float SB_SCALE_SIZE = __SB_SCALE_SIZE__;
+const float SB_SCALE_FACTOR = __SB_SCALE_FACTOR__;
 
 float sbScaleFactor(float guiW, float guiH) {
     if (SB_SCALE_MODE == 0 || ScreenSize.y < 1.0 || guiH < 1.0) return 1.0;
     // Scala GUI del giocatore: il client fa guiW = ceil(pixel / scala), quindi pixel / guiW e' la scala
     // (appena sotto quando la divisione non e' esatta: per questo round).
     float player = max(round(max(ScreenSize.x / guiW, ScreenSize.y / guiH)), 1.0);
-    float wanted = ScreenSize.y / 1080.0 * SB_SCALE_SIZE;
+    float wanted = ScreenSize.y * SB_SCALE_FACTOR;
     if (SB_SCALE_MODE == 2) wanted = max(round(wanted), 1.0);
     return wanted / player;
 }
