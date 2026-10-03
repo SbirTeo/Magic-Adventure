@@ -55,14 +55,17 @@ sidebar-position:
 # dell'interfaccia (barra degli oggetti, chat, menu) segue ancora la Scala GUI di ognuno. Si applica
 # con /mscoreboard reload; i giocatori già connessi lo vedono dal prossimo ingresso.
 sidebar-scale:
-  # screen  = in proporzione all'altezza dello schermo: occupa sempre la stessa parte di schermo, a
-  #           ogni risoluzione. Con size 3 le lettere restano nitide a 720, 1080, 1440 e 2160 pixel di
-  #           altezza; alle altre risoluzioni qualche pixel delle lettere può uscire un filo più largo.
-  # integer = la Scala GUI intera più vicina a quella proporzione: lettere sempre nitide, ma fra una
+  # minimap = le lettere grandi ESATTAMENTE come quelle del pannello sotto la minimap di MagixFactions
+  #           (coordinate, orologio...), a ogni risoluzione: segue map.minimap.screen-size di
+  #           MagixFactions, quindi per rimpicciolire o ingrandire entrambe si cambia quello. size non conta.
+  # screen  = in proporzione all'altezza dello schermo, con la grandezza scelta in size. Con size 3 le
+  #           lettere restano nitide a 720, 1080, 1440 e 2160 pixel di altezza; alle altre risoluzioni
+  #           qualche pixel delle lettere può uscire un filo più largo.
+  # integer = la Scala GUI intera più vicina a quella di screen: lettere sempre nitide, ma fra una
   #           risoluzione e l'altra la grandezza cambia a scatti.
   # off     = come vanilla: segue la Scala GUI di ogni giocatore.
-  mode: screen
-  size: 3                 # la grandezza della Scala GUI <size> su uno schermo alto 1080 pixel (1-6, anche con la virgola)
+  mode: minimap
+  size: 3                 # solo screen e integer: la Scala GUI <size> su uno schermo alto 1080 pixel (1-6, anche con la virgola)
 
 # In caso di PARITÀ di peso fra più scoreboard che corrispondono allo stesso
 # giocatore, decide quale vince: l'elenco va dal più specifico al meno
