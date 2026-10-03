@@ -264,7 +264,7 @@ require __DIR__ . '/../includes/header.php';
               <span>Perché la revochi</span>
               <input type="text" name="motivo" required maxlength="255" placeholder="Compare nella pagina pubblica">
             </label>
-            <button type="submit" class="btn btn-ghost">Revoca il provvedimento</button>
+            <button type="submit" class="btn btn-revoca">Revoca il provvedimento</button>
           </form>
         <?php endif; ?>
       </div>

@@ -15,15 +15,11 @@
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/permissions.php';
 require_once __DIR__ . '/../includes/sanzioni.php';
 
 $page_title = 'Sanzioni';
 $page_description = 'Tutti i provvedimenti presi su MAGICADVENTURE: chi, cosa, quando e con quale esito.';
 $active = 'sanzioni';
-
-/** Chi puo' revocare o modificare vede su ogni sanzione in corso il collegamento "Gestisci". */
-$staffGestisce = can_any(['sanzioni.revoca', 'sanzioni.modifica']);
 
 /** Quante righe per pagina. */
 const SANZIONI_PER_PAGINA = 25;
@@ -250,11 +246,6 @@ require __DIR__ . '/../includes/header.php';
           <span class="sanzione-pallino sanzione-<?= h($statoVero) ?>">
             <?= $statoVero === 'attiva' ? 'In corso' : ($statoVero === 'revocata' ? 'Revocata' : 'Terminata') ?>
           </span>
-          <?php if ($statoVero === 'attiva' && $staffGestisce): ?>
-            <?php /* Sopra al collegamento che copre la riga (z-index): porta dritto al riquadro
-                     di revoca e modifica nella pagina del provvedimento. */ ?>
-            <a class="sanzione-gestisci" href="/sanzione/<?= (int) $s['id'] ?>#gestione">Gestisci</a>
-          <?php endif; ?>
           <?php if ($ricorso): ?>
             <span class="sanzione-ricorso ricorso-<?= h($s['ricorso_stato']) ?>"><?= h(ricorso_etichetta($ricorso)) ?></span>
           <?php endif; ?>

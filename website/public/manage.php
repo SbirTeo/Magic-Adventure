@@ -4104,7 +4104,7 @@ if ($section === 'dashboard') {
                       <input type="hidden" name="action" value="sanzione_revoca">
                       <input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
                       <input type="text" name="motivo" required maxlength="255" placeholder="Perché la revochi">
-                      <button type="submit" class="btn btn-ghost">Revoca</button>
+                      <button type="submit" class="btn btn-revoca">Revoca</button>
                     </form>
                   <?php endif; ?>
                 </div>

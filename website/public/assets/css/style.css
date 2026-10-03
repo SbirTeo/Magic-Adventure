@@ -5819,7 +5819,7 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-pallino {
   display: inline-block;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm); /* squadrata come pulsanti ed etichette del sito, non a pillola */
   font-size: var(--fs-xs);
   font-weight: 600;
   border: 1px solid var(--border-strong);
@@ -5883,12 +5883,10 @@ body.senza-veli-store .store-card-corpo :is(h3, .store-card-cat, .store-card-pre
 .sanzione-gestione-moduli label { display: flex; flex-direction: column; gap: 4px; }
 .sanzione-gestione-moduli label > span { font-size: var(--fs-sm); color: var(--text-dim); }
 .sanzione-gestione-moduli form { align-content: start; }
-/* "Gestisci" nell'elenco pubblico: sopra al collegamento che copre tutta la riga */
-.sanzione-gestisci {
-  position: relative; z-index: 2;
-  font-size: var(--fs-xs); font-weight: 600; color: var(--purple); text-decoration: none;
-}
-.sanzione-gestisci:hover { text-decoration: underline; }
+/* Revoca: rosso pieno, si distingue dagli altri pulsanti (pagina del provvedimento e archivio
+   del gestionale). */
+.btn.btn-revoca { background: #d64545; border-color: #b83232; color: #fff; }
+.btn.btn-revoca:hover { background: #e05252; border-color: #c43a3a; color: #fff; }
 .sanzione-esito { margin: 0 0 12px; color: var(--text-dim); font-size: var(--fs-base); }
 .sanzione-ricorso-testo h3 { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-dimmer); margin: 16px 0 6px; }
 .sanzione-ricorso-testo p { margin: 0; font-size: var(--fs-base); line-height: 1.6; }
