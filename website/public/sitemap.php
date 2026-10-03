@@ -69,12 +69,6 @@ foreach (db()->query('SELECT id, last_post_at FROM forum_topics
     $add('/forum/discussione/' . (int) $t['id'], $t['last_post_at'], '0.5');
 }
 
-// --- Store: la pagina dedicata di ogni pacchetto in vendita --------------------------
-foreach (db()->query('SELECT slug, created_at, updated_at FROM store_packages
-                      WHERE enabled = 1 ORDER BY sort_order, id')->fetchAll() as $s) {
-    $add('/pacchetto/' . $s['slug'], $s['updated_at'] ?: $s['created_at'], '0.6');
-}
-
 echo '<?xml version="1.0" encoding="UTF-8"?>', "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', "\n";
 ?>

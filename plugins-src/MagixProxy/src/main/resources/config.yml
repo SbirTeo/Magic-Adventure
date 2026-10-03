@@ -39,6 +39,8 @@ network:
   # Il server a cui porta /hub (alias /lobby) da qualunque server della rete. Dev'essere uno dei
   # [servers] di velocity.toml.
   hub_server: hub
+  # Secondi fra /hub (il giocatore legge network.hub.teleporting) e il passaggio all'hub.
+  hub_delay_seconds: 3
   # true = gli altri server (hub, modalità future) si aprono solo a chi ha già fatto il login
   # con MagixAuth (sessione valida nel database, stesso indirizzo). Prima, "/server" e i menu
   # lo lasciano dov'e'. MagixAuth c'è comunque su ogni server: questo lo tiene sul principale.

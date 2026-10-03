@@ -78,7 +78,8 @@ $nTopics = $conta('SELECT COUNT(*) FROM forum_topics WHERE user_id = ?', (int) $
 $nRisposte = $conta('SELECT COUNT(*) FROM forum_posts WHERE user_id = ?', (int) $utente['id']);
 $nMiPiace = $conta('SELECT COUNT(*) FROM forum_likes l JOIN forum_posts p ON p.id = l.post_id WHERE p.user_id = ?', (int) $utente['id']);
 // Quanti acquisti, non quanto ha speso: la cifra e' un fatto suo.
-$nAcquisti = $conta("SELECT COUNT(*) FROM store_orders WHERE user_id = ? AND status = 'paid'", (int) $utente['id']);
+$ordiniPagati = paid_orders_sql();
+$nAcquisti = $ordiniPagati === null ? 0 : $conta("SELECT COUNT(*) FROM {$ordiniPagati} o WHERE user_id = ?", (int) $utente['id']);
 
 $coloreNome = player_name_color($utente);
 $tag = player_tag($utente);
@@ -185,7 +186,7 @@ require __DIR__ . '/../includes/header.php';
     <strong><?= (int) $nMiPiace ?></strong>
   </div>
   <div class="profilo-dato">
-    <span>Pacchetti presi dallo store</span>
+    <span>Acquisti nello store</span>
     <strong><?= (int) $nAcquisti ?></strong>
   </div>
 </div>

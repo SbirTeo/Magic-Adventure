@@ -20,7 +20,8 @@ network:
   moved-to-main: "&eIl server &f{server}&e non è più disponibile: ti ho riportato nel server principale."
   # /hub (alias /lobby): porta nell'hub da qualunque server.
   hub:
-    sent: "&aSei stato portato nell'&fhub&a."
+    # Appena scritto /hub: il passaggio avviene dopo network.hub_delay_seconds di config.yml.
+    teleporting: "&eTeletrasporto al server &fHub&e in corso..."
     already-here: "&eSei già nell'hub."
     unavailable: "&cL'hub non è raggiungibile in questo momento.\n&7Riprova tra qualche minuto."
     players-only: "&cQuesto comando si usa solo da giocatore."

@@ -1,6 +1,5 @@
 /* Riordino delle categorie del forum col trascinamento (drag & drop del browser, nessuna
-   libreria). Stessa idea dello store (assets/js/store-admin.js), ma qui i due livelli sono
-   la stessa cosa — una categoria — e trascinandone una DENTRO un'altra diventa una sua
+   libreria). I due livelli sono la stessa cosa — una categoria — e trascinandone una DENTRO un'altra diventa una sua
    sotto-categoria; tirandola fuori torna principale.
    A ogni rilascio si manda al server l'albero completo, che riscrive posizione e padre. */
 (function () {

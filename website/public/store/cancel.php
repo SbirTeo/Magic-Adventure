@@ -1,22 +1,21 @@
 <?php
-/** Il giocatore ha annullato su PayPal: l'ordine resta senza consegna. */
+/** Il giocatore ha annullato su PayPal: l'ordine resta senza accredito e si torna allo store. */
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/magix.php';
 
 require_login();
+magix_ensure_tables();
 
 $me = current_user();
 $orderId = (int) ($_GET['order'] ?? 0);
-db()->prepare("UPDATE store_orders SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status = 'pending'")
+db()->prepare("UPDATE magix_orders SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status = 'pending'")
     ->execute([$orderId, $me['id']]);
 
-$page_title = 'Acquisto annullato';
-$active = 'store';
-require __DIR__ . '/../../includes/header.php';
-?>
-<h1 class="page-title">Acquisto annullato</h1>
-<div class="panel">
-  <p>Non è stato addebitato nulla. Puoi riprovare quando vuoi.</p>
-  <a href="/store" class="btn btn-ghost">Torna allo store</a>
-</div>
-<?php require __DIR__ . '/../../includes/footer.php'; ?>
+$q = db()->prepare('SELECT amount, recipient_name FROM magix_orders WHERE id = ? AND user_id = ?');
+$q->execute([$orderId, $me['id']]);
+$ordine = $q->fetch() ?: ['amount' => 0, 'recipient_name' => null];
+$amount = (int) $ordine['amount'];
+$per = trim((string) $ordine['recipient_name']);
+
+redirect('/store?err=annullato' . ($amount > 0 ? '&q=' . $amount : '') . ($per !== '' ? '&per=' . rawurlencode($per) : ''));

@@ -12,3 +12,4 @@ config.yml:
   - "chat.hover-web"
   - "ranks.*.name"
   - "leader.name"
+  - "faction-description.default"

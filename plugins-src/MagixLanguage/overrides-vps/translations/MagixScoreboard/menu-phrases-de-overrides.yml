@@ -1,0 +1,28 @@
+# Le TUE correzioni per il testo dei MENU in "de": una frase messa qui (la frase ITALIANA esatta, come chiave) vince sempre sulla traduzione automatica, e questo file non viene MAI toccato dalla sincronizzazione.
+# A differenza di messages.yml qui non ci sono nomi di chiave: si scrive la frase italiana esatta (con placeholder %tipo_questo% compresi) e il testo corretto.
+# Sorgente nel repo: plugins-src/MagixLanguage/overrides-vps/translations/MagixScoreboard/ (si cambia lì e si porta sul VPS con deploy-plugin-override.yml).
+# Righe della scoreboard (tedesco), scritte a mano: se una riga cambia nel config.yml della scoreboard, la frase qui sotto non corrisponde più e torna la traduzione automatica.
+
+"        &7Digita &f/missioni": "        &7Tippe &f/missioni"
+" &aFazione &l%magixfactions_faction%": " &aFraktion &l%magixfactions_faction%"
+" &fTerritori &7» &e%magixfactions_claims%": " &fGebiete &7» &e%magixfactions_claims%"
+" &fPotenza &7» &e%magixfactions_power%&8/&6%magixfactions_maxpower%": " &fMacht &7» &e%magixfactions_power%&8/&6%magixfactions_maxpower%"
+" &fMembri &7» &a%magixfactions_members_online% &8(&7%magixfactions_members% connessi&8)": " &fMitglieder &7» &a%magixfactions_members_online% &8(&7%magixfactions_members% online&8)"
+" %magixpack_glyph_money% &eMonete   %magixpack_glyph_magix% &dMagix": " %magixpack_glyph_money% &eMünzen   %magixpack_glyph_magix% &dMagix"
+" &7Disattiva con &f/msb toggle": " &7Ausblenden mit &f/msb toggle"
+" &7Non hai una fazione!": " &7Du hast keine Fraktion!"
+" &7Creane una tutta tua": " &7Gründe deine eigene"
+" &7con &e/f create &7oppure": " &7mit &e/f create &7oder"
+" &7unisciti ad una esistente.": " &7tritt einer bestehenden bei."
+" &dmc.magicadventure.it       ": " &dmc.magicadventure.it       "
+" &5mc.magicadventure.it       ": " &5mc.magicadventure.it       "
+"&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7VIP": "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7VIP"
+"&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7Spawn": "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7Spawn"
+"&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7Fazione": "&#C046E8&lMAGIC&#A8DC2C&lADVENTURE &7Fraktion"
+"&7Saldo: &a%vault_eco_balance_formatted%": "&7Guthaben: &a%vault_eco_balance_formatted%"
+"&7Uccisioni: &c%statistic_player_kills%": "&7Kills: &c%statistic_player_kills%"
+"&7Morti: &c%statistic_deaths%": "&7Tode: &c%statistic_deaths%"
+"&7Benvenuto su MagicAdventure!": "&7Willkommen auf MagicAdventure!"
+"&7Online: &f%server_online%&7/&f%server_max_players%": "&7Online: &f%server_online%&7/&f%server_max_players%"
+"&7Fazione: &f%magixfactions_faction%": "&7Fraktion: &f%magixfactions_faction%"
+"&7Potenza: &f%magixfactions_power%&7/&f%magixfactions_maxpower%": "&7Macht: &f%magixfactions_power%&7/&f%magixfactions_maxpower%"

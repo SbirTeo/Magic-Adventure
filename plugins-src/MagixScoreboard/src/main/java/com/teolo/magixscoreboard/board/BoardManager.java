@@ -39,7 +39,8 @@ public final class BoardManager {
     private List<String> priorityOrder = List.of("region", "permission", "world", "placeholder");
     private int updateIntervalTicks = 10;
     private boolean enabled = true;
-    /** sidebar-position.offset-y != 0: le scritte vanno marcate (SidebarMark) perche' lo shader le sposti. */
+    /** sidebar-position.offset-y != 0 o sidebar-scale acceso: le scritte vanno marcate (SidebarMark)
+     *  perche' lo shader le sposti e le ridimensioni. */
     private boolean markText = false;
     private boolean warnedRegionsWithoutWorldGuard = false;
 
@@ -66,7 +67,8 @@ public final class BoardManager {
     private void load() {
         org.bukkit.configuration.file.FileConfiguration cfg = plugin.getConfig();
         enabled = cfg.getBoolean("enabled", true);
-        markText = cfg.getDouble("sidebar-position.offset-y", 0) != 0;
+        markText = cfg.getDouble("sidebar-position.offset-y", 0) != 0
+                || com.teolo.magixscoreboard.hook.SidebarPack.scaleMode(cfg) != 0;
         updateIntervalTicks = Math.max(1, cfg.getInt("update-interval-ticks", 10));
         List<String> order = cfg.getStringList("priority-order");
         priorityOrder = order.isEmpty() ? List.of("region", "permission", "world", "placeholder") : List.copyOf(order);

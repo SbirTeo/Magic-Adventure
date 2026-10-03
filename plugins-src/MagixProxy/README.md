@@ -112,7 +112,10 @@ comparire nel file.
 ## /hub e /lobby (0.6.0)
 
 `/hub` (alias `/lobby`) porta il giocatore sul server `network.hub_server` (di serie `hub`) da
-qualunque server della rete; vale per tutti, senza permesso. Passa dal normale cambio di server,
+qualunque server della rete; vale per tutti, senza permesso. Il giocatore legge subito
+`network.hub.teleporting` ("Teletrasporto al server Hub in corso...") e passa all'hub dopo
+`network.hub_delay_seconds` (di serie 3; dalla 0.7.2). Un secondo `/hub` durante l'attesa non ne fa
+partire un altro. Passa dal normale cambio di server,
 quindi `ServerGuard` applica la solita regola: prima del login il giocatore resta dov'e'. Testi in
 `network.hub.*` di `messages.yml`.
 
