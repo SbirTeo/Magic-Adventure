@@ -158,7 +158,7 @@ final class JoinItem {
 
     /** Una riga di nome/descrizione: {player}, poi PlaceholderAPI, poi i colori, senza il corsivo di serie. */
     private static Component line(Player p, String raw) {
-        String text = raw.replace("{player}", p.getName());
+        String text = com.teolo.magixessentials.lang.Messages.phrase(p, raw).replace("{player}", p.getName());
         if (text.indexOf('%') >= 0) text = Papi.resolve(p, text);
         return TextFormat.component(text).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }

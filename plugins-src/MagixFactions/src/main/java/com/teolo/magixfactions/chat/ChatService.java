@@ -114,8 +114,10 @@ public final class ChatService {
      * @param sender chi ha scritto il messaggio (per {@link #PERM_CLICKABLE_LINKS}); null se non e'
      *               in partita (es. scrive dal sito ed e' offline) — in quel caso niente link cliccabili,
      *               non c'e' un giocatore online su cui controllare il permesso
+     * @param reader chi legge la riga: il suggerimento esce nella sua lingua
      */
-    private net.kyori.adventure.text.Component withSuggestion(String legacy, boolean fromSite, Player sender) {
+    private net.kyori.adventure.text.Component withSuggestion(String legacy, boolean fromSite, Player sender,
+                                                             Player reader) {
         net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer serializer =
                 net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection();
         net.kyori.adventure.text.Component row = serializer.deserialize(legacy);
@@ -126,9 +128,9 @@ public final class ChatService {
 
         String ora = java.time.LocalTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
-        String origine = plugin.getConfig().getString(
+        String origine = com.teolo.magixfactions.lang.Messages.phrase(reader, plugin.getConfig().getString(
                 fromSite ? "chat.hover-web" : "chat.hover-gioco",
-                fromSite ? "&b☁ scritto dal sito" : "&a⛏ scritto in gioco");
+                fromSite ? "&b☁ scritto dal sito" : "&a⛏ scritto in gioco"));
         String text = plugin.getConfig().getString("chat.hover-format", "&7{ora}  &8•  {origine}")
                 .replace("{ora}", ora)
                 .replace("{origine}", origine);
@@ -179,8 +181,8 @@ public final class ChatService {
             if (p == null) continue;
             // Nome della fazione del mittente colorato con la relazione del DESTINATARIO che legge.
             String facName = fm.relationColor(fm.getFaction(u), f) + f.getName();
-            String prefix = Papi.resolve(sender, M.get(prefixKey, "faction", facName));
-            p.sendMessage(withSuggestion(prefix + body, false, sender));
+            String prefix = Papi.resolve(sender, M.get(p, prefixKey, "faction", facName));
+            p.sendMessage(withSuggestion(prefix + body, false, sender, p));
         }
         return true;
     }

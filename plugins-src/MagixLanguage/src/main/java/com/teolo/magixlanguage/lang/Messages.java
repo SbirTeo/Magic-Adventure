@@ -1,5 +1,6 @@
 package com.teolo.magixlanguage.lang;
 
+import com.teolo.magixlanguage.api.MagixLanguageAPI;
 import com.teolo.magixlanguage.hook.Papi;
 import com.teolo.magixlanguage.util.Colors;
 import net.kyori.adventure.text.Component;
@@ -16,10 +17,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Carica e fornisce i messaggi da messages.yml (modificabile dall'utente). */
 public final class Messages {
+
+    /** Nome con cui questo plugin compare nei propri cataloghi tradotti (translations/MagixLanguage/). */
+    private static final String PLUGIN_NAME = "MagixLanguage";
 
     private final JavaPlugin plugin;
     private FileConfiguration cfg;
@@ -52,22 +58,55 @@ public final class Messages {
         return Colors.translate(apply(s, kv));
     }
 
-    /** Invia il messaggio. */
+    /** Invia il messaggio, nella lingua del destinatario se e' un giocatore. */
     public void send(CommandSender to, String path, String... kv) {
-        String text = get(path, kv);
+        to.sendMessage(forPlayer(to, path, kv));
+    }
+
+    /** Invia una lista di righe (pannelli tipo /language), nella lingua del destinatario. */
+    public void sendList(CommandSender to, String path, String... kv) {
+        for (String line : listForPlayer(to, path, kv)) to.sendMessage(line);
+    }
+
+    /**
+     * Il testo di "path" per questo destinatario: tradotto dai cataloghi di MagixLanguage stesso
+     * (anche i suoi messaggi passano dalla sincronizzazione, come quelli degli altri plugin), con i
+     * placeholder di PlaceholderAPI risolti. Il testo italiano locale se la chiave non e' tradotta.
+     */
+    public String forPlayer(CommandSender to, String path, String... kv) {
+        String translated = null;
+        if (to instanceof Player player && plugin instanceof MagixLanguageAPI api && !"it".equals(api.language(player))) {
+            translated = api.translate(PLUGIN_NAME, player, path, toMap(kv));
+        }
+        String text = translated != null ? Colors.translate(translated) : get(path, kv);
         if (to instanceof Player player && Papi.enabled() && text.indexOf('%') >= 0) {
             text = Papi.resolve(player, text);
         }
-        to.sendMessage(text);
+        return text;
     }
 
-    /** Invia una lista di righe (pannelli tipo /language). */
-    public void sendList(CommandSender to, String path, String... kv) {
-        Player player = to instanceof Player p ? p : null;
-        for (String line : getList(path, kv)) {
-            to.sendMessage(player != null && Papi.enabled() && line.indexOf('%') >= 0
-                    ? Papi.resolve(player, line) : line);
+    /** Come {@link #forPlayer}, ma per una chiave il cui valore e' una lista di righe. */
+    public List<String> listForPlayer(CommandSender to, String path, String... kv) {
+        List<String> translated = null;
+        if (to instanceof Player player && plugin instanceof MagixLanguageAPI api && !"it".equals(api.language(player))) {
+            translated = api.translateList(PLUGIN_NAME, player, path, toMap(kv));
         }
+        List<String> lines = new ArrayList<>();
+        if (translated == null) {
+            lines.addAll(getList(path, kv));
+        } else {
+            for (String s : translated) lines.add(Colors.translate(s));
+        }
+        if (!(to instanceof Player player) || !Papi.enabled()) return lines;
+        List<String> out = new ArrayList<>(lines.size());
+        for (String line : lines) out.add(line.indexOf('%') >= 0 ? Papi.resolve(player, line) : line);
+        return out;
+    }
+
+    private static Map<String, String> toMap(String... kv) {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (int i = 0; i + 1 < kv.length; i += 2) out.put(kv[i], kv[i + 1]);
+        return out;
     }
 
     /** Lista di righe colorate, con sostituzione placeholder {chiave}. */

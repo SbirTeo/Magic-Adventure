@@ -153,7 +153,7 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
             if (id > 0) {
                 chi.sendMessage(Text.msg(messages.get(chi, "commands.applied",
                         "nome", target, "tipo", messages.typeLabel(chi, type).toLowerCase(),
-                        "durata", type.hasDuration() ? Duration.write(finalDuration)
+                        "durata", type.hasDuration() ? Duration.write(finalDuration, messages.durationWords(chi))
                                 : messages.get(chi, "commands.duration-immediate"),
                         "id", String.valueOf(id))));
             } else {
@@ -241,7 +241,7 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
                     String stato = messages.get(chi, s.activate()
                             ? "commands.history-status-active" : "commands.history-status-closed");
                     chi.sendMessage(Text.panel(messages.get(chi, "commands.history-row",
-                            "tipo", messages.typeLabel(chi, s.type()), "durata", s.readableDuration(),
+                            "tipo", messages.typeLabel(chi, s.type()), "durata", s.readableDuration(messages.durationWords(chi)),
                             "motivo", s.reason(), "stato", stato, "id", String.valueOf(s.id()))));
                 }
             } catch (SQLException e) {
@@ -282,7 +282,7 @@ public final class SanctionCommands implements CommandExecutor, TabCompleter {
                         String scadenza = s.fine() == Duration.PERMANENTE
                                 ? messages.get(chi, "commands.sanctions-expiry-never")
                                 : messages.get(chi, "commands.sanctions-expiry-in",
-                                        "tempo", Duration.mancante(s.fine()));
+                                        "tempo", Duration.mancante(s.fine(), messages.durationWords(chi)));
                         chi.sendMessage(Text.panel(messages.get(chi, "commands.sanctions-row",
                                 "tipo", messages.typeLabel(chi, s.type()), "motivo", s.reason(),
                                 "scadenza", scadenza)));

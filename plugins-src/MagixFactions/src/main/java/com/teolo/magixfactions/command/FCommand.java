@@ -380,9 +380,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         int newIndex = Math.min(targetIndex + 1, maxIndex);
         if (newIndex <= targetIndex) { msgKey(p, "promote.max"); return true; }
         fm.setRank(f, target.getUniqueId(), ranks.byIndex(newIndex).getId());
-        msgKey(p, "promote.success", "player", target.getName(), "rank", ranks.byIndex(newIndex).getName());
+        msgKey(p, "promote.success", "player", target.getName(), "rank", com.teolo.magixfactions.lang.Messages.phrase(p, ranks.byIndex(newIndex).getName()));
         Player tp = target.getPlayer();
-        if (tp != null) msgKey(tp, "promote.received", "rank", ranks.byIndex(newIndex).getName());
+        if (tp != null) msgKey(tp, "promote.received", "rank", com.teolo.magixfactions.lang.Messages.phrase(tp, ranks.byIndex(newIndex).getName()));
         return true;
     }
 
@@ -398,9 +398,9 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         int targetIndex = ranks.indexOf(tm.getRankId());
         if (targetIndex <= 0) { msgKey(p, "demote.min"); return true; }
         fm.setRank(f, target.getUniqueId(), ranks.byIndex(targetIndex - 1).getId());
-        msgKey(p, "demote.success", "player", target.getName(), "rank", ranks.byIndex(targetIndex - 1).getName());
+        msgKey(p, "demote.success", "player", target.getName(), "rank", com.teolo.magixfactions.lang.Messages.phrase(p, ranks.byIndex(targetIndex - 1).getName()));
         Player tp = target.getPlayer();
-        if (tp != null) msgKey(tp, "demote.received", "rank", ranks.byIndex(targetIndex - 1).getName());
+        if (tp != null) msgKey(tp, "demote.received", "rank", com.teolo.magixfactions.lang.Messages.phrase(tp, ranks.byIndex(targetIndex - 1).getName()));
         return true;
     }
 
@@ -894,7 +894,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         if (p.getInventory().firstEmpty() == -1) { msgKey(p, "map.inventory-full"); return true; }
 
         org.bukkit.inventory.ItemStack item = maps.create(p, bpp,
-                com.teolo.magixfactions.map.MapService.itemName(plugin, bpp));
+                com.teolo.magixfactions.map.MapService.itemName(plugin, bpp, p));
         p.getInventory().addItem(item); // c'e' sicuramente posto, appena verificato sopra
         msgKey(p, "map.given");
         return true;
@@ -1666,7 +1666,7 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
         Player targetPlayer = Bukkit.getPlayer(target);
         if (targetPlayer != null) {
             double rz = power.getResolvedZoomFactor(target);
-            maps.updateScale(targetPlayer, rz, com.teolo.magixfactions.map.MapService.itemName(plugin, rz));
+            maps.updateScale(targetPlayer, rz, com.teolo.magixfactions.map.MapService.itemName(plugin, rz, targetPlayer));
             // La minimap HUD NON va ricreata: legge lo zoom risolto LIVE a ogni refresh (vedi
             // MinimapManager.refreshContent/refreshDetached), quindi si allinea da sola al nuovo zoom
             // entro un tick di refresh, in pari passo con la mappa-item e la mappa in chat. Qui la si
@@ -1864,9 +1864,10 @@ public final class FCommand implements org.bukkit.command.TabExecutor {
             return true;
         }
         String rank = ranks.byIndex(newIndex).getName();
-        msgKey(s, key + ".success", "player", a[2], "rank", rank);
+        msgKey(s, key + ".success", "player", a[2], "rank",
+                s instanceof Player sp ? com.teolo.magixfactions.lang.Messages.phrase(sp, rank) : rank);
         Player tp = Bukkit.getPlayer(target);
-        if (tp != null) msgKey(tp, key + ".received", "rank", rank);
+        if (tp != null) msgKey(tp, key + ".received", "rank", com.teolo.magixfactions.lang.Messages.phrase(tp, rank));
         return true;
     }
 

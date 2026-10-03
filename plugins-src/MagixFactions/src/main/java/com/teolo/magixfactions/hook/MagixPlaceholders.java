@@ -207,7 +207,9 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
                 if (f == null) return "";
                 Member m = f.getMember(player.getUniqueId());
                 if (m == null) return "";
-                return color(fm.ranks().resolve(m.getRankId()).getName());
+                String rankName = fm.ranks().resolve(m.getRankId()).getName();
+                return color(player.getPlayer() != null
+                        ? com.teolo.magixfactions.lang.Messages.phrase(player.getPlayer(), rankName) : rankName);
             }
             default:
                 return null; // placeholder sconosciuto
@@ -249,7 +251,9 @@ public final class MagixPlaceholders extends PlaceholderExpansion implements Rel
         if (own == null) key = "enemy";
         else if (own.getId() == target.getId()) key = "member";
         else key = fm.effectiveRelation(own.getId(), target.getId()).name().toLowerCase(Locale.ROOT);
-        return color(plugin.getConfig().getString("relations.names." + key, defaultName(key)));
+        String name = plugin.getConfig().getString("relations.names." + key, defaultName(key));
+        return color(reader != null && reader.getPlayer() != null
+                ? com.teolo.magixfactions.lang.Messages.phrase(reader.getPlayer(), name) : name);
     }
 
     /** "La fazione e' sicura / non e' sicura" per la PROPRIA fazione, nella lingua del giocatore se e' online. */

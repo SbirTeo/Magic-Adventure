@@ -91,10 +91,9 @@ public final class TranslationSync {
      *                     blocco o prima che sia passato l'intervallo fra un giro e l'altro
      */
     public Result run(boolean ignorePacing) {
-        List<String> pluginNames = plugin.getConfig().getStringList("translations.plugins");
+        List<String> pluginNames = pluginsToScan();
         List<String> fileNames = plugin.getConfig().getStringList("translations.files");
-        List<String> targetLanguages = new ArrayList<>(plugin.getConfig().getStringList("supported-languages"));
-        targetLanguages.remove(SOURCE_LANGUAGE);
+        List<String> targetLanguages = languagesByPlayers();
 
         boolean autoTranslateEnabled = plugin.getConfig().getBoolean("translations.auto-translate.enabled", true);
         int timeoutMs = plugin.getConfig().getInt("translations.auto-translate.timeout-ms", 4000);
@@ -127,38 +126,61 @@ public final class TranslationSync {
         for (String lang : targetLanguages) failures.put(lang, new ArrayList<>());
         Map<String, PluginStats> perPlugin = new LinkedHashMap<>();
 
-        MenuPhraseSync menuPhraseSync = new MenuPhraseSync(plugin, log);
+        // Prima si leggono tutti i plugin, poi si traduce UNA LINGUA ALLA VOLTA su tutti, a partire
+        // dalla piu' parlata dai giocatori: la quota giornaliera di MyMemory finisce quasi sempre a
+        // meta' giro, e cosi' finisce sulle lingue che servono di meno, non a meta' dei plugin.
+        Map<String, Map<String, Object>> sources = new LinkedHashMap<>();
         for (String pluginName : pluginNames) {
             Map<String, Object> source = readSourceText(pluginsFolder, pluginName, fileNames);
             if (source.isEmpty()) {
                 continue; // plugin non installato, o nessuno dei file configurati esiste
             }
-            scanned++;
+            sources.put(pluginName, source);
             File catalogDir = new File(translationsRoot, pluginName);
             catalogDir.mkdirs();
-
             writeMirror(new File(catalogDir, SOURCE_LANGUAGE + ".yml"), source);
+        }
+        scanned = sources.size();
 
-            Counters pluginTotals = new Counters();
-            for (String lang : targetLanguages) {
-                syncLanguage(catalogDir, pluginName, lang, source, translator, delayMs,
-                        autoTranslateEnabled, pluginTotals, failures.get(lang));
+        MenuPhraseSync menuPhraseSync = new MenuPhraseSync(plugin, log);
+        Map<String, Counters> keyTotals = new LinkedHashMap<>();
+        Map<String, int[]> phraseTotals = new LinkedHashMap<>(); // {frasi, tradotte, in cache, mancanti}
+        for (String pluginName : sources.keySet()) {
+            keyTotals.put(pluginName, new Counters());
+            phraseTotals.put(pluginName, new int[4]);
+        }
+        for (String lang : targetLanguages) {
+            for (Map.Entry<String, Map<String, Object>> e : sources.entrySet()) {
+                String pluginName = e.getKey();
+                syncLanguage(new File(translationsRoot, pluginName), pluginName, lang, e.getValue(), translator,
+                        delayMs, autoTranslateEnabled, keyTotals.get(pluginName), failures.get(lang));
+                MenuPhraseSync.Stats menuStats = menuPhraseSync.sync(pluginName, List.of(lang), translator,
+                        delayMs, autoTranslateEnabled, failures);
+                int[] pt = phraseTotals.get(pluginName);
+                pt[0] = menuStats.totalPhrases();
+                pt[1] += menuStats.translated();
+                pt[2] += menuStats.reused();
+                pt[3] += menuStats.missing();
             }
-            MenuPhraseSync.Stats menuStats = menuPhraseSync.sync(pluginName, targetLanguages, translator,
-                    delayMs, autoTranslateEnabled, failures);
+        }
 
-            totals.translated += pluginTotals.translated + menuStats.translated();
-            totals.reused += pluginTotals.reused + menuStats.reused();
-            totals.failed += pluginTotals.failed + menuStats.missing();
-            perPlugin.put(pluginName, new PluginStats(source.size() + menuStats.totalPhrases(),
-                    pluginTotals.translated + menuStats.translated(),
-                    pluginTotals.reused + menuStats.reused(),
-                    pluginTotals.failed + menuStats.missing()));
-            log.info("MagixLanguage: " + pluginName + " (" + source.size() + " chiavi in italiano"
-                    + (menuStats.totalPhrases() > 0 ? " + " + menuStats.totalPhrases() + " frasi di menu" : "")
-                    + "): " + (pluginTotals.translated + menuStats.translated()) + " tradotte ora, "
-                    + (pluginTotals.reused + menuStats.reused()) + " già in cache, "
-                    + (pluginTotals.failed + menuStats.missing()) + " ancora mancanti (su "
+        for (Map.Entry<String, Map<String, Object>> e : sources.entrySet()) {
+            String pluginName = e.getKey();
+            Counters pluginTotals = keyTotals.get(pluginName);
+            int[] pt = phraseTotals.get(pluginName);
+            int keys = e.getValue().size();
+            totals.translated += pluginTotals.translated + pt[1];
+            totals.reused += pluginTotals.reused + pt[2];
+            totals.failed += pluginTotals.failed + pt[3];
+            perPlugin.put(pluginName, new PluginStats(keys + pt[0],
+                    pluginTotals.translated + pt[1],
+                    pluginTotals.reused + pt[2],
+                    pluginTotals.failed + pt[3]));
+            log.info("MagixLanguage: " + pluginName + " (" + keys + " chiavi in italiano"
+                    + (pt[0] > 0 ? " + " + pt[0] + " frasi fuori da messages.yml" : "")
+                    + "): " + (pluginTotals.translated + pt[1]) + " tradotte ora, "
+                    + (pluginTotals.reused + pt[2]) + " già in cache, "
+                    + (pluginTotals.failed + pt[3]) + " ancora mancanti (su "
                     + targetLanguages.size() + " lingue).");
         }
 
@@ -175,6 +197,37 @@ public final class TranslationSync {
                         + ", da sola (o subito con /language sync force)."
                     : ""));
         return new Result(scanned, totals.translated, totals.reused, failureTotal, perPlugin);
+    }
+
+    /**
+     * I plugin da scandire: TUTTI i plugin Magix installati (MagixLanguage compreso, che traduce
+     * anche i propri messaggi), piu' quelli elencati in translations.plugins. Un elenco scritto a
+     * mano restava indietro: sul server mancavano MagixScoreboard e MagixLanguage, e c'era ancora
+     * MagixWeb dopo che era diventato MagixBridge.
+     */
+    private List<String> pluginsToScan() {
+        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+        for (org.bukkit.plugin.Plugin p : plugin.getServer().getPluginManager().getPlugins()) {
+            if (p.getName().startsWith("Magix")) {
+                names.add(p.getName());
+            }
+        }
+        names.addAll(plugin.getConfig().getStringList("translations.plugins"));
+        return new ArrayList<>(names);
+    }
+
+    /** Le lingue da tradurre (italiano escluso), dalla piu' scelta dai giocatori; a pari merito l'ordine del config. */
+    private List<String> languagesByPlayers() {
+        List<String> langs = new ArrayList<>(plugin.getConfig().getStringList("supported-languages"));
+        langs.remove(SOURCE_LANGUAGE);
+        if (plugin instanceof com.teolo.magixlanguage.MagixLanguage ml) {
+            Map<String, Integer> counts = ml.locales().countByLanguage();
+            List<String> configOrder = List.copyOf(langs);
+            langs.sort(java.util.Comparator
+                    .comparingInt((String l) -> -counts.getOrDefault(l, 0))
+                    .thenComparingInt(configOrder::indexOf));
+        }
+        return langs;
     }
 
     private static final class Counters {
