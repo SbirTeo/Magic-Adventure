@@ -5,6 +5,7 @@ import com.teolo.magixessentials.currency.CurrencyManager;
 import com.teolo.magixessentials.currency.CurrencyPlaceholders;
 import com.teolo.magixessentials.customjoinitems.CustomJoinItems;
 import com.teolo.magixessentials.hook.Papi;
+import com.teolo.magixessentials.hublobby.HubLobby;
 import com.teolo.magixessentials.lang.Messages;
 import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
@@ -49,6 +50,7 @@ public final class MagixEssentials extends JavaPlugin {
     private ChatModule chat;
     private CurrencyManager currencies;
     private CustomJoinItems joinItems;
+    private HubLobby hubLobby;
     private Messages messages;
 
     @Override
@@ -216,6 +218,10 @@ public final class MagixEssentials extends JavaPlugin {
             joinItems = new CustomJoinItems(this, modules.configurazioneDi(Modules.CUSTOMJOINITEMS), messages);
             joinItems.start();
         }
+        if (modules.attivo(Modules.HUB_LOBBY)) {
+            hubLobby = new HubLobby(this, modules.configurazioneDi(Modules.HUB_LOBBY));
+            hubLobby.start();
+        }
     }
 
     /**
@@ -243,6 +249,7 @@ public final class MagixEssentials extends JavaPlugin {
         if (chat != null) { chat.stop(); chat = null; }
         if (currencies != null) { currencies.stop(); currencies = null; }
         if (joinItems != null) { joinItems.stop(); joinItems = null; }
+        if (hubLobby != null) { hubLobby.stop(); hubLobby = null; }
     }
 
     // ------------------------------------------------- GUIDA PER LO STAFF
@@ -273,7 +280,11 @@ public final class MagixEssentials extends JavaPlugin {
                         .also(modules.configurazioneDi(Modules.CUSTOMJOINITEMS))
                         .extra("JOINITEMS_NUMERO", joinItems == null
                                 ? "il modulo è spento"
-                                : String.valueOf(joinItems.itemCount())))
+                                : String.valueOf(joinItems.itemCount()))
+                        .also(modules.configurazioneDi(Modules.HUB_LOBBY))
+                        .extra("LOBBY_SPAWN", hubLobby == null
+                                ? "il modulo è spento"
+                                : hubLobby.describe()))
                 .intro("Raccoglie le utilità di base del server. Oggi ne fa sei: il **tablist**, cioè la lista giocatori che si apre col tasto Tab, la **MOTD**, le "
                         + "righe che si leggono nella lista server prima di entrare, il **nametag**, "
                         + "la targhetta sopra la testa dei giocatori, la **chat** pubblica (come si "
@@ -610,6 +621,21 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "spento il modulo: gli oggetti restano negli inventari finché non li togli). "
                                 + "Una voce sbagliata (materiale o slot) si salta e il motivo finisce nel log.")
 
+                .section("La lobby dell'hub (hub-lobby)",
+                        "Le regole di un server che fa da **hub**, il punto di arrivo della rete. Si accende "
+                                + "con la riga hub-lobby in modules.yml **solo sull'hub** (di serie è spento) e si "
+                                + "regola in **hub-lobby.yml**, una sezione per funzione, ciascuna col suo "
+                                + "interruttore enabled.",
+                        "**Spawn a ogni ingresso** (spawn-on-join, ora: **{{cfg:spawn-on-join.enabled}}**): chi "
+                                + "entra compare allo spawn, non dove era uscito, sia entrando nella rete sia "
+                                + "arrivando da un'altra modalità. Adesso lo spawn è {{LOBBY_SPAWN}}. Con "
+                                + "use-world-spawn: true è lo spawn del mondo, che si sposta in gioco con "
+                                + "/setworldspawn (anche lo sguardo); con false vale il punto scritto nel file "
+                                + "(x, y, z, yaw, pitch). Dopo una modifica al file basta /mess reload.",
+                        "**Con MagixAuth:** il cancello del login resta dov'è; finito il login il giocatore "
+                                + "viene portato allo spawn della lobby invece che alla sua vecchia posizione. "
+                                + "Anche chi entra per la prima volta, dopo la registrazione, finisce allo spawn.")
+
                 .section("La targhetta sopra la testa (nametag)",
                         "È quella che si legge **sopra la testa** dei giocatori, in gioco: non il tablist "
                                 + "(quello del tasto Tab) e non il formato della chat. Si scrive tutto in "
@@ -830,7 +856,18 @@ public final class MagixEssentials extends JavaPlugin {
                         "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.",
                         "chat", "Il formato della chat pubblica e dei messaggi del sito. Spento, la chat pubblica resta quella nuda del gioco.",
                         "currencies", "I comandi delle valute (/magix, /gems...). Spento, quei comandi vengono tolti, anche dal TAB.",
-                        "customjoinitems", "Gli oggetti fissi nell'inventario e le regole su cosa farci. Di serie spento: si accende sull'hub o sul faction dove serve.")
+                        "customjoinitems", "Gli oggetti fissi nell'inventario e le regole su cosa farci. Di serie spento: si accende sull'hub o sul faction dove serve.",
+                        "hub-lobby", "Le regole della lobby dell'hub (per ora: a ogni ingresso si compare allo spawn). Di serie spento: si accende solo sull'hub.")
+
+                .settingsFrom(modules.configurazioneDi(Modules.HUB_LOBBY), "Lobby dell'hub (hub-lobby.yml)",
+                        "spawn-on-join.enabled", "A ogni ingresso si compare allo spawn, non dove si era usciti.",
+                        "spawn-on-join.world", "Il mondo dello spawn. Vuoto = il mondo principale.",
+                        "spawn-on-join.use-world-spawn", "true = lo spawn del mondo (/setworldspawn), false = il punto fisso qui sotto.",
+                        "spawn-on-join.x", "Coordinata X del punto fisso.",
+                        "spawn-on-join.y", "Coordinata Y del punto fisso.",
+                        "spawn-on-join.z", "Coordinata Z del punto fisso.",
+                        "spawn-on-join.yaw", "Dove guarda chi arriva al punto fisso (0 sud, 90 ovest, 180 nord, -90 est).",
+                        "spawn-on-join.pitch", "Su/giù dello sguardo al punto fisso (0 dritto davanti).")
 
                 .settingsFrom(modules.configurazioneDi(Modules.CUSTOMJOINITEMS), "Oggetti fissi (customjoinitems.yml)",
                         "worlds", "I mondi in cui il modulo lavora. Vuota = tutti.",
@@ -913,6 +950,11 @@ public final class MagixEssentials extends JavaPlugin {
                         "currencies", "Una voce per valuta: la chiave è l'id (/<id>), name il nome mostrato, "
                                 + "starting-balance il saldo di partenza, shared se il saldo è di rete.")
 
+                .issue("Sull'hub i giocatori ricompaiono dove erano usciti",
+                        "Controlla: hub-lobby è acceso nel modules.yml dell'hub (di serie è spento) e "
+                                + "spawn-on-join.enabled è true in hub-lobby.yml? Il log all'avvio scrive "
+                                + "[HubLobby] con lo spawn scelto. Se il mondo di spawn-on-join.world non esiste "
+                                + "si usa il mondo principale, e il log lo dice.")
                 .issue("Gli oggetti fissi non arrivano ai giocatori",
                         "Controlla in ordine: customjoinitems è acceso in modules.yml (di serie è spento)? "
                                 + "Il mondo del giocatore è in worlds (vuota = tutti)? La sezione items ha almeno una voce, "

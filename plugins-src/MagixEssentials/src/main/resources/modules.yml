@@ -48,3 +48,8 @@ currencies: true
 # barra rapida). DI SERIE SPENTO: va acceso dove serve. Quando e come si danno e le regole generali
 # stanno in customjoinitems.yml, insieme agli oggetti (sezione items).
 customjoinitems: false
+
+# Lobby dell'hub: le regole di un server che fa da hub. Per ora: ad ogni ingresso il giocatore
+# compare allo spawn, non dove era uscito. DI SERIE SPENTO: va acceso solo sull'hub. Si regola in
+# hub-lobby.yml.
+hub-lobby: false

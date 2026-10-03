@@ -3,7 +3,7 @@ version: '${project.version}'
 main: com.teolo.magixessentials.MagixEssentials
 api-version: '26.1'
 author: teolo
-description: "Utilita' del server (tablist, MOTD, nametag, chat, valute, oggetti fissi dell'inventario e, in futuro, cio' che oggi fa CMI)."
+description: "Utilita' del server (tablist, MOTD, nametag, chat, valute, oggetti fissi dell'inventario, lobby dell'hub e, in futuro, cio' che oggi fa CMI)."
 # PlaceholderAPI: opzionale. Se presente, i placeholder %...% nel tablist e nei nametag vengono
 # risolti (compresi i relazionali %rel_...%). Senza di lui restano scritti come sono.
 # ProtocolLib: opzionale. Serve al nametag in modalita' display (entita' di testo).

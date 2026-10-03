@@ -1,0 +1,28 @@
+# ============================================================
+#  MagixEssentials - Lobby dell'hub (hub-lobby)
+# ============================================================
+# Le regole della lobby: quello che fa di un server un hub, dove si arriva, si sceglie e si riparte.
+# Va acceso solo sull'hub (hub-lobby: true nel modules.yml di quel server, di serie spento): sul
+# faction cambierebbe come si gioca.
+#
+# Ogni funzione della lobby ha la sua sezione qui sotto, col suo interruttore 'enabled'.
+
+# Ad ogni ingresso il giocatore compare allo spawn della lobby, non nel punto in cui era uscito.
+# Vale per chi entra nella rete e per chi ci arriva da un'altra modalità (/server hub, ritorno
+# dal faction). Con MagixAuth il cancello del login resta com'è: dopo il login il giocatore viene
+# portato qui invece che alla sua vecchia posizione.
+spawn-on-join:
+  # false = ognuno ricompare dove era uscito, come in vanilla.
+  enabled: true
+  # Il mondo dello spawn. Vuoto = il mondo principale del server (il primo che carica).
+  world: ""
+  # true = lo spawn del mondo, quello che si fissa in gioco con /setworldspawn (centrato nel
+  # blocco, con lo sguardo salvato). false = il punto esatto scritto qui sotto.
+  use-world-spawn: true
+  # Il punto esatto, usato solo con use-world-spawn: false. yaw = dove guarda (0 sud, 90 ovest,
+  # 180 nord, -90 est), pitch = su/giù (0 dritto davanti).
+  x: 0.5
+  y: 64.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0

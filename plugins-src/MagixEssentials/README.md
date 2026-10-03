@@ -1,14 +1,14 @@
 # MagixEssentials
 
 Plugin per **MAGICADVENTURE** (Paper 26.x) che raccoglie le **utilita' di base** del server: quelle
-cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa sette —
-il **tablist**, la **MOTD**, il **nametag**, la **chat**, il **filtro dell'autocompletamento**, le **valute** e gli **oggetti fissi dell'inventario** — e
+cose che non appartengono a nessun gioco in particolare ma che ci sono sempre. Oggi ne fa otto —
+il **tablist**, la **MOTD**, il **nametag**, la **chat**, il **filtro dell'autocompletamento**, le **valute**, gli **oggetti fissi dell'inventario** e la **lobby dell'hub** — e
 a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 
 Il server sta dietro **Velocity**, con piu' backend (hub, factions...): questo jar gira su ognuno,
 con la propria cartella dati e il proprio `modules.yml`.
 
-Versione: **0.11.0**
+Versione: **0.12.0**
 
 ---
 
@@ -26,6 +26,7 @@ file diversi:
 | `chat.yml` | Il formato della chat pubblica (grado, nome, fazione) e dei messaggi che arrivano dal sito. |
 | `currencies.yml` | Le valute create dallo staff: un catalogo, non uno schema fisso — una voce per valuta. |
 | `customjoinitems.yml` | Gli oggetti fissi dell'inventario (sezione `items`, un catalogo: una voce per oggetto), quando e come si danno e le regole generali (buttare, raccogliere, rompere...). |
+| `hub-lobby.yml` | Le regole della lobby dell'hub: per ora, lo spawn a ogni ingresso. |
 | `config.yml` | Solo cio' che vale per il **plugin intero**: oggi il database delle valute condivise. |
 
 Il filtro dell'autocompletamento non ha un file suo: l'interruttore `tabcomplete` in `modules.yml`
@@ -507,6 +508,28 @@ Gli oggetti si riconoscono da un marchio con l'id della voce nei dati dell'ogget
 Gli oggetti del modulo non cadono mai a terra alla morte e tornano alla rinascita. Il permesso
 `magixessentials.customjoinitems.bypass` (di serie op) salta le regole, non la consegna.
 Comandi: `/mess joinitems give [giocatore|all]` e `/mess joinitems remove [giocatore|all]`.
+
+---
+
+## Lobby dell'hub (hub-lobby)
+
+Le regole di un server che fa da **hub**. **Di serie e' spento**: si accende con `hub-lobby: true`
+nel `modules.yml` **dell'hub soltanto**. Si regola in `hub-lobby.yml`, una sezione per funzione,
+ciascuna col suo `enabled`.
+
+**Spawn a ogni ingresso** (`spawn-on-join`): chi entra compare allo spawn, non dove era uscito —
+entrando nella rete o arrivando da un'altra modalita' (`/server hub`, ritorno dal faction).
+
+| Chiave | Cosa fa |
+|---|---|
+| `spawn-on-join.enabled` | Acceso/spento. |
+| `spawn-on-join.world` | Il mondo dello spawn. Vuoto = il mondo principale. |
+| `spawn-on-join.use-world-spawn` | `true` = lo spawn del mondo (`/setworldspawn`, centrato nel blocco, sguardo compreso); `false` = il punto fisso `x`/`y`/`z`/`yaw`/`pitch`. |
+
+Come convive con **MagixAuth**: il punto di comparsa si cambia su `AsyncPlayerSpawnLocationEvent` a
+priorita' LOW, prima di MagixAuth (HIGH), che quindi lo prende come "posizione vera" e dopo il login
+riporta il giocatore li' invece che alla vecchia posizione. Dopo il login un controllo porta allo
+spawn chi non c'e' (primo ingresso, rimasto al cancello; altri plugin che lo spostano al join).
 
 ---
 

@@ -71,6 +71,9 @@ public final class Modules {
     /** Gli oggetti fissi nell'inventario: si danno al login e si decide cosa i giocatori possono farci. */
     public static final String CUSTOMJOINITEMS = "customjoinitems";
 
+    /** La lobby dell'hub: per ora, ad ogni ingresso si compare allo spawn e non dove si era usciti. */
+    public static final String HUB_LOBBY = "hub-lobby";
+
     private final JavaPlugin plugin;
     /** {@code modules.yml}: l'elenco delle funzioni, accese o spente. */
     private volatile YamlConfiguration file;
