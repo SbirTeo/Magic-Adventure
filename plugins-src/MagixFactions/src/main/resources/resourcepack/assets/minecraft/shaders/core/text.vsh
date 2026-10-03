@@ -18,6 +18,12 @@
 #moj_import <minecraft:sample_lightmap.glsl>
 #endif
 
+#ifdef IS_GUI
+// ScreenSize (pixel veri della finestra), per ricavare la Scala GUI del giocatore: vedi sbScaleFactor.
+// Verificato nel client 26.2: la pipeline del testo GUI eredita GLOBALS_SNIPPET (blocco "Globals").
+#moj_import <minecraft:globals.glsl>
+#endif
+
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:projection.glsl>
 
@@ -63,7 +69,7 @@ flat out vec4 arrows[ARROW_MAX];
 // texelFetch (coordinate intere) nel VERTEX shader FUNZIONA per la map texture in questo contesto,
 // mentre texture()/textureLod() nell'entity shader restituivano nero (verificato empiricamente).
 
-// Dimensione e margine dell'HUD in NDC (frazione di schermo), compensati per l'aspect ratio nel calcolo.
+// Dimensione e margine dell'HUD in unita' "map" (riferite all'altezza dello schermo, vedi hudClip).
 // La mappa e' 128x128 pixel FISSI (limite Minecraft): piu' e' grande a schermo, piu' ogni pixel viene
 // ingrandito e appare "sgranato". Un riquadro piu' piccolo distribuisce i 128px su meno spazio -> piu'
 // nitido. Il quad resta quadrato (bounding box): il ritaglio CIRCOLARE avviene nel fragment shader.
@@ -72,11 +78,26 @@ flat out vec4 arrows[ARROW_MAX];
 const vec2 MAP_SIZE = vec2(__MAP_SIZE__, __MAP_SIZE__);
 const vec2 MAP_OFFSET = vec2(0.03, 0.03);
 // Lato dello schermo: __MAP_LEFT__ e' sostituito dal plugin (0.0 = alto a destra, 1.0 = alto a
-// sinistra) da config map.minimap.position. MAP_X0 = bordo SINISTRO del riquadro sull'asse "map"
-// (a cui il main somma +1.0 per passare in NDC): a destra -MAP_OFFSET.x - s, a sinistra
-// MAP_OFFSET.x - 2.0 (cioe' NDC -1.0 + margine). Vale anche per il pannello info, che segue la minimap.
+// sinistra) da config map.minimap.position. Vale anche per il pannello info, che segue la minimap.
 const float MAP_LEFT = __MAP_LEFT__;
-const float MAP_X0 = mix(-MAP_OFFSET.x - __MAP_SIZE__, MAP_OFFSET.x - 2.0, MAP_LEFT);
+
+// Unita' "map" riferite all'ALTEZZA dello schermo: un'unita' vale HUD_ASPECT in NDC verticale e
+// HUD_ASPECT/aspect in NDC orizzontale, quindi pixel quadrati e la stessa quota di altezza su 16:9, 16:10
+// o ultrawide. Prima l'unita' era riferita alla LARGHEZZA (su un ultrawide la minimap diventava piu'
+// alta); con HUD_ASPECT = 16/9 su uno schermo 16:9 resta identica a prima. La Scala GUI non c'entra:
+// questa variante disegna nel mondo, non nella GUI, quindi la minimap e' gia' uguale per tutti.
+const float HUD_ASPECT = 16.0 / 9.0;
+
+// Da coordinate HUD a clip space. m.x = distanza dal bordo SINISTRO del riquadro (0..s), m.y = distanza
+// dal bordo ALTO dello schermo, entrambe in unita' "map". Il riquadro e' agganciato al lato scelto
+// (MAP_LEFT) con margine MAP_OFFSET.x. z = 0.0: piano vicino sotto ZERO_TO_ONE (vedi il ramo minimap).
+vec4 hudClip(vec2 m) {
+    float ratio = ProjMat[1][1] / ProjMat[0][0];     // aspect (larghezza/altezza), col segno della matrice
+    float ux = HUD_ASPECT / abs(ratio);
+    float boxLeft = MAP_LEFT > 0.5 ? -1.0 + ux * MAP_OFFSET.x
+                                   : 1.0 - ux * (MAP_OFFSET.x + MAP_SIZE.x);
+    return vec4(boxLeft + ux * m.x, 1.0 - HUD_ASPECT * sign(ratio) * m.y, 0.0, 1.0);
+}
 
 // --- Pannello info (orologio/coordinate/info) sotto la minimap -------------------------------------
 // Una SECONDA mappa finta (firma magica diversa, vedi sotto) viene piazzata come striscia larga quanto
@@ -121,6 +142,30 @@ int readBits(ivec2 base, int start, int n) {
 }
 #endif
 
+#ifdef IS_GUI
+// --- MagixScoreboard: grandezza della sidebar uguale per tutti (config sidebar-scale) ---------------
+// Il client disegna la sidebar alla Scala GUI di ogni giocatore. Qui si sostituisce quella scala con una
+// scelta dal server, solo per la sidebar. Le distanze dal punto a cui il client aggancia la sidebar (bordo
+// destro, meta' altezza: vedi gui.vsh di MagixScoreboard) si moltiplicano per scala voluta / scala del
+// giocatore: il risultato e' la sidebar che vanilla disegnerebbe alla scala voluta.
+// SB_SCALE_MODE: 0 = off (vanilla), 1 = screen (in proporzione all'altezza dello schermo), 2 = integer
+// (la scala intera piu' vicina alla stessa proporzione). SB_SCALE_SIZE = la Scala GUI equivalente su uno
+// schermo alto 1080 pixel. Sostituiti dal plugin dal config di MagixScoreboard.
+// QUESTA FUNZIONE E' COPIATA IDENTICA in gui.vsh di MagixScoreboard: se si cambia, si cambiano entrambe.
+const int SB_SCALE_MODE = __SB_SCALE_MODE__;
+const float SB_SCALE_SIZE = __SB_SCALE_SIZE__;
+
+float sbScaleFactor(float guiW, float guiH) {
+    if (SB_SCALE_MODE == 0 || ScreenSize.y < 1.0 || guiH < 1.0) return 1.0;
+    // Scala GUI del giocatore: il client fa guiW = ceil(pixel / scala), quindi pixel / guiW e' la scala
+    // (appena sotto quando la divisione non e' esatta: per questo round).
+    float player = max(round(max(ScreenSize.x / guiW, ScreenSize.y / guiH)), 1.0);
+    float wanted = ScreenSize.y / 1080.0 * SB_SCALE_SIZE;
+    if (SB_SCALE_MODE == 2) wanted = max(round(wanted), 1.0);
+    return wanted / player;
+}
+#endif
+
 void main() {
     // Default: comportamento vanilla identico allo stock, per ognuna delle tre varianti.
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -135,14 +180,20 @@ void main() {
     // fascia in cui la sidebar puo' stare: a destra, larga __SB_ZONE__ pixel, e in verticale fra meta'
     // schermo - 101 e + 46 (15 righe al massimo, geometria letta dal client 26.2). Lo sfondo lo sposta
     // lo shader gui di MagixScoreboard della stessa quantita'.
-    if (__SB_SHIFT__ != 0.0) {
+    // Poi la GRANDEZZA (config sidebar-scale di MagixScoreboard): vedi sbScaleFactor. Stessa formula, stesso
+    // punto fisso e stesso ordine (prima lo spostamento, poi la scala) dello shader gui, cosi' scritte e
+    // sfondo restano sovrapposti.
+    if (__SB_SHIFT__ != 0.0 || SB_SCALE_MODE != 0) {
         vec4 sbPos = ModelViewMat * vec4(Position, 1.0);
         float sbW = abs(2.0 / ProjMat[0][0]);
         float sbH = abs(2.0 / ProjMat[1][1]);
         ivec3 sbRgb = ivec3(round(Color.rgb * 255.0));
         bool sbMarked = all(equal(sbRgb % 8, ivec3(3)));
         if (sbMarked && sbPos.x > sbW - __SB_ZONE__ && sbPos.y > sbH * 0.5 - 101.0 && sbPos.y < sbH * 0.5 + 46.0) {
-            gl_Position = ProjMat * vec4(sbPos.x, sbPos.y + __SB_SHIFT__, sbPos.z, sbPos.w);
+            vec2 sbAnchor = vec2(sbW, sbH * 0.5);
+            vec2 sbQ = vec2(sbPos.x, sbPos.y + __SB_SHIFT__);
+            sbQ = sbAnchor + (sbQ - sbAnchor) * sbScaleFactor(sbW, sbH);
+            gl_Position = ProjMat * vec4(sbQ, sbPos.z, sbPos.w);
         }
     }
 #endif
@@ -177,9 +228,7 @@ void main() {
         ivec2 uv = ivec2(UV0 * texSize);
         ivec2 mapUV = uv - ivec2(cornerUV * 128.0);
         if (idAt(mapUV + ivec2(0, 0)) == MK0 && idAt(mapUV + ivec2(1, 0)) == MK1 && idAt(mapUV + ivec2(2, 0)) == MK2) {
-            // Riquadro in alto (a destra o a sinistra, vedi MAP_X0), quadrato (nessuna rotazione).
-            vec2 map = cornerUV * MAP_SIZE;
-            map = map + vec2(MAP_X0, MAP_OFFSET.y);
+            // Riquadro in alto (a destra o a sinistra, vedi hudClip), quadrato (nessuna rotazione).
             // z = 0.0 (piano vicino), NON piu' -0.9999. FIX 26.2 (2026-07-23, causa CONFERMATA del "non si
             // vede piu' NIENTE" dopo che il riconoscimento header ha ripreso a funzionare): da MC 26.2 il
             // client usa glClipControl ZERO_TO_ONE (verificato nel client jar: Projection.isZZeroToOne,
@@ -188,7 +237,7 @@ void main() {
             // quad HUD viene scartato dal clipping (invisibile). 0.0 e' il piano vicino sotto ZERO_TO_ONE
             // ed e' comunque valido anche sotto il vecchio range; il gl_FragDepth=0.0 nel fragment tiene
             // l'HUD davanti a tutto (nearest in window-space [0,1], indipendente dalla convenzione).
-            gl_Position = vec4(vec2(1.0, -ProjMat[1][1] / ProjMat[0][0]) * map + vec2(1.0, 1.0), 0.0, 1.0);
+            gl_Position = hudClip(vec2(cornerUV.x * MAP_SIZE.x, MAP_OFFSET.y + cornerUV.y * MAP_SIZE.y));
             vertexColor = vec4(1.0);
             uvCoord = cornerUV * 128.0;
             custom = 1;
@@ -214,17 +263,14 @@ void main() {
             uvCoord = cornerUV * 128.0;
         } else if (idAt(mapUV + ivec2(0, 0)) == MK0 && idAt(mapUV + ivec2(1, 0)) == MK2 && idAt(mapUV + ivec2(2, 0)) == MK1) {
             // Firma (18/49/4 = MK0/MK2/MK1) = PANNELLO INFO: striscia sotto la minimap, stessi bordi
-            // e stessa larghezza. Scritto da InfoPanelRenderer. La minimap occupa in NDC (asse "map"):
-            //   x in [MAP_X0, MAP_X0 + s],  y in [MAP_OFFSET.y, MAP_OFFSET.y + s]
+            // e stessa larghezza. Scritto da InfoPanelRenderer. La minimap occupa (unita' "map" di hudClip):
+            //   x in [0, s] dal bordo sinistro del riquadro,  y in [MAP_OFFSET.y, MAP_OFFSET.y + s]
             // (vedi il ramo minimap sopra). Il pannello parte quindi a y = MAP_OFFSET.y + s + PANEL_GAP e
             // alto s*(PANEL_ROWS/128) -> pixel quadrati come la minimap. La texture e' campionata solo sulle
             // prime PANEL_ROWS righe (uvCoord.y in [0, PANEL_ROWS]); il resto della mappa 128x128 non si usa.
             float s = MAP_SIZE.x;
             float panelH = s * (PANEL_ROWS / 128.0);
-            vec2 mp;
-            mp.x = cornerUV.x * s + MAP_X0;
-            mp.y = MAP_OFFSET.y + s + PANEL_GAP + cornerUV.y * panelH;
-            gl_Position = vec4(vec2(1.0, -ProjMat[1][1] / ProjMat[0][0]) * mp + vec2(1.0, 1.0), 0.0, 1.0);
+            gl_Position = hudClip(vec2(cornerUV.x * s, MAP_OFFSET.y + s + PANEL_GAP + cornerUV.y * panelH));
             vertexColor = vec4(1.0);
             uvCoord = cornerUV * vec2(128.0, PANEL_ROWS);
             custom = 3;

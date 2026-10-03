@@ -518,7 +518,9 @@ map:
     #    scuro). Il bordo esterno viene reso automaticamente più scuro, per un effetto in rilievo. [solo staff]
     border-size: 3
     border-color: "#5A5A5A"  # [solo staff]
-    # Dimensione della minimap a schermo, come FRAZIONE dell'altezza dello schermo (0.22 = default).
+    # Dimensione della minimap a schermo, in proporzione all'ALTEZZA dello schermo: il lato è
+    # screen-size × 0.89 dell'altezza (0.3 = poco più di un quarto). Non dipende dalla Scala GUI né dalla
+    # larghezza: stessa parte di schermo per tutti, su 16:9 come su 16:10 o ultrawide.
     # Più grande = HUD più grande (e pixel più ingranditi). Intervallo utile ~0.10-0.40.
     # NB: è impressa nello shader del resource pack, quindi cambiare valore richiede un RIAVVIO del
     # server (rigenera il pack) e che i client riscarichino il pack; /mf reload da solo non basta. [solo staff]
