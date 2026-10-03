@@ -1869,10 +1869,13 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 /* La riga sotto la faccia: provenienza, ora e descrizione, tutte in fila. */
 .chat-msg-info-riga { display: flex; align-items: center; gap: 6px; }
 .chat-msg-info .chat-msg-icona { width: 12px; height: 12px; margin: 0; align-self: center; }
-/* La corona del miglior sostenitore esce sopra la faccia: la targhetta le lascia il posto,
-   se no verrebbe tagliata dal suo stesso bordo. */
+/* Corona e aureola escono sopra la faccia: la targhetta le lascia il posto, cosi' restano
+   DENTRO il riquadro scuro invece di sporgere dal bordo. Lo spazio dipende da cosa c'e' sopra
+   la testa (misure di .avatar-top/.avatar-halo con la faccia da 34px): corona o aureola da
+   sole arrivano a ~14px sopra la faccia, l'aureola sopra la corona a ~28px (alone compreso). */
 .chat-msg-faccia-box { display: inline-flex; line-height: 0; }
-.chat-msg-info:has(.avatar-top) { padding-top: 16px; }
+.chat-msg-info:has(.avatar-top) { padding-top: 22px; }
+.chat-msg-info:has(.avatar-top.con-corona .avatar-halo) { padding-top: 36px; }
 
 /* Faccia del mittente nella targhetta: quadrata, senza sfocatura (8x8 originali). */
 .chat-msg-faccia {
