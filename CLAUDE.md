@@ -194,6 +194,13 @@ a CMI.
   Factions: `GAME_SERVERS` in `website/includes/helpers.php`, colonna `web_chat.server`): un
   messaggio scritto in una scheda lo ripubblica in gioco solo quel server. I giocatori connessi
   in home sono il totale della rete (`mc_network_status()`: lo chiede a Velocity).
+- **MagixLanguage e' su tutta la rete** (`deploy.target` = `faction hub velocity`, stesso jar: su
+  Velocity parte `velocity/MagixLanguageVelocity`): su ogni server traduce da solo i plugin Magix
+  installati li' (`translations.auto-discover`), e la lingua di ogni giocatore sta nel database del
+  sito (tabella `language_players`, credenziali dal config di MagixAuth), quindi vale ovunque. I
+  plugin del proxy (MagixProxy) chiedono i testi tradotti a MagixLanguage di Velocity. Il jar resta
+  alla **0.4.14**: gli altri plugin compilano contro quella versione (cambiarla vuol dire cambiare
+  tutti i pom). Dopo un MagixLanguage nuovo il proxy va riavviato con `velocity-restart.yml`.
 - **La chat pubblica in gioco la scrive MagixEssentials** (modulo `chat`, dalla 0.9.0, su faction e
   hub): formato in `chat.yml`, scelto da solo come gli stili del nametag (`style: auto`: il primo
   stile di `styles` i cui plugin `requires` ci sono tutti; `factions` sul faction, `plain` sull'hub;

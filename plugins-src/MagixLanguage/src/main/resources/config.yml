@@ -19,6 +19,23 @@ supported-languages:
   - "de"
 
 # ----------------------------------------------------------------------------
+# LA LINGUA VALE SU TUTTA LA RETE
+# ----------------------------------------------------------------------------
+# [solo staff] MagixLanguage gira su ogni server della rete (faction, hub, il proxy Velocity e
+# le modalità future): la lingua di ogni giocatore sta in una tabella del database del sito
+# (language_players), così quella scelta su un server vale anche sugli altri. players.yml
+# resta la copia locale, usata se il database non risponde.
+database:
+  # false = ogni server tiene la lingua solo nel suo players.yml (non condivisa).
+  enabled: true
+  # Da dove leggere le credenziali: il config.yml di MagixAuth sulla stessa macchina (una sola
+  # password da tenere aggiornata). Si usa il primo file che esiste; i percorsi sono relativi alla
+  # cartella del server: il primo vale per faction e hub, il secondo per il proxy Velocity.
+  shared_with:
+    - "plugins/MagixAuth/config.yml"
+    - "../faction/plugins/MagixAuth/config.yml"
+
+# ----------------------------------------------------------------------------
 # RILEVAZIONE DAL PAESE (GeoIP)
 # ----------------------------------------------------------------------------
 geoip:
@@ -89,8 +106,14 @@ translations:
   # lanciato a mano con /language sync.
   sync-on-start: true
 
-  # Plugin la cui cartella dati (plugins/<Nome>/) viene scandita in cerca di testo da
-  # tradurre. Un plugin qui elencato ma non installato viene saltato senza errori.
+  # true = si traducono da soli TUTTI i plugin Magix installati su questo server (ogni
+  # cartella plugins/Magix.../ che ha uno dei file sotto): un plugin nuovo non va aggiunto a
+  # mano. Vale su ogni server della rete, proxy Velocity compreso.
+  auto-discover: true
+
+  # Plugin in più, oltre a quelli trovati da soli (o tutti, con auto-discover: false), la cui
+  # cartella dati (plugins/<Nome>/) viene scandita in cerca di testo da tradurre. Un plugin qui
+  # elencato ma non installato viene saltato senza errori.
   plugins:
     - "MagixAuth"
     - "MagixCosmetics"

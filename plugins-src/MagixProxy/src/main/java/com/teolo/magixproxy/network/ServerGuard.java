@@ -75,7 +75,7 @@ public final class ServerGuard {
                 log.warn("MagixProxy: il server principale \"{}\" non esiste nella config di Velocity: "
                         + "{} resta fuori.", main, player.getUsername());
                 event.setResult(ServerPreConnectEvent.ServerResult.denied());
-                player.disconnect(text("network.main-missing"));
+                player.disconnect(text(player, "network.main-missing"));
             }
             return;
         }
@@ -93,7 +93,7 @@ public final class ServerGuard {
         }
         if (!loggedIn) {
             event.setResult(ServerPreConnectEvent.ServerResult.denied());
-            player.sendMessage(text("network.login-first"));
+            player.sendMessage(text(player, "network.login-first"));
             log.info("MagixProxy: {} ha chiesto {} senza aver fatto il login: resta dov'e'.",
                     player.getUsername(), wanted);
         }
@@ -122,7 +122,7 @@ public final class ServerGuard {
         if (main.isEmpty()) {
             return;
         }
-        String message = config.message("network.moved-to-main").replace("{server}", from);
+        String message = config.message(event.getPlayer().getUniqueId(), "network.moved-to-main").replace("{server}", from);
         event.setResult(KickedFromServerEvent.RedirectPlayer.create(main.get(),
                 LegacyComponentSerializer.legacyAmpersand().deserialize(message)));
         log.info("MagixProxy: {} è uscito da {}: lo porto sul server principale {}.",
@@ -144,7 +144,7 @@ public final class ServerGuard {
         }
     }
 
-    private net.kyori.adventure.text.Component text(String key) {
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(config.message(key));
+    private net.kyori.adventure.text.Component text(Player player, String key) {
+        return LegacyComponentSerializer.legacyAmpersand().deserialize(config.message(player.getUniqueId(), key));
     }
 }

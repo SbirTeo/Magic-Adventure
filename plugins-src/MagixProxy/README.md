@@ -115,3 +115,11 @@ comparire nel file.
 qualunque server della rete; vale per tutti, senza permesso. Passa dal normale cambio di server,
 quindi `ServerGuard` applica la solita regola: prima del login il giocatore resta dov'e'. Testi in
 `network.hub.*` di `messages.yml`.
+
+## Testi nella lingua del giocatore (0.7.0)
+
+MagixLanguage gira anche sul proxy (stesso jar dei server di gioco) e traduce da solo il
+`messages.yml` di MagixProxy. Il proxy gli chiede ogni testo per il giocatore che lo riceve
+(`lang/LanguageBridge`, senza dipendenza in compilazione): la lingua e' quella della rete (tabella
+`language_players` del database del sito), una traduzione mancante resta in italiano. Le correzioni
+vanno in `velocity/plugins/magixlanguage/translations/magixproxy/<lingua>-overrides.yml`.

@@ -1,7 +1,9 @@
 # ===========================================================================
 #  MagixProxy — i testi che un giocatore legge, arrivati dal proxy.
-#  Colori con & (come negli altri plugin Magix). Sul proxy non c'è MagixLanguage:
-#  questi testi restano in italiano.
+#  Colori con & (come negli altri plugin Magix). MagixLanguage, installato anche sul
+#  proxy, li traduce da solo e il proxy li manda nella lingua di ogni giocatore; una
+#  traduzione che non convince si corregge in
+#  plugins/magixlanguage/translations/magixproxy/<lingua>-overrides.yml.
 # ===========================================================================
 
 login:

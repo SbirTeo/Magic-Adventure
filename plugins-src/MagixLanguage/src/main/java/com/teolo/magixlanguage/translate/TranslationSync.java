@@ -91,7 +91,11 @@ public final class TranslationSync {
      *                     blocco o prima che sia passato l'intervallo fra un giro e l'altro
      */
     public Result run(boolean ignorePacing) {
-        List<String> pluginNames = plugin.getConfig().getStringList("translations.plugins");
+        List<String> pluginNames = PluginScope.toTranslate(
+                java.util.Arrays.stream(plugin.getServer().getPluginManager().getPlugins())
+                        .map(p -> p.getDataFolder().getName()).toList(),
+                plugin.getConfig().getStringList("translations.plugins"),
+                plugin.getConfig().getBoolean("translations.auto-discover", true), plugin.getName());
         List<String> fileNames = plugin.getConfig().getStringList("translations.files");
         List<String> targetLanguages = new ArrayList<>(plugin.getConfig().getStringList("supported-languages"));
         targetLanguages.remove(SOURCE_LANGUAGE);
@@ -216,7 +220,7 @@ public final class TranslationSync {
             // basta correggerla.
             Object refreshed = cachedTranslated != null && Objects.equals(cachedSource, italianValue)
                     ? HelpSyntax.refreshCached(italianValue, cachedTranslated, lang) : null;
-            Object reusable = refreshed != null && !looksCorrupted(italianValue, refreshed, lang) ? refreshed : null;
+            Object reusable = refreshed != null && !TranslationChecks.looksCorrupted(italianValue, refreshed, lang) ? refreshed : null;
             if (reusable != null) {
                 result.put(key, reusable);
                 newCacheSource.put(key, italianValue);
@@ -237,7 +241,7 @@ public final class TranslationSync {
                 totals.failed++;
                 continue;
             }
-            Object translated = translateValue(translator, italianValue, lang);
+            Object translated = TranslationChecks.translateValue(translator, italianValue, lang);
             if (delayMs > 0) sleepQuietly(delayMs); // sempre, dopo un vero tentativo di rete: successo o fallimento
             if (translated == null) {
                 result.put(key, italianValue); // ripiego: italiano, si riprova al prossimo giro (non va in cache)
@@ -255,105 +259,6 @@ public final class TranslationSync {
         saveCache(cacheFile, newCacheSource, newCacheTranslated);
     }
 
-    /**
-     * Residui di un vecchio segnaposto non ripristinato (visto succedere davvero: il servizio di
-     * traduzione ha alterato {@code [[N]]} in {@code [N]}, lasciando quel residuo al posto di un
-     * colore o di un placeholder). Una cache con un valore cosi' non si riusa: si ritraduce.
-     */
-    private static final Pattern SUSPECT_LEFTOVER = Pattern.compile("(?i)qx\\s*\\d+\\s*xq|\\[\\d+]");
-
-    /**
-     * Uno spazio mangiato intorno a un argomento tra &lt; &gt; (visto succedere davvero: MyMemory
-     * lo scambiava per un tag HTML prima che {@link Translator} lo proteggesse, lasciando
-     * "/login&lt;password&gt;" invece di "/login &lt;password&gt;"). In un testo corretto una
-     * lettera o una cifra non tocca mai direttamente "&lt;" o "&gt;": una cache con un valore cosi'
-     * viene dalle traduzioni fatte prima di quella protezione e va rifatta.
-     */
-    private static final Pattern GLUED_BRACKET = Pattern.compile("[\\p{L}\\p{N}]<|>[\\p{L}\\p{N}]");
-
-    /** True se una stringa ha uno spazio a inizio/fine e l'altra no: un padding voluto (es.
-     *  " « indietro " per staccare la scritta dai bordi cliccabili) che un servizio di traduzione
-     *  ha mangiato non lascia mai un valore identico su questo fronte. */
-    private static boolean edgeWhitespaceMismatch(String source, String translated) {
-        boolean sourceLeading = !source.isEmpty() && Character.isWhitespace(source.charAt(0));
-        boolean sourceTrailing = !source.isEmpty() && Character.isWhitespace(source.charAt(source.length() - 1));
-        boolean translatedLeading = !translated.isEmpty() && Character.isWhitespace(translated.charAt(0));
-        boolean translatedTrailing = !translated.isEmpty() && Character.isWhitespace(translated.charAt(translated.length() - 1));
-        return sourceLeading != translatedLeading || sourceTrailing != translatedTrailing;
-    }
-
-    private static boolean lineCorrupted(String source, String translated, String lang) {
-        String[] sourceHelp = source != null ? HelpSyntax.split(source) : null;
-        if (sourceHelp != null) {
-            // Riga di aiuto: la sintassi la rifa ogni volta il glossario (e "<fazione>" diventa
-            // "<faction>", che il controllo dei pezzi protetti scambierebbe per un placeholder
-            // perso): conta solo la descrizione.
-            String[] translatedHelp = HelpSyntax.split(translated);
-            if (translatedHelp == null) {
-                return true;
-            }
-            source = sourceHelp[2];
-            translated = translatedHelp[2];
-        }
-        return SUSPECT_LEFTOVER.matcher(translated).find() || GLUED_BRACKET.matcher(translated).find()
-                || (source != null && edgeWhitespaceMismatch(source, translated))
-                || (source != null && missingProtectedToken(source, translated, lang));
-    }
-
-    /**
-     * Un colore o un placeholder che il testo italiano richiede ma che non compare piu' nel
-     * testo tradotto in cache (visto succedere davvero: due codici colore protetti come "qx0xq"/
-     * "qx1xq" ridotti dal servizio di traduzione al solo numero nudo "0 1", senza lasciare il
-     * residuo "qxNxq" che {@link #SUSPECT_LEFTOVER} intercetterebbe). Una cache cosi' va rifatta.
-     */
-    private static boolean missingProtectedToken(String source, String translated, String lang) {
-        for (String token : Translator.requiredTokens(source)) {
-            // un <argomento> torna tradotto col glossario (vedi Translator), non identico
-            String expected = token.startsWith("<") ? HelpSyntax.translateSyntax(token, lang) : token;
-            if (!translated.contains(expected)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean looksCorrupted(Object italianValue, Object cachedTranslated, String lang) {
-        if (cachedTranslated instanceof String s) {
-            String source = italianValue instanceof String is ? is : null;
-            return lineCorrupted(source, s, lang);
-        }
-        if (cachedTranslated instanceof List<?> list) {
-            List<?> sourceList = italianValue instanceof List<?> sl ? sl : null;
-            for (int i = 0; i < list.size(); i++) {
-                Object line = list.get(i);
-                if (line == null) continue;
-                String source = sourceList != null && i < sourceList.size() && sourceList.get(i) != null
-                        ? String.valueOf(sourceList.get(i)) : null;
-                if (lineCorrupted(source, String.valueOf(line), lang)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private static Object translateValue(Translator translator, Object italianValue, String lang) {
-        if (italianValue instanceof String s) {
-            return translator.translate(s, lang);
-        }
-        if (italianValue instanceof List<?> list) {
-            List<String> out = new ArrayList<>(list.size());
-            for (Object line : list) {
-                String translated = translator.translate(String.valueOf(line), lang);
-                if (translated == null) {
-                    return null; // una riga sola non tradotta: si riprova tutta la lista al prossimo giro
-                }
-                out.add(translated);
-            }
-            return out;
-        }
-        return null;
-    }
 
     private static void sleepQuietly(int millis) {
         try {
@@ -364,6 +269,7 @@ public final class TranslationSync {
     }
 
     // ------------------------------------------------------------- lettura del sorgente
+
 
     /** Testo (stringhe e liste di stringhe) di tutti i file configurati, per un plugin, unito in un'unica mappa. */
     private Map<String, Object> readSourceText(File pluginsFolder, String pluginName, List<String> fileNames) {

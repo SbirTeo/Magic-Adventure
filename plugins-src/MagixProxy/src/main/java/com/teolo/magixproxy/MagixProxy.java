@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.teolo.magixproxy.command.HubCommand;
 import com.teolo.magixproxy.db.AccountDao;
 import com.teolo.magixproxy.db.Database;
+import com.teolo.magixproxy.lang.LanguageBridge;
 import com.teolo.magixproxy.motd.MotdListener;
 import com.teolo.magixproxy.network.ServerGuard;
 import com.teolo.magixproxy.network.SwitchCookies;
@@ -12,6 +13,7 @@ import com.teolo.magixproxy.profile.ProfileListener;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
+import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -31,10 +33,12 @@ import java.nio.file.Path;
 @Plugin(
         id = "magixproxy",
         name = "MagixProxy",
-        version = "0.6.0",
+        version = "0.7.0",
         description = "The MagicAdventure network on the Velocity proxy",
         url = "https://magicadventure.it",
-        authors = {"teolo"}
+        authors = {"teolo"},
+        // Optional: with it, the texts reach every player in his language (see LanguageBridge).
+        dependencies = {@Dependency(id = "magixlanguage", optional = true)}
 )
 public final class MagixProxy {
 
@@ -62,6 +66,8 @@ public final class MagixProxy {
             log.error("MagixProxy: config.yml/messages.yml illeggibili ({}). Plugin NON attivo.", e.toString());
             return;
         }
+
+        config.useLanguage(LanguageBridge.find(proxy, log));
 
         database = new Database(config, log);
         if (!database.reachable()) {

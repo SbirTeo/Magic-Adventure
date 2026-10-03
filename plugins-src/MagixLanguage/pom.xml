@@ -38,6 +38,22 @@
             <version>26.1.2.build.72-stable</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Lo stesso jar gira anche sul proxy (velocity/MagixLanguageVelocity): dopo paper-api,
+             cosi' per le classi comuni (adventure, snakeyaml...) vince la versione di Paper.
+             Il suo annotation processor scrive velocity-plugin.json da @Plugin. -->
+        <dependency>
+            <groupId>com.velocitypowered</groupId>
+            <artifactId>velocity-api</artifactId>
+            <version>4.2.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- La lingua condivisa da tutta la rete sta nel database del sito (store/LanguageStore):
+             driver dentro il jar (shaded), su Paper come su Velocity. -->
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.4.1</version>
+        </dependency>
         <!-- Opzionale a runtime (softdepend): fornito dal plugin se presente. -->
         <dependency>
             <groupId>me.clip</groupId>
@@ -56,7 +72,48 @@
                 <version>3.13.0</version>
                 <configuration>
                     <release>${java.version}</release>
+                    <!-- Da JDK 23 javac non lancia piu' da solo gli annotation processor del
+                         classpath: senza, velocity-plugin.json manca e Velocity ignora il jar. -->
+                    <proc>full</proc>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.mariadb.jdbc:mariadb-java-client</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.mariadb</pattern>
+                                    <shadedPattern>com.teolo.magixlanguage.lib.mariadb</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <resources>

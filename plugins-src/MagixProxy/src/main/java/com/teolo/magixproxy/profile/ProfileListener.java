@@ -90,7 +90,7 @@ public final class ProfileListener {
     public void onLogin(LoginEvent event) {
         if (unknown.remove(key(event.getPlayer().getUsername()))) {
             event.setResult(ResultedEvent.ComponentResult.denied(
-                    LegacyComponentSerializer.legacyAmpersand().deserialize(config.message("login.kick-database"))));
+                    LegacyComponentSerializer.legacyAmpersand().deserialize(config.message(event.getPlayer().getUniqueId(), "login.kick-database"))));
         }
     }
 

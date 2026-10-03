@@ -1,6 +1,6 @@
 package com.teolo.magixlanguage.translate;
 
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -155,8 +155,13 @@ public final class HelpSyntax {
         Map<String, Map<String, String>> loaded = new HashMap<>();
         try (InputStream in = HelpSyntax.class.getResourceAsStream("/argument-glossary.yml")) {
             if (in != null) {
-                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-                for (Map<?, ?> entry : yaml.getMapList("words")) {
+                // SnakeYAML and not Bukkit's YamlConfiguration: the glossary is read on Velocity too.
+                Object root = new Yaml().load(new InputStreamReader(in, StandardCharsets.UTF_8));
+                Object words = root instanceof Map<?, ?> m ? m.get("words") : null;
+                for (Object item : words instanceof List<?> list ? list : List.of()) {
+                    if (!(item instanceof Map<?, ?> entry)) {
+                        continue;
+                    }
                     Object it = entry.get("it");
                     if (it == null) {
                         continue;

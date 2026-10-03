@@ -39,26 +39,26 @@ public final class HubCommand implements SimpleCommand {
     @Override
     public void execute(Invocation invocation) {
         if (!(invocation.source() instanceof Player player)) {
-            invocation.source().sendMessage(text("hub.players-only", ""));
+            invocation.source().sendMessage(text(null, "hub.players-only", ""));
             return;
         }
         String hub = config.hubServer;
         Optional<RegisteredServer> target = proxy.getServer(hub);
         if (target.isEmpty()) {
-            player.sendMessage(text("hub.unavailable", hub));
+            player.sendMessage(text(player, "hub.unavailable", hub));
             return;
         }
         boolean already = player.getCurrentServer()
                 .map(s -> s.getServerInfo().getName().equalsIgnoreCase(hub)).orElse(false);
         if (already) {
-            player.sendMessage(text("hub.already-here", hub));
+            player.sendMessage(text(player, "hub.already-here", hub));
             return;
         }
         player.createConnectionRequest(target.get()).connect().thenAccept(result -> {
             if (result.isSuccessful()) {
-                player.sendMessage(text("hub.sent", hub));
+                player.sendMessage(text(player, "hub.sent", hub));
             } else if (result.getStatus() == com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status.SERVER_DISCONNECTED) {
-                player.sendMessage(text("hub.unavailable", hub));
+                player.sendMessage(text(player, "hub.unavailable", hub));
             }
             // CONNECTION_CANCELLED: ServerGuard already told the player why (login first).
         });
@@ -69,8 +69,8 @@ public final class HubCommand implements SimpleCommand {
         return true;
     }
 
-    private Component text(String key, String server) {
-        return LegacyComponentSerializer.legacyAmpersand()
-                .deserialize(config.message("network." + key).replace("{server}", server));
+    private Component text(Player player, String key, String server) {
+        String message = config.message(player == null ? null : player.getUniqueId(), "network." + key);
+        return LegacyComponentSerializer.legacyAmpersand().deserialize(message.replace("{server}", server));
     }
 }

@@ -102,7 +102,29 @@ public final class ProxyConfig {
         }
     }
 
-    /** A text a player reads, with & colours, from messages.yml. */
+    /** MagixLanguage on the proxy, when installed (set once at startup). */
+    private volatile com.teolo.magixproxy.lang.LanguageBridge language;
+
+    public void useLanguage(com.teolo.magixproxy.lang.LanguageBridge language) {
+        this.language = language;
+    }
+
+    /**
+     * A text a player reads, in his language when MagixLanguage has a translation of it,
+     * otherwise the Italian of messages.yml.
+     */
+    public String message(java.util.UUID playerId, String path) {
+        com.teolo.magixproxy.lang.LanguageBridge lang = language;
+        if (lang != null && playerId != null) {
+            String translated = lang.translate(playerId, path);
+            if (translated != null) {
+                return translated;
+            }
+        }
+        return message(path);
+    }
+
+    /** A text a player reads, with & colours, from messages.yml (Italian). */
     public String message(String path) {
         Object v = lookup(messages, path);
         if (v == null) {

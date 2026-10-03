@@ -83,6 +83,7 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
 
         messages = new Messages(this);
         locales = new PlayerLocales(getDataFolder(), getLogger());
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> locales.useStore(openStore()));
         geo = buildGeoLookup();
         pacing = new TranslationPacing(getDataFolder(), getLogger());
         try {
@@ -187,6 +188,16 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
     /** Pausa dopo un blocco / intervallo fra i giri: per /language status. */
     public TranslationPacing pacing() {
         return pacing;
+    }
+
+    /** The shared language table (see LanguageStore), or null: credentials from database.shared_with. */
+    private com.teolo.magixlanguage.store.LanguageStore openStore() {
+        if (!getConfig().getBoolean("database.enabled", true)) {
+            return null;
+        }
+        List<Path> candidates = getConfig().getStringList("database.shared_with").stream()
+                .map(Path::of).toList();
+        return com.teolo.magixlanguage.store.LanguageStore.open(candidates, getLogger());
     }
 
     private GeoLookup buildGeoLookup() {
@@ -408,14 +419,28 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                                 + "sta collegando: dal paese restituito si ricava la lingua tramite la mappa "
                                 + "country-language del config. Un IP privato, un servizio non raggiunto in "
                                 + "tempo, o un paese non elencato: si usa {{cfg:default-language}}.",
-                        "La scelta si salva per sempre in players.yml: un ingresso successivo NON la cambia "
+                        "La scelta si salva per sempre: un ingresso successivo NON la cambia "
                                 + "più da solo. Per cambiarla c'è /language set <lingua>, sia per se stessi sia, "
                                 + "con magixlanguage.admin, per un altro giocatore.")
+
+                .section("Un plugin per tutta la rete",
+                        "MagixLanguage gira su ogni server della rete: faction, hub, il proxy Velocity e le "
+                                + "modalità future. Lo stesso jar va dappertutto (deploy.target), e su ogni server "
+                                + "traduce da solo i plugin Magix installati lì (translations.auto-discover).",
+                        "La lingua di ogni giocatore sta nel database del sito (tabella language_players, "
+                                + "credenziali lette dal config di MagixAuth, database.shared_with): quella scelta con "
+                                + "/language set su un server vale anche sugli altri e sul proxy. Ogni server ne tiene "
+                                + "una copia in players.yml, usata se il database non risponde.",
+                        "Sul proxy non c'è il comando /language (lo si usa sui server di gioco): MagixLanguage "
+                                + "di Velocity traduce i plugin del proxy (MagixProxy) nella sua cartella "
+                                + "velocity/plugins/magixlanguage/translations/, con le stesse regole e gli stessi "
+                                + "file -overrides.yml per le correzioni. La lingua di chi entra per la prima volta la "
+                                + "rileva il server principale: finché non c'è, il proxy usa {{cfg:default-language}}.")
 
                 .section("Come funziona la traduzione dei messaggi",
                         "Ad ogni avvio (se translations.sync-on-start è true) e con /language sync, il plugin "
                                 + "legge i file elencati in translations.files (di serie solo messages.yml) di ogni "
-                                + "plugin elencato in translations.plugins e ne copia il testo in "
+                                + "plugin Magix installato sul server (più quelli di translations.plugins) e ne copia il testo in "
                                 + "plugins/MagixLanguage/translations/&lt;Plugin&gt;/it.yml — uno SPECCHIO, non "
                                 + "un originale: si cambia nel messages.yml del plugin, mai qui.",
                         "Per ogni altra lingua supportata, ogni chiave NUOVA o il cui testo italiano è "
@@ -481,7 +506,10 @@ public final class MagixLanguage extends JavaPlugin implements MagixLanguageAPI 
                         "geoip.enabled", "Spegnendolo, nessun IP esce verso il servizio GeoIP: tutti partono con default-language.",
                         "geoip.provider-url", "Servizio interrogato per risalire dall'IP al paese; {ip} è sostituito con l'indirizzo vero.",
                         "geoip.cache-days", "Per quanto un IP già interrogato non viene richiesto di nuovo.",
-                        "translations.plugins", "I plugin la cui cartella dati viene scandita in cerca di testo da tradurre.",
+                        "database.enabled", "Se acceso, la lingua di ogni giocatore sta nel database del sito e vale su tutta la rete (faction, hub, proxy, modalità future); spento, ogni server tiene la sua in players.yml.",
+                        "database.shared_with", "Da dove leggere le credenziali del database: il config.yml di MagixAuth sulla stessa macchina, il primo file che esiste.",
+                        "translations.auto-discover", "Se acceso, si traducono da soli tutti i plugin Magix installati sul server dove gira MagixLanguage, proxy compreso: un plugin nuovo non va aggiunto a mano.",
+                        "translations.plugins", "Plugin in più da tradurre, oltre a quelli trovati da soli: il nome della loro cartella dati.",
                         "translations.files", "I nomi dei file, dentro ciascuna di quelle cartelle, che contengono testo per i giocatori.",
                         "translations.auto-translate.enabled", "Se spento, le lingue diverse dall'italiano restano col testo italiano finché non lo corregge lo staff con un file -overrides.yml.",
                         "translations.auto-translate.contact-email", "Email facoltativa mandata a MyMemory per una quota giornaliera di traduzioni più alta.",

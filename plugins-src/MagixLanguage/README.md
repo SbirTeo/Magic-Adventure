@@ -10,6 +10,29 @@ avvio del server.
 
 ---
 
+## Un plugin per tutta la rete
+
+MagixLanguage gira su **ogni** server della rete: faction, hub, il proxy Velocity e le modalità
+future. È lo stesso jar dappertutto (`deploy.target` = `faction hub velocity`): Paper legge
+`plugin.yml` e avvia `MagixLanguage`, Velocity legge `velocity-plugin.json` e avvia
+`velocity/MagixLanguageVelocity`. Il nucleo (traduttore, pacing, glossario, database) non usa né
+Bukkit né Velocity.
+
+- **Traduce da solo i plugin Magix installati dove gira** (`translations.auto-discover`): ogni plugin
+  `Magix*` caricato su quel server, più quelli di `translations.plugins`. Un plugin nuovo non va
+  aggiunto a mano; le cartelle rimaste da un plugin tolto non contano.
+- **La lingua del giocatore vale su tutta la rete**: tabella `language_players` del database del sito
+  (credenziali dal config di MagixAuth, `database.shared_with`, primo file che esiste). Si scrive a
+  ogni scelta (GeoIP o `/language set`) e si rilegge a ogni ingresso; `players.yml` resta la copia
+  locale se il database non risponde. Al primo avvio col database i `players.yml` dei server ci
+  vengono portati (una scelta manuale vince su una rilevata dal GeoIP).
+- **Sul proxy**: traduce MagixProxy in `velocity/plugins/magixlanguage/translations/magixproxy/`
+  (stesse regole, stessi `-overrides.yml`) e risponde ai plugin del proxy con
+  `translate(plugin, uuid, chiave, segnaposti)`. Rilevazione GeoIP e comando `/language` restano sui
+  server di gioco; finché un giocatore nuovo non è classificato, il proxy usa `default-language`.
+
+---
+
 ## Cosa fa
 
 **Rilevazione automatica.** Al primo ingresso di un account, prima ancora che entri nel mondo, si

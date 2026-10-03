@@ -33,6 +33,8 @@ public final class LoginListener implements Listener {
         if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
             return; // chi non entra non ha bisogno di una lingua
         }
+        // La lingua scelta su un altro server della rete (database condiviso) vince su quella locale.
+        locales.refreshFromNetwork(event.getUniqueId());
         PlayerLocales.Entry existing = locales.get(event.getUniqueId());
         if (existing != null) {
             return; // gia' classificato (a mano o da un ingresso precedente): non lo si ritocca
