@@ -81,9 +81,9 @@ IGNORE_UNREAD = re.compile(
 # the STAFF CATALOGS, listed here: menus/*.yml is a subfolder (never listed), sanctions.yml holds
 # entries the staff adds, items.yml/glyphs.yml (MagixPack) hold the ids of custom items/glyphs the
 # staff defines, and currencies.yml (MagixEssentials) holds the ids of the currencies the staff
-# creates — all read dynamically (cfg.getKeys), never as a literal string in the code.
+# creates, customjoinitems.yml (MagixEssentials) the fixed inventory items under "items" — all read dynamically (cfg.getKeys), never as a literal string in the code.
 # renames.yml is not a config at all: it maps old key paths to new ones.
-CATALOGS = {"sanctions.yml", "renames.yml", "items.yml", "glyphs.yml", "currencies.yml"}
+CATALOGS = {"sanctions.yml", "renames.yml", "items.yml", "glyphs.yml", "currencies.yml", "customjoinitems.yml"}
 
 
 def file_keys(path):

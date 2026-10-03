@@ -5,10 +5,9 @@
 # su cosa possono farci. Va bene sia sull'hub (inventario pulito + bussola dei server) sia sul
 # faction (un oggetto fisso nella barra rapida): ogni server ha i suoi due file.
 #
-# Questo file dice QUANDO e COME si danno gli oggetti e quali regole valgono in generale. Gli
-# oggetti veri (materiale, nome, slot, comandi) stanno in items.yml, che è un catalogo: le voci le
-# aggiunge lo staff. L'interruttore sta nel modules.yml (customjoinitems: true/false, di serie
-# spento).
+# Qui sta tutto: QUANDO e COME si danno gli oggetti, le regole generali e, in fondo (sezione
+# "items"), gli oggetti veri con le loro azioni al clic. L'interruttore sta nel modules.yml
+# (customjoinitems: true/false, di serie spento). Le modifiche valgono con /magixessentials reload.
 #
 # Il permesso magixessentials.customjoinitems.bypass salta tutte le regole qui sotto (chi
 # costruisce può muovere, buttare e rompere come vuole). Non salta la consegna degli oggetti.
@@ -40,7 +39,7 @@ login-wait-seconds: 300
 # È la scelta per un hub. Sul faction va lasciato false: i giocatori perderebbero le loro cose.
 clear-inventory: false
 
-# Toglie gli oggetti del modulo che non esistono più in items.yml (o per cui il giocatore non ha più
+# Toglie gli oggetti del modulo che non esistono più nella sezione items (o per cui il giocatore non ha più
 # il permesso). Gli oggetti di altri plugin non si toccano mai.
 remove-orphans: true
 
@@ -54,7 +53,7 @@ if-slot-occupied: move
 # Le regole GENERALI, per tutti quelli che non hanno il bypass, in tutti i mondi del modulo.
 # true = i giocatori possono (come in vanilla), false = è vietato. Valgono per qualunque oggetto,
 # non solo per quelli del modulo: per un hub si spengono quasi tutte, per il faction si lasciano
-# così e si usano le regole dei singoli oggetti (movable, droppable... in items.yml).
+# così e si usano le regole dei singoli oggetti (movable, droppable... nella sezione items).
 rules:
   # Spostare oggetti nell'inventario. ATTENZIONE: false chiude TUTTI gli inventari (casse, banchi
   # da lavoro, incudini...): vale per un hub, non per un server di gioco.
@@ -71,3 +70,73 @@ rules:
   allow-swap-hands: true
   # Consumare la durabilità degli oggetti (false = armi e attrezzi non si rovinano).
   allow-item-damage: true
+
+# ============================================================
+#  Gli oggetti
+# ============================================================
+# Ogni voce sotto "items" è un oggetto (le voci le aggiunge lo staff: non sono righe morte da
+# ripulire, come in currencies.yml). La CHIAVE è il suo id (una parola) e viene scritta
+# dentro l'oggetto: così lo si riconosce anche se cambi nome o materiale. Cambiare l'id di una voce
+# vuol dire una voce nuova: la vecchia viene tolta dagli inventari (remove-orphans).
+#
+#   slot            dove va: 0-8 barra rapida, 9-35 zaino, 36-39 armatura (stivali, gambali, corazza,
+#                   elmo), 40 seconda mano. Oppure un nome: boots, leggings, chestplate, helmet, offhand.
+#   material        il materiale (nomi di Minecraft: COMPASS, NETHER_STAR, DIAMOND_SWORD...).
+#   amount          quanti pezzi (1-64). Di serie 1.
+#   name            il nome. Valgono &, &#RRGGBB, i tag <gradient:...> e i placeholder di PlaceholderAPI;
+#                   {player} è il nome di chi lo riceve. Senza corsivo di serie.
+#   lore            le righe di descrizione, sotto il nome (stessi codici del nome).
+#   glow            true = brilla come se fosse incantato.
+#   hide-flags      true (di serie) = nasconde incantesimi, attributi e altre righe tecniche.
+#   unbreakable     true (di serie) = non si rovina.
+#   custom-model-data / item-model
+#                   per le texture del pacchetto risorse: un numero, oppure "spazio:nome".
+#   permission      chi ha questo permesso lo riceve. Vuoto = lo ricevono tutti.
+#   movable         true = il giocatore lo può spostare nell'inventario. Di serie false: resta fisso
+#                   nel suo slot (non si sposta, non si scambia con un altro, non va nella cassa).
+#   droppable       true = lo può buttare a terra. Di serie false.
+#   vanilla-use     true = si comporta come l'oggetto vero (si mangia, si lancia, si piazza).
+#                   Di serie false: un oggetto del modulo serve per i comandi, non per essere usato.
+#
+# AZIONI AL CLIC (clic con l'oggetto in mano; con run-in-inventory anche cliccandolo a inventario
+# aperto). Ogni lista è un elenco di azioni, eseguite in ordine:
+#   left-click / right-click
+#                   le azioni del clic sinistro / destro.
+#   shift-left-click / shift-right-click
+#                   le stesse da accucciati (shift). Se mancano, vale left-click / right-click.
+#   commands        le azioni per qualunque clic (o solo per quello scelto con "click": any, left,
+#                   right). Vale solo se per quel clic non c'è una lista più precisa qui sopra.
+#   run-in-inventory
+#                   true = cliccare l'oggetto a inventario aperto fa partire le stesse azioni (il
+#                   clic sinistro/destro del mouse). Di serie false.
+#   cooldown-seconds
+#                   quanti secondi prima di poter ricliccare (di serie 1).
+#
+# Ogni azione comincia con un prefisso che dice cosa fare:
+#   "player: spawn"                      il giocatore esegue il comando, coi suoi permessi
+#                                        (senza prefisso vale lo stesso)
+#   "console: lp user {player} ..."      lo esegue la console, con tutti i permessi
+#   "server: hub"                        lo manda su un altro server della rete (passa da Velocity:
+#                                        prima del login il proxy non lo fa passare)
+#   "message: &aBenvenuto, {player}!"    gli scrive in chat (codici &, &#RRGGBB e tag <...>)
+#   "sound: UI_BUTTON_CLICK 1 1.2"       gli fa sentire un suono: nome, volume e tono facoltativi
+# Segnaposto in tutte: {player}, {uuid}, {world}, più i placeholder di PlaceholderAPI.
+#
+# Esempio (tolti i # per usarlo): una bussola nella 5a casella della barra rapida. Clic destro apre il
+# menu dei server (anche cliccandola nell'inventario), shift + clic destro porta subito all'hub.
+#
+# items:
+#   navigator:
+#     slot: 4
+#     material: COMPASS
+#     name: "&#A8DC2CNavigatore"
+#     lore:
+#       - "&7Clic destro per scegliere dove andare"
+#     glow: true
+#     run-in-inventory: true
+#     right-click:
+#       - "sound: UI_BUTTON_CLICK"
+#       - "player: menus open servers"
+#     shift-right-click:
+#       - "server: hub"
+items:

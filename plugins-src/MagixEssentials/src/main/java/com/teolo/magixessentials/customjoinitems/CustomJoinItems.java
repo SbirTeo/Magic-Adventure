@@ -2,6 +2,7 @@ package com.teolo.magixessentials.customjoinitems;
 
 import com.teolo.magixessentials.hook.Papi;
 import com.teolo.magixessentials.lang.Messages;
+import com.teolo.magixessentials.util.TextFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.NamespacedKey;
@@ -35,7 +36,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,10 +49,10 @@ import java.util.Map;
  * Gli oggetti fissi nell'inventario: li si mette al login (o alla rinascita, o al cambio di
  * mondo) e si decide cosa i giocatori possono farci. Gira sia sull'hub (un inventario pulito con
  * la bussola dei server) sia sul faction (un oggetto fisso nella barra rapida), perche' ogni
- * server ha il suo {@code customjoinitems.yml} e il suo {@code items.yml}.
+ * server ha il suo {@code customjoinitems.yml}, con dentro gli oggetti (sezione {@code items}).
  *
  * <h2>Come riconosce i suoi oggetti</h2>
- * Ogni oggetto che crea porta nei suoi dati persistenti l'id della voce di {@code items.yml}.
+ * Ogni oggetto che crea porta nei suoi dati persistenti l'id della sua voce (sezione {@code items}).
  * Non conta il nome ne' il materiale: quello che lo staff rinomina o cambia nel file non fa
  * perdere il filo agli oggetti gia' in giro.
  *
@@ -137,18 +137,16 @@ public final class CustomJoinItems implements Listener {
     public void stop() {
         if (!registered) return;
         HandlerList.unregisterAll(this);
+        if (Bukkit.getMessenger().isOutgoingChannelRegistered(plugin, PROXY_CHANNEL)) {
+            Bukkit.getMessenger().unregisterOutgoingPluginChannel(plugin, PROXY_CHANNEL);
+        }
         registered = false;
         cooldowns.clear();
     }
 
-    /** items.yml e' un catalogo dello staff: nasce dal jar se manca e non si ripulisce. */
+    /** La sezione items di customjoinitems.yml: e' un catalogo dello staff (ConfigAlign non la ripulisce). */
     private void loadItems() {
-        File f = new File(plugin.getDataFolder(), "items.yml");
-        if (!f.isFile() && plugin.getResource("items.yml") != null) {
-            plugin.saveResource("items.yml", false);
-        }
-        YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
-        ConfigurationSection root = y.getConfigurationSection("items");
+        ConfigurationSection root = settings.getConfigurationSection("items");
         items.clear();
         if (root == null) return;
         for (String id : root.getKeys(false)) {
@@ -157,7 +155,7 @@ public final class CustomJoinItems implements Listener {
             String[] problem = new String[1];
             JoinItem item = JoinItem.parse(id, s, problem);
             if (item == null) {
-                plugin.getLogger().warning("[CustomJoinItems] items.yml: \"" + id + "\" saltato: " + problem[0] + ".");
+                plugin.getLogger().warning("[CustomJoinItems] items: \"" + id + "\" saltato: " + problem[0] + ".");
                 continue;
             }
             items.put(id, item);
@@ -238,7 +236,7 @@ public final class CustomJoinItems implements Listener {
         }
     }
 
-    /** Mette gli oggetti nell'inventario di p, come dice items.yml. */
+    /** Mette gli oggetti nell'inventario di p, come dice la sezione items. */
     private void give(Player p) {
         PlayerInventory inv = p.getInventory();
         if (clearInventory) {
@@ -338,7 +336,22 @@ public final class CustomJoinItems implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player p) || !applies(p)) return;
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        // run-in-inventory: un clic sull'oggetto a inventario aperto fa partire le sue azioni,
+        // come il clic in mano. Vale anche per chi ha il bypass (le azioni non sono una regola).
+        JoinItem clicked = itemOf(e.getCurrentItem());
+        if (clicked != null && clicked.runInInventory && e.getClickedInventory() == p.getInventory()) {
+            ClickType ct = e.getClick();
+            List<String> actions = clicked.actionsFor(ct.isLeftClick(), ct.isRightClick(), ct.isShiftClick());
+            if (!actions.isEmpty()) {
+                // Il clic serve alle azioni, non a prendere l'oggetto in mano. L'inventario non si
+                // chiude da qui: se un'azione apre un menu, quello prende il suo posto da solo.
+                e.setCancelled(true);
+                perform(p, clicked, actions, true);
+                return;
+            }
+        }
+        if (!applies(p)) return;
         if (!allowMove) {
             e.setCancelled(true);
             return;
@@ -430,47 +443,131 @@ public final class CustomJoinItems implements Listener {
         if (applies(p) && !it.vanillaUse) {
             e.setUseItemInHand(Event.Result.DENY);
         }
-        if (it.commands.isEmpty() || !it.matches(left, right)) return;
+        if (!it.hasActions()) return;
         // Il clic destro su un blocco arriva due volte (una per mano): si agisce per quella
-        // in cui l'oggetto sta davvero.
+        // in cui l'oggetto sta davvero, e la mano c'e' sempre tranne che negli eventi fisici.
         EquipmentSlot hand = e.getHand();
         if (hand == null) return;
+        List<String> actions = it.actionsFor(left, right, p.isSneaking());
+        if (actions.isEmpty()) return;
+        if (!it.vanillaUse) e.setCancelled(true);
+        perform(p, it, actions, hand == EquipmentSlot.HAND);
+    }
+
+    /** Il cooldown, poi le azioni in ordine. {@code tell}: se avvisare del cooldown (una volta sola). */
+    private void perform(Player p, JoinItem it, List<String> actions, boolean tell) {
         long now = System.currentTimeMillis();
         String key = p.getUniqueId() + ":" + it.id;
         Long until = cooldowns.get(key);
         if (until != null && until > now) {
-            if (hand == EquipmentSlot.HAND) {
+            if (tell) {
                 messages.send(p, "customjoinitems.cooldown",
                         "seconds", String.valueOf((until - now + 999) / 1000));
             }
             return;
         }
         cooldowns.put(key, now + it.cooldownMillis);
-        for (String raw : it.commands) {
+        for (String raw : actions) {
             run(p, raw);
         }
     }
 
-    /** "console: say ciao {player}" o "player: spawn": senza prefisso vale come il giocatore. */
+    /**
+     * Un'azione di una lista. Il prefisso dice cosa fare; senza prefisso e' un comando del giocatore.
+     * <ul>
+     *   <li>{@code player: spawn} — il giocatore esegue il comando (coi suoi permessi)</li>
+     *   <li>{@code console: lp user {player} parent add vip} — lo esegue la console</li>
+     *   <li>{@code server: hub} — lo manda su un altro server della rete, passando dal proxy</li>
+     *   <li>{@code message: &aBenvenuto!} — gli scrive in chat</li>
+     *   <li>{@code sound: ui.button.click} (o {@code UI_BUTTON_CLICK}), con volume e tono facoltativi</li>
+     * </ul>
+     */
     private void run(Player p, String raw) {
         String line = raw.trim();
-        boolean console = false;
-        String lower = line.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("console:")) {
-            console = true;
-            line = line.substring(8).trim();
-        } else if (lower.startsWith("player:")) {
-            line = line.substring(7).trim();
+        String type = "player";
+        int colon = line.indexOf(':');
+        if (colon > 0) {
+            String head = line.substring(0, colon).trim().toLowerCase(Locale.ROOT);
+            if (ACTIONS.contains(head)) {
+                type = head;
+                line = line.substring(colon + 1).trim();
+            }
         }
         line = line.replace("{player}", p.getName()).replace("{uuid}", p.getUniqueId().toString())
                 .replace("{world}", p.getWorld().getName());
         if (line.indexOf('%') >= 0) line = Papi.resolve(p, line);
-        if (line.startsWith("/")) line = line.substring(1);
         if (line.isEmpty()) return;
-        if (console) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), line);
-        } else {
-            p.performCommand(line);
+        switch (type) {
+            case "console" -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), stripSlash(line));
+            case "server" -> connect(p, line);
+            case "message" -> p.sendMessage(TextFormat.component(line));
+            case "sound" -> sound(p, line);
+            default -> p.performCommand(stripSlash(line));
+        }
+    }
+
+    private static final java.util.Set<String> ACTIONS = java.util.Set.of("player", "console", "server", "message", "sound");
+
+    private static String stripSlash(String s) {
+        return s.startsWith("/") ? s.substring(1) : s;
+    }
+
+    /**
+     * Manda il giocatore su un altro server della rete col canale "BungeeCord", che Velocity
+     * capisce ({@code bungee-plugin-message-channel = true} in velocity.toml). Il proxy fa i suoi
+     * controlli come per /server: MagixProxy apre gli altri server solo dopo il login.
+     */
+    private void connect(Player p, String server) {
+        if (!Bukkit.getMessenger().isOutgoingChannelRegistered(plugin, PROXY_CHANNEL)) {
+            Bukkit.getMessenger().registerOutgoingPluginChannel(plugin, PROXY_CHANNEL);
+        }
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.io.DataOutputStream out = new java.io.DataOutputStream(bytes)) {
+            out.writeUTF("Connect");
+            out.writeUTF(server.trim());
+        } catch (java.io.IOException e) {
+            return;   // in memoria non succede
+        }
+        p.sendPluginMessage(plugin, PROXY_CHANNEL, bytes.toByteArray());
+    }
+
+    private static final String PROXY_CHANNEL = "BungeeCord";
+
+    /** "sound: ui.button.click 1 1.2": nome (chiave di Minecraft o costante), volume, tono. */
+    private void sound(Player p, String spec) {
+        String[] parts = spec.trim().split("\\s+");
+        float volume = parts.length > 1 ? parseFloat(parts[1], 1f) : 1f;
+        float pitch = parts.length > 2 ? parseFloat(parts[2], 1f) : 1f;
+        // UI_BUTTON_CLICK (il nome della costante) vale ui.button.click (la chiave di Minecraft).
+        // Un nome che il gioco non conosce (un suono del pacchetto risorse) si manda com'e'.
+        String name = parts[0];
+        if (name.indexOf('.') < 0 && name.indexOf(':') < 0) {
+            String key = soundKeys().get(name.toUpperCase(Locale.ROOT));
+            if (key != null) name = key;
+        }
+        p.playSound(p.getLocation(), name.toLowerCase(Locale.ROOT), volume, pitch);
+    }
+
+    private static Map<String, String> soundKeys;
+
+    /** Da UI_BUTTON_CLICK a ui.button.click, per tutti i suoni del gioco (letto una volta). */
+    private static Map<String, String> soundKeys() {
+        if (soundKeys == null) {
+            Map<String, String> m = new HashMap<>();
+            for (org.bukkit.Sound snd : org.bukkit.Registry.SOUNDS) {
+                NamespacedKey k = org.bukkit.Registry.SOUNDS.getKey(snd);
+                if (k != null) m.put(k.getKey().toUpperCase(Locale.ROOT).replace('.', '_'), k.getKey());
+            }
+            soundKeys = m;
+        }
+        return soundKeys;
+    }
+
+    private static float parseFloat(String s, float def) {
+        try {
+            return Float.parseFloat(s);
+        } catch (NumberFormatException e) {
+            return def;
         }
     }
 

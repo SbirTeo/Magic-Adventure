@@ -564,8 +564,8 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "niente si tocca) e al **faction** (un solo oggetto fisso, il resto dell'inventario "
                                 + "è dei giocatori). **Di serie è spento**: si accende con la riga customjoinitems "
                                 + "in modules.yml, server per server. Adesso: {{JOINITEMS_NUMERO}} oggetti caricati.",
-                        "Due file. **customjoinitems.yml** dice QUANDO e COME si danno e le regole generali; "
-                                + "**items.yml** è il catalogo degli oggetti, una voce ciascuno: materiale, slot "
+                        "Tutto sta in **customjoinitems.yml**: QUANDO e COME si danno, le regole generali e, "
+                                + "nella sezione **items**, gli oggetti, una voce ciascuno: materiale, slot "
                                 + "(0-8 barra rapida, 9-35 zaino, 36-39 armatura, 40 seconda mano), nome, descrizione, "
                                 + "brillantezza, texture, permesso per riceverlo, comandi al clic. Gli oggetti si "
                                 + "riconoscono da un marchio con l'id della voce, non dal nome: puoi rinominarli o "
@@ -592,11 +592,19 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "casse e banchi da lavoro compresi. Chi ha il permesso "
                                 + "**magixessentials.customjoinitems.bypass** (di serie gli operatori) salta tutte "
                                 + "le regole, ma gli oggetti li riceve lo stesso.",
-                        "**I comandi al clic.** In *commands* di una voce: con il prefisso *console:* li esegue "
-                                + "la console, con *player:* (o senza prefisso) il giocatore. Segnaposto {player}, "
-                                + "{uuid}, {world} e i placeholder di PlaceholderAPI. *click* sceglie quale clic "
-                                + "(any, left, right) e *cooldown-seconds* quanto aspettare prima del successivo.",
-                        "**Dopo aver cambiato items.yml** basta /magixessentials reload per i comandi e le "
+                        "**Le azioni al clic.** Ogni oggetto può avere una lista di azioni per clic: "
+                                + "*left-click*, *right-click*, *shift-left-click*, *shift-right-click* (da "
+                                + "accucciati; se mancano valgono quelle senza shift) e *commands* per qualunque "
+                                + "clic (filtrata da *click*: any, left, right). Vince sempre la lista più precisa, "
+                                + "mai due insieme. Con *run-in-inventory* le stesse azioni partono anche cliccando "
+                                + "l'oggetto a inventario aperto.",
+                        "Ogni azione ha un prefisso: *player:* (o niente) il giocatore esegue il comando coi "
+                                + "suoi permessi, *console:* lo esegue la console, *server:* lo manda su un altro "
+                                + "server della rete passando dal proxy (prima del login MagixProxy non lo fa "
+                                + "passare), *message:* gli scrive in chat, *sound:* gli fa sentire un suono "
+                                + "(nome, volume, tono). Segnaposto {player}, {uuid}, {world} e i placeholder di "
+                                + "PlaceholderAPI. *cooldown-seconds* dice quanto aspettare fra un clic e l'altro.",
+                        "**Dopo aver cambiato gli oggetti** basta /magixessentials reload per i comandi e le "
                                 + "regole; per rimettere gli oggetti a chi è già online usa **/mess joinitems give** "
                                 + "[giocatore|all], e **/mess joinitems remove** per toglierli (anche dopo aver "
                                 + "spento il modulo: gli oggetti restano negli inventari finché non li togli). "
@@ -833,7 +841,7 @@ public final class MagixEssentials extends JavaPlugin {
                         "wait-for-login", "Aspetta il login di MagixAuth prima di dare gli oggetti.",
                         "login-wait-seconds", "Al massimo quanti secondi si aspetta il login.",
                         "clear-inventory", "Svuota tutto l'inventario prima di dare gli oggetti (hub sì, faction no).",
-                        "remove-orphans", "Toglie gli oggetti del modulo che non esistono più in items.yml.",
+                        "remove-orphans", "Toglie gli oggetti del modulo che non esistono più nella sezione items.",
                         "if-slot-occupied", "Slot occupato: move (sposta la cosa del giocatore), replace, keep.",
                         "rules.allow-move", "Spostare oggetti nell'inventario (false chiude TUTTI gli inventari).",
                         "rules.allow-drop", "Buttare oggetti a terra.",
@@ -907,7 +915,7 @@ public final class MagixEssentials extends JavaPlugin {
 
                 .issue("Gli oggetti fissi non arrivano ai giocatori",
                         "Controlla in ordine: customjoinitems è acceso in modules.yml (di serie è spento)? "
-                                + "Il mondo del giocatore è in worlds (vuota = tutti)? items.yml ha almeno una voce, "
+                                + "Il mondo del giocatore è in worlds (vuota = tutti)? La sezione items ha almeno una voce, "
                                 + "e il log all'avvio dice quanti oggetti ha caricato e quali ha saltato col motivo "
                                 + "(materiale o slot sbagliati)? Se lo slot era occupato e lo zaino pieno, con "
                                 + "if-slot-occupied: move l'oggetto non viene dato. Chi deve ancora fare il login "
