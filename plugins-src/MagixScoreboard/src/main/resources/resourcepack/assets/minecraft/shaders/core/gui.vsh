@@ -6,10 +6,16 @@
 //
 // How the sidebar is drawn in 26.2 (read from the client bytecode, Hud.displayScoreboardSidebar):
 // two GuiGraphicsExtractor.fill calls with pure black, alpha Options.getBackgroundColor(0.4f) for
-// the title row and 0.3f for the body. fill() swaps the corners so that x0/y0 are the LARGER ones,
-// and ColoredRectangleRenderState emits (x0,y0) (x0,y1) (x1,y1) (x1,y0): corner 0 = bottom-right,
-// 1 = top-right, 2 = top-left, 3 = bottom-left. Both quads end at x = guiWidth - 1; the body spans
-// the screen middle (bottom = guiHeight/2 + H/3, top = bottom - H), the title sits right above it.
+// the title row and 0.3f for the body. Both quads end at x = guiWidth - 1. With L lines, H = 9L and
+// half = guiHeight / 2 (integer division): the body spans y = half - 6L - 1 .. half + 3L (bottom =
+// half + H/3, top = bottom - H - 1), the title the 9 pixels right above it, half - 6L - 10 .. half - 6L - 1.
+//
+// Which corner a vertex is comes from its POSITION only, never from gl_VertexID: the client packs the
+// whole GUI in one shared vertex buffer and draws each batch with a base vertex that is not always a
+// multiple of 4, so gl_VertexID % 4 was off depending on what else was on screen (chat, items,
+// titles...) and the border showed up only sometimes. Right: x on guiWidth - 1. Body top/bottom: the
+// screen middle splits them. Title top/bottom: half - y - 1 is 6L at its bottom and 6L + 9 at its
+// top, so modulo 6 it is 0 or 3 and tells them apart without knowing L.
 
 // Can't moj_import in things used during startup, when resource packs don't exist.
 // This is a copy of dynamicimports.glsl and projection.glsl
@@ -52,17 +58,21 @@ void main() {
         vec4 p = ModelViewMat * vec4(Position, 1.0);
         float gw = abs(2.0 / ProjMat[0][0]);
         float gh = abs(2.0 / ProjMat[1][1]);
-        int corner = gl_VertexID % 4;
-        bool right = corner <= 1;
-        bool top = corner == 1 || corner == 2;
-        // Cross-check the corner with what the position says for sure: a right corner lies on
-        // guiWidth - 1, and the body is split by the screen middle. Any disagreement means the
-        // vertex order is not the expected one: keep the recolored background, skip the border.
-        bool rightByPos = p.x > gw - 1.5;
-        bool ok = right == rightByPos;
-        if (body) ok = ok && (top == (p.y < gh * 0.5));
-        // Sidebar spostata in verticale (config sidebar-position.offset-y): le scritte le sposta della
-        // stessa quantita' lo shader del testo (text.vsh di MagixFactions).
+        bool right = p.x > gw - 1.5;
+        bool top;
+        bool ok = true;
+        if (body) {
+            top = p.y < gh * 0.5;
+        } else {
+            float midY = floor(floor(gh + 0.5) * 0.5);
+            float r = mod(midY - floor(p.y + 0.5) - 1.0, 6.0);
+            top = abs(r - 3.0) < 0.5;
+            // Neither 0 nor 3: not the layout described above (another client?). Keep the
+            // recolored background, skip the border.
+            ok = top || r < 0.5 || r > 5.5;
+        }
+        // Sidebar moved vertically (config sidebar-position.offset-y): the text shader (text.vsh of
+        // MagixFactions) moves the lines by the same amount.
         gl_Position = ProjMat * vec4(p.x, p.y + __SB_SHIFT__, p.z, p.w);
         sbKind = body ? 1 : 2;
         sbUV = vec2(right ? 1.0 : 0.0, top ? 0.0 : 1.0);
