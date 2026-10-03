@@ -42,10 +42,16 @@ public final class Translator {
      *  - visto succedere davvero, "/login&lt;password&gt;" attaccato; un livello di annidamento,
      *  es. "&lt;info|migrate &lt;sqlite|mariadb&gt;&gt;", e' incluso apposta), e « » (le frecce di
      *  "&lt;&lt; indietro"/"avanti &gt;&gt;" nell'aiuto a pagine, e il separatore "&gt;" di alcuni
-     *  prefissi di MagixFactions: senza protezione un servizio di traduzione puo' toglierle). */
+     *  prefissi di MagixFactions: senza protezione un servizio di traduzione puo' toglierle), e il
+     *  nome di un comando ("/missioni", "/f": visto succedere davvero, "&f/missioni" diventato
+     *  "&f/missions" sulla scoreboard, un comando che non esiste). Un comando e' una "/" seguita da
+     *  una lettera, all'inizio, dopo uno spazio, una parentesi o un codice colore: non "e/o",
+     *  "km/h", "territori/potenza" o l'indirizzo di un sito. */
     private static final Pattern TOKEN = Pattern.compile(
             "\\{[a-zA-Z0-9_]+}" + "|%[a-zA-Z0-9_]+%" + "|&#[0-9a-fA-F]{6}" + "|&[0-9a-fk-orA-FK-OR]"
-                    + "|\\\\n" + "|\\|" + "|<(?:[^<>]|<[^<>]*>)*>" + "|«" + "|»");
+                    + "|\\\\n" + "|\\|" + "|<(?:[^<>]|<[^<>]*>)*>" + "|«" + "|»"
+                    + "|(?:(?<=[&§][0-9a-fk-orA-FK-OR])|(?<=&#[0-9a-fA-F]{6})|(?<![\\p{L}\\p{N}_/.:#&§\\-]))"
+                    + "/[a-zA-Z][a-zA-Z0-9_]*");
 
     private static final Pattern TRANSLATED_TEXT = Pattern.compile("\"translatedText\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
     private static final Pattern RESPONSE_STATUS = Pattern.compile("\"responseStatus\"\\s*:\\s*\"?(\\d+)\"?");
@@ -147,11 +153,11 @@ public final class Translator {
         }
         consecutiveFailures = 0;
         // Un <argomento> protetto torna tradotto col glossario, non in italiano (vedi HelpSyntax).
-        List<String> shown = new ArrayList<>(protectedText.tokens.size());
-        for (String token : protectedText.tokens) {
-            shown.add(token.startsWith("<") ? HelpSyntax.translateSyntax(token, targetLang) : token);
+        List<String> shown = new ArrayList<>(protectedText.blocks.size());
+        for (Block block : protectedText.blocks) {
+            shown.add(HelpSyntax.translateAngleArguments(block.text, targetLang));
         }
-        String restored = restore(raw, shown);
+        String restored = restore(raw, protectedText.blocks, shown);
         if (LEFTOVER_TOKEN.matcher(restored).find()) {
             // Il servizio ha alterato un segnaposto (es. tolto una lettera) al punto che non lo
             // si e' piu' riconosciuto per rimetterlo a posto: meglio niente traduzione che un
@@ -350,64 +356,89 @@ public final class Translator {
             "(?i)" + TOKEN_PREFIX + "[\\s\\-_⁣]*\\d+[\\s\\-_⁣]*" + TOKEN_SUFFIX);
 
     /**
-     * U+2063 INVISIBLE SEPARATOR: nessun rendering, nessun significato, esiste apposta per
-     * segnare un confine senza comparire. Inserito da protect() fra due segnaposto ADIACENTI nel
-     * testo originale (es. "&e{power}&7", comunissimo nei messaggi di MagixFactions), che senza
-     * questo diventerebbero un unico blocco "qx0xqqx1xq" indistinguibile da una parola sola: visto
-     * succedere davvero che MyMemory ne storpi uno dei due (una lettera persa) quando sono incollati
-     * cosi', mentre la stessa coppia separata da un carattere qualunque sopravvive. Tolto sempre da
-     * restore(), che sia sopravvissuto, spostato o gia' sparito: non deve mai comparire nel
-     * messaggio finale, e non ha bisogno di sopravvivere alla traduzione per aver gia' fatto il suo
-     * lavoro (rompere il blocco al momento dell'invio).
+     * U+2063 INVISIBLE SEPARATOR: fino alla 0.5.0 lo si metteva fra due pezzi protetti ADIACENTI
+     * (es. "&e{power}&7") per non mandarli incollati. Non funzionava: MyMemory lo restituiva come
+     * "?" o lo traduceva come "and" (visto davvero sulla scoreboard: "&7? » &e? 0", "Faction &l and
+     * test"). Ora i pezzi adiacenti diventano UN segnaposto solo (vedi {@link #protect}); il
+     * carattere si toglie ancora da restore(), per sicurezza, se mai tornasse indietro.
      */
-    private static final String GLUE_BREAKER = "⁣";
+    private static final String GLUE_BREAKER = "\u2063";
 
     /**
-     * I pezzi (colori, placeholder...) che {@link #protect} avrebbe isolato in {@code text}: usato
-     * da {@code TranslationSync} per verificare che una traduzione gia' in cache li contenga
-     * ancora tutti, senza dover rifare la chiamata di traduzione per saperlo.
+     * I pezzi che una traduzione deve contenere tali e quali, nella forma in cui {@link #protect} li
+     * isola: i colori, placeholder ecc. ADIACENTI nel testo italiano formano un pezzo solo (es.
+     * "&e%magixfactions_claims%"), e devono restare adiacenti anche nella traduzione. Usato da
+     * {@code TranslationChecks} per buttare una traduzione in cache che li ha separati o persi (le
+     * vecchie, con "?" o "and" in mezzo), senza dover rifare la chiamata per saperlo.
      */
     public static List<String> requiredTokens(String text) {
-        List<String> tokens = new ArrayList<>();
-        Matcher m = TOKEN.matcher(text);
-        while (m.find()) {
-            tokens.add(m.group());
+        List<String> out = new ArrayList<>();
+        for (Block block : blocks(text)) {
+            out.add(block.text);
         }
-        return tokens;
+        return out;
     }
 
-    private record Protected(String text, List<String> tokens) {}
+    /**
+     * Un segnaposto: uno o piu' pezzi protetti consecutivi. {@code glueLeft}/{@code glueRight}: nel
+     * testo italiano tocca direttamente una lettera o una cifra (es. "connessi&8", "&lMAGIC").
+     * Mandato cosi', "connessiqx6xq" e' una parola sola che il servizio storpia (visto davvero:
+     * "connectedi"); si manda staccato da uno spazio, che restore() poi toglie.
+     */
+    private record Block(String text, int start, int end, boolean glueLeft, boolean glueRight) {}
+
+    private record Protected(String text, List<Block> blocks) {}
+
+    private static List<Block> blocks(String text) {
+        List<int[]> spans = new ArrayList<>();
+        Matcher m = TOKEN.matcher(text);
+        while (m.find()) {
+            if (m.end() == m.start()) {
+                continue;
+            }
+            int[] last = spans.isEmpty() ? null : spans.get(spans.size() - 1);
+            if (last != null && last[1] == m.start()) {
+                last[1] = m.end(); // adiacente al precedente: stesso segnaposto
+            } else {
+                spans.add(new int[]{m.start(), m.end()});
+            }
+        }
+        List<Block> out = new ArrayList<>(spans.size());
+        for (int[] span : spans) {
+            boolean left = span[0] > 0 && Character.isLetterOrDigit(text.charAt(span[0] - 1));
+            boolean right = span[1] < text.length() && Character.isLetterOrDigit(text.charAt(span[1]));
+            out.add(new Block(text.substring(span[0], span[1]), span[0], span[1], left, right));
+        }
+        return out;
+    }
 
     private static Protected protect(String text) {
-        List<String> tokens = new ArrayList<>();
-        Matcher m = TOKEN.matcher(text);
+        List<Block> blocks = blocks(text);
         StringBuilder sb = new StringBuilder();
         int last = 0;
-        while (m.find()) {
-            sb.append(text, last, m.start());
-            if (m.start() == last && !tokens.isEmpty()) {
-                // Due segnaposto senza NIENTE fra loro nel testo originale (es. "&e{power}&7"):
-                // vedi GLUE_BREAKER per il perche'.
-                sb.append(GLUE_BREAKER);
-            }
-            sb.append(TOKEN_PREFIX).append(tokens.size()).append(TOKEN_SUFFIX);
-            tokens.add(m.group());
-            last = m.end();
+        for (int i = 0; i < blocks.size(); i++) {
+            Block block = blocks.get(i);
+            sb.append(text, last, block.start);
+            if (block.glueLeft) sb.append(' ');
+            sb.append(TOKEN_PREFIX).append(i).append(TOKEN_SUFFIX);
+            if (block.glueRight) sb.append(' ');
+            last = block.end;
         }
         sb.append(text, last, text.length());
-        return new Protected(sb.toString(), tokens);
+        return new Protected(sb.toString(), blocks);
     }
 
-    private static String restore(String translated, List<String> tokens) {
+    private static String restore(String translated, List<Block> blocks, List<String> shown) {
         String out = translated;
-        for (int i = 0; i < tokens.size(); i++) {
+        for (int i = 0; i < blocks.size(); i++) {
+            Block block = blocks.get(i);
             // Il servizio a volte cambia il maiuscolo/minuscolo o gli spazi intorno al segnaposto
             // (es. lo maiuscolizza a inizio frase): si cerca senza badarci ne' all'uno ne' agli altri.
-            out = out.replaceAll("(?i)" + TOKEN_PREFIX + "[\\s\\-_⁣]*" + i + "[\\s\\-_⁣]*" + TOKEN_SUFFIX,
-                    Matcher.quoteReplacement(tokens.get(i)));
+            // Dove l'italiano era attaccato a una parola, lo spazio messo da protect() si toglie.
+            String core = TOKEN_PREFIX + "[\\s\\-_\u2063]*" + i + "[\\s\\-_\u2063]*" + TOKEN_SUFFIX;
+            String regex = "(?i)" + (block.glueLeft ? "[ \u2063]*" : "") + core + (block.glueRight ? "[ \u2063]*" : "");
+            out = out.replaceAll(regex, Matcher.quoteReplacement(shown.get(i)));
         }
-        // GLUE_BREAKER ha gia' fatto il suo lavoro (separare i segnaposto all'invio): non deve
-        // comparire nel messaggio finale, indipendentemente da dove il servizio l'abbia lasciato.
         return out.replace(GLUE_BREAKER, "");
     }
 }

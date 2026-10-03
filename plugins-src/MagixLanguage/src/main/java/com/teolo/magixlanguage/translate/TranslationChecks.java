@@ -68,7 +68,7 @@ final class TranslationChecks {
     private static boolean missingProtectedToken(String source, String translated, String lang) {
         for (String token : Translator.requiredTokens(source)) {
             // un <argomento> torna tradotto col glossario (vedi Translator), non identico
-            String expected = token.startsWith("<") ? HelpSyntax.translateSyntax(token, lang) : token;
+            String expected = HelpSyntax.translateAngleArguments(token, lang);
             if (!translated.contains(expected)) {
                 return true;
             }

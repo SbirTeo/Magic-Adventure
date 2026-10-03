@@ -179,7 +179,9 @@ public MenuPhraseSync(JavaPlugin plugin, Logger log) {
             }
 
             String cached = cache.get(hash);
-            if (cached != null && !looksCorrupted(cached)) {
+            // Stessi controlli dei messaggi (pezzi protetti persi o separati, spazi ai bordi...): una
+            // frase rovinata da una versione vecchia del traduttore si ritraduce da sola.
+            if (cached != null && !looksCorrupted(cached) && !TranslationChecks.looksCorrupted(phrase, cached, lang)) {
                 catalogOut.put(hash, entry(phrase, cached));
                 newCache.put(hash, cached);
                 reused++;
