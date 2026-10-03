@@ -876,6 +876,11 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   animation: vote-glow 2.4s ease-out infinite;
   white-space: nowrap;
 }
+/* Stella gialla (come il §e di Minecraft) sul verde, con il contorno scuro per staccarla dallo sfondo chiaro. */
+.vote-btn.vote-btn-nav .vote-btn-star {
+  color: #ffff55;
+  text-shadow: 0 0 1px #3a3000, 0 0 2px #3a3000, 0 0 8px rgba(255, 255, 85, .9);
+}
 .vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { color: #052a05; transform: translateY(-1px) scale(1.04); }
 @media (max-width: 1279px) {
   .vote-btn.vote-btn-nav { padding: 0; width: 34px; height: 34px; justify-content: center; flex-shrink: 0; }
