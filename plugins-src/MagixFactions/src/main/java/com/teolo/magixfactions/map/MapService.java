@@ -117,7 +117,13 @@ public final class MapService {
 
     /** Nome dell'item mappa: config {@code map.item.name-format} con {zoom} -> bpp formattato, colori tradotti. */
     public static String itemName(JavaPlugin plugin, double bpp) {
-        String fmt = plugin.getConfig().getString("map.item.name-format", "&6&lMappa Fazioni &7({zoom}x)");
+        return itemName(plugin, bpp, null);
+    }
+
+    /** Come {@link #itemName(JavaPlugin, double)}, nella lingua di chi riceve la mappa (null = italiano). */
+    public static String itemName(JavaPlugin plugin, double bpp, org.bukkit.entity.Player owner) {
+        String fmt = com.teolo.magixfactions.lang.Messages.phrase(owner,
+                plugin.getConfig().getString("map.item.name-format", "&6&lMappa Fazioni &7({zoom}x)"));
         return com.teolo.magixfactions.util.Colors.translate(fmt.replace("{zoom}", formatZoom(bpp)));
     }
 

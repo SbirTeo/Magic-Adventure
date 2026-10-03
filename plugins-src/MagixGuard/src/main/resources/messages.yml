@@ -20,6 +20,23 @@ types:
   kick: "Espulso"
   ban: "Bandito"
 
+# ---------------------------------------------------------------- come si dice una durata
+# {n} il numero. "soon" è quanto manca quando la scadenza è già arrivata, "never" una scadenza che non c'è.
+duration:
+  permanent: "permanente"
+  instant: "istantanea"
+  immediate: "immediata"
+  soon: "poco"
+  never: "mai"
+  second: "{n} secondo"
+  seconds: "{n} secondi"
+  minute: "{n} minuto"
+  minutes: "{n} minuti"
+  hour: "{n} ora"
+  hours: "{n} ore"
+  day: "{n} giorno"
+  days: "{n} giorni"
+
 # ---------------------------------------------------------------- applicare (SanctionsService)
 service:
   # {nome} chi lo riceve, {tipo} il provvedimento (types.*), {motivo} perché

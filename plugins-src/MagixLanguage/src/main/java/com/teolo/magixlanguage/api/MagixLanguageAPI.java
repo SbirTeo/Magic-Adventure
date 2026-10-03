@@ -84,6 +84,15 @@ public interface MagixLanguageAPI {
     String translatePhrase(String pluginName, Player player, String italianText);
 
     /**
+     * Come {@link #translatePhrase(String, Player, String)}, ma per una lingua scelta a mano: serve
+     * quando il giocatore non e' ancora in gioco (es. il messaggio di un ban, mostrato prima
+     * dell'ingresso: si ha solo l'UUID, e la lingua con {@link #language(UUID)}).
+     */
+    default String translatePhrase(String pluginName, String lang, String italianText) {
+        return null;
+    }
+
+    /**
      * Traduce un LOTTO di frasi qualsiasi (non del catalogo di un plugin, non passate da un
      * giocatore) verso una lingua target — pensato per il sito, che accoda frasi in
      * {@code site_translations} e chiede a MagixLanguage di smaltirle un tanto alla volta, con

@@ -81,7 +81,7 @@
         <dependency>
             <groupId>com.teolo</groupId>
             <artifactId>MagixLanguage</artifactId>
-            <version>0.4.14</version>
+            <version>0.5.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- Ordine del tablist per peso del gruppo: legge il grado piu' alto di ogni giocatore.

@@ -440,6 +440,15 @@ chiave in `messages.yml` la sincronizza da sola `TranslationSync` verso `en.yml`
 nessuno, e resta un buco silenzioso finché qualcuno non lo nota giocando in un'altra lingua (è
 successo davvero con l'elenco comandi di MagixAuth: sembrava tradotto, non lo era per niente).
 
+**Testi per i giocatori nei config** (righe della scoreboard, pannello della minimappa, titoli,
+nomi di gradi/stagioni, kick, `msg:` delle entità...): non hanno una chiave in `messages.yml`, ma
+vanno tradotti lo stesso. Ogni plugin li dichiara nel suo **`translatable.yml`** (risorsa del jar:
+file -> percorsi, `*` per ogni voce) e chi li mostra li passa da `Messages.phrase(giocatore, testo)`
+**prima** di sostituire segnaposti/placeholder; MagixLanguage li legge dal file vero del server e li
+traduce per frase (vedi `MagixLanguage/README.md`). Un testo nuovo di questo tipo si dichiara lì
+nello stesso commit. MagixLanguage scandisce da solo **tutti** i plugin Magix installati (se stesso
+compreso), su faction e hub: non c'è più un elenco da tenere aggiornato.
+
 **Cosa NON è testo del giocatore** (resta pure nel codice): nodi di permesso, nomi di comando,
 chiavi di config, log di console, nomi tecnici (materiali, suoni, permessi) — tutto quello che la
 regola "codice in inglese" qui sopra già copre.

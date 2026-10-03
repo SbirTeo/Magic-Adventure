@@ -41,6 +41,11 @@ public final class ActionRunner {
         lastClick.put(player.getUniqueId(), now);
 
         for (String raw : d.commands) {
+            // Il testo di un msg: nella lingua del giocatore, cercato com'e' scritto in entities.yml
+            // (prima di {player}/{name}): vedi translatable.yml.
+            if (raw.regionMatches(true, 0, "msg:", 0, 4)) {
+                raw = "msg: " + com.teolo.magixentities.lang.Messages.phrase(player, raw.substring(4).trim());
+            }
             String line = raw.replace("{player}", player.getName()).replace("{name}", d.name);
             try {
                 if (line.regionMatches(true, 0, "console:", 0, 8)) {

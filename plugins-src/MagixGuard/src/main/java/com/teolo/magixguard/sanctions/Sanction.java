@@ -29,6 +29,14 @@ public record Sanction(int id, UUID uuid, String name, Type type, String categor
     }
 
     /** Duration complessiva, per come la si racconta. */
+    /** Come {@link #readableDuration()}, con le parole di chi legge (vedi Duration.write con le parole). */
+    public String readableDuration(java.util.function.Function<String, String> words) {
+        if (!type.hasDuration()) {
+            return words.apply("immediate");
+        }
+        return Duration.write(fine == Duration.PERMANENTE ? Duration.PERMANENTE : fine - beginning, words);
+    }
+
     public String readableDuration() {
         if (!type.hasDuration()) {
             return "immediata";

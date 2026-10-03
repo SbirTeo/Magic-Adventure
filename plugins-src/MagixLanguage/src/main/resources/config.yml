@@ -89,20 +89,12 @@ translations:
   # lanciato a mano con /language sync.
   sync-on-start: true
 
-  # Plugin la cui cartella dati (plugins/<Nome>/) viene scandita in cerca di testo da
-  # tradurre. Un plugin qui elencato ma non installato viene saltato senza errori.
-  plugins:
-    - "MagixAuth"
-    - "MagixCosmetics"
-    - "MagixEntities"
-    - "MagixEssentials"
-    - "MagixFactions"
-    - "MagixGuard"
-    - "MagixMenus"
-    - "MagixMusic"
-    - "MagixPack"
-    - "MagixTime"
-    - "MagixBridge"
+  # Plugin scanditi: TUTTI i plugin Magix installati vengono trovati da soli (MagixLanguage
+  # compreso, che traduce anche i propri messaggi). Qui si aggiungono solo plugin di altri, con
+  # la stessa struttura (plugins/<Nome>/messages.yml); un nome non installato viene saltato.
+  # Oltre a messages.yml si traducono, per FRASE, i testi che ogni plugin dichiara nel proprio
+  # translatable.yml (dentro il jar): righe della scoreboard, titoli, pannelli, kick...
+  plugins: []
 
   # Nomi dei file, relativi alla cartella dati di ciascun plugin, che contengono testo
   # visibile ai giocatori. Lo stesso elenco vale per tutti i plugin sopra.

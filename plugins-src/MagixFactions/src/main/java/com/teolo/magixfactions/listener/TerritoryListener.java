@@ -117,8 +117,9 @@ public final class TerritoryListener implements Listener {
         // si usano i valori di default inclusi nel jar (altrimenti un default "" darebbe titoli vuoti).
         String rawTitle = plugin.getConfig().getString(base + "title");
         String rawSub   = plugin.getConfig().getString(base + "subtitle");
-        String title = color(rawTitle == null ? "" : rawTitle).replace("{faction}", faction);
-        String sub   = color(rawSub == null ? "" : rawSub).replace("{faction}", faction);
+        // la frase italiana del config, nella lingua del giocatore, PRIMA di mettere il nome
+        String title = color(com.teolo.magixfactions.lang.Messages.phrase(p, rawTitle == null ? "" : rawTitle)).replace("{faction}", faction);
+        String sub   = color(com.teolo.magixfactions.lang.Messages.phrase(p, rawSub == null ? "" : rawSub)).replace("{faction}", faction);
         int in   = plugin.getConfig().getInt("territory-titles.fade-in", 10);
         int stay = plugin.getConfig().getInt("territory-titles.stay", 40);
         int out  = plugin.getConfig().getInt("territory-titles.fade-out", 10);

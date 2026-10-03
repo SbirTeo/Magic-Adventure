@@ -6,6 +6,7 @@ import com.teolo.magixtime.util.Colors;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -147,7 +148,9 @@ public final class WeatherManager {
                 case STORM -> "announce-storm";
                 case CLEAR -> "announce-clear";
             };
-            Bukkit.broadcast(Colors.component(plugin.messages().get(key)));
+            // a ciascuno nella sua lingua
+            for (Player p : Bukkit.getOnlinePlayers()) plugin.messages().send(p, key);
+            plugin.messages().send(Bukkit.getConsoleSender(), key);
         }
     }
 
@@ -193,16 +196,21 @@ public final class WeatherManager {
 
     /** Nome leggibile del meteo attuale, preso da messages.yml. */
     public String describe(World w) {
+        return describe(w, null);
+    }
+
+    /** Come {@link #describe(World)}, nella lingua di chi legge (null = italiano). */
+    public String describe(World w, org.bukkit.command.CommandSender to) {
         Phase p = phaseOf(w);
         if (p == null) {
-            if (w != null && w.isThundering()) return plugin.messages().get("weather-storm");
-            if (w != null && w.hasStorm()) return plugin.messages().get("weather-rain");
-            return plugin.messages().get("weather-clear");
+            if (w != null && w.isThundering()) return plugin.messages().forPlayer(to, "weather-storm");
+            if (w != null && w.hasStorm()) return plugin.messages().forPlayer(to, "weather-rain");
+            return plugin.messages().forPlayer(to, "weather-clear");
         }
         return switch (p.type()) {
-            case RAIN -> plugin.messages().get("weather-rain");
-            case STORM -> plugin.messages().get("weather-storm");
-            case CLEAR -> plugin.messages().get("weather-clear");
+            case RAIN -> plugin.messages().forPlayer(to, "weather-rain");
+            case STORM -> plugin.messages().forPlayer(to, "weather-storm");
+            case CLEAR -> plugin.messages().forPlayer(to, "weather-clear");
         };
     }
 

@@ -1,0 +1,7 @@
+# Testi per i giocatori che stanno FUORI da messages.yml: MagixLanguage li legge dal file vero del
+# server e li traduce per frase (vedi MagixLanguage, MenuPhraseSync). Un percorso per riga, '*' =
+# ogni chiave di una sezione o ogni voce di una lista. Un testo nuovo fuori da messages.yml va
+# aggiunto qui, nello stesso commit.
+config.yml:
+  - "scoreboards.*.title.frames"
+  - "scoreboards.*.lines.*.frames"

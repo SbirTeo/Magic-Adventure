@@ -372,7 +372,7 @@ public final class MinimapManager {
     private void pushPanelContent(Player viewer, MapView panelView) {
         java.util.List<String> lines = plugin.getConfig().getStringList("map.minimap.info-panel.lines");
         java.util.List<String> resolved = new java.util.ArrayList<>(lines.size());
-        for (String l : lines) resolved.add(Papi.resolve(viewer, l));
+        for (String l : lines) resolved.add(Papi.resolve(viewer, com.teolo.magixfactions.lang.Messages.phrase(viewer, l)));
         byte text = InfoPanelRenderer.colorByte(
                 plugin.getConfig().getString("map.minimap.info-panel.text-color", "#FFFFFF"), java.awt.Color.WHITE);
         String bgStr = plugin.getConfig().getString("map.minimap.info-panel.background-color", "transparent");

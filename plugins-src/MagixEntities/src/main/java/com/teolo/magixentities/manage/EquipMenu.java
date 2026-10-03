@@ -37,8 +37,10 @@ public final class EquipMenu implements Listener {
 
     /** Slot del menu, nell'ordine di {@link NpcDef#EQUIPMENT}. */
     private static final int[] SLOTS = {10, 11, 12, 13, 15, 16};
+    /** Le chiavi di messages.yml dei nomi dei pezzi, nell'ordine di NpcDef.EQUIPMENT. */
     private static final String[] LABELS = {
-            "&fTesta", "&fCorpo", "&fGambe", "&fPiedi", "&fMano principale", "&fMano secondaria"};
+            "equip-slot-head", "equip-slot-chest", "equip-slot-legs", "equip-slot-feet",
+            "equip-slot-mainhand", "equip-slot-offhand"};
 
     private final JavaPlugin plugin;
     private final NpcManager npcs;
@@ -72,23 +74,24 @@ public final class EquipMenu implements Listener {
 
     public void open(Player player, NpcDef d) {
         Holder holder = new Holder(d);
-        Inventory inv = Bukkit.createInventory(holder, 27, Colors.component(M.get("equip-title", "name", d.name)));
+        Inventory inv = Bukkit.createInventory(holder, 27, Colors.component(M.forPlayer(player, "equip-title", "name", d.name)));
         holder.inventory = inv;
 
         ItemStack filler = decor(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, filler);
         for (int i = 0; i < SLOTS.length; i++) {
             ItemStack current = d.equipment.get(NpcDef.EQUIPMENT.get(i));
-            inv.setItem(SLOTS[i], current != null ? current.clone() : label(i));
+            inv.setItem(SLOTS[i], current != null ? current.clone() : label(player, i));
         }
-        inv.setItem(4, decor(Material.PAPER, M.get("equip-guide-title"), M.getList("equip-guide-lore")));
+        inv.setItem(4, decor(Material.PAPER, M.forPlayer(player, "equip-guide-title"), M.listForPlayer(player, "equip-guide-lore")));
 
         player.openInventory(inv);
     }
 
     /** Etichetta dello slot vuoto (vetro azzurro con il nome del pezzo). */
-    private ItemStack label(int index) {
-        return decor(Material.LIGHT_BLUE_STAINED_GLASS_PANE, LABELS[index], List.of(M.get("equip-slot-hint")));
+    private ItemStack label(Player player, int index) {
+        return decor(Material.LIGHT_BLUE_STAINED_GLASS_PANE, M.forPlayer(player, LABELS[index]),
+                List.of(M.forPlayer(player, "equip-slot-hint")));
     }
 
     private ItemStack decor(Material material, String name, List<String> lore) {
@@ -165,11 +168,11 @@ public final class EquipMenu implements Listener {
         if (e.isShiftClick()) {
             if (slotEmpty) return;
             player.getInventory().addItem(inSlot.clone());
-            menu.setItem(raw, label(index));
+            menu.setItem(raw, label(player, index));
         } else if (cursorEmpty) {
             if (slotEmpty) return; // l'etichetta non si prende
             player.setItemOnCursor(inSlot.clone());
-            menu.setItem(raw, label(index));
+            menu.setItem(raw, label(player, index));
         } else {
             // posa l'oggetto (e ti restituisce sul cursore quello che c'era)
             menu.setItem(raw, cursor.clone());
