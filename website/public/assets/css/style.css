@@ -5560,6 +5560,13 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   /* Spazio riservato alla colonna dell'immagine: il testo non ci finisce mai sotto. */
   padding-right: calc(var(--poster-larghezza) + 20px);
 }
+/* Con l'immagine di lato il testo sta su un fondo pieno, quindi non c'e' motivo di
+   ammassarlo in basso come sulle copertine a tutto sfondo: si centra in altezza, e
+   riassunto e firma tornano pieni (l'opacita' ridotta serviva sopra le fotografie, qui
+   li rendeva solo sbiaditi). */
+:is(.bento-feature, .post-tile).copertina-intera { justify-content: center; }
+.copertina-intera :is(.bento-excerpt, .post-tile-excerpt) { opacity: 1; color: var(--text-dim); }
+.copertina-intera .meta { opacity: 1; color: var(--text-dim); }
 /* Il velo che sale dal basso qui non serve: il fondo del testo e' gia' quello del pannello. */
 .bento-feature.copertina-intera::before,
 .post-tile.copertina-intera::before { display: none; }
@@ -5583,11 +5590,13 @@ a.colore-grado:focus-visible { color: var(--c, inherit); }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--bg-panel) 0%, transparent 72%);
+  /* Stacco corto: prima la sfumatura copriva quasi tre quarti dell'immagine e la lavava
+     tutta; ora serve solo a non avere un taglio netto contro il fondo del testo. */
+  background: linear-gradient(90deg, var(--bg-panel) 0%, transparent 22%);
   background: linear-gradient(90deg,
       var(--bg-panel) 0%,
-      color-mix(in srgb, var(--bg-panel) 55%, transparent) 32%,
-      color-mix(in srgb, var(--bg-panel) 0%, transparent) 72%);
+      color-mix(in srgb, var(--bg-panel) 40%, transparent) 9%,
+      color-mix(in srgb, var(--bg-panel) 0%, transparent) 22%);
 }
 
 /* La locandina RIEMPIE la colonna e viene tagliata sul punto scelto nel gestionale
