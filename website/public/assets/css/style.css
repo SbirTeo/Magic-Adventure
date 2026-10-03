@@ -7906,3 +7906,23 @@ table.rank td:first-child { width: 1%; }
 }
 @media (prefers-reduced-motion: reduce) { .utenti-punto { animation: none; } }
 .utenti-ancora [hidden] { display: none; }
+
+/* Classifiche: fazioni fuori classifica, col motivo. */
+.classifica-fuori { margin-top: 18px; }
+.classifica-fuori h3 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+.classifica-fuori h3 .ico { color: var(--text-dimmer); }
+.classifica-fuori-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 10px; }
+.classifica-fuori-voce {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-panel-2);
+}
+.classifica-fuori-voce strong { font-family: var(--font-heading); font-size: var(--fs-base); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.classifica-fuori-voce .fac-own { color: var(--green); }
+.classifica-fuori-voce .fac-ally { color: #d876e0; }
+.classifica-fuori-voce .fac-enemy { color: #e05a5a; }
+.classifica-fuori-voce .fac-guest { color: var(--text); }
+.classifica-fuori-voce small { color: var(--text-dim); font-size: var(--fs-xs); }
+.classifica-fuori-motivo { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; }
+.classifica-fuori-motivo .ico { width: 12px; height: 12px; }
+.classifica-fuori-motivo.is-staff { color: var(--purple); background: color-mix(in srgb, var(--purple) 14%, transparent); }
+.classifica-fuori-motivo.is-ferma { color: var(--text-dim); background: var(--bg-elevated); }

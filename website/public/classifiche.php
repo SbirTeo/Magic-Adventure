@@ -68,6 +68,32 @@ if ($factions) {
     }
 }
 
+// Fazioni FUORI classifica (ranked=0): il plugin le toglie se hanno un membro dello staff o se
+// nessun membro entra da troppi giorni (score.inactive-days). Prima sparivano e basta, e chi
+// guardava pensava che esistessero solo quelle in classifica: ora si elencano sotto, col motivo.
+// Il motivo si ricava dagli stessi dati che usa il plugin (leaderboard_hidden, last_login).
+$unranked = [];
+try {
+    $unranked = db()->query(
+        'SELECT f.id, f.name, f.tag,
+                (SELECT COUNT(*) FROM factions_magixfactions.faction_members m WHERE m.faction_id = f.id) AS members,
+                (SELECT COUNT(*) FROM factions_magixfactions.claims c WHERE c.faction_id = f.id) AS claims,
+                (SELECT MAX(COALESCE(p.leaderboard_hidden, 0))
+                   FROM factions_magixfactions.faction_members m2
+                   JOIN factions_magixfactions.players p ON p.uuid = m2.uuid
+                  WHERE m2.faction_id = f.id) AS has_staff,
+                (SELECT MAX(p2.last_login)
+                   FROM factions_magixfactions.faction_members m3
+                   JOIN factions_magixfactions.players p2 ON p2.uuid = m3.uuid
+                  WHERE m3.faction_id = f.id) AS last_login
+           FROM factions_magixfactions.factions f
+          WHERE f.ranked = 0
+          ORDER BY f.name ASC'
+    )->fetchAll();
+} catch (PDOException $e) {
+    $unranked = [];
+}
+
 // Prossimo aggiornamento delle statistiche: il plugin ricalcola lo snapshot (fazioni + giocatori) ogni
 // score.sample-interval-seconds e aggiorna factions.score_sampled_at. Leggiamo l'ultimo campione per un
 // conto alla rovescia sobrio. NB: $stats_interval deve combaciare con score.sample-interval-seconds del
@@ -691,6 +717,33 @@ function format_playtime(int $seconds): string {
       </div>
     </div>
     <?php endif; ?>
+  <?php endif; ?>
+
+  <?php if ($unranked): ?>
+    <div class="panel classifica-fuori">
+      <h3><?= ui_icon('hourglass') ?> Fuori classifica</h3>
+      <p class="board-note">Queste fazioni esistono ma non concorrono: quelle con un membro dello staff non entrano mai in classifica, quelle ferme da giorni rientrano appena un membro torna a giocare.</p>
+      <div class="classifica-fuori-griglia">
+        <?php foreach ($unranked as $u): ?>
+          <?php
+            $giorni = (int) $u['last_login'] > 0 ? (int) floor((time() - intdiv((int) $u['last_login'], 1000)) / 86400) : null;
+            if (!empty($u['has_staff'])) {
+                $motivo = ['is-staff', 'shield', 'C\'è un membro dello staff'];
+            } elseif ((int) $u['members'] === 0) {
+                $motivo = ['is-ferma', 'users', 'Senza membri'];
+            } else {
+                $motivo = ['is-ferma', 'clock', $giorni !== null ? 'Ferma da ' . $giorni . ($giorni === 1 ? ' giorno' : ' giorni') : 'Ferma da tempo'];
+            }
+            $rel = faction_rel_class((int) $u['id'], $viewer_faction_id, $allies);
+          ?>
+          <div class="classifica-fuori-voce">
+            <strong class="fac-name <?= $rel ?>"><?= h($u['name']) ?></strong>
+            <span class="classifica-fuori-motivo <?= $motivo[0] ?>"><?= ui_icon($motivo[1]) ?> <?= h($motivo[2]) ?></span>
+            <small><?= (int) $u['members'] === 1 ? '1 membro' : (int) $u['members'] . ' membri' ?> · <?= (int) $u['claims'] === 1 ? '1 territorio' : (int) $u['claims'] . ' territori' ?></small>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
   <?php endif; ?>
 </section>
 
