@@ -256,7 +256,10 @@ body.pagina-store {
    resta il menu ad hamburger di sempre. */
 @media (min-width: 961px) {
   .header-inner { flex-wrap: wrap; row-gap: 6px; padding-top: 10px; padding-bottom: 4px; }
-  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative; }
+  .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative; min-height: 50px; }
+  /* Riga dei tasti piu' alta: tutti i tasti (vota, tema, lingua, profilo, gestione, esci) si
+     allungano fino all'altezza della riga. */
+  .header-inner > .auth-box > * { align-self: stretch; }
   /* La riga dei tasti ha una fascia piu' scura, a tutta larghezza dello schermo (non solo del
      contenuto centrato): la fa uno sfondo dietro, largo quanto la finestra, tagliato dalla testata
      con overflow-x: clip (clip e non hidden: non crea un'area di scorrimento, la barra resta
@@ -837,9 +840,9 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   50% { transform: translateY(-3px); }
 }
 @keyframes vote-glow {
-  0% { box-shadow: 0 0 0 0 var(--gold-glow), 0 6px 18px -8px var(--gold-glow); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0), 0 6px 18px -8px var(--gold-glow); }
+  0% { box-shadow: 0 0 0 0 var(--vote-glow, var(--gold-glow)), 0 6px 18px -8px var(--vote-glow, var(--gold-glow)); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0), 0 6px 18px -8px var(--vote-glow, var(--gold-glow)); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0), 0 6px 18px -8px var(--vote-glow, var(--gold-glow)); }
 }
 @keyframes vote-shine {
   0%, 55% { left: -60%; }
@@ -859,7 +862,13 @@ body.menu-aperto .site-header { backdrop-filter: none; }
 /* Versione compatta nella barra in alto: alta come gli altri pulsanti della barra, senza la
    fluttuazione (in una barra fissa sembrerebbe un tremolio); riflesso, alone e stella restano.
    Da schermo stretto solo la stella, quadrata come i tasti del tema e della lingua. */
+/* Colore proprio: il dorato e' dello Store (stessa tinta, stessa forma, si confondevano). Vota e'
+   verde smeraldo, lo Store resta oro. */
 .vote-btn.vote-btn-nav {
+  --vote-glow: rgba(52, 211, 153, .55);
+  background: linear-gradient(135deg, #6ee7b7, #10b981 55%, #047857);
+  border-color: #047857;
+  color: #04251a;
   gap: 7px;
   padding: 7px 14px 7px 11px;
   font-size: var(--fs-sm);
@@ -867,7 +876,7 @@ body.menu-aperto .site-header { backdrop-filter: none; }
   animation: vote-glow 2.4s ease-out infinite;
   white-space: nowrap;
 }
-.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { transform: translateY(-1px) scale(1.04); }
+.vote-btn.vote-btn-nav:hover, .vote-btn.vote-btn-nav:focus-visible { color: #04251a; transform: translateY(-1px) scale(1.04); }
 @media (max-width: 1279px) {
   .vote-btn.vote-btn-nav { padding: 0; width: 34px; height: 34px; justify-content: center; flex-shrink: 0; }
   .vote-btn.vote-btn-nav .vote-btn-text { display: none; }
