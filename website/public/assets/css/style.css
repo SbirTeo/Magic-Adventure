@@ -267,7 +267,9 @@ body.pagina-store {
    capo: se le voci non ci stanno (in inglese sono piu' lunghe) scorre di lato. Sotto i 960px
    resta il menu ad hamburger di sempre. */
 @media (min-width: 961px) {
-  .header-inner { flex-wrap: wrap; row-gap: 6px; padding-top: 10px; padding-bottom: 4px; }
+  /* row-gap 9: la fascia scura sporge 3px sotto i tasti, quindi alla barra delle voci restano
+     6px sopra, gli stessi 6 che ha sotto (2 della barra + 4 qui): riga centrata. */
+  .header-inner { flex-wrap: wrap; row-gap: 9px; padding-top: 10px; padding-bottom: 4px; }
   .header-inner > .auth-box { order: -1; flex: 0 0 100%; justify-content: flex-end; position: relative; min-height: 50px; }
   /* Riga dei tasti piu' alta: tutti i tasti (vota, tema, lingua, profilo, gestione, esci) si
      allungano fino all'altezza della riga. */
@@ -298,6 +300,12 @@ body.pagina-store {
     scrollbar-width: thin;
   }
   .main-nav > * { flex-shrink: 0; white-space: nowrap; }
+  /* Tutto centrato sulla riga, misurato nel browser: prima i link avevano 6px sopra e 12px
+     sotto (10 + la riga dell'attivo), il testo stava 4-5px sopra il centro e lo Store, che li
+     inseguiva col margine, pure. Ora sopra 8, sotto 6 + 2 della riga: il testo e' al centro,
+     e lo Store non ha piu' niente da recuperare. */
+  .main-nav a:not(.btn-nav):not(.nav-logo) { padding: 8px 1px 6px; }
+  .main-nav .btn-nav { margin: 0; }
 }
 /* Interruttore del tema: icona + parola. Su schermo stretto resta la sola icona, quadrata.
    ".btn.cambia-tema" e non solo ".cambia-tema": .btn e' definito piu' sotto nel file e a pari
