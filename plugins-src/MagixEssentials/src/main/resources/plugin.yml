@@ -3,13 +3,15 @@ version: '${project.version}'
 main: com.teolo.magixessentials.MagixEssentials
 api-version: '26.1'
 author: teolo
-description: "Utilita' del server (MOTD, nametag, chat, valute, oggetti fissi dell'inventario e, in futuro, cio' che oggi fa CMI)."
-# PlaceholderAPI: opzionale. Se presente, i placeholder %...% nei nametag vengono risolti
-# (compresi i relazionali %rel_...%). Senza di lui restano scritti come sono.
+description: "Utilita' del server (tablist, MOTD, nametag, chat, valute, oggetti fissi dell'inventario e, in futuro, cio' che oggi fa CMI)."
+# PlaceholderAPI: opzionale. Se presente, i placeholder %...% nel tablist e nei nametag vengono
+# risolti (compresi i relazionali %rel_...%). Senza di lui restano scritti come sono.
 # ProtocolLib: opzionale. Serve al nametag in modalita' display (entita' di testo).
+# LuckPerms: opzionale. Se presente, il tablist puo' ordinare i giocatori per peso del grado
+# (tablist.yml -> sort-by-rank-weight). Senza di lui resta l'ordine del gioco.
 # MagixLanguage: opzionale. Se presente, i messaggi delle valute vengono tradotti nella lingua
 # di chi legge. Senza di lui restano in italiano.
-softdepend: [PlaceholderAPI, ProtocolLib, MagixLanguage]
+softdepend: [PlaceholderAPI, ProtocolLib, LuckPerms, MagixLanguage]
 commands:
   magixessentials:
     description: "Comandi di MagixEssentials (reload, joinitems)."

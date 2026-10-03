@@ -10,6 +10,7 @@ import com.teolo.magixessentials.module.Modules;
 import com.teolo.magixessentials.motd.MotdListener;
 import com.teolo.magixessentials.nametag.NametagManager;
 import com.teolo.magixessentials.tabcomplete.TabCompleteFilter;
+import com.teolo.magixessentials.tab.TabManager;
 import com.teolo.magixessentials.util.ConfigAlign;
 import com.teolo.magixessentials.util.ConfigValues;
 import com.teolo.magixessentials.util.Help;
@@ -21,7 +22,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * MagixEssentials: raccoglie le utilita' "di base" del server — la <b>MOTD</b> (le righe che si
+ * MagixEssentials: raccoglie le utilita' "di base" del server — il <b>tablist</b> (la lista
+ * giocatori del tasto Tab), la <b>MOTD</b> (le righe che si
  * leggono nella lista server), il <b>nametag</b> (la targhetta sopra la testa dei giocatori), il
  * <b>filtro dell'autocompletamento</b> (toglie dal TAB i comandi senza permesso), la <b>chat</b>
  * (il formato della chat pubblica e i messaggi che arrivano dal sito) e le <b>valute</b> (lo
@@ -29,17 +31,18 @@ import org.jetbrains.annotations.NotNull;
  * che assorba cio' che oggi fa CMI.
  *
  * <p>Ogni funzione si accende e si spegne dal {@code modules.yml}, come nel Modules.yml di CMI, e
- * si regola nel file che porta il suo nome ({@code motd.yml}, {@code nametag.yml},
+ * si regola nel file che porta il suo nome ({@code tablist.yml}, {@code motd.yml}, {@code nametag.yml},
  * {@code chat.yml}, {@code currencies.yml}) quando ne ha uno; il {@code config.yml} tiene solo
  * cio' che vale per il plugin intero. Vedi {@link Modules}.
  *
- * <p>Ogni funzione sta per conto suo ({@link MotdListener}, {@link NametagManager},
+ * <p>Ogni funzione sta per conto suo ({@link TabManager}, {@link MotdListener}, {@link NametagManager},
  * {@link TabCompleteFilter}, {@link ChatModule}, {@link CurrencyManager}): questa classe si
  * limita ad accenderle e spegnerle e a offrire {@code /magixessentials reload}.
  */
 public final class MagixEssentials extends JavaPlugin {
 
     private Modules modules;
+    private TabManager tabManager;
     private MotdListener motd;
     private NametagManager nametag;
     private TabCompleteFilter tabComplete;
@@ -185,6 +188,10 @@ public final class MagixEssentials extends JavaPlugin {
      * riletto adesso. Una funzione spenta non viene nemmeno costruita.
      */
     private void avviaModuli() {
+        if (modules.attivo(Modules.TABLIST)) {
+            tabManager = new TabManager(this, modules.configurazioneDi(Modules.TABLIST));
+            tabManager.start();
+        }
         if (modules.attivo(Modules.MOTD)) {
             motd = new MotdListener(this, modules.configurazioneDi(Modules.MOTD));
             motd.start();
@@ -229,6 +236,7 @@ public final class MagixEssentials extends JavaPlugin {
 
     /** Spegne tutto: al reload si riparte da zero, allo spegnimento non si lascia niente appeso. */
     private void spegniModuli() {
+        if (tabManager != null) { tabManager.stop(); tabManager = null; }
         if (motd != null) { motd.stop(); motd = null; }
         if (nametag != null) { nametag.stop(); nametag = null; }
         if (tabComplete != null) { tabComplete.stop(); tabComplete = null; }
@@ -244,10 +252,11 @@ public final class MagixEssentials extends JavaPlugin {
      * valori di configurazione non si ricopiano: li legge da solo. Vedi plugins-src/GUIDA-STAFF.md.
      */
     private void writeStaffGuide() {
-        StaffGuide.create(this, "MagixEssentials — MOTD, nametag e utilità del server", 90)
+        StaffGuide.create(this, "MagixEssentials — tablist, MOTD, nametag e utilità del server", 90)
                 // I numeri (intervallo, slot...) vengono dai file veri: cambiando una chiave,
                 // questo capitolo cambia da solo (vedi util/ConfigValues).
                 .values(new ConfigValues(this)
+                        .also(modules.configurazioneDi(Modules.TABLIST))
                         .also(modules.configurazioneDi(Modules.MOTD))
                         .also(modules.configurazioneDi(Modules.NAMETAG))
                         .also(modules.configurazioneDi(Modules.CHAT))
@@ -265,7 +274,7 @@ public final class MagixEssentials extends JavaPlugin {
                         .extra("JOINITEMS_NUMERO", joinItems == null
                                 ? "il modulo è spento"
                                 : String.valueOf(joinItems.itemCount())))
-                .intro("Raccoglie le utilità di base del server. Oggi ne fa cinque: la **MOTD**, le "
+                .intro("Raccoglie le utilità di base del server. Oggi ne fa sei: il **tablist**, cioè la lista giocatori che si apre col tasto Tab, la **MOTD**, le "
                         + "righe che si leggono nella lista server prima di entrare, il **nametag**, "
                         + "la targhetta sopra la testa dei giocatori, la **chat** pubblica (come si "
                         + "legge una riga, su ogni server della rete), il **filtro "
@@ -300,9 +309,9 @@ public final class MagixEssentials extends JavaPlugin {
                 .section("I moduli: cosa è acceso e cosa no",
                         "Come in CMI, ogni funzione ha il suo interruttore in un file a parte: "
                                 + "**plugins/MagixEssentials/modules.yml**. Lì si accende o si spegne una "
-                                + "funzione INTERA (oggi ci sono **motd** e **nametag**, domani ce ne saranno "
-                                + "altre). Le sue impostazioni stanno nel file che porta il suo nome — la MOTD si "
-                                + "regola in **motd.yml** — e il **config.yml** tiene solo ciò che vale per "
+                                + "funzione INTERA (oggi ci sono **tablist**, **motd** e **nametag**, domani ce ne saranno "
+                                + "altre). Le sue impostazioni stanno nel file che porta il suo nome — il tablist si "
+                                + "regola in **tablist.yml** — e il **config.yml** tiene solo ciò che vale per "
                                 + "il plugin intero.",
                         "La divisione serve a una domanda sola: «che cosa sta facendo il plugin adesso?». La "
                                 + "risposta è un file lungo quanto le funzioni che esistono, non venti pagine di "
@@ -316,6 +325,192 @@ public final class MagixEssentials extends JavaPlugin {
                         "Una funzione nuova, aggiunta da un aggiornamento, compare qui da sola col suo valore di "
                                 + "partenza, e col suo file di impostazioni accanto: ai file sul server ci pensa il "
                                 + "plugin a ogni avvio.")
+
+                .section("Chi comanda il tablist",
+                        "Il tablist non ha un proprietario: **ce l'ha chi ha scritto per ultimo**. Se anche CMI lo "
+                                + "gestisce, i due si sovrascrivono a vicenda e il risultato dipende dall'ordine, "
+                                + "cioè dal caso. La via pulita resta spegnere il suo modulo "
+                                + "(plugins/CMI/Settings/Modules.yml → **tablist: false**).",
+                        "Finché resta acceso, **priority** (in tablist.yml) ci fa scrivere dopo di lui: ogni aggiornamento "
+                                + "viene riscritto una seconda volta **{{cfg:priority.reassert-delay-ticks}}** "
+                                + "tick più tardi, e l'aggancio al join è a priorità MONITOR, cioè dopo gli altri "
+                                + "plugin. Se vedi ancora comparire per un istante il tablist di CMI, alza quel ritardo.",
+                        "**Fin dove arriva la priorità:** intestazione, fondo e nomi. Le voci **FINTE** che un "
+                                + "altro plugin inietta via pacchetto — le 80 slot di CMI, con la testa e le "
+                                + "tacchette — quelle no: sono sue, e nessuna priorità le raggiunge. Per quelle "
+                                + "l'unica via è spegnere il suo modulo. Le nostre slot fisse (sotto) fanno la "
+                                + "stessa cosa ma **senza testa e senza tacchette**: se vedi ancora caselle con la "
+                                + "faccia di Steve, stai guardando le sue, non le nostre.",
+                        "All'avvio il plugin legge da solo il Modules.yml di CMI e mette un avviso nel log se il "
+                                + "conflitto c'è, invece di lasciarti a indovinare perché il tab «torna come prima».",
+                        "Intestazione (**header**) e fondo (**footer**) sono liste di righe nel config: una voce "
+                                + "della lista, una riga a schermo. Il nome del giocatore nella lista si compone a "
+                                + "parte con **player-name**, dove {name} è il suo nome.")
+
+                .section("Colori, placeholder e il logo del server",
+                        "Nelle righe valgono i codici colore **&** e **&#RRGGBB**, quindi anche "
+                                + "%magixweb_namecolor% (il colore del grado, lo stesso che si vede sul sito) finisce "
+                                + "dritto nel nome.",
+                        "I **%placeholder%** li risolve PlaceholderAPI, che è softdepend: se PAPI non c'è il "
+                                + "tablist funziona lo stesso, ma i %...% restano scritti così come sono. I "
+                                + "placeholder per-giocatore (ping, fazione, coordinate) sono ricalcolati per "
+                                + "ciascuno, non una volta sola per tutti.",
+                        "Il segnaposto **{logo}** diventa il carattere del logo del server. Il logo NON è roba di "
+                                + "questo plugin: è un glifo del resource pack di **MagixFactions**, e lì si "
+                                + "regolano dimensione e altezza (tablist.logo.height / tablist.logo.ascent). Qui si "
+                                + "decide solo dove metterlo — con le righe VUOTE dopo {logo} nell'header: il logo "
+                                + "non è testo e la sua altezza non spinge giù le righe che seguono da sola, "
+                                + "quindi poche righe vuote lo fanno finire SOPRA le informazioni invece che sopra "
+                                + "di esse. Quante ce ne vogliono si calcola da height e ascent di MagixFactions — "
+                                + "la formula è nel suo capitolo della guida — e va ricalcolato ogni volta che uno "
+                                + "dei due cambia.")
+
+                .section("L'avatar accanto al nome",
+                        "Di serie **player-name** (in tablist.yml) comincia con **%magixpack_glyph_avatar%**, la "
+                                + "faccia della skin del giocatore disegnata da MagixPack, seguita da "
+                                + "%magixpack_shift_2%, 2 pixel d'aria prima del nome. La grandezza e la posizione "
+                                + "si regolano in MagixPack (glyphs.yml → avatar: scale, offset-x, offset-y), non qui.",
+                        "Si vede solo a chi ha il **resource pack di MagixPack**: senza, al posto della faccia "
+                                + "restano dei quadratini. Se l'avatar non c'è e al suo posto si legge "
+                                + "%magixpack_glyph_avatar%, manca PlaceholderAPI o MagixPack; se la riga usa i "
+                                + "tag (<gradient>...), i colori dell'avatar vengono convertiti da soli.",
+                        "Nome e intestazione si rimandano solo quando cambiano, più un ripasso al secondo: "
+                                + "un update-interval-ticks basso fa scorrere le animazioni senza mandare a tutti "
+                                + "lo stesso avatar a ogni tick.")
+
+                .section("Quando si aggiorna",
+                        "Ogni **{{cfg:update-interval-ticks}}** tick (20 tick = 1 secondo) e, in più, un "
+                                + "tick dopo ogni ingresso — così mondo e coordinate sono già pronti e il nuovo "
+                                + "arrivato non vede un tablist a metà.",
+                        "Abbassare l'intervallo rende il ping più reattivo ma fa lavorare il server più spesso, "
+                                + "una volta per giocatore online: sotto i 10 tick non serve a niente che si veda.")
+
+                .section("Le 80 slot fisse",
+                        "Il gioco decide da solo quante colonne disegnare in base a quante voci ci sono: con pochi "
+                                + "giocatori il tab è una colonna sottile, con tanti si allarga. Se sotto ci deve "
+                                + "stare una pergamena, quella misura non può ballare. Con **fixed-slots** (in tablist.yml) "
+                                + "acceso il tab mostra sempre **{{cfg:fixed-slots.total}}** caselle, "
+                                + "riempiendo con voci decorative quelle senza giocatore.",
+                        "Le caselle vuote sono **senza testa** (portano una skin trasparente: un profilo senza "
+                                + "texture non è invisibile, il gioco ci metterebbe ottanta teste di Steve) e "
+                                + "**senza icona di connessione**: latenza **-1**, negativa apposta — nel protocollo "
+                                + "vuol dire \"connessione non ancora nota\", che è esattamente cosa una casella "
+                                + "finta È. Il client la disegna con l'icona \"connessione sconosciuta\" "
+                                + "(ping_unknown.png), che il resource pack di MagixFactions sostituisce con una "
+                                + "trasparente: è l'UNICA delle sei icone di ping che un giocatore vero non può mai "
+                                + "avere per davvero, quindi l'unica spegnibile senza spegnere anche la barra di "
+                                + "qualcun altro. Serve però che il client abbia scaricato quel resource pack: chi "
+                                + "ha il permesso di bypassarlo vede ancora l'icona. Cosa c'è scritto dentro lo "
+                                + "decide **empty-text**.",
+                        "**La skin trasparente può marcire senza avvisare.** È un link a un file su Mojang, e se "
+                                + "quel link smette di rispondere il client non dà NESSUN errore: mostra la skin di "
+                                + "serie (Steve o Alex), silenziosamente. È successo davvero — l'hash di prima era "
+                                + "morto da chissà quanto, e le caselle vuote hanno mostrato teste a caso per tutto "
+                                + "quel tempo senza una riga nel log. Se ricapita, il sintomo è identico: teste "
+                                + "visibili, log muto. Si verifica scaricando l'URL dentro TRANSPARENT_TEXTURE (è "
+                                + "un base64, si decodifica in una riga) e controllando che risponda.",
+                        "**Serve ProtocolLib**, perché una voce del tablist senza un giocatore vero dietro non "
+                                + "esiste nell'API di Bukkit: va mandata al client come pacchetto. È l'unico punto "
+                                + "di questo plugin che parla di pacchetti. Se ProtocolLib manca, o se la struttura "
+                                + "del pacchetto non è quella attesa, la funzione **si spegne da sola** e resta il "
+                                + "tablist dinamico: lo dice nel log. Un tab di misura variabile è un difetto "
+                                + "estetico, un tab che sparisce è un guasto.",
+                        "Oltre 80 non si va: il gioco disegna al massimo 4 colonne da 20, e il plugin taglia lì. "
+                                + "E se i giocatori veri sono più del totale non si riempie niente — il tab è già "
+                                + "pieno di gente vera, che è meglio.",
+                        "**Le colonne sono larghe quanto un nickname vanilla può esserlo, non strette e non a "
+                                + "tutto schermo.** Verificato decompilando PlayerTabOverlay.extractRenderState nel "
+                                + "client vanilla reale di questa versione: il gioco sceglie UNA sola larghezza per "
+                                + "TUTTE le colonne, quella del nome PIÙ LARGO fra le 80 voci (vere e finte insieme). "
+                                + "Un nome finto corto (una casella vuota è quasi sempre solo uno spazio) terrebbe le "
+                                + "colonne strette quanto il nome vero più corto in lista — non quanto un nome vero "
+                                + "potrebbe davvero essere. Un nickname di Minecraft è lungo al massimo 16 caratteri, "
+                                + "e nel font di gioco nessuna lettera/cifra/underscore valida in un nickname avanza "
+                                + "più di 6 pixel (verificato decompilando BitmapProvider e rifacendo lo stesso "
+                                + "calcolo sul vero ascii.png): il nickname vanilla più largo possibile è quindi "
+                                + "16 x 6 = 96 pixel, mai di più. Il plugin aggiunge da solo 24 spazi invisibili in "
+                                + "coda al testo di ogni casella vuota (FixedSlots.WIDTH_PADDING, 4 pixel l'uno = 96 "
+                                + "in tutto): non si vedono, ma pareggiano esattamente quel massimo.",
+                        "**Quello che non si può nascondere.** Dietro OGNI voce del tablist — vera o finta — il "
+                                + "client disegna sempre un rettangolo semitrasparente largo quanto la colonna: non "
+                                + "è una texture del resource pack, è scritto nel codice del client, quindi non "
+                                + "dipende da niente che mandiamo nel pacchetto e non si può spegnere per le sole "
+                                + "caselle finte senza spegnerlo anche per i giocatori veri. Il colore lo decide "
+                                + "un'opzione DEL CLIENT di chi guarda (la stessa dello sfondo del testo in chat), non "
+                                + "il server: chi lo vuole invisibile lo spegne da solo (Opzioni -> Chat -> "
+                                + "Trasparenza sfondo chat a 0) — sparisce per tutte le voci, non solo per quelle "
+                                + "finte.")
+
+                .section("Sfumature e tag di MiniMessage",
+                        "Intestazione, fondo e nome dei giocatori non leggono solo i codici **&**: passano dallo "
+                                + "stesso motore di MOTD e nametag (util/TextFormat), quindi capiscono anche i tag di "
+                                + "MiniMessage — <bold>, <color:#C046E8>, <gradient:#C046E8:#A8DC2C>Testo</gradient>, "
+                                + "<rainbow>Testo</rainbow>. In una riga vale l'uno O l'altro: appena c'è un tag "
+                                + "(un < seguito da una lettera) quella riga si legge come tag e le & restano scritte "
+                                + "com'erano.",
+                        "**Farle scorrere nel tempo.** <gradient:...> e <rainbow> accettano un ultimo numero, la "
+                                + "fase: cambiandolo la sfumatura si muove invece di restare ferma. Il plugin lo "
+                                + "calcola da solo — un giro ogni **{{cfg:animation-period-seconds}}** secondi — e lo "
+                                + "mette al posto di due segnaposto, uno per tag perché i numeri che vogliono NON "
+                                + "sono compatibili fra loro: {gradient-phase} (decimale) dentro <gradient:...:"
+                                + "{gradient-phase}>, {rainbow-phase} (intero) dentro <rainbow:{rainbow-phase}>. "
+                                + "Funzionano solo dentro quei due tag, scritti a mano dove servono — non c'è "
+                                + "un'animazione automatica su tutto.",
+                        "**Un giro sempre nello stesso verso, non un pendolo.** {gradient-phase} è un dente di sega "
+                                + "da -1.0 a 1.0 che poi ricomincia da -1.0 — verificato non solo leggendo GradientTag "
+                                + "ma facendo davvero disegnare a MiniMessage la sfumatura a fase -1.0 e a fase 1.0: "
+                                + "il colore che esce è IDENTICO, quindi il punto di ripartenza è già continuo da "
+                                + "solo, senza bisogno di andare avanti e indietro. Una versione precedente usava "
+                                + "un'onda a triangolo (sale, poi scende) pensando di evitare un salto che in realtà "
+                                + "non esisteva: il rimbalzo del triangolo era proprio quello che si vedeva come "
+                                + "un'interruzione a ogni fine giro (segnalato dall'utente). {rainbow-phase} invece "
+                                + "è già un intero che conta 0..9 e ricomincia: l'arcobaleno è un cerchio di "
+                                + "tonalità, quindi il giro successivo è già il passo giusto, senza questo problema.",
+                        "**Le caselle finte NON animano.** fixed-slots.empty-text diventa un profilo costruito UNA "
+                                + "volta sola all'avvio (per non far lampeggiare il tab), non una riga ricalcolata a "
+                                + "ogni giro: un gradiente ci sta, ma resta fermo. L'animazione vale solo per "
+                                + "intestazione, fondo e nome — quelle si riscrivono davvero a ogni "
+                                + "update-interval-ticks.",
+                        "**Banda più stretta: <rainbow-xN> e <gradient-xN:colori>.** Un tag solo fa un giro largo "
+                                + "quanto tutto il testo dentro; per ripeterlo (bande più strette) servirebbe "
+                                + "spezzare il testo a mano in più tag identici, scomodo da scrivere (segnalato "
+                                + "dall'utente). Scorciatoia: <rainbow-x3>Testo</rainbow-x3> oppure "
+                                + "<gradient-x3:#C046E8:#A8DC2C>Testo</gradient-x3> — il plugin spezza \"Testo\" in "
+                                + "altrettanti pezzi il più possibile uguali e genera da solo i tag veri, già con "
+                                + "la fase dentro: non serve scrivere {gradient-phase}/{rainbow-phase} a mano in "
+                                + "questo caso. Più alto il numero, più stretta la banda; oltre quante lettere ha "
+                                + "il testo non ha effetto (il plugin non fa pezzi più piccoli di un carattere).",
+                        "Un'animazione si vede scorrere solo se **update-interval-ticks** è più rapido di "
+                                + "**animation-period-seconds**: abbassare la seconda sotto la prima non fa niente, "
+                                + "l'aggiornamento resta il collo di bottiglia.",
+                        "**Abbassare update-interval-ticks NON rimanda anche le 80 slot finte.** Sono due cadenze "
+                                + "separate apposta: intestazione/fondo/nome seguono update-interval-ticks, le slot "
+                                + "finte si rimandano al massimo una volta al secondo per conto loro, un valore fisso "
+                                + "non legato al config. Prima erano la STESSA cosa: abbassare update-interval-ticks "
+                                + "per un'animazione fluida rimandava anche il pacchetto ProtocolLib da 80 voci alla "
+                                + "stessa velocità (10-20 volte al secondo per giocatore online) — la cosa più "
+                                + "pesante di tutto questo modulo, ed era quello (non l'animazione in sé) a far "
+                                + "scattare e bloccare il tablist. Segnalato dall'utente, corretto separando le due "
+                                + "cadenze: ora un update-interval-ticks basso serve solo a far scorrere le "
+                                + "animazioni, senza intasare le slot finte.")
+
+                .section("L'ordine dei giocatori",
+                        "Da solo il gioco mette avanti a tutto chi NON ha una squadra (scoreboard team) e poi "
+                                + "ordina per nome — non per grado, e le caselle finte (senza squadra) finivano "
+                                + "PRIMA dei giocatori veri quando questi ne avevano una. Con **sort-by-rank-weight** "
+                                + "acceso (ora: **{{cfg:sort-by-rank-weight}}**) i giocatori VERI vengono messi "
+                                + "davanti a tutto — caselle finte comprese, sempre in fondo — e ordinati fra loro "
+                                + "dal **peso più alto al più basso** del loro gruppo LuckPerms: lo stesso peso "
+                                + "che decide anche %magixweb_namecolor%, quindi chi ha il nome più in vista ha "
+                                + "anche il posto più in vista.",
+                        "Tecnicamente è il campo **Priority** del protocollo (Paper lo chiama "
+                                + "*player list order*): vince SEMPRE, prima di ogni altro criterio del gioco "
+                                + "(squadra, nome). Le caselle finte restano al valore di fabbrica e non vengono mai "
+                                + "toccate: non serve fare niente perché restino in fondo.",
+                        "**Richiede LuckPerms** (softdepend): se manca, la chiave non fa niente e resta l'ordine "
+                                + "del gioco — lo dice nel log una volta all'avvio, non a ogni giro. Si aggiorna da "
+                                + "solo quando cambia il grado di qualcuno (una promozione): si scrive un pacchetto "
+                                + "nuovo solo se il numero è davvero cambiato da un giro all'altro.")
 
                 .section("Il filtro dell'autocompletamento (tabcomplete)",
                         "Digitando **/** e premendo **TAB**, il client mostra un elenco di comandi da "
@@ -621,6 +816,7 @@ public final class MagixEssentials extends JavaPlugin {
                 // funzione nel suo (tablist.yml): qui si vedono col valore che hanno adesso sul
                 // server. Il config.yml non compare finche' non ha chiavi: sarebbe una tabella vuota.
                 .settingsFrom(modules.configurazione(), "Moduli (modules.yml)",
+                        "tablist", "Il tablist del tasto Tab. Spento, il tablist resta quello di CMI (o del gioco).",
                         "motd", "Le righe della lista server. Spento, vale la riga 'motd' di server.properties.",
                         "nametag", "La targhetta sopra la testa. Spento, resta quella di CMI (o il nome nudo del gioco).",
                         "tabcomplete", "Pulisce dal TAB i comandi senza permesso. Spento, il client suggerisce tutti i comandi registrati.",
@@ -657,6 +853,17 @@ public final class MagixEssentials extends JavaPlugin {
                         "tooltip.game", "Come si scrive «scritto in gioco» nel suggerimento.",
                         "tooltip.web", "Come si scrive «scritto dal sito» nel suggerimento.",
                         "cmi.disable-module", "Se all'avvio spegniamo noi i controlli della chat di CMI nei suoi file (serve un riavvio).")
+
+                .settingsFrom(modules.configurazioneDi(Modules.TABLIST), "Impostazioni del tablist (tablist.yml)",
+                        "update-interval-ticks", "Ogni quanti tick si riscrivono intestazione, fondo e nomi.",
+                        "animation-period-seconds", "Durata di un giro completo di una sfumatura animata (gradient-phase/rainbow-phase).",
+                        "player-name", "Come appare il nome nella lista: {name} è il nome, valgono colori e placeholder.",
+                        "priority.enabled", "Riscrive una seconda volta per arrivare dopo CMI. Spegnila se il tablist è solo nostro.",
+                        "priority.reassert-delay-ticks", "Quanti tick dopo arriva la seconda scrittura: alzalo se CMI si vede ancora per un istante.",
+                        "sort-by-rank-weight", "Giocatori veri davanti a tutto, ordinati per peso del grado LuckPerms (più alto = più in alto).",
+                        "fixed-slots.enabled", "Caselle fisse: il tab resta sempre della stessa misura. Serve ProtocolLib.",
+                        "fixed-slots.total", "Quante caselle in tutto: il gioco ne disegna al massimo 80 (4 colonne x 20).",
+                        "fixed-slots.empty-text", "Cosa c'è scritto in una casella vuota: uno spazio la lascia muta.")
 
                 .settingsFrom(modules.configurazioneDi(Modules.MOTD), "Impostazioni della MOTD (motd.yml)",
                         "selection", "Quale MOTD si vede: random (a caso), ordered (una dopo l'altra), fixed (sempre la prima).",
@@ -707,6 +914,74 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "li riceve solo dopo. Per rimetterli subito: /mess joinitems give <giocatore>.")
                 .issue("Ho cambiato una chiave del config nel repo e sul server non succede niente",
                         "Il deploy porta il jar, non i config: il file nella cartella del plugin sul server non viene toccato, ed è quello che il plugin legge. Il valore nel jar vale solo per le chiavi che lì MANCANO. Quindi un valore già presente si cambia sul server (a mano, o col workflow deploy-plugin-config.yml), non nel repo. Del resto si occupa il plugin, a ogni avvio e a ogni reload: aggiunge le chiavi nuove al loro posto col loro commento, applica le rinomine portandosi dietro il valore che avevi scelto, e toglie le righe morte che il codice non legge più dai file a schema fisso, cioè tutti tranne i cataloghi (i menu e le sanzioni no: lì le voci in più sono tue). Prima di ogni modifica fa una copia del file in .bak/ (fuori da plugins/ sul server), col nome che finisce in .bak-<data>, e nel log scrive che cosa ha cambiato.")
+                .issue("Le caselle vuote hanno una testa e le tacchette di connessione",
+                        "Allora non sono le nostre, sono quelle di CMI: le nostre nascono senza testa e senza "
+                                + "tacchette. Vuol dire che il suo modulo tablist è ancora acceso e sta riempiendo "
+                                + "lui. Spegnilo (Modules.yml → tablist: false) e riavvia: il tab torna nostro.")
+                .issue("Ho spento tablist nel modules.yml ma il tab si vede ancora",
+                        "Quello che vedi non è più il nostro: col modulo spento questo plugin non scrive "
+                                + "niente nel tablist, quindi resta quello di CMI (o, se anche il suo modulo è "
+                                + "spento, la lista base del gioco). Controlla di aver fatto "
+                                + "/magixessentials reload dopo la modifica: la risposta in chat elenca i moduli "
+                                + "e dice se il tablist risulta spento.")
+                .issue("Le slot fisse non compaiono",
+                        "Nel log ci sono DUE righe, e dicono cose diverse. All'avvio «slot fisse **pronte**: N "
+                                + "caselle» vuol dire solo che i profili finti esistono; «slot fisse **attive**: N "
+                                + "caselle» arriva al primo invio andato a buon fine, ed è quella che conta. Se "
+                                + "vedi solo la prima, il pacchetto non è partito e il motivo è scritto lì "
+                                + "accanto (ProtocolLib assente, o un campo che in questa versione del gioco non "
+                                + "c'è più). Se invece leggi «attive» ma a schermo non si vedono, il pacchetto "
+                                + "è partito e il tablist lo sta riscrivendo qualcun altro: quasi sempre CMI col "
+                                + "suo modulo tablist.")
+                .issue("Le caselle vuote hanno di nuovo una testa (Steve o Alex), o si vede l'icona di connessione",
+                        "Sono due difetti diversi, e nessuno dei due dà un errore nel log: non si notano da soli, "
+                                + "si vedono solo guardando il tablist. La testa torna se il link della skin "
+                                + "trasparente smette di rispondere (un file che sparisce da Mojang non lancia "
+                                + "un'eccezione, fa solo apparire la skin di serie): si verifica scaricando l'URL "
+                                + "dentro TRANSPARENT_TEXTURE. L'icona di connessione (\"?\" o una X, a seconda del "
+                                + "client) torna se il resource pack di MagixFactions manca il file "
+                                + "ping_unknown.png, o se il client di chi guarda non l'ha scaricato — un resource "
+                                + "pack nuovo lo riprende solo un client che si ricollega dopo il riavvio del "
+                                + "server, un reload a caldo non basta. NON è più un difetto di NO_PING: quel "
+                                + "campo è -1 apposta, l'icona che ne esce è quella che il resource pack deve "
+                                + "coprire.")
+                .issue("Le colonne del tablist sono strette, o sfondano lo schermo",
+                        "Il gioco sceglie UNA sola larghezza per tutte le colonne, quella del nome PIÙ LARGO fra le "
+                                + "80 voci — vere e finte insieme (verificato decompilando PlayerTabOverlay nel client "
+                                + "vanilla reale). Se le colonne sono strette, il nome più largo in tab è ancora "
+                                + "corto: o WIDTH_PADDING è stato tolto o ridotto in FixedSlots.java, o fixed-slots "
+                                + "è spento (niente voci finte a fare da nome largo, resta solo il nome vero più "
+                                + "corto). Se invece le colonne sfondano quasi tutto lo schermo, WIDTH_PADDING è "
+                                + "stato allargato oltre i 24 spazi (96 pixel, il nickname vanilla più lungo "
+                                + "possibile): non serve andare oltre, e con troppo margine si arriva al tetto "
+                                + "screenWidth - 50 di PlayerTabOverlay, colonne a tutto schermo comprese.")
+                .issue("Dietro le caselle vuote si vede un rettangolo chiaro anche senza testa e senza icona",
+                        "NON è un difetto di questo plugin, ed è verificato: dietro OGNI voce del tablist, vera o "
+                                + "finta, il client disegna sempre un rettangolo semitrasparente largo quanto la "
+                                + "colonna. È scritto nel codice del client (un fill(), non una texture), non "
+                                + "dipende da niente che il pacchetto manda, quindi non esiste una chiave di config o "
+                                + "un valore del pacchetto che lo spenga per le sole caselle finte senza spegnerlo "
+                                + "anche per i giocatori veri. Il colore lo decide un'opzione DEL CLIENT di chi "
+                                + "guarda (la stessa dello sfondo del testo in chat): solo LUI può spegnerla "
+                                + "(Opzioni -> Chat -> Trasparenza sfondo chat a 0), e sparisce per tutte le voci, "
+                                + "non solo per quelle finte. Non proporre una `fix` lato server: non esiste.")
+                .issue("Il tablist scatta o si blocca con un'animazione (gradient/rainbow) attiva",
+                        "Controlla PRIMA di tutto la versione: se update-interval-ticks basso rimandava anche le 80 "
+                                + "slot finte alla stessa velocità (10-20 volte al secondo), quello era il colpevole "
+                                + "vero, non l'animazione — un pacchetto ProtocolLib da 80 voci per ogni giocatore "
+                                + "online, ripetuto così spesso, è la cosa più pesante di tutto questo modulo. "
+                                + "Risolto separando le due cadenze: le slot finte si rimandano da sole al massimo "
+                                + "una volta al secondo, qualunque sia update-interval-ticks. Se il problema resta "
+                                + "DOPO questo fix, il sospetto si sposta altrove (un altro plugin che scrive nello "
+                                + "stesso tick, TPS del server basso per altri motivi).")
+                .issue("SbirTeo (o un altro giocatore) non è il primo nel tablist",
+                        "Prima cosa da guardare: sort-by-rank-weight è acceso, e LuckPerms c'è davvero? Senza "
+                                + "LuckPerms la chiave non fa niente (lo dice nel log all'avvio) e resta l'ordine "
+                                + "del gioco, non quello per grado. Se LuckPerms c'è, il posto lo decide il PESO "
+                                + "del gruppo, non il nome del gruppo né l'ordine in cui è scritto nel file di "
+                                + "LuckPerms: un giocatore che sembra dovrebbe stare avanti ma non ci sta ha, "
+                                + "probabilmente, un gruppo col peso più basso di quello che ti aspetti — si "
+                                + "controlla con /lp group <nome> info.")
                 .issue("Ho cambiato la MOTD e nella lista server si legge ancora quella vecchia",
                         "Il client si tiene in memoria l'ultima MOTD che ha visto: finché non ripinga, mostra "
                                 + "quella. Togli il server dall'elenco e rimettilo, oppure aspetta. Se dopo un "
@@ -777,7 +1052,10 @@ public final class MagixEssentials extends JavaPlugin {
                                 + "dov'erano. Il plugin le ritrova dal marchio e le butta al primo avvio del modulo — "
                                 + "basta /magixessentials reload, e nel log si legge quante ne ha tolte. In generale "
                                 + "meglio riavviare che /reload.")
-                .issue("Nella MOTD o nel nametag si legge %magixfactions_faction% invece della fazione",
+                .issue("Il tablist lampeggia o torna com'era",
+                        "Lo sta riscrivendo anche CMI: spegni il suo modulo tablist "
+                                + "(plugins/CMI/Settings/Modules.yml → tablist: false) e riavvia.")
+                .issue("Nel tablist si legge %magixfactions_faction% invece della fazione",
                         "Manca PlaceholderAPI, oppure manca l'espansione di quel plugin: controlla che PAPI sia "
                                 + "avviato e che il plugin che fornisce quel placeholder sia acceso.")
                 .issue("Un giocatore continua a vedere col TAB un comando per cui non ha il permesso",
@@ -802,6 +1080,17 @@ public final class MagixEssentials extends JavaPlugin {
                         "Vale solo per le valute \"shared: true\": controlla host/porta/utente/password in "
                                 + "database (config.yml) e che quel database sia raggiungibile da questo server. Il "
                                 + "log all'avvio dice l'errore esatto della connessione.")
+                .issue("Al posto del logo c'è un quadratino bianco",
+                        "Il giocatore non ha il resource pack di MagixFactions (rifiutato o non ancora scaricato). "
+                                + "Il carattere del logo esiste solo dentro quel pacchetto.")
+                .issue("Il logo copre le righe di informazioni",
+                        "Non è un valore a caso: le righe vuote sotto {logo} servono (height - ascent) / 9 volte, "
+                                + "9 pixel essendo l'altezza di una riga normale — height e ascent sono in "
+                                + "MagixFactions (config.yml -> tablist.logo). Con quelli di ORA ne servono almeno "
+                                + "10, e qui ce ne sono 11: se il conto è cambiato (height alzato, o ascent "
+                                + "abbassato/reso più negativo) e la copertura è tornata, aggiungi righe fino a "
+                                + "coprire il nuovo numero. In alternativa si abbassa tablist.logo.height in "
+                                + "MagixFactions, che però rimpicciolisce anche il logo.")
 
                 .never("Non rimettere CustomMOTD (o un altro plugin di MOTD) accanto a questo modulo: sulla "
                         + "stessa MOTD non si spartiscono il lavoro, vince chi scrive per ultimo e il risultato "
@@ -819,6 +1108,10 @@ public final class MagixEssentials extends JavaPlugin {
                 .never("Non dichiarare la stessa valuta \"shared: true\" su due server puntando a database DIVERSI: "
                         + "sarebbero due saldi scollegati con lo stesso nome, non uno condiviso. Stesso id, stesso "
                         + "database, su ogni server dove quella valuta vive.")
+                .never("Non lasciare acceso anche il tablist di CMI: due plugin sullo stesso tablist non si "
+                        + "spartiscono il lavoro, se lo strappano di mano.")
+                .never("Non scrivere i numeri del logo qui: dimensione e posizione stanno nel config di "
+                        + "MagixFactions, che è anche il plugin che costruisce il resource pack.")
                 .write();
     }
 }
