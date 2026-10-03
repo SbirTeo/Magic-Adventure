@@ -1,0 +1,49 @@
+# Server della chat vocale del sito (magicadventure.it/voce) — LiveKit.
+#
+# Va sul VPS in /etc/magix-voce/livekit.yaml e lo installa (con backup) il workflow manuale
+# predisponi-voce.yml: si cambia QUI, mai a mano sul VPS.
+#
+# Come gira la voce:
+#   browser --wss--> nginx (magicadventure.it/voce-rtc/) --> 127.0.0.1:7880   segnalazione
+#   browser <-UDP--> 141.94.123.249:7882                                         audio (WebRTC)
+#   browser <-TCP--> 141.94.123.249:7881                                         audio, se l'UDP e' bloccato
+#
+# Il server non mescola niente: riceve la voce di chi parla e la inoltra a chi e' nella stessa
+# stanza. Le stanze nascono da sole al primo ingresso; chi puo' entrare in quale stanza lo
+# decide il sito (website/includes/voice.php), firmando un gettone con la chiave segreta.
+#
+# NIENTE SEGRETI QUI (il repository e' pubblico): la coppia chiave/segreto la genera il workflow
+# sul VPS, in /etc/magix-voce/keys.yaml (key_file qui sotto), e la stessa coppia finisce in
+# includes/config.php del sito (VOICE_API_KEY, VOICE_API_SECRET).
+
+# Segnalazione e API: solo in locale, davanti c'e' nginx con il certificato del sito.
+port: 7880
+bind_addresses:
+  - 127.0.0.1
+
+rtc:
+  # Tutto l'audio passa da UNA porta UDP (porta unica = una sola regola nel firewall).
+  udp_port: 7882
+  # Ripiego su TCP per le reti che bloccano l'UDP (scuole, uffici, alcuni Wi-Fi pubblici).
+  tcp_port: 7881
+  # Il VPS ha l'indirizzo pubblico direttamente sulla scheda di rete: niente STUN all'avvio.
+  use_external_ip: false
+
+key_file: /etc/magix-voce/keys.yaml
+
+room:
+  auto_create: true
+  # Una stanza vuota si chiude dopo 5 minuti senza nessuno (o 20 secondi dopo l'ultimo uscito).
+  empty_timeout: 300
+  departure_timeout: 20
+  # Tetto per stanza, contro gli abusi: piu' dei giocatori che la rete tiene insieme.
+  max_participants: 150
+  # Solo voce: niente video, niente condivisione dello schermo. audio/red e' Opus con i
+  # pacchetti doppi (regge meglio le reti che perdono pezzi): i browser lo usano da soli.
+  enabled_codecs:
+    - mime: audio/opus
+    - mime: audio/red
+
+logging:
+  level: info
+  pion_level: error

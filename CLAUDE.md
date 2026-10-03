@@ -319,6 +319,31 @@ Se una modifica al sito **dipende** da una regola nginx nuova (es. un indirizzo 
 esisteva), l'ordine e': prima il commit della regola nginx su `main` + `deploy-nginx.yml`, poi il
 push del PHP che la usa.
 
+## Chat vocale del sito (/voce): server LiveKit sul VPS (dal 3/10)
+
+Niente mod e niente Discord: la voce passa dal browser, sulla pagina **magicadventure.it/voce**
+(account del sito = account di gioco). Fasi: **1** (fatta) stanza di tutta la rete + stanza della
+propria fazione; **2** prossimità per modalità (un plugin manda le posizioni, il browser regola
+volume e direzione); **3** chi parla mostrato in gioco, sanzioni dal vivo, pannello nel gestionale.
+
+- **Server della voce**: LiveKit, servizio `magix-voce` (utente `magix-voce`, programma in
+  `/opt/magix-voce/`, config in `/etc/magix-voce/`), abilitato all'avvio. Segnalazione solo su
+  `127.0.0.1:7880`, davanti nginx su `https://magicadventure.it/voce-rtc/rtc` (solo `/rtc`: le API
+  di amministrazione restano locali); l'audio va diretto su **7882/udp** e **7881/tcp** (ripiego per
+  le reti senza UDP), aperte nel firewall. Il config si cambia in `server-voce/livekit.yaml`, mai a
+  mano sul VPS: lo installa con backup il workflow manuale **`predisponi-voce.yml`**
+  (`controlla` = sola lettura e prova della risposta, anche attraverso nginx; `installa`; `chiavi-nuove`).
+  Non tocca il gioco: niente riavvii di faction, hub o proxy.
+- **Segreti**: la coppia chiave/segreto nasce sul VPS (`/etc/magix-voce/keys.yaml`, 640) e la stessa
+  la scrive il workflow in `includes/config.php` del sito (`VOICE_API_KEY`, `VOICE_API_SECRET`). Nel
+  repo `config.php` ha solo il segnaposto vuoto.
+- **Chi entra dove lo decide il sito** (`website/includes/voice.php`): firma un gettone di pochi
+  minuti per UNA stanza (`rete`, `fazione-<id>` dal database di MagixFactions), con identità =
+  UUID di gioco. Ban attivo = niente gettone; mute attivo = entra ma non può parlare. La pagina è
+  `website/public/voce.php`, l'API `website/public/api/voce.php`, il client
+  `assets/js/voce.js` con `assets/js/vendor/livekit-client.umd.js` (copia locale, niente CDN).
+- `Permissions-Policy` del sito: `microphone=(self)` (prima era spento del tutto).
+
 ## Diagnostica del VPS da sessione cloud (sola lettura, sempre disponibile)
 
 **Una sessione cloud NON è senza occhi sul VPS.** Non ha SSH diretto (vedi sopra), ma il

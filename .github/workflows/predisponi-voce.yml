@@ -1,0 +1,261 @@
+name: Predisponi la chat vocale (server LiveKit)
+
+# Installa o riallinea sul VPS il server della chat vocale del sito (magicadventure.it/voce).
+# Idempotente: si puo' rilanciare quante volte serve.
+#
+#   azione=controlla      solo lettura: versione installata, servizio, porte, firewall, chiavi
+#                         (solo impronte), config.php del sito, risposta del server da dentro e
+#                         attraverso nginx. Non cambia niente.
+#   azione=installa       scarica LiveKit (versione qui sotto), lo verifica con le impronte
+#                         SHA-256 pubblicate nel rilascio, installa programma, config
+#                         (server-voce/livekit.yaml) e servizio (server-voce/magix-voce.service),
+#                         apre nel firewall 7882/udp e 7881/tcp, crea le chiavi SOLO se mancano,
+#                         le scrive in includes/config.php del sito e (ri)avvia il servizio.
+#   azione=chiavi-nuove   come installa, ma rigenera la coppia chiave/segreto (es. se il segreto
+#                         fosse finito in un log): chi e' collegato in quel momento viene
+#                         scollegato e rientra con un clic.
+#
+# Segreti: nascono SUL VPS (/dev/urandom) e non passano mai da GitHub ne' dal repository, che e'
+# PUBBLICO. Stanno in /etc/magix-voce/keys.yaml (letto dal server della voce) e in
+# includes/config.php (VOICE_API_KEY / VOICE_API_SECRET, letti dal sito per firmare i gettoni).
+# Nel log compaiono solo le prime cifre della loro impronta.
+#
+# Il server della voce non tocca il gioco: niente riavvii di faction, hub o proxy.
+# Backup di quello che viene sostituito: ~/.bak/voce/<data>/.
+#
+# Stessi secret degli altri workflow: VPS_HOST, VPS_USER, VPS_SSH_KEY, e sudo senza password.
+
+on:
+  workflow_dispatch:
+    inputs:
+      azione:
+        description: "controlla = solo lettura; installa = installa/riallinea; chiavi-nuove = installa e rigenera le chiavi"
+        required: true
+        default: "controlla"
+        type: choice
+        options: ["controlla", "installa", "chiavi-nuove"]
+      versione:
+        description: "Versione di LiveKit (senza la v)"
+        required: true
+        default: "1.13.7"
+
+concurrency:
+  group: predisponi-voce
+  cancel-in-progress: false
+
+jobs:
+  voce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla input e secret VPS
+        env:
+          AZIONE: ${{ inputs.azione }}
+          VERSIONE: ${{ inputs.versione }}
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_USER }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "::error::Secret VPS non configurati. Vedi website/vps/AUTO-DEPLOY.md"; exit 1
+          fi
+          case "$AZIONE" in controlla|installa|chiavi-nuove) ;; *) echo "::error::azione non valida"; exit 1 ;; esac
+          [[ "$VERSIONE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::versione non valida"; exit 1; }
+
+      - name: Prepara la chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copia config e servizio in una cartella temporanea del VPS
+        if: inputs.azione != 'controlla'
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" 'rm -rf ~/voce-nuovo && mkdir -p ~/voce-nuovo'
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            server-voce/livekit.yaml server-voce/magix-voce.service "$DEST:voce-nuovo/"
+
+      - name: Sul VPS
+        env:
+          DEST: "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          AZIONE: ${{ inputs.azione }}
+          VERSIONE: ${{ inputs.versione }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$DEST" \
+            "AZIONE='$AZIONE' VERSIONE='$VERSIONE' bash -s" <<'REMOTE'
+          set -uo pipefail
+          umask 027
+          sudo -n true 2>/dev/null || { echo "::error::serve sudo senza password"; exit 1; }
+
+          BIN=/opt/magix-voce/livekit-server
+          ETC=/etc/magix-voce
+          UNIT=/etc/systemd/system/magix-voce.service
+          CONFIG_PHP=/var/www/magicadventure/includes/config.php
+          UTENTE=magix-voce
+          ORA="$(date -u +%Y%m%d-%H%M%S)"
+          BAK="$HOME/.bak/voce/$ORA"
+          NUOVO="$HOME/voce-nuovo"
+
+          sha() { printf '%s' "$1" | sha256sum | cut -c1-12; }
+
+          stato() {
+            echo "=== PROGRAMMA ==="
+            if [ -x "$BIN" ]; then "$BIN" --version 2>/dev/null | head -n1; else echo "non installato ($BIN)"; fi
+            echo; echo "=== SERVIZIO magix-voce ==="
+            systemctl is-enabled magix-voce 2>/dev/null | sed 's/^/abilitato all avvio: /' || true
+            systemctl is-active magix-voce 2>/dev/null | sed 's/^/stato: /' || true
+            echo; echo "=== PORTE IN ASCOLTO (7880 locale, 7881/tcp e 7882/udp pubbliche) ==="
+            sudo ss -tulnpH 2>/dev/null | grep -E ':(7880|7881|7882)[[:space:]]' || echo "nessuna"
+            echo; echo "=== FIREWALL ==="
+            sudo ufw status 2>/dev/null | grep -E '^(Status|7881|7882)' || echo "(ufw non leggibile)"
+            echo; echo "=== CHIAVI (solo impronte) ==="
+            local k s ks kk
+            if sudo test -f "$ETC/keys.yaml"; then
+              k="$(sudo sed -nE 's/^([A-Za-z0-9_]+):.*/\1/p' "$ETC/keys.yaml" | head -n1)"
+              s="$(sudo sed -nE 's/^[A-Za-z0-9_]+:[[:space:]]*"?([^"]*)"?[[:space:]]*$/\1/p' "$ETC/keys.yaml" | head -n1)"
+              echo "keys.yaml: chiave $k, segreto impronta $(sha "$s")"
+            else
+              echo "keys.yaml: assente"
+            fi
+            kk="$(sudo php -r 'require $argv[1]; echo defined("VOICE_API_KEY") ? VOICE_API_KEY : "";' "$CONFIG_PHP" 2>/dev/null || true)"
+            ks="$(sudo php -r 'require $argv[1]; echo defined("VOICE_API_SECRET") ? VOICE_API_SECRET : "";' "$CONFIG_PHP" 2>/dev/null || true)"
+            if [ -n "$ks" ]; then echo "config.php del sito: chiave $kk, segreto impronta $(sha "$ks")"; else echo "config.php del sito: VOICE_API_SECRET assente o vuoto"; fi
+            echo; echo "=== RISPOSTA DEL SERVER ==="
+            printf 'da dentro (127.0.0.1:7880): '; curl -s -m 5 http://127.0.0.1:7880/ || echo "nessuna risposta"; echo
+            printf 'attraverso nginx (https://magicadventure.it/voce-rtc/rtc/validate): HTTP '
+            curl -s -m 8 -o /dev/null -w '%{http_code}' https://magicadventure.it/voce-rtc/rtc/validate || true
+            echo "  (401 = arriva al server della voce, che vuole il gettone: giusto; 404 = nginx non ancora aggiornato; 502 = servizio spento)"
+            echo; echo "=== ULTIME RIGHE DEL SERVIZIO ==="
+            sudo journalctl -u magix-voce -n 25 --no-pager 2>/dev/null | { if [ -n "${s:-}" ]; then grep -vF "$s"; else cat; fi; } || true
+          }
+
+          if [ "$AZIONE" = "controlla" ]; then
+            stato
+            exit 0
+          fi
+
+          # Da qui in poi ogni errore ferma tutto: meglio un'installazione a meta' segnalata che
+          # un servizio avviato con un pezzo mancante.
+          set -e
+          mkdir -p "$BAK"
+
+          # ------------------------------------------------------------ programma
+          case "$(uname -m)" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; *) echo "::error::architettura $(uname -m) non prevista"; exit 1 ;; esac
+          TAR="livekit_${VERSIONE}_linux_${ARCH}.tar.gz"
+          URL="https://github.com/livekit/livekit/releases/download/v${VERSIONE}"
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          echo "Scarico $URL/$TAR"
+          curl -fsSL -o "$TMP/$TAR" "$URL/$TAR" || { echo "::error::download non riuscito"; exit 1; }
+          # Le impronte pubblicate nel rilascio (goreleaser): il nome del file cambia fra le versioni.
+          SOMME=""
+          for nome in "livekit_${VERSIONE}_checksums.txt" checksums.txt; do
+            if curl -fsSL -o "$TMP/somme.txt" "$URL/$nome" 2>/dev/null; then SOMME="$nome"; break; fi
+          done
+          [ -n "$SOMME" ] || { echo "::error::file delle impronte del rilascio non trovato: non installo un programma non verificato"; exit 1; }
+          ATTESA="$(awk -v f="$TAR" '$2 == f || $2 == "*"f {print $1}' "$TMP/somme.txt" | head -n1)"
+          VERA="$(sha256sum "$TMP/$TAR" | cut -d' ' -f1)"
+          echo "SHA-256 scaricato: $VERA"
+          echo "SHA-256 atteso ($SOMME): ${ATTESA:-assente}"
+          [ -n "$ATTESA" ] && [ "$ATTESA" = "$VERA" ] || { echo "::error::impronta diversa: niente installato"; exit 1; }
+          tar -xzf "$TMP/$TAR" -C "$TMP" livekit-server || { echo "::error::livekit-server non trovato nell'archivio"; exit 1; }
+          "$TMP/livekit-server" --version >/dev/null 2>&1 || { echo "::error::il programma scaricato non parte"; exit 1; }
+
+          # ------------------------------------------------------------ utente e cartelle
+          id "$UTENTE" >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$UTENTE"
+          # Permessi espliciti (l'umask 027 qui sopra li farebbe 750 root:root, e l'utente del
+          # servizio non potrebbe nemmeno entrare nella cartella del programma).
+          sudo install -d -m 755 -o root -g root /opt/magix-voce
+          sudo install -d -m 750 -o root -g "$UTENTE" "$ETC"
+          if [ -f "$BIN" ]; then cp -p "$BIN" "$BAK/livekit-server" 2>/dev/null || sudo cp -p "$BIN" "$BAK/livekit-server"; fi
+          sudo install -m 755 -o root -g root "$TMP/livekit-server" "$BIN"
+          echo "Installato: $("$BIN" --version 2>/dev/null | head -n1)"
+
+          # ------------------------------------------------------------ config e servizio
+          if sudo test -f "$ETC/livekit.yaml"; then sudo cp -p "$ETC/livekit.yaml" "$BAK/livekit.yaml"; fi
+          sudo install -m 640 -o root -g "$UTENTE" "$NUOVO/livekit.yaml" "$ETC/livekit.yaml"
+          if [ -f "$UNIT" ]; then sudo cp -p "$UNIT" "$BAK/magix-voce.service"; fi
+          sudo install -m 644 -o root -g root "$NUOVO/magix-voce.service" "$UNIT"
+
+          # ------------------------------------------------------------ chiavi
+          # keys.yaml: una riga "<chiave>: <segreto>". LiveKit rifiuta il file se e' leggibile da
+          # "altri": 640, proprietario root, gruppo del servizio.
+          if [ "$AZIONE" = "chiavi-nuove" ] || ! sudo test -s "$ETC/keys.yaml"; then
+            if sudo test -f "$ETC/keys.yaml"; then sudo cp -p "$ETC/keys.yaml" "$BAK/keys.yaml"; fi
+            K="magix$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+            S="$(head -c 48 /dev/urandom | base64 -w0 | tr '+/' '-_' | tr -d '=')"
+            printf '%s: %s\n' "$K" "$S" | sudo tee "$ETC/keys.yaml.tmp" >/dev/null
+            sudo chown root:"$UTENTE" "$ETC/keys.yaml.tmp"; sudo chmod 640 "$ETC/keys.yaml.tmp"
+            sudo mv "$ETC/keys.yaml.tmp" "$ETC/keys.yaml"
+            echo "Chiavi nuove: chiave $K, segreto impronta $(sha "$S")"
+          else
+            K="$(sudo sed -nE 's/^([A-Za-z0-9_]+):.*/\1/p' "$ETC/keys.yaml" | head -n1)"
+            S="$(sudo sed -nE 's/^[A-Za-z0-9_]+:[[:space:]]*"?([^"]*)"?[[:space:]]*$/\1/p' "$ETC/keys.yaml" | head -n1)"
+            echo "Chiavi gia' presenti: chiave $K, segreto impronta $(sha "$S")"
+          fi
+          [ -n "$K" ] && [ -n "$S" ] || { echo "::error::keys.yaml illeggibile"; exit 1; }
+
+          # La stessa coppia nel config.php del sito (il deploy del sito non tocca quel file).
+          # Le righe define gia' presenti si sostituiscono, quelle mancanti si aggiungono in fondo.
+          # Prova con php -l prima di sostituire: un config.php rotto fermerebbe tutto il sito.
+          sudo cp -p "$CONFIG_PHP" "$BAK/config.php"; sudo chown "$(id -u):$(id -g)" "$BAK/config.php"
+          TMPPHP="$TMP/config.php"
+          K="$K" S="$S" SRC="$BAK/config.php" DST="$TMPPHP" php <<'PHP'
+          <?php
+          $testo = file_get_contents(getenv('SRC'));
+          $valori = ['VOICE_API_KEY' => getenv('K'), 'VOICE_API_SECRET' => getenv('S')];
+          $aggiunte = '';
+          foreach ($valori as $nome => $valore) {
+              $riga = "define('$nome', '" . addcslashes($valore, "'\\") . "');";
+              $schema = "/define\\(\\s*'$nome'\\s*,\\s*'[^']*'\\s*\\);/";
+              if (preg_match($schema, $testo)) {
+                  $testo = preg_replace($schema, addcslashes($riga, '\\$'), $testo, 1);
+              } else {
+                  $aggiunte .= $riga . "\n";
+              }
+          }
+          if ($aggiunte !== '') {
+              $testo = rtrim(preg_replace('/\?>\s*$/', '', $testo)) . "\n\n"
+                  . "// Chat vocale del sito (/voce): chiave e segreto del server della voce. Li scrive\n"
+                  . "// predisponi-voce.yml (gli stessi di /etc/magix-voce/keys.yaml): non cambiarli a mano.\n"
+                  . $aggiunte;
+          }
+          file_put_contents(getenv('DST'), $testo);
+          PHP
+          php -l "$TMPPHP" >/dev/null || { echo "::error::config.php nuovo non valido: lasciato quello di prima"; exit 1; }
+          # cp su un file esistente ne tiene proprietario e permessi.
+          sudo cp "$TMPPHP" "$CONFIG_PHP"
+          echo "config.php del sito aggiornato (backup in $BAK/config.php)"
+          unset S
+
+          # ------------------------------------------------------------ firewall
+          if sudo ufw status 2>/dev/null | grep -q '^Status: active'; then
+            sudo ufw allow 7882/udp comment 'chat vocale (audio)' >/dev/null
+            sudo ufw allow 7881/tcp comment 'chat vocale (audio via TCP)' >/dev/null
+            echo "Firewall: aperte 7882/udp e 7881/tcp"
+          else
+            echo "Firewall: ufw non attivo, nessuna regola da aggiungere"
+          fi
+
+          # ------------------------------------------------------------ avvio
+          sudo systemctl daemon-reload
+          sudo systemctl enable magix-voce >/dev/null 2>&1
+          sudo systemctl restart magix-voce
+          OK=0
+          for i in $(seq 1 20); do
+            if [ "$(curl -s -m 2 http://127.0.0.1:7880/ 2>/dev/null)" = "OK" ]; then OK=1; break; fi
+            sleep 1
+          done
+          rm -rf "$NUOVO"
+          echo
+          stato
+          [ "$OK" = 1 ] || { echo "::error::il server della voce non risponde dopo 20 secondi (vedi le righe del servizio qui sopra)"; exit 1; }
+          echo; echo "Server della voce attivo. Backup di quello che e' stato sostituito: $BAK"
+          REMOTE
+
+      - name: Rimuovi la chiave dal runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
