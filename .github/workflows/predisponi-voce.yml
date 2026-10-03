@@ -166,8 +166,10 @@ jobs:
 
           # ------------------------------------------------------------ utente e cartelle
           id "$UTENTE" >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$UTENTE"
-          sudo mkdir -p /opt/magix-voce "$ETC"
-          sudo chown root:"$UTENTE" "$ETC"; sudo chmod 750 "$ETC"
+          # Permessi espliciti (l'umask 027 qui sopra li farebbe 750 root:root, e l'utente del
+          # servizio non potrebbe nemmeno entrare nella cartella del programma).
+          sudo install -d -m 755 -o root -g root /opt/magix-voce
+          sudo install -d -m 750 -o root -g "$UTENTE" "$ETC"
           if [ -f "$BIN" ]; then cp -p "$BIN" "$BAK/livekit-server" 2>/dev/null || sudo cp -p "$BIN" "$BAK/livekit-server"; fi
           sudo install -m 755 -o root -g root "$TMP/livekit-server" "$BIN"
           echo "Installato: $("$BIN" --version 2>/dev/null | head -n1)"
