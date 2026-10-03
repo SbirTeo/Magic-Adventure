@@ -43,7 +43,7 @@ $sectionPermissions = [
  * (Le impostazioni del blog — articoli per pagina e colori dei veli — stanno dentro la
  * scheda Blog ma seguono questa stessa regola: il pannello si vede solo da web-admin.)
  */
-$adminOnlySections = ['pages', 'page_edit', 'guida_edit', 'nav', 'theme', 'perms', 'store', 'store_pkg_edit', 'payments', 'console', 'sicurezza', 'menu'];
+$adminOnlySections = ['pages', 'page_edit', 'guida_edit', 'nav', 'theme', 'perms', 'store', 'payments', 'console', 'sicurezza', 'menu'];
 
 // Lo spazio di lavoro degli amministratori e' una pagina a se', /progetto: il vecchio indirizzo
 // della scheda ci porta.
@@ -61,9 +61,9 @@ if ($section === 'vip_banner') {
 if ($section === 'nav') {
     $section = 'pages';
 }
-// I pagamenti stavano in una scheda a parte: ora sono in fondo allo store, dove servono.
-// I vecchi indirizzi (e i redirect delle azioni) continuano a funzionare.
-if ($section === 'payments') {
+// I pagamenti stavano in una scheda a parte: ora sono la scheda Store (lo store vende i Magix,
+// e qui resta solo l'account PayPal). I vecchi indirizzi continuano a funzionare.
+if (in_array($section, ['payments', 'store_pkg_edit'], true)) {
     $section = 'store';
 }
 
@@ -97,32 +97,10 @@ $actionPermissions = [
 
 /** Azioni eseguibili solo dal web-admin, coerenti con $adminOnlySections. */
 $adminOnlyActions = ['blog_purge', 'blog_settings_save', 'page_save', 'page_delete', 'nav_save', 'nav_delete',
-                     'nav_toggle_enabled', 'nav_toggle_sidebar', 'nav_reorder', 'settings_save', 'vip_banner_save', 'chat_settings_save',
+                     'nav_toggle_enabled', 'nav_toggle_sidebar', 'nav_reorder', 'settings_save', 'chat_settings_save',
                      'guida_intro_save', 'perms_save',
-                     'store_cat_save', 'store_cat_delete', 'store_pkg_save', 'store_pkg_delete',
-                     'store_pkg_toggle', 'store_pkg_clone', 'store_pkg_deliver', 'store_reorder',
-                     'store_settings_save', 'store_sidebar_save', 'store_sconto_save', 'goal_save',
-                     'store_filters_save', 'store_layout_save', 'payments_save',
+                     'payments_save',
                      'otp_staff_save', 'otp_azzera', 'otp_revoca_gioco', 'legal_save'];
-
-/**
- * Sconto letto dal form (pacchetto o categoria): tipo + valore, gia' ripuliti.
- * Tipo vuoto o valore <= 0 = nessuno sconto, e si salva NULL/0.
- *
- * @return array{0: ?string, 1: float}
- */
-function sconto_dal_post(): array {
-    $tipo = $_POST['discount_type'] ?? '';
-    $valore = round((float) str_replace(',', '.', (string) ($_POST['discount_value'] ?? '0')), 2);
-    if (!in_array($tipo, ['percentuale', 'importo'], true) || $valore <= 0) {
-        return [null, 0.0];
-    }
-    // La percentuale non puo' superare il 100%: oltre, il prezzo diventerebbe negativo.
-    if ($tipo === 'percentuale') {
-        $valore = min(100, $valore);
-    }
-    return [$tipo, $valore];
-}
 
 // ---------------------------------------------------------------------
 // Azioni (POST) — tutte tornano su /manage con redirect (pattern PRG)
@@ -721,6 +699,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $colorBg = trim($_POST['color_bg'] ?? '');
             $colorPurple = trim($_POST['color_purple'] ?? '');
             $colorGreen = trim($_POST['color_green'] ?? '');
+            $colorGold = trim($_POST['color_gold'] ?? '');
             $storeBtnAnim = isset($_POST['store_btn_border_anim']) ? '1' : '0';
 
             if ($siteName === '' || $logoUrl === ''
@@ -744,6 +723,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upd->execute(['color_bg', $colorBg]);
             $upd->execute(['color_purple', $colorPurple]);
             $upd->execute(['color_green', $colorGreen]);
+            // L'oro di store, pulsante Store e dettagli dorati (la chiave ha il nome del vecchio banner VIP).
+            if (is_valid_hex_color($colorGold)) {
+                $upd->execute(['vip_banner_color', $colorGold]);
+            }
             $upd->execute(['store_btn_border_anim', $storeBtnAnim]);
             // Stile dei pulsanti principali: 'contrasto' (bianco/nero) o 'accento' (colore del sito)
             $upd->execute(['btn_stile', ($_POST['btn_stile'] ?? '') === 'accento' ? 'accento' : 'contrasto']);
@@ -780,44 +763,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/manage?section=theme&ok=1');
         }
 
-        case 'vip_banner_save': {
-            $enabled = isset($_POST['enabled']) ? '1' : '0';
-            $icon = trim($_POST['icon'] ?? '');
-            $tag = trim($_POST['tag'] ?? '');
-            $title = trim($_POST['title'] ?? '');
-            $text = trim($_POST['text'] ?? '');
-            $buttonText = trim($_POST['button_text'] ?? '');
-            $buttonUrl = trim($_POST['button_url'] ?? '');
-            $color = trim($_POST['color'] ?? '');
-            $image = trim($_POST['image'] ?? '');
-            $overlayIntensity = max(0, min(100, (int) ($_POST['overlay_intensity'] ?? 85)));
-            $borderAnim = isset($_POST['border_anim']) ? '1' : '0';
-            $borderAnimMobile = isset($_POST['border_anim_mobile']) ? '1' : '0';
-            $aloneMobile = isset($_POST['glow_mobile']) ? '1' : '0';
-            $seguiEvidenza = isset($_POST['follow_featured']) ? '1' : '0';
-
-            if ($title === '' || $buttonText === '' || $buttonUrl === '' || !is_valid_hex_color($color)) {
-                redirect('/manage?section=theme&err=empty#banner-vip');
-            }
-
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            $upd->execute(['vip_banner_enabled', $enabled]);
-            $upd->execute(['vip_banner_icon', $icon]);
-            $upd->execute(['vip_banner_tag', $tag]);
-            $upd->execute(['vip_banner_title', $title]);
-            $upd->execute(['vip_banner_text', $text]);
-            $upd->execute(['vip_banner_button_text', $buttonText]);
-            $upd->execute(['vip_banner_button_url', $buttonUrl]);
-            $upd->execute(['vip_banner_follow_featured', $seguiEvidenza]);
-            $upd->execute(['vip_banner_color', $color]);
-            $upd->execute(['vip_banner_image', $image]);
-            $upd->execute(['vip_banner_overlay_intensity', (string) $overlayIntensity]);
-            $upd->execute(['vip_banner_border_anim', $borderAnim]);
-            $upd->execute(['vip_banner_border_anim_mobile', $borderAnimMobile]);
-            $upd->execute(['vip_banner_glow_mobile', $aloneMobile]);
-            redirect('/manage?section=theme&ok=1#banner-vip');
-        }
-
         case 'chat_settings_save': {
             $enabled = isset($_POST['chat_enabled']) ? '1' : '0';
             $showGame = isset($_POST['chat_show_game']) ? '1' : '0';
@@ -846,432 +791,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/manage?section=pages&ok=1#guida');
         }
 
-        case 'store_cat_save': {
-            $id = (int) ($_POST['id'] ?? 0);
-            $name = trim($_POST['name'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $sortOrder = (int) ($_POST['sort_order'] ?? 0);
-            $enabled = isset($_POST['enabled']) ? 1 : 0;
-
-            if ($name === '') {
-                redirect('/manage?section=store&err=empty');
-            }
-
-            // Velo personalizzato: se la casella non e' spuntata si salva NULL su tutti e
-            // quattro i campi, cioe' "eredita dalle impostazioni generali dello store".
-            $personalizza = isset($_POST['overlay_custom']);
-            $vColore = trim($_POST['overlay_color'] ?? '');
-            $velo = [
-                'colore' => $personalizza && is_valid_hex_color($vColore) ? $vColore : null,
-                'intensita' => $personalizza ? max(0, min(100, (int) ($_POST['overlay_intensity'] ?? 92))) : null,
-                'altezza' => $personalizza ? max(20, min(100, (int) ($_POST['overlay_stop'] ?? 55))) : null,
-                'direzione' => $personalizza ? (($_POST['overlay_direction'] ?? '') === 'orizzontale' ? 'orizzontale' : 'verticale') : null,
-            ];
-            $bordoCat = trim($_POST['border_color'] ?? '');
-            $bordoCat = $personalizza && is_valid_hex_color($bordoCat) ? $bordoCat : null;
-
-            // Stessi campi per il tema chiaro. Colonne vuote = "come il tema scuro", quindi
-            // qui si salva NULL sia quando l'aspetto proprio e' spento sia quando il valore
-            // non e' valido: la card ricadra' da sola sulla versione scura.
-            $vColoreChiaro = trim($_POST['overlay_color_light'] ?? '');
-            $veloChiaro = [
-                'colore' => $personalizza && is_valid_hex_color($vColoreChiaro) ? $vColoreChiaro : null,
-                'intensita' => $personalizza && isset($_POST['overlay_intensity_light'])
-                    ? max(0, min(100, (int) $_POST['overlay_intensity_light'])) : null,
-                'altezza' => $personalizza && isset($_POST['overlay_stop_light'])
-                    ? max(20, min(100, (int) $_POST['overlay_stop_light'])) : null,
-            ];
-            $bordoCatChiaro = trim($_POST['border_color_light'] ?? '');
-            $bordoCatChiaro = $personalizza && is_valid_hex_color($bordoCatChiaro) ? $bordoCatChiaro : null;
-
-            // Testo, prezzo e targhetta dello sconto: valgono solo se l'aspetto proprio e'
-            // acceso E la relativa spunta e' messa; NULL vuol dire "eredita dallo store".
-            $sceltaCat = function (string $campo, string $spunta) use ($personalizza): ?string {
-                $valore = trim($_POST[$campo] ?? '');
-                return $personalizza && isset($_POST[$spunta]) && is_valid_hex_color($valore) ? $valore : null;
-            };
-            $catTesto = $sceltaCat('text_color', 'text_custom');
-            $catTestoChiaro = $sceltaCat('text_color_light', 'text_custom_chiaro') ?? $catTesto;
-            $catPrezzo = $sceltaCat('price_color', 'price_custom');
-            $catPrezzoChiaro = $sceltaCat('price_color_light', 'price_custom_chiaro') ?? $catPrezzo;
-            $catSconto = $sceltaCat('discount_color', 'sconto_custom');
-
-            // Colori del pulsante-filtro: stessa logica del velo (NULL = usa i generali)
-            $filtroCustom = isset($_POST['filter_custom']);
-            $fAttivo = trim($_POST['filter_active_color'] ?? '');
-            $fRiposo = trim($_POST['filter_idle_color'] ?? '');
-            $filtroAttivo = $filtroCustom && is_valid_hex_color($fAttivo) ? $fAttivo : null;
-            $filtroRiposo = $filtroCustom && is_valid_hex_color($fRiposo) ? $fRiposo : null;
-
-            [$scontoTipo, $scontoValore] = sconto_dal_post();
-
-            if ($id > 0) {
-                db()->prepare('UPDATE store_categories SET name = ?, description = ?, sort_order = ?, enabled = ?, overlay_color = ?, overlay_intensity = ?, overlay_stop = ?, overlay_direction = ?, border_color = ?, overlay_color_light = ?, overlay_intensity_light = ?, overlay_stop_light = ?, border_color_light = ?, text_color = ?, text_color_light = ?, price_color = ?, price_color_light = ?, discount_color = ?, filter_active_color = ?, filter_idle_color = ?, discount_type = ?, discount_value = ? WHERE id = ?')
-                    ->execute([$name, $description, $sortOrder, $enabled, $velo['colore'], $velo['intensita'], $velo['altezza'], $velo['direzione'], $bordoCat, $veloChiaro['colore'], $veloChiaro['intensita'], $veloChiaro['altezza'], $bordoCatChiaro, $catTesto, $catTestoChiaro, $catPrezzo, $catPrezzoChiaro, $catSconto, $filtroAttivo, $filtroRiposo, $scontoTipo, $scontoValore, $id]);
-            } else {
-                // Lo slug si genera dal nome e non cambia piu': gli URL restano stabili
-                $slug = unique_slug('store_categories', slugify($name));
-                db()->prepare('INSERT INTO store_categories (name, slug, description, sort_order, enabled, overlay_color, overlay_intensity, overlay_stop, overlay_direction, border_color, overlay_color_light, overlay_intensity_light, overlay_stop_light, border_color_light, text_color, text_color_light, price_color, price_color_light, discount_color, filter_active_color, filter_idle_color, discount_type, discount_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                    ->execute([$name, $slug, $description, $sortOrder, $enabled, $velo['colore'], $velo['intensita'], $velo['altezza'], $velo['direzione'], $bordoCat, $veloChiaro['colore'], $veloChiaro['intensita'], $veloChiaro['altezza'], $bordoCatChiaro, $catTesto, $catTestoChiaro, $catPrezzo, $catPrezzoChiaro, $catSconto, $filtroAttivo, $filtroRiposo, $scontoTipo, $scontoValore]);
-            }
-            redirect('/manage?section=store&ok=1#storeSort');
-        }
-
-        case 'store_cat_delete': {
-            $id = (int) ($_POST['id'] ?? 0);
-            // I pacchetti non si perdono: restano senza categoria (ON DELETE SET NULL)
-            db()->prepare('DELETE FROM store_categories WHERE id = ?')->execute([$id]);
-            redirect('/manage?section=store&ok=1#storeSort');
-        }
-
-        case 'store_pkg_save': {
-            $id = (int) ($_POST['id'] ?? 0);
-            $name = trim($_POST['name'] ?? '');
-            $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
-            $imageUrl = trim($_POST['image_url'] ?? '') ?: null;
-            $imageUrlLight = trim($_POST['image_url_light'] ?? '') ?: null;   // copertina per il tema chiaro
-            $description = trim($_POST['description'] ?? '');
-            $longDescription = trim($_POST['long_description'] ?? '');
-            $price = round((float) str_replace(',', '.', (string) ($_POST['price'] ?? '0')), 2);
-            // Comandi divisi per server: un riquadro per ogni modalita' di GAME_SERVERS, che
-            // arriva come commands[<server>]. Si salvano solo i server noti e non vuoti.
-            $postCommands = $_POST['commands'] ?? [];
-            if (!is_array($postCommands)) {
-                $postCommands = [STORE_LEGACY_SERVER => (string) $postCommands];
-            }
-            $serverCommands = [];
-            foreach (array_keys(GAME_SERVERS) as $server) {
-                $testo = trim(str_replace(["\r\n", "\r"], "\n", (string) ($postCommands[$server] ?? '')));
-                if ($testo !== '') {
-                    $serverCommands[$server] = $testo;
-                }
-            }
-            // La colonna di sempre tiene i comandi del faction: e' quella che legge chi non sa
-            // ancora dei comandi per server (prima della migrazione).
-            $commands = $serverCommands[STORE_LEGACY_SERVER] ?? '';
-            $sortOrder = (int) ($_POST['sort_order'] ?? 0);
-            $enabled = isset($_POST['enabled']) ? 1 : 0;
-            $featured = isset($_POST['featured']) ? 1 : 0;
-            // Inquadratura della copertina: due percentuali e nient'altro (finisce inline in
-            // uno style), una per il telefono e una per il computer. Come per gli articoli.
-            $puntoValido = static fn($v) => preg_match('/^\d{1,3}% \d{1,3}%$/', (string) $v) ? $v : '50% 50%';
-            $imagePosition = $puntoValido($_POST['image_position'] ?? '');
-            $imagePositionPc = $puntoValido($_POST['image_position_pc'] ?? '');
-            // Zoom della copertina, in percentuale, sempre fra STORE_ZOOM_MIN e STORE_ZOOM_MAX
-            // (100 = riempie la card, sotto 100 si rimpicciolisce per vederne di piu').
-            $imageZoom = store_zoom_value($_POST['image_zoom'] ?? 100);
-            $imageZoomPc = store_zoom_value($_POST['image_zoom_pc'] ?? 100);
-
-            if ($name === '' || $price < 0) {
-                redirect('/manage?section=store_pkg_edit&id=' . $id . '&err=empty');
-            }
-
-            [$scontoTipo, $scontoValore] = sconto_dal_post();
-
-            // Il pacchetto in evidenza e' uno solo in tutto lo store: se questo lo diventa,
-            // gli altri vengono azzerati nella stessa transazione, cosi' non puo' mai
-            // esistere un momento con due vetrine (o zero, se qualcosa va storto a meta').
-            db()->beginTransaction();
-            if ($id > 0) {
-                db()->prepare('UPDATE store_packages SET category_id = ?, name = ?, image_url = ?, description = ?, long_description = ?, price = ?, discount_type = ?, discount_value = ?, commands = ?, sort_order = ?, enabled = ?, featured = ?, updated_at = NOW() WHERE id = ?')
-                    ->execute([$categoryId, $name, $imageUrl, $description, $longDescription, $price, $scontoTipo, $scontoValore, $commands, $sortOrder, $enabled, $featured, $id]);
-            } else {
-                $slug = unique_slug('store_packages', slugify($name));
-                db()->prepare('INSERT INTO store_packages (category_id, name, slug, image_url, description, long_description, price, discount_type, discount_value, commands, sort_order, enabled, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                    ->execute([$categoryId, $name, $slug, $imageUrl, $description, $longDescription, $price, $scontoTipo, $scontoValore, $commands, $sortOrder, $enabled, $featured]);
-                $id = (int) db()->lastInsertId();
-            }
-            // Inquadratura scritta a parte e solo se le colonne esistono: cosi' il resto del
-            // salvataggio funziona anche prima di lanciare la migrazione (vedi store_ha_inquadratura).
-            if (store_ha_inquadratura()) {
-                db()->prepare('UPDATE store_packages SET image_position = ?, image_position_pc = ? WHERE id = ?')
-                    ->execute([$imagePosition, $imagePositionPc, $id]);
-            }
-            // Stessa cosa per lo zoom (migrazione 2026-10-03-store-zoom.sql)...
-            if (store_has_zoom()) {
-                db()->prepare('UPDATE store_packages SET image_zoom = ?, image_zoom_pc = ? WHERE id = ?')
-                    ->execute([$imageZoom, $imageZoomPc, $id]);
-            }
-            // ...e per la copertina del tema chiaro (migrazione 2026-10-03-store-copertina-chiara.sql).
-            if (store_has_light_cover()) {
-                db()->prepare('UPDATE store_packages SET image_url_light = ? WHERE id = ?')
-                    ->execute([$imageUrlLight, $id]);
-            }
-            // ...e per i comandi divisi per server (migrazione 2026-10-03-store-comandi-per-server.sql).
-            if (store_has_server_commands()) {
-                db()->prepare('UPDATE store_packages SET server_commands = ? WHERE id = ?')
-                    ->execute([json_encode((object) $serverCommands, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $id]);
-            }
-            if ($featured) {
-                db()->prepare('UPDATE store_packages SET featured = 0 WHERE id <> ?')->execute([$id]);
-            }
-            db()->commit();
-            redirect('/manage?section=store&ok=1#storeSort');
-        }
-
-        case 'store_pkg_clone': {
-            $id = (int) ($_POST['id'] ?? 0);
-            $orig = db()->prepare('SELECT category_id, name, image_url, description, long_description, price, commands, sort_order FROM store_packages WHERE id = ?');
-            $orig->execute([$id]);
-            $pkg = $orig->fetch();
-            if (!$pkg) {
-                redirect('/manage?section=store&err=empty');
-            }
-
-            // Copia nascosta e messa subito dopo l'originale: cosi' non compare in vetrina
-            // finche' non la si rivede, ma nell'elenco sta accanto a quello da cui nasce.
-            $nome = mb_substr($pkg['name'] . ' (copia)', 0, 255);
-            $slug = unique_slug('store_packages', slugify($nome));
-            $ins = db()->prepare('INSERT INTO store_packages (category_id, name, slug, image_url, description, long_description, price, commands, sort_order, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)');
-            $ins->execute([$pkg['category_id'], $nome, $slug, $pkg['image_url'], $pkg['description'], $pkg['long_description'],
-                           $pkg['price'], $pkg['commands'], (int) $pkg['sort_order'] + 1]);
-            $nuovoId = (int) db()->lastInsertId();
-            // La copia si porta dietro anche la copertina del tema chiaro...
-            if (store_has_light_cover()) {
-                db()->prepare('UPDATE store_packages c JOIN store_packages o ON o.id = ? SET c.image_url_light = o.image_url_light WHERE c.id = ?')
-                    ->execute([$id, $nuovoId]);
-            }
-            // ...e i comandi di ogni server.
-            if (store_has_server_commands()) {
-                db()->prepare('UPDATE store_packages c JOIN store_packages o ON o.id = ? SET c.server_commands = o.server_commands WHERE c.id = ?')
-                    ->execute([$id, $nuovoId]);
-            }
-            redirect('/manage?section=store_pkg_edit&id=' . $nuovoId . '&ok=1');
-        }
-
-        case 'store_pkg_deliver': {
-            $id = (int) ($_POST['id'] ?? 0);
-            $nome = trim($_POST['player'] ?? '');
-
-            $q = db()->prepare('SELECT * FROM store_packages WHERE id = ?');
-            $q->execute([$id]);
-            $pkg = $q->fetch();
-            if (!$pkg) {
-                redirect('/manage?section=store&err=empty#storeSort');
-            }
-
-            // Destinatario: per nome. Serve l'UUID, quindi il giocatore dev'essere gia' noto al
-            // sito — o perche' ha collegato l'account (users) o perche' e' entrato in partita
-            // almeno una volta da quando esistono i gradi (mc_ranks).
-            if ($nome === '' || strcasecmp($nome, (string) $me['mc_username']) === 0) {
-                $destUuid = $me['mc_uuid'];
-                $destNome = $me['mc_username'];
-                $destUserId = $me['id'];
-            } else {
-                $cerca = db()->prepare('SELECT id, mc_uuid, mc_username FROM users WHERE mc_username = ?');
-                $cerca->execute([$nome]);
-                $trovato = $cerca->fetch();
-                if (!$trovato) {
-                    $cerca = db()->prepare('SELECT NULL AS id, mc_uuid, mc_username FROM mc_ranks WHERE mc_username = ?');
-                    $cerca->execute([$nome]);
-                    $trovato = $cerca->fetch();
-                }
-                if (!$trovato) {
-                    redirect('/manage?section=store_pkg_edit&id=' . $id . '&err=giocatore');
-                }
-                $destUuid = $trovato['mc_uuid'];
-                $destNome = $trovato['mc_username'];
-                $destUserId = $trovato['id'] !== null ? (int) $trovato['id'] : null;
-            }
-
-            // Ordine vero, ma segnato come consegna MANUALE: passa dalla stessa funzione del
-            // pagamento PayPal (store_completa_ordine), cosi' la coda dei comandi e' identica
-            // e non esiste una seconda strada da tenere allineata.
-            $ins = db()->prepare('INSERT INTO store_orders (user_id, package_id, package_name, mc_uuid, mc_username, price, currency) VALUES (?, ?, ?, ?, ?, ?, ?)');
-            $ins->execute([$destUserId, $pkg['id'], $pkg['name'], $destUuid, $destNome,
-                           $pkg['price'], site_setting('store_currency', 'EUR')]);
-            $orderId = (int) db()->lastInsertId();
-
-            $q = db()->prepare('SELECT * FROM store_orders WHERE id = ?');
-            $q->execute([$orderId]);
-            $order = $q->fetch();
-
-            require_once __DIR__ . '/../includes/paypal.php';
-            store_completa_ordine($order, 'MANUALE-' . mb_substr((string) $me['mc_username'], 0, 24));
-
-            redirect('/manage?section=store&consegnato=' . urlencode($destNome) . '&pacchetto=' . urlencode($pkg['name']) . '#storeSort');
-        }
-
-        case 'store_pkg_delete': {
-            $id = (int) ($_POST['id'] ?? 0);
-            db()->prepare('DELETE FROM store_packages WHERE id = ?')->execute([$id]);
-            redirect('/manage?section=store&ok=1#storeSort');
-        }
-
-        case 'store_pkg_toggle': {
-            $id = (int) ($_POST['id'] ?? 0);
-            db()->prepare('UPDATE store_packages SET enabled = 1 - enabled WHERE id = ?')->execute([$id]);
-            redirect('/manage?section=store&ok=1#storeSort');
-        }
-
-        case 'goal_save': {
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)
-                                  ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            $upd->execute(['goal_enabled', isset($_POST['goal_enabled']) ? '1' : '0']);
-            $upd->execute(['goal_home', isset($_POST['goal_home']) ? '1' : '0']);
-            $upd->execute(['goal_show_amount', isset($_POST['goal_show_amount']) ? '1' : '0']);
-            $upd->execute(['goal_title', trim($_POST['goal_title'] ?? '') ?: 'Obiettivo del server']);
-            $upd->execute(['goal_text', trim($_POST['goal_text'] ?? '')]);
-
-            // La cifra arriva come testo: la virgola italiana diventa punto, e non si
-            // salvano valori negativi (una barra con obiettivo negativo non ha senso).
-            $cifra = str_replace(',', '.', trim($_POST['goal_amount'] ?? '0'));
-            $upd->execute(['goal_amount', (string) max(0, round((float) $cifra, 2))]);
-
-            $periodo = $_POST['goal_period'] ?? 'mensile';
-            $upd->execute(['goal_period', in_array($periodo, ['settimanale', 'mensile', 'annuale'], true) ? $periodo : 'mensile']);
-            redirect('/manage?section=store&ok=1#obiettivo');
-        }
-
-        case 'store_settings_save': {
-            $colore = trim($_POST['store_overlay_color'] ?? '');
-            if (!is_valid_hex_color($colore)) {
-                redirect('/manage?section=store&err=empty');
-            }
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            $upd->execute(['store_overlay_color', $colore]);
-            // Interruttore del velo delle card: separato da quello degli articoli.
-            $upd->execute(['card_overlay_store', isset($_POST['card_overlay_store']) ? '1' : '0']);
-            $upd->execute(['store_overlay_intensity', (string) max(0, min(100, (int) ($_POST['store_overlay_intensity'] ?? 92)))]);
-            $upd->execute(['store_overlay_stop', (string) max(20, min(100, (int) ($_POST['store_overlay_stop'] ?? 55)))]);
-            $bordo = trim($_POST['store_border_color'] ?? '');
-            $upd->execute(['store_border_color', is_valid_hex_color($bordo) ? $bordo : '#f0c75e']);
-
-            // Gli stessi valori per il tema CHIARO: campo vuoto o sbagliato = quello del tema
-            // scuro, cioe' il comportamento di prima.
-            $coloreChiaro = trim($_POST['store_overlay_color_chiaro'] ?? '');
-            $upd->execute(['store_overlay_color_chiaro', is_valid_hex_color($coloreChiaro) ? $coloreChiaro : $colore]);
-            $upd->execute(['store_overlay_intensity_chiaro', (string) max(0, min(100, (int) ($_POST['store_overlay_intensity_chiaro'] ?? $_POST['store_overlay_intensity'] ?? 92)))]);
-            $upd->execute(['store_overlay_stop_chiaro', (string) max(20, min(100, (int) ($_POST['store_overlay_stop_chiaro'] ?? $_POST['store_overlay_stop'] ?? 55)))]);
-            $bordoChiaro = trim($_POST['store_border_color_chiaro'] ?? '');
-            $upd->execute(['store_border_color_chiaro', is_valid_hex_color($bordoChiaro) ? $bordoChiaro : (is_valid_hex_color($bordo) ? $bordo : '#f0c75e')]);
-
-            // Testo sopra le card: senza la spunta si salva la stringa vuota, che vuol dire
-            // "automatico" (lo decide il velo). Un tema alla volta, sono indipendenti.
-            $sconto = trim($_POST['store_sconto_color'] ?? '');
-            $upd->execute(['store_sconto_color', is_valid_hex_color($sconto) ? $sconto : '']);
-
-            foreach ([
-                'store_text_color' => 'store_text_custom',
-                'store_text_color_chiaro' => 'store_text_custom_chiaro',
-                'store_price_color' => 'store_price_custom',
-                'store_price_color_chiaro' => 'store_price_custom_chiaro',
-            ] as $chiave => $spunta) {
-                $valore = trim($_POST[$chiave] ?? '');
-                $upd->execute([$chiave, isset($_POST[$spunta]) && is_valid_hex_color($valore) ? $valore : '']);
-            }
-
-            foreach (['store_overlay_direction', 'store_featured_overlay_direction'] as $chiave) {
-                $upd->execute([$chiave, ($_POST[$chiave] ?? '') === 'orizzontale' ? 'orizzontale' : 'verticale']);
-            }
-            redirect('/manage?section=store&ok=1#velo');
-        }
-
-        case 'store_layout_save': {
-            // Quante card per riga nella vetrina: computer/tablet (2-6) e, a parte, telefono (1-3).
-            $colonne = max(2, min(6, (int) ($_POST['store_cols'] ?? 3)));
-            $colonneTelefono = max(1, min(3, (int) ($_POST['store_cols_mobile'] ?? 1)));
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            $upd->execute(['store_cols', (string) $colonne]);
-            $upd->execute(['store_cols_mobile', (string) $colonneTelefono]);
-            redirect('/manage?section=store&ok=1#layout');
-        }
-
-        case 'store_filters_save': {
-            $attivo = trim($_POST['store_filter_active_color'] ?? '');
-            $riposo = trim($_POST['store_filter_idle_color'] ?? '');
-            if (!is_valid_hex_color($attivo) || !is_valid_hex_color($riposo)) {
-                redirect('/manage?section=store&err=empty');
-            }
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            $upd->execute(['store_filter_active_color', $attivo]);
-            $upd->execute(['store_filter_idle_color', $riposo]);
-            redirect('/manage?section=store&ok=1#filtri');
-        }
-
-        case 'store_sconto_save': {
-            [$tipo, $valore] = sconto_dal_post();
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            // Il tipo si salva comunque, cosi' riaccendendo lo sconto si ritrova la scelta.
-            $upd->execute(['store_discount_type', $tipo ?? ($_POST['discount_type'] === 'importo' ? 'importo' : 'percentuale')]);
-            $upd->execute(['store_discount_value', number_format($valore, 2, '.', '')]);
-            redirect('/manage?section=store&ok=1#sconti');
-        }
-
-        case 'store_sidebar_save': {
-            // Limiti uguali a quelli che applica store.php quando legge le impostazioni.
-            $quanti = max(0, min(20, (int) ($_POST['recent_count'] ?? 5)));
-            $giorni = max(0, min(3650, (int) ($_POST['top_days'] ?? 0)));
-            $titoloRecenti = trim($_POST['recent_title'] ?? '') ?: 'Ultimi acquisti';
-            $titoloTop = trim($_POST['top_title'] ?? '') ?: 'Miglior sostenitore';
-
-            $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
-            $upd->execute(['store_sidebar_enabled', isset($_POST['enabled']) ? '1' : '0']);
-            $upd->execute(['store_sidebar_recent_count', (string) $quanti]);
-            $upd->execute(['store_sidebar_recent_title', mb_substr($titoloRecenti, 0, 60)]);
-            $upd->execute(['store_sidebar_show_amount', isset($_POST['show_amount']) ? '1' : '0']);
-            $upd->execute(['store_sidebar_show_package', isset($_POST['show_package']) ? '1' : '0']);
-            $upd->execute(['store_sidebar_show_date', isset($_POST['show_date']) ? '1' : '0']);
-            $upd->execute(['store_sidebar_show_name', isset($_POST['show_name']) ? '1' : '0']);
-            $upd->execute(['store_sidebar_show_rank', isset($_POST['show_rank']) ? '1' : '0']);
-            $upd->execute(['store_sidebar_top_enabled', isset($_POST['top_enabled']) ? '1' : '0']);
-            $upd->execute(['store_sidebar_top_title', mb_substr($titoloTop, 0, 60)]);
-            $upd->execute(['store_sidebar_top_days', (string) $giorni]);
-            $upd->execute(['store_sidebar_include_manual', isset($_POST['include_manual']) ? '1' : '0']);
-            redirect('/manage?section=store&ok=1#sidebar');
-        }
-
-        case 'store_reorder': {
-            header('Content-Type: application/json');
-            $dati = json_decode((string) ($_POST['ordine'] ?? ''), true);
-            if (!is_array($dati)) {
-                echo json_encode(['ok' => false]);
-                exit;
-            }
-
-            $pdo = db();
-            $pdo->beginTransaction();
-            try {
-                // Ordine delle categorie: la posizione nell'elenco diventa sort_order.
-                // L'id 0 e' il gruppo "senza categoria", che non esiste come riga.
-                $updCat = $pdo->prepare('UPDATE store_categories SET sort_order = ? WHERE id = ?');
-                foreach (array_values((array) ($dati['categorie'] ?? [])) as $posizione => $catId) {
-                    if ((int) $catId > 0) {
-                        $updCat->execute([$posizione, (int) $catId]);
-                    }
-                }
-
-                // Ogni pacchetto porta con se' la categoria in cui e' stato lasciato cadere
-                $updPkg = $pdo->prepare('UPDATE store_packages SET category_id = ?, sort_order = ? WHERE id = ?');
-                foreach ((array) ($dati['pacchetti'] ?? []) as $riga) {
-                    $catId = (int) ($riga['categoria'] ?? 0);
-                    $updPkg->execute([$catId > 0 ? $catId : null, (int) ($riga['ordine'] ?? 0), (int) ($riga['id'] ?? 0)]);
-                }
-                $pdo->commit();
-            } catch (Throwable $e) {
-                $pdo->rollBack();
-                error_log('Store: riordino fallito: ' . $e->getMessage());
-                echo json_encode(['ok' => false]);
-                exit;
-            }
-
-            echo json_encode(['ok' => true]);
-            exit;
-        }
-
         case 'payments_save': {
             $mode = ($_POST['paypal_mode'] ?? 'sandbox') === 'live' ? 'live' : 'sandbox';
-            $currency = strtoupper(preg_replace('/[^A-Za-z]/', '', (string) ($_POST['store_currency'] ?? 'EUR')));
-            if (strlen($currency) !== 3) {
-                $currency = 'EUR';
-            }
 
             $upd = db()->prepare('INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
             $upd->execute(['paypal_enabled', isset($_POST['paypal_enabled']) ? '1' : '0']);
             $upd->execute(['paypal_mode', $mode]);
             $upd->execute(['paypal_email', trim($_POST['paypal_email'] ?? '')]);
             $upd->execute(['paypal_client_id', trim($_POST['paypal_client_id'] ?? '')]);
-            $upd->execute(['store_currency', $currency]);
 
             // Il segreto si riscrive solo se ne e' stato digitato uno nuovo: il campo parte
             // sempre vuoto, cosi' non viene mai rimandato al browser.
@@ -1279,7 +806,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($secret !== '') {
                 $upd->execute(['paypal_secret', $secret]);
             }
-            redirect('/manage?section=store&ok=1#pagamenti');
+            redirect('/manage?section=store&ok=1');
         }
 
         case 'perms_save': {
@@ -1475,9 +1002,8 @@ require __DIR__ . '/../includes/header.php';
     <a href="/manage?section=forum" class="<?= $section === 'forum' ? 'active' : '' ?>">Forum</a>
   <?php endif; ?>
   <?php if (is_admin()): ?>
-    <?php /* Lo store ha l'oro come accento (vedi .area-store): anche la sua scheda si
-             sottolinea d'oro invece che di magenta. */ ?>
-    <a href="/manage?section=store" class="<?= in_array($section, ['store', 'store_pkg_edit']) ? 'active e-oro' : '' ?>">Store</a>
+    <?php /* Lo store ha l'oro come accento: anche la sua scheda si sottolinea d'oro. */ ?>
+    <a href="/manage?section=store" class="<?= $section === 'store' ? 'active e-oro' : '' ?>">Store</a>
     <a href="/manage?section=pages" class="<?= in_array($section, ['pages', 'page_edit', 'guida_edit']) ? 'active' : '' ?>">Pagine e menu</a>
     <a href="/manage?section=theme" class="<?= $section === 'theme' ? 'active' : '' ?>">Aspetto</a>
   <?php endif; ?>
@@ -1593,8 +1119,7 @@ if ($section === 'dashboard') {
           Velo acceso sulle tessere degli articoli
         </label>
         <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 10px;">
-          Riguarda <strong>solo il blog</strong>: lo store ha il suo interruttore, in
-          <a href="/manage?section=store#velo">Store</a>. Spento, le copertine si vedono pulite e
+          Spento, le copertine si vedono pulite e
           al testo sopra arriva un&rsquo;ombra al posto della sfumatura.
         </p>
         <?= nota_interruttore_veli('blog') ?>
@@ -1980,7 +1505,7 @@ if ($section === 'dashboard') {
     $doveSiModifica = [
         '/' => ['/manage?section=theme', 'testi e colori della home'],
         '/forum' => ['/manage?section=forum', 'categorie e discussioni'],
-        '/store' => ['/manage?section=store', 'pacchetti, colonna e obiettivo'],
+        '/store' => ['/manage?section=store', 'pagamenti e ricariche'],
         '/tutorial' => ['/manage?section=guida_edit', 'testo di apertura'],
         '/regolamento' => ['/manage?section=page_edit&slug=regolamento', 'testo della pagina'],
     ];
@@ -2635,14 +2160,13 @@ if ($section === 'dashboard') {
         <?php campo_immagine('logo_small_url', 'logo_small_url', (string) ($s['logo_small_url'] ?? ''),
             'Logo piccolo (quadrato)',
             'Il marchio in versione ridotta. Compare <strong>accanto alla voce Home</strong> nella barra in alto, ed &egrave; anche la figura di scorta nelle anteprime dei link condivisi quando un articolo non ha una copertina propria. Consigliato quadrato, almeno 512&times;512. Vuoto = si usa il logo grande.'); ?>
-        <?php /* La casella del velo non sta piu' qui: e' una per il blog e una per lo store,
-                 e ognuna vive nel modulo del velo della sua sezione, accanto ai colori che
-                 governa. Questo riquadro resta perche' e' il posto in cui la si cerca. */ ?>
+        <?php /* La casella del velo non sta piu' qui: vive nel modulo del velo del blog,
+                 accanto ai colori che governa. Questo riquadro resta perche' e' il posto in
+                 cui la si cerca. */ ?>
         <div class="usato-da" id="veli" style="scroll-margin-top:96px; margin:4px 0 8px;">
           <strong>Velo sopra le copertine</strong> &mdash; la sfumatura fra l&rsquo;immagine e il testo.
-          Si accende, si spegne e si regola separatamente nei due posti in cui compare:
-          <a href="/manage?section=blog#velo">Blog</a> (le tessere degli articoli in home) e
-          <a href="/manage?section=store#velo">Store</a> (le card dei pacchetti).
+          Si accende, si spegne e si regola in <a href="/manage?section=blog#velo">Blog</a>
+          (le tessere degli articoli in home).
         </div>
         <label class="campo-check">
           <input type="checkbox" name="nav_logo_enabled" value="1"
@@ -2754,9 +2278,9 @@ if ($section === 'dashboard') {
         <div>
           <label>Colori d&rsquo;accento</label>
           <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 10px;">
-            Le due tinte del sito: la prima e' quella dei collegamenti, dei pulsanti e della striscia
-            in cima, la seconda accompagna. Il testo che ci finisce sopra (nero o bianco) si sceglie
-            da solo in base al contrasto.
+            Le tinte del sito: la prima è quella dei collegamenti, dei pulsanti e della striscia
+            in cima, la seconda accompagna, l'oro è quello dello store e del pulsante Store. Il testo
+            che ci finisce sopra (nero o bianco) si sceglie da solo in base al contrasto.
           </p>
           <div class="tavolozze">
             <div class="tavolozza">
@@ -2767,6 +2291,10 @@ if ($section === 'dashboard') {
               <h4>Secondario</h4>
               <input type="color" id="color_green" name="color_green" value="<?= h($s['color_green'] ?? '#a3e635') ?>" style="height:44px; padding:4px;">
             </div>
+            <div class="tavolozza">
+              <h4>Oro</h4>
+              <input type="color" id="color_gold" name="color_gold" value="<?= h($s['vip_banner_color'] ?? '#f0c75e') ?>" style="height:44px; padding:4px;">
+            </div>
           </div>
         </div>
         <div>
@@ -2776,108 +2304,6 @@ if ($section === 'dashboard') {
           </label>
         </div>
         <button type="submit" class="btn btn-accent">Salva aspetto</button>
-      </form>
-    </div>
-
-    <h2 id="banner-vip" style="margin-top:34px;">Banner VIP</h2>
-    <p class="sub" style="margin-bottom:14px;">Il riquadro promozionale dorato in cima alla home.</p>
-    <div class="panel">
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="vip_banner_save">
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="enabled" value="1" style="width:auto;" <?= ($s['vip_banner_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra il banner in home
-          </label>
-        </div>
-        <div>
-          <label for="icon">Icona (emoji)</label>
-          <input type="text" id="icon" name="icon" maxlength="8" value="<?= h($s['vip_banner_icon'] ?? '👑') ?>">
-        </div>
-        <div>
-          <label for="tag">Etichetta piccola</label>
-          <input type="text" id="tag" name="tag" value="<?= h($s['vip_banner_tag'] ?? '') ?>">
-        </div>
-        <div>
-          <label for="title">Titolo</label>
-          <input type="text" id="title" name="title" value="<?= h($s['vip_banner_title'] ?? '') ?>">
-        </div>
-        <div>
-          <label for="text">Testo descrittivo</label>
-          <textarea id="text" name="text" rows="2"><?= h($s['vip_banner_text'] ?? '') ?></textarea>
-        </div>
-        <div>
-          <label for="button_text">Testo del pulsante</label>
-          <input type="text" id="button_text" name="button_text" value="<?= h($s['vip_banner_button_text'] ?? 'Scopri di più') ?>">
-        </div>
-        <?php
-        // Il banner della home e' il "link promozione": di norma porta al pacchetto in
-        // evidenza dello store, cosi' cambiando vetrina cambia da solo anche il banner.
-        $seguiEvidenza = ($s['vip_banner_follow_featured'] ?? '1') === '1';
-        $pkgEvidenza = store_pacchetto_evidenza();
-        ?>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="follow_featured" value="1" style="width:auto;" <?= $seguiEvidenza ? 'checked' : '' ?>>
-            Il pulsante porta al pacchetto in evidenza dello store
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            <?php if ($pkgEvidenza): ?>
-              Adesso punta a <strong><?= h($pkgEvidenza['name']) ?></strong>
-              (<span class="code-box">/store#<?= h($pkgEvidenza['slug']) ?></span>).
-              Si aggiorna da solo quando cambi la vetrina in <a href="/manage?section=store">Store</a>.
-            <?php else: ?>
-              Nessun pacchetto è in evidenza al momento: finché non ne spunti uno in
-              <a href="/manage?section=store">Store</a>, il pulsante usa il link qui sotto.
-            <?php endif; ?>
-          </p>
-        </div>
-        <div>
-          <label for="button_url">Link del pulsante<?= $seguiEvidenza && $pkgEvidenza ? ' (di riserva)' : '' ?></label>
-          <input type="text" id="button_url" name="button_url" placeholder="https://..." value="<?= h($s['vip_banner_button_url'] ?? '#') ?>">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Usato quando la spunta qui sopra è tolta, o quando nessun pacchetto è in evidenza.
-          </p>
-        </div>
-        <div>
-          <label for="color">Colore oro</label>
-          <input type="color" id="color" name="color" value="<?= h($s['vip_banner_color'] ?? '#f0c75e') ?>" style="height:44px; padding:4px;">
-        </div>
-        <?php campo_immagine('image', 'image', (string) ($s['vip_banner_image'] ?? ''),
-            'Immagine di sfondo (opzionale)',
-            'Se impostata, il colore oro resta in sovrimpressione sopra l\'immagine (velo semi-trasparente). Lascia vuoto per lo sfondo dorato semplice.'); ?>
-        <div>
-          <label for="overlay_intensity">Intensità del velo dorato (<?= h($s['vip_banner_overlay_intensity'] ?? '85') ?>%)</label>
-          <input type="range" id="overlay_intensity" name="overlay_intensity" min="0" max="100" value="<?= h($s['vip_banner_overlay_intensity'] ?? '85') ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            0% = trasparente (si vede solo l'immagine), 100% = colore pieno. Ha effetto soprattutto
-            quando è impostata un'immagine di sfondo. Qui, a differenza di blog e store, il velo
-            <strong>copre il banner in modo uniforme</strong>: non c'è sfumatura, quindi 100% vuol
-            dire davvero immagine nascosta del tutto.
-          </p>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="border_anim" value="1" style="width:auto;" <?= ($s['vip_banner_border_anim'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Bordo animato luccicante sul banner
-          </label>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="border_anim_mobile" value="1" style="width:auto;" <?= ($s['vip_banner_border_anim_mobile'] ?? '0') === '1' ? 'checked' : '' ?>>
-            &hellip; anche su telefono
-          </label>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px; margin-top:8px;">
-            <input type="checkbox" name="glow_mobile" value="1" style="width:auto;" <?= ($s['vip_banner_glow_mobile'] ?? '0') === '1' ? 'checked' : '' ?>>
-            Alone dorato sotto al banner anche su telefono
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:6px 0 0;">
-            Sotto i 900px il banner diventa una fascia a tutta larghezza: li' il bordo luccicante e
-            l&rsquo;alone dorato appesantiscono, quindi di serie restano spenti. Sul grande non cambia nulla.
-          </p>
-        </div>
-        <button type="submit" class="btn btn-accent">Salva banner</button>
       </form>
     </div>
 
@@ -2920,717 +2346,26 @@ if ($section === 'dashboard') {
 // STORE — categorie e pacchetti, riordinabili trascinando (solo web-admin)
 // ---------------------------------------------------------------------
 } elseif ($section === 'store') {
-    $cats = db()->query('SELECT * FROM store_categories ORDER BY sort_order, name')->fetchAll();
-    $pkgs = db()->query('SELECT p.*, c.name AS cat_name FROM store_packages p
-                         LEFT JOIN store_categories c ON c.id = p.category_id
-                         ORDER BY p.sort_order, p.name')->fetchAll();
-    $editCatId = (int) ($_GET['edit_cat'] ?? 0);
-    $editCat = null;
-    if ($editCatId > 0) {
-        $q = db()->prepare('SELECT * FROM store_categories WHERE id = ?');
-        $q->execute([$editCatId]);
-        $editCat = $q->fetch();
-    }
-
-    // Chi sta usando i valori predefiniti: e' l'informazione che rende chiaro
-    // cosa si sta per cambiare quando si tocca uno dei due pannelli generali.
-    $ereditaVelo = [];
-    $ereditaFiltro = [];
-    foreach ($cats as $c) {
-        if (empty($c['overlay_color'])) {
-            $ereditaVelo[] = $c['name'];
-        }
-        if (empty($c['filter_active_color'])) {
-            $ereditaFiltro[] = $c['name'];
-        }
-    }
-    $elenco = fn(array $nomi): string => $nomi
-        ? h(implode(', ', $nomi))
-        : '<em>nessuna categoria: le hai personalizzate tutte</em>';
-
-    $perCat = [];
-    foreach ($pkgs as $p) {
-        $perCat[(int) $p['category_id']][] = $p;
-    }
-    // Il gruppo finale (id 0) raccoglie i pacchetti senza categoria: non si trascina
-    // come categoria, ma puo' ricevere e cedere pacchetti come tutti gli altri.
-    $gruppi = $cats;
-    $gruppi[] = ['id' => 0, 'name' => 'Senza categoria', 'enabled' => 1, 'sort_order' => 999, 'description' => null];
-    ?>
-    <div class="area-store">
-    <p class="sub" style="margin-bottom:16px;">
-      Trascina per riordinare: le <strong>categorie</strong> si spostano fra loro, i <strong>pacchetti</strong>
-      si riordinano dentro una categoria e si trascinano da una categoria all'altra.
-      Ogni spostamento viene salvato da solo.
-    </p>
-    <?php $imp = site_settings(); ?>
-    <?php $g = $imp; ?>
-    <h2 id="obiettivo" style="margin-top:34px;">Obiettivo del server</h2>
-    <p class="sub" style="margin-bottom:14px;">
-      La barra di avanzamento con quanto si è raccolto nel periodo in corso. Conta gli acquisti
-      <strong>pagati</strong>; le consegne manuali seguono la stessa regola della colonna qui sopra.
-    </p>
-    <div class="panel">
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="goal_save">
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="goal_enabled" value="1" style="width:auto;" <?= ($g['goal_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-            <strong>Mostra l&rsquo;obiettivo nello store</strong>
-          </label>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="goal_home" value="1" style="width:auto;" <?= ($g['goal_home'] ?? '0') === '1' ? 'checked' : '' ?>>
-            Mostralo anche in home
-          </label>
-        </div>
-        <div>
-          <label for="goal_title">Titolo</label>
-          <input type="text" id="goal_title" name="goal_title" maxlength="80"
-                 value="<?= h($g['goal_title'] ?? 'Obiettivo del server') ?>">
-        </div>
-        <div>
-          <label for="goal_text">Riga di spiegazione (facoltativa)</label>
-          <input type="text" id="goal_text" name="goal_text" maxlength="140"
-                 placeholder="es. serve a pagare il server e i backup"
-                 value="<?= h($g['goal_text'] ?? '') ?>">
-        </div>
-        <div>
-          <label for="goal_amount">Cifra da raggiungere (<?= h(site_setting('store_currency', 'EUR')) ?>)</label>
-          <input type="text" id="goal_amount" name="goal_amount" style="max-width:160px;"
-                 value="<?= h(number_format((float) ($g['goal_amount'] ?? 0), 2, ',', '')) ?>">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            A zero la sezione non compare, anche se la spunta qui sopra è messa.
-          </p>
-        </div>
-        <div>
-          <?php $periodoOra = $g['goal_period'] ?? 'mensile'; ?>
-          <label for="goal_period">Ogni quanto riparte</label>
-          <select id="goal_period" name="goal_period">
-            <option value="settimanale" <?= $periodoOra === 'settimanale' ? 'selected' : '' ?>>Ogni settimana (dal lunedì)</option>
-            <option value="mensile" <?= $periodoOra === 'mensile' ? 'selected' : '' ?>>Ogni mese (dal primo giorno)</option>
-            <option value="annuale" <?= $periodoOra === 'annuale' ? 'selected' : '' ?>>Ogni anno (dal 1° gennaio)</option>
-          </select>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Il conteggio riparte da solo: si sommano gli acquisti dall&rsquo;inizio del periodo in corso.
-          </p>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="goal_show_amount" value="1" style="width:auto;" <?= ($g['goal_show_amount'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra gli importi (raccolto / obiettivo)
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Togliendo la spunta resta solo la percentuale: la barra si vede, le cifre no.
-          </p>
-        </div>
-        <button type="submit" class="btn btn-accent">Salva obiettivo</button>
-      </form>
-    </div>
-
-    <div class="panel" id="layout" style="margin-bottom:18px; scroll-margin-top:96px;">
-      <h3 style="margin-top:0;">Layout della vetrina</h3>
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="store_layout_save">
-        <div>
-          <label for="store_cols">Pacchetti per riga — computer e tablet</label>
-          <input type="number" id="store_cols" name="store_cols" min="2" max="6" style="max-width:120px;"
-                 value="<?= h($imp['store_cols'] ?? '3') ?>">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Quante card affiancare su computer e tablet (da 2 a 6).
-          </p>
-        </div>
-        <div>
-          <label for="store_cols_mobile">Pacchetti per riga — telefono</label>
-          <?php $colTel = store_cols_mobile(); ?>
-          <select id="store_cols_mobile" name="store_cols_mobile" style="max-width:120px;">
-            <?php foreach ([1, 2, 3] as $n): ?>
-              <option value="<?= $n ?>" <?= $colTel === $n ? 'selected' : '' ?>><?= $n ?></option>
-            <?php endforeach; ?>
-          </select>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Quante card affiancare sui telefoni (schermi fino a 560px). Con 1 la card è larga
-            quanto lo schermo, ha testi a grandezza piena e <strong>prende la forma della copertina</strong>,
-            che si vede intera (si allunga solo se il testo non ci sta); con 2 o 3 le card diventano
-            piccole e compatte.
-          </p>
-        </div>
-        <button type="submit" class="btn btn-green btn-small">Salva</button>
-      </form>
-    </div>
-
-    <div class="panel pannello-predefinito" id="velo" style="margin-bottom:18px;">
-      <h3 style="margin-top:0;">Velo sulle copertine <span class="tag-predefinito">valore predefinito</span></h3>
-      <p class="sub" style="margin:-6px 0 12px;">
-        Quello che cambi qui vale per <strong>tutte le categorie che non hanno un velo proprio</strong>
-        e per i pacchetti senza categoria. Per differenziarne una sola, usa il riquadro
-        "Velo solo per questa categoria" nel modulo in fondo alla pagina.
-      </p>
-      <p class="usato-da">In questo momento lo usano: <?= $elenco($ereditaVelo) ?></p>
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="store_settings_save">
-        <label class="campo-check" style="margin:0 0 2px;">
-          <input type="checkbox" name="card_overlay_store" value="1"
-                 <?= ($imp['card_overlay_store'] ?? '1') === '1' ? 'checked' : '' ?>>
-          Velo acceso sulle card dei pacchetti
-        </label>
-        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 10px;">
-          Riguarda <strong>solo lo store</strong> (card e pagina di un pacchetto): gli articoli hanno
-          il loro interruttore, in <a href="/manage?section=blog#velo">Blog</a>. Qui il velo &egrave; anche
-          quello che tiene leggibile il <strong>prezzo</strong> scritto sopra l&rsquo;immagine.
-        </p>
-        <?= nota_interruttore_veli('store') ?>
-        <?php
-          // Come per gli articoli: il tema chiaro parte dai valori del tema scuro finche'
-          // non lo si tocca, cosi' chi non entra qui non vede cambiare nulla.
-          $vSC = $imp['store_overlay_color_chiaro'] ?? ($imp['store_overlay_color'] ?? '#0a0804');
-          $vSI = $imp['store_overlay_intensity_chiaro'] ?? ($imp['store_overlay_intensity'] ?? '92');
-          $vSS = $imp['store_overlay_stop_chiaro'] ?? ($imp['store_overlay_stop'] ?? '55');
-          $vSB = $imp['store_border_color_chiaro'] ?? ($imp['store_border_color'] ?? '#f0c75e');
-        ?>
-        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
-        <div class="tavolozze">
-          <div class="tavolozza">
-            <h4>&#9790; Tema scuro</h4>
-
-            <p class="tavolozza-gruppo">Velo delle card</p>
-            <label for="store_overlay_color">Colore</label>
-            <input type="color" id="store_overlay_color" name="store_overlay_color" value="<?= h($imp['store_overlay_color'] ?? '#0a0804') ?>" style="height:44px; padding:4px;">
-            <label for="store_overlay_intensity" style="display:block; margin-top:12px;">Intensit&agrave; (<?= h($imp['store_overlay_intensity'] ?? '92') ?>%)</label>
-            <input type="range" id="store_overlay_intensity" name="store_overlay_intensity" min="0" max="100" step="1" value="<?= h($imp['store_overlay_intensity'] ?? '92') ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-            <label for="store_overlay_stop" style="display:block; margin-top:12px;">Altezza della sfumatura (<?= h($imp['store_overlay_stop'] ?? '55') ?>%)</label>
-            <input type="range" id="store_overlay_stop" name="store_overlay_stop" min="20" max="100" step="5" value="<?= h($imp['store_overlay_stop'] ?? '55') ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-
-            <p class="tavolozza-gruppo">Barretta laterale</p>
-            <input type="color" id="store_border_color" name="store_border_color" value="<?= h($imp['store_border_color'] ?? '#f0c75e') ?>" style="height:44px; padding:4px;">
-
-            <?php $tsScuro = $imp['store_text_color'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Testo sopra il velo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="store_text_custom" value="1" style="width:auto;" <?= is_valid_hex_color($tsScuro) ? 'checked' : '' ?>>
-              Scelgo io il colore
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
-              Senza la spunta il colore lo decide il velo: nero sui veli chiari, bianco su quelli
-              scuri. Vale per titolo, elenco e <strong>prezzo</strong> delle card con copertina.
-            </p>
-            <input type="color" id="store_text_color" name="store_text_color" value="<?= h(is_valid_hex_color($tsScuro) ? $tsScuro : '#f2f2f0') ?>" style="height:44px; padding:4px;">
-
-            <?php $prScuro = $imp['store_price_color'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Prezzo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="store_price_custom" value="1" style="width:auto;" <?= is_valid_hex_color($prScuro) ? 'checked' : '' ?>>
-              Colore a parte per il prezzo
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
-              Senza la spunta il prezzo segue il colore del testo qui sopra.
-            </p>
-            <input type="color" id="store_price_color" name="store_price_color" value="<?= h(is_valid_hex_color($prScuro) ? $prScuro : '#f8e6b7') ?>" style="height:44px; padding:4px;">
-
-            <?php $scColore = $imp['store_sconto_color'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Targhetta dello sconto (vale per i due temi)</p>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 8px;">
-              Il &ldquo;-5%&rdquo; accanto al prezzo: stessa tinta sulle card dello store, sulla pagina
-              del pacchetto e sul <strong>banner VIP</strong>. Il testo sopra (nero o bianco) si sceglie
-              da solo in base al contrasto, quindi un colore basta per entrambi i temi.
-            </p>
-            <input type="color" id="store_sconto_color" name="store_sconto_color" value="<?= h(is_valid_hex_color($scColore) ? $scColore : ($imp['color_green'] ?? '#a3e635')) ?>" style="height:44px; padding:4px;">
-
-            <p class="tavolozza-gruppo">Direzione (vale per i due temi)</p>
-            <label for="store_overlay_direction">Card dei pacchetti</label>
-            <select id="store_overlay_direction" name="store_overlay_direction">
-              <option value="verticale" <?= ($imp['store_overlay_direction'] ?? 'verticale') !== 'orizzontale' ? 'selected' : '' ?>>Verticale (dal basso)</option>
-              <option value="orizzontale" <?= ($imp['store_overlay_direction'] ?? 'verticale') === 'orizzontale' ? 'selected' : '' ?>>Orizzontale (da sinistra)</option>
-            </select>
-            <label for="store_featured_overlay_direction" style="display:block; margin-top:12px;">Vetrina in cima</label>
-            <select id="store_featured_overlay_direction" name="store_featured_overlay_direction">
-              <option value="verticale" <?= ($imp['store_featured_overlay_direction'] ?? 'orizzontale') !== 'orizzontale' ? 'selected' : '' ?>>Verticale (dal basso)</option>
-              <option value="orizzontale" <?= ($imp['store_featured_overlay_direction'] ?? 'orizzontale') === 'orizzontale' ? 'selected' : '' ?>>Orizzontale (da sinistra)</option>
-            </select>
-          </div>
-
-          <div class="tavolozza">
-            <h4>&#9728; Tema chiaro</h4>
-
-            <p class="tavolozza-gruppo">Velo delle card</p>
-            <label for="store_overlay_color_chiaro">Colore</label>
-            <input type="color" id="store_overlay_color_chiaro" name="store_overlay_color_chiaro" value="<?= h($vSC) ?>" style="height:44px; padding:4px;">
-            <label for="store_overlay_intensity_chiaro" style="display:block; margin-top:12px;">Intensit&agrave; (<?= h($vSI) ?>%)</label>
-            <input type="range" id="store_overlay_intensity_chiaro" name="store_overlay_intensity_chiaro" min="0" max="100" step="1" value="<?= h($vSI) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-            <label for="store_overlay_stop_chiaro" style="display:block; margin-top:12px;">Altezza della sfumatura (<?= h($vSS) ?>%)</label>
-            <input type="range" id="store_overlay_stop_chiaro" name="store_overlay_stop_chiaro" min="20" max="100" step="5" value="<?= h($vSS) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-
-            <p class="tavolozza-gruppo">Barretta laterale</p>
-            <input type="color" id="store_border_color_chiaro" name="store_border_color_chiaro" value="<?= h($vSB) ?>" style="height:44px; padding:4px;">
-
-            <?php $tsChiaro = $imp['store_text_color_chiaro'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Testo sopra il velo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="store_text_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color($tsChiaro) ? 'checked' : '' ?>>
-              Scelgo io il colore
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
-              Sul tema chiaro il velo e' spesso piu' tenue: se il testo automatico non ti convince,
-              qui lo imposti a mano.
-            </p>
-            <input type="color" id="store_text_color_chiaro" name="store_text_color_chiaro" value="<?= h(is_valid_hex_color($tsChiaro) ? $tsChiaro : '#14161a') ?>" style="height:44px; padding:4px;">
-
-            <?php $prChiaro = $imp['store_price_color_chiaro'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Prezzo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="store_price_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color($prChiaro) ? 'checked' : '' ?>>
-              Colore a parte per il prezzo
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
-              Senza la spunta il prezzo segue il colore del testo qui sopra.
-            </p>
-            <input type="color" id="store_price_color_chiaro" name="store_price_color_chiaro" value="<?= h(is_valid_hex_color($prChiaro) ? $prChiaro : '#7a5c00') ?>" style="height:44px; padding:4px;">
-          </div>
-        </div>
-        <button type="submit" class="btn btn-accent">Salva velo</button>
-      </form>
-    </div>
-
-    <div class="panel pannello-predefinito" id="filtri" style="margin-bottom:18px;">
-      <h3 style="margin-top:0;">Colori dei filtri <span class="tag-predefinito">valore predefinito</span></h3>
-      <p class="sub" style="margin:-6px 0 12px;">
-        I pulsanti sopra la griglia dello store, per le categorie che non hanno colori propri
-        (e per il pulsante "Tutto", che non appartiene a nessuna categoria).
-        Il colore del testo si calcola da solo in base a quanto è chiaro lo sfondo scelto.
-      </p>
-      <p class="usato-da">In questo momento li usano: <?= $elenco($ereditaFiltro) ?></p>
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="store_filters_save">
-        <div class="tavolozze">
-          <div class="tavolozza">
-            <h4>Selezionato</h4>
-            <input type="color" id="store_filter_active_color" name="store_filter_active_color" value="<?= h($imp['store_filter_active_color'] ?? '#f0c75e') ?>" style="height:44px; padding:4px;">
-          </div>
-          <div class="tavolozza">
-            <h4>A riposo</h4>
-            <input type="color" id="store_filter_idle_color" name="store_filter_idle_color" value="<?= h($imp['store_filter_idle_color'] ?? '#17181b') ?>" style="height:44px; padding:4px;">
-          </div>
-        </div>
-        <button type="submit" class="btn btn-accent">Salva filtri</button>
-      </form>
-    </div>
-
-    <div class="panel pannello-predefinito" id="sconti" style="margin-bottom:18px;">
-      <h3 style="margin-top:0;">Sconto su tutto lo store <span class="tag-predefinito">valore predefinito</span></h3>
-      <p class="sub" style="margin:-6px 0 12px;">
-        Si applica a ogni pacchetto che non ha uno sconto proprio e la cui categoria non ne ha uno.
-        L'ordine di precedenza è: <strong>pacchetto → categoria → store</strong>.
-      </p>
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="store_sconto_save">
-        <?php
-          $scStoreTipo = ($imp['store_discount_value'] ?? '0') > 0 ? ($imp['store_discount_type'] ?? 'percentuale') : '';
-          $scStoreValore = (float) ($imp['store_discount_value'] ?? 0);
-        ?>
-        <div>
-          <label for="store_sconto_tipo">Sconto</label>
-          <select id="store_sconto_tipo" name="discount_type">
-            <option value="" <?= $scStoreTipo === '' ? 'selected' : '' ?>>Nessuno sconto</option>
-            <option value="percentuale" <?= $scStoreTipo === 'percentuale' ? 'selected' : '' ?>>Percentuale (%)</option>
-            <option value="importo" <?= $scStoreTipo === 'importo' ? 'selected' : '' ?>>Importo fisso (<?= h($imp['store_currency'] ?? 'EUR') ?>)</option>
-          </select>
-        </div>
-        <div>
-          <label for="store_sconto_valore">Valore dello sconto</label>
-          <input type="text" id="store_sconto_valore" name="discount_value" value="<?= h($scStoreValore > 0 ? number_format($scStoreValore, 2, ',', '') : '') ?>" placeholder="es. 10">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Con la percentuale scrivi solo il numero (10 = 10%). Con l'importo fisso, quanto togliere dal prezzo.</p>
-        </div>
-        <button type="submit" class="btn btn-accent">Salva sconto</button>
-      </form>
-    </div>
-
-    <div class="panel pannello-predefinito" id="sidebar" style="margin-bottom:18px;">
-      <h3 style="margin-top:0;">Colonna laterale <span class="tag-predefinito">ultimi acquisti</span></h3>
-      <p class="sub" style="margin:-6px 0 12px;">
-        La colonna a destra della vetrina: mostra chi ha comprato di recente e chi ha sostenuto
-        di più il server, con la skin del giocatore. Contano solo gli ordini <strong>pagati</strong>.
-      </p>
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="store_sidebar_save">
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="enabled" value="1" style="width:auto;" <?= ($imp['store_sidebar_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra la colonna laterale
-          </label>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="show_amount" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_amount'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra gli importi
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Se la togli restano nomi, pacchetti e classifica, ma senza cifre.</p>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="show_name" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_name'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra il nickname
-          </label>
-        </div>
-        <div style="margin-left:26px;">
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="show_rank" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_rank'] ?? '1') === '1' ? 'checked' : '' ?>>
-            …e anche il grado
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Senza questa spunta resta il solo nickname, senza tag colorato. Vale solo se il nickname è mostrato.</p>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="show_package" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_package'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra il nome del pacchetto
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Riguarda l'elenco degli ultimi acquisti: se la togli resta solo quanto tempo fa.</p>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="show_date" value="1" style="width:auto;" <?= ($imp['store_sidebar_show_date'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra quando è stato acquistato
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Il «2 h fa» accanto al pacchetto negli ultimi acquisti.</p>
-        </div>
-        <div>
-          <label for="recent_title">Titolo del riquadro acquisti</label>
-          <input type="text" id="recent_title" name="recent_title" maxlength="60" value="<?= h($imp['store_sidebar_recent_title'] ?? 'Ultimi acquisti') ?>">
-        </div>
-        <div>
-          <label for="recent_count">Quanti acquisti mostrare</label>
-          <input type="number" id="recent_count" name="recent_count" min="0" max="20" value="<?= h($imp['store_sidebar_recent_count'] ?? '5') ?>">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">0 = nascondi del tutto il riquadro degli acquisti.</p>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="top_enabled" value="1" style="width:auto;" <?= ($imp['store_sidebar_top_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-            Mostra il miglior sostenitore
-          </label>
-        </div>
-        <div>
-          <label for="top_title">Titolo del riquadro sostenitore</label>
-          <input type="text" id="top_title" name="top_title" maxlength="60" value="<?= h($imp['store_sidebar_top_title'] ?? 'Miglior sostenitore') ?>">
-        </div>
-        <div>
-          <label for="top_days">Periodo della classifica (giorni)</label>
-          <input type="number" id="top_days" name="top_days" min="0" max="3650" value="<?= h($imp['store_sidebar_top_days'] ?? '0') ?>">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">0 = da sempre. Con 30 vince chi ha speso di più nell'ultimo mese.</p>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="include_manual" value="1" style="width:auto;" <?= ($imp['store_sidebar_include_manual'] ?? '0') === '1' ? 'checked' : '' ?>>
-            Conta anche le consegne manuali
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Le consegne fatte da qui (regali, prove, rimborsi) non sono incassi: di norma vanno lasciate fuori.</p>
-        </div>
-        <button type="submit" class="btn btn-accent">Salva colonna laterale</button>
-      </form>
-    </div>
-
-    <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
-      <a href="/manage?section=store_pkg_edit" class="btn btn-green btn-small">+ Nuovo pacchetto</a>
-      <span class="store-sort-stato" id="storeSortStato"></span>
-    </div>
-
-    <div id="storeSort" data-csrf="<?= h(csrf_token()) ?>">
-      <?php foreach ($gruppi as $c): $catId = (int) $c['id']; ?>
-        <div class="store-sort-gruppo" data-id="<?= $catId ?>" data-tipo="<?= $catId > 0 ? 'categoria' : 'fisso' ?>">
-          <div class="store-sort-titolo">
-            <span class="store-drag" aria-hidden="true">⠿</span>
-            <strong><?= h($c['name']) ?></strong>
-            <?= $c['enabled'] ? '' : '<span class="badge-no">nascosta</span>' ?>
-            <span class="sub"><?= count($perCat[$catId] ?? []) ?> pacchetti</span>
-            <?php if (!empty($c['overlay_color'])): ?>
-              <span class="store-pallino" title="Velo personalizzato" style="background:<?= h($c['overlay_color']) ?>"></span>
-            <?php endif; ?>
-            <?php if ($catId > 0): ?>
-              <span class="store-sort-azioni">
-                <a href="/manage?section=store&edit_cat=<?= $catId ?>#categoria" class="btn btn-ghost btn-small">Modifica</a>
-                <form method="post" onsubmit="return confirm('Eliminare la categoria? I pacchetti restano, senza categoria.');">
-                  <?= csrf_field() ?>
-                  <input type="hidden" name="action" value="store_cat_delete">
-                  <input type="hidden" name="id" value="<?= $catId ?>">
-                  <button type="submit" class="btn btn-danger btn-small">Elimina</button>
-                </form>
-              </span>
-            <?php endif; ?>
-          </div>
-
-          <div class="store-sort-pacchetti">
-            <?php foreach ($perCat[$catId] ?? [] as $p): ?>
-              <div class="store-sort-pacchetto" data-id="<?= (int) $p['id'] ?>" data-tipo="pacchetto">
-                <span class="store-drag" aria-hidden="true">⠿</span>
-                <div class="store-sort-nome">
-                  <div class="title">
-                    <?= h($p['name']) ?>
-                    <?= $p['enabled'] ? '' : '<span class="badge-no">nascosto</span>' ?>
-                    <?php if (!empty($p['featured'])): ?>
-                      <span class="badge-yes" title="Vetrina dello store e destinazione del banner promozione in home">★ in evidenza</span>
-                    <?php endif; ?>
-                  </div>
-                  <div class="sub">
-                    <?= h(number_format((float) $p['price'], 2, ',', '.')) ?> <?= h(site_setting('store_currency', 'EUR')) ?> ·
-                    <?php
-                    // Comandi per server: "3 comandi (Factions 2 · Hub 1)".
-                    $perServer = [];
-                    $totale = 0;
-                    foreach (store_package_commands($p) as $server => $testo) {
-                        $n = count(store_command_lines($testo));
-                        $totale += $n;
-                        $perServer[] = (GAME_SERVERS[$server]['label'] ?? $server) . ' ' . $n;
-                    }
-                    echo $totale > 0 ? h($totale . ($totale === 1 ? ' comando' : ' comandi') . ' (' . implode(' · ', $perServer) . ')') : 'nessun comando';
-                    ?>
-                  </div>
-                </div>
-                <div class="actions">
-                  <a href="/manage?section=store_pkg_edit&id=<?= (int) $p['id'] ?>" class="btn btn-accent btn-small">Modifica</a>
-                  <form method="post">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="store_pkg_clone">
-                    <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
-                    <button type="submit" class="btn btn-ghost btn-small" title="Crea una copia nascosta e aprila">Clona</button>
-                  </form>
-                  <form method="post" onsubmit="return confirm('Consegnare subito questo pacchetto al TUO account, senza pagamento?');">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="store_pkg_deliver">
-                    <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
-                    <button type="submit" class="btn btn-ghost btn-small" title="Esegue in gioco i comandi del pacchetto sul tuo account, senza passare da PayPal">Prova consegna</button>
-                  </form>
-                  <form method="post">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="store_pkg_toggle">
-                    <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
-                    <button type="submit" class="btn btn-ghost btn-small"><?= $p['enabled'] ? 'Nascondi' : 'Mostra' ?></button>
-                  </form>
-                  <form method="post" onsubmit="return confirm('Eliminare definitivamente questo pacchetto?');">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="store_pkg_delete">
-                    <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
-                    <button type="submit" class="btn btn-danger btn-small">Elimina</button>
-                  </form>
-                </div>
-              </div>
-            <?php endforeach; ?>
-            <?php if (empty($perCat[$catId])): ?>
-              <div class="store-sort-vuoto">Trascina qui un pacchetto</div>
-            <?php endif; ?>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-
-    <div class="panel" style="margin-top:22px;">
-      <h3 style="margin-top:0;" id="categoria">
-        <?= $editCat ? 'Modifica categoria: ' . h($editCat['name']) : 'Nuova categoria' ?>
-      </h3>
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="store_cat_save">
-        <input type="hidden" name="id" value="<?= $editCat ? (int) $editCat['id'] : 0 ?>">
-        <div>
-          <label for="cat_name">Nome</label>
-          <input type="text" id="cat_name" name="name" value="<?= h($editCat['name'] ?? '') ?>">
-        </div>
-        <div>
-          <label for="cat_desc">Descrizione</label>
-          <input type="text" id="cat_desc" name="description" value="<?= h($editCat['description'] ?? '') ?>">
-        </div>
-        <input type="hidden" name="sort_order" value="<?= h((string) ($editCat['sort_order'] ?? 0)) ?>">
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="enabled" value="1" style="width:auto;" <?= ($editCat['enabled'] ?? 1) ? 'checked' : '' ?>>
-            Visibile nello store
-          </label>
-        </div>
-
-        <?php $veloProprio = !empty($editCat['overlay_color']); ?>
-        <div class="velo-categoria">
-          <div>
-            <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-              <input type="checkbox" name="overlay_custom" value="1" style="width:auto;" id="overlayCustom"
-                     onchange="document.getElementById('veloCampi').classList.toggle('is-spento', !this.checked)"
-                     <?= $veloProprio ? 'checked' : '' ?>>
-              <strong>Aspetto proprio per questa categoria</strong>
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-              Senza la spunta questa categoria usa il velo predefinito. I campi qui sotto valgono
-              <strong>solo per <?= $editCat ? h($editCat['name']) : 'questa categoria' ?></strong>,
-              non per tutto lo store.
-            </p>
-          </div>
-          <div id="veloCampi" class="<?= $veloProprio ? '' : 'is-spento' ?>">
-        <?php
-          // Il tema chiaro della categoria parte dai valori del tema scuro: le colonne
-          // *_chiaro vuote significano "come il tema scuro", quindi qui si mostra quello.
-          $cVC = $editCat['overlay_color_light'] ?? ($editCat['overlay_color'] ?? ($imp['store_overlay_color'] ?? '#0a0804'));
-          $cVI = $editCat['overlay_intensity_light'] ?? ($editCat['overlay_intensity'] ?? ($imp['store_overlay_intensity'] ?? '92'));
-          $cVS = $editCat['overlay_stop_light'] ?? ($editCat['overlay_stop'] ?? ($imp['store_overlay_stop'] ?? '55'));
-          $cVB = $editCat['border_color_light'] ?? ($editCat['border_color'] ?? ($imp['store_border_color'] ?? '#f0c75e'));
-        ?>
-        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 4px;"><strong>Intensit&agrave;</strong> &mdash; <?= help_overlay('intensita') ?></p>
-        <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 14px;"><strong>Altezza</strong> &mdash; <?= help_overlay('altezza') ?></p>
-        <div class="tavolozze">
-          <div class="tavolozza">
-            <h4>&#9790; Tema scuro</h4>
-
-            <p class="tavolozza-gruppo">Velo della categoria</p>
-            <label for="overlay_color">Colore</label>
-            <input type="color" id="overlay_color" name="overlay_color" value="<?= h($editCat['overlay_color'] ?? ($imp['store_overlay_color'] ?? '#0a0804')) ?>" style="height:44px; padding:4px;">
-            <label for="overlay_intensity" style="display:block; margin-top:12px;">Intensit&agrave; (<?= h((string) ($editCat['overlay_intensity'] ?? ($imp['store_overlay_intensity'] ?? '92'))) ?>%)</label>
-            <input type="range" id="overlay_intensity" name="overlay_intensity" min="0" max="100" step="1" value="<?= h((string) ($editCat['overlay_intensity'] ?? ($imp['store_overlay_intensity'] ?? '92'))) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-            <label for="overlay_stop" style="display:block; margin-top:12px;">Altezza della sfumatura (<?= h((string) ($editCat['overlay_stop'] ?? ($imp['store_overlay_stop'] ?? '55'))) ?>%)</label>
-            <input type="range" id="overlay_stop" name="overlay_stop" min="20" max="100" step="5" value="<?= h((string) ($editCat['overlay_stop'] ?? ($imp['store_overlay_stop'] ?? '55'))) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-
-            <p class="tavolozza-gruppo">Barretta laterale</p>
-            <input type="color" id="border_color" name="border_color" value="<?= h($editCat['border_color'] ?? ($imp['store_border_color'] ?? '#f0c75e')) ?>" style="height:44px; padding:4px;">
-
-            <?php $cTS = $editCat['text_color'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Testo sopra il velo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="text_custom" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cTS) ? 'checked' : '' ?>>
-              Colore solo per questa categoria
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
-              Senza la spunta vale la scelta generale dello store e, se manca anche quella, il colore
-              calcolato dal velo (nero sui veli chiari, bianco su quelli scuri).
-            </p>
-            <input type="color" id="text_color" name="text_color" value="<?= h(is_valid_hex_color((string) $cTS) ? (string) $cTS : ($imp['store_text_color'] ?? '#f2f2f0')) ?>" style="height:44px; padding:4px;">
-
-            <?php $cPR = $editCat['price_color'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Prezzo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="price_custom" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cPR) ? 'checked' : '' ?>>
-              Colore solo per questa categoria
-            </label>
-            <input type="color" id="price_color" name="price_color" value="<?= h(is_valid_hex_color((string) $cPR) ? (string) $cPR : ($imp['store_price_color'] ?? '#f8e6b7')) ?>" style="height:44px; padding:4px;">
-
-            <?php $cSC = $editCat['discount_color'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Targhetta dello sconto (vale per i due temi)</p>
-            <label class="campo-check">
-              <input type="checkbox" name="sconto_custom" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cSC) ? 'checked' : '' ?>>
-              Colore solo per questa categoria
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 8px;">
-              Il testo dentro la targhetta (nero o bianco) si sceglie da solo in base al contrasto.
-            </p>
-            <input type="color" id="discount_color" name="discount_color" value="<?= h(is_valid_hex_color((string) $cSC) ? (string) $cSC : ($imp['store_sconto_color'] ?: ($imp['color_green'] ?? '#a3e635'))) ?>" style="height:44px; padding:4px;">
-
-            <p class="tavolozza-gruppo">Direzione (vale per i due temi)</p>
-            <select id="overlay_direction" name="overlay_direction">
-              <option value="verticale" <?= ($editCat['overlay_direction'] ?? 'verticale') !== 'orizzontale' ? 'selected' : '' ?>>Verticale (dal basso)</option>
-              <option value="orizzontale" <?= ($editCat['overlay_direction'] ?? '') === 'orizzontale' ? 'selected' : '' ?>>Orizzontale (da sinistra)</option>
-            </select>
-          </div>
-
-          <div class="tavolozza">
-            <h4>&#9728; Tema chiaro</h4>
-
-            <p class="tavolozza-gruppo">Velo della categoria</p>
-            <label for="overlay_color_light">Colore</label>
-            <input type="color" id="overlay_color_light" name="overlay_color_light" value="<?= h((string) $cVC) ?>" style="height:44px; padding:4px;">
-            <label for="overlay_intensity_light" style="display:block; margin-top:12px;">Intensit&agrave; (<?= h((string) $cVI) ?>%)</label>
-            <input type="range" id="overlay_intensity_light" name="overlay_intensity_light" min="0" max="100" step="1" value="<?= h((string) $cVI) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-            <label for="overlay_stop_light" style="display:block; margin-top:12px;">Altezza della sfumatura (<?= h((string) $cVS) ?>%)</label>
-            <input type="range" id="overlay_stop_light" name="overlay_stop_light" min="20" max="100" step="5" value="<?= h((string) $cVS) ?>" oninput="this.previousElementSibling.textContent=this.previousElementSibling.textContent.replace(/\(\d+%\)/, '('+this.value+'%)')">
-
-            <p class="tavolozza-gruppo">Barretta laterale</p>
-            <input type="color" id="border_color_light" name="border_color_light" value="<?= h((string) $cVB) ?>" style="height:44px; padding:4px;">
-
-            <?php $cTSc = $editCat['text_color_light'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Testo sopra il velo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="text_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cTSc) ? 'checked' : '' ?>>
-              Colore solo per questa categoria
-            </label>
-            <input type="color" id="text_color_light" name="text_color_light" value="<?= h(is_valid_hex_color((string) $cTSc) ? (string) $cTSc : ($imp['store_text_color_chiaro'] ?? '#14161a')) ?>" style="height:44px; padding:4px;">
-
-            <?php $cPRc = $editCat['price_color_light'] ?? ''; ?>
-            <p class="tavolozza-gruppo">Prezzo</p>
-            <label class="campo-check">
-              <input type="checkbox" name="price_custom_chiaro" value="1" style="width:auto;" <?= is_valid_hex_color((string) $cPRc) ? 'checked' : '' ?>>
-              Colore solo per questa categoria
-            </label>
-            <input type="color" id="price_color_light" name="price_color_light" value="<?= h(is_valid_hex_color((string) $cPRc) ? (string) $cPRc : ($imp['store_price_color_chiaro'] ?? '#7a5c00')) ?>" style="height:44px; padding:4px;">
-          </div>
-          </div>
-        </div>
-        </div>
-
-        <?php $filtroProprio = !empty($editCat['filter_active_color']); ?>
-        <div class="velo-categoria">
-          <div>
-            <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-              <input type="checkbox" name="filter_custom" value="1" style="width:auto;"
-                     onchange="document.getElementById('filtroCampi').classList.toggle('is-spento', !this.checked)"
-                     <?= $filtroProprio ? 'checked' : '' ?>>
-              <strong>Colori del filtro solo per questa categoria</strong>
-            </label>
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-              Il pulsante di <?= $editCat ? h($editCat['name']) : 'questa categoria' ?> sopra la griglia dello store.
-              Senza la spunta usa i colori generali.
-            </p>
-          </div>
-          <div id="filtroCampi" class="<?= $filtroProprio ? '' : 'is-spento' ?>">
-            <div class="tavolozze">
-              <div class="tavolozza">
-                <h4>Selezionato</h4>
-                <input type="color" id="filter_active_color" name="filter_active_color" value="<?= h($editCat['filter_active_color'] ?? ($imp['store_filter_active_color'] ?? '#f0c75e')) ?>" style="height:44px; padding:4px;">
-              </div>
-              <div class="tavolozza">
-                <h4>A riposo</h4>
-                <input type="color" id="filter_idle_color" name="filter_idle_color" value="<?= h($editCat['filter_idle_color'] ?? ($imp['store_filter_idle_color'] ?? '#17181b')) ?>" style="height:44px; padding:4px;">
-              </div>
-            </div>
-          </div>
-        </div>
-        <?php
-          // Blocco sconto riusato identico da pacchetto e categoria: lo stesso nome dei campi
-          // significa che entrambi passano da sconto_dal_post().
-          $scTipo = $editCat['discount_type'] ?? '';
-          $scValore = (float) ($editCat['discount_value'] ?? 0);
-        ?>
-        <div>
-          <label for="cat_sconto_tipo">Sconto</label>
-          <select id="cat_sconto_tipo" name="discount_type">
-            <option value="" <?= $scTipo === '' ? 'selected' : '' ?>>Nessuno sconto</option>
-            <option value="percentuale" <?= $scTipo === 'percentuale' ? 'selected' : '' ?>>Percentuale (%)</option>
-            <option value="importo" <?= $scTipo === 'importo' ? 'selected' : '' ?>>Importo fisso (<?= h(site_setting('store_currency', 'EUR')) ?>)</option>
-          </select>
-        </div>
-        <div>
-          <label for="cat_sconto_valore">Valore dello sconto</label>
-          <input type="text" id="cat_sconto_valore" name="discount_value" value="<?= h($scValore > 0 ? number_format($scValore, 2, ',', '') : '') ?>" placeholder="es. 20">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Si applica a tutti i pacchetti della categoria che non hanno uno sconto proprio.</p>
-        </div>
-        <button type="submit" class="btn btn-accent"><?= $editCat ? 'Salva categoria' : 'Crea categoria' ?></button>
-      </form>
-    </div>
-    </div>
-
-    <?php /* --- Pagamenti: stessa scheda dello store, perche' e' qui che servono --- */ ?>
-    <h2 id="pagamenti" style="margin-top:34px;">Pagamenti</h2>
-    <p class="sub" style="margin-bottom:14px;">
-      L&rsquo;account PayPal che incassa gli acquisti. Senza questi dati i pacchetti restano
-      visibili ma non acquistabili.
-    </p>
-    <?php
+    // Lo store vende solo Magix (store.php, prezzi e sconti in includes/magix.php): qui
+    // restano l'account PayPal che incassa e l'elenco delle ultime ricariche.
+    require_once __DIR__ . '/../includes/magix.php';
     $s = site_settings();
     $segretoImpostato = trim($s['paypal_secret'] ?? '') !== '';
+    $ricariche = [];
+    try {
+        magix_ensure_tables();
+        $ricariche = db()->query("SELECT id, mc_username, amount, discount_pct, price, currency, status, created_at, paid_at
+                                  FROM magix_orders ORDER BY id DESC LIMIT 30")->fetchAll();
+    } catch (Throwable $e) {
+        $ricariche = [];
+    }
+    $statoRicarica = ['pending' => 'In attesa', 'paid' => 'Pagata', 'failed' => 'Non riuscita', 'cancelled' => 'Annullata'];
     ?>
-    <div class="alert alert-info">
-      Qui si configura solo l'account che incassera' i pagamenti. La cassa vera e propria
-      (pulsante di acquisto, conferma da PayPal e invio dei comandi al server) e' il passo successivo:
-      finche' non c'e', i pacchetti restano visibili ma non acquistabili.
-    </div>
+    <h2 id="pagamenti">Pagamenti</h2>
+    <p class="sub" style="margin-bottom:14px;">
+      L&rsquo;account PayPal che incassa le ricariche di Magix. Senza questi dati lo
+      <a href="/store">store</a> resta visibile ma il pulsante di pagamento è spento.
+    </p>
     <div class="panel">
       <form method="post" class="stack">
         <?= csrf_field() ?>
@@ -3662,277 +2397,45 @@ if ($section === 'dashboard') {
           <input type="password" id="paypal_secret" name="paypal_secret" value="" autocomplete="new-password" placeholder="<?= $segretoImpostato ? 'lascia vuoto per non cambiarlo' : 'incolla qui il secret' ?>">
           <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Non viene mai rimandato al browser: il campo resta vuoto e si riscrive solo se digiti qualcosa.</p>
         </div>
-        <div>
-          <label for="store_currency">Valuta (codice a 3 lettere)</label>
-          <input type="text" id="store_currency" name="store_currency" maxlength="3" value="<?= h($s['store_currency'] ?? 'EUR') ?>" style="max-width:100px;">
-        </div>
         <button type="submit" class="btn btn-accent">Salva pagamenti</button>
       </form>
     </div>
 
+    <h2 id="ricariche" style="margin-top:34px;">Ultime ricariche</h2>
+    <p class="sub" style="margin-bottom:14px;">
+      Le ultime 30 ricariche di Magix, pagate e no. Una ricarica pagata è già nel saldo del
+      giocatore: il sito la accredita da solo appena PayPal conferma il pagamento.
+    </p>
+    <div class="panel">
+      <?php if ($ricariche): ?>
+        <div class="tabella-scorrevole">
+          <table class="rank">
+            <thead>
+              <tr><th>N.</th><th>Giocatore</th><th>Magix</th><th>Prezzo</th><th>Stato</th><th>Data</th></tr>
+            </thead>
+            <tbody>
+              <?php foreach ($ricariche as $r): ?>
+                <tr>
+                  <td><?= (int) $r['id'] ?></td>
+                  <td><a href="/utente?nome=<?= h(rawurlencode((string) $r['mc_username'])) ?>"><?= h($r['mc_username']) ?></a></td>
+                  <td><?= number_format((int) $r['amount'], 0, ',', '.') ?><?= (int) $r['discount_pct'] ? ' <small>(-' . (int) $r['discount_pct'] . '%)</small>' : '' ?></td>
+                  <td><?= h(number_format((float) $r['price'], 2, ',', '.')) ?> <?= h($r['currency']) ?></td>
+                  <td><?= h($statoRicarica[$r['status']] ?? $r['status']) ?></td>
+                  <td><?= h(date('d/m/Y H:i', strtotime((string) ($r['paid_at'] ?: $r['created_at'])))) ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php else: ?>
+        <p style="margin:0; color:var(--text-dim);">Ancora nessuna ricarica.</p>
+      <?php endif; ?>
+    </div>
+
     <?php
 
 // ---------------------------------------------------------------------
-// STORE — creazione/modifica di un pacchetto
-// ---------------------------------------------------------------------
-} elseif ($section === 'store_pkg_edit') {
-    $id = (int) ($_GET['id'] ?? 0);
-    $pkg = ['category_id' => null, 'name' => '', 'image_url' => '', 'image_url_light' => '', 'image_position' => '50% 50%', 'image_position_pc' => '50% 50%',
-            'image_zoom' => 100, 'image_zoom_pc' => 100,
-            'description' => '', 'long_description' => '',
-            'price' => '0.00', 'commands' => '', 'sort_order' => 0, 'enabled' => 1, 'featured' => 0];
-    if ($id > 0) {
-        $q = db()->prepare('SELECT * FROM store_packages WHERE id = ?');
-        $q->execute([$id]);
-        $found = $q->fetch();
-        if ($found) {
-            $pkg = $found;
-        } else {
-            $id = 0;
-        }
-    }
-    $cats = db()->query('SELECT id, name FROM store_categories ORDER BY sort_order, name')->fetchAll();
-
-    // Chi e' in evidenza adesso (anche se nascosto): serve per avvisare che spuntando
-    // questo pacchetto l'altro perde la vetrina.
-    $evidenzaOra = db()->query('SELECT id, name FROM store_packages WHERE featured = 1 LIMIT 1')->fetch() ?: null;
-    $altroInEvidenza = $evidenzaOra && (int) $evidenzaOra['id'] !== $id ? $evidenzaOra['name'] : null;
-    ?>
-    <div class="area-store">
-    <a href="/manage?section=store">← Torna allo store</a>
-    <div class="panel" style="margin-top:14px;">
-      <form method="post" class="stack">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="store_pkg_save">
-        <input type="hidden" name="id" value="<?= (int) $id ?>">
-        <div>
-          <label for="pkg_name">Titolo</label>
-          <input type="text" id="pkg_name" name="name" value="<?= h($pkg['name']) ?>">
-        </div>
-        <div>
-          <label for="pkg_cat">Categoria</label>
-          <select id="pkg_cat" name="category_id">
-            <option value="0">— senza categoria —</option>
-            <?php foreach ($cats as $c): ?>
-              <option value="<?= (int) $c['id'] ?>" <?= (int) $pkg['category_id'] === (int) $c['id'] ? 'selected' : '' ?>><?= h($c['name']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div>
-          <label for="pkg_price">Prezzo (<?= h(site_setting('store_currency', 'EUR')) ?>)</label>
-          <input type="text" id="pkg_price" name="price" value="<?= h(number_format((float) $pkg['price'], 2, '.', '')) ?>" style="max-width:140px;">
-        </div>
-        <?php if (store_has_light_cover()): ?>
-          <?php /* Due copertine: una per il tema scuro (quella di sempre) e una per il chiaro.
-                   Se ne manca una vale l'altra, quindi la seconda e' facoltativa. */ ?>
-          <?php campo_immagine('pkg_image', 'image_url', (string) $pkg['image_url'],
-              'Copertina del pacchetto — tema scuro',
-              'Fa da sfondo alla card nello store e alla pagina del pacchetto quando il sito è col tema scuro. Incolla un indirizzo oppure carica un file con <strong>Scegli</strong>.'); ?>
-          <?php campo_immagine('pkg_image_light', 'image_url_light', (string) ($pkg['image_url_light'] ?? ''),
-              'Copertina del pacchetto — tema chiaro',
-              'La stessa cosa, per chi usa il tema chiaro. Facoltativa: se la lasci vuota, col tema chiaro si vede la copertina del tema scuro (e viceversa). L&rsquo;inquadratura qui sotto vale per tutte e due.'); ?>
-        <?php else: ?>
-          <?php campo_immagine('pkg_image', 'image_url', (string) $pkg['image_url'],
-              'Copertina del pacchetto',
-              'Fa da sfondo alla card nello store e alla pagina del pacchetto. Incolla un indirizzo oppure carica un file con <strong>Scegli</strong>.'); ?>
-          <p class="sub" style="margin:-6px 0 4px; color:var(--text-dim); font-size: var(--fs-xs);">
-            Per caricare una seconda copertina per il tema chiaro lancia la migrazione
-            <code>2026-10-03-store-copertina-chiara.sql</code> e ricarica.
-          </p>
-        <?php endif; ?>
-        <?php if (store_ha_inquadratura()): ?>
-          <?php /* Inquadratura della copertina (telefono e computer), come per gli articoli:
-                   si trascina l'immagine per scegliere quale parte resta in vista sulla card,
-                   e col cursore sotto ogni anteprima si sceglie lo zoom (se c'e' la migrazione). */
-                $conZoom = store_has_zoom(); ?>
-          <div class="inquadratura" data-inquadratura data-src-campo="#pkg_image"
-               data-src="<?= h((string) $pkg['image_url']) ?>"
-               <?= empty($pkg['image_url']) ? 'hidden' : '' ?>>
-            <label>Inquadratura della copertina</label>
-            <p class="sub" style="margin:-2px 0 10px;">Sulla card l&rsquo;immagine viene ritagliata, e telefono e computer tagliano in modo diverso: <strong>trascinale una per una</strong> per scegliere cosa tenere in vista<?= $conZoom ? ', e col <strong>cursore</strong> sotto ognuna scegli quanto rimpicciolirla per vederne di più (100% = riempie la card; i bordi che restano scoperti li riempie la stessa immagine sfocata)' : '' ?>. Sono indipendenti.</p>
-            <div class="inquadratura-riquadri">
-              <figure class="inquadratura-box e-telefono">
-                <div class="inquadratura-tela" data-tela="telefono" data-campo="image_position"></div>
-                <?php if ($conZoom): $z = store_zoom_value($pkg['image_zoom'] ?? 100); ?>
-                  <div class="inquadratura-zoom">
-                    <input type="range" name="image_zoom" min="<?= STORE_ZOOM_MIN ?>" max="<?= STORE_ZOOM_MAX ?>" step="5"
-                           value="<?= $z ?>" data-zoom="telefono" aria-label="Zoom sul telefono">
-                    <output data-zoom-valore="telefono"><?= $z ?>%</output>
-                  </div>
-                <?php endif; ?>
-                <figcaption>Telefono</figcaption>
-              </figure>
-              <figure class="inquadratura-box e-computer">
-                <div class="inquadratura-tela" data-tela="computer" data-campo="image_position_pc"></div>
-                <?php if ($conZoom): $z = store_zoom_value($pkg['image_zoom_pc'] ?? 100); ?>
-                  <div class="inquadratura-zoom">
-                    <input type="range" name="image_zoom_pc" min="<?= STORE_ZOOM_MIN ?>" max="<?= STORE_ZOOM_MAX ?>" step="5"
-                           value="<?= $z ?>" data-zoom="computer" aria-label="Zoom sul computer">
-                    <output data-zoom-valore="computer"><?= $z ?>%</output>
-                  </div>
-                <?php endif; ?>
-                <figcaption>Computer</figcaption>
-              </figure>
-              <button type="button" class="btn btn-ghost btn-small" data-centra><?= $conZoom ? 'Rimetti al centro, senza zoom' : 'Rimetti al centro' ?></button>
-            </div>
-            <?php if (!$conZoom): ?>
-              <p class="sub" style="margin:8px 0 0; color:var(--text-dim); font-size: var(--fs-xs);">
-                Per scegliere anche lo zoom (telefono e computer) lancia la migrazione
-                <code>2026-10-03-store-zoom.sql</code> e ricarica.
-              </p>
-            <?php endif; ?>
-            <input type="hidden" name="image_position" value="<?= h($pkg['image_position'] ?? '50% 50%') ?>">
-            <input type="hidden" name="image_position_pc" value="<?= h($pkg['image_position_pc'] ?? '50% 50%') ?>">
-          </div>
-        <?php else: ?>
-          <p class="sub" style="margin:-6px 0 4px; color:var(--text-dim); font-size: var(--fs-xs);">
-            Per scegliere l&rsquo;inquadratura della copertina (telefono e computer) lancia la migrazione
-            <code>2026-09-14-store-inquadratura.sql</code> e ricarica.
-          </p>
-        <?php endif; ?>
-        <div>
-          <label for="pkg_desc">Cosa ottieni (una voce per riga)</label>
-          <textarea id="pkg_desc" name="description" rows="4"><?= h((string) $pkg['description']) ?></textarea>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Diventa l'elenco puntato che si vede sulla card e nella pagina del pacchetto.
-          </p>
-        </div>
-        <div>
-          <label for="pkg_long">Descrizione dettagliata (pagina del pacchetto)</label>
-          <textarea id="pkg_long" name="long_description" rows="6"><?= h((string) ($pkg['long_description'] ?? '')) ?></textarea>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Testo esteso mostrato solo su <span class="code-box">/pacchetto/<?= h($pkg['slug'] ?? 'nome-pacchetto') ?></span>,
-            la pagina che si apre cliccando la card. Se lo lasci vuoto, la pagina mostra solo l'elenco qui sopra.
-          </p>
-        </div>
-        <?php
-        // Un riquadro di comandi per ogni server della rete (il principale per primo). Prima
-        // della migrazione dei comandi per server, solo quello del faction: come sempre.
-        $pkgCommands = store_package_commands($pkg);
-        $serverForm = store_has_server_commands()
-            ? array_keys(array_merge([GAME_SERVER_MAIN => true], GAME_SERVERS))
-            : [STORE_LEGACY_SERVER];
-        ?>
-        <div>
-          <label style="margin-bottom:2px;">Comandi eseguiti all'acquisto, divisi per server</label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 8px;">
-            Ogni server esegue solo i comandi del suo riquadro, dalla propria console: così un pacchetto
-            può dare qualcosa su Factions e qualcos'altro sull'Hub. Uno per riga, senza <code>/</code>
-            iniziale; <code>{player}</code> è il nome di chi acquista. Se un server è spento, i suoi comandi
-            aspettano e partono quando riaccende. I comandi che vogliono il giocatore connesso
-            (<code>give</code>...) mettili nel server dove si trova; gradi e valute funzionano anche da offline.
-          </p>
-          <?php foreach ($serverForm as $server): ?>
-            <label for="pkg_commands_<?= h($server) ?>" style="text-transform:none; margin-top:8px;">
-              Su <strong><?= h(GAME_SERVERS[$server]['label'] ?? $server) ?></strong>
-            </label>
-            <textarea id="pkg_commands_<?= h($server) ?>" name="commands[<?= h($server) ?>]" rows="4"
-                      placeholder="<?= $server === STORE_LEGACY_SERVER ? 'lp user {player} parent add vip&#10;give {player} diamond 64' : '' ?>"><?= h($pkgCommands[$server] ?? '') ?></textarea>
-          <?php endforeach; ?>
-        </div>
-        <div>
-          <label for="pkg_sort">Ordine (numero, crescente)</label>
-          <input type="text" id="pkg_sort" name="sort_order" value="<?= h((string) $pkg['sort_order']) ?>">
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" name="enabled" value="1" style="width:auto;" <?= $pkg['enabled'] ? 'checked' : '' ?>>
-            Visibile nello store
-          </label>
-        </div>
-        <div>
-          <label style="text-transform:none; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="pkg_featured" name="featured" value="1" style="width:auto;"
-                   <?= !empty($pkg['featured']) ? 'checked' : '' ?>
-                   <?= $altroInEvidenza !== null ? 'data-altro="' . h($altroInEvidenza) . '"' : '' ?>>
-            Pacchetto in evidenza (promozione)
-          </label>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Ne esiste <strong>uno solo in tutto lo store</strong>, categorie comprese: fa da vetrina
-            (la card larga in cima) ed è il pacchetto a cui punta il pulsante del banner promozione in home.
-            <?php if ($altroInEvidenza !== null): ?>
-              <br>In evidenza adesso: <strong><?= h($altroInEvidenza) ?></strong> — spuntando qui, lo sostituisci.
-            <?php endif; ?>
-          </p>
-          <?php if ($altroInEvidenza !== null): ?>
-            <div class="alert alert-info" id="avvisoEvidenza" hidden style="margin-top:10px;">
-              «<?= h($altroInEvidenza) ?>» perderà la vetrina al salvataggio: in evidenza resterà solo questo pacchetto.
-            </div>
-          <?php endif; ?>
-        </div>
-        <?php if (!empty($pkg['featured']) && empty($pkg['enabled'])): ?>
-          <div class="alert alert-error">
-            Questo pacchetto è in evidenza ma <strong>nascosto</strong>: finché resta nascosto, lo store
-            mette in vetrina il primo pacchetto disponibile e il banner della home torna al suo indirizzo manuale.
-          </div>
-        <?php endif; ?>
-        <?php
-          // Blocco sconto riusato identico da pacchetto e categoria: lo stesso nome dei campi
-          // significa che entrambi passano da sconto_dal_post().
-          $scTipo = $pkg['discount_type'] ?? '';
-          $scValore = (float) ($pkg['discount_value'] ?? 0);
-        ?>
-        <div>
-          <label for="pkg_sconto_tipo">Sconto</label>
-          <select id="pkg_sconto_tipo" name="discount_type">
-            <option value="" <?= $scTipo === '' ? 'selected' : '' ?>>Nessuno sconto</option>
-            <option value="percentuale" <?= $scTipo === 'percentuale' ? 'selected' : '' ?>>Percentuale (%)</option>
-            <option value="importo" <?= $scTipo === 'importo' ? 'selected' : '' ?>>Importo fisso (<?= h(site_setting('store_currency', 'EUR')) ?>)</option>
-          </select>
-        </div>
-        <div>
-          <label for="pkg_sconto_valore">Valore dello sconto</label>
-          <input type="text" id="pkg_sconto_valore" name="discount_value" value="<?= h($scValore > 0 ? number_format($scValore, 2, ',', '') : '') ?>" placeholder="es. 20">
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">Vince sullo sconto della categoria e su quello generale. Lascia vuoto (o 0) per non scontare questo pacchetto.</p>
-        </div>
-        <button type="submit" class="btn btn-accent"><?= $id > 0 ? 'Salva pacchetto' : 'Crea pacchetto' ?></button>
-      </form>
-    </div>
-
-    <?php if ($id > 0): ?>
-      <h2 style="margin-top:34px;">Consegna manuale</h2>
-      <p class="sub" style="margin-bottom:14px;">
-        Esegue in gioco i comandi di questo pacchetto <strong>senza passare da PayPal</strong>: serve per
-        provare la consegna, per un regalo o per rimediare a un ordine andato storto. L'ordine viene
-        registrato in Pagamenti con la dicitura <code>MANUALE</code>, così resta traccia di chi l'ha fatto.
-      </p>
-      <div class="panel">
-        <form method="post" class="stack" onsubmit="return confirm('Consegnare subito questo pacchetto? I comandi verranno eseguiti in gioco.');">
-          <?= csrf_field() ?>
-          <input type="hidden" name="action" value="store_pkg_deliver">
-          <input type="hidden" name="id" value="<?= (int) $id ?>">
-          <div>
-            <label for="player">A chi</label>
-            <input type="text" id="player" name="player" value="<?= h((string) $me['mc_username']) ?>" maxlength="32">
-            <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-              Nome Minecraft. Deve essere un giocatore già noto al sito: account collegato con
-              entrato in partita almeno una volta.
-            </p>
-          </div>
-          <button type="submit" class="btn btn-ghost">Consegna ora</button>
-        </form>
-      </div>
-    <?php endif; ?>
-    </div>
-    <script>
-    // Spuntare "in evidenza" quando la vetrina e' gia' di un altro pacchetto e' una
-    // sostituzione: si chiede conferma prima, e l'avviso resta visibile fino al salvataggio.
-    (function () {
-      var spunta = document.getElementById('pkg_featured');
-      if (!spunta || !spunta.dataset.altro) return;
-      var avviso = document.getElementById('avvisoEvidenza');
-      spunta.addEventListener('change', function () {
-        if (spunta.checked && !confirm('In evidenza c\'è già «' + spunta.dataset.altro + '».\n\nMettendo in evidenza questo pacchetto, l\'altro perde la vetrina e il banner della home punterà qui.\n\nVuoi sostituirlo?')) {
-          spunta.checked = false;
-        }
-        if (avviso) avviso.hidden = !spunta.checked;
-      });
-    })();
-    </script>
-    <?php
-
-// ---------------------------------------------------------------------
-// PAGAMENTI — configurazione PayPal (solo web-admin)
+// PERMESSI
 // ---------------------------------------------------------------------
 } elseif ($section === 'perms') {
     $groups = web_groups();
@@ -4663,12 +3166,8 @@ if ($section === 'dashboard') {
 <script src="/assets/js/editor.js"></script>
 <?php endif; ?>
 
-<?php if (in_array($section, ['blog_edit', 'store_pkg_edit'], true)): ?>
+<?php if ($section === 'blog_edit'): ?>
 <script src="/assets/js/inquadratura.js?v=<?= @filemtime(__DIR__ . '/assets/js/inquadratura.js') ?: time() ?>"></script>
-<?php endif; ?>
-
-<?php if ($section === 'store'): ?>
-<script src="/assets/js/store-admin.js"></script>
 <?php endif; ?>
 
 <?php if ($section === 'forum'): ?>
@@ -4728,7 +3227,7 @@ if ($section === 'dashboard') {
 <?php endif; ?>
 
 <?php /* Il pulsante "Scegli" dei campi immagine: sezioni con almeno un campo di quel tipo. */ ?>
-<?php if (in_array($section, ['blog_edit', 'theme', 'store_pkg_edit'])): ?>
+<?php if (in_array($section, ['blog_edit', 'theme'])): ?>
 <script src="/assets/js/carica-immagine.js"></script>
 <?php endif; ?>
 
