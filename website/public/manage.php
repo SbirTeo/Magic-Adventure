@@ -2354,7 +2354,7 @@ if ($section === 'dashboard') {
     $ricariche = [];
     try {
         magix_ensure_tables();
-        $ricariche = db()->query("SELECT id, mc_username, amount, discount_pct, price, currency, status, created_at, paid_at
+        $ricariche = db()->query("SELECT id, mc_username, recipient_name, amount, discount_pct, price, currency, status, created_at, paid_at
                                   FROM magix_orders ORDER BY id DESC LIMIT 30")->fetchAll();
     } catch (Throwable $e) {
         $ricariche = [];
@@ -2403,21 +2403,23 @@ if ($section === 'dashboard') {
 
     <h2 id="ricariche" style="margin-top:34px;">Ultime ricariche</h2>
     <p class="sub" style="margin-bottom:14px;">
-      Le ultime 30 ricariche di Magix, pagate e no. Una ricarica pagata è già nel saldo del
-      giocatore: il sito la accredita da solo appena PayPal conferma il pagamento.
+      Le ultime 30 ricariche di Magix, pagate e no, comprese quelle regalate a un altro giocatore.
+      Una ricarica pagata è già nel saldo di chi la riceve: il sito la accredita da solo appena
+      PayPal conferma il pagamento.
     </p>
     <div class="panel">
       <?php if ($ricariche): ?>
         <div class="tabella-scorrevole">
           <table class="rank">
             <thead>
-              <tr><th>N.</th><th>Giocatore</th><th>Magix</th><th>Prezzo</th><th>Stato</th><th>Data</th></tr>
+              <tr><th>N.</th><th>Chi paga</th><th>Per chi</th><th>Magix</th><th>Prezzo</th><th>Stato</th><th>Data</th></tr>
             </thead>
             <tbody>
               <?php foreach ($ricariche as $r): ?>
                 <tr>
                   <td><?= (int) $r['id'] ?></td>
                   <td><a href="/utente?nome=<?= h(rawurlencode((string) $r['mc_username'])) ?>"><?= h($r['mc_username']) ?></a></td>
+                  <td><?= $r['recipient_name'] ? '&#127873; <a href="/utente?nome=' . h(rawurlencode((string) $r['recipient_name'])) . '">' . h($r['recipient_name']) . '</a>' : 'per sé' ?></td>
                   <td><?= number_format((int) $r['amount'], 0, ',', '.') ?><?= (int) $r['discount_pct'] ? ' <small>(-' . (int) $r['discount_pct'] . '%)</small>' : '' ?></td>
                   <td><?= h(number_format((float) $r['price'], 2, ',', '.')) ?> <?= h($r['currency']) ?></td>
                   <td><?= h($statoRicarica[$r['status']] ?? $r['status']) ?></td>

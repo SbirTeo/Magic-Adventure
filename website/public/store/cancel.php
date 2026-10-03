@@ -12,8 +12,10 @@ $orderId = (int) ($_GET['order'] ?? 0);
 db()->prepare("UPDATE magix_orders SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status = 'pending'")
     ->execute([$orderId, $me['id']]);
 
-$q = db()->prepare('SELECT amount FROM magix_orders WHERE id = ? AND user_id = ?');
+$q = db()->prepare('SELECT amount, recipient_name FROM magix_orders WHERE id = ? AND user_id = ?');
 $q->execute([$orderId, $me['id']]);
-$amount = (int) ($q->fetchColumn() ?: 0);
+$ordine = $q->fetch() ?: ['amount' => 0, 'recipient_name' => null];
+$amount = (int) $ordine['amount'];
+$per = trim((string) $ordine['recipient_name']);
 
-redirect('/store?err=annullato' . ($amount > 0 ? '&q=' . $amount : ''));
+redirect('/store?err=annullato' . ($amount > 0 ? '&q=' . $amount : '') . ($per !== '' ? '&per=' . rawurlencode($per) : ''));

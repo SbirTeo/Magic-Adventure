@@ -4,7 +4,8 @@
  *
  * Una pagina sola: il giocatore sceglie quanti Magix vuole spostando il cursore (da MAGIX_MIN
  * a MAGIX_MAX, sconto crescente con la quantita'), paga con PayPal e i Magix arrivano nel suo
- * saldo di gioco. I pacchetti VIP si comprano poi DENTRO il gioco, spendendo i Magix.
+ * saldo di gioco, oppure li REGALA a un altro giocatore scrivendone il nome. I pacchetti VIP si
+ * comprano poi DENTRO il gioco, spendendo i Magix.
  * Prezzi e sconti: includes/magix.php. Il copione della pagina: assets/js/store-magix.js.
  *
  * Nella colonna di destra il portafoglio del giocatore (saldo e ultime ricariche), che la
@@ -36,7 +37,7 @@ $ricarica = null;
 if ($conGiocatore) {
     try {
         $saldo = magix_balance((string) $me['mc_uuid']);
-        $ricariche = magix_recent_orders((int) $me['id']);
+        $ricariche = magix_recent_orders((int) $me['id'], (string) $me['mc_uuid']);
         // Rientro da PayPal (store/return.php): l'ordine appena pagato, per festeggiarlo.
         if (isset($_GET['ricarica'])) {
             $q = db()->prepare('SELECT * FROM magix_orders WHERE id = ? AND user_id = ?');
@@ -49,11 +50,16 @@ if ($conGiocatore) {
 }
 $esito = (string) ($_GET['esito'] ?? '');
 $festa = $ricarica && $ricarica['status'] === 'paid' && $esito === 'ok';
+// Al ritorno da un regalo i Magix non sono nel MIO portafoglio: niente gemme che volano.
+$regaloFatto = $festa && trim((string) ($ricarica['recipient_uuid'] ?? '')) !== '';
 
 // Quantita' con cui si apre il cursore: quella dell'ultimo tentativo (errore, annullato),
 // altrimenti il minimo, col sacco vuoto che si riempie man mano.
 $iniziale = max(MAGIX_MIN, min(MAGIX_MAX, (int) ($_GET['q'] ?? ($ricarica['amount'] ?? MAGIX_MIN))));
 $preventivo = magix_quote($iniziale);
+
+// Regalo gia' impostato (rientro da un errore o da PayPal annullato): si riapre com'era.
+$perRegalo = isset($_GET['per']) ? mb_substr(trim((string) $_GET['per']), 0, 16) : '';
 
 $sidebarSito = pagina_con_sidebar('/store');
 $gemma = '/assets/img/magix.svg';
@@ -88,6 +94,7 @@ require __DIR__ . '/../includes/header.php';
       'termini' => 'Per acquistare devi spuntare la casella dei termini di vendita, accanto al pulsante.',
       'annullato' => 'Hai annullato il pagamento su PayPal: non ti è stato addebitato nulla.',
       'indisponibile' => 'Al momento non è possibile acquistare: riprova tra poco.',
+      'destinatario' => 'Non abbiamo trovato il giocatore a cui vuoi regalare i Magix: controlla il nome, quello che usa in gioco.',
   ];
   $err = (string) ($_GET['err'] ?? '');
 ?>
@@ -156,6 +163,36 @@ require __DIR__ . '/../includes/header.php';
         <button type="button" class="magix-tondo" id="magixPiu" aria-label="Un Magix in più">+</button>
       </div>
 
+      <?php if ($pronto && $conGiocatore): ?>
+        <?php /* Per chi sono i Magix: per se' o in regalo. I campi stanno fuori dal modulo di
+                 pagamento ma ne fanno parte (attributo form). Il nome si controlla mentre lo si
+                 scrive (/api/magix?player=) e di nuovo nella cassa. */ ?>
+        <div class="magix-per-chi" id="magixPerChi">
+          <div class="magix-etichetta">Per chi sono</div>
+          <div class="magix-scelte-chi" role="radiogroup" aria-label="Per chi sono i Magix">
+            <label class="magix-chip">
+              <input type="radio" name="for" value="me" form="magixCompra"<?= $perRegalo === '' ? ' checked' : '' ?>>
+              <img src="<?= h(mc_avatar_url($me['mc_uuid'], 32, $me['premium_uuid'] ?? null)) ?>" alt="" width="22" height="22">
+              <span>Per me</span>
+            </label>
+            <label class="magix-chip">
+              <input type="radio" name="for" value="gift" form="magixCompra"<?= $perRegalo !== '' ? ' checked' : '' ?>>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
+              <span>Regala a un altro giocatore</span>
+            </label>
+          </div>
+          <div class="magix-regalo" id="magixRegalo"<?= $perRegalo === '' ? ' hidden' : '' ?>>
+            <div class="magix-regalo-campo">
+              <img class="magix-regalo-avatar" id="magixRegaloAvatar" src="/assets/img/magix.svg" alt="" width="40" height="40">
+              <input type="text" name="recipient" id="magixDestinatario" form="magixCompra" maxlength="16" value="<?= h($perRegalo) ?>"
+                     placeholder="Nome del giocatore, quello che usa in gioco" autocomplete="off" spellcheck="false"
+                     aria-describedby="magixRegaloEsito">
+            </div>
+            <p class="magix-regalo-esito" id="magixRegaloEsito" aria-live="polite">I Magix arriveranno nel suo portafoglio, su tutta la rete.</p>
+          </div>
+        </div>
+      <?php endif; ?>
+
       <div class="magix-riepilogo">
         <div class="magix-righe">
           <div class="magix-barrato" id="magixBarrato"><span>Prezzo pieno</span><b id="magixPieno"><?= h(magix_euro($preventivo['full'])) ?></b></div>
@@ -186,7 +223,7 @@ require __DIR__ . '/../includes/header.php';
               </label>
               <button type="submit" class="btn btn-gold magix-paga">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 21H3.6l2.7-17h6.4c3.6 0 5.6 1.9 5 5.3-.6 3.6-3.2 5.4-6.6 5.4H9l-1 6.3zM9.5 12h1.6c1.9 0 3.1-.8 3.4-2.6.3-1.6-.6-2.4-2.3-2.4H10.4z"/></svg>
-                Paga con PayPal
+                <span id="magixPagaTesto">Paga con PayPal</span>
               </button>
             </form>
           <?php endif; ?>
@@ -244,17 +281,17 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="magix-sez">
-          <h3>Le tue ricariche</h3>
+          <h3>I tuoi movimenti</h3>
           <ul class="magix-movimenti" id="magixMovimenti">
             <?php foreach ($ricariche as $r): ?>
-              <li>
-                <span class="magix-mov-ico">+</span>
-                <span class="magix-mov-cosa">Ricarica sul sito<span><?= h(magix_euro((float) $r['price'])) ?> · <?= h(time_ago((string) $r['paid_at'])) ?></span></span>
-                <span class="magix-mov-q">+<?= number_format((int) $r['amount'], 0, ',', '.') ?></span>
+              <li class="is-<?= h($r['kind']) ?>">
+                <span class="magix-mov-ico"><?= $r['kind'] === 'sent' ? '&#8599;' : '+' ?></span>
+                <span class="magix-mov-cosa"><b><?= h($r['label']) ?></b><span><?= h($r['meta']) ?></span></span>
+                <span class="magix-mov-q"><?= $r['kind'] === 'sent' ? '' : '+' ?><?= number_format($r['amount'], 0, ',', '.') ?></span>
               </li>
             <?php endforeach; ?>
           </ul>
-          <p class="magix-vuoto" id="magixNessuna"<?= $ricariche ? ' hidden' : '' ?>>Ancora nessuna ricarica.</p>
+          <p class="magix-vuoto" id="magixNessuna"<?= $ricariche ? ' hidden' : '' ?>>Ancora nessun movimento.</p>
         </div>
       <?php else: ?>
         <div class="magix-saldo-box is-ospite">
@@ -278,12 +315,18 @@ require __DIR__ . '/../includes/header.php';
 
 <?php if ($festa): ?>
   <div class="magix-velo on" id="magixVelo" role="dialog" aria-modal="true" aria-labelledby="magixFestaTit"
-       data-amount="<?= (int) $ricarica['amount'] ?>">
+       data-amount="<?= $regaloFatto ? 0 : (int) $ricarica['amount'] ?>">
     <div class="magix-modale">
       <img src="/assets/img/magix-sacco.png" alt="" width="120" height="120">
-      <h3 id="magixFestaTit">Ricarica completata!</h3>
-      <p><b><?= number_format((int) $ricarica['amount'], 0, ',', '.') ?> Magix</b> sono nel tuo portafoglio.<br>
-         Entra in gioco e spendili per i pacchetti VIP.</p>
+      <?php if ($regaloFatto): ?>
+        <h3 id="magixFestaTit">Regalo inviato!</h3>
+        <p><b><?= number_format((int) $ricarica['amount'], 0, ',', '.') ?> Magix</b> sono nel portafoglio di
+           <b><?= h($ricarica['recipient_name']) ?></b>.<br>Li trova già su tutta la rete.</p>
+      <?php else: ?>
+        <h3 id="magixFestaTit">Ricarica completata!</h3>
+        <p><b><?= number_format((int) $ricarica['amount'], 0, ',', '.') ?> Magix</b> sono nel tuo portafoglio.<br>
+           Entra in gioco e spendili per i pacchetti VIP.</p>
+      <?php endif; ?>
       <button type="button" class="btn btn-gold" id="magixChiudi">Fantastico</button>
     </div>
   </div>

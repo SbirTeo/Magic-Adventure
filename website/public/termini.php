@@ -40,7 +40,9 @@ legal_header('Termini di vendita', 'termini');
     lo sconto prima del pagamento. Con i Magix, dentro il gioco, si acquistano gradi VIP e altri
     vantaggi, ognuno descritto in gioco con il suo costo e la sua durata. I Magix sono legati
     all'<strong>account Minecraft</strong> con cui hai fatto l'accesso, valgono solo sul nostro server,
-    non si possono convertire in denaro e non sono rimborsabili una volta spesi.
+    non si possono convertire in denaro e non sono rimborsabili una volta spesi. Puoi anche
+    <strong>regalarli</strong> a un altro giocatore: in quel caso arrivano sul suo account, e
+    queste condizioni valgono per l'acquisto come se fossero per te.
   </p>
   <p>
     Magic Adventure non è affiliato a Mojang Studios né a Microsoft. Minecraft è un marchio di Mojang AB.

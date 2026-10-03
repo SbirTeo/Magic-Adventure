@@ -272,6 +272,56 @@
 .magix-tondo:hover { border-color: var(--magix); background: rgba(213, 76, 255, 0.12); }
 .magix-tondo:active { transform: scale(.92); }
 
+/* ---- Per chi sono: per me o in regalo ------------------------------------------------- */
+.magix-per-chi { margin-top: 24px; }
+.magix-scelte-chi { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.magix-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel-2);
+  color: var(--text-dim);
+  font: 600 var(--fs-sm) / 1.2 var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, color .2s, box-shadow .2s;
+}
+.magix-chip input { position: absolute; opacity: 0; pointer-events: none; width: auto; }
+.magix-chip img { width: 22px; height: 22px; border-radius: 4px; image-rendering: pixelated; }
+.magix-chip:hover { border-color: var(--magix); color: var(--text); }
+.magix-chip:has(input:checked) {
+  border-color: var(--magix);
+  background: rgba(213, 76, 255, 0.14);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--magix), 0 6px 18px -8px var(--magix-alone);
+}
+.magix-chip:has(input:focus-visible) { outline: 2px solid var(--bordo-fuoco); outline-offset: 2px; }
+.magix-regalo { margin-top: 12px; animation: magix-entra .35s ease-out; }
+.magix-regalo[hidden] { display: none; }
+.magix-regalo-campo { display: flex; align-items: center; gap: 12px; max-width: 460px; }
+.magix-regalo-avatar {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border-strong);
+  padding: 2px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.magix-regalo[data-stato="ok"] .magix-regalo-avatar { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); padding: 0; }
+.magix-regalo[data-stato="no"] .magix-regalo-avatar { border-color: #e05050; }
+.magix-regalo-campo input { flex: 1; min-width: 0; }
+.magix-regalo-esito { margin: 6px 0 0 52px; font-size: var(--fs-xs); color: var(--text-dim); }
+.magix-regalo[data-stato="ok"] .magix-regalo-esito { color: var(--green); }
+.magix-regalo[data-stato="no"] .magix-regalo-esito { color: #ff7b7b; }
+[data-tema="chiaro"] .magix-regalo[data-stato="no"] .magix-regalo-esito { color: #c22f2f; }
+
 /* ---- Riepilogo e pagamento ------------------------------------------------------------ */
 .magix-riepilogo {
   margin-top: 26px;
@@ -487,6 +537,10 @@
 .magix-mov-cosa { flex: 1; min-width: 0; color: var(--text); }
 .magix-mov-cosa span { display: block; color: var(--text-dimmer); font-size: var(--fs-xs); }
 .magix-mov-q { font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; }
+.magix-mov-cosa b { font-weight: 400; }
+/* Regalo fatto: i Magix sono andati a un altro, quindi niente verde del "+" */
+.magix-movimenti li.is-sent .magix-mov-ico { background: rgba(213, 76, 255, 0.14); color: var(--magix); }
+.magix-movimenti li.is-sent .magix-mov-q { color: var(--magix); }
 .magix-vuoto { font-size: var(--fs-sm); color: var(--text-dimmer); margin: 0; }
 
 /* ---- Gemme in volo, scintille, conferma ------------------------------------------------ */

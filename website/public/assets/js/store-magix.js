@@ -182,6 +182,54 @@
 
   render(false);
 
+  // ---- regalo: per me o per un altro giocatore -----------------------------------------
+  // Il nome si controlla mentre lo si scrive (/api/magix?player=): finche' non e' un
+  // giocatore vero il pulsante non parte. La cassa lo ricontrolla comunque.
+  const regalo = $('magixRegalo'), campo = $('magixDestinatario');
+  if (regalo && campo) {
+    const esito = $('magixRegaloEsito'), avatar = $('magixRegaloAvatar'), testoPaga = $('magixPagaTesto');
+    const gemma = avatar.getAttribute('src');
+    const scelte = document.querySelectorAll('input[name="for"]');
+    const frase = esito.textContent;
+    let attesa, ultimo = '';
+
+    const isGift = () => document.querySelector('input[name="for"]:checked').value === 'gift';
+    const markRecipient = (stato, testo, foto) => {
+      regalo.dataset.stato = stato;
+      esito.textContent = testo;
+      avatar.src = foto || gemma;
+      campo.setCustomValidity(stato === 'ok' ? '' : (testo || 'Scrivi il nome di un giocatore'));
+    };
+
+    async function checkRecipient() {
+      const nome = campo.value.trim();
+      if (nome === ultimo) return;
+      ultimo = nome;
+      if (nome.length < 2) { markRecipient('', frase); return; }
+      markRecipient('cerca', 'Cerco ' + nome + '...');
+      try {
+        const r = await fetch('/api/magix?player=' + encodeURIComponent(nome), {credentials: 'same-origin', cache: 'no-store'});
+        const d = await r.json();
+        if (campo.value.trim() !== nome) return;          // nel frattempo ha scritto altro
+        if (!d.found) markRecipient('no', 'Nessun giocatore si chiama ' + nome + '.');
+        else if (d.self) markRecipient('no', 'Questo sei tu: per te scegli «Per me».', d.avatar);
+        else markRecipient('ok', 'I Magix arriveranno nel portafoglio di ' + d.name + ', su tutta la rete.', d.avatar);
+      } catch (e) { markRecipient('', frase); ultimo = ''; }
+    }
+
+    function syncChoice() {
+      const g = isGift();
+      regalo.hidden = !g;
+      campo.required = g;
+      if (testoPaga) testoPaga.textContent = g ? 'Regala con PayPal' : 'Paga con PayPal';
+      if (!g) campo.setCustomValidity('');
+      else { ultimo = ''; checkRecipient(); }
+    }
+    scelte.forEach(r => r.addEventListener('change', () => { syncChoice(); if (isGift()) campo.focus(); }));
+    campo.addEventListener('input', () => { clearTimeout(attesa); attesa = setTimeout(checkRecipient, 350); });
+    syncChoice();
+  }
+
   // ---- portafoglio: saldo vero, riletto ogni pochi secondi -----------------------------
   const portafoglio = $('magixPortafoglio');
   const saldoEl = $('magixSaldo');
@@ -212,10 +260,13 @@
     ul.textContent = '';
     ordini.forEach((o, i) => {
       const li = document.createElement('li');
-      if (nuova && i === 0) li.className = 'nuovo';
-      li.innerHTML = '<span class="magix-mov-ico">+</span><span class="magix-mov-cosa">Ricarica sul sito<span></span></span><span class="magix-mov-q"></span>';
-      li.querySelector('.magix-mov-cosa span').textContent = o.price + (o.ago ? ' · ' + o.ago : '');
-      li.querySelector('.magix-mov-q').textContent = '+' + numero(o.amount);
+      // kind: self = ricarica, sent = regalo fatto (non entra nel mio saldo), received = regalo ricevuto
+      li.className = 'is-' + o.kind + (nuova && i === 0 ? ' nuovo' : '');
+      li.innerHTML = '<span class="magix-mov-ico"></span><span class="magix-mov-cosa"><b></b><span></span></span><span class="magix-mov-q"></span>';
+      li.querySelector('.magix-mov-ico').textContent = o.kind === 'sent' ? '\u2197' : '+';
+      li.querySelector('.magix-mov-cosa b').textContent = o.label;
+      li.querySelector('.magix-mov-cosa span').textContent = o.meta;
+      li.querySelector('.magix-mov-q').textContent = (o.kind === 'sent' ? '' : '+') + numero(o.amount);
       ul.appendChild(li);
     });
     $('magixNessuna').hidden = ordini.length > 0;
