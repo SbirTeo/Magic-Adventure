@@ -135,6 +135,7 @@ public final class FactionManager {
                     f.setBankAvgAccum(rs.getDouble("bank_avg_accum"));
                     f.setPowerAvgAccum(rs.getDouble("power_avg_accum"));
                     f.setBankActiveSeconds(rs.getDouble("bank_active_seconds"));
+                    f.setPowerPausedSeconds(rs.getDouble("power_paused_seconds"));
                     long sampledAt = rs.getLong("score_sampled_at");
                     long since = rs.getLong("score_since");
                     if (since <= 0) { long now = System.currentTimeMillis(); since = now; sampledAt = now; }
@@ -474,12 +475,13 @@ public final class FactionManager {
         final long fid = f.getId();
         final double bankAcc = f.getBankAvgAccum(), powAcc = f.getPowerAvgAccum(), sc = f.getScore();
         final double bankActive = f.getBankActiveSeconds();
+        final double powerPaused = f.getPowerPausedSeconds();
         final long sampledAt = f.getScoreSampledAt(), since = f.getScoreSince();
         final String detail = f.getScoreDetail();
         final int ranked = f.isRanked() ? 1 : 0;
         write("saveScoreSample", c -> {
             try (PreparedStatement ps = c.prepareStatement(
-                    "UPDATE factions SET bank_avg_accum=?, power_avg_accum=?, score_sampled_at=?, score_since=?, score=?, score_detail=?, ranked=?, bank_active_seconds=? WHERE id=?")) {
+                    "UPDATE factions SET bank_avg_accum=?, power_avg_accum=?, score_sampled_at=?, score_since=?, score=?, score_detail=?, ranked=?, bank_active_seconds=?, power_paused_seconds=? WHERE id=?")) {
                 ps.setDouble(1, bankAcc);
                 ps.setDouble(2, powAcc);
                 ps.setLong(3, sampledAt);
@@ -488,7 +490,8 @@ public final class FactionManager {
                 ps.setString(6, detail);
                 ps.setInt(7, ranked);
                 ps.setDouble(8, bankActive);
-                ps.setLong(9, fid);
+                ps.setDouble(9, powerPaused);
+                ps.setLong(10, fid);
                 ps.executeUpdate();
             }
         });

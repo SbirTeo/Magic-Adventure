@@ -5,9 +5,10 @@ import com.teolo.magixguard.sanctions.Detector;
 import com.teolo.magixguard.sanctions.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Monster;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,11 +22,14 @@ import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,8 +37,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Anti-AFK, in due misure che rispondono a due problemi diversi.
  *
  * <p><b>1. Niente guadagni da fermo.</b> Chi resta immobile smette di generare valore: attorno a
- * lui i mostri non nascono piu', e quello che cade per terra o l'esperienza non gli arrivano
- * addosso. Non viene espulso e non viene punito — semplicemente il gioco smette di premiare il
+ * lui non nascono piu' mob (naturali, spawner, golem, portali, allevamenti), quello che cade per
+ * terra o l'esperienza non gli arrivano addosso, il tempo di gioco (la statistica vanilla, letta da
+ * {@code %magixessentials_playtime%} e da MagixFactions) non sale e la Potenza delle fazioni non
+ * cresce: MagixFactions guarda il segno {@link #AFK_METADATA} sul giocatore. Non viene espulso e non viene punito — semplicemente il gioco smette di premiare il
  * fatto di essere collegato invece che di giocare. Chi resta per chiacchierare non se ne accorge
  * nemmeno; la farm automatica si spegne da sola.</p>
  *
@@ -54,6 +60,26 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class AfkGuard implements Listener {
 
+    /**
+     * Segno (metadata Bukkit) messo sul giocatore finche' e' fermo: gli altri plugin Magix lo leggono
+     * con {@code player.hasMetadata("magix_afk")} senza dipendere da MagixGuard.
+     */
+    public static final String AFK_METADATA = "magix_afk";
+
+    /** Le nascite che non dipendono da un giocatore che gioca: quelle che fanno girare le farm. */
+    private static final Set<CreatureSpawnEvent.SpawnReason> NASCITE_FARM = EnumSet.of(
+            CreatureSpawnEvent.SpawnReason.NATURAL,
+            CreatureSpawnEvent.SpawnReason.SPAWNER,
+            CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER,
+            CreatureSpawnEvent.SpawnReason.PATROL,
+            CreatureSpawnEvent.SpawnReason.VILLAGE_DEFENSE,
+            CreatureSpawnEvent.SpawnReason.NETHER_PORTAL,
+            CreatureSpawnEvent.SpawnReason.RAID,
+            CreatureSpawnEvent.SpawnReason.REINFORCEMENTS,
+            CreatureSpawnEvent.SpawnReason.JOCKEY,
+            CreatureSpawnEvent.SpawnReason.BREEDING,
+            CreatureSpawnEvent.SpawnReason.EGG);
+
     /** Quello che sappiamo di un giocatore in questo momento. */
     private static final class Stato {
         volatile long ultimoInput;     // ultima azione volontaria riconosciuta
@@ -61,6 +87,8 @@ public final class AfkGuard implements Listener {
         long afkDa;
         /** Ultimo messaggio o comando scritto: chi scrive e' davanti allo schermo. */
         volatile long lastTyped;
+        /** Tempo di gioco (in tick) al momento in cui e' diventato fermo: da li' non sale. */
+        long frozenPlaytime = -1;
         /** Da quando la chat e' in pausa per lui (0 = non lo e'). Letto dai thread di rete. */
         volatile long chatPausedSince;
         /** Intervalli fra i click, per riconoscere le cadenze impossibili. */
@@ -93,7 +121,8 @@ public final class AfkGuard implements Listener {
         this.active = cfg == null || cfg.getBoolean("attivo", true);
         this.inattivoDopo = (cfg == null ? 10 : Math.max(1, cfg.getInt("minuti-inattivo", 10))) * 60_000L;
         this.nienteGuadagni = cfg == null || cfg.getBoolean("niente-guadagni", true);
-        this.raggioSpawn = cfg == null ? 24 : Math.max(8, cfg.getInt("raggio-spawn", 24));
+        // 128 = la distanza massima a cui il gioco fa nascere un mob attorno a un giocatore.
+        this.raggioSpawn = cfg == null ? 128 : Math.max(8, cfg.getInt("raggio-spawn", 128));
         this.huntActive = cfg == null || cfg.getBoolean("dispositivi/attivo", true);
         this.clickMinimi = cfg == null ? 120 : Math.max(30, cfg.getInt("dispositivi/click-minimi", 120));
         this.maxSkewMs = cfg == null ? 12 : cfg.getDouble("dispositivi/scarto-massimo-ms", 12);
@@ -105,6 +134,10 @@ public final class AfkGuard implements Listener {
     public void start() {
         if (!active) {
             return;
+        }
+        // Dopo un reload i segni rimasti non hanno piu' uno stato dietro: si ricomincia da svegli.
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.removeMetadata(AFK_METADATA, plugin);
         }
         Bukkit.getScheduler().runTaskTimer(plugin, this::refreshStates, 400L, 400L);
         if (Bukkit.getPluginManager().getPlugin("ProtocolLib") != null) {
@@ -199,41 +232,55 @@ public final class AfkGuard implements Listener {
         }
     }
 
-    @EventHandler
+    /** Prima di tutti: il tempo di gioco torna a quello bloccato, prima che altri lo leggano o si salvi. */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void primaDellUscita(PlayerQuitEvent e) {
+        Stato s = stati.get(e.getPlayer().getUniqueId());
+        if (s != null && s.afk) {
+            freezePlaytime(e.getPlayer(), s);
+        }
+    }
+
+    /**
+     * Dopo tutti: il segno AFK si toglie solo ora, cosi' chi chiude i conti all'uscita (MagixFactions,
+     * giacenze medie) lo vede ancora. Va tolto: i metadata dei giocatori sopravvivono al rientro.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
     public void suUscita(PlayerQuitEvent e) {
         stati.remove(e.getPlayer().getUniqueId());
+        e.getPlayer().removeMetadata(AFK_METADATA, plugin);
     }
 
     // ------------------------------------------------------------------ niente guadagni
 
     /**
-     * I mostri non nascono attorno a chi e' fermo. Si guarda se nel raggio c'e' <b>almeno un</b>
+     * I mob non nascono attorno a chi e' fermo. Si guarda se nel raggio c'e' <b>almeno un</b>
      * giocatore sveglio: se c'e', lo spawn e' suo e non si tocca — altrimenti basterebbe un AFK
-     * di passaggio per rovinare la serata a chi sta giocando li' accanto.
+     * di passaggio per rovinare la serata a chi sta giocando li' accanto. Il raggio e' quello in
+     * cui il gioco fa nascere i mob (128 blocchi): si scorrono i giocatori del mondo, che sono
+     * pochi, invece di cercare fra tutte le entita' vicine.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void suNascita(CreatureSpawnEvent e) {
         if (!active || !nienteGuadagni) {
             return;
         }
-        if (e.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL
-                || !(e.getEntity() instanceof Monster)) {
+        if (!NASCITE_FARM.contains(e.getSpawnReason()) || !(e.getEntity() instanceof Mob)) {
             return;
         }
-        boolean qualcunoSveglio = false;
+        Location at = e.getLocation();
+        double raggio2 = (double) raggioSpawn * raggioSpawn;
         boolean qualcunoAfk = false;
-        for (Entity vicino : e.getLocation().getNearbyEntities(raggioSpawn, raggioSpawn, raggioSpawn)) {
-            if (!(vicino instanceof Player p)) {
+        for (Player p : at.getWorld().getPlayers()) {
+            if (p.getLocation().distanceSquared(at) > raggio2) {
                 continue;
             }
-            if (eAfk(p)) {
-                qualcunoAfk = true;
-            } else {
-                qualcunoSveglio = true;
-                break;
+            if (!eAfk(p)) {
+                return;   // c'e' qualcuno che gioca: lo spawn e' suo
             }
+            qualcunoAfk = true;
         }
-        if (qualcunoAfk && !qualcunoSveglio) {
+        if (qualcunoAfk) {
             e.setCancelled(true);
         }
     }
@@ -353,6 +400,9 @@ public final class AfkGuard implements Listener {
         s.chatPausedSince = 0;
         if (s.afk) {
             s.afk = false;
+            freezePlaytime(p, s);
+            s.frozenPlaytime = -1;
+            p.removeMetadata(AFK_METADATA, plugin);
             p.sendMessage(Text.msg(messages.get(p, "afk.returned")));
         }
     }
@@ -365,10 +415,15 @@ public final class AfkGuard implements Listener {
             if (!s.afk && now - s.ultimoInput >= inattivoDopo) {
                 s.afk = true;
                 s.afkDa = now;
+                s.frozenPlaytime = p.getStatistic(Statistic.PLAY_ONE_MINUTE);
+                p.setMetadata(AFK_METADATA, new FixedMetadataValue(plugin, true));
                 p.sendMessage(Text.msg(messages.get(p, "afk.idle")));
                 // Un attimo di margine: l'avviso qui sopra deve ancora uscire dal server.
                 s.chatPausedSince = now + 2000;
-            } else if (s.afk && s.chatPausedSince == 0 && now - s.lastTyped >= inattivoDopo) {
+            } else if (s.afk) {
+                freezePlaytime(p, s);
+            }
+            if (s.afk && s.chatPausedSince == 0 && now - s.lastTyped >= inattivoDopo) {
                 // Aveva scritto qualcosa da fermo, poi piu' niente: la chat torna in pausa.
                 s.chatPausedSince = now;
             }
@@ -379,6 +434,20 @@ public final class AfkGuard implements Listener {
     public boolean eAfk(Player p) {
         Stato s = stati.get(p.getUniqueId());
         return s != null && s.afk;
+    }
+
+    /** Riporta il tempo di gioco a quello che aveva quando e' diventato fermo. */
+    private void freezePlaytime(Player p, Stato s) {
+        if (s.frozenPlaytime < 0) {
+            return;
+        }
+        try {
+            if (p.getStatistic(Statistic.PLAY_ONE_MINUTE) > s.frozenPlaytime) {
+                p.setStatistic(Statistic.PLAY_ONE_MINUTE, (int) s.frozenPlaytime);
+            }
+        } catch (RuntimeException ex) {
+            plugin.getLogger().warning("Anti-AFK: tempo di gioco di " + p.getName() + " non bloccato: " + ex);
+        }
     }
 
     /** True se a quel giocatore non deve arrivare niente in chat. Sicuro da qualunque thread. */

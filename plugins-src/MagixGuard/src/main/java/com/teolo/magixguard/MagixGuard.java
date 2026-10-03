@@ -546,8 +546,11 @@ public final class MagixGuard extends JavaPlugin {
 
                 .section("Anti-AFK: cosa succede a chi è fermo",
                         "**Niente guadagni da fermo.** Dopo i minuti indicati nel config, attorno a chi "
-                                + "è immobile i mostri non nascono più, e oggetti ed esperienza non gli "
-                                + "arrivano addosso. Non viene espulso e non viene punito: semplicemente il "
+                                + "è immobile non nascono più mob (naturali, spawner, golem, portali, "
+                                + "allevamenti), oggetti ed esperienza non gli arrivano addosso, il tempo di "
+                                + "gioco non sale, la Potenza non cresce e le giacenze medie (sua e della "
+                                + "banca di fazione) non avanzano: le ultime due le ferma MagixFactions, che "
+                                + "legge il segno «magix_afk» messo sul giocatore. Non viene espulso e non viene punito: semplicemente il "
                                 + "gioco smette di premiare il fatto di essere collegato invece che di "
                                 + "giocare. Chi resta per chiacchierare non se ne accorge nemmeno.",
                         "**Chat in pausa.** Nello stesso momento a chi è fermo smette di arrivare "
@@ -738,7 +741,7 @@ public final class MagixGuard extends JavaPlugin {
                                 + "è in sola osservazione e il caso arriva allo staff solo oltre "
                                 + "la soglia estrema (il ban lo decidete sempre voi). Guarda i numeri "
                                 + "nelle prove prima di decidere.")
-                .issue("«Non mi nascono più i mostri nella mia farm»",
+                .issue("«Non mi nascono più i mob nella mia farm»",
                         "È l'anti-AFK: da fermo il gioco non produce più nulla intorno a lui. Basta "
                                 + "muoversi. Se c'è un altro giocatore sveglio nel raggio, gli spawn "
                                 + "riprendono comunque.")
