@@ -1764,8 +1764,8 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .profilo-fazione-posto.ha-medaglia .posto-testo { align-self: center; text-align: right; padding-top: 14px; }
 .profilo-fazione-posto.ha-medaglia:hover { color: var(--text); }
 .posto-vai .corto { display: none; }
-.posto-vai { margin-top: 4px; font-size: var(--fs-xs); font-weight: 600; color: var(--purple); text-decoration: none; }
-.posto-vai:hover { color: var(--purple); text-decoration: underline; }
+.posto-vai { margin-top: 4px; font-size: var(--fs-xs); font-weight: 600; color: var(--text-dim); text-decoration: none; }
+.posto-vai:hover, .posto-vai:focus-visible { color: var(--text); text-decoration: none; }
 .profilo-fazione-posto.ha-medaglia { cursor: default; }
 .medaglia {
   --m-hi: #d8dee8; --m-mid: #98a3b5; --m-lo: #5d6778; --m-anello: rgba(255, 255, 255, .55); --m-ink: #2a303b;
