@@ -223,6 +223,23 @@ a CMI.
   decisi dal proxy: MagixProxy + MagixAuth 0.7.27), MagixGuard, MagixBridge e MagixPack (l'hub
   usa la porta 8444). Il cambio di pacchetto risorse fra faction e hub va ancora provato in gioco.
 
+## I SEGRETI NON VANNO MAI NEL REPOSITORY: È PUBBLICO (obbligatorio)
+
+Il repository `SbirTeo/Magic-Adventure` è **pubblico**, e lo sono anche i log delle GitHub Action.
+Password, chiavi, pepper, token, webhook non si scrivono **mai** in un file del repo (nemmeno come
+"valore di serie" in un `config.yml` del jar, nemmeno in `website/includes/config.php`, che nel repo
+è solo il modello) e non si stampano **mai** nei log di un workflow. Nel repo ci va un segnaposto
+(`CHANGE_ME_...` o `""`); il valore vero nasce e resta **sul VPS**.
+
+Successo davvero: fino al 3/10/2026 `privacy.pepper` di MagixGuard e `OTP_CHIAVE` del sito erano
+scritti nel repo, e `diagnostica-vps.yml` stampava il pepper nel log. Sono stati cambiati con
+**`ruota-segreti.yml`** (manuale: `applica=no` mostra solo le impronte, `applica=si` genera i valori
+nuovi sul VPS, li scrive dove servono con backup in `~/.bak/segreti/`, ricifra i segreti OTP già
+salvati e riavvia con `stopserverfast`; MagixGuard ricalcola da solo gli hash al riavvio). Se un
+segreto finisce di nuovo nel repo o in un log, si rilancia quel workflow: toglierlo dal file non basta,
+la cronologia di git resta pubblica. Un workflow che stampa un file di config lo passa da un filtro
+come `oscura` di `diagnostica-vps.yml` (da allargare se nasce un nome di chiave segreta nuovo).
+
 ## Deploy di una CHIAVE di config plugin sul VPS (manuale, anche da cloud)
 
 L'auto-deploy dei plugin copia **solo il jar**: i file di config già presenti nella cartella
