@@ -1749,7 +1749,7 @@ body.pagina-forum .content-with-sidebar { --stacco-lato: 156px; }
 .profilo-fazione-posto .posto-testo { display: flex; flex-direction: column; line-height: 1.25; }
 .profilo-fazione-posto strong { font-family: var(--font-heading); font-size: var(--fs-sm); }
 .profilo-fazione-posto small { color: var(--text-dim); font-size: var(--fs-xs); }
-.profilo-fazione-desc { margin: 6px 0 0; color: var(--text-dim); font-size: var(--fs-sm); font-style: italic; overflow-wrap: anywhere; }
+.profilo-fazione-desc { margin: 6px 0 0; color: var(--text-dim); font-size: var(--fs-sm); overflow-wrap: anywhere; }
 
 /* Avatar di fazione (stemma di serie, un domani scelto dalla fazione). */
 .profilo-fazione-avatar { flex: 0 0 auto; width: 64px; height: 64px; border-radius: 14px; object-fit: cover; align-self: flex-start; box-shadow: 0 6px 14px -8px rgba(0, 0, 0, .7); }
