@@ -353,7 +353,7 @@ public final class MagixGuard extends JavaPlugin {
             AfkGuard afk = new AfkGuard(this, detector, sezAfk, messages);
             getServer().getPluginManager().registerEvents(afk, this);
             afk.start();
-            getLogger().info("Anti-AFK attivo (niente guadagni da fermo + caccia ai dispositivi).");
+            getLogger().info("Anti-AFK attivo (niente guadagni da fermo + chat in pausa + caccia ai dispositivi).");
         }
 
         org.bukkit.command.PluginCommand cmd = getCommand("mgviolation");
@@ -544,12 +544,18 @@ public final class MagixGuard extends JavaPlugin {
                                 + "`modo: attivo` prima di aver guardato i numeri vuol dire accusare "
                                 + "qualcuno con una soglia inventata.")
 
-                .section("Anti-AFK: due misure che rispondono a due problemi",
+                .section("Anti-AFK: cosa succede a chi è fermo",
                         "**Niente guadagni da fermo.** Dopo i minuti indicati nel config, attorno a chi "
                                 + "è immobile i mostri non nascono più, e oggetti ed esperienza non gli "
                                 + "arrivano addosso. Non viene espulso e non viene punito: semplicemente il "
                                 + "gioco smette di premiare il fatto di essere collegato invece che di "
                                 + "giocare. Chi resta per chiacchierare non se ne accorge nemmeno.",
+                        "**Chat in pausa.** Nello stesso momento a chi è fermo smette di arrivare "
+                                + "qualunque messaggio in chat: giocatori, automessaggi, annunci, chat "
+                                + "del sito. Riparte appena si muove, oppure appena scrive lui un "
+                                + "messaggio o un comando (vuol dire che è davanti allo schermo). Serve "
+                                + "ProtocolLib: senza, si ferma solo la chat dei giocatori. L'action bar "
+                                + "resta.",
                         "Lo spawn si blocca solo se nel raggio **non c'è nessun giocatore sveglio**: "
                                 + "altrimenti basterebbe un AFK di passaggio per rovinare la serata a chi "
                                 + "sta giocando lì accanto.",

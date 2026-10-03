@@ -14,7 +14,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -41,6 +43,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * si', si sanziona — ma solo su segnali che un essere umano non puo' produrre: click a distanza
  * costante al millisecondo per minuti interi, o movimento perfettamente periodico.</p>
  *
+ * <p><b>3. Chat in pausa.</b> Chi e' fermo non riceve piu' niente in chat — messaggi dei
+ * giocatori, automessaggi, annunci, chat del sito — finche' non torna a muoversi o non scrive lui
+ * stesso (un messaggio o un comando: allora e' davanti allo schermo). Il blocco e' sui pacchetti
+ * (ProtocolLib, vedi {@link AfkChatBlock}), quindi ferma anche quello che altri plugin mandano con
+ * {@code sendMessage}; la barra sopra l'inventario (action bar) resta.</p>
+ *
  * <p>La differenza fra le due e' tutta qui: la prima non accusa nessuno, la seconda accusa e
  * quindi deve essere certa.</p>
  */
@@ -48,9 +56,13 @@ public final class AfkGuard implements Listener {
 
     /** Quello che sappiamo di un giocatore in questo momento. */
     private static final class Stato {
-        long ultimoInput;              // ultima azione volontaria riconosciuta
-        boolean afk;
+        volatile long ultimoInput;     // ultima azione volontaria riconosciuta
+        volatile boolean afk;
         long afkDa;
+        /** Ultimo messaggio o comando scritto: chi scrive e' davanti allo schermo. */
+        volatile long lastTyped;
+        /** Da quando la chat e' in pausa per lui (0 = non lo e'). Letto dai thread di rete. */
+        volatile long chatPausedSince;
         /** Intervalli fra i click, per riconoscere le cadenze impossibili. */
         final Deque<Long> click = new ArrayDeque<>();
         long ultimoClick;
@@ -95,6 +107,17 @@ public final class AfkGuard implements Listener {
             return;
         }
         Bukkit.getScheduler().runTaskTimer(plugin, this::refreshStates, 400L, 400L);
+        if (Bukkit.getPluginManager().getPlugin("ProtocolLib") != null) {
+            try {
+                AfkChatBlock.install(plugin, this);
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Anti-AFK: blocco della chat via ProtocolLib non riuscito ("
+                        + t + "): a chi è fermo arriva ancora quello che non è chat dei giocatori.");
+            }
+        } else {
+            plugin.getLogger().warning("Anti-AFK: ProtocolLib non c'è, a chi è fermo si ferma solo la chat"
+                    + " dei giocatori (gli automessaggi e gli annunci arrivano ancora).");
+        }
     }
 
     // ------------------------------------------------------------------ attivita'
@@ -142,6 +165,37 @@ public final class AfkGuard implements Listener {
         segnaAttivita(p, s);
         if (huntActive) {
             recordClick(p, s);
+        }
+    }
+
+    /**
+     * Chi scrive (in chat o un comando) e' davanti allo schermo: la chat gli riparte subito, prima
+     * che arrivi la risposta. Non conta come movimento: i guadagni restano fermi finche' non si muove,
+     * se no una macro che scrive ogni tanto terrebbe accesa la farm.
+     */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onChat(AsyncChatEvent e) {
+        if (active) {
+            markTyping(e.getPlayer());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onCommand(PlayerCommandPreprocessEvent e) {
+        if (active) {
+            markTyping(e.getPlayer());
+        }
+    }
+
+    /**
+     * Toglie dai destinatari della chat chi ha la chat in pausa. Prima di MagixEssentials (HIGH),
+     * che copia l'elenco dei destinatari e scrive lui a ognuno: cosi' il messaggio non parte
+     * nemmeno, anche dove ProtocolLib non c'e'.
+     */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void filterViewers(AsyncChatEvent e) {
+        if (active) {
+            e.viewers().removeIf(a -> a instanceof Player p && chatPaused(p.getUniqueId()));
         }
     }
 
@@ -288,8 +342,15 @@ public final class AfkGuard implements Listener {
         });
     }
 
+    private void markTyping(Player p) {
+        Stato s = stato(p);
+        s.lastTyped = System.currentTimeMillis();
+        s.chatPausedSince = 0;
+    }
+
     private void segnaAttivita(Player p, Stato s) {
         s.ultimoInput = System.currentTimeMillis();
+        s.chatPausedSince = 0;
         if (s.afk) {
             s.afk = false;
             p.sendMessage(Text.msg(messages.get(p, "afk.returned")));
@@ -304,9 +365,12 @@ public final class AfkGuard implements Listener {
             if (!s.afk && now - s.ultimoInput >= inattivoDopo) {
                 s.afk = true;
                 s.afkDa = now;
-                if (nienteGuadagni) {
-                    p.sendMessage(Text.msg(messages.get(p, "afk.idle")));
-                }
+                p.sendMessage(Text.msg(messages.get(p, "afk.idle")));
+                // Un attimo di margine: l'avviso qui sopra deve ancora uscire dal server.
+                s.chatPausedSince = now + 2000;
+            } else if (s.afk && s.chatPausedSince == 0 && now - s.lastTyped >= inattivoDopo) {
+                // Aveva scritto qualcosa da fermo, poi piu' niente: la chat torna in pausa.
+                s.chatPausedSince = now;
             }
         }
     }
@@ -315,6 +379,16 @@ public final class AfkGuard implements Listener {
     public boolean eAfk(Player p) {
         Stato s = stati.get(p.getUniqueId());
         return s != null && s.afk;
+    }
+
+    /** True se a quel giocatore non deve arrivare niente in chat. Sicuro da qualunque thread. */
+    public boolean chatPaused(UUID id) {
+        Stato s = stati.get(id);
+        if (s == null) {
+            return false;
+        }
+        long da = s.chatPausedSince;
+        return da != 0 && System.currentTimeMillis() >= da;
     }
 
     /** Da quanto e' fermo, in minuti. 0 se non lo e'. */
