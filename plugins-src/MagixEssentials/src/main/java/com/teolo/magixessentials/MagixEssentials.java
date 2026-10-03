@@ -150,9 +150,9 @@ public final class MagixEssentials extends JavaPlugin {
         }
         messages.send(sender, "lobby.spawn-set",
                 "world", at.getWorld().getName(),
-                "x", String.valueOf(Math.round(at.getX())),
-                "y", String.valueOf(Math.round(at.getY())),
-                "z", String.valueOf(Math.round(at.getZ())));
+                "x", HubLobby.coord(at.getX()),
+                "y", HubLobby.coord(at.getY()),
+                "z", HubLobby.coord(at.getZ()));
         if (hubLobby == null) messages.send(sender, "lobby.module-off");
     }
 

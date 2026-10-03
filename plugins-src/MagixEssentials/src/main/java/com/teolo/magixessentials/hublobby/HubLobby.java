@@ -102,7 +102,7 @@ public final class HubLobby implements Listener {
         Location l = spawn();
         if (l == null) return "nessun mondo caricato";
         return (useWorldSpawn ? "lo spawn del mondo " : "il punto fisso in ") + l.getWorld().getName()
-                + " " + Math.round(l.getX()) + "/" + Math.round(l.getY()) + "/" + Math.round(l.getZ());
+                + " " + coord(l.getX()) + "/" + coord(l.getY()) + "/" + coord(l.getZ());
     }
 
     /** Dove compare chi entra: lo spawn del mondo (centrato nel blocco) o il punto fisso del file. */
@@ -144,6 +144,14 @@ public final class HubLobby implements Listener {
             plugin.getLogger().warning("[HubLobby] spawn non salvato in " + FILE + " (" + e.getMessage() + ").");
             return false;
         }
+    }
+
+    /**
+     * Una coordinata da leggere: due decimali al massimo, senza zeri inutili (0.5, 34, 12.25).
+     * Arrotondata all'intero, lo spawn centrato nel blocco (0.5) si leggerebbe 1: un punto sbagliato.
+     */
+    public static String coord(double v) {
+        return java.math.BigDecimal.valueOf(round(v)).stripTrailingZeros().toPlainString();
     }
 
     /** Due decimali bastano (un centesimo di blocco, di grado) e il file resta leggibile. */

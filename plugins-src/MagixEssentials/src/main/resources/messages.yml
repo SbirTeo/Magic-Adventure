@@ -42,7 +42,7 @@ customjoinitems:
   removed: "&7Oggetti tolti a &f{count}&7 giocatori."
 
 # La lobby dell'hub (modulo hub-lobby), /mess lobby setspawn. {world} il mondo, {x} {y} {z} le
-# coordinate arrotondate del punto salvato.
+# coordinate del punto salvato (due decimali al massimo).
 lobby:
   spawn-set: "&7Spawn della lobby fissato in &f{world} {x}/{y}/{z}&7, sguardo compreso."
   module-off: "&7Il modulo hub-lobby è spento: lo spawn vale quando lo accendi in modules.yml."

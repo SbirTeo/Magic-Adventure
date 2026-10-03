@@ -8,7 +8,7 @@ a lungo andare dovrebbe assorbire cio' che oggi fa CMI.
 Il server sta dietro **Velocity**, con piu' backend (hub, factions...): questo jar gira su ognuno,
 con la propria cartella dati e il proprio `modules.yml`.
 
-Versione: **0.12.1**
+Versione: **0.12.2**
 
 ---
 
