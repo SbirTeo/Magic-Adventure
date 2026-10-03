@@ -158,7 +158,9 @@ $__alternate = language_alternates($__canonical);
 $__canonical = $__alternate[$GLOBALS['__siteLang']] ?? $__canonical;
 $__noindex = seo_da_nascondere(!empty($page_noindex));
 $__ogType = $page_type ?? 'website';
-$__ogImage = seo_url($page_image ?? (trim(site_setting('og_image', '')) ?: $__logoPiccolo));
+// Anteprima sui social: se la pagina non ne ha una sua, il logo ridotto a 600 px (i social non
+// chiedono il WebP e scaricavano il PNG originale da 1,8 MB).
+$__ogImage = seo_url($page_image ?? image_variant(trim(site_setting('og_image', '')) ?: $__logoPiccolo, 600));
 $__descrizioneSito = site_setting('meta_description', '');
 $__u = current_user();
 // Stile dei pulsanti principali (.btn-accent, quelli "pieni" di tutto il sito):
@@ -283,9 +285,11 @@ $__caratteri = __DIR__ . '/../public/assets/css/caratteri.css';
 $__cssVer = @filemtime(__DIR__ . '/../public/assets/css/style.css') ?: time();
 ?>
 <link rel="stylesheet" href="/assets/css/style.css?v=<?= $__cssVer ?>">
-<link rel="icon" href="<?= h($__favicon) ?>">
-<?php /* Icona per "aggiungi a schermata Home" su iPhone e iPad: usa la stessa immagine. */ ?>
-<link rel="apple-touch-icon" href="<?= h($__favicon) ?>">
+<?php /* Copie piccole della stessa immagine (image_variant): la favicon era il file del logo
+         intero, 1254 px, per un'icona che si vede a 16-32. */ ?>
+<link rel="icon" type="image/png" sizes="64x64" href="<?= h(image_variant($__favicon, 64)) ?>">
+<?php /* Icona per "aggiungi a schermata Home" su iPhone e iPad: la stessa immagine, a 180 px. */ ?>
+<link rel="apple-touch-icon" sizes="180x180" href="<?= h(image_variant($__favicon, 180)) ?>">
 <style>
 :root {
   --purple: <?= h($__colorPurple) ?>;
@@ -510,7 +514,9 @@ if ($__senzaVeloStore) $__classiBody[] = 'senza-veli-store';
           ?>
           <a href="/" class="nav-logo" aria-label="<?= h($__siteName) ?> — vai alla home"
              style="--nav-logo-h:<?= $__hLogoNav ?>px">
-            <img src="<?= h($__logoPiccolo) ?>" alt=""
+            <?php /* Copia a 192 px (il triplo dei 64 massimi, per gli schermi ad alta densita'):
+                     il file intero e' 1254 px per un'icona alta 44. */ ?>
+            <img src="<?= h(image_variant($__logoPiccolo, 192)) ?>" alt=""
                  width="<?= $__wLogoNav ?>" height="<?= $__hLogoNav ?>" decoding="async">
           </a>
         <?php endif; ?>

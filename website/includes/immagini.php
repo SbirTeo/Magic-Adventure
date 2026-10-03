@@ -116,3 +116,60 @@ function immagine_misure(string $url): ?array
     }
     return $viste[$percorso];
 }
+
+/**
+ * Copia rimpicciolita di un'immagine del sito (lato lungo = $lato), creata una volta sola
+ * accanto all'originale come "<nome>-<lato>.png" e riusata da li' in poi.
+ *
+ * Serve dove l'immagine si vede piccola ma il file caricato e' grande: la favicon (32-64 px)
+ * e l'icona per la schermata Home del telefono erano lo stesso file del logo, 1254 px e
+ * 1,8 MB in PNG (235 KB in WebP); l'anteprima sui social (Discord, WhatsApp...) lo scaricava
+ * intero, perche' i social non chiedono il WebP.
+ *
+ * Solo indirizzi interni. Se qualcosa non va (file mancante, cartella non scrivibile, GD
+ * assente) torna l'indirizzo originale: si vede come prima, solo piu' pesante.
+ */
+function image_variant(string $url, int $lato): string
+{
+    if ($url === '' || !str_starts_with($url, '/') || str_starts_with($url, '//') || !extension_loaded('gd')) {
+        return $url;
+    }
+    $percorsoUrl = (string) parse_url($url, PHP_URL_PATH);
+    $percorso = __DIR__ . '/../public' . $percorsoUrl;
+    if (!is_file($percorso)) {
+        return $url;
+    }
+    $base = preg_replace('/\.(png|jpe?g|webp)$/i', '', $percorsoUrl);
+    $urlVariante = $base . '-' . $lato . '.png';
+    $percorsoVariante = __DIR__ . '/../public' . $urlVariante;
+    if (is_file($percorsoVariante) && filemtime($percorsoVariante) >= filemtime($percorso)) {
+        return $urlVariante;
+    }
+
+    $info = @getimagesize($percorso);
+    if (!$info) return $url;
+    [$larghezza, $altezza, $tipo] = $info;
+    if (max($larghezza, $altezza) <= $lato) {
+        return $url;   // e' gia' piccola: niente copia
+    }
+    $img = match ($tipo) {
+        IMAGETYPE_JPEG => @imagecreatefromjpeg($percorso),
+        IMAGETYPE_PNG  => @imagecreatefrompng($percorso),
+        IMAGETYPE_WEBP => @imagecreatefromwebp($percorso),
+        default        => false,
+    };
+    if (!$img) return $url;
+    try {
+        $scala = $lato / max($larghezza, $altezza);
+        $piccola = imagescale($img, max(1, (int) round($larghezza * $scala)), max(1, (int) round($altezza * $scala)), IMG_BICUBIC);
+        if (!$piccola) return $url;
+        $ok = image_save_png($piccola, $percorsoVariante);
+        imagedestroy($piccola);
+        if (!$ok) return $url;
+        @chmod($percorsoVariante, 0644);
+        immagine_ottimizza($percorsoVariante);   // anche la copia piccola ha il suo gemello WebP
+        return $urlVariante;
+    } finally {
+        imagedestroy($img);
+    }
+}

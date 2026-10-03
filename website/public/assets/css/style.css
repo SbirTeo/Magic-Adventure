@@ -6832,3 +6832,21 @@ form.stack.ricorso-modulo > button[type="submit"] { align-self: flex-start; padd
   padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--purple); color: #fff;
   font-size: 11px; font-weight: 700; vertical-align: middle;
 }
+
+/* ---- Pagina non trovata (404.php) ---------------------------------------------------- */
+.pagina-errore { max-width: 560px; margin: 48px auto 64px; text-align: center; }
+.pagina-errore-codice {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(72px, 16vw, 128px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: linear-gradient(90deg, var(--purple), var(--green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pagina-errore-titolo { margin: 12px 0 10px; font-size: var(--fs-xl); }
+.pagina-errore-testo { margin: 0 0 26px; color: var(--text-dim); font-size: var(--fs-base); line-height: 1.6; }
+.pagina-errore-azioni { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
