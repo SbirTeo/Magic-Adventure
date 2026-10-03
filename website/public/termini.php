@@ -1,13 +1,13 @@
 <?php
 /**
- * Termini di vendita dello store. Valgono per gli acquisti fatti dal sito (store -> PayPal ->
- * consegna in gioco con MagixBridge, coda store_command_queue). I dati del venditore vengono
- * dal gestionale (includes/legal.php).
+ * Termini di vendita dello store. Valgono per gli acquisti fatti dal sito: lo store vende i
+ * Magix (store -> PayPal -> accredito nel saldo di gioco, includes/magix.php), che poi si
+ * spendono in gioco. I dati del venditore vengono dal gestionale (includes/legal.php).
  *
  * Il punto delicato e' il recesso: per un contenuto digitale consegnato subito il consumatore lo
  * perde SOLO se l'ha accettato espressamente prima di pagare (art. 59, lett. o, Codice del
- * Consumo). Per questo la pagina del pacchetto ha la casella obbligatoria e l'ordine registra
- * quando e' stata spuntata (store_orders.terms_accepted_at).
+ * Consumo). Per questo lo store ha la casella obbligatoria accanto al pulsante e la ricarica
+ * registra quando e' stata spuntata (magix_orders.terms_accepted_at).
  */
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/helpers.php';
@@ -35,11 +35,12 @@ legal_header('Termini di vendita', 'termini');
 
   <h2>2. Cosa si compra</h2>
   <p>
-    Nello store si acquistano <strong>contenuti digitali</strong> da usare sul server Magic Adventure:
-    gradi, kit, oggetti, valute di gioco e vantaggi simili. Ognuno è descritto nella sua pagina, con
-    il prezzo e la durata. Sono legati all'<strong>account Minecraft</strong> con cui hai fatto
-    l'accesso, valgono solo sul nostro server, non si possono trasferire ad altri account e non si
-    possono convertire in denaro.
+    Nello store si acquistano i <strong>Magix</strong>, la valuta di gioco del server Magic Adventure:
+    un <strong>contenuto digitale</strong>. La quantità si sceglie nello store, che mostra il prezzo e
+    lo sconto prima del pagamento. Con i Magix, dentro il gioco, si acquistano gradi VIP e altri
+    vantaggi, ognuno descritto in gioco con il suo costo e la sua durata. I Magix sono legati
+    all'<strong>account Minecraft</strong> con cui hai fatto l'accesso, valgono solo sul nostro server,
+    non si possono convertire in denaro e non sono rimborsabili una volta spesi.
   </p>
   <p>
     Magic Adventure non è affiliato a Mojang Studios né a Microsoft. Minecraft è un marchio di Mojang AB.
@@ -55,10 +56,10 @@ legal_header('Termini di vendita', 'termini');
 
   <h2>4. Consegna</h2>
   <p>
-    La consegna è automatica: di norma arriva in gioco entro pochi minuti dal pagamento. Se in quel
-    momento il server è spento o in manutenzione, arriva appena torna acceso. Se dopo 24 ore non hai
-    ancora ricevuto quello che hai comprato, scrivici indicando il nome utente e il numero della
-    transazione PayPal: controlliamo e la completiamo, oppure ti rimborsiamo.
+    La consegna è automatica: i Magix arrivano nel tuo saldo appena PayPal conferma il pagamento, e
+    li vedi subito nel portafoglio dello store e in gioco. Se dopo 24 ore non hai ancora ricevuto
+    quello che hai comprato, scrivici indicando il nome utente e il numero della transazione PayPal:
+    controlliamo e la completiamo, oppure ti rimborsiamo.
   </p>
 
   <h2>5. Diritto di recesso</h2>
@@ -83,7 +84,7 @@ legal_header('Termini di vendita', 'termini');
 
   <h2>7. Durata dei vantaggi</h2>
   <p>
-    La durata è quella indicata nella pagina del pacchetto. «Permanente» significa per tutto il tempo
+    La durata di un vantaggio comprato in gioco con i Magix è quella indicata in gioco. «Permanente» significa per tutto il tempo
     in cui il server e la modalità per cui l'hai comprato restano attivi: non è un diritto a vita su
     un servizio che potrebbe cambiare o chiudere. Se un vantaggio viene modificato o tolto per
     ragioni di equilibrio del gioco, cerchiamo di sostituirlo con qualcosa di valore simile.

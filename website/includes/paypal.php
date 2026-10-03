@@ -1,6 +1,6 @@
 <?php
 /**
- * Dialogo con PayPal (API Orders v2) e consegna di quanto acquistato.
+ * Dialogo con PayPal (API Orders v2).
  *
  * Il flusso e' interamente server-to-server per la parte che conta: il sito NON si fida
  * di quello che dice il browser al ritorno dal pagamento, ma richiama PayPal per catturare
@@ -87,9 +87,10 @@ function paypal_access_token(): ?string {
 
 /**
  * Crea l'ordine su PayPal e ritorna l'URL a cui mandare il giocatore per approvarlo.
- * $order e' la riga di store_orders gia' salvata come 'pending'.
+ * $order e' la riga di magix_orders gia' salvata come 'pending'; $description e' quello che
+ * il giocatore legge su PayPal (es. "250 Magix").
  */
-function paypal_create_order(array $order): ?array {
+function paypal_create_order(array $order, string $description): ?array {
     $token = paypal_access_token();
     if ($token === null) {
         return null;
@@ -100,7 +101,7 @@ function paypal_create_order(array $order): ?array {
         'purchase_units' => [[
             // Riferimento nostro: torna identico nella risposta, utile per i controlli
             'reference_id' => (string) $order['id'],
-            'description' => mb_substr($order['package_name'], 0, 127),
+            'description' => mb_substr($description, 0, 127),
             'custom_id' => (string) $order['id'],
             'amount' => [
                 'currency_code' => $order['currency'],
@@ -163,44 +164,4 @@ function paypal_capture_order(array $order): ?string {
     }
 
     return (string) $cattura['id'];
-}
-
-/**
- * Segna l'ordine come pagato e ACCODA i comandi del pacchetto.
- * Idempotente: se l'ordine risulta gia' pagato non accoda niente una seconda volta
- * (il giocatore potrebbe ricaricare la pagina di ritorno).
- */
-function store_completa_ordine(array $order, string $capturaId): bool {
-    $aggiorna = db()->prepare("UPDATE store_orders SET status = 'paid', paypal_capture_id = ?, paid_at = NOW() WHERE id = ? AND status = 'pending'");
-    $aggiorna->execute([$capturaId, $order['id']]);
-    if ($aggiorna->rowCount() === 0) {
-        return false; // gia' completato da una richiesta precedente
-    }
-
-    $q = db()->prepare('SELECT * FROM store_packages WHERE id = ?');
-    $q->execute([$order['package_id']]);
-    $pkg = $q->fetch() ?: [];
-
-    // Ogni riga va in coda col server che la esegue: MagixBridge di quel server prende solo le
-    // sue (store_command_queue.server = network.server-name). Senza la colonna (migrazione non
-    // ancora lanciata e plugin vecchio) la coda la legge solo il faction: si accodano i suoi.
-    $perServer = store_queue_has_server();
-    $ins = db()->prepare($perServer
-        ? 'INSERT INTO store_command_queue (order_id, mc_uuid, mc_username, server, command) VALUES (?, ?, ?, ?, ?)'
-        : 'INSERT INTO store_command_queue (order_id, mc_uuid, mc_username, command) VALUES (?, ?, ?, ?)');
-    foreach (store_package_commands($pkg) as $server => $testo) {
-        if (!$perServer && $server !== STORE_LEGACY_SERVER) {
-            error_log('Store: ordine ' . $order['id'] . ', comandi per "' . $server . '" non accodati: manca la colonna server della coda');
-            continue;
-        }
-        foreach (store_command_lines($testo) as $riga) {
-            $riga = ltrim($riga, '/');
-            $riga = str_replace(['{player}', '{PLAYER}'], $order['mc_username'], $riga);
-            $riga = mb_substr($riga, 0, 500);
-            $ins->execute($perServer
-                ? [$order['id'], $order['mc_uuid'], $order['mc_username'], $server, $riga]
-                : [$order['id'], $order['mc_uuid'], $order['mc_username'], $riga]);
-        }
-    }
-    return true;
 }

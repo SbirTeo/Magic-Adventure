@@ -105,19 +105,25 @@ try {
     $nMiPiace = 0; // tabella non ancora creata
 }
 
-// Acquisti pagati (la tabella esiste solo dove lo store e' installato: stesso trattamento
-// dei dati di gioco, il profilo non deve rompersi se manca).
+// Acquisti pagati: le ricariche di Magix e lo storico del vecchio store a pacchetti. Ogni
+// tabella puo' mancare (stesso trattamento dei dati di gioco: il profilo non deve rompersi).
 $acquisti = [];
-try {
-    $q = db()->prepare(
-        "SELECT package_name, price, currency, paid_at FROM store_orders
-         WHERE user_id = ? AND status = 'paid' ORDER BY paid_at DESC, id DESC LIMIT 10"
-    );
-    $q->execute([$me['id']]);
-    $acquisti = $q->fetchAll();
-} catch (PDOException $e) {
-    $acquisti = [];
+foreach ([
+    "SELECT CONCAT(amount, ' Magix') AS package_name, price, currency, paid_at FROM magix_orders
+     WHERE user_id = ? AND status = 'paid' ORDER BY paid_at DESC, id DESC LIMIT 10",
+    "SELECT package_name, price, currency, paid_at FROM store_orders
+     WHERE user_id = ? AND status = 'paid' ORDER BY paid_at DESC, id DESC LIMIT 10",
+] as $sqlAcquisti) {
+    try {
+        $q = db()->prepare($sqlAcquisti);
+        $q->execute([$me['id']]);
+        $acquisti = array_merge($acquisti, $q->fetchAll());
+    } catch (PDOException $e) {
+        // tabella assente: si va avanti con l'altra
+    }
 }
+usort($acquisti, fn($a, $b) => strcmp((string) $b['paid_at'], (string) $a['paid_at']));
+$acquisti = array_slice($acquisti, 0, 10);
 
 // Primo accesso al SERVER: lo scrive il plugin MagixBridge in mc_ranks. La colonna puo'
 // mancare (installazioni vecchie) e il giocatore puo' non essere ancora passato di li':
@@ -371,7 +377,7 @@ require __DIR__ . '/../includes/header.php';
     <div class="tabella-scorrevole">
       <table class="rank">
         <thead>
-          <tr><th>Pacchetto</th><th>Prezzo</th><th>Data</th></tr>
+          <tr><th>Acquisto</th><th>Prezzo</th><th>Data</th></tr>
         </thead>
         <tbody>
           <?php foreach ($acquisti as $a): ?>

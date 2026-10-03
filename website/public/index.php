@@ -1,9 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
-require_once __DIR__ . '/../includes/store_card.php';
-require_once __DIR__ . '/../includes/vip_banner.php';
-require_once __DIR__ . '/../includes/obiettivo.php';
 require_once __DIR__ . '/../includes/immagini.php';   // misure vere del logo, vedi piu' sotto
 
 /**
@@ -261,14 +258,6 @@ require __DIR__ . '/../includes/header.php';
   <div class="chat-riga" id="chatRiga"></div>
 
   <div class="content-main">
-    <?php /* Stesso banner in cima allo store: il markup sta in includes/vip_banner.php,
-             cosi' si regola da un punto solo e le due pagine restano allineate.
-             Sta DENTRO la colonna degli articoli, non sopra a tutto: cosi' e' largo
-             quanto loro e la colonna di destra puo' partire dalla sua stessa altezza. */ ?>
-    <?php vip_banner(); ?>
-
-    <?php /* L'obiettivo in home si accende a parte: c'e' chi lo vuole solo nello store. */ ?>
-    <?php if (site_setting('goal_home', '0') === '1') { obiettivo_sezione(); } ?>
 
     <?php
       // Pulsanti dello staff sull'ultimo articolo: "+" (nuovo post) e matita (modifica), uno
