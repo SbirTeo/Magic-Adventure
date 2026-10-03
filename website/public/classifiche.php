@@ -19,7 +19,7 @@ $factions = [];
 $score_ready = true;
 try {
     $stmt = db()->query(
-        'SELECT f.id, f.name, f.description, f.bank, ROUND(f.score, 2) AS score, f.score_detail,
+        'SELECT f.id, f.name, f.tag, f.description, f.bank, ROUND(f.score, 2) AS score, f.score_detail,
                 (SELECT COUNT(*) FROM factions_magixfactions.claims c WHERE c.faction_id = f.id) AS claims,
                 (SELECT COUNT(*) FROM factions_magixfactions.faction_members m WHERE m.faction_id = f.id) AS members,
                 (SELECT COALESCE(SUM(pl.power), 0)
@@ -329,11 +329,72 @@ function player_name_cell(array $p, int $viewerFactionId, array $allies): string
           . ($facName !== '' ? '<span class="pl-card-fac ' . $relCls . '">' . h($facName) . '</span>' : '')
           . '</span></span>';
 
-    $inner = '<span class="pl-name ' . $relCls . '">' . h($name) . '</span>' . $card;
+    $testa = '<img class="pl-testa" src="' . h(mc_avatar_url((string) ($p['mc_uuid'] ?? ''), 32, $p['premium_uuid'] ?? null)) . '" alt="" width="24" height="24" loading="lazy">';
+    $inner = $testa . '<span class="pl-name ' . $relCls . '">' . h($name) . '</span>' . $card;
     if ($site) {
         $inner = '<a class="pl-link" href="' . h('utente?nome=' . rawurlencode((string) $site)) . '">' . $inner . '</a>';
     }
     return '<td class="player-cell">' . $inner . '</td>';
+}
+
+/** Posizione in classifica: medaglia (oro, argento, bronzo) per le prime tre, numero semplice dopo. */
+function rank_position(int $pos): string {
+    $cls = $pos <= 3 ? ' pos-medaglia pos-' . $pos : '';
+    return '<span class="pos' . $cls . '">' . $pos . '</span>';
+}
+
+/**
+ * Una fazione del podio: medaglia, sigla e nome (col popup "/f info"), punteggio grande con la sua
+ * barra rispetto alla prima (e il popup del dettaglio), le sei voci in un colpo d'occhio e le facce
+ * dei membri. Sono le stesse informazioni della tabella, ma per le prime tre non serve leggerle in riga.
+ */
+function podium_card(array $f, int $pos, float $leaderScore, array $members, array $alliesList, array $fs,
+                     int $viewerFactionId, array $viewerAllies): string {
+    $score = (float) $f['score'];
+    $quota = $leaderScore > 0 ? max(4, min(100, (int) round($score / $leaderScore * 100))) : 0;
+    $rel = faction_rel_class((int) $f['id'], $viewerFactionId, $viewerAllies);
+    $sigla = trim((string) ($f['tag'] ?? ''));
+    if ($sigla === '') $sigla = mb_substr((string) $f['name'], 0, 3);
+    $pop = score_popup($f['score_detail'] ?? null, $score);
+    $facPop = faction_info_popup($f, $members, $alliesList, $viewerFactionId, $viewerAllies);
+
+    usort($members, static fn($a, $b) => rank_order((string) $b['rank']) <=> rank_order((string) $a['rank']));
+    $facce = '';
+    foreach (array_slice($members, 0, 6) as $m) {
+        $facce .= '<img src="' . h(mc_avatar_url((string) $m['mc_uuid'], 32, $m['premium_uuid'] ?? null)) . '" alt="" title="'
+                . h((string) $m['mc_name']) . '" width="24" height="24" loading="lazy">';
+    }
+    $altri = count($members) - 6;
+    $nMembri = (int) ($f['members'] ?? count($members));
+
+    $voci = [
+        ['map', 'Territori', (string) (int) $f['claims']],
+        ['zap', 'Potenza', (string) (int) $f['power']],
+        ['coins', 'Ricchezza', detail_value($f['score_detail'] ?? null, 'Banca')],
+        ['hourglass', 'Longevità', detail_value($f['score_detail'] ?? null, 'Longev')],
+        ['swords', 'Uccisioni', (string) (int) ($fs['kills'] ?? 0)],
+        ['gem', 'Valore', number_format((float) ($fs['value'] ?? 0), 0, ',', '.')],
+    ];
+    $vociHtml = '';
+    foreach ($voci as [$ico, $nome, $valore]) {
+        $vociHtml .= '<div><dt>' . ui_icon($ico) . ' ' . h($nome) . '</dt><dd>' . h($valore) . '</dd></div>';
+    }
+
+    return '<article class="podio-carta podio-' . $pos . ($rel === 'fac-own' ? ' is-tua' : '') . '">'
+        . '<div class="podio-testa">'
+        .   '<span class="pos pos-medaglia pos-' . $pos . '">' . $pos . '</span>'
+        .   '<span class="podio-sigla">' . h($sigla) . '</span>'
+        .   '<div class="fac-cell podio-nome" tabindex="0"><span class="fac-name fac-trigger ' . $rel . '">' . h((string) $f['name']) . '</span>' . $facPop . '</div>'
+        . '</div>'
+        . '<div class="podio-punti' . ($pop ? ' score-cell" tabindex="0' : '') . '">'
+        .   '<strong class="' . ($pop ? 'score-trigger' : '') . '">' . h(number_format($score, 2, ',', '.')) . '</strong><span>punti</span>'
+        .   $pop
+        . '</div>'
+        . '<div class="podio-barra" aria-hidden="true"><i style="width:' . $quota . '%"></i></div>'
+        . '<dl class="podio-voci">' . $vociHtml . '</dl>'
+        . '<div class="podio-membri">' . $facce . ($altri > 0 ? '<span class="podio-altri">+' . $altri . '</span>' : '')
+        .   '<small>' . ($nMembri === 1 ? '1 membro' : $nMembri . ' membri') . '</small></div>'
+        . '</article>';
 }
 
 // Secondi di gioco in forma leggibile: "3g 4h", "5h 12m", "42m" (le due unita' piu' grandi che contano).
@@ -478,13 +539,17 @@ function format_playtime(int $seconds): string {
   .fac-pop .fac-enemy { color: #e05a5a; }
   .fac-pop .fac-guest { color: var(--text); }
   /* Timer sobrio del prossimo aggiornamento delle statistiche. */
-  .stats-refresh { color: var(--text-dimmer); font-size: var(--fs-sm); margin: -6px 0 14px; }
-  .stats-refresh b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats-refresh {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--text-dim); font-size: var(--fs-xs); margin: 0 0 18px;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-panel);
+  }
+  .stats-refresh b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* Le schede (Top Fazioni / Top Giocatori) usano le regole comuni di style.css (.rank-tabs,
      .rank-tab-btn), le stesse della guida: qui ce n'era una copia, che restava indietro. */
   /* Le tre sotto-classifiche giocatori: ognuna nella sua card, ben staccata dalle altre. */
-  .player-board { margin-top: 16px; }
+  .player-board { margin: 0; }
   .player-board h3 { margin-top: 0; }
   /* Nota descrittiva breve sotto il titolo di ogni sezione (sostituisce il vecchio blocco unico). */
   .board-note { color: var(--text-dim); font-size: var(--fs-sm); line-height: 1.5; margin: 0 0 14px; }
@@ -548,8 +613,9 @@ function format_playtime(int $seconds): string {
   }
 </style>
 <h1 class="page-title">Classifiche<?php if (!$score_ready): ?> <span class="badge-soon">In arrivo</span><?php endif; ?></h1>
+<p class="classifiche-sottotitolo">Chi comanda su MagicAdventure: le fazioni più forti e i giocatori che si fanno notare.</p>
 <?php if ($last_sample_ms > 0): ?>
-  <p class="stats-refresh">↻ Statistiche aggiornate ogni <?= $stats_interval >= 60 ? intdiv($stats_interval, 60) . ' min' : $stats_interval . ' sec' ?> · prossimo aggiornamento tra <b id="stats-refresh-countdown">—</b></p>
+  <p class="stats-refresh"><span class="stats-refresh-punto" aria-hidden="true"></span><span>Aggiornate dal vivo ogni <?= $stats_interval >= 60 ? intdiv($stats_interval, 60) . ' min' : $stats_interval . ' sec' ?> · prossimo aggiornamento tra <b id="stats-refresh-countdown">—</b></span></p>
 <?php endif; ?>
 
 <div class="rank-tabs" role="tablist" aria-label="Classifiche">
@@ -558,55 +624,72 @@ function format_playtime(int $seconds): string {
 </div>
 
 <section class="rank-tab-panel" id="tab-fazioni" role="tabpanel">
-<div class="panel">
-  <h3><?= ui_icon('trophy') ?> Punteggio</h3>
-  <p class="board-note">
-    Confronta le fazioni voce per voce (territori, membri, <b>giacenza media</b> della banca, longevità,
-    potenza media): in ogni caratteristica la <b>migliore</b> vale il massimo e le altre in proporzione. La
-    somma è il punteggio — passa il mouse (o tocca) un valore per il dettaglio.
-  </p>
   <?php if (!$score_ready): ?>
-    <p style="color:var(--text-dim)">La classifica reale sara disponibile appena il server si aggiorna. Torna a trovarci!</p>
+    <div class="panel classifica-vuota"><?= ui_icon('trophy') ?><p>La classifica reale sarà disponibile appena il server si aggiorna. Torna a trovarci!</p></div>
   <?php elseif (!$factions): ?>
-    <p style="color:var(--text-dim)">Non esiste ancora nessuna fazione in classifica. Creane una in gioco con <code>/f create</code>!</p>
+    <div class="panel classifica-vuota"><?= ui_icon('trophy') ?><p>Non c'è ancora nessuna fazione in classifica. Creane una in gioco con <code>/f create</code> e prenditi il primo posto!</p></div>
   <?php else: ?>
-    <?php /* Wrapper dedicato (.rank-wrap): overflow visibile su desktop così il popup del dettaglio non
-             viene tagliato; su mobile torna a scorrere in orizzontale. Vedi lo <style> in cima. */ ?>
-    <div class="rank-wrap">
-      <table class="rank" data-paginate>
-        <thead>
-          <tr><th>#</th><th><?= ui_icon('shield') ?> Fazione</th><th><?= ui_icon('trophy') ?> Punteggio</th><th><?= ui_icon('map') ?> Territori</th><th><?= ui_icon('coins') ?> Ricchezza media</th><th><?= ui_icon('hourglass') ?> Longevità</th><th><?= ui_icon('zap') ?> Potenza</th><th><?= ui_icon('swords') ?> Uccisioni</th><th><?= ui_icon('gem') ?> Valore</th></tr>
-        </thead>
-        <tbody>
-          <?php foreach ($factions as $i => $f): ?>
-            <tr>
-              <td><?= $i + 1 ?></td>
-              <?php $facPop = faction_info_popup(
-                  $f, $members_by_faction[(int) $f['id']] ?? [], $allies_by_faction[(int) $f['id']] ?? [],
-                  $viewer_faction_id, $allies); ?>
-              <td class="fac-cell" tabindex="0">
-                <span class="fac-name fac-trigger <?= faction_rel_class((int) $f['id'], $viewer_faction_id, $allies) ?>"><?= h($f['name']) ?></span>
-                <?= $facPop ?>
-              </td>
-              <?php $pop = score_popup($f['score_detail'] ?? null, (float) $f['score']); ?>
-              <td<?= $pop ? ' class="score-cell" tabindex="0"' : '' ?>>
-                <span class="score-value<?= $pop ? ' score-trigger' : '' ?>"><?= h(number_format((float) $f['score'], 2, ',', '.')) ?></span>
-                <?= $pop ?>
-              </td>
-              <td><?= (int) $f['claims'] ?></td>
-              <td><?= h(detail_value($f['score_detail'] ?? null, 'Banca')) ?></td>
-              <td><?= h(detail_value($f['score_detail'] ?? null, 'Longev')) ?></td>
-              <td><?= (int) $f['power'] ?></td>
-              <?php $fs = $fstats[$f['id']] ?? ['kills' => 0, 'deaths' => 0, 'value' => 0]; ?>
-              <td><span class="kills-cell" title="Morti: <?= (int) $fs['deaths'] ?> · K/D: <?= h(kd_ratio((int) $fs['kills'], (int) $fs['deaths'])) ?>"><?= (int) $fs['kills'] ?></span></td>
-              <td><?= h(number_format((float) $fs['value'], 0, ',', '.')) ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+    <?php /* Il podio: le prime tre fazioni in grande, con tutte le loro voci. La seconda a sinistra
+             e la terza a destra, la prima in mezzo e più alta (da telefono una sotto l'altra). */ ?>
+    <div class="podio podio-n<?= min(3, count($factions)) ?>">
+      <?php $capo = (float) $factions[0]['score']; ?>
+      <?php foreach (array_slice($factions, 0, 3) as $i => $f): ?>
+        <?= podium_card($f, $i + 1, $capo, $members_by_faction[(int) $f['id']] ?? [], $allies_by_faction[(int) $f['id']] ?? [],
+                        $fstats[$f['id']] ?? [], $viewer_faction_id, $allies) ?>
+      <?php endforeach; ?>
     </div>
+
+    <details class="classifica-come">
+      <summary><?= ui_icon('scroll') ?> Come si calcola il punteggio</summary>
+      <p>
+        Le fazioni si confrontano voce per voce: territori, membri, <b>giacenza media</b> della banca,
+        longevità e potenza media. In ogni voce la <b>migliore</b> vale il massimo e le altre prendono la
+        loro parte in proporzione; il punteggio è la somma. Passa il mouse (o tocca) un punteggio per
+        vedere il dettaglio, o il nome di una fazione per membri, alleati e stato.
+      </p>
+    </details>
+
+    <?php if (count($factions) > 3): ?>
+    <div class="panel classifica-resto">
+      <h3><?= ui_icon('shield') ?> Le altre fazioni</h3>
+      <?php /* Wrapper dedicato (.rank-wrap): overflow visibile su desktop così il popup del dettaglio non
+               viene tagliato; su mobile torna a scorrere in orizzontale. Vedi lo <style> in cima. */ ?>
+      <div class="rank-wrap">
+        <table class="rank" data-paginate>
+          <thead>
+            <tr><th>#</th><th><?= ui_icon('shield') ?> Fazione</th><th><?= ui_icon('trophy') ?> Punteggio</th><th><?= ui_icon('map') ?> Territori</th><th><?= ui_icon('coins') ?> Ricchezza media</th><th><?= ui_icon('hourglass') ?> Longevità</th><th><?= ui_icon('zap') ?> Potenza</th><th><?= ui_icon('swords') ?> Uccisioni</th><th><?= ui_icon('gem') ?> Valore</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach (array_slice($factions, 3, null, true) as $i => $f): ?>
+              <tr<?= faction_rel_class((int) $f['id'], $viewer_faction_id, $allies) === 'fac-own' ? ' class="is-tua"' : '' ?>>
+                <td><?= rank_position($i + 1) ?></td>
+                <?php $facPop = faction_info_popup(
+                    $f, $members_by_faction[(int) $f['id']] ?? [], $allies_by_faction[(int) $f['id']] ?? [],
+                    $viewer_faction_id, $allies); ?>
+                <td class="fac-cell" tabindex="0">
+                  <span class="fac-name fac-trigger <?= faction_rel_class((int) $f['id'], $viewer_faction_id, $allies) ?>"><?= h($f['name']) ?></span>
+                  <?= $facPop ?>
+                </td>
+                <?php $pop = score_popup($f['score_detail'] ?? null, (float) $f['score']); ?>
+                <td<?= $pop ? ' class="score-cell" tabindex="0"' : '' ?>>
+                  <span class="score-value<?= $pop ? ' score-trigger' : '' ?>"><?= h(number_format((float) $f['score'], 2, ',', '.')) ?></span>
+                  <?= $pop ?>
+                </td>
+                <td><?= (int) $f['claims'] ?></td>
+                <td><?= h(detail_value($f['score_detail'] ?? null, 'Banca')) ?></td>
+                <td><?= h(detail_value($f['score_detail'] ?? null, 'Longev')) ?></td>
+                <td><?= (int) $f['power'] ?></td>
+                <?php $fs = $fstats[$f['id']] ?? ['kills' => 0, 'deaths' => 0, 'value' => 0]; ?>
+                <td><span class="kills-cell" title="Morti: <?= (int) $fs['deaths'] ?> · K/D: <?= h(kd_ratio((int) $fs['kills'], (int) $fs['deaths'])) ?>"><?= (int) $fs['kills'] ?></span></td>
+                <td><?= h(number_format((float) $fs['value'], 0, ',', '.')) ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <?php endif; ?>
   <?php endif; ?>
-</div>
 </section>
 
 <?php
@@ -672,6 +755,8 @@ try {
     <p style="color:var(--text-dim)">Le classifiche dei giocatori saranno disponibili appena il server si aggiorna. Torna a trovarci!</p>
   </div>
 <?php else: ?>
+  <?php /* Tre classifiche affiancate (una sotto l'altra quando lo spazio non basta). */ ?>
+  <div class="classifiche-giocatori">
   <div class="panel player-board">
     <h3><?= ui_icon('clock') ?> Tempo di gioco</h3>
     <p class="board-note">I secondi totali passati connessi al server.</p>
@@ -682,7 +767,7 @@ try {
           <?php if (!$top_time): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_time as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
+            <tr><td><?= rank_position($i + 1) ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><?= h(format_playtime((int) $p['play_seconds'])) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -700,7 +785,7 @@ try {
           <?php if (!$top_money): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_money as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
+            <tr><td><?= rank_position($i + 1) ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><?= h(number_format((float) $p['avg_money'], 0, ',', '.')) ?></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
@@ -718,11 +803,12 @@ try {
           <?php if (!$top_kills): ?>
             <tr><td colspan="3" style="color:var(--text-dim)">Ancora nessun dato.</td></tr>
           <?php else: foreach ($top_kills as $i => $p): ?>
-            <tr><td><?= $i + 1 ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
+            <tr><td><?= rank_position($i + 1) ?></td><?= player_name_cell($p, $viewer_faction_id, $allies) ?><td><span class="kills-cell" title="Morti: <?= (int) $p['deaths'] ?> · K/D: <?= h(kd_ratio((int) $p['kills'], (int) $p['deaths'])) ?>"><?= (int) $p['kills'] ?></span></td></tr>
           <?php endforeach; endif; ?>
         </tbody>
       </table>
     </div>
+  </div>
   </div>
 <?php endif; ?>
 </section>

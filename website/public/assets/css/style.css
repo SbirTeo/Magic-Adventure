@@ -7498,3 +7498,144 @@ th .ico, h2 .ico, h3 .ico { opacity: .75; margin-right: 2px; }
   .guida-doc .cmd { white-space: normal; }
 }
 @media (prefers-reduced-motion: reduce) { .guida-doc section { transition: none; } }
+
+/* =========================================================================================
+   CLASSIFICHE (/classifiche): podio delle prime tre fazioni, medaglie, classifiche giocatori
+   affiancate. Prima era una tabella sola, tutta uguale: chi era primo si capiva solo dal numero.
+   ========================================================================================= */
+.classifiche-sottotitolo { margin: -12px 0 12px; color: var(--text-dim); font-size: var(--fs-base); max-width: 70ch; }
+.stats-refresh-punto {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 0 0 var(--green-glow); animation: punto-vivo 2s ease-out infinite;
+}
+@keyframes punto-vivo {
+  0% { box-shadow: 0 0 0 0 var(--green-glow); }
+  70% { box-shadow: 0 0 0 7px rgba(0, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+/* Medaglie: oro, argento, bronzo; dal quarto in poi un numero tranquillo. */
+.pos {
+  display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px;
+  border-radius: 50%; font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-sm);
+  color: var(--text-dim); font-variant-numeric: tabular-nums;
+}
+.pos-medaglia { color: #1d1606; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .22), 0 3px 10px -4px var(--medaglia-alone, transparent); }
+.pos-1 { background: linear-gradient(160deg, #ffe58a, #f4c531 55%, #c99a12); --medaglia-alone: rgba(244, 197, 49, .8); --medaglia: #f4c531; }
+.pos-2 { background: linear-gradient(160deg, #f3f6fa, #c9d1dc 55%, #949eab); --medaglia-alone: rgba(201, 209, 220, .6); --medaglia: #c9d1dc; }
+.pos-3 { background: linear-gradient(160deg, #f2b98a, #d08a4f 55%, #9c5f2c); --medaglia-alone: rgba(208, 138, 79, .7); --medaglia: #d08a4f; }
+
+/* Podio: seconda | prima (più alta) | terza. */
+.podio {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: end;
+  margin: 26px 0 18px;
+}
+.podio.podio-n1 { grid-template-columns: minmax(0, 420px); justify-content: center; }
+.podio.podio-n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.podio-carta {
+  position: relative; min-width: 0;
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 20px; border-radius: var(--radius);
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--medaglia, var(--purple)) 14%, transparent), transparent 70%),
+    var(--bg-panel);
+  border: 1px solid color-mix(in srgb, var(--medaglia, var(--border)) 35%, var(--border));
+  box-shadow: 0 18px 40px -26px rgba(0, 0, 0, .8);
+}
+.podio-carta.podio-1 { --medaglia: #f4c531; padding: 26px 22px; box-shadow: 0 24px 60px -28px rgba(244, 197, 49, .45); }
+.podio-carta.podio-2 { --medaglia: #c9d1dc; }
+.podio-carta.podio-3 { --medaglia: #d08a4f; }
+.podio-n3 .podio-2 { order: 1; }
+.podio-n3 .podio-1 { order: 2; }
+.podio-n3 .podio-3 { order: 3; }
+.podio-n3 .podio-1 { margin-bottom: 22px; }
+.podio-carta.is-tua { outline: 2px solid var(--green); outline-offset: 2px; }
+
+.podio-testa { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.podio-testa .pos { min-width: 30px; height: 30px; flex: 0 0 auto; }
+.podio-1 .podio-testa .pos { min-width: 36px; height: 36px; font-size: var(--fs-base); }
+.podio-sigla {
+  flex: 0 0 auto; padding: 4px 8px; border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--purple) 16%, transparent); color: var(--purple);
+  font-family: var(--font-heading); font-weight: 800; font-size: var(--fs-xs); letter-spacing: .05em; text-transform: uppercase;
+}
+.podio-nome { position: relative; min-width: 0; }
+.podio-nome .fac-name {
+  display: block; font-family: var(--font-heading); font-weight: 800; font-size: var(--fs-md);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+}
+.podio-1 .podio-nome .fac-name { font-size: var(--fs-lg, 22px); }
+.podio .fac-own { color: var(--green); }
+.podio .fac-ally { color: #d876e0; }
+.podio .fac-enemy { color: #e05a5a; }
+.podio .fac-guest { color: var(--text); }
+
+.podio-punti { position: relative; display: flex; align-items: baseline; gap: 6px; }
+.podio-punti strong { font-family: var(--font-heading); font-weight: 800; font-size: 34px; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+.podio-1 .podio-punti strong { font-size: 42px; color: var(--medaglia); }
+.podio-punti > span { color: var(--text-dim); font-size: var(--fs-sm); }
+.podio-punti.score-cell strong { cursor: pointer; }
+.podio-barra { height: 6px; border-radius: 999px; background: var(--bg-elevated); overflow: hidden; margin-top: -6px; }
+.podio-barra i { display: block; height: 100%; border-radius: inherit; background: var(--medaglia, var(--purple)); }
+
+.podio-voci { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.podio-voci > div { min-width: 0; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-panel-2); border: 1px solid var(--border); }
+.podio-voci dt { display: flex; align-items: center; gap: 5px; color: var(--text-dimmer); font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; overflow: hidden; }
+.podio-voci dt .ico { flex: 0 0 auto; width: 12px; height: 12px; }
+.podio-voci dd { margin: 3px 0 0; font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.podio-membri { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+.podio-membri img {
+  width: 26px; height: 26px; border-radius: 6px; border: 2px solid var(--bg-panel);
+  margin-left: -6px; image-rendering: pixelated; background: var(--bg-elevated);
+}
+.podio-membri img:first-child { margin-left: 0; }
+.podio-altri { margin-left: 6px; color: var(--text-dim); font-size: var(--fs-xs); font-weight: 600; }
+.podio-membri small { margin-left: auto; color: var(--text-dim); font-size: var(--fs-xs); }
+
+/* Spiegazione del punteggio: chiusa, per chi la vuole. */
+.classifica-come {
+  margin: 0 0 18px; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-panel);
+}
+.classifica-come summary { display: flex; align-items: center; gap: 8px; padding: 12px 0; cursor: pointer; color: var(--text-dim); font-weight: 600; font-size: var(--fs-sm); list-style: none; }
+.classifica-come summary::-webkit-details-marker { display: none; }
+.classifica-come summary::after { content: "+"; margin-left: auto; font-size: var(--fs-md); color: var(--text-dimmer); }
+.classifica-come[open] summary::after { content: "–"; }
+.classifica-come summary:hover { color: var(--text); }
+.classifica-come p { margin: 0 0 14px; color: var(--text-dim); font-size: var(--fs-sm); line-height: 1.6; }
+.classifica-come b { color: var(--text); }
+
+.classifica-resto h3 { margin-top: 0; }
+table.rank tr.is-tua td { background: color-mix(in srgb, var(--green) 7%, transparent); }
+.classifica-vuota { display: flex; align-items: center; gap: 14px; color: var(--text-dim); }
+.classifica-vuota > .ico { width: 34px; height: 34px; flex: 0 0 auto; color: var(--gold, #f4c531); }
+.classifica-vuota p { margin: 0; }
+
+/* Giocatori: tre classifiche affiancate, con le teste accanto ai nomi. */
+.classifiche-giocatori { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 18px; align-items: start; }
+.classifiche-giocatori .player-board h3 { display: flex; align-items: center; gap: 8px; }
+.classifiche-giocatori .player-board h3 .ico { color: var(--purple); }
+.classifiche-giocatori table.rank td:last-child, .classifiche-giocatori table.rank th:last-child { text-align: right; }
+table.rank .pl-link, table.rank .player-cell > .pl-name { vertical-align: middle; }
+table.rank .pl-testa {
+  width: 24px; height: 24px; margin-right: 9px; vertical-align: middle;
+  border-radius: 5px; image-rendering: pixelated; background: var(--bg-elevated);
+}
+table.rank td:first-child { width: 1%; }
+
+@media (max-width: 860px) {
+  .podio, .podio.podio-n2 { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 18px; }
+  .podio-n3 .podio-1, .podio-n3 .podio-2, .podio-n3 .podio-3 { order: 0; margin-bottom: 0; }
+  .podio-carta { padding: 16px; }
+  .podio-carta.podio-1 { padding: 20px 16px; }
+  .podio-1 .podio-punti strong { font-size: 36px; }
+  .podio-punti strong { font-size: 28px; }
+  /* Etichette intere anche nei riquadri stretti: niente maiuscolo spaziato, niente icona. */
+  .podio-voci { gap: 6px; }
+  .podio-voci > div { padding: 8px; }
+  .podio-voci dt { text-transform: none; letter-spacing: 0; font-size: var(--fs-xs); }
+  .podio-voci dt .ico { display: none; }
+  .stats-refresh { border-radius: var(--radius-sm); align-items: flex-start; }
+  .stats-refresh-punto { margin-top: 5px; flex: 0 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) { .stats-refresh-punto { animation: none; } }
