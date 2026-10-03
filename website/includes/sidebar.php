@@ -11,6 +11,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/permissions.php';
+require_once __DIR__ . '/voice.php';
 
 /**
  * Vero se la pagina all'indirizzo $path deve avere la colonna laterale.
@@ -213,6 +214,57 @@ function sidebar_colonna(bool $conContenitore = true): void {
       <a href="/login" class="btn btn-ghost player-sidebar-btn">Accedi</a>
     <?php endif; ?>
     </aside>
+
+    <?php if (voice_ready()): ?>
+      <?php /* Scorciatoia della chat vocale (/voce): le stanze in cui chi guarda può entrare,
+               con chi c'è dentro adesso, e il totale delle altre fazioni (senza nomi: quelle
+               stanze sono private). I numeri li dà il server della voce, vedi voice_overview(). */
+      $voce = voice_overview($me);
+      $voceBan = $me ? voice_sanctions((string) $me['mc_uuid'])['ban'] !== null : false; ?>
+      <section class="panel modulo-voce">
+        <div class="online-head">
+          <span class="voce-dot<?= $voce['total'] > 0 ? ' is-attivo' : '' ?>" aria-hidden="true"></span>
+          <h3>Chat vocale</h3>
+          <span class="online-conta" title="Persone in chat vocale adesso"><?= (int) $voce['total'] ?></span>
+        </div>
+        <?php if (!$voceBan): ?>
+          <ul class="voce-side-stanze">
+            <?php foreach ($voce['rooms'] as $s): ?>
+              <li class="voce-side-stanza">
+                <a class="voce-side-link" href="/voce#<?= h($s['id']) ?>">
+                  <?= ui_icon(str_starts_with($s['id'], 'fazione-') ? 'shield' : 'users') ?>
+                  <span class="voce-side-nome"><?= h($s['name']) ?></span>
+                  <span class="voce-side-conta"><?= $s['count'] > 0 ? (int) $s['count'] : 'vuota' ?></span>
+                </a>
+                <?php if ($s['people']): ?>
+                  <span class="voce-side-facce">
+                    <?php foreach (array_slice($s['people'], 0, 8) as $p): ?>
+                      <img src="<?= h($p['avatar']) ?>" alt="<?= h($p['name']) ?>" title="<?= h($p['name']) ?>"
+                           width="22" height="22" loading="lazy">
+                    <?php endforeach; ?>
+                    <?php if (count($s['people']) > 8): ?>
+                      <span class="voce-side-altri">+<?= count($s['people']) - 8 ?></span>
+                    <?php endif; ?>
+                  </span>
+                <?php endif; ?>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+          <?php if ($voce['other_rooms'] > 0): ?>
+            <p class="voce-side-nota">
+              <?= $voce['other_people'] === 1 ? '1 persona' : (int) $voce['other_people'] . ' persone' ?>
+              nelle stanze di <?= $voce['other_rooms'] === 1 ? 'un\'altra fazione' : (int) $voce['other_rooms'] . ' altre fazioni' ?>.
+            </p>
+          <?php endif; ?>
+        <?php endif; ?>
+        <p class="voce-side-nota">Senza mod: si parla dal browser, anche dal telefono. Tieni aperta la scheda mentre giochi.</p>
+        <?php if (!$me): ?>
+          <a href="/login" class="btn btn-ghost btn-small voce-side-btn">Accedi per parlare</a>
+        <?php elseif (!$voceBan): ?>
+          <a href="/voce" class="btn btn-accent btn-small voce-side-btn"><?= ui_icon('headphones') ?> Apri la chat vocale</a>
+        <?php endif; ?>
+      </section>
+    <?php endif; ?>
 
     <?php if ($sulSito || $ospiti > 0): ?>
       <section class="panel modulo-online">

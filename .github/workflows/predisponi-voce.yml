@@ -128,6 +128,14 @@ jobs:
             printf 'attraverso nginx (https://magicadventure.it/voce-rtc/rtc/validate): HTTP '
             curl -s -m 8 -o /dev/null -w '%{http_code}' https://magicadventure.it/voce-rtc/rtc/validate || true
             echo "  (401 = arriva al server della voce, che vuole il gettone: giusto; 404 = nginx non ancora aggiornato; 502 = servizio spento)"
+            # Prova vera delle chiavi: il sito (includes/voice.php, con config.php) chiede l'elenco
+            # delle stanze al server della voce. "si" = chiave e segreto del sito sono quelli giusti.
+            printf 'il sito parla col server della voce: '
+            sudo php -r 'require "/var/www/magicadventure/includes/voice.php";
+              $r = voice_api_call("ListRooms", [], ["roomList" => true]);
+              if ($r === null) { echo "NO (chiavi diverse o server spento)\n"; exit; }
+              echo "si\n";
+              foreach ($r["rooms"] ?? [] as $s) { echo "  stanza ", $s["name"], ": ", (int) ($s["num_participants"] ?? 0), " persone\n"; }' 2>&1 | tail -n 20 || true
             echo; echo "=== ULTIME RIGHE DEL SERVIZIO ==="
             sudo journalctl -u magix-voce -n 25 --no-pager 2>/dev/null | { if [ -n "${s:-}" ]; then grep -vF "$s"; else cat; fi; } || true
           }
