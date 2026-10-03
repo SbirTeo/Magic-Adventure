@@ -46,5 +46,5 @@ currencies: true
 # decide se i giocatori possono spostarli, buttarli, raccoglierne altri, rompere blocchi... Serve
 # sia all'hub (inventario pulito con la bussola dei server) sia al faction (un oggetto fisso nella
 # barra rapida). DI SERIE SPENTO: va acceso dove serve. Quando e come si danno e le regole generali
-# stanno in customjoinitems.yml, gli oggetti veri in items.yml.
+# stanno in customjoinitems.yml, insieme agli oggetti (sezione items).
 customjoinitems: false

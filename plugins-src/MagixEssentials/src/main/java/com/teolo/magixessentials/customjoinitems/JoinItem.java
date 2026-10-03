@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Una voce di {@code items.yml}: l'oggetto che il modulo mette in un certo slot, con le regole che
+ * Una voce della sezione {@code items} di {@code customjoinitems.yml}: l'oggetto che il modulo mette in un certo slot, con le regole che
  * lo riguardano (si puo' spostare? buttare? cosa fa al clic?).
  *
  * <p>L'oggetto vero non vive qui: {@link #build(Player, NamespacedKey)} ne costruisce uno nuovo per
@@ -26,8 +26,11 @@ import java.util.Locale;
  */
 final class JoinItem {
 
-    /** Il clic che fa partire i comandi dell'oggetto. */
+    /** Il clic che fa partire i comandi della lista {@code commands}. */
     enum Click { ANY, LEFT, RIGHT }
+
+    /** Le liste di azioni per clic, dalla piu' precisa alla piu' generica (vedi {@link #actionsFor}). */
+    static final String[] CLICK_KEYS = {"shift-left-click", "shift-right-click", "left-click", "right-click"};
 
     final String id;
     final int slot;
@@ -46,6 +49,9 @@ final class JoinItem {
     final boolean vanillaUse;
     final Click click;
     final List<String> commands;
+    /** Le azioni per clic: shift-left-click, shift-right-click, left-click, right-click. */
+    final java.util.Map<String, List<String>> clickActions;
+    final boolean runInInventory;
     final long cooldownMillis;
 
     private JoinItem(String id, int slot, Material material, ConfigurationSection s) {
@@ -66,6 +72,13 @@ final class JoinItem {
         this.vanillaUse = s.getBoolean("vanilla-use", false);
         this.click = parseClick(s.getString("click", "any"));
         this.commands = s.getStringList("commands");
+        java.util.Map<String, List<String>> byClick = new java.util.HashMap<>();
+        for (String k : CLICK_KEYS) {
+            List<String> l = s.getStringList(k);
+            if (!l.isEmpty()) byClick.put(k, l);
+        }
+        this.clickActions = java.util.Map.copyOf(byClick);
+        this.runInInventory = s.getBoolean("run-in-inventory", false);
         this.cooldownMillis = Math.max(0, (long) (s.getDouble("cooldown-seconds", 1.0) * 1000));
     }
 
@@ -125,12 +138,31 @@ final class JoinItem {
         return permission == null || permission.isBlank() || p.hasPermission(permission);
     }
 
-    boolean matches(boolean left, boolean right) {
-        return switch (click) {
-            case ANY -> left || right;
+    /** Se l'oggetto ha almeno un'azione legata a un clic. */
+    boolean hasActions() {
+        return !commands.isEmpty() || !clickActions.isEmpty();
+    }
+
+    /**
+     * Le azioni per questo clic. Vince la lista piu' precisa: con shift premuto prima
+     * {@code shift-left-click}/{@code shift-right-click}, poi {@code left-click}/{@code right-click},
+     * e per ultima {@code commands} (filtrata da {@code click}). Mai due liste insieme.
+     */
+    List<String> actionsFor(boolean left, boolean right, boolean shift) {
+        String side = left ? "left-click" : right ? "right-click" : null;
+        if (side == null) return List.of();
+        if (shift) {
+            List<String> l = clickActions.get("shift-" + side);
+            if (l != null) return l;
+        }
+        List<String> l = clickActions.get(side);
+        if (l != null) return l;
+        boolean ok = switch (click) {
+            case ANY -> true;
             case LEFT -> left;
             case RIGHT -> right;
         };
+        return ok ? commands : List.of();
     }
 
     /** L'oggetto per questo giocatore, marchiato con l'id della voce. */

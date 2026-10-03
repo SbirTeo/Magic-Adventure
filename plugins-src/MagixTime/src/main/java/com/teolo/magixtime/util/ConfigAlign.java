@@ -216,7 +216,7 @@ public final class ConfigAlign {
      * una trappola per chi configura.</p>
      *
      * <p>Le eccezioni sono i CATALOGHI, e si elencano qui: {@code menus/*.yml}, {@code sanctions.yml},
-     * {@code items.yml}, {@code glyphs.yml} e {@code currencies.yml} li allunga lo staff, e li' le
+     * {@code items.yml}, {@code glyphs.yml}, {@code currencies.yml} e {@code customjoinitems.yml} (MagixEssentials, gli oggetti sotto items) li allunga lo staff, e li' le
      * voci in piu' sono lavoro suo, non residui. La lista e' fatta cosi', per esclusione, perche' i
      * file a schema fisso crescono — un plugin aggiunge il file di una funzione nuova — mentre i
      * cataloghi sono questi e si sanno.</p>
@@ -224,7 +224,7 @@ public final class ConfigAlign {
     private static boolean cleanable(String fileName) {
         return !fileName.startsWith("menus/") && !fileName.equals("sanctions.yml")
                 && !fileName.equals("items.yml") && !fileName.equals("glyphs.yml")
-                && !fileName.equals("currencies.yml");
+                && !fileName.equals("currencies.yml") && !fileName.equals("customjoinitems.yml");
     }
 
     /**

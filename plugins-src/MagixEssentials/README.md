@@ -25,8 +25,7 @@ file diversi:
 | `nametag.yml` | Com'e' fatta la targhetta sopra la testa: le righe, chi la disegna, altezze, quando sparisce. |
 | `chat.yml` | Il formato della chat pubblica (grado, nome, fazione) e dei messaggi che arrivano dal sito. |
 | `currencies.yml` | Le valute create dallo staff: un catalogo, non uno schema fisso — una voce per valuta. |
-| `customjoinitems.yml` | Quando e come si danno gli oggetti fissi dell'inventario e le regole generali (buttare, raccogliere, rompere...). |
-| `items.yml` | Gli oggetti fissi veri: un catalogo, una voce per oggetto. |
+| `customjoinitems.yml` | Gli oggetti fissi dell'inventario (sezione `items`, un catalogo: una voce per oggetto), quando e come si danno e le regole generali (buttare, raccogliere, rompere...). |
 | `config.yml` | Solo cio' che vale per il **plugin intero**: oggi il database delle valute condivise. |
 
 Il filtro dell'autocompletamento non ha un file suo: l'interruttore `tabcomplete` in `modules.yml`
@@ -491,10 +490,10 @@ Mette negli inventari dei giocatori gli oggetti decisi dallo staff — la bussol
 un oggetto fisso nella barra rapida sul faction — e dice cosa i giocatori possono farci. **Di serie
 e' spento**: si accende con `customjoinitems: true` in `modules.yml`, server per server.
 
-Due file: `customjoinitems.yml` (quando e come si danno, regole generali) e `items.yml` (il catalogo
-degli oggetti: slot, materiale, nome, descrizione, texture, permesso, comandi al clic; ogni chiave
-e' spiegata nel file). Gli oggetti si riconoscono da un marchio con l'id della voce nei dati
-dell'oggetto, non dal nome.
+Tutto sta in `customjoinitems.yml`: quando e come si danno, le regole generali e, nella sezione
+`items` (un catalogo: le voci le aggiunge lo staff e non vengono ripulite), gli oggetti con slot,
+materiale, nome, descrizione, texture, permesso e azioni al clic; ogni chiave e' spiegata nel file.
+Gli oggetti si riconoscono da un marchio con l'id della voce nei dati dell'oggetto, non dal nome.
 
 | Chiave | Cosa fa |
 |---|---|
@@ -502,6 +501,7 @@ dell'oggetto, non dal nome.
 | `clear-inventory` | Svuota tutto prima di dare: per l'hub, mai per il faction. |
 | `if-slot-occupied` | `move` (sposta la cosa del giocatore, se non c'e' posto non da l'oggetto), `replace`, `keep`. |
 | `rules.allow-*` | Regole generali: spostare, buttare, raccogliere, rompere e piazzare blocchi, scambiare le mani, durabilita'. `false` = vietato, per tutto e non solo per gli oggetti del modulo. |
+| `left-click` / `right-click` / `shift-left-click` / `shift-right-click` / `commands` (per oggetto) | Le azioni al clic, vince la lista piu' precisa. Prefissi: `player:`, `console:`, `server:` (cambio server via Velocity), `message:`, `sound:`. Con `run-in-inventory` partono anche a inventario aperto. |
 | `movable` / `droppable` / `vanilla-use` (per oggetto) | Spostarlo, buttarlo, usarlo come l'oggetto vero. Di serie tutti `false`. |
 
 Gli oggetti del modulo non cadono mai a terra alla morte e tornano alla rinascita. Il permesso
