@@ -933,10 +933,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $description = trim($_POST['description'] ?? '');
             $longDescription = trim($_POST['long_description'] ?? '');
             $price = round((float) str_replace(',', '.', (string) ($_POST['price'] ?? '0')), 2);
-            $commands = trim(str_replace(["
-", "
-"], "
-", $_POST['commands'] ?? ''));
+            // Comandi divisi per server: un riquadro per ogni modalita' di GAME_SERVERS, che
+            // arriva come commands[<server>]. Si salvano solo i server noti e non vuoti.
+            $postCommands = $_POST['commands'] ?? [];
+            if (!is_array($postCommands)) {
+                $postCommands = [STORE_LEGACY_SERVER => (string) $postCommands];
+            }
+            $serverCommands = [];
+            foreach (array_keys(GAME_SERVERS) as $server) {
+                $testo = trim(str_replace(["\r\n", "\r"], "\n", (string) ($postCommands[$server] ?? '')));
+                if ($testo !== '') {
+                    $serverCommands[$server] = $testo;
+                }
+            }
+            // La colonna di sempre tiene i comandi del faction: e' quella che legge chi non sa
+            // ancora dei comandi per server (prima della migrazione).
+            $commands = $serverCommands[STORE_LEGACY_SERVER] ?? '';
             $sortOrder = (int) ($_POST['sort_order'] ?? 0);
             $enabled = isset($_POST['enabled']) ? 1 : 0;
             $featured = isset($_POST['featured']) ? 1 : 0;
@@ -985,6 +997,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare('UPDATE store_packages SET image_url_light = ? WHERE id = ?')
                     ->execute([$imageUrlLight, $id]);
             }
+            // ...e per i comandi divisi per server (migrazione 2026-10-03-store-comandi-per-server.sql).
+            if (store_has_server_commands()) {
+                db()->prepare('UPDATE store_packages SET server_commands = ? WHERE id = ?')
+                    ->execute([json_encode((object) $serverCommands, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $id]);
+            }
             if ($featured) {
                 db()->prepare('UPDATE store_packages SET featured = 0 WHERE id <> ?')->execute([$id]);
             }
@@ -1009,9 +1026,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ins->execute([$pkg['category_id'], $nome, $slug, $pkg['image_url'], $pkg['description'], $pkg['long_description'],
                            $pkg['price'], $pkg['commands'], (int) $pkg['sort_order'] + 1]);
             $nuovoId = (int) db()->lastInsertId();
-            // La copia si porta dietro anche la copertina del tema chiaro.
+            // La copia si porta dietro anche la copertina del tema chiaro...
             if (store_has_light_cover()) {
                 db()->prepare('UPDATE store_packages c JOIN store_packages o ON o.id = ? SET c.image_url_light = o.image_url_light WHERE c.id = ?')
+                    ->execute([$id, $nuovoId]);
+            }
+            // ...e i comandi di ogni server.
+            if (store_has_server_commands()) {
+                db()->prepare('UPDATE store_packages c JOIN store_packages o ON o.id = ? SET c.server_commands = o.server_commands WHERE c.id = ?')
                     ->execute([$id, $nuovoId]);
             }
             redirect('/manage?section=store_pkg_edit&id=' . $nuovoId . '&ok=1');
@@ -3356,7 +3378,17 @@ if ($section === 'dashboard') {
                   </div>
                   <div class="sub">
                     <?= h(number_format((float) $p['price'], 2, ',', '.')) ?> <?= h(site_setting('store_currency', 'EUR')) ?> ·
-                    <?= $p['commands'] ? count(array_filter(array_map('trim', explode("\n", $p['commands'])))) . ' comandi' : 'nessun comando' ?>
+                    <?php
+                    // Comandi per server: "3 comandi (Factions 2 · Hub 1)".
+                    $perServer = [];
+                    $totale = 0;
+                    foreach (store_package_commands($p) as $server => $testo) {
+                        $n = count(store_command_lines($testo));
+                        $totale += $n;
+                        $perServer[] = (GAME_SERVERS[$server]['label'] ?? $server) . ' ' . $n;
+                    }
+                    echo $totale > 0 ? h($totale . ($totale === 1 ? ' comando' : ' comandi') . ' (' . implode(' · ', $perServer) . ')') : 'nessun comando';
+                    ?>
                   </div>
                 </div>
                 <div class="actions">
@@ -3773,13 +3805,30 @@ if ($section === 'dashboard') {
             la pagina che si apre cliccando la card. Se lo lasci vuoto, la pagina mostra solo l'elenco qui sopra.
           </p>
         </div>
+        <?php
+        // Un riquadro di comandi per ogni server della rete (il principale per primo). Prima
+        // della migrazione dei comandi per server, solo quello del faction: come sempre.
+        $pkgCommands = store_package_commands($pkg);
+        $serverForm = store_has_server_commands()
+            ? array_keys(array_merge([GAME_SERVER_MAIN => true], GAME_SERVERS))
+            : [STORE_LEGACY_SERVER];
+        ?>
         <div>
-          <label for="pkg_commands">Comandi eseguiti all'acquisto</label>
-          <textarea id="pkg_commands" name="commands" rows="5" placeholder="lp user {player} parent add vip&#10;give {player} diamond 64"><?= h((string) $pkg['commands']) ?></textarea>
-          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:4px 0 0;">
-            Uno per riga, senza <code>/</code> iniziale, eseguiti dalla console del server.
-            Usa <code>{player}</code> per il nome di chi acquista.
+          <label style="margin-bottom:2px;">Comandi eseguiti all'acquisto, divisi per server</label>
+          <p style="color:var(--text-dim); font-size: var(--fs-xs); margin:0 0 8px;">
+            Ogni server esegue solo i comandi del suo riquadro, dalla propria console: così un pacchetto
+            può dare qualcosa su Factions e qualcos'altro sull'Hub. Uno per riga, senza <code>/</code>
+            iniziale; <code>{player}</code> è il nome di chi acquista. Se un server è spento, i suoi comandi
+            aspettano e partono quando riaccende. I comandi che vogliono il giocatore connesso
+            (<code>give</code>...) mettili nel server dove si trova; gradi e valute funzionano anche da offline.
           </p>
+          <?php foreach ($serverForm as $server): ?>
+            <label for="pkg_commands_<?= h($server) ?>" style="text-transform:none; margin-top:8px;">
+              Su <strong><?= h(GAME_SERVERS[$server]['label'] ?? $server) ?></strong>
+            </label>
+            <textarea id="pkg_commands_<?= h($server) ?>" name="commands[<?= h($server) ?>]" rows="4"
+                      placeholder="<?= $server === STORE_LEGACY_SERVER ? 'lp user {player} parent add vip&#10;give {player} diamond 64' : '' ?>"><?= h($pkgCommands[$server] ?? '') ?></textarea>
+          <?php endforeach; ?>
         </div>
         <div>
           <label for="pkg_sort">Ordine (numero, crescente)</label>

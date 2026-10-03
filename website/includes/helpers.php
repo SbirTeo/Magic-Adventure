@@ -1045,6 +1045,74 @@ function store_has_light_cover(): bool {
 }
 
 /**
+ * Il server che eseguiva i comandi dei pacchetti prima che si dividessero per server (la colonna
+ * `commands` di sempre, e le righe vecchie della coda): il faction, l'unico che li consegnava.
+ */
+const STORE_LEGACY_SERVER = 'faction';
+
+/**
+ * Se il database ha i comandi divisi per server (store_packages.server_commands). Come per
+ * store_ha_inquadratura(): finche' la migrazione 2026-10-03-store-comandi-per-server.sql non e'
+ * stata lanciata il gestionale mostra un solo riquadro (quello del faction) e salva come prima.
+ */
+function store_has_server_commands(): bool {
+    static $ok = null;
+    if ($ok !== null) {
+        return $ok;
+    }
+    try {
+        $ok = (bool) db()->query("SHOW COLUMNS FROM store_packages LIKE 'server_commands'")->fetch();
+    } catch (Throwable $e) {
+        $ok = false;
+    }
+    return $ok;
+}
+
+/**
+ * Se la coda dello store sa per quale server e' ogni comando (store_command_queue.server). La
+ * aggiungono la stessa migrazione e MagixBridge 0.15.0 all'avvio, chi arriva prima.
+ */
+function store_queue_has_server(): bool {
+    static $ok = null;
+    if ($ok !== null) {
+        return $ok;
+    }
+    try {
+        $ok = (bool) db()->query("SHOW COLUMNS FROM store_command_queue LIKE 'server'")->fetch();
+    } catch (Throwable $e) {
+        $ok = false;
+    }
+    return $ok;
+}
+
+/**
+ * I comandi di un pacchetto divisi per server: ['faction' => "riga\nriga", 'hub' => ...], solo i
+ * server che ne hanno. Da server_commands (JSON) se c'e'; altrimenti la colonna `commands` di
+ * sempre, che erano i comandi del faction.
+ */
+function store_package_commands(array $pkg): array {
+    $out = [];
+    $json = $pkg['server_commands'] ?? null;
+    $perServer = is_string($json) && $json !== '' ? json_decode($json, true) : null;
+    if (is_array($perServer)) {
+        foreach ($perServer as $server => $text) {
+            $text = trim((string) $text);
+            if (is_string($server) && $text !== '') {
+                $out[$server] = $text;
+            }
+        }
+        return $out;
+    }
+    $legacy = trim((string) ($pkg['commands'] ?? ''));
+    return $legacy !== '' ? [STORE_LEGACY_SERVER => $legacy] : [];
+}
+
+/** Le righe di comando vere (non vuote) di un testo del pacchetto, una per riga. */
+function store_command_lines(string $text): array {
+    return array_values(array_filter(array_map('trim', explode("\n", $text)), static fn($r) => $r !== ''));
+}
+
+/**
  * Le due copertine di un pacchetto: ['scura' => ..., 'chiara' => ...], stringa vuota se non c'e'
  * nessuna immagine. Se ne e' stata caricata una sola vale in tutti e due i temi, cosi' un
  * pacchetto con la sola copertina di sempre si vede come prima anche col tema chiaro.

@@ -12,9 +12,10 @@ network:
   # Il nome di questo server nella rete: gli altri lo usano in %network_<server>_...%.
   # Senza trattini bassi.
   server-name: faction
-  # true su UN solo server della rete: consegna degli acquisti, traduzione del sito, elenco dei
-  # gruppi, guida per amministratori, pulizia della chat del sito. Su tutti gli altri false:
-  # fatto due volte, un acquisto verrebbe consegnato due volte.
+  # true su UN solo server della rete: traduzione del sito, elenco dei gruppi, guida per
+  # amministratori, pulizia della chat del sito. Su tutti gli altri false: sono lavori da fare una
+  # volta sola. La consegna degli acquisti non c'entra: ogni server esegue i comandi della sua
+  # modalità (quelli scritti per server-name nel pacchetto dello store).
   site-jobs: true
 
 # Ponte dei placeholder fra le modalità: quello che un server sa calcolare (perché ha il
@@ -69,7 +70,8 @@ ranks:
   sync-interval-minutes: 5
 
 # Consegna degli acquisti dello store: il sito accoda i comandi dopo il pagamento
-# confermato da PayPal, il plugin li esegue dalla console.
+# confermato da PayPal, il plugin li esegue dalla console. Ogni server esegue solo i comandi
+# della sua modalità (network.server-name), scritti a parte per ogni server nel pacchetto.
 store:
   # Ogni quanto controllare la coda (secondi, minimo 3)
   check-interval-seconds: 10
